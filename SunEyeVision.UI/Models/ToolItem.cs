@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 
 namespace SunEyeVision.UI.Models
 {
@@ -26,19 +27,48 @@ namespace SunEyeVision.UI.Models
     /// <summary>
     /// 工具箱分类模型
     /// </summary>
-    public class ToolCategory
+    public class ToolCategory : INotifyPropertyChanged
     {
+        private bool _isExpanded;
+        private System.Collections.ObjectModel.ObservableCollection<ToolItem>? _filteredToolsForCategory;
+
         public string Name { get; set; }
         public string Icon { get; set; }
         public string Description { get; set; }
         public int ToolCount { get; set; }
 
-        public ToolCategory(string name, string icon, string description, int toolCount = 0)
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set
+            {
+                if (_isExpanded != value)
+                {
+                    _isExpanded = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+                }
+            }
+        }
+
+        public System.Collections.ObjectModel.ObservableCollection<ToolItem>? FilteredToolsForCategory
+        {
+            get => _filteredToolsForCategory;
+            set
+            {
+                _filteredToolsForCategory = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FilteredToolsForCategory)));
+            }
+        }
+
+        public ToolCategory(string name, string icon, string description, int toolCount = 0, bool isExpanded = true)
         {
             Name = name;
             Icon = icon;
             Description = description;
             ToolCount = toolCount;
+            IsExpanded = isExpanded;
         }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

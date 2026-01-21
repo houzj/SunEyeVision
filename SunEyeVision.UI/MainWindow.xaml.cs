@@ -79,6 +79,14 @@ namespace SunEyeVision.UI
             }
         }
 
+        private void CategoryHeader_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is ToolCategory category)
+            {
+                category.IsExpanded = !category.IsExpanded;
+            }
+        }
+
         private void WorkflowCanvas_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent("ToolItem"))

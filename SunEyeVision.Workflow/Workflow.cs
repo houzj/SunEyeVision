@@ -29,17 +29,25 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// Node list
         /// </summary>
-        public List<WorkflowNode> Nodes { get; private set; }
+        public List<WorkflowNode> Nodes { get; set; }
 
         /// <summary>
         /// Node connections (source node ID -> target node ID list)
         /// </summary>
-        public Dictionary<string, List<string>> Connections { get; private set; }
+        public Dictionary<string, List<string>> Connections { get; set; }
 
         /// <summary>
         /// Logger
         /// </summary>
         private ILogger Logger { get; set; }
+
+        /// <summary>
+        /// Set logger (internal use for deserialization)
+        /// </summary>
+        internal void SetLogger(ILogger logger)
+        {
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         public Workflow(string id, string name, ILogger logger)
         {

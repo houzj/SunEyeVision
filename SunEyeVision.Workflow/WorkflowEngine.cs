@@ -181,15 +181,26 @@ namespace SunEyeVision.Workflow
             {
                 var json = File.ReadAllText(filePath);
                 var workflow = JsonSerializer.Deserialize<Workflow>(json);
-                
+
                 if (workflow != null)
                 {
                     // Re-assign logger since it's not serialized
-                    var existingWorkflow = new Workflow(workflow.Id, workflow.Name, Logger);
-                    existingWorkflow.Description = workflow.Description;
-                    Workflows[workflow.Id] = existingWorkflow;
-                    
+                    workflow.SetLogger(Logger);
+
+                    // Ensure collections are initialized if null
+                    if (workflow.Nodes == null)
+                    {
+                        workflow.Nodes = new List<WorkflowNode>();
+                    }
+
+                    if (workflow.Connections == null)
+                    {
+                        workflow.Connections = new Dictionary<string, List<string>>();
+                    }
+
+                    Workflows[workflow.Id] = workflow;
                     Logger.LogInfo($"Workflow loaded from file: {workflow.Name}");
+                    Logger.LogInfo($"  - Loaded {workflow.Nodes.Count} nodes and {workflow.Connections.Count} connections");
                     return true;
                 }
 

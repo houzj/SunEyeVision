@@ -48,6 +48,7 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<string> Workflows { get; }
 
         public ObservableCollection<Models.ToolItem> Tools { get; }
+        public ToolboxViewModel Toolbox { get; }
         public ObservableCollection<Models.WorkflowNode> WorkflowNodes { get; }
         public ObservableCollection<Models.WorkflowConnection> WorkflowConnections { get; }
 
@@ -87,6 +88,7 @@ namespace SunEyeVision.UI.ViewModels
             };
 
             Tools = new ObservableCollection<Models.ToolItem>();
+            Toolbox = new ToolboxViewModel();
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
 

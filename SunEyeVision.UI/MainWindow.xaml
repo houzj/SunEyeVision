@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SunEyeVision.UI"
         xmlns:vm="clr-namespace:SunEyeVision.UI.ViewModels"
+        xmlns:converters="clr-namespace:SunEyeVision.UI.Converters"
         mc:Ignorable="d"
         Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
         WindowStartupLocation="CenterScreen"
@@ -17,6 +18,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/AppResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -175,60 +177,6 @@
             <TextBlock Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
         </ToolBar>
 
-        <!-- ========== 标签栏 (32px) ========== -->
-        <Border DockPanel.Dock="Top" Height="32" Background="#E8E8E8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal">
-                <Button Background="#FFFFFF" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="▼" FontSize="10" Foreground="#666666" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="工作流" FontWeight="Bold" VerticalAlignment="Center" FontSize="12"/>
-                    </StackPanel>
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🔄" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="结果预览" VerticalAlignment="Center" FontSize="12" Foreground="#333333"/>
-                    </StackPanel>
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📋" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="日志" VerticalAlignment="Center" FontSize="12" Foreground="#333333"/>
-                    </StackPanel>
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <Button Background="Transparent" Padding="12,0" Height="32" ToolTip="新建标签">
-                    <TextBlock Text="+" FontSize="18" Foreground="#666666" VerticalAlignment="Center"/>
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}">
-                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </StackPanel>
-        </Border>
 
         <!-- ========== 主内容区域 ========== -->
         <Grid>
@@ -242,36 +190,160 @@
                 <RowDefinition Height="24"/>
             </Grid.RowDefinitions>
 
-            <!-- ========== 左侧工具区 (260px) ========== -->
+            <!-- ========== 左侧工具区 (280px) ========== -->
             <Border Grid.Column="0" Background="#F8F8F8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="8">
-                        <!-- 图像处理工具组 -->
-                        <TextBlock Text="图像处理" FontSize="12" FontWeight="Bold" Foreground="#333333" Margin="0,8,0,4"/>
-                        <ItemsControl ItemsSource="{Binding Tools}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Columns="3"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                <DockPanel>
+                    <!-- 搜索框和折叠/展开按钮 -->
+                    <Border DockPanel.Dock="Top" Padding="8,8,8,4" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <TextBox Text="{Binding Toolbox.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1"
+                                     Padding="8,6" FontSize="12" Height="32"
+                                     VerticalContentAlignment="Center">
+                                <TextBox.Template>
+                                    <ControlTemplate TargetType="TextBox">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="4">
+                                            <Grid>
+                                                <TextBlock Text="🔍" Margin="8,0,4,0" FontSize="14" VerticalAlignment="Center" Foreground="#999999"/>
+                                                <ScrollViewer x:Name="PART_ContentHost" Margin="24,0,8,0" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </TextBox.Template>
+                            </TextBox>
+                            <!-- 折叠/展开按钮 -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                <Button Content="📂 全部展开" Command="{Binding Toolbox.ExpandAllCommand}"
+                                        Padding="8,4" Margin="2,0" FontSize="11" Background="#F0F8FF"
+                                        BorderBrush="#0066CC" BorderThickness="1"
+                                        Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button Content="📁 全部折叠" Command="{Binding Toolbox.CollapseAllCommand}"
+                                        Padding="8,4" Margin="2,0" FontSize="11" Background="#FFF8F0"
+                                        BorderBrush="#FF9900" BorderThickness="1"
+                                        Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 工具箱列表 -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Toolbox.Categories}" Margin="4">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Padding="8" Margin="2" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1"
-                                            Cursor="Hand"
-                                            ToolTipService.ToolTip="{Binding Description}"
-                                            ToolTipService.ShowDuration="5000"
-                                            MouseLeftButtonDown="ToolItem_MouseLeftButtonDown"
-                                            Tag="{Binding}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Icon}" FontSize="24" HorizontalAlignment="Center" Margin="0,4,0,8"/>
-                                            <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#333333" HorizontalAlignment="Center" TextWrapping="Wrap"/>
-                                        </StackPanel>
+                                    <Border Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" Margin="0,4" CornerRadius="4">
+                                        <DockPanel>
+                                            <!-- 分类标题栏（可折叠） -->
+                                            <Border DockPanel.Dock="Top" Background="#F0F0F0" Padding="8,10,8,10"
+                                                    Cursor="Hand"
+                                                    MouseLeftButtonUp="CategoryHeader_MouseLeftButtonUp"
+                                                    Tag="{Binding}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#333333"
+                                                               VerticalAlignment="Center"/>
+
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding ToolCount}"
+                                                                   FontSize="11"
+                                                                   Foreground="#666666"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0"/>
+                                                        <TextBlock Text="▼" FontSize="10"
+                                                                   Foreground="#999999"
+                                                                   VerticalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="RenderTransform">
+                                                                        <Setter.Value>
+                                                                            <RotateTransform Angle="0"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="False">
+                                                                            <Setter Property="RenderTransform">
+                                                                                <Setter.Value>
+                                                                                    <RotateTransform Angle="-90"/>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- 工具列表（可折叠） -->
+                                            <Border Padding="8" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <ItemsControl ItemsSource="{Binding FilteredToolsForCategory}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Padding="8" Margin="3" Background="#F5F5F5" BorderBrush="#D0D0D0" BorderThickness="1"
+                                                                    CornerRadius="3"
+                                                                    Cursor="Hand"
+                                                                    Width="80" Height="70"
+                                                                    ToolTipService.ToolTip="{Binding Description}"
+                                                                    ToolTipService.ShowDuration="5000"
+                                                                    MouseLeftButtonDown="ToolItem_MouseLeftButtonDown"
+                                                                    Tag="{Binding}">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Icon}" FontSize="20" HorizontalAlignment="Center" Margin="0,2,0,4"/>
+                                                                    <TextBlock Text="{Binding Name}" FontSize="9" Foreground="#333333" HorizontalAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
+                                            </Border>
+                                        </DockPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
+                    </ScrollViewer>
+                </DockPanel>
             </Border>
 
             <!-- ========== 中间工作区 ========== -->

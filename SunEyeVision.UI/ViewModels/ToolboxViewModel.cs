@@ -1,31 +1,23 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows.Input;
+using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.SampleTools;
 using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 工具箱视图模型
+    /// 工具箱视图模型 - 支持动态插件加载
     /// </summary>
     public class ToolboxViewModel : ViewModelBase
     {
-        private string _selectedCategory = "全部";
         private string _searchText = "";
+        private ObservableCollection<ToolItem> _filteredTools;
+        private readonly ToolRegistry _toolRegistry;
 
         public ObservableCollection<ToolCategory> Categories { get; }
-        public ObservableCollection<ToolItem> Tools { get; }
-
-        public string SelectedCategory
-        {
-            get => _selectedCategory;
-            set
-            {
-                if (SetProperty(ref _selectedCategory, value))
-                {
-                    FilterTools();
-                }
-            }
-        }
+        public ObservableCollection<ToolItem> AllTools { get; }
 
         public string SearchText
         {
@@ -39,77 +31,175 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        public ObservableCollection<ToolItem> FilteredTools { get; }
+        public ObservableCollection<ToolItem> FilteredTools
+        {
+            get => _filteredTools;
+            set => SetProperty(ref _filteredTools, value);
+        }
 
-        public ICommand SelectCategoryCommand { get; }
+        public ICommand ToggleCategoryCommand { get; }
         public ICommand UseToolCommand { get; }
+        public ICommand ExpandAllCommand { get; }
+        public ICommand CollapseAllCommand { get; }
 
         public ToolboxViewModel()
         {
             Categories = new ObservableCollection<ToolCategory>();
-            Tools = new ObservableCollection<ToolItem>();
+            AllTools = new ObservableCollection<ToolItem>();
             FilteredTools = new ObservableCollection<ToolItem>();
+            _toolRegistry = new ToolRegistry();
 
-            SelectCategoryCommand = new RelayCommand<string>(ExecuteSelectCategory);
+            ToggleCategoryCommand = new RelayCommand<ToolCategory>(ExecuteToggleCategory);
             UseToolCommand = new RelayCommand<ToolItem>(ExecuteUseTool);
+            ExpandAllCommand = new RelayCommand(ExecuteExpandAll);
+            CollapseAllCommand = new RelayCommand(ExecuteCollapseAll);
 
-            InitializeData();
+            InitializeFromPlugins();
         }
 
-        private void InitializeData()
+        /// <summary>
+        /// 从插件初始化工具箱
+        /// </summary>
+        private void InitializeFromPlugins()
         {
-            Categories.Add(new ToolCategory("全部", "", "所有工具", 0));
-            Categories.Add(new ToolCategory("图像处理", "", "基本图像操作", 0));
-            Categories.Add(new ToolCategory("图像增强", "", "图像增强算法", 0));
-            Categories.Add(new ToolCategory("特征提取", "", "特征提取与识别", 0));
-            Categories.Add(new ToolCategory("深度学习", "", "AI深度学习模型", 0));
-            Categories.Add(new ToolCategory("设备控制", "", "硬件设备管理", 0));
+            // 清空现有数据
+            Categories.Clear();
+            AllTools.Clear();
+            _toolRegistry.Clear();
 
-            Tools.Add(new ToolItem("灰度转换", "图像处理", "", "将彩色图像转换为灰度图像", "GrayScale"));
-            Tools.Add(new ToolItem("高斯模糊", "图像处理", "", "应用高斯模糊滤镜", "GaussianBlur"));
-            Tools.Add(new ToolItem("图像缩放", "图像处理", "", "调整图像尺寸", "Resize"));
-            Tools.Add(new ToolItem("图像旋转", "图像处理", "", "旋转或翻转图像", "Rotate"));
-            Tools.Add(new ToolItem("图像裁剪", "图像处理", "", "裁剪图像区域", "Crop"));
-            Tools.Add(new ToolItem("二值化", "图像增强", "", "将图像转换为二值图像", "Threshold"));
-            Tools.Add(new ToolItem("边缘检测", "图像增强", "", "检测图像边缘", "EdgeDetection"));
-            Tools.Add(new ToolItem("形态学操作", "图像增强", "", "形态学操作（腐蚀、膨胀等）", "Morphology"));
-            Tools.Add(new ToolItem("直方图", "图像增强", "", "增强图像对比度", "Histogram"));
-            Tools.Add(new ToolItem("Blob检测", "特征提取", "", "检测图像中的斑点", "BlobDetection"));
-            Tools.Add(new ToolItem("直线检测", "特征提取", "", "检测图像中的直线", "LineDetection"));
-            Tools.Add(new ToolItem("圆形检测", "特征提取", "", "检测图像中的圆形", "CircleDetection"));
-            Tools.Add(new ToolItem("图像分类", "深度学习", "", "使用深度学习进行图像分类", "ImageClassification"));
-            Tools.Add(new ToolItem("目标检测", "深度学习", "", "使用深度学习检测图像中的目标", "ObjectDetection"));
-            Tools.Add(new ToolItem("图像采集", "设备控制", "", "从相机采集图像", "ImageCapture"));
+            // 创建并注册示例工具插件
+            var imageCapturePlugin = new ImageCaptureTool();
+            var templateMatchingPlugin = new TemplateMatchingTool();
+            var gaussianBlurPlugin = new GaussianBlurTool();
+            var ocrPlugin = new OCRTool();
 
-            FilterTools();
+            // 注册插件
+            RegisterPlugin(imageCapturePlugin);
+            RegisterPlugin(templateMatchingPlugin);
+            RegisterPlugin(gaussianBlurPlugin);
+            RegisterPlugin(ocrPlugin);
+
+            // 从ToolRegistry加载工具
+            LoadToolsFromRegistry();
+
+            // 更新分类的工具数量
+            UpdateCategoryToolCounts();
+
+            // 初始化过滤后的工具
+            FilteredTools = new ObservableCollection<ToolItem>(AllTools);
+        }
+
+        /// <summary>
+        /// 注册工具插件
+        /// </summary>
+        private void RegisterPlugin(IToolPlugin plugin)
+        {
+            plugin.Initialize();
+            _toolRegistry.RegisterFromPlugin(plugin);
+        }
+
+        /// <summary>
+        /// 从工具注册中心加载工具
+        /// </summary>
+        private void LoadToolsFromRegistry()
+        {
+            var categories = _toolRegistry.GetAllCategories();
+            foreach (var category in categories)
+            {
+                var categoryIcon = GetCategoryIcon(category);
+                var categoryDesc = GetCategoryDescription(category);
+                Categories.Add(new ToolCategory(category, categoryIcon, categoryDesc, 0, false));
+            }
+
+            var tools = _toolRegistry.GetAllTools();
+            foreach (var tool in tools)
+            {
+                var toolItem = new ToolItem(
+                    tool.DisplayName,
+                    tool.Category,
+                    tool.Icon,
+                    tool.Description,
+                    tool.AlgorithmType?.Name
+                );
+                AllTools.Add(toolItem);
+            }
+        }
+
+        /// <summary>
+        /// 获取分类图标
+        /// </summary>
+        private string GetCategoryIcon(string category)
+        {
+            return category switch
+            {
+                "采集" => "📷",
+                "定位" => "📍",
+                "图像处理" => "🖼️",
+                "识别" => "🔍",
+                "测量" => "📏",
+                _ => "🔧"
+            };
+        }
+
+        /// <summary>
+        /// 获取分类描述
+        /// </summary>
+        private string GetCategoryDescription(string category)
+        {
+            return category + "相关工具";
+        }
+
+        private void UpdateCategoryToolCounts()
+        {
+            foreach (var category in Categories)
+            {
+                category.ToolCount = AllTools.Count(t => t.Category == category.Name);
+                // 为每个分类过滤工具
+                var filtered = AllTools.Where(t => t.Category == category.Name).ToList();
+                category.FilteredToolsForCategory = new System.Collections.ObjectModel.ObservableCollection<ToolItem>(filtered);
+            }
         }
 
         private void FilterTools()
         {
-            FilteredTools.Clear();
-
-            foreach (var tool in Tools)
+            if (string.IsNullOrWhiteSpace(SearchText))
             {
-                bool categoryMatch = SelectedCategory == "全部" || tool.Category == SelectedCategory;
-                bool searchMatch = string.IsNullOrEmpty(SearchText) ||
-                                 tool.Name.Contains(SearchText) ||
-                                 tool.Description.Contains(SearchText);
-
-                if (categoryMatch && searchMatch)
-                {
-                    FilteredTools.Add(tool);
-                }
+                FilteredTools = new ObservableCollection<ToolItem>(AllTools);
+            }
+            else
+            {
+                var filtered = AllTools.Where(t =>
+                    t.Name.Contains(SearchText) ||
+                    t.Description.Contains(SearchText)
+                ).ToList();
+                FilteredTools = new ObservableCollection<ToolItem>(filtered);
             }
         }
 
-        private void ExecuteSelectCategory(string category)
+        private void ExecuteToggleCategory(ToolCategory category)
         {
-            SelectedCategory = category;
+            category.IsExpanded = !category.IsExpanded;
         }
 
         private void ExecuteUseTool(ToolItem tool)
         {
             // TODO: 实现工具使用事件
+        }
+
+        private void ExecuteExpandAll()
+        {
+            foreach (var category in Categories)
+            {
+                category.IsExpanded = true;
+            }
+        }
+
+        private void ExecuteCollapseAll()
+        {
+            foreach (var category in Categories)
+            {
+                category.IsExpanded = false;
+            }
         }
     }
 }
