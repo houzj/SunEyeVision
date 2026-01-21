@@ -1,0 +1,53 @@
+# VisionMaster Python Service Configuration
+
+# 服务配置
+server:
+  host: 0.0.0.0
+  port: 5000
+  debug: true
+
+# 日志配置
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: logs/service.log
+
+# 模型配置
+models:
+  # YOLO模型路径
+  yolo:
+    path: models/yolov8n.pt
+    enabled: false
+
+  # 分割模型路径
+  segmentation:
+    path: models/segmentation_model.pth
+    enabled: false
+
+  # OCR模型路径
+  ocr:
+    path: models/ocr_model.pth
+    enabled: false
+
+# 性能配置
+performance:
+  max_workers: 4
+  batch_size: 1
+  use_gpu: true
+  gpu_ids: [0]
+
+# 推理配置
+inference:
+  # 目标检测默认参数
+  detection:
+    confidence: 0.5
+    iou: 0.45
+    max_detections: 100
+
+  # 分割默认参数
+  segmentation:
+    confidence: 0.7
+
+  # OCR默认参数
+  ocr:
+    confidence: 0.6

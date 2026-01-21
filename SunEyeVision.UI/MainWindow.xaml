@@ -1,0 +1,646 @@
+<Window x:Class="SunEyeVision.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SunEyeVision.UI"
+        xmlns:vm="clr-namespace:SunEyeVision.UI.ViewModels"
+        mc:Ignorable="d"
+        Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#FFFFFF"
+        Loaded="MainWindow_Loaded">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/AppResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- ========== 顶部菜单栏 (28px) ========== -->
+        <Menu DockPanel.Dock="Top" Height="28" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <MenuItem Header="文件(_F)">
+                <MenuItem Header="新建方案(_N)" Command="{Binding NewWorkflowCommand}" InputGestureText="Ctrl+N"/>
+                <MenuItem Header="打开方案(_O)" Command="{Binding OpenWorkflowCommand}" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="保存方案(_S)" Command="{Binding SaveWorkflowCommand}" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="另存为(_A)" Command="{Binding SaveAsWorkflowCommand}" InputGestureText="Ctrl+Shift+S"/>
+                <Separator/>
+                <MenuItem Header="导入(_I)" InputGestureText="Ctrl+I"/>
+                <MenuItem Header="导出(_E)" InputGestureText="Ctrl+E"/>
+                <Separator/>
+                <MenuItem Header="最近文件"/>
+                <Separator/>
+                <MenuItem Header="退出(_X)" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="编辑(_E)">
+                <MenuItem Header="撤销(_U)" InputGestureText="Ctrl+Z"/>
+                <MenuItem Header="重做(_R)" InputGestureText="Ctrl+Y"/>
+                <Separator/>
+                <MenuItem Header="复制(_C)" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="粘贴(_V)" InputGestureText="Ctrl+V"/>
+                <MenuItem Header="删除(_D)" InputGestureText="Del"/>
+                <Separator/>
+                <MenuItem Header="全选(_A)" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="查找(_F)" InputGestureText="Ctrl+F"/>
+                <MenuItem Header="替换(_H)" InputGestureText="Ctrl+H"/>
+            </MenuItem>
+            <MenuItem Header="视图(_V)">
+                <MenuItem Header="方案树(_S)"/>
+                <MenuItem Header="工具箱(_T)"/>
+                <MenuItem Header="设备管理(_D)"/>
+                <MenuItem Header="属性面板(_P)"/>
+                <MenuItem Header="日志窗口(_L)"/>
+                <MenuItem Header="结果预览(_R)"/>
+                <MenuItem Header="系统信息(_I)"/>
+                <Separator/>
+                <MenuItem Header="全屏(_F)" InputGestureText="F11"/>
+                <MenuItem Header="重置布局(_R)"/>
+            </MenuItem>
+            <MenuItem Header="运行(_R)">
+                <MenuItem Header="运行(_R)" Command="{Binding RunWorkflowCommand}" InputGestureText="F5"/>
+                <MenuItem Header="停止(_S)" Command="{Binding StopWorkflowCommand}" InputGestureText="Shift+F5"/>
+                <MenuItem Header="暂停(_P)" InputGestureText="Ctrl+Break"/>
+                <Separator/>
+                <MenuItem Header="调试模式(_D)" InputGestureText="Ctrl+Shift+D"/>
+                <MenuItem Header="单步执行(_S)" InputGestureText="F10"/>
+                <MenuItem Header="断点(_B)" InputGestureText="F9"/>
+            </MenuItem>
+            <MenuItem Header="工具(_T)">
+                <MenuItem Header="相机配置(_C)"/>
+                <MenuItem Header="参数管理(_P)"/>
+                <MenuItem Header="插件管理(_L)"/>
+                <MenuItem Header="系统设置(_S)"/>
+                <MenuItem Header="快捷键设置(_K)"/>
+            </MenuItem>
+            <MenuItem Header="插件(_P)">
+                <MenuItem Header="插件市场(_M)"/>
+                <MenuItem Header="安装插件(_I)"/>
+                <MenuItem Header="启用/禁用(_D)"/>
+                <MenuItem Header="插件更新(_U)"/>
+            </MenuItem>
+            <MenuItem Header="帮助(_H)">
+                <MenuItem Header="用户手册(_M)" InputGestureText="F1" Command="{Binding ShowHelpCommand}"/>
+                <MenuItem Header="API文档(_D)"/>
+                <MenuItem Header="快捷键(_K)" Command="{Binding ShowShortcutsCommand}"/>
+                <MenuItem Header="关于(_A)" Command="{Binding ShowAboutCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- ========== 工具栏 (40px) ========== -->
+        <ToolBar DockPanel.Dock="Top" Height="40" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <!-- 文件操作组 -->
+            <Button ToolTip="新建 (Ctrl+N)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding NewWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📄" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="新建" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="打开 (Ctrl+O)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding OpenWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📂" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="打开" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="保存 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="保存" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <!-- 执行控制组 -->
+            <Button ToolTip="运行 (F5)" Padding="8,4" Margin="2" Style="{StaticResource PrimaryButton}" Command="{Binding RunWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="▶️" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="运行" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="停止 (Shift+F5)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding StopWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⏹️" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="停止" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="暂停" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⏸️" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="暂停" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <!-- 调试工具组 -->
+            <Button ToolTip="单步执行 (F10)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔍" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="调试" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <!-- 编辑操作组 -->
+            <Button ToolTip="撤销 (Ctrl+Z)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="↩️" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="重做 (Ctrl+Y)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="↪️" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+
+            <Separator/>
+
+            <!-- 视图控制组 -->
+            <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="1:1" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
+            </Button>
+
+            <Separator/>
+
+            <TextBlock Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
+        </ToolBar>
+
+        <!-- ========== 标签栏 (32px) ========== -->
+        <Border DockPanel.Dock="Top" Height="32" Background="#E8E8E8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Button Background="#FFFFFF" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="▼" FontSize="10" Foreground="#666666" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="工作流" FontWeight="Bold" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔄" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="结果预览" VerticalAlignment="Center" FontSize="12" Foreground="#333333"/>
+                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Padding="12,0" Height="32" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📋" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="日志" VerticalAlignment="Center" FontSize="12" Foreground="#333333"/>
+                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Background="Transparent" Padding="12,0" Height="32" ToolTip="新建标签">
+                    <TextBlock Text="+" FontSize="18" Foreground="#666666" VerticalAlignment="Center"/>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- ========== 主内容区域 ========== -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="500"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="24"/>
+            </Grid.RowDefinitions>
+
+            <!-- ========== 左侧工具区 (260px) ========== -->
+            <Border Grid.Column="0" Background="#F8F8F8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <!-- 图像处理工具组 -->
+                        <TextBlock Text="图像处理" FontSize="12" FontWeight="Bold" Foreground="#333333" Margin="0,8,0,4"/>
+                        <ItemsControl ItemsSource="{Binding Tools}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="3"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="8" Margin="2" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1"
+                                            Cursor="Hand"
+                                            ToolTipService.ToolTip="{Binding Description}"
+                                            ToolTipService.ShowDuration="5000"
+                                            MouseLeftButtonDown="ToolItem_MouseLeftButtonDown"
+                                            Tag="{Binding}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Icon}" FontSize="24" HorizontalAlignment="Center" Margin="0,4,0,8"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#333333" HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- ========== 中间工作区 ========== -->
+            <Border Grid.Column="1" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                <Grid>
+                    <Canvas x:Name="WorkflowCanvas" Background="#FFFFFF"
+                            AllowDrop="True"
+                            DragEnter="WorkflowCanvas_DragEnter"
+                            DragOver="WorkflowCanvas_DragOver"
+                            DragLeave="WorkflowCanvas_DragLeave"
+                            Drop="WorkflowCanvas_Drop">
+                        <!-- 工作流连接线 -->
+                        <ItemsControl ItemsSource="{Binding WorkflowConnections}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Line Stroke="#666666" StrokeThickness="2" StrokeDashArray="5,5"
+                                          X1="{Binding SourcePosition.X}" Y1="{Binding SourcePosition.Y}"
+                                          X2="{Binding TargetPosition.X}" Y2="{Binding TargetPosition.Y}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- 工作流节点 -->
+                        <ItemsControl ItemsSource="{Binding WorkflowNodes}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style>
+                                    <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=TwoWay}"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=TwoWay}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="140" Height="90" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
+                                            Background="#FFFFFF" CornerRadius="4"
+                                            MouseLeftButtonDown="Node_MouseLeftButtonDown"
+                                            MouseLeftButtonUp="Node_MouseLeftButtonUp"
+                                            MouseMove="Node_MouseMove"
+                                            Tag="{Binding}">
+                                        <Grid MouseLeftButtonUp="Node_ClickForConnection"
+                                              Background="Transparent">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="6" CornerRadius="3,3,0,0"
+                                                    MouseLeftButtonDown="Node_MouseDoubleClick">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="🔧" FontSize="14"/>
+                                                    <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <TextBlock Grid.Row="1" Text="{Binding AlgorithmType}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#0066CC"/>
+                                            <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
+                                                <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                            </Border>
+                                        </Grid>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Effect" Value="{x:Null}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                        <Setter Property="BorderThickness" Value="3"/>
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#0066CC" BlurRadius="10" ShadowDepth="0"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Canvas>
+
+                    <!-- 画布工具栏 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                        <Button ToolTip="放大" Padding="4" Background="White" BorderBrush="#CCCCCC" BorderThickness="1" Margin="2">
+                            <TextBlock Text="+" FontSize="14" FontWeight="Bold"/>
+                        </Button>
+                        <Button ToolTip="缩小" Padding="4" Background="White" BorderBrush="#CCCCCC" BorderThickness="1" Margin="2">
+                            <TextBlock Text="-" FontSize="14" FontWeight="Bold"/>
+                        </Button>
+                        <Button ToolTip="适应窗口" Padding="4" Background="White" BorderBrush="#CCCCCC" BorderThickness="1" Margin="2">
+                            <TextBlock Text="📐" FontSize="14"/>
+                        </Button>
+                        <Button ToolTip="清空工作流" Padding="4" Background="White" BorderBrush="#CCCCCC" BorderThickness="1" Margin="2"
+                                Command="{Binding ShowSettingsCommand}">
+                            <TextBlock Text="🗑️" FontSize="14"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ========== 右侧面板 (500px) ========== -->
+            <Border Grid.Column="2" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="500"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 图像显示区域 (500px) -->
+                    <Border Grid.Row="0" Background="#333333" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <TextBlock Text="图像显示区域" Foreground="#888888" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <!-- 标签栏 -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0" Background="#333333">
+                                <Button Background="#FFFFFF" BorderBrush="#DDDDDD" BorderThickness="1" Padding="8,4" Height="28" HorizontalContentAlignment="Center" FontSize="11">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📷" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBlock Text="原图" Margin="4,0,0,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="1" Padding="8,4" Height="28" HorizontalContentAlignment="Center" FontSize="11" Margin="2,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🔄" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBlock Text="处理后" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="1" Padding="8,4" Height="28" HorizontalContentAlignment="Center" FontSize="11" Margin="2,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📊" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBlock Text="检测结果" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <!-- 缩放工具 -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8">
+                                <Button Background="White" BorderBrush="#CCCCCC" Padding="6,4" Margin="1" FontSize="10">+</Button>
+                                <Button Background="White" BorderBrush="#CCCCCC" Padding="6,4" Margin="1" FontSize="10">-</Button>
+                                <Button Background="White" BorderBrush="#CCCCCC" Padding="6,4" Margin="1" FontSize="10">📐</Button>
+                                <Button Background="White" BorderBrush="#CCCCCC" Padding="6,4" Margin="1" FontSize="10">💾</Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- 属性面板 - 使用TabControl -->
+                    <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 属性面板标题 -->
+                            <Border Grid.Row="0" Background="#F0F0F0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="8,6">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚙️" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="属性面板" Margin="6,0,0,0" FontWeight="Bold" FontSize="13" Foreground="#333333" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 属性内容 - 使用TabControl -->
+                            <TabControl Grid.Row="1" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                                <!-- 工具参数标签页 -->
+                                <TabItem Header="🔧 工具参数">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                                        <StackPanel>
+                                            <!-- 节点信息 -->
+                                            <Border Background="#E8F4F8" Padding="6" BorderBrush="#0066CC" BorderThickness="1" Margin="0,4,0,8" CornerRadius="3">
+                                                <TextBlock Text="🔍 图像采集_1" FontWeight="Bold" FontSize="11" Foreground="#0066CC"/>
+                                            </Border>
+
+                                            <!-- 基本信息 -->
+                                            <Expander Header="📋 基本信息" IsExpanded="True" Margin="0,4" Style="{StaticResource StyledExpander}">
+                                                <StackPanel Margin="0,4">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="名称:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBox Grid.Column="1" Text="图像采集_1" Style="{StaticResource StyledTextBox}" FontSize="10"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="ID:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBlock Grid.Column="1" Text="node_001" VerticalAlignment="Center" FontSize="10" Foreground="#333333"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="类型:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBlock Grid.Column="1" Text="图像采集" VerticalAlignment="Center" FontSize="10" Foreground="#333333"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                                <Expander.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="📋 基本信息" FontSize="10" FontWeight="Bold" Foreground="#333333"/>
+                                                    </DataTemplate>
+                                                </Expander.HeaderTemplate>
+                                            </Expander>
+
+                                            <!-- 参数配置 -->
+                                            <Expander Header="🔧 参数配置" IsExpanded="True" Margin="0,4" Style="{StaticResource StyledExpander}">
+                                                <StackPanel Margin="0,4">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="相机:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <ComboBox Grid.Column="1" SelectedIndex="0" Style="{StaticResource StyledComboBox}" FontSize="10">
+                                                            <ComboBoxItem Content="相机1"/>
+                                                            <ComboBoxItem Content="相机2"/>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="分辨率:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <ComboBox Grid.Column="1" SelectedIndex="0" Style="{StaticResource StyledComboBox}" FontSize="10">
+                                                            <ComboBoxItem Content="1920x1080"/>
+                                                            <ComboBoxItem Content="1280x720"/>
+                                                            <ComboBoxItem Content="640x480"/>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="曝光:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBox Grid.Column="1" Text="10000" Style="{StaticResource StyledTextBox}" FontSize="10"/>
+                                                        <TextBlock Grid.Column="2" Text="μs" VerticalAlignment="Center" FontSize="10" Foreground="#666666" Margin="4,0,0,0"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50"/>
+                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="增益:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBox Grid.Column="1" Text="10.5" Style="{StaticResource StyledTextBox}" FontSize="10"/>
+                                                        <TextBlock Grid.Column="2" Text="dB" VerticalAlignment="Center" FontSize="10" Foreground="#666666" Margin="4,0,0,0"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                                <Expander.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="🔧 参数配置" FontSize="10" FontWeight="Bold" Foreground="#333333"/>
+                                                    </DataTemplate>
+                                                </Expander.HeaderTemplate>
+                                            </Expander>
+
+                                            <!-- 性能统计 -->
+                                            <Expander Header="📊 性能统计" IsExpanded="True" Margin="0,4" Style="{StaticResource StyledExpander}">
+                                                <StackPanel Margin="0,4">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="执行次数:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBlock Grid.Column="1" Text="1,234" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="#0066CC"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="平均时间:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBlock Grid.Column="1" Text="8.5 ms" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="#0066CC"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="成功率:" VerticalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                        <TextBlock Grid.Column="1" Text="99.8%" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="#00CC99"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                                <Expander.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="📊 性能统计" FontSize="10" FontWeight="Bold" Foreground="#333333"/>
+                                                    </DataTemplate>
+                                                </Expander.HeaderTemplate>
+                                            </Expander>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <!-- 信息标签页 -->
+                                <TabItem Header="📋 信息">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                                        <TextBox IsReadOnly="True" Background="#F8F8F8" BorderThickness="0" FontFamily="{StaticResource MonoFont}" FontSize="10" Padding="8" TextWrapping="Wrap">
+                                            <TextBox.Text>
+                                                [14:23:45] ✅ [系统]
+  系统启动成功
+[14:23:46] ✅ [设备]
+  相机1 连接成功
+[14:23:46] ✅ [设备]
+  相机2 连接成功
+[14:23:47] ℹ️ [工作流]
+  开始执行流程1
+[14:23:48] ⚠️ [算法]
+  图像采集超时
+[14:23:49] ❌ [系统]
+  执行失败
+                                            </TextBox.Text>
+                                        </TextBox>
+                                    </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ========== 状态栏 (24px) ========== -->
+            <StatusBar Grid.ColumnSpan="3" Grid.Row="1" Height="24" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="●" Foreground="#00CC99" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📷 相机:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding CameraStatus}" FontSize="11" Foreground="#00CC99" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="流程1:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding IsRunning, Converter={StaticResource BoolToRunningTextConverter}}" FontSize="11" Foreground="#0066CC" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="CPU:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="45%" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="FPS:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="62.5" FontSize="11" FontWeight="Bold" Foreground="#00CC99" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+            </StatusBar>
+        </Grid>
+    </DockPanel>
+</Window>

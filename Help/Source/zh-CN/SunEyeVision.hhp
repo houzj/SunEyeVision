@@ -1,0 +1,20 @@
+﻿[OPTIONS]
+Title=SunEyeVision 帮助文档
+Contents file=SunEyeVision.hhc
+Compiled file=SunEyeVision.chm
+Default Topic=index.html
+Display compile progress=Yes
+Error log file=error.log
+[FILES]
+index.html
+usermanual/index.html
+architecture/index.html
+architecture/filestructure.html
+roadmap/index.html
+progress/index.html
+api/index.html
+api/core.html
+api/algorithms.html
+api/workflow.html
+api/plugins.html
+styles.css

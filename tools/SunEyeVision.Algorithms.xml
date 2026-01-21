@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Algorithms</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Algorithms.BaseAlgorithm">
+            <summary>
+            绠楁硶鍩虹被
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Algorithms.BaseAlgorithm.Name">
+            <summary>
+            绠楁硶鍚嶇О
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Algorithms.BaseAlgorithm.Description">
+            <summary>
+            绠楁硶鎻忚堪
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Algorithms.BaseAlgorithm.Logger">
+            <summary>
+            鏃ュ織璁板綍鍣?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Algorithms.BaseAlgorithm.Process(SunEyeVision.Models.Mat)">
+            <summary>
+            澶勭悊鍥惧儚
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Algorithms.BaseAlgorithm.Process(SunEyeVision.Models.Mat,SunEyeVision.Models.AlgorithmParameters)">
+            <summary>
+            澶勭悊鍥惧儚锛堝甫鍙傛暟锛?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Algorithms.BaseAlgorithm.Execute(SunEyeVision.Models.Mat,SunEyeVision.Models.AlgorithmParameters)">
+            <summary>
+            鎵ц绠楁硶
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Algorithms.BaseAlgorithm.Process(System.Object)">
+            <summary>
+            IImageProcessor鎺ュ彛瀹炵幇
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Algorithms.EdgeDetectionAlgorithm">
+            <summary>
+            Edge detection algorithm (Sobel operator)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Algorithms.GaussianBlurAlgorithm">
+            <summary>
+            Gaussian blur algorithm
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Algorithms.GrayScaleAlgorithm">
+            <summary>
+            鐏板害杞崲绠楁硶
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Algorithms.ThresholdAlgorithm">
+            <summary>
+            Threshold algorithm
+            </summary>
+        </member>
+    </members>
+</doc>
