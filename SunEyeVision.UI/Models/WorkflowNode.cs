@@ -170,8 +170,8 @@ namespace SunEyeVision.UI.Models
         private string _targetNodeId = string.Empty;
         private string _sourcePort = "output";
         private string _targetPort = "input";
-        private Point _sourcePosition;
-        private Point _targetPosition;
+        private System.Windows.Point _sourcePosition;
+        private System.Windows.Point _targetPosition;
 
         public string Id
         {
@@ -238,7 +238,7 @@ namespace SunEyeVision.UI.Models
             }
         }
 
-        public Point SourcePosition
+        public System.Windows.Point SourcePosition
         {
             get => _sourcePosition;
             set

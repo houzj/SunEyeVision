@@ -14,7 +14,6 @@ namespace SunEyeVision.UI.ViewModels
     {
         private string _searchText = "";
         private ObservableCollection<ToolItem> _filteredTools;
-        private readonly ToolRegistry _toolRegistry;
 
         public ObservableCollection<ToolCategory> Categories { get; }
         public ObservableCollection<ToolItem> AllTools { get; }
@@ -47,7 +46,6 @@ namespace SunEyeVision.UI.ViewModels
             Categories = new ObservableCollection<ToolCategory>();
             AllTools = new ObservableCollection<ToolItem>();
             FilteredTools = new ObservableCollection<ToolItem>();
-            _toolRegistry = new ToolRegistry();
 
             ToggleCategoryCommand = new RelayCommand<ToolCategory>(ExecuteToggleCategory);
             UseToolCommand = new RelayCommand<ToolItem>(ExecuteUseTool);
@@ -65,19 +63,29 @@ namespace SunEyeVision.UI.ViewModels
             // 清空现有数据
             Categories.Clear();
             AllTools.Clear();
-            _toolRegistry.Clear();
+
+            // 清空ToolRegistry
+            ToolRegistry.ClearAll();
 
             // 创建并注册示例工具插件
             var imageCapturePlugin = new ImageCaptureTool();
             var templateMatchingPlugin = new TemplateMatchingTool();
             var gaussianBlurPlugin = new GaussianBlurTool();
             var ocrPlugin = new OCRTool();
+            var thresholdPlugin = new ThresholdTool();
+            var edgeDetectionPlugin = new EdgeDetectionTool();
+            var roiCropPlugin = new ROICropTool();
+            var colorConvertPlugin = new ColorConvertTool();
 
             // 注册插件
             RegisterPlugin(imageCapturePlugin);
             RegisterPlugin(templateMatchingPlugin);
             RegisterPlugin(gaussianBlurPlugin);
             RegisterPlugin(ocrPlugin);
+            RegisterPlugin(thresholdPlugin);
+            RegisterPlugin(edgeDetectionPlugin);
+            RegisterPlugin(roiCropPlugin);
+            RegisterPlugin(colorConvertPlugin);
 
             // 从ToolRegistry加载工具
             LoadToolsFromRegistry();
@@ -95,7 +103,7 @@ namespace SunEyeVision.UI.ViewModels
         private void RegisterPlugin(IToolPlugin plugin)
         {
             plugin.Initialize();
-            _toolRegistry.RegisterFromPlugin(plugin);
+            ToolRegistry.RegisterTool(plugin);
         }
 
         /// <summary>
@@ -103,7 +111,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void LoadToolsFromRegistry()
         {
-            var categories = _toolRegistry.GetAllCategories();
+            var categories = ToolRegistry.GetAllCategories();
             foreach (var category in categories)
             {
                 var categoryIcon = GetCategoryIcon(category);
@@ -111,7 +119,7 @@ namespace SunEyeVision.UI.ViewModels
                 Categories.Add(new ToolCategory(category, categoryIcon, categoryDesc, 0, false));
             }
 
-            var tools = _toolRegistry.GetAllTools();
+            var tools = ToolRegistry.GetAllToolMetadata();
             foreach (var tool in tools)
             {
                 var toolItem = new ToolItem(
@@ -119,8 +127,11 @@ namespace SunEyeVision.UI.ViewModels
                     tool.Category,
                     tool.Icon,
                     tool.Description,
-                    tool.AlgorithmType?.Name
+                    tool.AlgorithmType?.Name,
+                    tool.HasDebugInterface
                 );
+                // 设置真正的工具ID
+                toolItem.ToolId = tool.Id;
                 AllTools.Add(toolItem);
             }
         }

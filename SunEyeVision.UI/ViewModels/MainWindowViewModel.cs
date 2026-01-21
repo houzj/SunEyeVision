@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SunEyeVision.UI.Models;
+using SunEyeVision.PluginSystem;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -76,6 +77,7 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand PauseCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
+        public ICommand OpenDebugWindowCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -110,6 +112,7 @@ namespace SunEyeVision.UI.ViewModels
             PauseCommand = new RelayCommand(ExecutePause);
             UndoCommand = new RelayCommand(ExecuteUndo);
             RedoCommand = new RelayCommand(ExecuteRedo);
+            OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
         }
 
         private void ExecutePause()
@@ -139,19 +142,19 @@ namespace SunEyeVision.UI.ViewModels
 
         private void InitializeSampleNodes()
         {
-            WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "ImageAcquisition")
+            WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
             {
                 Position = new System.Windows.Point(100, 100),
                 IsSelected = false
             });
 
-            WorkflowNodes.Add(new Models.WorkflowNode("2", "灰度化", "GrayScale")
+            WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
             {
                 Position = new System.Windows.Point(300, 100),
                 IsSelected = false
             });
 
-            WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "EdgeDetection")
+            WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
             {
                 Position = new System.Windows.Point(500, 100),
                 IsSelected = false
@@ -224,6 +227,82 @@ namespace SunEyeVision.UI.ViewModels
             var helpWindow = new HelpWindow();
             helpWindow.ShowDialog();
             // TODO: 直接跳转到快捷键页面
+        }
+
+        private void ExecuteOpenDebugWindow(Models.WorkflowNode? node)
+        {
+            if (node != null)
+            {
+                try
+                {
+                    // 从ToolRegistry获取工具信息和插件
+                    var toolId = node.AlgorithmType ?? node.Name;
+                    var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
+                    var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
+
+                    if (toolMetadata == null)
+                    {
+                        System.Windows.MessageBox.Show(
+                            $"未找到工具 '{toolId}' 的元数据信息",
+                            "工具未找到",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // 创建调试窗口
+                    var debugWindow = new DebugWindow(toolId, toolPlugin ?? new DefaultToolPlugin(), toolMetadata);
+                    debugWindow.Owner = System.Windows.Application.Current.MainWindow;
+                    debugWindow.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"打开调试窗口失败: {ex.Message}",
+                        "错误",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 默认工具插件 - 用于兼容性
+        /// </summary>
+        private class DefaultToolPlugin : SunEyeVision.PluginSystem.IToolPlugin
+        {
+            public string Name => "Default Tool";
+            public string Version => "1.0.0";
+            public string Author => "SunEyeVision";
+            public string Description => "Default tool plugin";
+            public string PluginId => "default.tool";
+            public List<string> Dependencies => new List<string>();
+            public string Icon => "🔧";
+
+            private bool _isLoaded = true;
+            public bool IsLoaded => _isLoaded;
+
+            public void Initialize() { }
+            public void Unload() { }
+
+            public List<System.Type> GetAlgorithmNodes() => new List<System.Type>();
+
+            public List<SunEyeVision.PluginSystem.ToolMetadata> GetToolMetadata() => new List<SunEyeVision.PluginSystem.ToolMetadata>();
+
+            public SunEyeVision.Interfaces.IImageProcessor CreateToolInstance(string toolId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public SunEyeVision.Models.AlgorithmParameters GetDefaultParameters(string toolId)
+            {
+                return new SunEyeVision.Models.AlgorithmParameters();
+            }
+
+            public SunEyeVision.PluginSystem.ValidationResult ValidateParameters(string toolId, SunEyeVision.Models.AlgorithmParameters parameters)
+            {
+                return SunEyeVision.PluginSystem.ValidationResult.Success();
+            }
         }
     }
 }

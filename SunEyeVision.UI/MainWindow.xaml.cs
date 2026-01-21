@@ -62,8 +62,24 @@ namespace SunEyeVision.UI
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // TODO: 加载插件
-            // TODO: 加载工作流
+            try
+            {
+                // 自动加载所有工具插件
+                PluginSystem.ToolInitializer.RegisterAllTools();
+
+                var toolCount = PluginSystem.ToolRegistry.GetToolCount();
+                _viewModel.StatusText = $"已加载 {toolCount} 个工具插件";
+
+                // TODO: 加载工作流
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"加载工具插件时出错: {ex.Message}",
+                    "加载失败",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
         }
 
         #endregion
@@ -124,11 +140,11 @@ namespace SunEyeVision.UI
                 {
                     var position = e.GetPosition(WorkflowCanvas);
 
-                    // 创建新节点
+                    // 创建新节点，使用ToolId作为AlgorithmType
                     var node = new WorkflowNode(
                         Guid.NewGuid().ToString(),
                         tool.Name,
-                        tool.AlgorithmType
+                        tool.ToolId  // 使用ToolId而不是AlgorithmType
                     );
 
                     // 设置拖放位置(居中放置,节点大小140x90)
@@ -183,23 +199,39 @@ namespace SunEyeVision.UI
 
         #region 节点拖拽
 
-        private void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Node_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Border border && border.Tag is WorkflowNode node)
-            {
-                _isDragging = true;
-                _draggedNode = node;
-                _startDragPosition = e.GetPosition(WorkflowCanvas);
+            if (sender is not Border border || border.Tag is not WorkflowNode node)
+                return;
 
-                // 更新选中状态
+            // 双击事件：打开调试窗口
+            if (e.ClickCount == 2)
+            {
                 foreach (var n in _viewModel.WorkflowNodes)
                 {
                     n.IsSelected = (n == node);
                 }
                 _viewModel.SelectedNode = node;
 
-                border.CaptureMouse();
+                // 打开调试窗口
+                _viewModel.OpenDebugWindowCommand.Execute(node);
+                e.Handled = true;
+                return;
             }
+
+            // 单击事件：拖拽准备
+            _isDragging = true;
+            _draggedNode = node;
+            _startDragPosition = e.GetPosition(WorkflowCanvas);
+
+            // 更新选中状态
+            foreach (var n in _viewModel.WorkflowNodes)
+            {
+                n.IsSelected = (n == node);
+            }
+            _viewModel.SelectedNode = node;
+
+            border.CaptureMouse();
         }
 
         private void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -231,25 +263,6 @@ namespace SunEyeVision.UI
         #endregion
 
         #region 节点连接
-
-        private void Node_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // 双击节点进入连接模式
-            if (sender is Border border && border.Tag is WorkflowNode node)
-            {
-                // 确保选中该节点
-                foreach (var n in _viewModel.WorkflowNodes)
-                {
-                    n.IsSelected = (n == node);
-                }
-                _viewModel.SelectedNode = node;
-
-                // 启动连接模式
-                _viewModel.WorkflowViewModel.SelectedNode = node;
-                _viewModel.WorkflowViewModel.ExecuteConnectNodes();
-                _viewModel.StatusText = $"已选择源节点: {node.Name}。请点击目标节点以连接。";
-            }
-        }
 
         private void Node_ClickForConnection(object sender, RoutedEventArgs e)
         {

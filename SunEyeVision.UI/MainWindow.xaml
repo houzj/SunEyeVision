@@ -388,7 +388,7 @@
                                 <DataTemplate>
                                     <Border Width="140" Height="90" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
                                             Background="#FFFFFF" CornerRadius="4"
-                                            MouseLeftButtonDown="Node_MouseLeftButtonDown"
+                                            PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
                                             MouseLeftButtonUp="Node_MouseLeftButtonUp"
                                             MouseMove="Node_MouseMove"
                                             Tag="{Binding}">
@@ -399,8 +399,7 @@
                                                 <RowDefinition Height="*"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="6" CornerRadius="3,3,0,0"
-                                                    MouseLeftButtonDown="Node_MouseDoubleClick">
+                                            <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="6" CornerRadius="3,3,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="🔧" FontSize="14"/>
                                                     <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>

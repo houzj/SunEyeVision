@@ -12,15 +12,19 @@ namespace SunEyeVision.UI.Models
         public string Category { get; set; }
         public string Icon { get; set; }
         public string Description { get; set; }
+        public string ToolId { get; set; }
         public string AlgorithmType { get; set; }
+        public bool HasDebugInterface { get; set; }
 
-        public ToolItem(string name, string category, string icon, string description, string algorithmType = null)
+        public ToolItem(string name, string category, string icon, string description, string algorithmType = null, bool hasDebugInterface = true)
         {
             Name = name;
             Category = category;
             Icon = icon;
             Description = description;
+            ToolId = algorithmType; // 向后兼容：如果没有显式设置ToolId，使用algorithmType
             AlgorithmType = algorithmType;
+            HasDebugInterface = hasDebugInterface;
         }
     }
 
