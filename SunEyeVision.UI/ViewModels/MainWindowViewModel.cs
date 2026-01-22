@@ -1,29 +1,65 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using SunEyeVision.UI.Models;
 using SunEyeVision.PluginSystem;
 
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
+    /// 属性分组 - 用于PropertyPanelControl
+    /// </summary>
+    public class PropertyGroup
+    {
+        public string Name { get; set; } = "";
+        public bool IsExpanded { get; set; } = true;
+        public ObservableCollection<PropertyItem> Parameters { get; set; } = new ObservableCollection<PropertyItem>();
+    }
+
+    /// <summary>
     /// 主窗口视图模型
     /// </summary>
     public class MainWindowViewModel : ViewModelBase
     {
         private string _title = "太阳眼视觉";
+        private bool _isRunning = false;
         private string _status = "就绪";
-        private Models.WorkflowInfo? _currentWorkflow;
+        private string _selectedWorkflowName = "默认工作流";
 
-        /// <summary>
-        /// 工作流切换事件
-        /// </summary>
-        public event EventHandler<string>? WorkflowSwitched;
+        // 图像显示相关
+        private BitmapSource? _displayImage;
+        private double _imageScale = 1.0;
+
+        // 属性面板相关
+        private ObservableCollection<PropertyGroup> _propertyGroups = new ObservableCollection<PropertyGroup>();
+        private string _logText = "[系统] 等待操作...\n";
+
+        // 面板折叠状态
+        private bool _isToolboxCollapsed = false;
+        private bool _isImageDisplayCollapsed = false;
+        private bool _isPropertyPanelCollapsed = false;
+        private double _toolboxWidth = 260;
+        private double _rightPanelWidth = 500;
+        private double _imageDisplayHeight = 500;
 
         public string Title
         {
             get => _title;
             set => SetProperty(ref _title, value);
+        }
+
+        public bool IsRunning
+        {
+            get => _isRunning;
+            set
+            {
+                if (SetProperty(ref _isRunning, value))
+                {
+                    Status = _isRunning ? "运行中" : "已停止";
+                }
+            }
         }
 
         public string Status
@@ -32,24 +68,13 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _status, value);
         }
 
-        public Models.WorkflowInfo? CurrentWorkflow
+        public string SelectedWorkflowName
         {
-            get => _currentWorkflow;
-            set
-            {
-                if (SetProperty(ref _currentWorkflow, value))
-                {
-                    UpdateStatus();
-                    // 触发工作流切换事件
-                    if (value != null)
-                    {
-                        WorkflowSwitched?.Invoke(this, value.Name);
-                    }
-                }
-            }
+            get => _selectedWorkflowName;
+            set => SetProperty(ref _selectedWorkflowName, value);
         }
 
-        public ObservableCollection<Models.WorkflowInfo> Workflows { get; }
+        public ObservableCollection<string> Workflows { get; }
 
         public ObservableCollection<Models.ToolItem> Tools { get; }
         public ToolboxViewModel Toolbox { get; }
@@ -65,21 +90,79 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _status, value);
         }
 
-        private void UpdateStatus()
+        public string CameraStatus => "已连接 (2台)";
+
+        // 图像显示属性
+        public BitmapSource? DisplayImage
         {
-            if (CurrentWorkflow != null)
-            {
-                StatusText = CurrentWorkflow.IsRunning
-                    ? $"工作流 '{CurrentWorkflow.Name}' 运行中 ({(CurrentWorkflow.RunMode == RunMode.Single ? "单次" : "连续")}模式)"
-                    : $"就绪 - 工作流: {CurrentWorkflow.Name}";
-            }
-            else
-            {
-                StatusText = "就绪";
-            }
+            get => _displayImage;
+            set => SetProperty(ref _displayImage, value);
         }
 
-        public string CameraStatus => "已连接 (2台)";
+        public double ImageScale
+        {
+            get => _imageScale;
+            set => SetProperty(ref _imageScale, value);
+        }
+
+        // 属性面板属性
+        public ObservableCollection<PropertyGroup> PropertyGroups
+        {
+            get => _propertyGroups;
+            set => SetProperty(ref _propertyGroups, value);
+        }
+
+        public string LogText
+        {
+            get => _logText;
+            set => SetProperty(ref _logText, value);
+        }
+
+        // 面板折叠状态属性
+        public bool IsToolboxCollapsed
+        {
+            get => _isToolboxCollapsed;
+            set => SetProperty(ref _isToolboxCollapsed, value);
+        }
+
+        public bool IsImageDisplayCollapsed
+        {
+            get => _isImageDisplayCollapsed;
+            set => SetProperty(ref _isImageDisplayCollapsed, value);
+        }
+
+        public bool IsPropertyPanelCollapsed
+        {
+            get => _isPropertyPanelCollapsed;
+            set => SetProperty(ref _isPropertyPanelCollapsed, value);
+        }
+
+        public double ToolboxWidth
+        {
+            get => _toolboxWidth;
+            set => SetProperty(ref _toolboxWidth, value);
+        }
+
+        public double RightPanelWidth
+        {
+            get => _rightPanelWidth;
+            set => SetProperty(ref _rightPanelWidth, value);
+        }
+
+        public double ImageDisplayHeight
+        {
+            get => _imageDisplayHeight;
+            set => SetProperty(ref _imageDisplayHeight, value);
+        }
+
+        /// <summary>
+        /// 添加日志
+        /// </summary>
+        public void AddLog(string message)
+        {
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            LogText += $"[{timestamp}] {message}\n";
+        }
 
         public ICommand NewWorkflowCommand { get; }
         public ICommand OpenWorkflowCommand { get; }
@@ -95,16 +178,16 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
         public ICommand OpenDebugWindowCommand { get; }
-        public ICommand ResetLayoutCommand { get; }
-
-        /// <summary>
-        /// 重置布局请求事件
-        /// </summary>
-        public event EventHandler? ResetLayoutRequested;
 
         public MainWindowViewModel()
         {
-            Workflows = new ObservableCollection<Models.WorkflowInfo>();
+            Workflows = new ObservableCollection<string>
+            {
+                "默认工作流",
+                "边缘检测",
+                "目标检测",
+                "质量检测"
+            };
 
             Tools = new ObservableCollection<Models.ToolItem>();
             Toolbox = new ToolboxViewModel();
@@ -114,14 +197,15 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowViewModel = new WorkflowViewModel();
 
             InitializeTools();
-            InitializeSampleWorkflow();
+            InitializeSampleNodes();
+            InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
             OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
             SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
             SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
-            RunWorkflowCommand = new RelayCommand(ExecuteRunWorkflow);
-            StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow);
+            RunWorkflowCommand = new RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
+            StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
             ShowSettingsCommand = new RelayCommand(ExecuteShowSettings);
             ShowAboutCommand = new RelayCommand(ExecuteShowAbout);
             ShowHelpCommand = new RelayCommand(ExecuteShowHelp);
@@ -130,7 +214,6 @@ namespace SunEyeVision.UI.ViewModels
             UndoCommand = new RelayCommand(ExecuteUndo);
             RedoCommand = new RelayCommand(ExecuteRedo);
             OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
-            ResetLayoutCommand = new RelayCommand(ExecuteResetLayout);
         }
 
         private void ExecutePause()
@@ -158,36 +241,50 @@ namespace SunEyeVision.UI.ViewModels
             Tools.Add(new Models.ToolItem("形态学操作", "Morphology", "🔄", "腐蚀、膨胀等形态学操作"));
         }
 
-        private void InitializeSampleWorkflow()
+        private void InitializePropertyGroups()
         {
-            // 创建默认工作流（不包含任何示例节点）
-            var defaultWorkflow = new Models.WorkflowInfo
+            // 初始化日志
+            AddLog("✅ [系统] 系统启动成功");
+            AddLog("✅ [设备] 相机1 连接成功");
+            AddLog("✅ [设备] 相机2 连接成功");
+        }
+
+        private void InitializeSampleNodes()
+        {
+            WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
             {
-                Name = "默认工作流",
-                RunMode = RunMode.Single
-            };
+                Position = new System.Windows.Point(100, 100),
+                IsSelected = false
+            });
 
-            Workflows.Add(defaultWorkflow);
-            CurrentWorkflow = defaultWorkflow;
+            WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
+            {
+                Position = new System.Windows.Point(300, 100),
+                IsSelected = false
+            });
 
-            // 清空画布，确保没有任何节点和连接
-            WorkflowNodes.Clear();
-            WorkflowConnections.Clear();
+            WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
+            {
+                Position = new System.Windows.Point(500, 100),
+                IsSelected = false
+            });
+
+            WorkflowConnections.Add(new Models.WorkflowConnection("conn_1", "1", "2")
+            {
+                SourcePosition = new System.Windows.Point(240, 145),
+                TargetPosition = new System.Windows.Point(300, 145)
+            });
+
+            WorkflowConnections.Add(new Models.WorkflowConnection("conn_2", "2", "3")
+            {
+                SourcePosition = new System.Windows.Point(440, 145),
+                TargetPosition = new System.Windows.Point(500, 145)
+            });
         }
 
         private void ExecuteNewWorkflow()
         {
-            var newWorkflow = new Models.WorkflowInfo
-            {
-                Name = $"工作流{Workflows.Count + 1}",
-                RunMode = RunMode.Single
-            };
-            Workflows.Add(newWorkflow);
-            CurrentWorkflow = newWorkflow;
-
-            // 清空画布
-            WorkflowNodes.Clear();
-            WorkflowConnections.Clear();
+            // TODO: 创建新工作流
         }
 
         private void ExecuteOpenWorkflow()
@@ -207,42 +304,14 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteRunWorkflow()
         {
-            if (CurrentWorkflow != null)
-            {
-                if (CurrentWorkflow.RunMode == RunMode.Single)
-                {
-                    CurrentWorkflow.IsRunning = true;
-                    UpdateStatus();
-                    // TODO: 执行单次工作流
-                    var timer = new System.Windows.Threading.DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(500)
-                    };
-                    timer.Tick += (s, e) =>
-                    {
-                        timer.Stop();
-                        CurrentWorkflow.IsRunning = false;
-                        UpdateStatus();
-                    };
-                    timer.Start();
-                }
-                else
-                {
-                    CurrentWorkflow.IsRunning = true;
-                    UpdateStatus();
-                    // TODO: 执行连续工作流
-                }
-            }
+            IsRunning = true;
+            // TODO: 执行工作流
         }
 
         private void ExecuteStopWorkflow()
         {
-            if (CurrentWorkflow != null)
-            {
-                CurrentWorkflow.IsRunning = false;
-                UpdateStatus();
-                // TODO: 停止工作流执行
-            }
+            IsRunning = false;
+            // TODO: 停止工作流
         }
 
         private void ExecuteShowSettings()
@@ -267,6 +336,70 @@ namespace SunEyeVision.UI.ViewModels
             var helpWindow = new HelpWindow();
             helpWindow.ShowDialog();
             // TODO: 直接跳转到快捷键页面
+        }
+
+        /// <summary>
+        /// 加载节点属性到属性面板
+        /// </summary>
+        public void LoadNodeProperties(Models.WorkflowNode? node)
+        {
+            if (node == null)
+            {
+                PropertyGroups.Clear();
+                return;
+            }
+
+            PropertyGroups.Clear();
+
+            // 基本信息
+            var basicGroup = new PropertyGroup
+            {
+                Name = "📋 基本信息",
+                IsExpanded = true,
+                Parameters = new ObservableCollection<PropertyItem>
+                {
+                    new PropertyItem("名称", node.Name, "string", true),
+                    new PropertyItem("ID", node.Id, "string", false),
+                    new PropertyItem("类型", node.AlgorithmType ?? "未知", "string", false)
+                }
+            };
+            PropertyGroups.Add(basicGroup);
+
+            // 参数配置
+            var paramGroup = new PropertyGroup
+            {
+                Name = "🔧 参数配置",
+                IsExpanded = true,
+                Parameters = new ObservableCollection<PropertyItem>()
+            };
+
+            if (node.Parameters != null)
+            {
+                foreach (var param in node.Parameters)
+                {
+                    paramGroup.Parameters.Add(new PropertyItem(
+                        param.Key,
+                        param.Value?.ToString() ?? "",
+                        "object",
+                        true
+                    ));
+                }
+            }
+            PropertyGroups.Add(paramGroup);
+
+            // 性能统计
+            var perfGroup = new PropertyGroup
+            {
+                Name = "📊 性能统计",
+                IsExpanded = true,
+                Parameters = new ObservableCollection<PropertyItem>
+                {
+                    new PropertyItem("执行次数", "0", "int", false),
+                    new PropertyItem("平均时间", "0 ms", "string", false),
+                    new PropertyItem("成功率", "100%", "string", false)
+                }
+            };
+            PropertyGroups.Add(perfGroup);
         }
 
         private void ExecuteOpenDebugWindow(Models.WorkflowNode? node)
@@ -304,12 +437,6 @@ namespace SunEyeVision.UI.ViewModels
                         System.Windows.MessageBoxImage.Error);
                 }
             }
-        }
-
-        private void ExecuteResetLayout()
-        {
-            ResetLayoutRequested?.Invoke(this, EventArgs.Empty);
-            StatusText = "布局已重置";
         }
 
         /// <summary>

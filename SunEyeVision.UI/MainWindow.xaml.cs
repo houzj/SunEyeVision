@@ -1,16 +1,10 @@
 using System;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using SunEyeVision.Events;
-using SunEyeVision.Interfaces;
 using SunEyeVision.UI.Controls;
-using SunEyeVision.UI.Events;
 using SunEyeVision.UI.Models;
-using SunEyeVision.UI.Services;
 using SunEyeVision.UI.ViewModels;
 
 namespace SunEyeVision.UI
@@ -23,32 +17,13 @@ namespace SunEyeVision.UI
     {
         private readonly MainWindowViewModel _viewModel;
 
-        // 布局配置
-        private LayoutConfig _layoutConfig;
-
-        // EventBus 相关
-        private readonly IEventBus _eventBus;
-        private readonly UIEventPublisher _eventPublisher;
-
         public MainWindow()
         {
             InitializeComponent();
             _viewModel = new MainWindowViewModel();
             DataContext = _viewModel;
 
-            // 初始化 EventBus
-            var logger = new Services.ConsoleLogger();
-            _eventBus = new EventBus(logger);
-            _eventPublisher = new UIEventPublisher(_eventBus);
-
-            _layoutConfig = LayoutConfig.Load();
-            LoadLayoutConfig();
-
             RegisterHotkeys();
-            RegisterLayoutEvents();
-            SubscribeToEvents();
-            SubscribeToViewModelEvents();
-            SubscribeToControlEvents();
         }
 
         /// <summary>
@@ -78,21 +53,7 @@ namespace SunEyeVision.UI
 
         protected override void OnClosed(EventArgs e)
         {
-            // 保存布局配置
-            _layoutConfig.LeftColumnWidth = LeftColumn.Width.Value;
-            _layoutConfig.RightColumnWidth = RightColumn.Width.Value;
-            _layoutConfig.IsLeftPanelCollapsed = LeftColumn.Width.Value == 0;
-            _layoutConfig.IsRightPanelCollapsed = RightColumn.Width.Value == 0;
-            _layoutConfig.Save();
-
-            // 取消事件订阅
-            UnsubscribeFromEvents();
-
-            // 清理资源
-            if (_eventBus is IDisposable disposableEventBus)
-            {
-                disposableEventBus.Dispose();
-            }
+            // TODO: 清理资源
             _viewModel?.StopWorkflowCommand.Execute(null);
             base.OnClosed(e);
         }
@@ -121,411 +82,305 @@ namespace SunEyeVision.UI
 
         #endregion
 
-        #region 工具箱拖拽
+        #region WorkflowCanvasControl 事件处理
 
-        private void ToolItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// 节点添加事件处理
+        /// </summary>
+        private void OnWorkflowCanvas_NodeAdded(object sender, WorkflowNode node)
+        {
+            _viewModel.StatusText = $"添加节点: {node.Name}";
+        }
+
+        /// <summary>
+        /// 节点选中事件处理
+        /// </summary>
+        private void OnWorkflowCanvas_NodeSelected(object sender, WorkflowNode node)
+        {
+            _viewModel.SelectedNode = node;
+            _viewModel.LoadNodeProperties(node);
+        }
+
+        /// <summary>
+        /// 节点双击事件处理
+        /// </summary>
+        private void OnWorkflowCanvas_NodeDoubleClicked(object sender, WorkflowNode node)
+        {
+            _viewModel.OpenDebugWindowCommand.Execute(node);
+        }
+
+        #endregion
+
+        #region 拖放事件
+
+        private void ToolItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border border && border.Tag is Models.ToolItem tool)
             {
-                try
+                var dragData = new DataObject("ToolItem", tool);
+                DragDrop.DoDragDrop(border, dragData, DragDropEffects.Copy);
+            }
+        }
+
+        private void WorkflowCanvas_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent("ToolItem"))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void WorkflowCanvas_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent("ToolItem"))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void WorkflowCanvas_DragLeave(object sender, DragEventArgs e)
+        {
+            // 可选:添加离开画布时的视觉效果
+        }
+
+        private void WorkflowCanvas_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data.GetData("ToolItem") is Models.ToolItem tool)
                 {
-                    var dragData = new DataObject("ToolItem", tool);
-                    DragDrop.DoDragDrop(border, dragData, DragDropEffects.Copy);
-                    e.Handled = true;
+                    var position = e.GetPosition(WorkflowCanvas);
+
+                    // 创建新节点，使用ToolId作为AlgorithmType
+                    var node = new WorkflowNode(
+                        Guid.NewGuid().ToString(),
+                        tool.Name,
+                        tool.ToolId  // 使用ToolId而不是AlgorithmType
+                    );
+
+                    // 设置拖放位置(居中放置,节点大小140x90)
+                    var x = Math.Max(0, position.X - 70);
+                    var y = Math.Max(0, position.Y - 45);
+                    node.Position = new System.Windows.Point(x, y);
+
+                    // 在UI线程中添加节点
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _viewModel.WorkflowNodes.Add(node);
+                        _viewModel.StatusText = $"添加节点: {tool.Name}";
+                    });
                 }
-                catch (Exception ex)
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"添加节点时出错: {ex.Message}", "错误",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
+        #region 节点拖拽
+
+        private bool _isDragging;
+        private WorkflowNode? _draggedNode;
+        private System.Windows.Point _startDragPosition;
+
+        private void Node_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Border border || border.Tag is not WorkflowNode node)
+                return;
+
+            // 双击事件：打开调试窗口
+            if (e.ClickCount == 2)
+            {
+                foreach (var n in _viewModel.WorkflowNodes)
                 {
-                    System.Windows.MessageBox.Show($"拖拽失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    n.IsSelected = (n == node);
                 }
-            }
-        }
+                _viewModel.SelectedNode = node;
 
-        private void CategoryHeader_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Border border && border.Tag is ToolCategory category)
-            {
-                category.IsExpanded = !category.IsExpanded;
-            }
-        }
-
-        #endregion
-
-        #region 布局调整
-
-        /// <summary>
-        /// 注册布局相关事件
-        /// </summary>
-        private void RegisterLayoutEvents()
-        {
-            _viewModel.ResetLayoutRequested += OnResetLayoutRequested;
-        }
-
-        /// <summary>
-        /// 订阅事件
-        /// </summary>
-        private void SubscribeToEvents()
-        {
-            // 订阅日志事件
-            _eventBus.Subscribe<LogEvent>(OnLogEvent);
-
-            // 订阅错误事件
-            _eventBus.Subscribe<ErrorEvent>(OnErrorEvent);
-
-            // 订阅工作流事件
-            _eventBus.Subscribe<WorkflowExecutedEvent>(OnWorkflowExecuted);
-            _eventBus.Subscribe<WorkflowNodeExecutedEvent>(OnWorkflowNodeExecuted);
-
-            // 记录日志
-            _eventBus.Publish(new LogEvent("MainWindow", "MainWindow subscribed to events", LogLevel.Info));
-        }
-
-        /// <summary>
-        /// 订阅ViewModel事件
-        /// </summary>
-        private void SubscribeToViewModelEvents()
-        {
-            _viewModel.WorkflowSwitched += OnWorkflowSwitched;
-        }
-
-        /// <summary>
-        /// 订阅控件事件
-        /// </summary>
-        private void SubscribeToControlEvents()
-        {
-            WorkflowCanvas.WorkflowSwitched += OnWorkflowCanvasWorkflowSwitched;
-        }
-
-        /// <summary>
-        /// 取消事件订阅
-        /// </summary>
-        private void UnsubscribeFromEvents()
-        {
-            _eventBus.Unsubscribe<LogEvent>(OnLogEvent);
-            _eventBus.Unsubscribe<ErrorEvent>(OnErrorEvent);
-            _eventBus.Unsubscribe<WorkflowExecutedEvent>(OnWorkflowExecuted);
-            _eventBus.Unsubscribe<WorkflowNodeExecutedEvent>(OnWorkflowNodeExecuted);
-
-            // 取消ViewModel事件订阅
-            _viewModel.WorkflowSwitched -= OnWorkflowSwitched;
-
-            // 取消控件事件订阅
-            WorkflowCanvas.WorkflowSwitched -= OnWorkflowCanvasWorkflowSwitched;
-
-            _eventBus.Publish(new LogEvent("MainWindow", "MainWindow unsubscribed from events", LogLevel.Info));
-        }
-
-        /// <summary>
-        /// 处理日志事件
-        /// </summary>
-        private void OnLogEvent(LogEvent eventData)
-        {
-            // 可以在这里更新日志UI
-            System.Diagnostics.Debug.WriteLine($"[Log] {eventData.LogLevel}: {eventData.Message}");
-        }
-
-        /// <summary>
-        /// 处理错误事件
-        /// </summary>
-        private void OnErrorEvent(ErrorEvent eventData)
-        {
-            // 可以在这里显示错误提示
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                var icon = eventData.Severity == ErrorSeverity.Critical ?
-                    System.Windows.MessageBoxImage.Error :
-                    System.Windows.MessageBoxImage.Warning;
-
-                System.Windows.MessageBox.Show(
-                    eventData.ErrorMessage,
-                    $"错误 - {eventData.Source}",
-                    System.Windows.MessageBoxButton.OK,
-                    icon);
-            });
-        }
-
-        /// <summary>
-        /// 处理工作流执行事件
-        /// </summary>
-        private void OnWorkflowExecuted(WorkflowExecutedEvent eventData)
-        {
-            var status = eventData.Success ? "完成" : "失败";
-            var message = $"工作流 '{eventData.WorkflowName}' {status} (耗时: {eventData.ExecutionDurationMs}ms)";
-
-            _eventPublisher.PublishStatusUpdate(message);
-        }
-
-        /// <summary>
-        /// 处理工作流节点执行事件
-        /// </summary>
-        private void OnWorkflowNodeExecuted(WorkflowNodeExecutedEvent eventData)
-        {
-            var status = eventData.Success ? "成功" : "失败";
-            var message = $"节点 '{eventData.NodeName}' 执行{status} (耗时: {eventData.ExecutionDurationMs}ms)";
-
-            _eventPublisher.PublishStatusUpdate(message);
-        }
-
-        /// <summary>
-        /// 处理工作流切换事件
-        /// </summary>
-        private void OnWorkflowSwitched(object? sender, string workflowName)
-        {
-            // 状态栏会自动更新，无需额外处理
-        }
-
-        /// <summary>
-        /// 处理WorkflowCanvas的工作流切换事件
-        /// </summary>
-        private void OnWorkflowCanvasWorkflowSwitched(object? sender, string workflowName)
-        {
-            // 同步更新ViewModel的CurrentWorkflow
-            var workflow = _viewModel.Workflows.FirstOrDefault(w => w.Name == workflowName);
-            if (workflow != null)
-            {
-                _viewModel.CurrentWorkflow = workflow;
-            }
-        }
-
-        /// <summary>
-        /// 加载布局配置
-        /// </summary>
-        private void LoadLayoutConfig()
-        {
-            LeftColumn.Width = new GridLength(_layoutConfig.IsLeftPanelCollapsed ? 0 : _layoutConfig.LeftColumnWidth);
-            RightColumn.Width = new GridLength(_layoutConfig.IsRightPanelCollapsed ? 0 : _layoutConfig.RightColumnWidth);
-
-            UpdateCollapseButtonStates();
-        }
-
-        /// <summary>
-        /// 更新折叠按钮状态
-        /// </summary>
-        private void UpdateCollapseButtonStates()
-        {
-            var isLeftCollapsed = LeftColumn.Width.Value == 0;
-            var isRightCollapsed = RightColumn.Width.Value == 0;
-
-            LeftCollapseButtonText.Text = isLeftCollapsed ? "▶" : "◀";
-            RightCollapseButtonText.Text = isRightCollapsed ? "◀" : "▶";
-
-            LeftSplitterColumn.Width = isLeftCollapsed ? new GridLength(0) : new GridLength(5);
-            RightSplitterColumn.Width = isRightCollapsed ? new GridLength(0) : new GridLength(5);
-
-            LeftPanel.Visibility = isLeftCollapsed ? Visibility.Collapsed : Visibility.Visible;
-            RightPanel.Visibility = isRightCollapsed ? Visibility.Collapsed : Visibility.Visible;
-
-            // 动态调整按钮位置
-            if (isLeftCollapsed)
-            {
-                // 左侧折叠时，按钮移到中间列，靠近左侧边缘
-                Grid.SetColumn(LeftCollapseButton, 2);
-                LeftCollapseButton.HorizontalAlignment = HorizontalAlignment.Left;
-                LeftCollapseButton.Margin = new Thickness(2, 0, 0, 0);
-            }
-            else
-            {
-                // 左侧展开时，按钮在左侧列，靠近右侧边缘
-                Grid.SetColumn(LeftCollapseButton, 0);
-                LeftCollapseButton.HorizontalAlignment = HorizontalAlignment.Right;
-                LeftCollapseButton.Margin = new Thickness(0, 0, -14, 0);
-            }
-
-            if (isRightCollapsed)
-            {
-                // 右侧折叠时，按钮移到中间列，靠近右侧边缘
-                Grid.SetColumn(RightCollapseButton, 2);
-                RightCollapseButton.HorizontalAlignment = HorizontalAlignment.Right;
-                RightCollapseButton.Margin = new Thickness(0, 0, 2, 0);
-            }
-            else
-            {
-                // 右侧展开时，按钮在右侧列，靠近左侧边缘
-                Grid.SetColumn(RightCollapseButton, 4);
-                RightCollapseButton.HorizontalAlignment = HorizontalAlignment.Left;
-                RightCollapseButton.Margin = new Thickness(-14, 0, 0, 0);
-            }
-        }
-
-        /// <summary>
-        /// 重置布局事件处理
-        /// </summary>
-        private void OnResetLayoutRequested(object? sender, EventArgs e)
-        {
-            _layoutConfig.Reset();
-            LoadLayoutConfig();
-        }
-
-        #region 左侧分隔符事件
-
-        private void LeftSplitter_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            if (LeftColumn.Width.Value == 0) return; // 折叠状态下不允许拖动
-
-            var oldWidth = LeftColumn.Width.Value;
-            var newWidth = oldWidth + e.HorizontalChange;
-            newWidth = Math.Max(LayoutConfig.GetMinLeftColumnWidth(), Math.Min(LayoutConfig.GetMaxLeftColumnWidth(), newWidth));
-
-            LeftColumn.Width = new GridLength(newWidth);
-
-            // 发布布局改变事件（节流处理）
-            // _eventPublisher.PublishLayoutChanged("LeftPanel", oldWidth, newWidth, false);
-        }
-
-        private void LeftSplitter_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // 双击折叠/展开左侧面板
-            ToggleLeftPanel();
-        }
-
-        private void LeftCollapseButton_Click(object sender, RoutedEventArgs e)
-        {
-            ToggleLeftPanel();
-        }
-
-        private void LeftCollapseButton_MouseEnter(object sender, MouseEventArgs e)
-        {
-            if (sender is Button btn)
-            {
-                btn.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(200, 230, 240, 255));
-            }
-        }
-
-        private void LeftCollapseButton_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (sender is Button btn)
-            {
-                btn.Background = System.Windows.Media.Brushes.Transparent;
-            }
-        }
-
-        private void ToggleLeftPanel()
-        {
-            var oldWidth = LeftColumn.Width.Value;
-            var isCollapsed = oldWidth == 0;
-
-            if (isCollapsed)
-            {
-                // 展开：使用之前保存的宽度或默认宽度
-                var newWidth = _layoutConfig.LeftColumnWidth > 0 ? _layoutConfig.LeftColumnWidth : LayoutConfig.GetMinLeftColumnWidth();
-                LeftColumn.Width = new GridLength(newWidth);
-                LeftSplitterColumn.Width = new GridLength(5);
-                LeftPanel.Visibility = Visibility.Visible;
-
-                // 发布布局改变事件
-                _eventPublisher.PublishLayoutChanged("LeftPanel", 0, newWidth, false);
-            }
-            else
-            {
-                // 折叠：保存当前宽度并折叠
-                _layoutConfig.LeftColumnWidth = oldWidth;
-                LeftColumn.Width = new GridLength(0);
-                LeftSplitterColumn.Width = new GridLength(0);
-                LeftPanel.Visibility = Visibility.Collapsed;
-
-                // 发布布局改变事件
-                _eventPublisher.PublishLayoutChanged("LeftPanel", oldWidth, 0, true);
-            }
-
-            UpdateCollapseButtonStates();
-        }
-
-        #endregion
-
-        #region 右侧分隔符事件
-
-        private void RightSplitter_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            if (RightColumn.Width.Value == 0) return; // 折叠状态下不允许拖动
-
-            var oldWidth = RightColumn.Width.Value;
-            var newWidth = oldWidth - e.HorizontalChange;
-            newWidth = Math.Max(LayoutConfig.GetMinRightColumnWidth(), Math.Min(LayoutConfig.GetMaxRightColumnWidth(), newWidth));
-
-            // 确保中间列有足够空间
-            var middleWidth = ActualWidth - LeftColumn.Width.Value - RightSplitterColumn.Width.Value - newWidth;
-            if (middleWidth >= LayoutConfig.GetMinMiddleColumnWidth())
-            {
-                RightColumn.Width = new GridLength(newWidth);
-
-                // 发布布局改变事件（节流处理）
-                // _eventPublisher.PublishLayoutChanged("RightPanel", oldWidth, newWidth, false);
-            }
-        }
-
-        private void RightSplitter_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // 双击折叠/展开右侧面板
-            ToggleRightPanel();
-        }
-
-        private void RightCollapseButton_Click(object sender, RoutedEventArgs e)
-        {
-            ToggleRightPanel();
-        }
-
-        private void RightCollapseButton_MouseEnter(object sender, MouseEventArgs e)
-        {
-            if (sender is Button btn)
-            {
-                btn.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(200, 230, 240, 255));
-            }
-        }
-
-        private void RightCollapseButton_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (sender is Button btn)
-            {
-                btn.Background = System.Windows.Media.Brushes.Transparent;
-            }
-        }
-
-        private void ToggleRightPanel()
-        {
-            var oldWidth = RightColumn.Width.Value;
-            var isCollapsed = oldWidth == 0;
-
-            if (isCollapsed)
-            {
-                // 展开：使用之前保存的宽度或默认宽度
-                var newWidth = _layoutConfig.RightColumnWidth > 0 ? _layoutConfig.RightColumnWidth : LayoutConfig.GetMinRightColumnWidth();
-                RightColumn.Width = new GridLength(newWidth);
-                RightSplitterColumn.Width = new GridLength(5);
-                RightPanel.Visibility = Visibility.Visible;
-
-                // 发布布局改变事件
-                _eventPublisher.PublishLayoutChanged("RightPanel", 0, newWidth, false);
-            }
-            else
-            {
-                // 折叠：保存当前宽度并折叠
-                _layoutConfig.RightColumnWidth = oldWidth;
-                RightColumn.Width = new GridLength(0);
-                RightSplitterColumn.Width = new GridLength(0);
-                RightPanel.Visibility = Visibility.Collapsed;
-
-                // 发布布局改变事件
-                _eventPublisher.PublishLayoutChanged("RightPanel", oldWidth, 0, true);
-            }
-
-            UpdateCollapseButtonStates();
-        }
-
-        #endregion
-
-        #region 工作流画布事件
-
-        /// <summary>
-        /// 节点双击事件 - 打开调试界面
-        /// </summary>
-        private void WorkflowCanvas_NodeDoubleClicked(object? sender, Models.WorkflowNode node)
-        {
-            if (node != null)
-            {
+                // 打开调试窗口
                 _viewModel.OpenDebugWindowCommand.Execute(node);
+                e.Handled = true;
+                return;
+            }
+
+            // 单击事件：拖拽准备
+            _isDragging = true;
+            _draggedNode = node;
+            _startDragPosition = e.GetPosition(WorkflowCanvas);
+
+            // 更新选中状态
+            foreach (var n in _viewModel.WorkflowNodes)
+            {
+                n.IsSelected = (n == node);
+            }
+            _viewModel.SelectedNode = node;
+
+            border.CaptureMouse();
+        }
+
+        private void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isDragging)
+            {
+                _isDragging = false;
+                _draggedNode = null!;
+                (sender as Border)?.ReleaseMouseCapture();
+            }
+        }
+
+        private void Node_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var currentPosition = e.GetPosition(WorkflowCanvas);
+                var offset = currentPosition - _startDragPosition;
+
+                _draggedNode.Position = new System.Windows.Point(
+                    _draggedNode.Position.X + offset.X,
+                    _draggedNode.Position.Y + offset.Y
+                );
+
+                _startDragPosition = currentPosition;
+            }
+        }
+
+        private void Node_ClickForConnection(object sender, RoutedEventArgs e)
+        {
+            // 连接模式下点击节点作为目标
+            if (sender is Border border && border.Tag is WorkflowNode targetNode)
+            {
+                if (_viewModel.WorkflowViewModel.IsInConnectionMode)
+                {
+                    var success = _viewModel.WorkflowViewModel.TryConnectNode(targetNode);
+
+                    if (success)
+                    {
+                        var sourceNode = _viewModel.WorkflowViewModel.ConnectionSourceNode;
+                        _viewModel.StatusText = $"成功连接: {sourceNode?.Name} -> {targetNode.Name}";
+
+                        // 同步连接到MainWindowViewModel
+                        if (_viewModel.WorkflowViewModel.Connections.LastOrDefault() is WorkflowConnection connection)
+                        {
+                            _viewModel.WorkflowConnections.Add(connection);
+                        }
+                    }
+                    else
+                    {
+                        _viewModel.StatusText = $"连接失败：目标节点无效或连接已存在";
+                    }
+                }
+                else
+                {
+                    // 非连接模式下，只是选中节点
+                    foreach (var n in _viewModel.WorkflowNodes)
+                    {
+                        n.IsSelected = (n == targetNode);
+                    }
+                    _viewModel.SelectedNode = targetNode;
+                    _viewModel.WorkflowViewModel.SelectedNode = targetNode;
+                }
             }
         }
 
         #endregion
+
+        #region SplitterWithToggle 事件处理
+
+        private double _originalToolboxWidth = 260;
+        private double _rightPanelWidth = 500;
+
+        /// <summary>
+        /// 工具箱分割器的折叠/展开事件
+        /// </summary>
+        private void ToolboxSplitter_ToggleClick(object? sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ToolboxSplitter_ToggleClick] START");
+            System.Diagnostics.Debug.WriteLine($"  Before: IsToolboxCollapsed={_viewModel.IsToolboxCollapsed}, IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
+
+            if (_viewModel.IsToolboxCollapsed)
+            {
+                // 展开
+                ToolboxColumn.Width = new GridLength(_originalToolboxWidth);
+                ToolboxContent.Visibility = Visibility.Visible;
+                _viewModel.IsToolboxCollapsed = false;
+                System.Diagnostics.Debug.WriteLine($"Toolbox expanded, width={_originalToolboxWidth}");
+            }
+            else
+            {
+                // 折叠
+                _originalToolboxWidth = ToolboxColumn.ActualWidth;
+                ToolboxColumn.Width = new GridLength(40);
+                ToolboxContent.Visibility = Visibility.Collapsed;
+                _viewModel.IsToolboxCollapsed = true;
+                System.Diagnostics.Debug.WriteLine($"Toolbox collapsed, saved width={_originalToolboxWidth}");
+            }
+            UpdateToolboxSplitterArrow();
+
+            System.Diagnostics.Debug.WriteLine($"  After: IsToolboxCollapsed={_viewModel.IsToolboxCollapsed}, IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
+        }
+
+        /// <summary>
+        /// 更新工具箱分割器箭头方向
+        /// </summary>
+        private void UpdateToolboxSplitterArrow()
+        {
+            var newDirection = _viewModel.IsToolboxCollapsed
+                ? ToggleDirectionType.Right
+                : ToggleDirectionType.Left;
+            System.Diagnostics.Debug.WriteLine($"  [UpdateToolboxSplitterArrow] Setting ToggleDirection to {newDirection}");
+            ToolboxSplitter.ToggleDirection = newDirection;
+        }
+
+        /// <summary>
+        /// 右侧面板分割器的折叠/展开事件
+        /// </summary>
+        private void RightPanelSplitter_ToggleClick(object? sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RightPanelSplitter_ToggleClick] START");
+            System.Diagnostics.Debug.WriteLine($"  Before: IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
+
+            if (_viewModel.IsPropertyPanelCollapsed)
+            {
+                // 展开整个右侧面板
+                RightPanelColumn.Width = new GridLength(_rightPanelWidth);
+                _viewModel.IsPropertyPanelCollapsed = false;
+                System.Diagnostics.Debug.WriteLine($"Right panel expanded, width={_rightPanelWidth}");
+            }
+            else
+            {
+                // 折叠整个右侧面板
+                _rightPanelWidth = RightPanelColumn.ActualWidth;
+                RightPanelColumn.Width = new GridLength(40);
+                _viewModel.IsPropertyPanelCollapsed = true;
+                System.Diagnostics.Debug.WriteLine($"Right panel collapsed, saved width={_rightPanelWidth}");
+            }
+            UpdateRightPanelSplitterArrow();
+
+            System.Diagnostics.Debug.WriteLine($"  After: IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
+        }
+
+        /// <summary>
+        /// 更新右侧面板分割器箭头方向
+        /// </summary>
+        private void UpdateRightPanelSplitterArrow()
+        {
+            var newDirection = _viewModel.IsPropertyPanelCollapsed
+                ? ToggleDirectionType.Left
+                : ToggleDirectionType.Right;
+            System.Diagnostics.Debug.WriteLine($"  [UpdateRightPanelSplitterArrow] Setting ToggleDirection to {newDirection}");
+            RightPanelSplitter.ToggleDirection = newDirection;
+        }
 
         #endregion
 
