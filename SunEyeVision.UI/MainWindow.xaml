@@ -265,14 +265,24 @@
 
                                 <!-- TabPanel区域,包含TabItem和添加按钮 -->
                                 <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <!-- TabItem列表 -->
-                                        <TabPanel x:Name="HeaderPanel"
-                                                  IsItemsHost="True"
-                                                  Panel.ZIndex="0"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                        <!-- 添加工作流按钮 - 跟随最后一个TabItem -->
-                                        <Button Width="40" Height="40"
+                                        <!-- TabItem列表 - 使用ScrollViewer包裹TabPanel -->
+                                        <ScrollViewer Grid.Column="0"
+                                                      HorizontalScrollBarVisibility="Auto"
+                                                      VerticalScrollBarVisibility="Disabled"
+                                                      Focusable="False">
+                                            <TabPanel x:Name="HeaderPanel"
+                                                      IsItemsHost="True"
+                                                      Panel.ZIndex="0"/>
+                                        </ScrollViewer>
+
+                                        <!-- 添加工作流按钮 -->
+                                        <Button Grid.Column="1" Width="40" Height="40"
                                                 Margin="2,2,4,0"
                                                 Padding="0"
                                                 BorderThickness="1"
@@ -309,7 +319,7 @@
                                                 </ControlTemplate>
                                             </Button.Template>
                                         </Button>
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
 
                                 <!-- TabContent内容区域 -->

@@ -92,6 +92,94 @@ namespace SunEyeVision.UI
         {
             _viewModel.WorkflowTabViewModel.AddWorkflow();
             _viewModel.StatusText = "已添加新工作流";
+
+            // 自动滚动到新添加的TabItem
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                ScrollToSelectedTabItem();
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        /// <summary>
+        /// 滚动到选中的TabItem
+        /// </summary>
+        private void ScrollToSelectedTabItem()
+        {
+            var selectedTabItem = FindTabItem(_viewModel.WorkflowTabViewModel.SelectedTab);
+            if (selectedTabItem != null)
+            {
+                // 找到ScrollViewer
+                var scrollViewer = FindVisualParent<ScrollViewer>(selectedTabItem);
+                if (scrollViewer != null)
+                {
+                    // 计算TabItem在ScrollViewer中的位置
+                    var transform = selectedTabItem.TransformToVisual(scrollViewer);
+                    var position = transform.Transform(new Point(0, 0));
+
+                    // 滚动使TabItem可见
+                    if (position.X < scrollViewer.HorizontalOffset)
+                    {
+                        scrollViewer.ScrollToHorizontalOffset(position.X);
+                    }
+                    else if (position.X + selectedTabItem.ActualWidth > scrollViewer.HorizontalOffset + scrollViewer.ViewportWidth)
+                    {
+                        scrollViewer.ScrollToHorizontalOffset(position.X + selectedTabItem.ActualWidth - scrollViewer.ViewportWidth);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 在视觉树中查找指定数据对应的TabItem
+        /// </summary>
+        private TabItem? FindTabItem(WorkflowTabViewModel? workflow)
+        {
+            if (workflow == null)
+                return null;
+
+            // 在TabControl的Items中查找TabItem
+            var tabControl = WorkflowTabControl;
+            if (tabControl == null)
+                return null;
+
+            // 通过遍历TabControl的视觉树找到所有TabItem
+            var tabItems = new List<TabItem>();
+            FindVisualChildren<TabItem>(tabControl, tabItems);
+
+            return tabItems.FirstOrDefault(item => item.DataContext == workflow);
+        }
+
+        /// <summary>
+        /// 在视觉树中查找指定类型的所有子元素
+        /// </summary>
+        private void FindVisualChildren<T>(DependencyObject parent, List<T> results) where T : DependencyObject
+        {
+            if (parent == null)
+                return;
+
+            if (parent is T child)
+                results.Add(child);
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                FindVisualChildren<T>(VisualTreeHelper.GetChild(parent, i), results);
+            }
+        }
+
+        /// <summary>
+        /// 在视觉树中查找指定类型的父元素
+        /// </summary>
+        private T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+
+            if (parentObject == null)
+                return null;
+
+            if (parentObject is T parent)
+                return parent;
+
+            return FindVisualParent<T>(parentObject);
         }
 
         /// <summary>
