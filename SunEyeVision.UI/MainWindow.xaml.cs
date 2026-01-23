@@ -86,6 +86,18 @@ namespace SunEyeVision.UI
         #region TabControl 多流程管理事件处理
 
         /// <summary>
+        /// TabControl 选择变化事件 - 自动滚动到选中的TabItem
+        /// </summary>
+        private void WorkflowTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 使用Dispatcher延迟执行，确保UI已更新
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                ScrollToSelectedTabItem();
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        /// <summary>
         /// 添加工作流点击事件
         /// </summary>
         private void AddWorkflow_Click(object sender, RoutedEventArgs e)
