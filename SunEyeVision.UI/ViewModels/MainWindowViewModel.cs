@@ -9,16 +9,6 @@ using SunEyeVision.PluginSystem;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 属性分组 - 用于PropertyPanelControl
-    /// </summary>
-    public class PropertyGroup
-    {
-        public string Name { get; set; } = "";
-        public bool IsExpanded { get; set; } = true;
-        public ObservableCollection<PropertyItem> Parameters { get; set; } = new ObservableCollection<PropertyItem>();
-    }
-
-    /// <summary>
     /// 主窗口视图模型
     /// </summary>
     public class MainWindowViewModel : ViewModelBase
@@ -33,7 +23,7 @@ namespace SunEyeVision.UI.ViewModels
         private double _imageScale = 1.0;
 
         // 属性面板相关
-        private ObservableCollection<PropertyGroup> _propertyGroups = new ObservableCollection<PropertyGroup>();
+        private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待操作...\n";
 
         // 面板折叠状态
@@ -109,7 +99,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         // 属性面板属性
-        public ObservableCollection<PropertyGroup> PropertyGroups
+        public ObservableCollection<Models.PropertyGroup> PropertyGroups
         {
             get => _propertyGroups;
             set => SetProperty(ref _propertyGroups, value);
@@ -356,51 +346,50 @@ namespace SunEyeVision.UI.ViewModels
             PropertyGroups.Clear();
 
             // 基本信息
-            var basicGroup = new PropertyGroup
+            var basicGroup = new Models.PropertyGroup
             {
                 Name = "📋 基本信息",
                 IsExpanded = true,
-                Parameters = new ObservableCollection<PropertyItem>
+                Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new PropertyItem("名称", node.Name, "string", true),
-                    new PropertyItem("ID", node.Id, "string", false),
-                    new PropertyItem("类型", node.AlgorithmType ?? "未知", "string", false)
+                    new Models.PropertyItem { Label = "名称", Value = node.Name },
+                    new Models.PropertyItem { Label = "ID", Value = node.Id },
+                    new Models.PropertyItem { Label = "类型", Value = node.AlgorithmType ?? "未知" }
                 }
             };
             PropertyGroups.Add(basicGroup);
 
             // 参数配置
-            var paramGroup = new PropertyGroup
+            var paramGroup = new Models.PropertyGroup
             {
                 Name = "🔧 参数配置",
                 IsExpanded = true,
-                Parameters = new ObservableCollection<PropertyItem>()
+                Parameters = new ObservableCollection<Models.PropertyItem>()
             };
 
             if (node.Parameters != null)
             {
                 foreach (var param in node.Parameters)
                 {
-                    paramGroup.Parameters.Add(new PropertyItem(
-                        param.Key,
-                        param.Value?.ToString() ?? "",
-                        "object",
-                        true
-                    ));
+                    paramGroup.Parameters.Add(new Models.PropertyItem
+                    {
+                        Label = param.Key,
+                        Value = param.Value?.ToString() ?? ""
+                    });
                 }
             }
             PropertyGroups.Add(paramGroup);
 
             // 性能统计
-            var perfGroup = new PropertyGroup
+            var perfGroup = new Models.PropertyGroup
             {
                 Name = "📊 性能统计",
                 IsExpanded = true,
-                Parameters = new ObservableCollection<PropertyItem>
+                Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new PropertyItem("执行次数", "0", "int", false),
-                    new PropertyItem("平均时间", "0 ms", "string", false),
-                    new PropertyItem("成功率", "100%", "string", false)
+                    new Models.PropertyItem { Label = "执行次数", Value = "0" },
+                    new Models.PropertyItem { Label = "平均时间", Value = "0 ms" },
+                    new Models.PropertyItem { Label = "成功率", Value = "100%" }
                 }
             };
             PropertyGroups.Add(perfGroup);

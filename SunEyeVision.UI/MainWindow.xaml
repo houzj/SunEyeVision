@@ -265,61 +265,64 @@
 
                                 <!-- TabPanel区域,包含TabItem和添加按钮 -->
                                 <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                    <!-- 使用ScrollViewer包裹整个TabPanel和添加按钮 -->
+                                    <ScrollViewer x:Name="TabPanelScrollViewer"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled"
+                                              Focusable="False">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <!-- TabItem列表 - 使用ScrollViewer包裹TabPanel -->
-                                        <ScrollViewer Grid.Column="0"
-                                                      HorizontalScrollBarVisibility="Auto"
-                                                      VerticalScrollBarVisibility="Disabled"
-                                                      Focusable="False">
+                                            <!-- TabItem列表 -->
                                             <TabPanel x:Name="HeaderPanel"
+                                                      Grid.Column="0"
                                                       IsItemsHost="True"
                                                       Panel.ZIndex="0"/>
-                                        </ScrollViewer>
 
-                                        <!-- 添加工作流按钮 -->
-                                        <Button Grid.Column="1" Width="40" Height="40"
-                                                Margin="2,2,4,0"
-                                                Padding="0"
-                                                BorderThickness="1"
-                                                BorderBrush="#4CAF50"
-                                                Background="#F1F8E9"
-                                                Cursor="Hand"
-                                                Click="AddWorkflow_Click">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="ButtonBorder"
-                                                            Background="{TemplateBinding Background}"
-                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                                            CornerRadius="6"
-                                                            Width="{TemplateBinding Width}"
-                                                            Height="{TemplateBinding Height}">
-                                                        <Path x:Name="ButtonIcon"
-                                                              Data="M12,6 L12,18 M6,12 L18,12"
-                                                              Stroke="#4CAF50"
-                                                              StrokeThickness="2.5"
-                                                              Fill="Transparent"
-                                                              Stretch="Uniform"
-                                                              Width="20" Height="20"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#4CAF50"/>
-                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#388E3C"/>
-                                                            <Setter TargetName="ButtonIcon" Property="Stroke" Value="White"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                    </Grid>
+                                            <!-- 添加工作流按钮 -->
+                                            <Button Grid.Column="1"
+                                                    Width="40" Height="40"
+                                                    Margin="2,2,4,0"
+                                                    Padding="0"
+                                                    BorderThickness="1"
+                                                    BorderBrush="#4CAF50"
+                                                    Background="#F1F8E9"
+                                                    Cursor="Hand"
+                                                    Click="AddWorkflow_Click">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ButtonBorder"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="6"
+                                                                Width="{TemplateBinding Width}"
+                                                                Height="{TemplateBinding Height}">
+                                                            <Path x:Name="ButtonIcon"
+                                                                  Data="M12,6 L12,18 M6,12 L18,12"
+                                                                  Stroke="#4CAF50"
+                                                                  StrokeThickness="2.5"
+                                                                  Fill="Transparent"
+                                                                  Stretch="Uniform"
+                                                                  Width="20" Height="20"
+                                                                  HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#4CAF50"/>
+                                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#388E3C"/>
+                                                                <Setter TargetName="ButtonIcon" Property="Stroke" Value="White"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </Grid>
+                                    </ScrollViewer>
                                 </Border>
 
                                 <!-- TabContent内容区域 -->
@@ -551,7 +554,8 @@
                                     DragEnter="WorkflowCanvas_DragEnter"
                                     DragOver="WorkflowCanvas_DragOver"
                                     DragLeave="WorkflowCanvas_DragLeave"
-                                    Drop="WorkflowCanvas_Drop">
+                                    Drop="WorkflowCanvas_Drop"
+                                    DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}">
                                 <!-- 网格背景 -->
                                 <Canvas.Background>
                                     <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">

@@ -93,11 +93,48 @@ namespace SunEyeVision.UI
             _viewModel.WorkflowTabViewModel.AddWorkflow();
             _viewModel.StatusText = "已添加新工作流";
 
-            // 自动滚动到新添加的TabItem
+            // 自动滚动到新添加的TabItem（并确保添加按钮也可见）
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ScrollToSelectedTabItem();
+                ScrollToAddButton();
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        /// <summary>
+        /// 滚动到添加按钮，确保它可见
+        /// </summary>
+        private void ScrollToAddButton()
+        {
+            // 在TabControl的模板中查找ScrollViewer
+            var scrollViewer = FindVisualChild<ScrollViewer>(WorkflowTabControl);
+            if (scrollViewer == null)
+                return;
+
+            // 计算需要滚动的位置，使添加按钮可见
+            var desiredOffset = scrollViewer.ScrollableWidth;
+            scrollViewer.ScrollToHorizontalOffset(desiredOffset);
+        }
+
+        /// <summary>
+        /// 在视觉树中查找指定类型的第一个子元素
+        /// </summary>
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null)
+                return null;
+
+            if (parent is T child)
+                return child;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var found = FindVisualChild<T>(VisualTreeHelper.GetChild(parent, i));
+                if (found != null)
+                    return found;
+            }
+
+            return null;
         }
 
         /// <summary>
