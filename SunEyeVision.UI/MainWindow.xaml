@@ -239,120 +239,226 @@
                             ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
                             SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}">
                     <TabControl.Resources>
-                        <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
-                        <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
-                        <converters:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
-                        <converters:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
-                        <converters:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
+                    <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
+                    <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
+                    <converters:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
+                    <converters:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
+                    <converters:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
+                    <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
+                    <converters:ContinuousRunIconColorConverter x:Key="ContinuousRunIconColorConverter"/>
                     </TabControl.Resources>
 
-                    <!-- 自定义TabItem样式 -->
-                    <TabControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="Transparent">
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <!-- 工作流名称 -->
-                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <!-- 自定义TabItem容器样式 -->
+                    <TabControl.ItemContainerStyle>
+                        <Style TargetType="TabItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="4,2,0,0"/>
+                            <Setter Property="Height" Value="40"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Grid>
+                                            <Border x:Name="TabBorder"
+                                                    Background="#FFFFFF"
+                                                    BorderBrush="#E0E0E0"
+                                                    BorderThickness="1,1,1,0"
+                                                    CornerRadius="6,6,0,0"
+                                                    Padding="0"
+                                                    Margin="0,0,0,0">
+                                                <Grid Margin="8,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
 
-                                    <!-- 单次运行按钮 -->
-                                    <Button Content="▶"
-                                            Padding="4,2" Margin="6,0,4,0"
-                                            Background="#F0F8FF" BorderBrush="#0066CC" BorderThickness="1"
-                                            FontSize="11"
-                                            Tag="{Binding}"
-                                            Click="TabItem_SingleRun_Click"
-                                            Cursor="Hand">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
+                                                    <!-- 工作流名称 -->
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Name}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#333333"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,12,0"/>
+
+                                                    <!-- 单次运行按钮 -->
+                                                    <Button Grid.Column="1"
+                                                            Content="▶"
+                                                            Padding="6,4"
+                                                            Margin="0"
+                                                            BorderThickness="0"
+                                                            FontSize="12"
+                                                            Foreground="White"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_SingleRun_Click"
+                                                            Cursor="Hand"
+                                                            Width="32" Height="32">
+                                                        <Button.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#4CAF50" Offset="0"/>
+                                                                <GradientStop Color="#45A049" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Button.Background>
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    CornerRadius="6"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                                  HorizontalAlignment="Center"
+                                                                                                  VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.9"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+
+                                                    <!-- 连续运行/停止按钮 -->
+                                                    <Button Grid.Column="2"
+                                                            Padding="6,4"
+                                                            Margin="6,0,0,0"
+                                                            BorderThickness="0"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_ContinuousRun_Click"
+                                                            Cursor="Hand"
+                                                            Width="32" Height="32">
+                                                        <Button.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}" Offset="0"/>
+                                                                <GradientStop Color="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Button.Background>
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    CornerRadius="6"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <Path Data="{Binding IsRunning, Converter={StaticResource ContinuousRunIconTriangleInLoopConverter}}"
+                                                                                      Fill="{Binding IsRunning, Converter={StaticResource ContinuousRunIconColorConverter}}"
+                                                                                      Stretch="Uniform"
+                                                                                      Width="20" Height="20"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.9"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+
+                                                    <!-- 状态指示器 -->
+                                                    <Ellipse Grid.Column="3"
+                                                             Width="12" Height="12"
+                                                             Fill="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
+                                                             VerticalAlignment="Center"
+                                                             Margin="12,0,8,0">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect Color="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
+                                                                              BlurRadius="6" ShadowDepth="0"/>
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+
+                                                    <!-- 删除按钮 -->
+                                                    <Button Grid.Column="4"
+                                                            Content="✕"
+                                                            Padding="0"
+                                                            Margin="0"
+                                                            Background="Transparent"
+                                                            BorderThickness="1"
+                                                            BorderBrush="Transparent"
+                                                            FontSize="16"
+                                                            Foreground="#999999"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_Delete_Click"
+                                                            Cursor="Hand"
+                                                            Width="24" Height="24"
+                                                            VerticalAlignment="Center">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                    CornerRadius="4"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                                  HorizontalAlignment="Center"
+                                                                                                  VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#FFF5F5"/>
+                                                                        <Setter Property="BorderBrush" Value="#FF4444"/>
+                                                                        <Setter Property="Foreground" Value="#FF4444"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="TabBorder" Property="Background" Value="#FFFFFF"/>
+                                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#667EEA"/>
+                                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="2,2,2,0"/>
+                                                <Setter TargetName="TabBorder" Property="Effect">
                                                     <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}"
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                                    CornerRadius="3"
-                                                                    Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter Content="{TemplateBinding Content}"
-                                                                                  HorizontalAlignment="Center"
-                                                                                  VerticalAlignment="Center"/>
-                                                            </Border>
-                                                        </ControlTemplate>
+                                                        <DropShadowEffect Color="#667EEA" BlurRadius="12" ShadowDepth="0"/>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#E6F2FF"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-
-                                    <!-- 连续运行/停止按钮 -->
-                                    <Button Content="{Binding IsRunning, Converter={StaticResource ContinuousRunButtonTextConverter}}"
-                                            Padding="4,2" Margin="0,0,4,0"
-                                            Background="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}"
-                                            BorderBrush="{Binding IsRunning, Converter={StaticResource ContinuousRunBorderConverter}}"
-                                            BorderThickness="1"
-                                            FontSize="11"
-                                            Tag="{Binding}"
-                                            Click="TabItem_ContinuousRun_Click"
-                                            Cursor="Hand">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}"
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                                    CornerRadius="3"
-                                                                    Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter Content="{TemplateBinding Content}"
-                                                                                  HorizontalAlignment="Center"
-                                                                                  VerticalAlignment="Center"/>
-                                                            </Border>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#E6F2FF"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-
-                                    <!-- 删除按钮 -->
-                                    <Button Content="×"
-                                            Padding="2,0" Margin="0,0,6,0"
-                                            Background="Transparent" BorderThickness="0"
-                                            FontSize="14"
-                                            Foreground="#999999"
-                                            Tag="{Binding}"
-                                            Click="TabItem_Delete_Click"
-                                            Cursor="Hand">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Foreground" Value="#FF4444"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-
-                                    <!-- 状态指示器 -->
-                                    <TextBlock Text="{Binding State, Converter={StaticResource WorkflowStateToTextConverter}}"
-                                                FontSize="10"
-                                                Foreground="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
-                                                VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="TabBorder" Property="Background" Value="#F8F9FA"/>
+                                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#667EEA"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.ItemContainerStyle>
 
                     <!-- TabItem内容 - 每个Tab包含一个WorkflowCanvasControl -->
                     <TabControl.ContentTemplate>
