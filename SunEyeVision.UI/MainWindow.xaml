@@ -134,6 +134,12 @@
             <Separator/>
 
             <!-- 工作流管理组 -->
+            <ComboBox Width="150" Height="32" Margin="8,0,4,0" VerticalAlignment="Center"
+                     ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
+                     SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}"
+                     DisplayMemberPath="Name"
+                     ToolTip="快速切换工作流"
+                     Style="{StaticResource StyledComboBox}"/>
             <Button ToolTip="添加工作流" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="AddWorkflow_Click">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="➕" FontSize="16" VerticalAlignment="Center"/>
