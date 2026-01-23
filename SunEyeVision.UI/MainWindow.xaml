@@ -246,7 +246,8 @@
                             ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
                             SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}"
                             IsSynchronizedWithCurrentItem="True"
-                            SelectionChanged="WorkflowTabControl_SelectionChanged">
+                            SelectionChanged="WorkflowTabControl_SelectionChanged"
+                            PreviewMouseLeftButtonDown="WorkflowTabControl_PreviewMouseLeftButtonDown">
                     <TabControl.Resources>
                         <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
                         <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
@@ -267,12 +268,15 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- TabPanel区域,包含TabItem和添加按钮 -->
-                                <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0">
+                                <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0"
+                                        ClipToBounds="True">
                                     <!-- 使用ScrollViewer包裹整个TabPanel和添加按钮 -->
                                     <ScrollViewer x:Name="TabPanelScrollViewer"
                                               HorizontalScrollBarVisibility="Auto"
                                               VerticalScrollBarVisibility="Disabled"
-                                              Focusable="False">
+                                              Focusable="False"
+                                              ClipToBounds="True"
+                                              Margin="0,0,8,0">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -283,7 +287,7 @@
                                             <TabPanel x:Name="HeaderPanel"
                                                       Grid.Column="0"
                                                       IsItemsHost="True"
-                                                      Panel.ZIndex="0"/>
+                                                      Panel.ZIndex="100"/>
 
                                             <!-- 添加工作流按钮 -->
                                             <Button Grid.Column="1"

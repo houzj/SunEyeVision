@@ -17,6 +17,7 @@ namespace SunEyeVision.UI
     public partial class MainWindow : Window
     {
         private readonly MainWindowViewModel _viewModel;
+        private bool _isTabItemClick = false;  // 标记是否是通过点击TabItem触发的切换
 
         public MainWindow()
         {
@@ -86,15 +87,39 @@ namespace SunEyeVision.UI
         #region TabControl 多流程管理事件处理
 
         /// <summary>
-        /// TabControl 选择变化事件 - 自动滚动到选中的TabItem
+        /// TabControl 选择变化事件 - 根据切换方式决定是否滚动
         /// </summary>
         private void WorkflowTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // 使用Dispatcher延迟执行，确保UI已更新
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                ScrollToSelectedTabItem();
+                // 只有通过下拉器切换时才滚动到中间，点击TabItem时不滚动
+                if (!_isTabItemClick)
+                {
+                    ScrollToSelectedTabItem();
+                }
+                // 重置标志
+                _isTabItemClick = false;
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        /// <summary>
+        /// TabControl 预览鼠标左键按下事件 - 检测是否点击了TabItem
+        /// </summary>
+        private void WorkflowTabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 检查点击的是否是TabItem
+            var source = e.OriginalSource as DependencyObject;
+            if (source != null)
+            {
+                var tabItem = FindVisualParent<TabItem>(source);
+                if (tabItem != null)
+                {
+                    // 标记为TabItem点击
+                    _isTabItemClick = true;
+                }
+            }
         }
 
         /// <summary>
