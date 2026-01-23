@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Windows;
 using SunEyeVision.UI.Models;
 
@@ -14,6 +15,8 @@ namespace SunEyeVision.UI.ViewModels
         private bool _isRunning;
         private RunMode _runMode;
         private WorkflowState _state;
+        private ObservableCollection<Models.WorkflowNode> _workflowNodes;
+        private ObservableCollection<Models.WorkflowConnection> _workflowConnections;
 
         public WorkflowTabViewModel()
         {
@@ -21,6 +24,8 @@ namespace SunEyeVision.UI.ViewModels
             Name = "工作流1";
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
+            WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
+            WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
         }
 
         /// <summary>
@@ -72,6 +77,24 @@ namespace SunEyeVision.UI.ViewModels
         {
             get => _state;
             set => SetProperty(ref _state, value);
+        }
+
+        /// <summary>
+        /// 工作流节点集合
+        /// </summary>
+        public ObservableCollection<Models.WorkflowNode> WorkflowNodes
+        {
+            get => _workflowNodes;
+            set => SetProperty(ref _workflowNodes, value);
+        }
+
+        /// <summary>
+        /// 工作流连接集合
+        /// </summary>
+        public ObservableCollection<Models.WorkflowConnection> WorkflowConnections
+        {
+            get => _workflowConnections;
+            set => SetProperty(ref _workflowConnections, value);
         }
 
         /// <summary>

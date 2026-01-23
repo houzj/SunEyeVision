@@ -554,8 +554,7 @@
                                     DragEnter="WorkflowCanvas_DragEnter"
                                     DragOver="WorkflowCanvas_DragOver"
                                     DragLeave="WorkflowCanvas_DragLeave"
-                                    Drop="WorkflowCanvas_Drop"
-                                    DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}">
+                                    Drop="WorkflowCanvas_Drop">
                                 <!-- 网格背景 -->
                                 <Canvas.Background>
                                     <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">

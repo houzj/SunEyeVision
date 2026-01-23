@@ -376,11 +376,14 @@ namespace SunEyeVision.UI
                     var y = Math.Max(0, position.Y - 45);
                     node.Position = new System.Windows.Point(x, y);
 
-                    // 在UI线程中添加节点
+                    // 在UI线程中添加节点到当前选中的工作流
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
-                        _viewModel.WorkflowNodes.Add(node);
-                        _viewModel.StatusText = $"添加节点: {tool.Name}";
+                        if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                        {
+                            _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(node);
+                            _viewModel.StatusText = $"添加节点: {tool.Name}";
+                        }
                     });
                 }
             }
@@ -429,9 +432,12 @@ namespace SunEyeVision.UI
             // 双击事件：打开调试窗口
             if (e.ClickCount == 2)
             {
-                foreach (var n in _viewModel.WorkflowNodes)
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
                 {
-                    n.IsSelected = (n == node);
+                    foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                    {
+                        n.IsSelected = (n == node);
+                    }
                 }
                 _viewModel.SelectedNode = node;
 
@@ -448,9 +454,12 @@ namespace SunEyeVision.UI
             _startDragPosition = e.GetPosition(canvas);
 
             // 更新选中状态
-            foreach (var n in _viewModel.WorkflowNodes)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                n.IsSelected = (n == node);
+                foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                {
+                    n.IsSelected = (n == node);
+                }
             }
             _viewModel.SelectedNode = node;
 
@@ -498,10 +507,11 @@ namespace SunEyeVision.UI
                         var sourceNode = _viewModel.WorkflowViewModel.ConnectionSourceNode;
                         _viewModel.StatusText = $"成功连接: {sourceNode?.Name} -> {targetNode.Name}";
 
-                        // 同步连接到MainWindowViewModel
-                        if (_viewModel.WorkflowViewModel.Connections.LastOrDefault() is WorkflowConnection connection)
+                        // 同步连接到当前选中的工作流
+                        if (_viewModel.WorkflowTabViewModel.SelectedTab != null &&
+                            _viewModel.WorkflowViewModel.Connections.LastOrDefault() is WorkflowConnection connection)
                         {
-                            _viewModel.WorkflowConnections.Add(connection);
+                            _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(connection);
                         }
                     }
                     else
@@ -512,9 +522,12 @@ namespace SunEyeVision.UI
                 else
                 {
                     // 非连接模式下，只是选中节点
-                    foreach (var n in _viewModel.WorkflowNodes)
+                    if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
                     {
-                        n.IsSelected = (n == targetNode);
+                        foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                        {
+                            n.IsSelected = (n == targetNode);
+                        }
                     }
                     _viewModel.SelectedNode = targetNode;
                     _viewModel.WorkflowViewModel.SelectedNode = targetNode;
