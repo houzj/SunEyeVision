@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Media;
 using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.ViewModels
@@ -17,6 +18,8 @@ namespace SunEyeVision.UI.ViewModels
         private WorkflowState _state;
         private ObservableCollection<Models.WorkflowNode> _workflowNodes;
         private ObservableCollection<Models.WorkflowConnection> _workflowConnections;
+        private ScaleTransform _scaleTransform;
+        private double _currentScale;
 
         public WorkflowTabViewModel()
         {
@@ -26,6 +29,8 @@ namespace SunEyeVision.UI.ViewModels
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
+            CurrentScale = 1.0;
+            ScaleTransform = new ScaleTransform(1.0, 1.0);
         }
 
         /// <summary>
@@ -95,6 +100,24 @@ namespace SunEyeVision.UI.ViewModels
         {
             get => _workflowConnections;
             set => SetProperty(ref _workflowConnections, value);
+        }
+
+        /// <summary>
+        /// 缩放变换对象（每个工作流独立）
+        /// </summary>
+        public ScaleTransform ScaleTransform
+        {
+            get => _scaleTransform;
+            set => SetProperty(ref _scaleTransform, value);
+        }
+
+        /// <summary>
+        /// 当前缩放比例（每个工作流独立，默认1.0即100%）
+        /// </summary>
+        public double CurrentScale
+        {
+            get => _currentScale;
+            set => SetProperty(ref _currentScale, value);
         }
 
         /// <summary>

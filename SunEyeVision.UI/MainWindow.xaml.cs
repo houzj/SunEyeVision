@@ -25,13 +25,8 @@ namespace SunEyeVision.UI
         private const double CanvasVirtualHeight = 5000; // 虚拟画布高度
 
         // 缩放相关
-        private double _currentScale = 1.0;
         private const double MinScale = 0.25;  // 25%
         private const double MaxScale = 3.0;   // 300%
-        private ScaleTransform _scaleTransform = new ScaleTransform(1.0, 1.0);
-
-        // 缓存 Canvas 的变换,因为 Canvas 可能还没有加载
-        private Dictionary<WorkflowTabViewModel, ScaleTransform> _canvasTransforms = new Dictionary<WorkflowTabViewModel, ScaleTransform>();
 
         public MainWindow()
         {
@@ -115,7 +110,7 @@ namespace SunEyeVision.UI
                 foreach (var tabItem in WorkflowTabControl.Items)
                 {
                     var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(tabItem);
-                    if (container is TabItem tab)
+                    if (container is TabItem tab && tab.DataContext is WorkflowTabViewModel workflow)
                     {
                         var contentPresenter = FindVisualChild<ContentPresenter>(tab);
                         if (contentPresenter != null)
@@ -134,9 +129,6 @@ namespace SunEyeVision.UI
                                         // 设置虚拟画布大小
                                         canvas.Width = CanvasVirtualWidth;
                                         canvas.Height = CanvasVirtualHeight;
-
-                                        // 应用初始缩放变换
-                                        canvas.LayoutTransform = _scaleTransform;
                                     }
                                 }
                             }
@@ -303,6 +295,11 @@ namespace SunEyeVision.UI
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ScrollToSelectedTabItem();
+                // 等待 Canvas 加载完成后应用初始缩放
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    ApplyZoom();
+                }), System.Windows.Threading.DispatcherPriority.Render);
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
@@ -547,27 +544,6 @@ namespace SunEyeVision.UI
             }
         }
 
-        /// <summary>
-        /// Canvas 加载完成事件 - 应用缩放变换
-        /// </summary>
-        private void WorkflowCanvas_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is Canvas canvas)
-            {
-                // 为当前 Tab 创建或获取缩放变换
-                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
-                {
-                    if (!_canvasTransforms.ContainsKey(_viewModel.WorkflowTabViewModel.SelectedTab))
-                    {
-                        _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab] = _scaleTransform;
-                    }
-
-                    // 应用缩放变换
-                    canvas.LayoutTransform = _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab];
-                }
-            }
-        }
-
         private void WorkflowCanvas_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent("ToolItem"))
@@ -644,12 +620,16 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentScale < MaxScale)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                _currentScale = Math.Min(_currentScale * 1.2, MaxScale);
-                // 延迟执行以确保 UI 已更新
-                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
-                    System.Windows.Threading.DispatcherPriority.Render);
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                if (workflow.CurrentScale < MaxScale)
+                {
+                    workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.2, MaxScale);
+                    // 延迟执行以确保 UI 已更新
+                    Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                        System.Windows.Threading.DispatcherPriority.Render);
+                }
             }
         }
 
@@ -658,12 +638,16 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomOut_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentScale > MinScale)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                _currentScale = Math.Max(_currentScale / 1.2, MinScale);
-                // 延迟执行以确保 UI 已更新
-                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
-                    System.Windows.Threading.DispatcherPriority.Render);
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                if (workflow.CurrentScale > MinScale)
+                {
+                    workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.2, MinScale);
+                    // 延迟执行以确保 UI 已更新
+                    Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                        System.Windows.Threading.DispatcherPriority.Render);
+                }
             }
         }
 
@@ -672,6 +656,11 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomFit_Click(object sender, RoutedEventArgs e)
         {
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+
             // 延迟执行以确保 UI 已更新
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -686,10 +675,10 @@ namespace SunEyeVision.UI
                     // 计算适合的缩放比例，留出10%边距
                     var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
                     var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
-                    _currentScale = Math.Min(scaleX, scaleY);
+                    workflow.CurrentScale = Math.Min(scaleX, scaleY);
 
                     // 限制在范围内
-                    _currentScale = Math.Max(MinScale, Math.Min(MaxScale, _currentScale));
+                    workflow.CurrentScale = Math.Max(MinScale, Math.Min(MaxScale, workflow.CurrentScale));
 
                     ApplyZoom();
                 }
@@ -701,10 +690,13 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomReset_Click(object sender, RoutedEventArgs e)
         {
-            _currentScale = 1.0;
-            // 延迟执行以确保 UI 已更新
-            Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
-                System.Windows.Threading.DispatcherPriority.Render);
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                _viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale = 1.0;
+                // 延迟执行以确保 UI 已更新
+                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                    System.Windows.Threading.DispatcherPriority.Render);
+            }
         }
 
         /// <summary>
@@ -712,21 +704,19 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ApplyZoom()
         {
-            // 更新缩放变换
-            _scaleTransform.ScaleX = _currentScale;
-            _scaleTransform.ScaleY = _currentScale;
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
 
-            // 为当前 Tab 缓存缩放变换
-            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
-            {
-                _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab] = _scaleTransform;
-            }
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
 
-            // 如果 Canvas 已经加载,直接应用
+            // 更新该工作流的缩放变换（XAML 绑定会自动更新到 Canvas）
+            workflow.ScaleTransform.ScaleX = workflow.CurrentScale;
+            workflow.ScaleTransform.ScaleY = workflow.CurrentScale;
+
+            // 如果 Canvas 已经加载,强制更新布局
             var currentCanvas = GetCurrentCanvas();
             if (currentCanvas != null)
             {
-                currentCanvas.LayoutTransform = _scaleTransform;
                 currentCanvas.UpdateLayout();
             }
 
@@ -736,7 +726,7 @@ namespace SunEyeVision.UI
             // 更新指示器
             UpdateZoomIndicator();
 
-            _viewModel.StatusText = $"画布缩放: {Math.Round(_currentScale * 100, 0)}%";
+            _viewModel.StatusText = $"画布缩放: {Math.Round(workflow.CurrentScale * 100, 0)}%";
         }
 
         /// <summary>
@@ -762,7 +752,7 @@ namespace SunEyeVision.UI
                             {
                                 if (textBlock.Name == "ZoomIndicatorText")
                                 {
-                                    int percentage = (int)(_currentScale * 100);
+                                    int percentage = (int)(_viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale * 100);
                                     textBlock.Text = $"{percentage}%";
                                     return;
                                 }
@@ -778,7 +768,10 @@ namespace SunEyeVision.UI
         /// </summary>
         private void UpdateZoomDisplay()
         {
-            int percentage = (int)(_currentScale * 100);
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            int percentage = (int)(_viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale * 100);
 
             // 查找工具栏中的ZoomText
             var toolBar = FindVisualChild<ToolBar>(this);
@@ -800,6 +793,11 @@ namespace SunEyeVision.UI
         /// </summary>
         private void CanvasScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+
             // Ctrl+滚轮进行缩放
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
@@ -808,18 +806,18 @@ namespace SunEyeVision.UI
                 if (e.Delta > 0)
                 {
                     // 向上滚动，放大
-                    if (_currentScale < MaxScale)
+                    if (workflow.CurrentScale < MaxScale)
                     {
-                        _currentScale = Math.Min(_currentScale * 1.1, MaxScale);
+                        workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.1, MaxScale);
                         ApplyZoom();
                     }
                 }
                 else
                 {
                     // 向下滚动，缩小
-                    if (_currentScale > MinScale)
+                    if (workflow.CurrentScale > MinScale)
                     {
-                        _currentScale = Math.Max(_currentScale / 1.1, MinScale);
+                        workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.1, MinScale);
                         ApplyZoom();
                     }
                 }

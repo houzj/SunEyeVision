@@ -616,7 +616,7 @@
                                             DragOver="WorkflowCanvas_DragOver"
                                             DragLeave="WorkflowCanvas_DragLeave"
                                             Drop="WorkflowCanvas_Drop"
-                                            Loaded="WorkflowCanvas_Loaded">
+                                            LayoutTransform="{Binding ScaleTransform}">
                                         <!-- 网格背景 -->
                                         <Canvas.Background>
                                             <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
