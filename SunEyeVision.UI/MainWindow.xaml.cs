@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using SunEyeVision.UI.Controls;
@@ -97,7 +98,7 @@ namespace SunEyeVision.UI
                 // 只有通过下拉器切换时才滚动到中间，点击TabItem时不滚动
                 if (!_isTabItemClick)
                 {
-                    ScrollToSelectedTabItem();
+                    ScrollToSelectedTabItem();  // 只滚动到选中的TabItem，使其居中显示
                 }
                 // 重置标志
                 _isTabItemClick = false;
@@ -130,11 +131,10 @@ namespace SunEyeVision.UI
             _viewModel.WorkflowTabViewModel.AddWorkflow();
             _viewModel.StatusText = "已添加新工作流";
 
-            // 自动滚动到新添加的TabItem（并确保添加按钮也可见）
+            // 自动滚动到新添加的TabItem，使其居中显示，并确保不被右侧面板遮挡
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                ScrollToSelectedTabItem();
-                ScrollToAddButton();
+                ScrollToSelectedTabItemAndAddButton();
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
@@ -175,7 +175,8 @@ namespace SunEyeVision.UI
         }
 
         /// <summary>
-        /// 滚动到选中的TabItem
+        /// 滚动到选中的TabItem，使其显示在可见范围的中间
+        /// 同时确保右侧添加按钮区域也可见，防止被遮挡
         /// </summary>
         private void ScrollToSelectedTabItem()
         {
@@ -186,21 +187,112 @@ namespace SunEyeVision.UI
                 var scrollViewer = FindVisualParent<ScrollViewer>(selectedTabItem);
                 if (scrollViewer != null)
                 {
-                    // 计算TabItem在ScrollViewer中的位置
-                    var transform = selectedTabItem.TransformToVisual(scrollViewer);
+                    // 获取TabPanel（内容容器）
+                    var tabPanel = FindVisualChild<TabPanel>(scrollViewer);
+                    if (tabPanel == null)
+                        return;
+
+                    // 计算TabItem相对于TabPanel的位置（内容区域的绝对位置）
+                    var transform = selectedTabItem.TransformToVisual(tabPanel);
                     var position = transform.Transform(new Point(0, 0));
 
-                    // 滚动使TabItem可见
-                    if (position.X < scrollViewer.HorizontalOffset)
-                    {
-                        scrollViewer.ScrollToHorizontalOffset(position.X);
-                    }
-                    else if (position.X + selectedTabItem.ActualWidth > scrollViewer.HorizontalOffset + scrollViewer.ViewportWidth)
-                    {
-                        scrollViewer.ScrollToHorizontalOffset(position.X + selectedTabItem.ActualWidth - scrollViewer.ViewportWidth);
-                    }
+                    // ========== 调试信息 ==========
+                    System.Diagnostics.Debug.WriteLine("=== ScrollToSelectedTabItem 调试信息 ===");
+                    System.Diagnostics.Debug.WriteLine($"TabItem名称: {_viewModel.WorkflowTabViewModel.SelectedTab?.Name}");
+                    System.Diagnostics.Debug.WriteLine($"TabItem位置 (position.X): {position.X:F2}");
+                    System.Diagnostics.Debug.WriteLine($"TabItem宽度: {selectedTabItem.ActualWidth:F2}");
+                    System.Diagnostics.Debug.WriteLine($"ScrollViewer可视宽度 (ViewportWidth): {scrollViewer.ViewportWidth:F2}");
+                    System.Diagnostics.Debug.WriteLine($"ScrollViewer可滚动宽度 (ScrollableWidth): {scrollViewer.ScrollableWidth:F2}");
+                    System.Diagnostics.Debug.WriteLine($"当前滚动偏移量: {scrollViewer.HorizontalOffset:F2}");
+                    // ============================
+
+                    // 计算使TabItem居中的滚动位置
+                    // TabItem中心位置 = position.X + selectedTabItem.ActualWidth / 2
+                    // 视口中心位置 = scrollViewer.ViewportWidth / 2
+                    // 目标滚动位置 = TabItem中心位置 - 视口中心位置
+                    var targetOffset = position.X + (selectedTabItem.ActualWidth / 2) - (scrollViewer.ViewportWidth / 2);
+
+                    System.Diagnostics.Debug.WriteLine($"计算的目标滚动位置: {targetOffset:F2}");
+
+                    // 确保滚动位置在有效范围内
+                    targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.ScrollableWidth));
+
+                    System.Diagnostics.Debug.WriteLine($"调整后的目标滚动位置: {targetOffset:F2}");
+
+                    // 滚动到目标位置，使TabItem居中显示
+                    scrollViewer.ScrollToHorizontalOffset(targetOffset);
+
+                    System.Diagnostics.Debug.WriteLine("=== 调试信息结束 ===\n");
                 }
             }
+        }
+
+        /// <summary>
+        /// 滚动到选中的TabItem并确保不被右侧面板遮挡（用于添加工作流时）
+        /// </summary>
+        private void ScrollToSelectedTabItemAndAddButton()
+        {
+            var selectedTabItem = FindTabItem(_viewModel.WorkflowTabViewModel.SelectedTab);
+            if (selectedTabItem == null)
+                return;
+
+            var scrollViewer = FindVisualParent<ScrollViewer>(selectedTabItem);
+            if (scrollViewer == null)
+                return;
+
+            // 获取TabPanel（内容容器）
+            var tabPanel = FindVisualChild<TabPanel>(scrollViewer);
+            if (tabPanel == null)
+                return;
+
+            // 计算TabItem相对于TabPanel的位置（内容区域的绝对位置）
+            var transform = selectedTabItem.TransformToVisual(tabPanel);
+            var position = transform.Transform(new Point(0, 0));
+
+            // ========== 调试信息 ==========
+            System.Diagnostics.Debug.WriteLine("=== ScrollToSelectedTabItemAndAddButton 调试信息 ===");
+            System.Diagnostics.Debug.WriteLine($"TabItem名称: {_viewModel.WorkflowTabViewModel.SelectedTab?.Name}");
+            System.Diagnostics.Debug.WriteLine($"TabItem位置 (position.X): {position.X:F2}");
+            System.Diagnostics.Debug.WriteLine($"TabItem宽度: {selectedTabItem.ActualWidth:F2}");
+            System.Diagnostics.Debug.WriteLine($"ScrollViewer可视宽度 (ViewportWidth): {scrollViewer.ViewportWidth:F2}");
+            System.Diagnostics.Debug.WriteLine($"ScrollViewer可滚动宽度 (ScrollableWidth): {scrollViewer.ScrollableWidth:F2}");
+            System.Diagnostics.Debug.WriteLine($"当前滚动偏移量: {scrollViewer.HorizontalOffset:F2}");
+            // ============================
+
+            // ScrollViewer有Margin="0,0,8,0"，所以实际可视宽度比ViewportWidth少8px
+            const double scrollViewerRightMargin = 8;
+            double availableWidth = scrollViewer.ViewportWidth - scrollViewerRightMargin;
+
+            // 确保TabItem右边界至少距离可视区域右边缘50px（为添加按钮留出空间）
+            const double minRightMargin = 50;
+
+            // 计算使TabItem居中的滚动位置
+            double targetOffset = position.X + (selectedTabItem.ActualWidth / 2) - (scrollViewer.ViewportWidth / 2);
+
+            System.Diagnostics.Debug.WriteLine($"计算的居中滚动位置: {targetOffset:F2}");
+
+            // 如果居中会导致TabItem右边界超出安全区域，则调整
+            // 居中后TabItem右边界在视口中的位置 = position.X + selectedTabItem.ActualWidth - targetOffset
+            double tabRightEdgeAfterCentering = position.X + selectedTabItem.ActualWidth - targetOffset;
+            System.Diagnostics.Debug.WriteLine($"居中后TabItem右边界: {tabRightEdgeAfterCentering:F2}");
+            System.Diagnostics.Debug.WriteLine($"安全区域最大边界: {availableWidth - minRightMargin:F2}");
+
+            if (tabRightEdgeAfterCentering > availableWidth - minRightMargin)
+            {
+                // 调整到TabItem右边界刚好在安全区域的位置
+                targetOffset = position.X + selectedTabItem.ActualWidth - availableWidth + minRightMargin;
+                System.Diagnostics.Debug.WriteLine($"超出安全区域，调整为: {targetOffset:F2}");
+            }
+
+            // 确保滚动位置在有效范围内
+            targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.ScrollableWidth));
+
+            System.Diagnostics.Debug.WriteLine($"最终滚动位置: {targetOffset:F2}");
+
+            // 滚动到目标位置
+            scrollViewer.ScrollToHorizontalOffset(targetOffset);
+
+            System.Diagnostics.Debug.WriteLine("=== 调试信息结束 ===\n");
         }
 
         /// <summary>

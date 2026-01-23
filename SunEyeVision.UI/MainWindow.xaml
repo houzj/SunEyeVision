@@ -272,7 +272,7 @@
                                         ClipToBounds="True">
                                     <!-- 使用ScrollViewer包裹整个TabPanel和添加按钮 -->
                                     <ScrollViewer x:Name="TabPanelScrollViewer"
-                                              HorizontalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Hidden"
                                               VerticalScrollBarVisibility="Disabled"
                                               Focusable="False"
                                               ClipToBounds="True"
