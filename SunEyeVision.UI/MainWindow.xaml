@@ -239,14 +239,81 @@
                             ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
                             SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}">
                     <TabControl.Resources>
-                    <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
-                    <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
-                    <converters:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
-                    <converters:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
-                    <converters:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
-                    <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
-                    <converters:ContinuousRunIconColorConverter x:Key="ContinuousRunIconColorConverter"/>
+                        <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
+                        <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
+                        <converters:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
+                        <converters:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
+                        <converters:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
+                        <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
+                        <converters:ContinuousRunIconColorConverter x:Key="ContinuousRunIconColorConverter"/>
                     </TabControl.Resources>
+
+                    <!-- 自定义TabControl模板,将添加按钮放在TabPanel中 -->
+                    <TabControl.Template>
+                        <ControlTemplate TargetType="TabControl">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- TabPanel区域,包含TabItem和添加按钮 -->
+                                <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <!-- TabItem列表 -->
+                                        <TabPanel x:Name="HeaderPanel"
+                                                  IsItemsHost="True"
+                                                  Panel.ZIndex="0"/>
+
+                                        <!-- 添加工作流按钮 - 跟随最后一个TabItem -->
+                                        <Button Width="40" Height="40"
+                                                Margin="2,2,4,0"
+                                                Padding="0"
+                                                BorderThickness="1"
+                                                BorderBrush="#4CAF50"
+                                                Background="#F1F8E9"
+                                                Cursor="Hand"
+                                                Click="AddWorkflow_Click">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="ButtonBorder"
+                                                            Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            CornerRadius="6"
+                                                            Width="{TemplateBinding Width}"
+                                                            Height="{TemplateBinding Height}">
+                                                        <Path x:Name="ButtonIcon"
+                                                              Data="M12,6 L12,18 M6,12 L18,12"
+                                                              Stroke="#4CAF50"
+                                                              StrokeThickness="2.5"
+                                                              Fill="Transparent"
+                                                              Stretch="Uniform"
+                                                              Width="20" Height="20"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#4CAF50"/>
+                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#388E3C"/>
+                                                            <Setter TargetName="ButtonIcon" Property="Stroke" Value="White"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- TabContent内容区域 -->
+                                <ContentPresenter x:Name="PART_SelectedContentHost"
+                                                  Grid.Row="1"
+                                                  ContentSource="SelectedContent"
+                                                  Margin="0"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </TabControl.Template>
 
                     <!-- 自定义TabItem容器样式 -->
                     <TabControl.ItemContainerStyle>
