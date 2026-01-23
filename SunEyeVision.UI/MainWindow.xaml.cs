@@ -421,14 +421,20 @@ namespace SunEyeVision.UI
             var results = new List<T>();
 
             if (parent == null)
+            {
                 return results;
+            }
 
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            int childCount = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < childCount; i++)
             {
                 var child = VisualTreeHelper.GetChild(parent, i);
 
                 if (child is T t)
+                {
                     results.Add(t);
+                }
 
                 results.AddRange(FindAllVisualChildren<T>(child));
             }
@@ -616,20 +622,50 @@ namespace SunEyeVision.UI
         #region 缩放功能
 
         /// <summary>
+        /// 诊断方法:打印视觉树层次结构
+        /// </summary>
+        private void PrintVisualTree(DependencyObject parent, int indent = 0)
+        {
+            string prefix = new string(' ', indent * 2);
+            System.Diagnostics.Debug.WriteLine($"{prefix}{parent.GetType().Name}{(parent is FrameworkElement fe && !string.IsNullOrEmpty(fe.Name) ? $" (Name: {fe.Name})" : "")}");
+
+            int childCount = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                PrintVisualTree(child, indent + 1);
+            }
+        }
+
+        /// <summary>
         /// 放大画布
         /// </summary>
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+            if (workflow.CurrentScale < MaxScale)
             {
-                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-                if (workflow.CurrentScale < MaxScale)
+                workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.2, MaxScale);
+
+                // 使用Dispatcher延迟执行,确保TabItem已加载
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.2, MaxScale);
-                    // 延迟执行以确保 UI 已更新
-                    Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
-                        System.Windows.Threading.DispatcherPriority.Render);
-                }
+                    ScrollViewer? scrollViewer = null;
+                    Point canvasCenter = new Point(0, 0);
+
+                    // 获取ScrollViewer
+                    scrollViewer = GetCurrentScrollViewer();
+
+                    if (scrollViewer != null)
+                    {
+                        canvasCenter = GetCanvasCenterPosition(scrollViewer);
+                    }
+
+                    ApplyZoom(canvasCenter, scrollViewer);
+                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             }
         }
 
@@ -638,16 +674,30 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomOut_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+            if (workflow.CurrentScale > MinScale)
             {
-                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-                if (workflow.CurrentScale > MinScale)
+                workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.2, MinScale);
+
+                // 使用Dispatcher延迟执行,确保TabItem已加载
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.2, MinScale);
-                    // 延迟执行以确保 UI 已更新
-                    Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
-                        System.Windows.Threading.DispatcherPriority.Render);
-                }
+                    ScrollViewer? scrollViewer = null;
+                    Point canvasCenter = new Point(0, 0);
+
+                    // 获取ScrollViewer
+                    scrollViewer = GetCurrentScrollViewer();
+
+                    if (scrollViewer != null)
+                    {
+                        canvasCenter = GetCanvasCenterPosition(scrollViewer);
+                    }
+
+                    ApplyZoom(canvasCenter, scrollViewer);
+                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             }
         }
 
@@ -700,30 +750,71 @@ namespace SunEyeVision.UI
         }
 
         /// <summary>
-        /// 应用缩放变换
+        /// 应用缩放变换（支持围绕指定位置缩放）
         /// </summary>
-        private void ApplyZoom()
+        /// <param name="centerPosition">缩放中心相对于ScrollViewer的坐标（可选）</param>
+        /// <param name="scrollViewer">可用的ScrollViewer实例（可选，如果提供则不需要重新查找）</param>
+        private void ApplyZoom(Point? centerPosition = null, ScrollViewer? scrollViewer = null)
         {
             if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
                 return;
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+            var oldScale = workflow.ScaleTransform.ScaleX; // 保存旧缩放值
+            var newScale = workflow.CurrentScale;
 
-            // 更新该工作流的缩放变换（XAML 绑定会自动更新到 Canvas）
-            workflow.ScaleTransform.ScaleX = workflow.CurrentScale;
-            workflow.ScaleTransform.ScaleY = workflow.CurrentScale;
-
-            // 如果 Canvas 已经加载,强制更新布局
-            var currentCanvas = GetCurrentCanvas();
-            if (currentCanvas != null)
+            // 如果没有提供ScrollViewer，尝试查找
+            if (scrollViewer == null)
             {
-                currentCanvas.UpdateLayout();
+                scrollViewer = GetCurrentScrollViewer();
             }
 
-            // 更新缩放百分比显示
-            UpdateZoomDisplay();
+            // 如果提供了缩放中心且有ScrollViewer，计算并调整滚动偏移
+            if (centerPosition.HasValue && scrollViewer != null)
+            {
+                // 计算缩放前后的比例变化
+                var scaleRatio = newScale / oldScale;
 
-            // 更新指示器
+                // 如果缩放值没有变化，直接返回
+                if (Math.Abs(scaleRatio - 1.0) < 0.0001)
+                {
+                    return;
+                }
+
+                // 获取当前滚动偏移
+                var oldHorizontalOffset = scrollViewer.HorizontalOffset;
+                var oldVerticalOffset = scrollViewer.VerticalOffset;
+
+                // 计算鼠标在画布坐标系中的位置（考虑当前缩放）
+                var mouseInCanvasX = (oldHorizontalOffset + centerPosition.Value.X) / oldScale;
+                var mouseInCanvasY = (oldVerticalOffset + centerPosition.Value.Y) / oldScale;
+
+                // 应用新的缩放值（不使用CenterX/CenterY，因为我们在调整滚动偏移）
+                workflow.ScaleTransform.CenterX = 0;
+                workflow.ScaleTransform.CenterY = 0;
+                workflow.ScaleTransform.ScaleX = newScale;
+                workflow.ScaleTransform.ScaleY = newScale;
+
+                // 计算新的滚动偏移，保持鼠标指向的内容位置不变
+                // 新的滚动偏移 = 鼠标在画布坐标 * 新缩放比例 - 鼠标在ScrollViewer位置
+                var newHorizontalOffset = mouseInCanvasX * newScale - centerPosition.Value.X;
+                var newVerticalOffset = mouseInCanvasY * newScale - centerPosition.Value.Y;
+
+                // 应用新的滚动偏移
+                scrollViewer.ScrollToHorizontalOffset(newHorizontalOffset);
+                scrollViewer.ScrollToVerticalOffset(newVerticalOffset);
+            }
+            else
+            {
+                // 没有缩放中心或没有ScrollViewer时，直接应用缩放（用于初始加载或重置）
+                workflow.ScaleTransform.CenterX = 0;
+                workflow.ScaleTransform.CenterY = 0;
+                workflow.ScaleTransform.ScaleX = newScale;
+                workflow.ScaleTransform.ScaleY = newScale;
+            }
+
+            // 更新显示
+            UpdateZoomDisplay();
             UpdateZoomIndicator();
 
             _viewModel.StatusText = $"画布缩放: {Math.Round(workflow.CurrentScale * 100, 0)}%";
@@ -803,13 +894,20 @@ namespace SunEyeVision.UI
             {
                 e.Handled = true;
 
+                // sender 就是 ScrollViewer
+                if (sender is not ScrollViewer scrollViewer)
+                    return;
+
+                // 获取鼠标位置
+                var mousePositionInScrollViewer = e.GetPosition(scrollViewer);
+
                 if (e.Delta > 0)
                 {
                     // 向上滚动，放大
                     if (workflow.CurrentScale < MaxScale)
                     {
                         workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.1, MaxScale);
-                        ApplyZoom();
+                        ApplyZoom(mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
                     }
                 }
                 else
@@ -818,7 +916,7 @@ namespace SunEyeVision.UI
                     if (workflow.CurrentScale > MinScale)
                     {
                         workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.1, MinScale);
-                        ApplyZoom();
+                        ApplyZoom(mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
                     }
                 }
             }
@@ -858,7 +956,7 @@ namespace SunEyeVision.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取Canvas时出错: {ex.Message}");
+                // 静默处理异常
             }
             return null!;
         }
@@ -870,30 +968,28 @@ namespace SunEyeVision.UI
         {
             try
             {
-                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
                 {
-                    var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
-                    if (container is TabItem tabItem)
+                    return null!;
+                }
+
+                // TabControl的内容通过ContentPresenter显示在模板中,而不是在TabItem的视觉树中
+                // 所以直接从WorkflowTabControl的视觉树中查找ScrollViewer
+                var allScrollViewers = FindAllVisualChildren<ScrollViewer>(WorkflowTabControl);
+
+                // 查找名为 CanvasScrollViewer 的
+                foreach (var sv in allScrollViewers)
+                {
+                    if (sv.Name == "CanvasScrollViewer")
                     {
-                        var contentPresenter = FindVisualChild<ContentPresenter>(tabItem);
-                        if (contentPresenter != null)
-                        {
-                            // 查找 Grid (DataTemplate 的根元素)
-                            var grid = FindVisualChild<Grid>(contentPresenter);
-                            if (grid != null)
-                            {
-                                // 在 Grid 中查找名为 CanvasScrollViewer 的 ScrollViewer
-                                var children = FindAllVisualChildren<ScrollViewer>(grid);
-                                foreach (var sv in children)
-                                {
-                                    if (sv.Name == "CanvasScrollViewer")
-                                    {
-                                        return sv;
-                                    }
-                                }
-                            }
-                        }
+                        return sv;
                     }
+                }
+
+                // 如果找不到指定名称的,返回第一个
+                if (allScrollViewers.Count > 0)
+                {
+                    return allScrollViewers[0];
                 }
             }
             catch (Exception ex)
@@ -901,6 +997,21 @@ namespace SunEyeVision.UI
                 System.Diagnostics.Debug.WriteLine($"获取ScrollViewer时出错: {ex.Message}");
             }
             return null!;
+        }
+
+        /// <summary>
+        /// 获取画布中心在Canvas上的坐标
+        /// </summary>
+        private Point GetCanvasCenterPosition(ScrollViewer scrollViewer)
+        {
+            if (scrollViewer == null)
+                return new Point(0, 0);
+
+            // 返回视口中心相对于ScrollViewer的坐标（即鼠标在视口中心的位置）
+            return new Point(
+                scrollViewer.ViewportWidth / 2,
+                scrollViewer.ViewportHeight / 2
+            );
         }
 
         #endregion
@@ -1056,16 +1167,12 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ToolboxSplitter_ToggleClick(object? sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[ToolboxSplitter_ToggleClick] START");
-            System.Diagnostics.Debug.WriteLine($"  Before: IsToolboxCollapsed={_viewModel.IsToolboxCollapsed}, IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
-
             if (_viewModel.IsToolboxCollapsed)
             {
                 // 展开
                 ToolboxColumn.Width = new GridLength(_originalToolboxWidth);
                 ToolboxContent.Visibility = Visibility.Visible;
                 _viewModel.IsToolboxCollapsed = false;
-                System.Diagnostics.Debug.WriteLine($"Toolbox expanded, width={_originalToolboxWidth}");
             }
             else
             {
@@ -1074,11 +1181,8 @@ namespace SunEyeVision.UI
                 ToolboxColumn.Width = new GridLength(40);
                 ToolboxContent.Visibility = Visibility.Collapsed;
                 _viewModel.IsToolboxCollapsed = true;
-                System.Diagnostics.Debug.WriteLine($"Toolbox collapsed, saved width={_originalToolboxWidth}");
             }
             UpdateToolboxSplitterArrow();
-
-            System.Diagnostics.Debug.WriteLine($"  After: IsToolboxCollapsed={_viewModel.IsToolboxCollapsed}, IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
         }
 
         /// <summary>
@@ -1089,7 +1193,6 @@ namespace SunEyeVision.UI
             var newDirection = _viewModel.IsToolboxCollapsed
                 ? ToggleDirectionType.Right
                 : ToggleDirectionType.Left;
-            System.Diagnostics.Debug.WriteLine($"  [UpdateToolboxSplitterArrow] Setting ToggleDirection to {newDirection}");
             ToolboxSplitter.ToggleDirection = newDirection;
         }
 
@@ -1098,15 +1201,11 @@ namespace SunEyeVision.UI
         /// </summary>
         private void RightPanelSplitter_ToggleClick(object? sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RightPanelSplitter_ToggleClick] START");
-            System.Diagnostics.Debug.WriteLine($"  Before: IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
-
             if (_viewModel.IsPropertyPanelCollapsed)
             {
                 // 展开整个右侧面板
                 RightPanelColumn.Width = new GridLength(_rightPanelWidth);
                 _viewModel.IsPropertyPanelCollapsed = false;
-                System.Diagnostics.Debug.WriteLine($"Right panel expanded, width={_rightPanelWidth}");
             }
             else
             {
@@ -1114,11 +1213,8 @@ namespace SunEyeVision.UI
                 _rightPanelWidth = RightPanelColumn.ActualWidth;
                 RightPanelColumn.Width = new GridLength(40);
                 _viewModel.IsPropertyPanelCollapsed = true;
-                System.Diagnostics.Debug.WriteLine($"Right panel collapsed, saved width={_rightPanelWidth}");
             }
             UpdateRightPanelSplitterArrow();
-
-            System.Diagnostics.Debug.WriteLine($"  After: IsPropertyPanelCollapsed={_viewModel.IsPropertyPanelCollapsed}");
         }
 
         /// <summary>
@@ -1129,7 +1225,6 @@ namespace SunEyeVision.UI
             var newDirection = _viewModel.IsPropertyPanelCollapsed
                 ? ToggleDirectionType.Left
                 : ToggleDirectionType.Right;
-            System.Diagnostics.Debug.WriteLine($"  [UpdateRightPanelSplitterArrow] Setting ToggleDirection to {newDirection}");
             RightPanelSplitter.ToggleDirection = newDirection;
         }
 

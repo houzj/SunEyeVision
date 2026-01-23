@@ -609,14 +609,14 @@
                                               CanContentScroll="False"
                                               Background="#F5F5F5"
                                               PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
-                                    <Canvas x:Name="WorkflowCanvas"
-                                            Width="5000" Height="5000"
-                                            AllowDrop="True"
-                                            DragEnter="WorkflowCanvas_DragEnter"
-                                            DragOver="WorkflowCanvas_DragOver"
-                                            DragLeave="WorkflowCanvas_DragLeave"
-                                            Drop="WorkflowCanvas_Drop"
-                                            LayoutTransform="{Binding ScaleTransform}">
+                            <Canvas x:Name="WorkflowCanvas"
+                                    Width="5000" Height="5000"
+                                    AllowDrop="True"
+                                    DragEnter="WorkflowCanvas_DragEnter"
+                                    DragOver="WorkflowCanvas_DragOver"
+                                    DragLeave="WorkflowCanvas_DragLeave"
+                                    Drop="WorkflowCanvas_Drop"
+                                    RenderTransform="{Binding ScaleTransform}">
                                         <!-- 网格背景 -->
                                         <Canvas.Background>
                                             <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
