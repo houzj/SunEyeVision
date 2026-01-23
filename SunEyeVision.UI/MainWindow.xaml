@@ -130,6 +130,16 @@
                     <TextBlock Text="停止" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+
+            <Separator/>
+
+            <!-- 工作流管理组 -->
+            <Button ToolTip="添加工作流" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="AddWorkflow_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="➕" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="添加工作流" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button ToolTip="暂停" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="⏸️" FontSize="16" VerticalAlignment="Center"/>
@@ -221,90 +231,236 @@
                                          x:Name="ToolboxSplitter"
                                          ToggleClicked="ToolboxSplitter_ToggleClick"/>
 
-            <!-- ========== 中间工作区 ========== -->
+            <!-- ========== 中间工作区 - TabControl多流程编辑 ========== -->
             <Border Grid.Column="2" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
-                <Canvas x:Name="WorkflowCanvas" Background="#FFFFFF"
-                        AllowDrop="True"
-                        DragEnter="WorkflowCanvas_DragEnter"
-                        DragOver="WorkflowCanvas_DragOver"
-                        DragLeave="WorkflowCanvas_DragLeave"
-                        Drop="WorkflowCanvas_Drop">
-                    <!-- 工作流连接线 -->
-                    <ItemsControl ItemsSource="{Binding WorkflowConnections}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <Canvas/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Line Stroke="#666666" StrokeThickness="2" StrokeDashArray="5,5"
-                                      X1="{Binding SourcePosition.X}" Y1="{Binding SourcePosition.Y}"
-                                      X2="{Binding TargetPosition.X}" Y2="{Binding TargetPosition.Y}"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <TabControl x:Name="WorkflowTabControl"
+                            Background="#F5F5F5"
+                            BorderThickness="0"
+                            ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
+                            SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}">
+                    <TabControl.Resources>
+                        <converters:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
+                        <converters:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
+                        <converters:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
+                        <converters:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
+                        <converters:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
+                    </TabControl.Resources>
 
-                    <!-- 工作流节点 -->
-                    <ItemsControl ItemsSource="{Binding WorkflowNodes}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <Canvas/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemContainerStyle>
-                            <Style>
-                                <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=TwoWay}"/>
-                                <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=TwoWay}"/>
-                            </Style>
-                        </ItemsControl.ItemContainerStyle>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Width="140" Height="90" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
-                                        Background="#FFFFFF" CornerRadius="4"
-                                        PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
-                                        MouseLeftButtonUp="Node_MouseLeftButtonUp"
-                                        MouseMove="Node_MouseMove"
-                                        Tag="{Binding}">
-                                    <Grid MouseLeftButtonUp="Node_ClickForConnection"
-                                          Background="Transparent">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="6" CornerRadius="3,3,0,0">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="🔧" FontSize="14"/>
-                                                <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <TextBlock Grid.Row="1" Text="{Binding AlgorithmType}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#0066CC"/>
-                                        <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
-                                            <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
-                                        </Border>
-                                    </Grid>
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Effect" Value="{x:Null}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
-                                                    <Setter Property="BorderThickness" Value="3"/>
-                                                    <Setter Property="Effect">
-                                                        <Setter.Value>
-                                                            <DropShadowEffect Color="#0066CC" BlurRadius="10" ShadowDepth="0"/>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
+                    <!-- 自定义TabItem样式 -->
+                    <TabControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="Transparent">
+                                <StackPanel Orientation="Horizontal" Margin="4,2">
+                                    <!-- 工作流名称 -->
+                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                                    <!-- 单次运行按钮 -->
+                                    <Button Content="▶"
+                                            Padding="4,2" Margin="6,0,4,0"
+                                            Background="#F0F8FF" BorderBrush="#0066CC" BorderThickness="1"
+                                            FontSize="11"
+                                            Tag="{Binding}"
+                                            Click="TabItem_SingleRun_Click"
+                                            Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    CornerRadius="3"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                  HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E6F2FF"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- 连续运行/停止按钮 -->
+                                    <Button Content="{Binding IsRunning, Converter={StaticResource ContinuousRunButtonTextConverter}}"
+                                            Padding="4,2" Margin="0,0,4,0"
+                                            Background="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}"
+                                            BorderBrush="{Binding IsRunning, Converter={StaticResource ContinuousRunBorderConverter}}"
+                                            BorderThickness="1"
+                                            FontSize="11"
+                                            Tag="{Binding}"
+                                            Click="TabItem_ContinuousRun_Click"
+                                            Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    CornerRadius="3"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                  HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E6F2FF"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- 删除按钮 -->
+                                    <Button Content="×"
+                                            Padding="2,0" Margin="0,0,6,0"
+                                            Background="Transparent" BorderThickness="0"
+                                            FontSize="14"
+                                            Foreground="#999999"
+                                            Tag="{Binding}"
+                                            Click="TabItem_Delete_Click"
+                                            Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="#FF4444"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- 状态指示器 -->
+                                    <TextBlock Text="{Binding State, Converter={StaticResource WorkflowStateToTextConverter}}"
+                                                FontSize="10"
+                                                Foreground="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
+                                                VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+
+                    <!-- TabItem内容 - 每个Tab包含一个WorkflowCanvasControl -->
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <Canvas x:Name="WorkflowCanvas"
+                                    AllowDrop="True"
+                                    DragEnter="WorkflowCanvas_DragEnter"
+                                    DragOver="WorkflowCanvas_DragOver"
+                                    DragLeave="WorkflowCanvas_DragLeave"
+                                    Drop="WorkflowCanvas_Drop">
+                                <!-- 网格背景 -->
+                                <Canvas.Background>
+                                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
+                                        <DrawingBrush.Drawing>
+                                            <GeometryDrawing Brush="Transparent">
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#E0E0E0" Thickness="0.5"/>
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <GeometryGroup>
+                                                        <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
+                                                        <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
+                                                    </GeometryGroup>
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+                                        </DrawingBrush.Drawing>
+                                    </DrawingBrush>
+                                </Canvas.Background>
+
+                                <!-- 工作流连接线 -->
+                                <ItemsControl ItemsSource="{Binding WorkflowConnections}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Line Stroke="#666666" StrokeThickness="2" StrokeDashArray="5,5"
+                                                  X1="{Binding SourcePosition.X}" Y1="{Binding SourcePosition.Y}"
+                                                  X2="{Binding TargetPosition.X}" Y2="{Binding TargetPosition.Y}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- 工作流节点 -->
+                                <ItemsControl ItemsSource="{Binding WorkflowNodes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style>
+                                            <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=TwoWay}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=TwoWay}"/>
                                         </Style>
-                                    </Border.Style>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Canvas>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="140" Height="90" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
+                                                    Background="#FFFFFF" CornerRadius="4"
+                                                    PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
+                                                    MouseLeftButtonUp="Node_MouseLeftButtonUp"
+                                                    MouseMove="Node_MouseMove"
+                                                    Tag="{Binding}">
+                                                <Grid MouseLeftButtonUp="Node_ClickForConnection"
+                                                      Background="Transparent">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="6" CornerRadius="3,3,0,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="🔧" FontSize="14"/>
+                                                            <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBlock Grid.Row="1" Text="{Binding AlgorithmType}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#0066CC"/>
+                                                    <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
+                                                        <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                                                    </Border>
+                                                </Grid>
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Effect" Value="{x:Null}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                                <Setter Property="BorderThickness" Value="3"/>
+                                                                <Setter Property="Effect">
+                                                                    <Setter.Value>
+                                                                        <DropShadowEffect Color="#0066CC" BlurRadius="10" ShadowDepth="0"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Canvas>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
             </Border>
 
             <!-- 右侧分割器 - 工作区和右侧面板之间 -->

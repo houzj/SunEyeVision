@@ -98,4 +98,80 @@
 
 ---
 
-**注意**: 本日志记录的是截至2026-01-21的开发工作。后续开发工作将在需要时更新到本日志中。
+## 2026-01-22 (星期四)
+
+### 主要完成工作
+
+#### 1. 修复分隔器拖拽尺寸功能
+- **问题**: 图像显示区域和属性显示区域之间无法通过拖拽改变尺寸
+- **原因**: 右侧面板内的 GridSplitter 缺少必要的布局属性
+  - 缺少 `Width="Auto"` 属性
+  - 缺少 `HorizontalAlignment="Stretch"` 属性
+- **解决方案**: 在 `MainWindow.xaml` 的第 351 行修复 GridSplitter 配置
+  ```xml
+  <GridSplitter Grid.Row="1" Height="8" Width="Auto" MinHeight="8"
+               ResizeDirection="Rows"
+               Background="#DDDDDD"
+               ShowsPreview="False"
+               ResizeBehavior="PreviousAndNext"
+               HorizontalAlignment="Stretch"/>
+  ```
+
+#### 2. 分隔器布局架构回顾
+当前项目中的分隔器分为两类:
+1. **自定义分隔器 (`SplitterWithToggle`)** - 用于主区域间:
+   - 左侧工具箱与中间工作区之间 (Grid.Column="1")
+   - 中间工作区与右侧面板之间 (Grid.Column="3")
+   - 特点: 带有折叠/展开按钮,支持快速切换面板可见性
+
+2. **标准分隔器 (`GridSplitter`)** - 用于区域内部分割:
+   - 右侧面板内: 图像显示区域与属性面板之间 (Grid.Row="1")
+   - 特点: 纯粹的尺寸调整功能,无额外UI元素
+
+### 技术要点
+
+#### GridSplitter 关键配置属性
+- `ResizeDirection`: `"Columns"` (垂直分隔) 或 `"Rows"` (水平分隔)
+- `ResizeBehavior`: `"PreviousAndNext"` (同时调整前后两个元素)
+- `ShowsPreview`: `"False"` (实时调整) 或 `"True"` (预览模式)
+- `HorizontalAlignment`: `"Stretch"` (必须设置为拉伸才能响应全宽度拖拽)
+- `Width/Height`: 值为 "Auto" 时根据方向自适应
+
+#### 布局容器关系
+- 主窗口: `DockPanel` → `Grid` (MainContentGrid)
+- 主内容区 Grid:
+  - Column 0: 工具箱
+  - Column 1: 垂直分隔器 (自定义)
+  - Column 2: 工作流画布
+  - Column 3: 垂直分隔器 (自定义)
+  - Column 4: 右侧面板
+- 右侧面板 Grid:
+  - Row 0: 图像显示区域
+  - Row 1: 水平分隔器 (标准)
+  - Row 2: 属性面板
+
+### 修改的文件
+
+| 文件路径 | 修改内容 |
+|---------|---------|
+| `SunEyeVision.UI/MainWindow.xaml` | 修复右侧面板内 GridSplitter 的布局属性配置 |
+
+### 构建结果
+- **错误数**: 0
+- **警告数**: 79 (可空引用类型警告,不影响运行)
+
+### 遗留问题
+无
+
+### 下一步计划
+1. 继续完善用户界面交互细节
+2. 测试所有分隔器的拖拽功能
+3. 实现更多参数类型的控件(如 ColorPicker, ImageUploader)
+4. 完善工具执行逻辑,支持参数传递
+5. 实现工作流执行引擎
+6. 添加插件热加载功能
+7. 实现参数验证逻辑
+
+---
+
+**注意**: 本日志记录的是截至2026-01-22的开发工作。后续开发工作将在需要时更新到本日志中。

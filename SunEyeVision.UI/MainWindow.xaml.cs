@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using SunEyeVision.UI.Controls;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
@@ -77,6 +78,85 @@ namespace SunEyeVision.UI
                     "加载失败",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        #endregion
+
+        #region TabControl 多流程管理事件处理
+
+        /// <summary>
+        /// 添加工作流点击事件
+        /// </summary>
+        private void AddWorkflow_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.WorkflowTabViewModel.AddWorkflow();
+            _viewModel.StatusText = "已添加新工作流";
+        }
+
+        /// <summary>
+        /// TabItem 单次运行点击事件
+        /// </summary>
+        private void TabItem_SingleRun_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
+            {
+                _viewModel.WorkflowTabViewModel.RunSingle(workflow);
+                _viewModel.StatusText = $"单次运行: {workflow.Name}";
+            }
+        }
+
+        /// <summary>
+        /// TabItem 连续运行/停止点击事件
+        /// </summary>
+        private void TabItem_ContinuousRun_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
+            {
+                _viewModel.WorkflowTabViewModel.ToggleContinuous(workflow);
+                var action = workflow.IsRunning ? "开始连续运行" : "停止";
+                _viewModel.StatusText = $"{action}: {workflow.Name}";
+            }
+        }
+
+        /// <summary>
+        /// TabItem 删除点击事件
+        /// </summary>
+        private void TabItem_Delete_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
+            {
+                if (workflow.IsRunning)
+                {
+                    System.Windows.MessageBox.Show(
+                        "请先停止该工作流",
+                        "提示",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                var result = System.Windows.MessageBox.Show(
+                    $"确定要删除工作流 '{workflow.Name}' 吗?",
+                    "确认删除",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    if (_viewModel.WorkflowTabViewModel.DeleteWorkflow(workflow))
+                    {
+                        _viewModel.StatusText = $"已删除工作流: {workflow.Name}";
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show(
+                            "至少需要保留一个工作流",
+                            "提示",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                    }
+                }
             }
         }
 
@@ -157,7 +237,7 @@ namespace SunEyeVision.UI
             {
                 if (e.Data.GetData("ToolItem") is Models.ToolItem tool)
                 {
-                    var position = e.GetPosition(WorkflowCanvas);
+                    var position = e.GetPosition(sender as Canvas);
 
                     // 创建新节点，使用ToolId作为AlgorithmType
                     var node = new WorkflowNode(
@@ -184,6 +264,28 @@ namespace SunEyeVision.UI
                 System.Windows.MessageBox.Show($"添加节点时出错: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        #endregion
+
+        #region 辅助方法
+
+        /// <summary>
+        /// 查找父级Canvas
+        /// </summary>
+        private Canvas FindParentCanvas(DependencyObject element)
+        {
+            if (element == null)
+                return null!;
+
+            var parent = VisualTreeHelper.GetParent(element);
+            while (parent != null)
+            {
+                if (parent is Canvas canvas)
+                    return canvas;
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return null!;
         }
 
         #endregion
@@ -217,7 +319,8 @@ namespace SunEyeVision.UI
             // 单击事件：拖拽准备
             _isDragging = true;
             _draggedNode = node;
-            _startDragPosition = e.GetPosition(WorkflowCanvas);
+            var canvas = FindParentCanvas(sender as DependencyObject);
+            _startDragPosition = e.GetPosition(canvas);
 
             // 更新选中状态
             foreach (var n in _viewModel.WorkflowNodes)
@@ -243,7 +346,8 @@ namespace SunEyeVision.UI
         {
             if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
             {
-                var currentPosition = e.GetPosition(WorkflowCanvas);
+                var canvas = FindParentCanvas(sender as DependencyObject);
+                var currentPosition = e.GetPosition(canvas);
                 var offset = currentPosition - _startDragPosition;
 
                 _draggedNode.Position = new System.Windows.Point(

@@ -83,6 +83,9 @@ namespace SunEyeVision.UI.ViewModels
 
         public Models.WorkflowNode? SelectedNode { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
+        
+        // 多流程管理
+        public WorkflowTabControlViewModel WorkflowTabViewModel { get; }
 
         public string StatusText
         {
@@ -195,6 +198,7 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
 
             WorkflowViewModel = new WorkflowViewModel();
+            WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
             InitializeTools();
             InitializeSampleNodes();
