@@ -165,27 +165,27 @@
             <Separator/>
 
             <!-- 视图控制组 -->
-            <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+            <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomIn_Click">
                 <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
             </Button>
-            <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+            <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomOut_Click">
                 <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
             </Button>
-            <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+            <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomFit_Click">
                 <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
             </Button>
-            <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+            <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomReset_Click">
                 <TextBlock Text="1:1" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
             </Button>
 
             <Separator/>
 
-            <TextBlock Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
+            <TextBlock x:Name="ZoomText" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
         </ToolBar>
 
 
         <!-- ========== 主内容区域 ========== -->
-        <Grid x:Name="MainContentGrid">
+        <Grid x:Name="MainContentGrid" Loaded="MainContentGrid_Loaded">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="260" x:Name="ToolboxColumn" MinWidth="40" MaxWidth="600"/>
                 <ColumnDefinition Width="Auto"/>
@@ -601,30 +601,40 @@
                     <!-- TabItem内容 - 每个Tab包含一个WorkflowCanvasControl -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <Canvas x:Name="WorkflowCanvas"
-                                    AllowDrop="True"
-                                    DragEnter="WorkflowCanvas_DragEnter"
-                                    DragOver="WorkflowCanvas_DragOver"
-                                    DragLeave="WorkflowCanvas_DragLeave"
-                                    Drop="WorkflowCanvas_Drop">
-                                <!-- 网格背景 -->
-                                <Canvas.Background>
-                                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
-                                        <DrawingBrush.Drawing>
-                                            <GeometryDrawing Brush="Transparent">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#E0E0E0" Thickness="0.5"/>
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
-                                                        <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-                                        </DrawingBrush.Drawing>
-                                    </DrawingBrush>
-                                </Canvas.Background>
+                            <Grid>
+                                <!-- 主画布 ScrollViewer -->
+                                <ScrollViewer x:Name="CanvasScrollViewer"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Auto"
+                                              CanContentScroll="False"
+                                              Background="#F5F5F5"
+                                              PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
+                                    <Canvas x:Name="WorkflowCanvas"
+                                            Width="5000" Height="5000"
+                                            AllowDrop="True"
+                                            DragEnter="WorkflowCanvas_DragEnter"
+                                            DragOver="WorkflowCanvas_DragOver"
+                                            DragLeave="WorkflowCanvas_DragLeave"
+                                            Drop="WorkflowCanvas_Drop"
+                                            Loaded="WorkflowCanvas_Loaded">
+                                        <!-- 网格背景 -->
+                                        <Canvas.Background>
+                                            <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
+                                                <DrawingBrush.Drawing>
+                                                    <GeometryDrawing Brush="Transparent">
+                                                        <GeometryDrawing.Pen>
+                                                            <Pen Brush="#E0E0E0" Thickness="0.5"/>
+                                                        </GeometryDrawing.Pen>
+                                                        <GeometryDrawing.Geometry>
+                                                            <GeometryGroup>
+                                                                <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
+                                                                <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
+                                                            </GeometryGroup>
+                                                        </GeometryDrawing.Geometry>
+                                                    </GeometryDrawing>
+                                                </DrawingBrush.Drawing>
+                                            </DrawingBrush>
+                                        </Canvas.Background>
 
                                 <!-- 工作流连接线 -->
                                 <ItemsControl ItemsSource="{Binding WorkflowConnections}">
@@ -702,6 +712,9 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Canvas>
+                            </ScrollViewer>
+
+                        </Grid>
                         </DataTemplate>
                     </TabControl.ContentTemplate>
                 </TabControl>

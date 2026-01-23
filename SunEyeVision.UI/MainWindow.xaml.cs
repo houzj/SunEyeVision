@@ -20,6 +20,19 @@ namespace SunEyeVision.UI
         private readonly MainWindowViewModel _viewModel;
         private bool _isTabItemClick = false;  // 标记是否是通过点击TabItem触发的切换
 
+        // 画布配置常量
+        private const double CanvasVirtualWidth = 5000;  // 虚拟画布宽度
+        private const double CanvasVirtualHeight = 5000; // 虚拟画布高度
+
+        // 缩放相关
+        private double _currentScale = 1.0;
+        private const double MinScale = 0.25;  // 25%
+        private const double MaxScale = 3.0;   // 300%
+        private ScaleTransform _scaleTransform = new ScaleTransform(1.0, 1.0);
+
+        // 缓存 Canvas 的变换,因为 Canvas 可能还没有加载
+        private Dictionary<WorkflowTabViewModel, ScaleTransform> _canvasTransforms = new Dictionary<WorkflowTabViewModel, ScaleTransform>();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -71,6 +84,9 @@ namespace SunEyeVision.UI
                 var toolCount = PluginSystem.ToolRegistry.GetToolCount();
                 _viewModel.StatusText = $"已加载 {toolCount} 个工具插件";
 
+                // 初始化画布配置
+                InitializeCanvas();
+
                 // TODO: 加载工作流
             }
             catch (Exception ex)
@@ -81,6 +97,62 @@ namespace SunEyeVision.UI
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
             }
+        }
+
+        #endregion
+
+        #region 画布初始化
+
+        /// <summary>
+        /// 初始化画布配置
+        /// </summary>
+        private void InitializeCanvas()
+        {
+            // 在TabControl加载完成后初始化画布
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // 遍历所有Tab的Canvas进行初始化
+                foreach (var tabItem in WorkflowTabControl.Items)
+                {
+                    var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(tabItem);
+                    if (container is TabItem tab)
+                    {
+                        var contentPresenter = FindVisualChild<ContentPresenter>(tab);
+                        if (contentPresenter != null)
+                        {
+                            var grid = FindVisualChild<Grid>(contentPresenter);
+                            if (grid != null)
+                            {
+                                var scrollViewer = FindVisualChild<ScrollViewer>(grid);
+                                if (scrollViewer != null)
+                                {
+                                    var canvases = FindAllVisualChildren<Canvas>(scrollViewer);
+
+                                    // 初始化所有找到的 Canvas
+                                    foreach (var canvas in canvases)
+                                    {
+                                        // 设置虚拟画布大小
+                                        canvas.Width = CanvasVirtualWidth;
+                                        canvas.Height = CanvasVirtualHeight;
+
+                                        // 应用初始缩放变换
+                                        canvas.LayoutTransform = _scaleTransform;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        /// <summary>
+        /// 主内容区域加载完成
+        /// </summary>
+        private void MainContentGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 初始化缩放显示
+            UpdateZoomDisplay();
         }
 
         #endregion
@@ -193,6 +265,12 @@ namespace SunEyeVision.UI
                 // 重置标志
                 _isTabItemClick = false;
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+
+            // 使用更高优先级延迟执行 ApplyZoom，确保 Tab 内容已生成
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                ApplyZoom();
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         /// <summary>
@@ -339,6 +417,29 @@ namespace SunEyeVision.UI
         }
 
         /// <summary>
+        /// 在视觉树中查找指定类型的所有子元素
+        /// </summary>
+        private List<T> FindAllVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        {
+            var results = new List<T>();
+
+            if (parent == null)
+                return results;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T t)
+                    results.Add(t);
+
+                results.AddRange(FindAllVisualChildren<T>(child));
+            }
+
+            return results;
+        }
+
+        /// <summary>
         /// TabItem 单次运行点击事件
         /// </summary>
         private void TabItem_SingleRun_Click(object sender, RoutedEventArgs e)
@@ -446,6 +547,27 @@ namespace SunEyeVision.UI
             }
         }
 
+        /// <summary>
+        /// Canvas 加载完成事件 - 应用缩放变换
+        /// </summary>
+        private void WorkflowCanvas_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Canvas canvas)
+            {
+                // 为当前 Tab 创建或获取缩放变换
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                {
+                    if (!_canvasTransforms.ContainsKey(_viewModel.WorkflowTabViewModel.SelectedTab))
+                    {
+                        _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab] = _scaleTransform;
+                    }
+
+                    // 应用缩放变换
+                    canvas.LayoutTransform = _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab];
+                }
+            }
+        }
+
         private void WorkflowCanvas_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent("ToolItem"))
@@ -511,6 +633,276 @@ namespace SunEyeVision.UI
                 System.Windows.MessageBox.Show($"添加节点时出错: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        #endregion
+
+        #region 缩放功能
+
+        /// <summary>
+        /// 放大画布
+        /// </summary>
+        private void ZoomIn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentScale < MaxScale)
+            {
+                _currentScale = Math.Min(_currentScale * 1.2, MaxScale);
+                // 延迟执行以确保 UI 已更新
+                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                    System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 缩小画布
+        /// </summary>
+        private void ZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentScale > MinScale)
+            {
+                _currentScale = Math.Max(_currentScale / 1.2, MinScale);
+                // 延迟执行以确保 UI 已更新
+                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                    System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 适应窗口
+        /// </summary>
+        private void ZoomFit_Click(object sender, RoutedEventArgs e)
+        {
+            // 延迟执行以确保 UI 已更新
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var currentCanvas = GetCurrentCanvas();
+                var scrollViewer = GetCurrentScrollViewer();
+
+                if (currentCanvas != null && scrollViewer != null)
+                {
+                    var viewportWidth = scrollViewer.ViewportWidth;
+                    var viewportHeight = scrollViewer.ViewportHeight;
+
+                    // 计算适合的缩放比例，留出10%边距
+                    var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
+                    var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
+                    _currentScale = Math.Min(scaleX, scaleY);
+
+                    // 限制在范围内
+                    _currentScale = Math.Max(MinScale, Math.Min(MaxScale, _currentScale));
+
+                    ApplyZoom();
+                }
+            }), System.Windows.Threading.DispatcherPriority.Render);
+        }
+
+        /// <summary>
+        /// 重置缩放为100%
+        /// </summary>
+        private void ZoomReset_Click(object sender, RoutedEventArgs e)
+        {
+            _currentScale = 1.0;
+            // 延迟执行以确保 UI 已更新
+            Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                System.Windows.Threading.DispatcherPriority.Render);
+        }
+
+        /// <summary>
+        /// 应用缩放变换
+        /// </summary>
+        private void ApplyZoom()
+        {
+            // 更新缩放变换
+            _scaleTransform.ScaleX = _currentScale;
+            _scaleTransform.ScaleY = _currentScale;
+
+            // 为当前 Tab 缓存缩放变换
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                _canvasTransforms[_viewModel.WorkflowTabViewModel.SelectedTab] = _scaleTransform;
+            }
+
+            // 如果 Canvas 已经加载,直接应用
+            var currentCanvas = GetCurrentCanvas();
+            if (currentCanvas != null)
+            {
+                currentCanvas.LayoutTransform = _scaleTransform;
+                currentCanvas.UpdateLayout();
+            }
+
+            // 更新缩放百分比显示
+            UpdateZoomDisplay();
+
+            // 更新指示器
+            UpdateZoomIndicator();
+
+            _viewModel.StatusText = $"画布缩放: {Math.Round(_currentScale * 100, 0)}%";
+        }
+
+        /// <summary>
+        /// 更新缩放指示器
+        /// </summary>
+        private void UpdateZoomIndicator()
+        {
+            // 在当前Tab中查找缩放指示器
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
+                if (container is TabItem tabItem)
+                {
+                    var contentPresenter = FindVisualChild<ContentPresenter>(tabItem);
+                    if (contentPresenter != null)
+                    {
+                        var grid = FindVisualChild<Grid>(contentPresenter);
+                        if (grid != null)
+                        {
+                            // 查找所有 TextBlock 元素
+                            var textBlocks = FindAllVisualChildren<TextBlock>(grid);
+                            foreach (var textBlock in textBlocks)
+                            {
+                                if (textBlock.Name == "ZoomIndicatorText")
+                                {
+                                    int percentage = (int)(_currentScale * 100);
+                                    textBlock.Text = $"{percentage}%";
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 更新缩放百分比显示
+        /// </summary>
+        private void UpdateZoomDisplay()
+        {
+            int percentage = (int)(_currentScale * 100);
+
+            // 查找工具栏中的ZoomText
+            var toolBar = FindVisualChild<ToolBar>(this);
+            if (toolBar != null)
+            {
+                foreach (var child in toolBar.Items)
+                {
+                    if (child is TextBlock textBlock && textBlock.Name == "ZoomText")
+                    {
+                        textBlock.Text = $"缩放: {percentage}%";
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 鼠标滚轮缩放事件
+        /// </summary>
+        private void CanvasScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            // Ctrl+滚轮进行缩放
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+
+                if (e.Delta > 0)
+                {
+                    // 向上滚动，放大
+                    if (_currentScale < MaxScale)
+                    {
+                        _currentScale = Math.Min(_currentScale * 1.1, MaxScale);
+                        ApplyZoom();
+                    }
+                }
+                else
+                {
+                    // 向下滚动，缩小
+                    if (_currentScale > MinScale)
+                    {
+                        _currentScale = Math.Max(_currentScale / 1.1, MinScale);
+                        ApplyZoom();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取当前活动的Canvas
+        /// </summary>
+        private Canvas GetCurrentCanvas()
+        {
+            try
+            {
+                if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+                    return null!;
+
+                var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
+                if (container is TabItem tabItem)
+                {
+                    // 在整个 TabItem 中查找所有 Canvas
+                    var allCanvases = FindAllVisualChildren<Canvas>(tabItem);
+
+                    foreach (var canvas in allCanvases)
+                    {
+                        // 找到名为 WorkflowCanvas 的 Canvas
+                        if (canvas.Name == "WorkflowCanvas")
+                        {
+                            return canvas;
+                        }
+                    }
+
+                    // 如果没有找到名为 WorkflowCanvas 的,返回第一个 Canvas
+                    if (allCanvases.Count > 0)
+                    {
+                        return allCanvases[0];
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取Canvas时出错: {ex.Message}");
+            }
+            return null!;
+        }
+
+        /// <summary>
+        /// 获取当前活动的ScrollViewer
+        /// </summary>
+        private ScrollViewer GetCurrentScrollViewer()
+        {
+            try
+            {
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                {
+                    var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
+                    if (container is TabItem tabItem)
+                    {
+                        var contentPresenter = FindVisualChild<ContentPresenter>(tabItem);
+                        if (contentPresenter != null)
+                        {
+                            // 查找 Grid (DataTemplate 的根元素)
+                            var grid = FindVisualChild<Grid>(contentPresenter);
+                            if (grid != null)
+                            {
+                                // 在 Grid 中查找名为 CanvasScrollViewer 的 ScrollViewer
+                                var children = FindAllVisualChildren<ScrollViewer>(grid);
+                                foreach (var sv in children)
+                                {
+                                    if (sv.Name == "CanvasScrollViewer")
+                                    {
+                                        return sv;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取ScrollViewer时出错: {ex.Message}");
+            }
+            return null!;
         }
 
         #endregion
