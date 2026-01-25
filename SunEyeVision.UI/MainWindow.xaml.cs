@@ -34,6 +34,11 @@ namespace SunEyeVision.UI
         private System.Windows.Point _startDragPosition;
         private System.Windows.Point _initialNodePosition;
 
+        // 框选相关
+        private bool _isBoxSelecting;
+        private System.Windows.Point _boxSelectStart;
+        private System.Windows.Point[]? _selectedNodesInitialPositions;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -64,6 +69,7 @@ namespace SunEyeVision.UI
             // 编辑快捷键
             InputBindings.Add(new KeyBinding(new UndoCommandWrapper(_viewModel.UndoCommand), Key.Z, ModifierKeys.Control));
             InputBindings.Add(new KeyBinding(new RedoCommandWrapper(_viewModel.RedoCommand), Key.Y, ModifierKeys.Control));
+            InputBindings.Add(new KeyBinding(_viewModel.DeleteSelectedNodesCommand, Key.Delete, ModifierKeys.None));
         }
 
         #region 窗口事件
@@ -1037,12 +1043,175 @@ namespace SunEyeVision.UI
 
         #endregion
 
+        #region 框选功能
+
+        /// <summary>
+        /// Canvas 鼠标左键按下 - 开始框选或清除选择
+        /// </summary>
+        private void WorkflowCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 获取当前Canvas
+            var canvas = FindVisualChild<Canvas>(WorkflowTabControl);
+            if (canvas == null) return;
+
+            // 检查点击的是否是节点（通过原始源）
+            var originalSource = e.OriginalSource as DependencyObject;
+
+            // 手动查找带 WorkflowNode Tag 的 Border
+            WorkflowNode? clickedNode = null;
+            DependencyObject? current = originalSource;
+            while (current != null)
+            {
+                if (current is Border border && border.Tag is WorkflowNode node)
+                {
+                    clickedNode = node;
+                    break;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            // 如果点击的是有 WorkflowNode Tag 的 Border，则由节点的事件处理，不触发框选
+            if (clickedNode != null)
+            {
+                // 注意：这里不设置 e.Handled，让事件继续传播到节点
+                return;
+            }
+
+            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
+            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
+                               (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+
+            // 开始框选
+            _isBoxSelecting = true;
+            _boxSelectStart = e.GetPosition(canvas);
+
+            // 如果不是多选模式，清除所有选择
+            if (!isMultiSelect)
+            {
+                ClearAllSelections();
+            }
+
+            // 获取 SelectionBox 控件
+            var selectionBox = FindChildByName<Controls.SelectionBox>(WorkflowTabControl, "SelectionBox");
+            if (selectionBox != null)
+            {
+                // 开始显示框选框
+                selectionBox.StartSelection(_boxSelectStart);
+            }
+
+            canvas.CaptureMouse();
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Canvas 鼠标移动 - 更新框选区域
+        /// </summary>
+        private void WorkflowCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isBoxSelecting) return;
+
+            var canvas = FindVisualChild<Canvas>(WorkflowTabControl);
+            if (canvas == null) return;
+
+            // 获取 SelectionBox 控件
+            var selectionBox = FindChildByName<Controls.SelectionBox>(WorkflowTabControl, "SelectionBox");
+            if (selectionBox == null) return;
+
+            // 更新框选框
+            var currentPoint = e.GetPosition(canvas);
+            selectionBox.UpdateSelection(currentPoint);
+
+            // 获取框选区域
+            var selectionRect = selectionBox.GetSelectionRect();
+
+            // 更新选中的节点
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                int selectedCount = 0;
+
+                foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                {
+                    // 获取节点边界（节点大小为 140x90）
+                    var nodeRect = new Rect(node.Position.X, node.Position.Y, 140, 90);
+
+                    // 检查节点是否与框选区域相交
+                    bool isSelected = selectionRect.IntersectsWith(nodeRect);
+                    node.IsSelected = isSelected;
+
+                    if (isSelected) selectedCount++;
+                }
+
+                // 更新框选信息显示
+                selectionBox.SetItemCount(selectedCount);
+            }
+        }
+
+        /// <summary>
+        /// Canvas 鼠标左键释放 - 结束框选
+        /// </summary>
+        private void WorkflowCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isBoxSelecting) return;
+
+            _isBoxSelecting = false;
+
+            // 获取 SelectionBox 控件
+            var selectionBox = FindChildByName<Controls.SelectionBox>(WorkflowTabControl, "SelectionBox");
+            if (selectionBox != null)
+            {
+                // 结束框选
+                selectionBox.EndSelection();
+            }
+
+            var canvas = FindVisualChild<Canvas>(WorkflowTabControl);
+            canvas?.ReleaseMouseCapture();
+
+            // 记录选中节点的初始位置（用于批量移动）
+            RecordSelectedNodesPositions();
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 清除所有节点的选中状态
+        /// </summary>
+        private void ClearAllSelections()
+        {
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                {
+                    node.IsSelected = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 记录选中节点的初始位置
+        /// </summary>
+        private void RecordSelectedNodesPositions()
+        {
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null) return;
+
+            var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                .Where(n => n.IsSelected)
+                .ToList();
+
+            _selectedNodesInitialPositions = selectedNodes
+                .Select(n => n.Position)
+                .ToArray();
+        }
+
+        #endregion
+
         #region 节点拖拽
 
-        private void Node_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Border border || border.Tag is not WorkflowNode node)
+            {
                 return;
+            }
 
             // 双击事件：打开调试窗口
             if (e.ClickCount == 2)
@@ -1062,36 +1231,80 @@ namespace SunEyeVision.UI
                 return;
             }
 
+            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
+            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
+                               (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+
+            // 如果节点未被选中，且不是多选模式，则只选中当前节点
+            if (!node.IsSelected && !isMultiSelect)
+            {
+                ClearAllSelections();
+                node.IsSelected = true;
+            }
+            // 如果是多选模式，切换选中状态
+            else if (isMultiSelect)
+            {
+                node.IsSelected = !node.IsSelected;
+            }
+
+            _viewModel.SelectedNode = node;
+
+            // 记录所有选中节点的初始位置
+            RecordSelectedNodesPositions();
+
             // 单击事件：拖拽准备
             _isDragging = true;
             _draggedNode = node;
-            _initialNodePosition = node.Position; // 记录初始位置
+            _initialNodePosition = node.Position;
             var canvas = FindParentCanvas(sender as DependencyObject);
             _startDragPosition = e.GetPosition(canvas);
 
-            // 更新选中状态
-            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
-            {
-                foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
-                {
-                    n.IsSelected = (n == node);
-                }
-            }
-            _viewModel.SelectedNode = node;
-
             border.CaptureMouse();
+
+            // 阻止事件冒泡到 Canvas，避免触发框选
+            e.Handled = true;
         }
 
         private void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (_isDragging && _draggedNode != null)
             {
-                // 拖拽结束，执行移动命令
-                var currentPosition = _draggedNode.Position;
-                if (currentPosition.X != _initialNodePosition.X || currentPosition.Y != _initialNodePosition.Y)
+                // 拖拽结束，执行批量移动命令
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
                 {
-                    // 位置发生改变，使用命令模式记录
-                    _viewModel.MoveNode(_draggedNode, currentPosition);
+                    var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                        .Where(n => n.IsSelected)
+                        .ToList();
+
+                    if (selectedNodes.Count > 0)
+                    {
+                        // 计算每个节点的移动偏移量
+                        var offsets = new System.Windows.Point[selectedNodes.Count];
+                        for (int i = 0; i < selectedNodes.Count; i++)
+                        {
+                            if (_selectedNodesInitialPositions != null && i < _selectedNodesInitialPositions.Length)
+                            {
+                                offsets[i] = new System.Windows.Point(
+                                    selectedNodes[i].Position.X - _selectedNodesInitialPositions[i].X,
+                                    selectedNodes[i].Position.Y - _selectedNodesInitialPositions[i].Y
+                                );
+                            }
+                        }
+
+                        // 如果有移动，执行批量移动命令
+                        if (offsets.Any(o => o.X != 0 || o.Y != 0))
+                        {
+                            var command = new Commands.BatchMoveNodesCommand(
+                                _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes,
+                                offsets
+                            );
+
+                            // 获取选中的节点列表（用于命令内部使用）
+                            var nodesToMove = new System.Collections.ObjectModel.ObservableCollection<WorkflowNode>(selectedNodes);
+                            var batchCommand = new Commands.BatchMoveNodesCommand(nodesToMove, offsets);
+                            _viewModel.WorkflowTabViewModel.SelectedTab.CommandManager.Execute(batchCommand);
+                        }
+                    }
                 }
 
                 _isDragging = false;
@@ -1105,16 +1318,42 @@ namespace SunEyeVision.UI
             if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var canvas = FindParentCanvas(sender as DependencyObject);
+                if (canvas == null)
+                {
+                    return;
+                }
+
                 var currentPosition = e.GetPosition(canvas);
-                var offset = currentPosition - _startDragPosition;
 
-                // 实时更新节点位置（不使用命令，等待MouseUp再执行命令）
-                _draggedNode.Position = new System.Windows.Point(
-                    _draggedNode.Position.X + offset.X,
-                    _draggedNode.Position.Y + offset.Y
-                );
+                // 批量移动所有选中的节点
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null &&
+                    _selectedNodesInitialPositions != null)
+                {
+                    var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                        .Where(n => n.IsSelected)
+                        .ToList();
 
-                _startDragPosition = currentPosition;
+                    // 计算从拖动开始到现在的总偏移量
+                    var totalOffset = currentPosition - _startDragPosition;
+
+                    for (int i = 0; i < selectedNodes.Count && i < _selectedNodesInitialPositions.Length; i++)
+                    {
+                        var newPos = new System.Windows.Point(
+                            _selectedNodesInitialPositions[i].X + totalOffset.X,
+                            _selectedNodesInitialPositions[i].Y + totalOffset.Y
+                        );
+                        selectedNodes[i].Position = newPos;
+                    }
+                }
+                else
+                {
+                    // 单个节点移动（向后兼容）
+                    var offset = currentPosition - _startDragPosition;
+                    _draggedNode.Position = new System.Windows.Point(
+                        _initialNodePosition.X + offset.X,
+                        _initialNodePosition.Y + offset.Y
+                    );
+                }
             }
         }
 

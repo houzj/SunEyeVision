@@ -616,6 +616,9 @@
                                     DragOver="WorkflowCanvas_DragOver"
                                     DragLeave="WorkflowCanvas_DragLeave"
                                     Drop="WorkflowCanvas_Drop"
+                                    PreviewMouseLeftButtonDown="WorkflowCanvas_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="WorkflowCanvas_PreviewMouseMove"
+                                    PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp"
                                     RenderTransform="{Binding ScaleTransform}">
                                         <!-- 网格背景 -->
                                         <Canvas.Background>
@@ -669,7 +672,7 @@
                                         <DataTemplate>
                                             <Border Width="140" Height="90" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
                                                     Background="#FFFFFF" CornerRadius="4"
-                                                    PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
+                                                    MouseLeftButtonDown="Node_MouseLeftButtonDown"
                                                     MouseLeftButtonUp="Node_MouseLeftButtonUp"
                                                     MouseMove="Node_MouseMove"
                                                     Tag="{Binding}">
@@ -711,6 +714,9 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <!-- 框选控件 -->
+                                <controls:SelectionBox x:Name="SelectionBox" Canvas.ZIndex="9999"/>
                             </Canvas>
                             </ScrollViewer>
 

@@ -183,6 +183,7 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand PauseCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
+        public ICommand DeleteSelectedNodesCommand { get; }
         public ICommand OpenDebugWindowCommand { get; }
 
         public MainWindowViewModel()
@@ -226,6 +227,7 @@ namespace SunEyeVision.UI.ViewModels
             PauseCommand = new Commands.RelayCommand(ExecutePause);
             UndoCommand = new Commands.RelayCommand(ExecuteUndo, CanExecuteUndo);
             RedoCommand = new Commands.RelayCommand(ExecuteRedo, CanExecuteRedo);
+            DeleteSelectedNodesCommand = new Commands.RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
             OpenDebugWindowCommand = new Commands.RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
         }
 
@@ -581,6 +583,74 @@ namespace SunEyeVision.UI.ViewModels
 
             var command = new DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+        }
+
+        /// <summary>
+        /// 批量删除选中的节点（通过命令模式）
+        /// </summary>
+        public void DeleteSelectedNodes()
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var command = new Commands.BatchDeleteNodesCommand(
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes,
+                WorkflowTabViewModel.SelectedTab.WorkflowConnections);
+            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+            // 清除选中状态
+            SelectedNode = null;
+            ClearNodeSelections();
+        }
+
+        /// <summary>
+        /// 清除所有节点的选中状态
+        /// </summary>
+        private void ClearNodeSelections()
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            foreach (var node in WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+            {
+                node.IsSelected = false;
+            }
+        }
+
+        /// <summary>
+        /// 判断是否可以删除选中节点
+        /// </summary>
+        private bool CanDeleteSelectedNodes()
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return false;
+
+            return WorkflowTabViewModel.SelectedTab.WorkflowNodes.Any(n => n.IsSelected);
+        }
+
+        /// <summary>
+        /// 执行删除选中节点
+        /// </summary>
+        private void ExecuteDeleteSelectedNodes()
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var selectedCount = WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count(n => n.IsSelected);
+            if (selectedCount == 0)
+                return;
+
+            var result = System.Windows.MessageBox.Show(
+                $"确定要删除选中的 {selectedCount} 个节点吗?",
+                "确认删除",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
+
+            if (result == System.Windows.MessageBoxResult.Yes)
+            {
+                DeleteSelectedNodes();
+                AddLog($"已删除 {selectedCount} 个节点");
+            }
         }
 
         private void ExecuteOpenDebugWindow(Models.WorkflowNode? node)
