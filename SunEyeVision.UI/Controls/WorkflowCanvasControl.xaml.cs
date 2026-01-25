@@ -528,9 +528,16 @@ namespace SunEyeVision.UI.Controls
 
             if (TempConnectionGeometry != null)
             {
-                TempConnectionGeometry.StartPoint = _dragConnectionStartPoint;
-                TempConnectionGeometry.EndPoint = _dragConnectionStartPoint;
-                System.Diagnostics.Debug.WriteLine($"[拖拽连接] 临时连接线起点: {TempConnectionGeometry.StartPoint}, 终点: {TempConnectionGeometry.EndPoint}");
+                // 初始化临时连接线为直线（起点和终点相同）
+                TempConnectionGeometry.Figures.Clear();
+                var pathFigure = new PathFigure
+                {
+                    StartPoint = _dragConnectionStartPoint,
+                    IsClosed = false
+                };
+                pathFigure.Segments.Add(new LineSegment(_dragConnectionStartPoint, true));
+                TempConnectionGeometry.Figures.Add(pathFigure);
+                System.Diagnostics.Debug.WriteLine($"[拖拽连接] 临时连接线起点: {_dragConnectionStartPoint}");
             }
 
             _viewModel?.AddLog($"[拖拽连接] ✓ 显示临时连接线");
@@ -751,10 +758,31 @@ namespace SunEyeVision.UI.Controls
             // 处理拖拽连接
             if (_isDraggingConnection)
             {
-                if (TempConnectionGeometry != null)
+                if (TempConnectionGeometry != null && _dragConnectionSourceNode != null)
                 {
                     var currentPoint = e.GetPosition(WorkflowCanvas);
-                    TempConnectionGeometry.EndPoint = currentPoint;
+
+                    // 获取源节点的连接点位置
+                    var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
+
+                    // 计算智能直角折线路径
+                    var pathPoints = CalculateSmartPath(sourcePort, currentPoint);
+
+                    // 更新临时连接线
+                    TempConnectionGeometry.Figures.Clear();
+                    var pathFigure = new PathFigure
+                    {
+                        StartPoint = sourcePort,
+                        IsClosed = false
+                    };
+
+                    // 添加路径点
+                    foreach (var point in pathPoints)
+                    {
+                        pathFigure.Segments.Add(new LineSegment(point, true));
+                    }
+
+                    TempConnectionGeometry.Figures.Add(pathFigure);
 
                     // 每隔一定输出一次日志（避免刷屏）
                     if (DateTime.Now.Millisecond % 200 < 20)
@@ -1057,6 +1085,56 @@ namespace SunEyeVision.UI.Controls
         #endregion
 
         #region 辅助方法
+
+        #region 智能路径计算
+
+        /// <summary>
+        /// 计算智能直角折线路径（与实际连接使用相同的逻辑）
+        /// </summary>
+        private List<Point> CalculateSmartPath(Point start, Point end)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CalculateSmartPath] 起点: {start}, 终点: {end}");
+
+            var points = new List<Point>();
+            double deltaX = Math.Abs(end.X - start.X);
+            double deltaY = Math.Abs(end.Y - start.Y);
+
+            bool isHorizontal = deltaX > deltaY;
+            System.Diagnostics.Debug.WriteLine($"[CalculateSmartPath] 使用{(isHorizontal ? "水平" : "垂直")}折线，deltaX={deltaX}, deltaY={deltaY}");
+
+            if (isHorizontal)
+            {
+                // 水平方向：先水平移动到中间点，再垂直移动到目标Y，最后水平移动到目标X
+                double midX = (start.X + end.X) / 2;
+                points.Add(new Point(midX, start.Y));
+                points.Add(new Point(midX, end.Y));
+                System.Diagnostics.Debug.WriteLine($"[CalculateSmartPath] 中间点: ({midX}, {start.Y}), ({midX}, {end.Y})");
+            }
+            else
+            {
+                // 垂直方向：先垂直移动到中间点，再水平移动到目标X，最后垂直移动到目标Y
+                double midY = (start.Y + end.Y) / 2;
+                points.Add(new Point(start.X, midY));
+                points.Add(new Point(end.X, midY));
+                System.Diagnostics.Debug.WriteLine($"[CalculateSmartPath] 中间点: ({start.X}, {midY}), ({end.X}, {midY})");
+            }
+
+            points.Add(end);
+            System.Diagnostics.Debug.WriteLine($"[CalculateSmartPath] ✓ 路径计算完成，共{points.Count}个点");
+            return points;
+        }
+
+        /// <summary>
+        /// 获取节点的连接点位置
+        /// </summary>
+        private Point GetPortPosition(WorkflowNode node, Point clickPoint)
+        {
+            // 根据点击的连接点确定实际连接位置
+            // 简化实现：返回起始点的位置（可以根据需要更精确地计算）
+            return clickPoint;
+        }
+
+        #endregion
 
         /// <summary>
         /// 查找指定类型的首个子元素

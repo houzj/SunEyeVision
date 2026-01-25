@@ -296,11 +296,12 @@
               Stroke="#FF6600"
               StrokeThickness="2"
               StrokeDashArray="5,5"
+              StrokeLineJoin="Round"
               Fill="Transparent"
               Canvas.ZIndex="9998"
               Visibility="Collapsed">
             <Path.Data>
-                <LineGeometry x:Name="TempConnectionGeometry" />
+                <PathGeometry x:Name="TempConnectionGeometry" />
             </Path.Data>
         </Path>
 
