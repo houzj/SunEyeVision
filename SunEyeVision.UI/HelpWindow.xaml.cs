@@ -49,7 +49,6 @@ namespace SunEyeVision.UI
 
             // 调试信息
             string message = $"基础目录: {basePath}\n尝试路径: {indexPath}\n文件存在: {File.Exists(indexPath)}";
-            System.Diagnostics.Debug.WriteLine(message);
 
             if (File.Exists(indexPath))
             {

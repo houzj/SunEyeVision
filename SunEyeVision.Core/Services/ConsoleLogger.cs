@@ -7,6 +7,9 @@ namespace SunEyeVision.Services
     /// </summary>
     public class ConsoleLogger : SunEyeVision.Interfaces.ILogger
     {
+        private static readonly Lazy<ConsoleLogger> _instance = new Lazy<ConsoleLogger>(() => new ConsoleLogger());
+        public static ConsoleLogger Instance => _instance.Value;
+
         private readonly object _lockObject = new object();
 
         private void WriteLog(string level, string message, ConsoleColor color)

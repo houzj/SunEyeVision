@@ -9,21 +9,25 @@ namespace SunEyeVision.UI.Services
     {
         public void LogDebug(string message)
         {
+            // 注意：这是独立日志系统，不使用 ViewModel
             System.Diagnostics.Debug.WriteLine($"[DEBUG] {message}");
         }
 
         public void LogInfo(string message)
         {
+            // 注意：这是独立日志系统，不使用 ViewModel
             System.Diagnostics.Debug.WriteLine($"[INFO] {message}");
         }
 
         public void LogWarning(string message)
         {
+            // 注意：这是独立日志系统，不使用 ViewModel
             System.Diagnostics.Debug.WriteLine($"[WARNING] {message}");
         }
 
         public void LogError(string message, System.Exception exception = null)
         {
+            // 注意：这是独立日志系统，不使用 ViewModel
             System.Diagnostics.Debug.WriteLine($"[ERROR] {message}");
             if (exception != null)
             {
@@ -33,6 +37,7 @@ namespace SunEyeVision.UI.Services
 
         public void LogFatal(string message, System.Exception exception = null)
         {
+            // 注意：这是独立日志系统，不使用 ViewModel
             System.Diagnostics.Debug.WriteLine($"[FATAL] {message}");
             if (exception != null)
             {

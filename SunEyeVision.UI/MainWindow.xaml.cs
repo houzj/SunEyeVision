@@ -609,8 +609,9 @@ namespace SunEyeVision.UI
         /// </summary>
         private void PrintVisualTree(DependencyObject parent, int indent = 0)
         {
+            // 注意：此方法未使用，如果需要输出日志，应使用 _viewModel?.AddLog
+            // System.Diagnostics.Debug.WriteLine($"{prefix}{parent.GetType().Name}...");
             string prefix = new string(' ', indent * 2);
-            System.Diagnostics.Debug.WriteLine($"{prefix}{parent.GetType().Name}{(parent is FrameworkElement fe && !string.IsNullOrEmpty(fe.Name) ? $" (Name: {fe.Name})" : "")}");
 
             int childCount = VisualTreeHelper.GetChildrenCount(parent);
             for (int i = 0; i < childCount; i++)
@@ -977,7 +978,8 @@ namespace SunEyeVision.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"获取ScrollViewer时出错: {ex.Message}");
+                // 注意：此处无法访问 _viewModel，因为此方法是辅助方法
+                // 如需记录错误日志，可以传入 ViewModel 参数或使用其他日志机制
             }
             return null!;
         }

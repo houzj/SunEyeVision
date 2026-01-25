@@ -10,6 +10,15 @@
 
     <UserControl.Resources>
         <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
+
+        <!-- 箭头标记 -->
+        <PathGeometry x:Key="ArrowGeometry">
+            <PathFigure StartPoint="0,0">
+                <LineSegment Point="-8,-5" />
+                <LineSegment Point="-8,5" />
+                <LineSegment Point="0,0" />
+            </PathFigure>
+        </PathGeometry>
     </UserControl.Resources>
 
     <!-- 工作流画布 -->
@@ -52,17 +61,31 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Path Data="{Binding ., Converter={StaticResource SmartPathConverter}}"
-                          Stroke="#666666" StrokeThickness="2" Fill="Transparent"
+                    <Path Data="{Binding Converter={StaticResource SmartPathConverter}}"
+                          Stroke="#666666" StrokeThickness="2" Fill="#666666"
                           StrokeLineJoin="Round"
                           Cursor="Hand"
-                          Canvas.ZIndex="1000">
+                          Canvas.ZIndex="1000"
+                          Stretch="Fill"
+                          Loaded="Path_Loaded"
+                          DataContextChanged="Path_DataContextChanged">
                         <Path.Style>
                             <Style TargetType="Path">
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#666666" BlurRadius="2" ShadowDepth="1" Opacity="0.5"/>
+                                    </Setter.Value>
+                                </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="Stroke" Value="#0066CC"/>
+                                        <Setter Property="Fill" Value="#0066CC"/>
                                         <Setter Property="StrokeThickness" Value="3"/>
+                                        <Setter Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#0066CC" BlurRadius="4" ShadowDepth="2" Opacity="0.7"/>
+                                            </Setter.Value>
+                                        </Setter>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>

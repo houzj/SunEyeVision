@@ -265,6 +265,8 @@ namespace SunEyeVision.UI.Models
             {
                 if (_sourcePosition != value)
                 {
+                    // 注意：这是 Model 类，无法直接访问 ViewModel
+                    // 日志已移到 WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
                     _sourcePosition = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(StartX));
@@ -280,6 +282,8 @@ namespace SunEyeVision.UI.Models
             {
                 if (_targetPosition != value)
                 {
+                    // 注意：这是 Model 类，无法直接访问 ViewModel
+                    // 日志已移到 WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
                     _targetPosition = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(EndX));
