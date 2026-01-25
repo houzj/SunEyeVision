@@ -278,6 +278,16 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
+        /// 箭头大小 - 固定为10px
+        /// </summary>
+        public double ArrowSize => 10;
+
+        /// <summary>
+        /// 箭头缩放比例 - 固定为1.0（10px基准）
+        /// </summary>
+        public double ArrowScale => 1.0;
+
+        /// <summary>
         /// 连接状态 - 用于执行过程中的视觉反馈
         /// </summary>
         public ConnectionStatus Status

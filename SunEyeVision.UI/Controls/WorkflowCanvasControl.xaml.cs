@@ -151,11 +151,41 @@ namespace SunEyeVision.UI.Controls
                 }
             }
 
-            // 初始化智能路径转换器的节点集合
+            // 初始化智能路径转换器的节点集合和连接集合
             if (CurrentWorkflowTab != null)
             {
                 Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
+                Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
                 _viewModel?.AddLog($"[WorkflowCanvas] ✓ 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+
+                // 订阅节点集合变化事件
+                if (CurrentWorkflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
+                {
+                    nodesCollection.CollectionChanged += (s, args) =>
+                    {
+                        Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
+                        _viewModel?.AddLog($"[WorkflowCanvas] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+
+                        // 触发所有连接的属性变化，重新计算路径
+                        RefreshAllConnectionPaths();
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// 刷新所有连接的路径（触发重新计算）
+        /// </summary>
+        private void RefreshAllConnectionPaths()
+        {
+            if (CurrentWorkflowTab == null) return;
+
+            foreach (var connection in CurrentWorkflowTab.WorkflowConnections)
+            {
+                // 触发 SourcePosition 变化，导致转换器重新计算
+                var oldPos = connection.SourcePosition;
+                connection.SourcePosition = new Point(oldPos.X + 0.001, oldPos.Y);
+                connection.SourcePosition = oldPos;
             }
         }
 

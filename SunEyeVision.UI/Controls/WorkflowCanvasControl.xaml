@@ -71,7 +71,7 @@
                 <DataTemplate>
                     <Canvas>
                         <!-- 连接线 -->
-                        <Path Data="{Binding Converter={StaticResource SmartPathConverter}}"
+                        <Path Data="{Binding Path=., Converter={StaticResource SmartPathConverter}}"
                               Stroke="{Binding StatusColor}" StrokeThickness="2"
                               StrokeLineJoin="Round"
                               Cursor="Hand"
