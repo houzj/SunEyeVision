@@ -39,7 +39,7 @@ namespace SunEyeVision.UI.ViewModels
             ScaleTransform = new ScaleTransform(1.0, 1.0);
 
             // 每个画布初始化独立的命令管理器
-            CommandManager = new Commands.CommandManager(100);
+            CommandManager = new Commands.CommandManager(WorkflowNodes, WorkflowConnections);
         }
 
         /// <summary>

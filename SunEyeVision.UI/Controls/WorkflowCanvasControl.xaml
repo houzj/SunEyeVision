@@ -59,14 +59,17 @@
                     <Canvas/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style>
+                    <Setter Property="Canvas.ZIndex" Value="1000"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Path Data="{Binding Converter={StaticResource SmartPathConverter}}"
-                          Stroke="#666666" StrokeThickness="2" Fill="#666666"
+                          Stroke="#666666" StrokeThickness="2"
                           StrokeLineJoin="Round"
                           Cursor="Hand"
-                          Canvas.ZIndex="1000"
-                          Stretch="Fill"
                           Loaded="Path_Loaded"
                           DataContextChanged="Path_DataContextChanged">
                         <Path.Style>
@@ -79,7 +82,6 @@
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="Stroke" Value="#0066CC"/>
-                                        <Setter Property="Fill" Value="#0066CC"/>
                                         <Setter Property="StrokeThickness" Value="3"/>
                                         <Setter Property="Effect">
                                             <Setter.Value>
