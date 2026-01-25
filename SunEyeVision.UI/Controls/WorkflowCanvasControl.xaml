@@ -11,7 +11,7 @@
     <UserControl.Resources>
         <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
 
-        <!-- 箭头标记 -->
+        <!-- 箭头标记 - 尖端指向右侧（0度方向），方便旋转 -->
         <PathGeometry x:Key="ArrowGeometry">
             <PathFigure StartPoint="0,0">
                 <LineSegment Point="-8,-5" />
@@ -19,6 +19,9 @@
                 <LineSegment Point="0,0" />
             </PathFigure>
         </PathGeometry>
+
+        <!-- 箭头填充颜色 -->
+        <SolidColorBrush x:Key="ArrowBrush" Color="#666666"/>
     </UserControl.Resources>
 
     <!-- 工作流画布 -->
@@ -66,33 +69,66 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Path Data="{Binding Converter={StaticResource SmartPathConverter}}"
-                          Stroke="#666666" StrokeThickness="2"
-                          StrokeLineJoin="Round"
-                          Cursor="Hand"
-                          Loaded="Path_Loaded"
-                          DataContextChanged="Path_DataContextChanged">
-                        <Path.Style>
-                            <Style TargetType="Path">
-                                <Setter Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#666666" BlurRadius="2" ShadowDepth="1" Opacity="0.5"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Stroke" Value="#0066CC"/>
-                                        <Setter Property="StrokeThickness" Value="3"/>
-                                        <Setter Property="Effect">
-                                            <Setter.Value>
-                                                <DropShadowEffect Color="#0066CC" BlurRadius="4" ShadowDepth="2" Opacity="0.7"/>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Path.Style>
-                    </Path>
+                    <Canvas>
+                        <!-- 连接线 -->
+                        <Path Data="{Binding Converter={StaticResource SmartPathConverter}}"
+                              Stroke="{Binding StatusColor}" StrokeThickness="2"
+                              StrokeLineJoin="Round"
+                              Cursor="Hand"
+                              Loaded="Path_Loaded"
+                              DataContextChanged="Path_DataContextChanged">
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#666666" BlurRadius="2" ShadowDepth="1" Opacity="0.5"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Stroke" Value="#0066CC"/>
+                                            <Setter Property="StrokeThickness" Value="3"/>
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#0066CC" BlurRadius="4" ShadowDepth="2" Opacity="0.7"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+
+                        <!-- 箭头 -->
+                        <Path Data="{StaticResource ArrowGeometry}"
+                              Fill="{Binding StatusColor}"
+                              Canvas.Left="{Binding EndX}"
+                              Canvas.Top="{Binding EndY}"
+                              RenderTransformOrigin="0,0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <RotateTransform Angle="{Binding ArrowAngle}"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="Transmitting">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                       From="1" To="0.3" Duration="0:0:0.5"
+                                                                       AutoReverse="True"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </Canvas>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

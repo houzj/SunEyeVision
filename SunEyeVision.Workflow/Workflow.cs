@@ -7,6 +7,32 @@ using SunEyeVision.Models;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
+    /// 端口连接 - 记录源节点端口到目标节点端口的连接
+    /// </summary>
+    public class PortConnection
+    {
+        /// <summary>
+        /// 源节点ID
+        /// </summary>
+        public string SourceNodeId { get; set; }
+
+        /// <summary>
+        /// 源端口 (如: "output", "left", "right", "top", "bottom")
+        /// </summary>
+        public string SourcePort { get; set; }
+
+        /// <summary>
+        /// 目标节点ID
+        /// </summary>
+        public string TargetNodeId { get; set; }
+
+        /// <summary>
+        /// 目标端口 (如: "input", "left", "right", "top", "bottom")
+        /// </summary>
+        public string TargetPort { get; set; }
+    }
+
+    /// <summary>
     /// Workflow
     /// </summary>
     public class Workflow
@@ -37,6 +63,16 @@ namespace SunEyeVision.Workflow
         public Dictionary<string, List<string>> Connections { get; set; }
 
         /// <summary>
+        /// 端口级连接列表 - 精确记录哪个端口连接到哪个端口
+        /// </summary>
+        public List<PortConnection> PortConnections { get; set; }
+
+        /// <summary>
+        /// 依赖分析器
+        /// </summary>
+        private DependencyAnalyzer DependencyAnalyzer { get; set; }
+
+        /// <summary>
         /// Logger
         /// </summary>
         private ILogger Logger { get; set; }
@@ -56,6 +92,8 @@ namespace SunEyeVision.Workflow
             Logger = logger;
             Nodes = new List<WorkflowNode>();
             Connections = new Dictionary<string, List<string>>();
+            PortConnections = new List<PortConnection>();
+            DependencyAnalyzer = new DependencyAnalyzer(logger);
         }
 
         /// <summary>
@@ -84,6 +122,9 @@ namespace SunEyeVision.Workflow
                     kvp.Value.Remove(nodeId);
                 }
 
+                // 移除该节点的端口连接
+                PortConnections.RemoveAll(pc => pc.SourceNodeId == nodeId || pc.TargetNodeId == nodeId);
+
                 Logger.LogInfo($"Workflow {Name} removed node: {node.Name}");
             }
         }
@@ -103,6 +144,85 @@ namespace SunEyeVision.Workflow
                 Connections[sourceNodeId].Add(targetNodeId);
                 Logger.LogInfo($"Workflow {Name} connected nodes: {sourceNodeId} -> {targetNodeId}");
             }
+        }
+
+        /// <summary>
+        /// Connect nodes by port - 精确指定源端口和目标端口
+        /// </summary>
+        public void ConnectNodesByPort(string sourceNodeId, string sourcePort, string targetNodeId, string targetPort)
+        {
+            // 添加节点级连接
+            ConnectNodes(sourceNodeId, targetNodeId);
+
+            // 添加端口级连接
+            var existingConnection = PortConnections.FirstOrDefault(pc =>
+                pc.SourceNodeId == sourceNodeId && pc.SourcePort == sourcePort &&
+                pc.TargetNodeId == targetNodeId && pc.TargetPort == targetPort);
+
+            if (existingConnection == null)
+            {
+                PortConnections.Add(new PortConnection
+                {
+                    SourceNodeId = sourceNodeId,
+                    SourcePort = sourcePort,
+                    TargetNodeId = targetNodeId,
+                    TargetPort = targetPort
+                });
+
+                Logger.LogInfo($"Workflow {Name} connected ports: {sourceNodeId}.{sourcePort} -> {targetNodeId}.{targetPort}");
+            }
+        }
+
+        /// <summary>
+        /// Disconnect nodes by port
+        /// </summary>
+        public void DisconnectNodesByPort(string sourceNodeId, string sourcePort, string targetNodeId, string targetPort)
+        {
+            // 移除节点级连接
+            DisconnectNodes(sourceNodeId, targetNodeId);
+
+            // 移除端口级连接
+            var connection = PortConnections.FirstOrDefault(pc =>
+                pc.SourceNodeId == sourceNodeId && pc.SourcePort == sourcePort &&
+                pc.TargetNodeId == targetNodeId && pc.TargetPort == targetPort);
+
+            if (connection != null)
+            {
+                PortConnections.Remove(connection);
+                Logger.LogInfo($"Workflow {Name} disconnected ports: {sourceNodeId}.{sourcePort} -> {targetNodeId}.{targetPort}");
+            }
+        }
+
+        /// <summary>
+        /// 获取节点的并行执行分组
+        /// </summary>
+        public List<List<string>> GetParallelExecutionGroups()
+        {
+            return DependencyAnalyzer.GetParallelExecutionGroups(this);
+        }
+
+        /// <summary>
+        /// 获取节点的执行顺序（拓扑排序）
+        /// </summary>
+        public List<string> GetExecutionOrder()
+        {
+            return DependencyAnalyzer.TopologicalSort(this);
+        }
+
+        /// <summary>
+        /// 检测工作流中的循环依赖
+        /// </summary>
+        public List<string> DetectCycles()
+        {
+            return DependencyAnalyzer.DetectCycles(this);
+        }
+
+        /// <summary>
+        /// 获取节点优先级
+        /// </summary>
+        public int GetNodePriority(string nodeId)
+        {
+            return DependencyAnalyzer.GetNodePriority(this, nodeId);
         }
 
         /// <summary>
@@ -128,20 +248,55 @@ namespace SunEyeVision.Workflow
 
             Logger.LogInfo($"Starting workflow execution: {Name}");
 
-            // Find all nodes without input connections as start nodes
-            var startNodes = Nodes.Where(n => !Connections.Values.Any(v => v.Contains(n.Id))).ToList();
+            // 创建执行计划
+            var executionPlan = CreateExecutionPlan();
+            executionPlan.Start();
 
-            foreach (var startNode in startNodes)
+            // 按执行顺序执行节点
+            var executionOrder = GetExecutionOrder();
+            if (executionOrder.Count == 0)
             {
-                ExecuteNodeRecursive(startNode, inputImage, nodeResults, executedNodes, results);
+                Logger.LogWarning("无法确定执行顺序,可能存在循环依赖");
+                return results;
             }
 
-            Logger.LogInfo($"Workflow {Name} execution completed, executed {executedNodes.Count} nodes");
+            foreach (var nodeId in executionOrder)
+            {
+                var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
+                if (node != null)
+                {
+                    ExecuteNode(node, inputImage, nodeResults, executedNodes, results);
+                }
+            }
+
+            executionPlan.Complete();
+            Logger.LogInfo(executionPlan.GetReport());
 
             return results;
         }
 
-        private void ExecuteNodeRecursive(WorkflowNode node, Mat inputImage,
+        /// <summary>
+        /// 创建执行计划
+        /// </summary>
+        public ExecutionPlan CreateExecutionPlan()
+        {
+            var plan = new ExecutionPlan();
+            var groups = GetParallelExecutionGroups();
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                plan.Groups.Add(new ExecutionGroup
+                {
+                    GroupNumber = i + 1,
+                    NodeIds = groups[i],
+                    Status = ExecutionGroupStatus.Pending
+                });
+            }
+
+            return plan;
+        }
+
+        private void ExecuteNode(WorkflowNode node, Mat inputImage,
             Dictionary<string, Mat> nodeResults, HashSet<string> executedNodes,
             List<AlgorithmResult> results)
         {
@@ -184,19 +339,6 @@ namespace SunEyeVision.Workflow
 
                 results.Add(result);
                 executedNodes.Add(node.Id);
-
-                // Execute child nodes
-                if (Connections.ContainsKey(node.Id))
-                {
-                    foreach (var childId in Connections[node.Id])
-                    {
-                        var childNode = Nodes.FirstOrDefault(n => n.Id == childId);
-                        if (childNode != null)
-                        {
-                            ExecuteNodeRecursive(childNode, inputImage, nodeResults, executedNodes, results);
-                        }
-                    }
-                }
             }
             catch (Exception ex)
             {

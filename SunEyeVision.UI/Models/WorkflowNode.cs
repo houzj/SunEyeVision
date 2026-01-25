@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Models
 {
@@ -192,6 +193,8 @@ namespace SunEyeVision.UI.Models
         private string _targetPort = "input";
         private System.Windows.Point _sourcePosition;
         private System.Windows.Point _targetPosition;
+        private double _arrowAngle = 0;
+        private ConnectionStatus _status = ConnectionStatus.Idle;
 
         public string Id
         {
@@ -257,6 +260,50 @@ namespace SunEyeVision.UI.Models
                 }
             }
         }
+
+        /// <summary>
+        /// 箭头角度 (度) - 用于旋转箭头指向目标方向
+        /// </summary>
+        public double ArrowAngle
+        {
+            get => _arrowAngle;
+            set
+            {
+                if (_arrowAngle != value)
+                {
+                    _arrowAngle = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 连接状态 - 用于执行过程中的视觉反馈
+        /// </summary>
+        public ConnectionStatus Status
+        {
+            get => _status;
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 连接状态对应的颜色
+        /// </summary>
+        public string StatusColor => Status switch
+        {
+            ConnectionStatus.Idle => "#666666",
+            ConnectionStatus.Transmitting => "#FF9500",
+            ConnectionStatus.Completed => "#34C759",
+            ConnectionStatus.Error => "#FF3B30",
+            _ => "#666666"
+        };
 
         public System.Windows.Point SourcePosition
         {
