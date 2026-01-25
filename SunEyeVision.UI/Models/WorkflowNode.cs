@@ -267,6 +267,8 @@ namespace SunEyeVision.UI.Models
                 {
                     _sourcePosition = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(StartX));
+                    OnPropertyChanged(nameof(StartY));
                 }
             }
         }
@@ -280,6 +282,8 @@ namespace SunEyeVision.UI.Models
                 {
                     _targetPosition = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(EndX));
+                    OnPropertyChanged(nameof(EndY));
                 }
             }
         }

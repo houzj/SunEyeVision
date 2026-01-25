@@ -4,296 +4,307 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:SunEyeVision.UI.Converters"
+             xmlns:controls="clr-namespace:SunEyeVision.UI.Controls"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1000">
 
     <UserControl.Resources>
-        <converters:CurrentWorkflowIdConverter x:Key="CurrentWorkflowIdConverter"/>
-        <converters:RunModeConverter x:Key="RunModeConverter"/>
-        <converters:BoolToContinuousTextConverter x:Key="BoolToContinuousTextConverter"/>
-        <converters:BoolToRunningBackgroundConverter x:Key="BoolToRunningBackgroundConverter"/>
-        <converters:BoolToRunningBorderConverter x:Key="BoolToRunningBorderConverter"/>
-        <converters:RunModeButtonConverter x:Key="RunModeButtonConverter"/>
         <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
     </UserControl.Resources>
 
-    <DockPanel>
-        <!-- 工作流标签页栏 -->
-        <Border DockPanel.Dock="Top" Background="#F0F0F0" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Padding="8,6">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+    <!-- 工作流画布 -->
+    <Canvas x:Name="WorkflowCanvas"
+            ClipToBounds="True"
+            AllowDrop="True"
+            DragEnter="WorkflowCanvas_DragEnter"
+            DragOver="WorkflowCanvas_DragOver"
+            DragLeave="WorkflowCanvas_DragLeave"
+            Drop="WorkflowCanvas_Drop"
+            PreviewMouseLeftButtonDown="WorkflowCanvas_PreviewMouseLeftButtonDown"
+            PreviewMouseMove="WorkflowCanvas_PreviewMouseMove"
+            PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp">
 
-                <!-- 工作流标签 -->
-                <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding Workflows, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Margin="0,0,4,0" 
-                                        BorderBrush="#D0D0D0" 
-                                        BorderThickness="1" 
-                                        CornerRadius="4" 
-                                        Padding="12,6"
-                                        Cursor="Hand"
-                                        MouseLeftButtonUp="WorkflowTab_Click"
-                                        Tag="{Binding}">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#FFFFFF"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Id, Converter={StaticResource CurrentWorkflowIdConverter}, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
-                                                    <Setter Property="Background" Value="#E6F2FF"/>
-                                                    <Setter Property="BorderBrush" Value="#0066CC"/>
-                                                    <Setter Property="BorderThickness" Value="2"/>
-                                                </DataTrigger>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#F0F8FF"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding RunMode, Converter={StaticResource RunModeConverter}}" FontSize="9" Margin="8,0,4,0" VerticalAlignment="Center" Foreground="#666666"/>
-                                        <Button Content="×" FontSize="14" Padding="2,0" Margin="4,0,0,0" 
-                                                Background="Transparent" BorderThickness="0" 
-                                                Foreground="#999999"
-                                                Cursor="Hand"
-                                                Click="DeleteWorkflow_Click"
-                                                Tag="{Binding}"
-                                                VerticalAlignment="Center">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Foreground" Value="#FF4444"/>
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+        <!-- 网格背景 -->
+        <Canvas.Background>
+            <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
+                <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#E0E0E0" Thickness="0.5"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
+                                <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Canvas.Background>
 
-                <!-- 操作按钮 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="+" FontSize="16" Padding="8,4" Width="36" Height="28" 
-                            Background="#E6F2FF" BorderBrush="#0066CC" BorderThickness="1"
-                            ToolTip="添加工作流"
-                            Click="AddWorkflow_Click"
-                            Cursor="Hand"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+        <!-- 连接线 - 使用智能直角折线 -->
+        <ItemsControl ItemsSource="{Binding WorkflowConnections}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Path Data="{Binding ., Converter={StaticResource SmartPathConverter}}"
+                          Stroke="#666666" StrokeThickness="2" Fill="Transparent"
+                          StrokeLineJoin="Round"
+                          Cursor="Hand"
+                          Canvas.ZIndex="1000">
+                        <Path.Style>
+                            <Style TargetType="Path">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Stroke" Value="#0066CC"/>
+                                        <Setter Property="StrokeThickness" Value="3"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Path.Style>
+                    </Path>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-        <!-- 操作按钮栏 -->
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Padding="8,6">
-            <StackPanel Orientation="Horizontal">
-                <!-- 运行控制 -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="🔄 单次" Padding="8,4" Margin="2" 
-                            Background="#F0F8FF" BorderBrush="#0066CC" BorderThickness="1"
-                            Tag="{Binding CurrentWorkflow, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Click="RunSingle_Click"
-                            Cursor="Hand"/>
-                    <Button Content="{Binding CurrentWorkflow.IsRunning, Converter={StaticResource BoolToContinuousTextConverter}, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                            Padding="8,4" Margin="2" 
-                            Background="{Binding CurrentWorkflow.IsRunning, Converter={StaticResource BoolToRunningBackgroundConverter}, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            BorderBrush="{Binding CurrentWorkflow.IsRunning, Converter={StaticResource BoolToRunningBorderConverter}, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            BorderThickness="1"
-                            Tag="{Binding CurrentWorkflow, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Click="ToggleContinuous_Click"
-                            Cursor="Hand"/>
-                </StackPanel>
+        <!-- 节点 -->
+        <ItemsControl ItemsSource="{Binding WorkflowNodes}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style>
+                    <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=TwoWay}"/>
+                    <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=TwoWay}"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Width="140" Height="90"
+                            Background="#FFFFFF" CornerRadius="4"
+                            MouseLeftButtonDown="Node_MouseLeftButtonDown"
+                            MouseLeftButtonUp="Node_MouseLeftButtonUp"
+                            MouseMove="Node_MouseMove"
+                            Tag="{Binding}"
+                            MouseEnter="Node_MouseEnter"
+                            MouseLeave="Node_MouseLeave"
+                            x:Name="NodeBorder">
+                        <Grid Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#0066CC" Padding="6" CornerRadius="3,3,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🔧" FontSize="14"/>
+                                    <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Grid.Row="1" Text="{Binding AlgorithmType}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#0066CC"/>
+                            <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
+                                <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
+                            </Border>
 
-                <Separator Margin="8,0"/>
-
-                <!-- 模式切换 -->
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="模式:" VerticalAlignment="Center" Margin="4,0" FontSize="12" Foreground="#666666"/>
-                    <Button Content="{Binding CurrentWorkflow.RunMode, Converter={StaticResource RunModeButtonConverter}, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                            Padding="8,4" Margin="2" 
-                            Background="#F8F8F8" BorderBrush="#CCCCCC" BorderThickness="1"
-                            Tag="{Binding CurrentWorkflow, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Click="ToggleRunMode_Click"
-                            Cursor="Hand"/>
-                </StackPanel>
-
-                <Separator Margin="8,0"/>
-
-                <!-- 其他操作 -->
-                <Button Content="🗑️ 清空" Padding="8,4" Margin="2" 
-                        Background="#FFF8F0" BorderBrush="#FF9900" BorderThickness="1"
-                        Click="ClearCurrentWorkflow_Click"
-                        Cursor="Hand"/>
-            </StackPanel>
-        </Border>
-
-        <!-- 工作流画布 -->
-        <Border Background="#F5F5F5">
-            <Canvas x:Name="WorkflowCanvas" 
-                    ClipToBounds="True"
-                    DragEnter="WorkflowCanvas_DragEnter"
-                    DragOver="WorkflowCanvas_DragOver"
-                    DragLeave="WorkflowCanvas_DragLeave"
-                    Drop="WorkflowCanvas_Drop">
-                
-                <!-- 网格背景 -->
-                <Canvas.Background>
-                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
-                        <DrawingBrush.Drawing>
-                            <GeometryDrawing Brush="Transparent">
-                                <GeometryDrawing.Pen>
-                                    <Pen Brush="#E0E0E0" Thickness="0.5"/>
-                                </GeometryDrawing.Pen>
-                                <GeometryDrawing.Geometry>
-                                    <GeometryGroup>
-                                        <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
-                                        <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
-                                    </GeometryGroup>
-                                </GeometryDrawing.Geometry>
-                            </GeometryDrawing>
-                        </DrawingBrush.Drawing>
-                    </DrawingBrush>
-                </Canvas.Background>
-
-                <!-- 连接线 - 使用智能直角折线 -->
-                <ItemsControl ItemsSource="{Binding Connections, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Path Data="{Binding ., Converter={StaticResource SmartPathConverter}, ConverterParameter={Binding .}}"
-                                  Stroke="#666666" StrokeThickness="2" Fill="Transparent"
-                                  StrokeLineJoin="Round"
-                                  Cursor="Hand">
-                                <Path.Style>
-                                    <Style TargetType="Path">
+                            <!-- 连接点 - 上方 -->
+                            <Ellipse Grid.RowSpan="3"
+                                     HorizontalAlignment="Center" VerticalAlignment="Top"
+                                     Cursor="Cross" Panel.ZIndex="10"
+                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
+                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
+                                     Tag="{Binding}"
+                                     MouseEnter="Ellipse_MouseEnter"
+                                     MouseLeave="Ellipse_MouseLeave"
+                                     x:Name="TopPortEllipse"
+                                     Visibility="Collapsed">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#0066CC"/>
+                                        <Setter Property="Stroke" Value="#FFFFFF"/>
+                                        <Setter Property="StrokeThickness" Value="2"/>
+                                        <Setter Property="Width" Value="14"/>
+                                        <Setter Property="Height" Value="14"/>
+                                        <Setter Property="Margin" Value="0,-7,0,0"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Stroke" Value="#0066CC"/>
+                                                <Setter Property="Fill" Value="#FF6600"/>
+                                                <Setter Property="Width" Value="18"/>
+                                                <Setter Property="Height" Value="18"/>
+                                                <Setter Property="Margin" Value="0,-9,0,0"/>
                                                 <Setter Property="StrokeThickness" Value="3"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Path.Style>
-                            </Path>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                </Ellipse.Style>
+                            </Ellipse>
 
-                <!-- 节点 -->
-                <ItemsControl ItemsSource="{Binding Nodes, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Width="140" Height="90"
-                                    Background="#FFFFFF"
-                                    BorderBrush="#CCCCCC"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Canvas.Left="{Binding Position.X}"
-                                    Canvas.Top="{Binding Position.Y}"
-                                    PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
-                                    MouseLeftButtonUp="Node_MouseLeftButtonUp"
-                                    MouseMove="Node_MouseMove"
-                                    Cursor="Move"
-                                    Tag="{Binding}">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="4" ShadowDepth="2" Color="#00000033"/>
-                                </Border.Effect>
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="#FFFFFF"/>
-                                        <Setter Property="BorderBrush" Value="#CCCCCC"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
+                            <!-- 连接点 - 下方 -->
+                            <Ellipse Grid.RowSpan="3"
+                                     HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                     Cursor="Cross" Panel.ZIndex="10"
+                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
+                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
+                                     Tag="{Binding}"
+                                     MouseEnter="Ellipse_MouseEnter"
+                                     MouseLeave="Ellipse_MouseLeave"
+                                     x:Name="BottomPortEllipse"
+                                     Visibility="Collapsed">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#0066CC"/>
+                                        <Setter Property="Stroke" Value="#FFFFFF"/>
+                                        <Setter Property="StrokeThickness" Value="2"/>
+                                        <Setter Property="Width" Value="14"/>
+                                        <Setter Property="Height" Value="14"/>
+                                        <Setter Property="Margin" Value="0,0,0,-7"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                <Setter Property="Background" Value="#E6F2FF"/>
-                                                <Setter Property="BorderBrush" Value="#0066CC"/>
-                                                <Setter Property="BorderThickness" Value="2"/>
-                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Fill" Value="#FF6600"/>
+                                                <Setter Property="Width" Value="18"/>
+                                                <Setter Property="Height" Value="18"/>
+                                                <Setter Property="Margin" Value="0,0,0,-9"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Border.Style>
-                                <Grid>
-                                    <!-- 节点标题栏 -->
-                                    <Border Background="#F0F0F0" CornerRadius="6,6,0,0" Padding="8,6" 
-                                            PreviewMouseLeftButtonDown="Node_PreviewMouseLeftButtonDown"
-                                            Tag="{Binding}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#333333"/>
-                                            <Ellipse Grid.Column="1" Width="8" Height="8" Fill="#00CC99" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                        </Grid>
-                                    </Border>
-                                    <!-- 连接点 - 左侧 -->
-                                    <Ellipse Width="14" Height="14" Fill="#0066CC" Stroke="#FFFFFF" StrokeThickness="2"
-                                             HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-7,0,0,0"
-                                             Cursor="Cross"
-                                             PreviewMouseLeftButtonDown="Node_ClickForConnection"
-                                             Tag="{Binding}"
-                                             Panel.ZIndex="10">
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Fill" Value="#FF6600"/>
-                                                        <Setter Property="Width" Value="16"/>
-                                                        <Setter Property="Height" Value="16"/>
-                                                        <Setter Property="Margin" Value="-8,0,0,0"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                    <!-- 连接点 - 右侧 -->
-                                    <Ellipse Width="14" Height="14" Fill="#0066CC" Stroke="#FFFFFF" StrokeThickness="2"
-                                             HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-7,0"
-                                             Cursor="Cross"
-                                             PreviewMouseLeftButtonDown="Node_ClickForConnection"
-                                             Tag="{Binding}"
-                                             Panel.ZIndex="10">
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Fill" Value="#FF6600"/>
-                                                        <Setter Property="Width" Value="16"/>
-                                                        <Setter Property="Height" Value="16"/>
-                                                        <Setter Property="Margin" Value="0,0,-8,0"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Canvas>
-        </Border>
-    </DockPanel>
+                                </Ellipse.Style>
+                            </Ellipse>
+
+                            <!-- 连接点 - 左侧 -->
+                            <Ellipse Grid.RowSpan="3"
+                                     HorizontalAlignment="Left" VerticalAlignment="Center"
+                                     Cursor="Cross" Panel.ZIndex="10"
+                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
+                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
+                                     Tag="{Binding}"
+                                     MouseEnter="Ellipse_MouseEnter"
+                                     MouseLeave="Ellipse_MouseLeave"
+                                     x:Name="LeftPortEllipse"
+                                     Visibility="Collapsed">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#0066CC"/>
+                                        <Setter Property="Stroke" Value="#FFFFFF"/>
+                                        <Setter Property="StrokeThickness" Value="2"/>
+                                        <Setter Property="Width" Value="14"/>
+                                        <Setter Property="Height" Value="14"/>
+                                        <Setter Property="Margin" Value="-7,0,0,0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Fill" Value="#FF6600"/>
+                                                <Setter Property="Width" Value="18"/>
+                                                <Setter Property="Height" Value="18"/>
+                                                <Setter Property="Margin" Value="-9,0,0,0"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+
+                            <!-- 连接点 - 右侧 -->
+                            <Ellipse Grid.RowSpan="3"
+                                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                                     Cursor="Cross" Panel.ZIndex="10"
+                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
+                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
+                                     Tag="{Binding}"
+                                     MouseEnter="Ellipse_MouseEnter"
+                                     MouseLeave="Ellipse_MouseLeave"
+                                     x:Name="RightPortEllipse"
+                                     Visibility="Collapsed">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#0066CC"/>
+                                        <Setter Property="Stroke" Value="#FFFFFF"/>
+                                        <Setter Property="StrokeThickness" Value="2"/>
+                                        <Setter Property="Width" Value="14"/>
+                                        <Setter Property="Height" Value="14"/>
+                                        <Setter Property="Margin" Value="0,0,-7,0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Fill" Value="#FF6600"/>
+                                                <Setter Property="Width" Value="18"/>
+                                                <Setter Property="Height" Value="18"/>
+                                                <Setter Property="Margin" Value="0,0,-9,0"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                        </Grid>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Effect" Value="{x:Null}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BorderBrush" Value="#0066CC"/>
+                                        <Setter Property="BorderThickness" Value="3"/>
+                                        <Setter Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#0066CC" BlurRadius="10" ShadowDepth="0"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="#667EEA"/>
+                                        <Setter Property="BorderThickness" Value="3"/>
+                                        <Setter Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#667EEA" BlurRadius="8" ShadowDepth="0"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 拖拽连接时的临时连接线 -->
+        <Path x:Name="TempConnectionLine"
+              Stroke="#FF6600"
+              StrokeThickness="2"
+              StrokeDashArray="5,5"
+              Fill="Transparent"
+              Canvas.ZIndex="9998"
+              Visibility="Collapsed">
+            <Path.Data>
+                <LineGeometry x:Name="TempConnectionGeometry" />
+            </Path.Data>
+        </Path>
+
+        <!-- 框选控件 -->
+        <controls:SelectionBox x:Name="SelectionBox" Canvas.ZIndex="9999"/>
+    </Canvas>
 </UserControl>
