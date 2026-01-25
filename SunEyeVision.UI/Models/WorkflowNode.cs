@@ -89,6 +89,16 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
+        /// 获取上方连接点位置（用于连接线）
+        /// </summary>
+        public Point TopPortPosition => new Point(Position.X + 70, Position.Y);
+
+        /// <summary>
+        /// 获取下方连接点位置（用于连接线）
+        /// </summary>
+        public Point BottomPortPosition => new Point(Position.X + 70, Position.Y + 90);
+
+        /// <summary>
         /// 获取左侧连接点位置（用于连接线）
         /// </summary>
         public Point LeftPortPosition => new Point(Position.X, Position.Y + 45);

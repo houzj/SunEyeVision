@@ -50,12 +50,18 @@ namespace SunEyeVision.UI
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
             {
+                // 直接设置连接点的可见性
+                SetPortsVisibility(border, true);
+
                 // 延迟读取,确保样式已应用
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     var debugInfo = $"[节点悬停] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
                     System.Diagnostics.Debug.WriteLine(debugInfo);
                     AddLogToUI(debugInfo);
+
+                    // 检查连接点的可见性
+                    AddPortVisibilityDebugInfo(border, node, "鼠标进入后");
                 }), System.Windows.Threading.DispatcherPriority.Render);
             }
         }
@@ -67,12 +73,18 @@ namespace SunEyeVision.UI
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
             {
+                // 直接设置连接点的可见性
+                SetPortsVisibility(border, false);
+
                 // 延迟读取,确保样式已恢复
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     var debugInfo = $"[节点离开] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
                     System.Diagnostics.Debug.WriteLine(debugInfo);
                     AddLogToUI(debugInfo);
+
+                    // 检查连接点的可见性
+                    AddPortVisibilityDebugInfo(border, node, "鼠标离开后");
                 }), System.Windows.Threading.DispatcherPriority.Render);
             }
         }
@@ -87,10 +99,10 @@ namespace SunEyeVision.UI
                 // 延迟读取,确保样式已应用
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var debugInfo = $"[连接点悬停] 节点: {node.Name}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
+                    var portDirection = GetPortDirection(ellipse.Name);
+                    var debugInfo = $"[连接点悬停] 节点: {node.Name}, 方向: {portDirection}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
                     System.Diagnostics.Debug.WriteLine(debugInfo);
                     AddLogToUI(debugInfo);
-                    AddLogToUI($"  触发器状态: IsMouseOver={ellipse.IsMouseOver}");
                 }), System.Windows.Threading.DispatcherPriority.Render);
             }
         }
@@ -105,10 +117,85 @@ namespace SunEyeVision.UI
                 // 延迟读取,确保样式已恢复
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var debugInfo = $"[连接点离开] 节点: {node.Name}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
+                    var portDirection = GetPortDirection(ellipse.Name);
+                    var debugInfo = $"[连接点离开] 节点: {node.Name}, 方向: {portDirection}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
                     System.Diagnostics.Debug.WriteLine(debugInfo);
                     AddLogToUI(debugInfo);
                 }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 根据连接点名称获取方向
+        /// </summary>
+        private string GetPortDirection(string portName)
+        {
+            if (portName.Contains("Top"))
+                return "上";
+            else if (portName.Contains("Bottom"))
+                return "下";
+            else if (portName.Contains("Left"))
+                return "左";
+            else if (portName.Contains("Right"))
+                return "右";
+            else
+                return "未知";
+        }
+
+        /// <summary>
+        /// 添加连接点可见性调试信息
+        /// </summary>
+        private void AddPortVisibilityDebugInfo(Border border, WorkflowNode node, string phase)
+        {
+            AddLogToUI($"  [连接点调试] {phase} - 节点: {node.Name}");
+            AddLogToUI($"    Border.IsMouseOver: {border.IsMouseOver}");
+
+            // 查找所有子元素中的 Ellipse（连接点）
+            var ellipses = FindAllVisualChildren<Ellipse>(border);
+            int portCount = 0;
+            foreach (var ellipse in ellipses)
+            {
+                var ellipseName = ellipse.Name ?? "未命名";
+                var visibility = ellipse.Visibility;
+                var actualSize = $"W:{ellipse.ActualWidth:F1} H:{ellipse.ActualHeight:F1}";
+                var isVisible = (visibility == Visibility.Visible);
+                var status = isVisible ? "✓" : "✗";
+
+                AddLogToUI($"    连接点 {ellipseName}: {visibility}, {actualSize} {status}");
+                portCount++;
+
+                if (isVisible && ellipseName.Contains("Port"))
+                {
+                    // 显示连接点的位置和大小信息
+                    var transform = ellipse.TransformToVisual(border);
+                    var pos = transform.Transform(new Point(0, 0));
+                    AddLogToUI($"      相对位置: ({pos.X:F1}, {pos.Y:F1}), Margin: {ellipse.Margin}");
+                }
+            }
+
+            if (portCount == 0)
+            {
+                AddLogToUI($"    ⚠️ 警告: 未找到任何 Ellipse 元素");
+            }
+            else
+            {
+                AddLogToUI($"    共找到 {portCount} 个 Ellipse 元素");
+            }
+        }
+
+        /// <summary>
+        /// 设置所有连接点的可见性
+        /// </summary>
+        private void SetPortsVisibility(Border border, bool isVisible)
+        {
+            var ellipses = FindAllVisualChildren<Ellipse>(border);
+            foreach (var ellipse in ellipses)
+            {
+                var ellipseName = ellipse.Name ?? "";
+                if (ellipseName.Contains("Port"))
+                {
+                    ellipse.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+                }
             }
         }
 
@@ -1468,6 +1555,7 @@ namespace SunEyeVision.UI
         {
             // 获取节点对象（支持 Border 或 Ellipse 作为 sender）
             WorkflowNode? targetNode = null;
+            string? sourcePortDirection = null;
 
             if (sender is Border border && border.Tag is WorkflowNode clickedNodeFromBorder)
             {
@@ -1477,7 +1565,9 @@ namespace SunEyeVision.UI
             else if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode clickedNodeFromEllipse)
             {
                 targetNode = clickedNodeFromEllipse;
-                AddLogToUI($"[连接点点击] 类型: Ellipse, 节点: {clickedNodeFromEllipse.Name}");
+                sourcePortDirection = GetPortDirection(ellipse.Name);
+
+                AddLogToUI($"[连接点点击] 类型: Ellipse, 节点: {clickedNodeFromEllipse.Name}, 方向: {sourcePortDirection}");
                 AddLogToUI($"  IsMouseOver: {ellipse.IsMouseOver}, 大小: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}");
 
                 // 选中当前节点（连接点点击时也需要选中节点）
@@ -1541,6 +1631,10 @@ namespace SunEyeVision.UI
                 _connectionSourceNode = targetNode;
                 _viewModel.StatusText = $"请选择目标节点进行连接，从: {targetNode.Name}";
                 AddLogToUI($"  进入连接模式, 源节点: {targetNode.Name}");
+                if (sourcePortDirection != null)
+                {
+                    AddLogToUI($"  源连接点方向: {sourcePortDirection}");
+                }
             }
             else
             {
@@ -1572,22 +1666,60 @@ namespace SunEyeVision.UI
                 var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
                 var newConnection = new WorkflowConnection(connectionId, _connectionSourceNode.Id, targetNode.Id);
 
-                // 计算连接点位置（节点右中心到左中心）
-                var sourcePos = new Point(
-                    _connectionSourceNode.Position.X + 140,
-                    _connectionSourceNode.Position.Y + 45
-                );
-                var targetPos = new Point(
-                    targetNode.Position.X,
-                    targetNode.Position.Y + 45
-                );
+                // 智能选择连接点位置
+                // 如果目标节点在源节点右侧,使用源节点的右侧连接点和目标节点的左侧连接点
+                // 如果目标节点在源节点左侧,使用源节点的左侧连接点和目标节点的右侧连接点
+                // 如果目标节点在源节点上方,使用源节点的上方连接点和目标节点的下方连接点
+                // 如果目标节点在源节点下方,使用源节点的下方连接点和目标节点的上方连接点
+                Point sourcePos, targetPos;
+                string sourceDir, targetDir;
+
+                var deltaX = targetNode.Position.X - _connectionSourceNode.Position.X;
+                var deltaY = targetNode.Position.Y - _connectionSourceNode.Position.Y;
+
+                if (Math.Abs(deltaX) > Math.Abs(deltaY))
+                {
+                    // 水平方向
+                    if (deltaX > 0)
+                    {
+                        sourcePos = _connectionSourceNode.RightPortPosition;
+                        targetPos = targetNode.LeftPortPosition;
+                        sourceDir = "右";
+                        targetDir = "左";
+                    }
+                    else
+                    {
+                        sourcePos = _connectionSourceNode.LeftPortPosition;
+                        targetPos = targetNode.RightPortPosition;
+                        sourceDir = "左";
+                        targetDir = "右";
+                    }
+                }
+                else
+                {
+                    // 垂直方向
+                    if (deltaY > 0)
+                    {
+                        sourcePos = _connectionSourceNode.BottomPortPosition;
+                        targetPos = targetNode.TopPortPosition;
+                        sourceDir = "下";
+                        targetDir = "上";
+                    }
+                    else
+                    {
+                        sourcePos = _connectionSourceNode.TopPortPosition;
+                        targetPos = targetNode.BottomPortPosition;
+                        sourceDir = "上";
+                        targetDir = "下";
+                    }
+                }
 
                 newConnection.SourcePosition = sourcePos;
                 newConnection.TargetPosition = targetPos;
 
                 AddLogToUI($"  创建连接: {connectionId}");
-                AddLogToUI($"    源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-                AddLogToUI($"    目标位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
+                AddLogToUI($"    源位置 ({sourceDir}): ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+                AddLogToUI($"    目标位置 ({targetDir}): ({targetPos.X:F1}, {targetPos.Y:F1})");
 
                 // 直接添加到 SelectedTab.WorkflowConnections
                 selectedTab.WorkflowConnections.Add(newConnection);

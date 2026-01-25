@@ -689,7 +689,8 @@
                                                     MouseMove="Node_MouseMove"
                                                     Tag="{Binding}"
                                                     MouseEnter="Node_MouseEnter"
-                                                    MouseLeave="Node_MouseLeave">
+                                                    MouseLeave="Node_MouseLeave"
+                                                    x:Name="NodeBorder">
                                                 <Grid MouseLeftButtonUp="Node_ClickForConnection"
                                                       Background="Transparent">
                                                     <Grid.RowDefinitions>
@@ -707,6 +708,79 @@
                                                     <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
                                                         <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
                                                     </Border>
+
+                                                    <!-- 连接点 - 上方 -->
+                                                    <Ellipse Grid.RowSpan="3"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                             Cursor="Cross" Panel.ZIndex="10"
+                                                             PreviewMouseLeftButtonDown="Node_ClickForConnection"
+                                                             Tag="{Binding}"
+                                                             MouseEnter="Ellipse_MouseEnter"
+                                                             MouseLeave="Ellipse_MouseLeave"
+                                                             x:Name="TopPortEllipse"
+                                                             Visibility="Collapsed">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Fill" Value="#0066CC"/>
+                                                                <Setter Property="Stroke" Value="#FFFFFF"/>
+                                                                <Setter Property="StrokeThickness" Value="2"/>
+                                                                <Setter Property="Width" Value="14"/>
+                                                                <Setter Property="Height" Value="14"/>
+                                                                <Setter Property="Margin" Value="0,-7,0,0"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Fill" Value="#FF6600"/>
+                                                                        <Setter Property="Width" Value="18"/>
+                                                                        <Setter Property="Height" Value="18"/>
+                                                                        <Setter Property="Margin" Value="0,-9,0,0"/>
+                                                                        <Setter Property="StrokeThickness" Value="3"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+
+                                                    <!-- 连接点 - 下方 -->
+                                                    <Ellipse Grid.RowSpan="3"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                                             Cursor="Cross" Panel.ZIndex="10"
+                                                             PreviewMouseLeftButtonDown="Node_ClickForConnection"
+                                                             Tag="{Binding}"
+                                                             MouseEnter="Ellipse_MouseEnter"
+                                                             MouseLeave="Ellipse_MouseLeave"
+                                                             x:Name="BottomPortEllipse"
+                                                             Visibility="Collapsed">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Fill" Value="#0066CC"/>
+                                                                <Setter Property="Stroke" Value="#FFFFFF"/>
+                                                                <Setter Property="StrokeThickness" Value="2"/>
+                                                                <Setter Property="Width" Value="14"/>
+                                                                <Setter Property="Height" Value="14"/>
+                                                                <Setter Property="Margin" Value="0,0,0,-7"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Fill" Value="#FF6600"/>
+                                                                        <Setter Property="Width" Value="18"/>
+                                                                        <Setter Property="Height" Value="18"/>
+                                                                        <Setter Property="Margin" Value="0,0,0,-9"/>
+                                                                        <Setter Property="StrokeThickness" Value="3"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+
                                                     <!-- 连接点 - 左侧 -->
                                                     <Ellipse Grid.RowSpan="3"
                                                              HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -715,7 +789,8 @@
                                                              Tag="{Binding}"
                                                              MouseEnter="Ellipse_MouseEnter"
                                                              MouseLeave="Ellipse_MouseLeave"
-                                                             x:Name="LeftPortEllipse">
+                                                             x:Name="LeftPortEllipse"
+                                                             Visibility="Collapsed">
                                                         <Ellipse.Style>
                                                             <Style TargetType="Ellipse">
                                                                 <Setter Property="Fill" Value="#0066CC"/>
@@ -741,6 +816,7 @@
                                                             </Style>
                                                         </Ellipse.Style>
                                                     </Ellipse>
+
                                                     <!-- 连接点 - 右侧 -->
                                                     <Ellipse Grid.RowSpan="3"
                                                              HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -749,7 +825,8 @@
                                                              Tag="{Binding}"
                                                              MouseEnter="Ellipse_MouseEnter"
                                                              MouseLeave="Ellipse_MouseLeave"
-                                                             x:Name="RightPortEllipse">
+                                                             x:Name="RightPortEllipse"
+                                                             Visibility="Collapsed">
                                                         <Ellipse.Style>
                                                             <Style TargetType="Ellipse">
                                                                 <Setter Property="Fill" Value="#0066CC"/>
