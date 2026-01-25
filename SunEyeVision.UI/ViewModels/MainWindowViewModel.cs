@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.PluginSystem;
 
@@ -76,6 +77,18 @@ namespace SunEyeVision.UI.ViewModels
         
         // 多流程管理
         public WorkflowTabControlViewModel WorkflowTabViewModel { get; }
+
+        /// <summary>
+        /// 当前选中画布的命令管理器（用于撤销/重做功能）
+        /// 每个画布都有独立的撤销/重做栈
+        /// </summary>
+        public Commands.CommandManager? CurrentCommandManager
+        {
+            get => WorkflowTabViewModel.SelectedTab?.CommandManager;
+        }
+
+        // 用于跟踪当前订阅的命令管理器，避免重复订阅
+        private Commands.CommandManager? _subscribedCommandManager;
 
         public string StatusText
         {
@@ -190,24 +203,106 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
+            // 订阅选中画布变化事件，更新撤销/重做按钮状态
+            WorkflowTabViewModel.SelectionChanged += OnSelectedTabChanged;
+
+            // 订阅初始画布的命令管理器
+            SubscribeToCurrentCommandManager();
+
             InitializeTools();
             InitializeSampleNodes();
             InitializePropertyGroups();
 
-            NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
-            OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
-            SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
-            SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
-            RunWorkflowCommand = new RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
-            StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
-            ShowSettingsCommand = new RelayCommand(ExecuteShowSettings);
-            ShowAboutCommand = new RelayCommand(ExecuteShowAbout);
-            ShowHelpCommand = new RelayCommand(ExecuteShowHelp);
-            ShowShortcutsCommand = new RelayCommand(ExecuteShowShortcuts);
-            PauseCommand = new RelayCommand(ExecutePause);
-            UndoCommand = new RelayCommand(ExecuteUndo);
-            RedoCommand = new RelayCommand(ExecuteRedo);
-            OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
+            NewWorkflowCommand = new Commands.RelayCommand(ExecuteNewWorkflow);
+            OpenWorkflowCommand = new Commands.RelayCommand(ExecuteOpenWorkflow);
+            SaveWorkflowCommand = new Commands.RelayCommand(ExecuteSaveWorkflow);
+            SaveAsWorkflowCommand = new Commands.RelayCommand(ExecuteSaveAsWorkflow);
+            RunWorkflowCommand = new Commands.RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
+            StopWorkflowCommand = new Commands.RelayCommand(ExecuteStopWorkflow, () => IsRunning);
+            ShowSettingsCommand = new Commands.RelayCommand(ExecuteShowSettings);
+            ShowAboutCommand = new Commands.RelayCommand(ExecuteShowAbout);
+            ShowHelpCommand = new Commands.RelayCommand(ExecuteShowHelp);
+            ShowShortcutsCommand = new Commands.RelayCommand(ExecuteShowShortcuts);
+            PauseCommand = new Commands.RelayCommand(ExecutePause);
+            UndoCommand = new Commands.RelayCommand(ExecuteUndo, CanExecuteUndo);
+            RedoCommand = new Commands.RelayCommand(ExecuteRedo, CanExecuteRedo);
+            OpenDebugWindowCommand = new Commands.RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
+        }
+
+        /// <summary>
+        /// 选中画布变化处理
+        /// </summary>
+        private void OnSelectedTabChanged(object? sender, EventArgs e)
+        {
+            // 订阅新画布的命令管理器
+            SubscribeToCurrentCommandManager();
+
+            // 更新撤销/重做按钮状态
+            UpdateUndoRedoCommands();
+        }
+
+        /// <summary>
+        /// 订阅当前画布的命令管理器状态变化
+        /// </summary>
+        private void SubscribeToCurrentCommandManager()
+        {
+            // 取消订阅旧的命令管理器
+            if (_subscribedCommandManager != null)
+            {
+                _subscribedCommandManager.CommandStateChanged -= OnCurrentCommandManagerStateChanged;
+            }
+
+            // 订阅新的命令管理器
+            if (CurrentCommandManager != null)
+            {
+                CurrentCommandManager.CommandStateChanged += OnCurrentCommandManagerStateChanged;
+                _subscribedCommandManager = CurrentCommandManager;
+            }
+            else
+            {
+                _subscribedCommandManager = null;
+            }
+        }
+
+        /// <summary>
+        /// 更新撤销/重做命令的CanExecute状态
+        /// </summary>
+        private void UpdateUndoRedoCommands()
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                var undoCmd = UndoCommand as Commands.RelayCommand;
+                var redoCmd = RedoCommand as Commands.RelayCommand;
+                undoCmd?.RaiseCanExecuteChanged();
+                redoCmd?.RaiseCanExecuteChanged();
+
+                // 更新状态栏显示
+                StatusText = CurrentCommandManager?.LastCommandDescription ?? "就绪";
+            });
+        }
+
+        /// <summary>
+        /// 当前画布的命令管理器状态变化处理
+        /// </summary>
+        private void OnCurrentCommandManagerStateChanged(object? sender, EventArgs e)
+        {
+            UpdateUndoRedoCommands();
+        }
+
+        /// <summary>
+        /// 判断是否可以撤销（基于当前选中画布）
+        /// </summary>
+        private bool CanExecuteUndo()
+        {
+            return CurrentCommandManager?.CanUndo ?? false;
+        }
+
+        /// <summary>
+        /// 判断是否可以重做（基于当前选中画布）
+        /// </summary>
+        private bool CanExecuteRedo()
+        {
+            return CurrentCommandManager?.CanRedo ?? false;
         }
 
         private void ExecutePause()
@@ -217,12 +312,42 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteUndo()
         {
-            // TODO: 实现撤销功能
+            if (CurrentCommandManager == null)
+            {
+                AddLog("⚠️ 没有选中的画布，无法撤销");
+                return;
+            }
+
+            try
+            {
+                CurrentCommandManager.Undo();
+                AddLog($"↩️ 撤销: {CurrentCommandManager.LastCommandDescription}");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"撤销失败: {ex.Message}", "错误",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void ExecuteRedo()
         {
-            // TODO: 实现重做功能
+            if (CurrentCommandManager == null)
+            {
+                AddLog("⚠️ 没有选中的画布，无法重做");
+                return;
+            }
+
+            try
+            {
+                CurrentCommandManager.Redo();
+                AddLog($"↪️ 重做: {CurrentCommandManager.LastCommandDescription}");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"重做失败: {ex.Message}", "错误",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void InitializeTools()
@@ -393,6 +518,69 @@ namespace SunEyeVision.UI.ViewModels
                 }
             };
             PropertyGroups.Add(perfGroup);
+        }
+
+        /// <summary>
+        /// 添加节点到当前工作流（通过命令模式）
+        /// </summary>
+        public void AddNodeToWorkflow(WorkflowNode node)
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var command = new AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
+            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+        }
+
+        /// <summary>
+        /// 从当前工作流删除节点（通过命令模式）
+        /// </summary>
+        public void DeleteNodeFromWorkflow(WorkflowNode node)
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var command = new DeleteNodeCommand(
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes,
+                WorkflowTabViewModel.SelectedTab.WorkflowConnections,
+                node);
+            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+        }
+
+        /// <summary>
+        /// 移动节点到新位置（通过命令模式）
+        /// </summary>
+        public void MoveNode(WorkflowNode node, Point newPosition)
+        {
+            var command = new MoveNodeCommand(node, newPosition);
+            if (WorkflowTabViewModel.SelectedTab != null)
+            {
+                WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+            }
+        }
+
+        /// <summary>
+        /// 添加连接到当前工作流（通过命令模式）
+        /// </summary>
+        public void AddConnectionToWorkflow(WorkflowConnection connection)
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var command = new AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
+            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+        }
+
+        /// <summary>
+        /// 从当前工作流删除连接（通过命令模式）
+        /// </summary>
+        public void DeleteConnectionFromWorkflow(WorkflowConnection connection)
+        {
+            if (WorkflowTabViewModel.SelectedTab == null)
+                return;
+
+            var command = new DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
+            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
 
         private void ExecuteOpenDebugWindow(Models.WorkflowNode? node)

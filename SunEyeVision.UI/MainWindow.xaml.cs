@@ -28,6 +28,12 @@ namespace SunEyeVision.UI
         private const double MinScale = 0.25;  // 25%
         private const double MaxScale = 3.0;   // 300%
 
+        // 节点拖拽相关
+        private bool _isDragging;
+        private WorkflowNode? _draggedNode;
+        private System.Windows.Point _startDragPosition;
+        private System.Windows.Point _initialNodePosition;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -599,15 +605,8 @@ namespace SunEyeVision.UI
                     var y = Math.Max(0, position.Y - 45);
                     node.Position = new System.Windows.Point(x, y);
 
-                    // 在UI线程中添加节点到当前选中的工作流
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
-                        {
-                            _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(node);
-                            _viewModel.StatusText = $"添加节点: {tool.Name}";
-                        }
-                    });
+                    // 使用命令模式添加节点
+                    _viewModel.AddNodeToWorkflow(node);
                 }
             }
             catch (Exception ex)
@@ -1040,10 +1039,6 @@ namespace SunEyeVision.UI
 
         #region 节点拖拽
 
-        private bool _isDragging;
-        private WorkflowNode? _draggedNode;
-        private System.Windows.Point _startDragPosition;
-
         private void Node_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Border border || border.Tag is not WorkflowNode node)
@@ -1070,6 +1065,7 @@ namespace SunEyeVision.UI
             // 单击事件：拖拽准备
             _isDragging = true;
             _draggedNode = node;
+            _initialNodePosition = node.Position; // 记录初始位置
             var canvas = FindParentCanvas(sender as DependencyObject);
             _startDragPosition = e.GetPosition(canvas);
 
@@ -1088,8 +1084,16 @@ namespace SunEyeVision.UI
 
         private void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_isDragging)
+            if (_isDragging && _draggedNode != null)
             {
+                // 拖拽结束，执行移动命令
+                var currentPosition = _draggedNode.Position;
+                if (currentPosition.X != _initialNodePosition.X || currentPosition.Y != _initialNodePosition.Y)
+                {
+                    // 位置发生改变，使用命令模式记录
+                    _viewModel.MoveNode(_draggedNode, currentPosition);
+                }
+
                 _isDragging = false;
                 _draggedNode = null!;
                 (sender as Border)?.ReleaseMouseCapture();
@@ -1104,6 +1108,7 @@ namespace SunEyeVision.UI
                 var currentPosition = e.GetPosition(canvas);
                 var offset = currentPosition - _startDragPosition;
 
+                // 实时更新节点位置（不使用命令，等待MouseUp再执行命令）
                 _draggedNode.Position = new System.Windows.Point(
                     _draggedNode.Position.X + offset.X,
                     _draggedNode.Position.Y + offset.Y

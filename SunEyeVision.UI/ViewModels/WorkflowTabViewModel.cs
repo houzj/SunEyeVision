@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
+using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.ViewModels
@@ -21,6 +22,11 @@ namespace SunEyeVision.UI.ViewModels
         private ScaleTransform _scaleTransform;
         private double _currentScale;
 
+        /// <summary>
+        /// 每个画布独立的撤销/重做命令管理器
+        /// </summary>
+        public Commands.CommandManager CommandManager { get; }
+
         public WorkflowTabViewModel()
         {
             Id = Guid.NewGuid().ToString();
@@ -31,6 +37,9 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
+
+            // 每个画布初始化独立的命令管理器
+            CommandManager = new Commands.CommandManager(100);
         }
 
         /// <summary>

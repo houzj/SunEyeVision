@@ -19,6 +19,11 @@ namespace SunEyeVision.UI.ViewModels
         private int _workflowCounter = 1;
         private SortedSet<int> _usedWorkflowNumbers = new SortedSet<int>();
 
+        /// <summary>
+        /// 选中画布变化事件
+        /// </summary>
+        public event EventHandler? SelectionChanged;
+
         public WorkflowTabControlViewModel()
         {
             Tabs = new ObservableCollection<WorkflowTabViewModel>();
@@ -42,7 +47,14 @@ namespace SunEyeVision.UI.ViewModels
         public WorkflowTabViewModel SelectedTab
         {
             get => _selectedTab;
-            set => SetProperty(ref _selectedTab, value);
+            set
+            {
+                if (SetProperty(ref _selectedTab, value))
+                {
+                    // 触发选中变化事件
+                    SelectionChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
         }
 
         #region 工作流管理
