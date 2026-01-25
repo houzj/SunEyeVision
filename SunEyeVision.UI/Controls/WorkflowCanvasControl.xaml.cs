@@ -105,6 +105,15 @@ namespace SunEyeVision.UI.Controls
 
             // 根据已有工作流初始化计数器
             InitializeWorkflowCounter();
+
+            // 初始化智能路径转换器的节点集合
+            Converters.SmartPathConverter.Nodes = Nodes;
+
+            // 监听连接线集合变化，实时更新转换器的节点集合
+            Connections.CollectionChanged += (s, args) =>
+            {
+                Converters.SmartPathConverter.Nodes = Nodes;
+            };
         }
 
         /// <summary>

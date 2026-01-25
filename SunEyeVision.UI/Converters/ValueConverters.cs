@@ -105,32 +105,20 @@ namespace SunEyeVision.UI.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            // 调试输出
-            System.Diagnostics.Debug.WriteLine($"CurrentWorkflowMultiConverter called with {values.Length} values");
-            for (int i = 0; i < values.Length; i++)
-            {
-                System.Diagnostics.Debug.WriteLine($"  Value[{i}]: {values[i]?.GetType().Name} = {values[i]}");
-            }
-
             // 支持两种模式：比较 WorkflowInfo 对象或比较 Id 字符串
             if (values.Length >= 2)
             {
                 if (values[0] is WorkflowInfo workflow && values[1] is WorkflowInfo currentWorkflow)
                 {
                     // 模式1: 比较两个 WorkflowInfo 对象
-                    bool result = workflow?.Id == currentWorkflow?.Id;
-                    System.Diagnostics.Debug.WriteLine($"  Comparing WorkflowInfo: {workflow?.Id} == {currentWorkflow?.Id} => {result}");
-                    return result;
+                    return workflow?.Id == currentWorkflow?.Id;
                 }
                 else if (values[0] is string workflowId && values[1] is string currentWorkflowId)
                 {
                     // 模式2: 比较两个 Id 字符串
-                    bool result = workflowId == currentWorkflowId;
-                    System.Diagnostics.Debug.WriteLine($"  Comparing Id strings: {workflowId} == {currentWorkflowId} => {result}");
-                    return result;
+                    return workflowId == currentWorkflowId;
                 }
             }
-            System.Diagnostics.Debug.WriteLine("  Returning false");
             return false;
         }
 

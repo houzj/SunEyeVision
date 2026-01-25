@@ -14,7 +14,7 @@
         <converters:BoolToRunningBackgroundConverter x:Key="BoolToRunningBackgroundConverter"/>
         <converters:BoolToRunningBorderConverter x:Key="BoolToRunningBorderConverter"/>
         <converters:RunModeButtonConverter x:Key="RunModeButtonConverter"/>
-        <converters:BezierCurveConverter x:Key="BezierCurveConverter" ControlOffset="80"/>
+        <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
     </UserControl.Resources>
 
     <DockPanel>
@@ -168,7 +168,7 @@
                     </DrawingBrush>
                 </Canvas.Background>
 
-                <!-- 连接线 - 使用贝塞尔曲线 -->
+                <!-- 连接线 - 使用智能直角折线 -->
                 <ItemsControl ItemsSource="{Binding Connections, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -177,7 +177,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Path Data="{Binding ., Converter={StaticResource BezierCurveConverter}, ConverterParameter={Binding .}}"
+                            <Path Data="{Binding ., Converter={StaticResource SmartPathConverter}, ConverterParameter={Binding .}}"
                                   Stroke="#666666" StrokeThickness="2" Fill="Transparent"
                                   StrokeLineJoin="Round"
                                   Cursor="Hand">

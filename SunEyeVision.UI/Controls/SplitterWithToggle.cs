@@ -38,7 +38,6 @@ namespace SunEyeVision.UI.Controls
         {
             if (d is SplitterWithToggle splitter)
             {
-                System.Diagnostics.Debug.WriteLine($"[{splitter._name}] ToggleDirection changed: {e.OldValue} -> {e.NewValue}");
                 splitter.UpdateArrowText();
             }
         }
@@ -58,18 +57,15 @@ namespace SunEyeVision.UI.Controls
             };
 
             _arrowTextBlock.Text = arrow;
-            System.Diagnostics.Debug.WriteLine($"[{_name}] Arrow text updated to: {arrow}");
         }
 
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        System.Diagnostics.Debug.WriteLine($"[{_name}] OnApplyTemplate called");
 
         // 先移除旧按钮的事件
         if (_toggleButton != null)
         {
-            System.Diagnostics.Debug.WriteLine($"[{_name}] Removing event from old button");
             _toggleButton.Click -= OnToggleButtonClick;
         }
 
@@ -79,7 +75,6 @@ namespace SunEyeVision.UI.Controls
         if (_toggleButton != null)
         {
             _toggleButton.Click += OnToggleButtonClick;
-            System.Diagnostics.Debug.WriteLine($"[{_name}] Button found and event attached");
 
             // 创建并设置箭头文本
             _arrowTextBlock = new TextBlock
@@ -93,15 +88,10 @@ namespace SunEyeVision.UI.Controls
             _toggleButton.Content = _arrowTextBlock;
             UpdateArrowText();
         }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"[{_name}] PART_ToggleButton not found!");
-        }
     }
 
         private void OnToggleButtonClick(object? sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"SplitterWithToggle: Button clicked! ToggleDirection={ToggleDirection}");
             ToggleClicked?.Invoke(this, EventArgs.Empty);
         }
     }

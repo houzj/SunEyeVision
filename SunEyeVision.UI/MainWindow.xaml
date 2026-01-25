@@ -20,7 +20,7 @@
                 <ResourceDictionary Source="Resources/AppResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-            <converters:BezierCurveConverter x:Key="BezierCurveConverter" ControlOffset="80"/>
+            <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -649,7 +649,7 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Path Data="{Binding ., Converter={StaticResource BezierCurveConverter}}"
+                                            <Path Data="{Binding ., Converter={StaticResource SmartPathConverter}}"
                                                   Stroke="#666666" StrokeThickness="2" Fill="Transparent"
                                                   StrokeLineJoin="Round" Cursor="Hand">
                                                 <Path.Style>

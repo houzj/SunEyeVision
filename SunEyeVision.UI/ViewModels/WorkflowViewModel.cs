@@ -64,8 +64,6 @@ namespace SunEyeVision.UI.ViewModels
 
         private void InitializeSampleWorkflow()
         {
-            System.Diagnostics.Debug.WriteLine($"=== InitializeSampleWorkflow START ===");
-
             var node1 = new WorkflowNode("node1", "图像输入", "Input");
             node1.Position = new Point(50, 50);
 
@@ -82,8 +80,6 @@ namespace SunEyeVision.UI.ViewModels
             Nodes.Add(node2);
             Nodes.Add(node3);
             Nodes.Add(node4);
-
-            System.Diagnostics.Debug.WriteLine($"Added {Nodes.Count} nodes to WorkflowViewModel.Nodes");
 
             var conn1 = new WorkflowConnection("conn1", "node1", "node2");
             var conn2 = new WorkflowConnection("conn2", "node2", "node3");
@@ -102,13 +98,6 @@ namespace SunEyeVision.UI.ViewModels
             Connections.Add(conn1);
             Connections.Add(conn2);
             Connections.Add(conn3);
-
-            System.Diagnostics.Debug.WriteLine($"Added {Connections.Count} connections to WorkflowViewModel.Connections");
-            System.Diagnostics.Debug.WriteLine($"conn1 Source: ({conn1.SourcePosition.X}, {conn1.SourcePosition.Y}), Target: ({conn1.TargetPosition.X}, {conn1.TargetPosition.Y})");
-            System.Diagnostics.Debug.WriteLine($"conn2 Source: ({conn2.SourcePosition.X}, {conn2.SourcePosition.Y}), Target: ({conn2.TargetPosition.X}, {conn2.TargetPosition.Y})");
-            System.Diagnostics.Debug.WriteLine($"conn3 Source: ({conn3.SourcePosition.X}, {conn3.SourcePosition.Y}), Target: ({conn3.TargetPosition.X}, {conn3.TargetPosition.Y})");
-
-            System.Diagnostics.Debug.WriteLine($"=== InitializeSampleWorkflow END ===");
         }
 
         private void ExecuteAddNode(string? type)
@@ -192,20 +181,11 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void ExecuteConnectNodes()
         {
-            System.Diagnostics.Debug.WriteLine($"=== ExecuteConnectNodes START ===");
             if (SelectedNode != null)
             {
                 IsInConnectionMode = true;
                 ConnectionSourceNode = SelectedNode;
-                System.Diagnostics.Debug.WriteLine($"SelectedNode: {SelectedNode.Name} ({SelectedNode.Id})");
-                System.Diagnostics.Debug.WriteLine($"ConnectionSourceNode set to: {ConnectionSourceNode?.Name ?? "null"}");
-                System.Diagnostics.Debug.WriteLine($"IsInConnectionMode: {IsInConnectionMode}");
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: SelectedNode is null");
-            }
-            System.Diagnostics.Debug.WriteLine($"=== ExecuteConnectNodes END ===");
         }
 
         /// <summary>
@@ -213,41 +193,22 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public bool TryConnectNode(WorkflowNode targetNode)
         {
-            System.Diagnostics.Debug.WriteLine($"=== TryConnectNode START ===");
-            System.Diagnostics.Debug.WriteLine($"ConnectionSourceNode: {ConnectionSourceNode?.Name ?? "null"}");
-            System.Diagnostics.Debug.WriteLine($"TargetNode: {targetNode?.Name ?? "null"}");
-
             if (ConnectionSourceNode == null || targetNode == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: ConnectionSourceNode or TargetNode is null");
                 return false;
-            }
 
             // 检查是否是同一个节点
             if (ConnectionSourceNode == targetNode)
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: Cannot connect node to itself");
                 return false;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Current Connections.Count: {Connections.Count}");
 
             // 检查连接是否已存在
             var existingConnection = Connections.FirstOrDefault(c =>
                 c.SourceNodeId == ConnectionSourceNode.Id && c.TargetNodeId == targetNode.Id);
 
             if (existingConnection != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: Connection already exists");
                 return false;
-            }
 
             // 创建新连接
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
-            System.Diagnostics.Debug.WriteLine($"Creating connection: {connectionId}");
-            System.Diagnostics.Debug.WriteLine($"SourceNode Position: ({ConnectionSourceNode.Position.X}, {ConnectionSourceNode.Position.Y})");
-            System.Diagnostics.Debug.WriteLine($"TargetNode Position: ({targetNode.Position.X}, {targetNode.Position.Y})");
-
             var newConnection = new WorkflowConnection(connectionId, ConnectionSourceNode.Id, targetNode.Id);
 
             // 计算连接点位置（节点右中心到左中心）
@@ -260,21 +221,15 @@ namespace SunEyeVision.UI.ViewModels
                 targetNode.Position.Y + 45
             );
 
-            System.Diagnostics.Debug.WriteLine($"SourcePosition: ({sourcePos.X}, {sourcePos.Y})");
-            System.Diagnostics.Debug.WriteLine($"TargetPosition: ({targetPos.X}, {targetPos.Y})");
-
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
             Connections.Add(newConnection);
-            System.Diagnostics.Debug.WriteLine($"Added connection. Connections.Count: {Connections.Count}");
 
             // 退出连接模式
             IsInConnectionMode = false;
             ConnectionSourceNode = null;
-            System.Diagnostics.Debug.WriteLine($"Exited connection mode");
 
-            System.Diagnostics.Debug.WriteLine($"=== TryConnectNode END (success) ===");
             return true;
         }
 

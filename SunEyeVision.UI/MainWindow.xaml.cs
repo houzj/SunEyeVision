@@ -52,22 +52,11 @@ namespace SunEyeVision.UI
             {
                 // 直接设置连接点的可见性
                 SetPortsVisibility(border, true);
-
-                // 延迟读取,确保样式已应用
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var debugInfo = $"[节点悬停] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
-                    System.Diagnostics.Debug.WriteLine(debugInfo);
-                    AddLogToUI(debugInfo);
-
-                    // 检查连接点的可见性
-                    AddPortVisibilityDebugInfo(border, node, "鼠标进入后");
-                }), System.Windows.Threading.DispatcherPriority.Render);
             }
         }
 
         /// <summary>
-        /// 节点鼠标离开事件（用于调试悬停效果）
+        /// 节点鼠标离开事件
         /// </summary>
         private void Node_MouseLeave(object sender, MouseEventArgs e)
         {
@@ -75,54 +64,23 @@ namespace SunEyeVision.UI
             {
                 // 直接设置连接点的可见性
                 SetPortsVisibility(border, false);
-
-                // 延迟读取,确保样式已恢复
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var debugInfo = $"[节点离开] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
-                    System.Diagnostics.Debug.WriteLine(debugInfo);
-                    AddLogToUI(debugInfo);
-
-                    // 检查连接点的可见性
-                    AddPortVisibilityDebugInfo(border, node, "鼠标离开后");
-                }), System.Windows.Threading.DispatcherPriority.Render);
             }
         }
 
         /// <summary>
-        /// 连接点鼠标进入事件（用于调试悬停效果）
+        /// 连接点鼠标进入事件
         /// </summary>
         private void Ellipse_MouseEnter(object sender, MouseEventArgs e)
         {
-            if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode node)
-            {
-                // 延迟读取,确保样式已应用
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var portDirection = GetPortDirection(ellipse.Name);
-                    var debugInfo = $"[连接点悬停] 节点: {node.Name}, 方向: {portDirection}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
-                    System.Diagnostics.Debug.WriteLine(debugInfo);
-                    AddLogToUI(debugInfo);
-                }), System.Windows.Threading.DispatcherPriority.Render);
-            }
+            // 连接点样式已通过 XAML 处理，无需额外逻辑
         }
 
         /// <summary>
-        /// 连接点鼠标离开事件（用于调试悬停效果）
+        /// 连接点鼠标离开事件
         /// </summary>
         private void Ellipse_MouseLeave(object sender, MouseEventArgs e)
         {
-            if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode node)
-            {
-                // 延迟读取,确保样式已恢复
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var portDirection = GetPortDirection(ellipse.Name);
-                    var debugInfo = $"[连接点离开] 节点: {node.Name}, 方向: {portDirection}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
-                    System.Diagnostics.Debug.WriteLine(debugInfo);
-                    AddLogToUI(debugInfo);
-                }), System.Windows.Threading.DispatcherPriority.Render);
-            }
+            // 连接点样式已通过 XAML 处理，无需额外逻辑
         }
 
         /// <summary>
@@ -145,43 +103,6 @@ namespace SunEyeVision.UI
         /// <summary>
         /// 添加连接点可见性调试信息
         /// </summary>
-        private void AddPortVisibilityDebugInfo(Border border, WorkflowNode node, string phase)
-        {
-            AddLogToUI($"  [连接点调试] {phase} - 节点: {node.Name}");
-            AddLogToUI($"    Border.IsMouseOver: {border.IsMouseOver}");
-
-            // 查找所有子元素中的 Ellipse（连接点）
-            var ellipses = FindAllVisualChildren<Ellipse>(border);
-            int portCount = 0;
-            foreach (var ellipse in ellipses)
-            {
-                var ellipseName = ellipse.Name ?? "未命名";
-                var visibility = ellipse.Visibility;
-                var actualSize = $"W:{ellipse.ActualWidth:F1} H:{ellipse.ActualHeight:F1}";
-                var isVisible = (visibility == Visibility.Visible);
-                var status = isVisible ? "✓" : "✗";
-
-                AddLogToUI($"    连接点 {ellipseName}: {visibility}, {actualSize} {status}");
-                portCount++;
-
-                if (isVisible && ellipseName.Contains("Port"))
-                {
-                    // 显示连接点的位置和大小信息
-                    var transform = ellipse.TransformToVisual(border);
-                    var pos = transform.Transform(new Point(0, 0));
-                    AddLogToUI($"      相对位置: ({pos.X:F1}, {pos.Y:F1}), Margin: {ellipse.Margin}");
-                }
-            }
-
-            if (portCount == 0)
-            {
-                AddLogToUI($"    ⚠️ 警告: 未找到任何 Ellipse 元素");
-            }
-            else
-            {
-                AddLogToUI($"    共找到 {portCount} 个 Ellipse 元素");
-            }
-        }
 
         /// <summary>
         /// 设置所有连接点的可见性
@@ -276,6 +197,9 @@ namespace SunEyeVision.UI
 
                 // 初始化画布配置
                 InitializeCanvas();
+
+                // 初始化智能路径转换器的节点集合
+                Converters.SmartPathConverter.Nodes = _viewModel.WorkflowNodes;
 
                 // TODO: 加载工作流
             }
@@ -1392,14 +1316,7 @@ namespace SunEyeVision.UI
         private void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Border border || border.Tag is not WorkflowNode node)
-            {
-                AddLogToUI("[节点点击] ERROR: Sender is not Border or Tag is not WorkflowNode");
                 return;
-            }
-
-            var debugInfo = $"[节点点击] {node.Name} ({node.Id}), ClickCount: {e.ClickCount}";
-            System.Diagnostics.Debug.WriteLine(debugInfo);
-            AddLogToUI(debugInfo);
 
             // 双击事件：打开调试窗口
             if (e.ClickCount == 2)
@@ -1423,20 +1340,16 @@ namespace SunEyeVision.UI
             bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
-            AddLogToUI($"  多选模式: {isMultiSelect}, 已选中: {node.IsSelected}");
-
             // 如果节点未被选中，且不是多选模式，则只选中当前节点
             if (!node.IsSelected && !isMultiSelect)
             {
                 ClearAllSelections();
                 node.IsSelected = true;
-                AddLogToUI($"  清除其他选择, 选中: {node.Name}");
             }
             // 如果是多选模式，切换选中状态
             else if (isMultiSelect)
             {
                 node.IsSelected = !node.IsSelected;
-                AddLogToUI($"  切换选择状态: {node.IsSelected}");
             }
 
             _viewModel.SelectedNode = node;
@@ -1450,8 +1363,6 @@ namespace SunEyeVision.UI
             _initialNodePosition = node.Position;
             var canvas = FindParentCanvas(sender as DependencyObject);
             _startDragPosition = e.GetPosition(canvas);
-
-            AddLogToUI($"  开始拖拽, 初始位置: ({_initialNodePosition.X:F1}, {_initialNodePosition.Y:F1})");
 
             border.CaptureMouse();
 
@@ -1560,15 +1471,11 @@ namespace SunEyeVision.UI
             if (sender is Border border && border.Tag is WorkflowNode clickedNodeFromBorder)
             {
                 targetNode = clickedNodeFromBorder;
-                AddLogToUI($"[连接点点击] 类型: Border, 节点: {clickedNodeFromBorder.Name}");
             }
             else if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode clickedNodeFromEllipse)
             {
                 targetNode = clickedNodeFromEllipse;
                 sourcePortDirection = GetPortDirection(ellipse.Name);
-
-                AddLogToUI($"[连接点点击] 类型: Ellipse, 节点: {clickedNodeFromEllipse.Name}, 方向: {sourcePortDirection}");
-                AddLogToUI($"  IsMouseOver: {ellipse.IsMouseOver}, 大小: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}");
 
                 // 选中当前节点（连接点点击时也需要选中节点）
                 if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
@@ -1579,22 +1486,15 @@ namespace SunEyeVision.UI
                         n.IsSelected = (n == targetNode);
                     }
                     _viewModel.SelectedNode = targetNode;
-                    AddLogToUI($"  通过连接点选中节点: {targetNode.Name}");
                 }
             }
             else
             {
-                AddLogToUI($"[连接点点击] ERROR: 无效的sender类型或Tag为null");
                 return;
             }
 
             if (targetNode == null)
-            {
-                AddLogToUI($"[连接点点击] ERROR: targetNode为null");
                 return;
-            }
-
-            AddLogToUI($"  节点位置: ({targetNode.Position.X:F1}, {targetNode.Position.Y:F1})");
 
             // 阻止事件冒泡到节点的点击事件
             e.Handled = true;
@@ -1603,7 +1503,6 @@ namespace SunEyeVision.UI
             if (_viewModel.WorkflowTabViewModel.SelectedTab != null &&
                 _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count == 0)
             {
-                AddLogToUI($"  SelectedTab为空, 从MainWindowViewModel初始化");
                 // 从 MainWindowViewModel 复制节点和连接到 SelectedTab
                 foreach (var node in _viewModel.WorkflowNodes)
                 {
@@ -1613,16 +1512,12 @@ namespace SunEyeVision.UI
                 {
                     _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(conn);
                 }
-                AddLogToUI($"  复制了 {_viewModel.WorkflowNodes.Count} 个节点和 {_viewModel.WorkflowConnections.Count} 条连接");
             }
 
             // 使用 SelectedTab 的连接模式状态（而不是 WorkflowViewModel）
             var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
             if (selectedTab == null)
-            {
-                AddLogToUI($"[连接点点击] ERROR: SelectedTab为null");
                 return;
-            }
 
             // 检查是否在连接模式（使用一个静态变量跟踪）
             if (_connectionSourceNode == null)
@@ -1630,23 +1525,14 @@ namespace SunEyeVision.UI
                 // 进入连接模式
                 _connectionSourceNode = targetNode;
                 _viewModel.StatusText = $"请选择目标节点进行连接，从: {targetNode.Name}";
-                AddLogToUI($"  进入连接模式, 源节点: {targetNode.Name}");
-                if (sourcePortDirection != null)
-                {
-                    AddLogToUI($"  源连接点方向: {sourcePortDirection}");
-                }
             }
             else
             {
-                // 尝试创建连接
-                AddLogToUI($"  源节点: {_connectionSourceNode?.Name ?? "null"}, 目标节点: {targetNode.Name}");
-
                 // 检查是否是同一个节点
                 if (_connectionSourceNode == targetNode)
                 {
                     _viewModel.StatusText = "无法连接到同一个节点";
                     _connectionSourceNode = null;
-                    AddLogToUI($"  ERROR: 不能连接到同一个节点");
                     return;
                 }
 
@@ -1658,7 +1544,6 @@ namespace SunEyeVision.UI
                 {
                     _viewModel.StatusText = "连接已存在";
                     _connectionSourceNode = null;
-                    AddLogToUI($"  ERROR: 连接已存在");
                     return;
                 }
 
@@ -1672,7 +1557,6 @@ namespace SunEyeVision.UI
                 // 如果目标节点在源节点上方,使用源节点的上方连接点和目标节点的下方连接点
                 // 如果目标节点在源节点下方,使用源节点的下方连接点和目标节点的上方连接点
                 Point sourcePos, targetPos;
-                string sourceDir, targetDir;
 
                 var deltaX = targetNode.Position.X - _connectionSourceNode.Position.X;
                 var deltaY = targetNode.Position.Y - _connectionSourceNode.Position.Y;
@@ -1684,15 +1568,11 @@ namespace SunEyeVision.UI
                     {
                         sourcePos = _connectionSourceNode.RightPortPosition;
                         targetPos = targetNode.LeftPortPosition;
-                        sourceDir = "右";
-                        targetDir = "左";
                     }
                     else
                     {
                         sourcePos = _connectionSourceNode.LeftPortPosition;
                         targetPos = targetNode.RightPortPosition;
-                        sourceDir = "左";
-                        targetDir = "右";
                     }
                 }
                 else
@@ -1702,31 +1582,21 @@ namespace SunEyeVision.UI
                     {
                         sourcePos = _connectionSourceNode.BottomPortPosition;
                         targetPos = targetNode.TopPortPosition;
-                        sourceDir = "下";
-                        targetDir = "上";
                     }
                     else
                     {
                         sourcePos = _connectionSourceNode.TopPortPosition;
                         targetPos = targetNode.BottomPortPosition;
-                        sourceDir = "上";
-                        targetDir = "下";
                     }
                 }
 
                 newConnection.SourcePosition = sourcePos;
                 newConnection.TargetPosition = targetPos;
 
-                AddLogToUI($"  创建连接: {connectionId}");
-                AddLogToUI($"    源位置 ({sourceDir}): ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-                AddLogToUI($"    目标位置 ({targetDir}): ({targetPos.X:F1}, {targetPos.Y:F1})");
-
                 // 直接添加到 SelectedTab.WorkflowConnections
                 selectedTab.WorkflowConnections.Add(newConnection);
 
                 _viewModel.StatusText = $"成功连接: {_connectionSourceNode.Name} -> {targetNode.Name}";
-                AddLogToUI($"  ✓ 成功连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
-                AddLogToUI($"  当前连接数: {selectedTab.WorkflowConnections.Count}");
 
                 // 退出连接模式
                 _connectionSourceNode = null;
