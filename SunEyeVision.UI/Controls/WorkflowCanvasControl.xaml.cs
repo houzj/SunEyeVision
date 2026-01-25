@@ -85,6 +85,12 @@ namespace SunEyeVision.UI.Controls
             Nodes = new ObservableCollection<WorkflowNode>();
             Connections = new ObservableCollection<WorkflowConnection>();
 
+            // 监听节点集合变化
+            Nodes.CollectionChanged += (s, e) =>
+            {
+                UpdateConnectionPositions();
+            };
+
             // 创建默认工作流
             CreateDefaultWorkflow();
         }
@@ -620,6 +626,9 @@ namespace SunEyeVision.UI.Controls
                 _draggedNode.Position = newPosition;
                 _startDragPosition = currentPosition;
 
+                // 更新连接线位置
+                UpdateConnectionPositions();
+
                 RaiseNodeMovedEvent(_draggedNode, newPosition);
             }
         }
@@ -629,6 +638,25 @@ namespace SunEyeVision.UI.Controls
             if (sender is Border border && border.Tag is WorkflowNode targetNode)
             {
                 RaiseNodeClickedEvent(targetNode);
+            }
+        }
+
+        /// <summary>
+        /// 更新所有连接线的位置（基于节点位置）
+        /// </summary>
+        private void UpdateConnectionPositions()
+        {
+            foreach (var connection in Connections)
+            {
+                var sourceNode = Nodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+                var targetNode = Nodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
+
+                if (sourceNode != null && targetNode != null)
+                {
+                    // 更新连接线位置：起点为源节点右侧连接点，终点为目标节点左侧连接点
+                    connection.SourcePosition = sourceNode.RightPortPosition;
+                    connection.TargetPosition = targetNode.LeftPortPosition;
+                }
             }
         }
 

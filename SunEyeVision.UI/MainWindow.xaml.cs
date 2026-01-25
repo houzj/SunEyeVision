@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using SunEyeVision.UI.Controls;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
@@ -38,6 +39,101 @@ namespace SunEyeVision.UI
         private bool _isBoxSelecting;
         private System.Windows.Point _boxSelectStart;
         private System.Windows.Point[]? _selectedNodesInitialPositions;
+
+        // 连接模式相关
+        private WorkflowNode? _connectionSourceNode;
+
+        /// <summary>
+        /// 节点鼠标进入事件（用于调试悬停效果）
+        /// </summary>
+        private void Node_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is Border border && border.Tag is WorkflowNode node)
+            {
+                // 延迟读取,确保样式已应用
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var debugInfo = $"[节点悬停] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
+                    System.Diagnostics.Debug.WriteLine(debugInfo);
+                    AddLogToUI(debugInfo);
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 节点鼠标离开事件（用于调试悬停效果）
+        /// </summary>
+        private void Node_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is Border border && border.Tag is WorkflowNode node)
+            {
+                // 延迟读取,确保样式已恢复
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var debugInfo = $"[节点离开] 节点: {node.Name}, BorderBrush: {border.BorderBrush}, BorderThickness: {border.BorderThickness}";
+                    System.Diagnostics.Debug.WriteLine(debugInfo);
+                    AddLogToUI(debugInfo);
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 连接点鼠标进入事件（用于调试悬停效果）
+        /// </summary>
+        private void Ellipse_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode node)
+            {
+                // 延迟读取,确保样式已应用
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var debugInfo = $"[连接点悬停] 节点: {node.Name}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
+                    System.Diagnostics.Debug.WriteLine(debugInfo);
+                    AddLogToUI(debugInfo);
+                    AddLogToUI($"  触发器状态: IsMouseOver={ellipse.IsMouseOver}");
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 连接点鼠标离开事件（用于调试悬停效果）
+        /// </summary>
+        private void Ellipse_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode node)
+            {
+                // 延迟读取,确保样式已恢复
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var debugInfo = $"[连接点离开] 节点: {node.Name}, Fill: {ellipse.Fill}, Size: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}";
+                    System.Diagnostics.Debug.WriteLine(debugInfo);
+                    AddLogToUI(debugInfo);
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
+
+        /// <summary>
+        /// 将日志添加到UI界面
+        /// </summary>
+        private void AddLogToUI(string message)
+        {
+            if (_viewModel != null)
+            {
+                // 将日志添加到 LogText（如果存在）
+                var currentLog = _viewModel.LogText ?? "";
+                var newLog = $"{DateTime.Now:HH:mm:ss.fff} {message}\n";
+                // 只保留最后100行
+                var lines = (currentLog + newLog).Split('\n');
+                if (lines.Length > 100)
+                {
+                    _viewModel.LogText = string.Join("\n", lines.Skip(lines.Length - 100));
+                }
+                else
+                {
+                    _viewModel.LogText = currentLog + newLog;
+                }
+            }
+        }
 
         public MainWindow()
         {
@@ -1210,8 +1306,13 @@ namespace SunEyeVision.UI
         {
             if (sender is not Border border || border.Tag is not WorkflowNode node)
             {
+                AddLogToUI("[节点点击] ERROR: Sender is not Border or Tag is not WorkflowNode");
                 return;
             }
+
+            var debugInfo = $"[节点点击] {node.Name} ({node.Id}), ClickCount: {e.ClickCount}";
+            System.Diagnostics.Debug.WriteLine(debugInfo);
+            AddLogToUI(debugInfo);
 
             // 双击事件：打开调试窗口
             if (e.ClickCount == 2)
@@ -1235,16 +1336,20 @@ namespace SunEyeVision.UI
             bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
+            AddLogToUI($"  多选模式: {isMultiSelect}, 已选中: {node.IsSelected}");
+
             // 如果节点未被选中，且不是多选模式，则只选中当前节点
             if (!node.IsSelected && !isMultiSelect)
             {
                 ClearAllSelections();
                 node.IsSelected = true;
+                AddLogToUI($"  清除其他选择, 选中: {node.Name}");
             }
             // 如果是多选模式，切换选中状态
             else if (isMultiSelect)
             {
                 node.IsSelected = !node.IsSelected;
+                AddLogToUI($"  切换选择状态: {node.IsSelected}");
             }
 
             _viewModel.SelectedNode = node;
@@ -1258,6 +1363,8 @@ namespace SunEyeVision.UI
             _initialNodePosition = node.Position;
             var canvas = FindParentCanvas(sender as DependencyObject);
             _startDragPosition = e.GetPosition(canvas);
+
+            AddLogToUI($"  开始拖拽, 初始位置: ({_initialNodePosition.X:F1}, {_initialNodePosition.Y:F1})");
 
             border.CaptureMouse();
 
@@ -1359,43 +1466,138 @@ namespace SunEyeVision.UI
 
         private void Node_ClickForConnection(object sender, RoutedEventArgs e)
         {
-            // 连接模式下点击节点作为目标
-            if (sender is Border border && border.Tag is WorkflowNode targetNode)
+            // 获取节点对象（支持 Border 或 Ellipse 作为 sender）
+            WorkflowNode? targetNode = null;
+
+            if (sender is Border border && border.Tag is WorkflowNode clickedNodeFromBorder)
             {
-                if (_viewModel.WorkflowViewModel.IsInConnectionMode)
-                {
-                    var success = _viewModel.WorkflowViewModel.TryConnectNode(targetNode);
+                targetNode = clickedNodeFromBorder;
+                AddLogToUI($"[连接点点击] 类型: Border, 节点: {clickedNodeFromBorder.Name}");
+            }
+            else if (sender is Ellipse ellipse && ellipse.Tag is WorkflowNode clickedNodeFromEllipse)
+            {
+                targetNode = clickedNodeFromEllipse;
+                AddLogToUI($"[连接点点击] 类型: Ellipse, 节点: {clickedNodeFromEllipse.Name}");
+                AddLogToUI($"  IsMouseOver: {ellipse.IsMouseOver}, 大小: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}");
 
-                    if (success)
-                    {
-                        var sourceNode = _viewModel.WorkflowViewModel.ConnectionSourceNode;
-                        _viewModel.StatusText = $"成功连接: {sourceNode?.Name} -> {targetNode.Name}";
-
-                        // 同步连接到当前选中的工作流
-                        if (_viewModel.WorkflowTabViewModel.SelectedTab != null &&
-                            _viewModel.WorkflowViewModel.Connections.LastOrDefault() is WorkflowConnection connection)
-                        {
-                            _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(connection);
-                        }
-                    }
-                    else
-                    {
-                        _viewModel.StatusText = $"连接失败：目标节点无效或连接已存在";
-                    }
-                }
-                else
+                // 选中当前节点（连接点点击时也需要选中节点）
+                if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
                 {
-                    // 非连接模式下，只是选中节点
-                    if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                    // 清除其他节点的选中状态
+                    foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
                     {
-                        foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
-                        {
-                            n.IsSelected = (n == targetNode);
-                        }
+                        n.IsSelected = (n == targetNode);
                     }
                     _viewModel.SelectedNode = targetNode;
-                    _viewModel.WorkflowViewModel.SelectedNode = targetNode;
+                    AddLogToUI($"  通过连接点选中节点: {targetNode.Name}");
                 }
+            }
+            else
+            {
+                AddLogToUI($"[连接点点击] ERROR: 无效的sender类型或Tag为null");
+                return;
+            }
+
+            if (targetNode == null)
+            {
+                AddLogToUI($"[连接点点击] ERROR: targetNode为null");
+                return;
+            }
+
+            AddLogToUI($"  节点位置: ({targetNode.Position.X:F1}, {targetNode.Position.Y:F1})");
+
+            // 阻止事件冒泡到节点的点击事件
+            e.Handled = true;
+
+            // 检查当前工作流是否为空，如果为空则初始化
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null &&
+                _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count == 0)
+            {
+                AddLogToUI($"  SelectedTab为空, 从MainWindowViewModel初始化");
+                // 从 MainWindowViewModel 复制节点和连接到 SelectedTab
+                foreach (var node in _viewModel.WorkflowNodes)
+                {
+                    _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(node);
+                }
+                foreach (var conn in _viewModel.WorkflowConnections)
+                {
+                    _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(conn);
+                }
+                AddLogToUI($"  复制了 {_viewModel.WorkflowNodes.Count} 个节点和 {_viewModel.WorkflowConnections.Count} 条连接");
+            }
+
+            // 使用 SelectedTab 的连接模式状态（而不是 WorkflowViewModel）
+            var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
+            if (selectedTab == null)
+            {
+                AddLogToUI($"[连接点点击] ERROR: SelectedTab为null");
+                return;
+            }
+
+            // 检查是否在连接模式（使用一个静态变量跟踪）
+            if (_connectionSourceNode == null)
+            {
+                // 进入连接模式
+                _connectionSourceNode = targetNode;
+                _viewModel.StatusText = $"请选择目标节点进行连接，从: {targetNode.Name}";
+                AddLogToUI($"  进入连接模式, 源节点: {targetNode.Name}");
+            }
+            else
+            {
+                // 尝试创建连接
+                AddLogToUI($"  源节点: {_connectionSourceNode?.Name ?? "null"}, 目标节点: {targetNode.Name}");
+
+                // 检查是否是同一个节点
+                if (_connectionSourceNode == targetNode)
+                {
+                    _viewModel.StatusText = "无法连接到同一个节点";
+                    _connectionSourceNode = null;
+                    AddLogToUI($"  ERROR: 不能连接到同一个节点");
+                    return;
+                }
+
+                // 检查连接是否已存在
+                var existingConnection = selectedTab.WorkflowConnections.FirstOrDefault(c =>
+                    c.SourceNodeId == _connectionSourceNode!.Id && c.TargetNodeId == targetNode.Id);
+
+                if (existingConnection != null)
+                {
+                    _viewModel.StatusText = "连接已存在";
+                    _connectionSourceNode = null;
+                    AddLogToUI($"  ERROR: 连接已存在");
+                    return;
+                }
+
+                // 创建新连接
+                var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
+                var newConnection = new WorkflowConnection(connectionId, _connectionSourceNode.Id, targetNode.Id);
+
+                // 计算连接点位置（节点右中心到左中心）
+                var sourcePos = new Point(
+                    _connectionSourceNode.Position.X + 140,
+                    _connectionSourceNode.Position.Y + 45
+                );
+                var targetPos = new Point(
+                    targetNode.Position.X,
+                    targetNode.Position.Y + 45
+                );
+
+                newConnection.SourcePosition = sourcePos;
+                newConnection.TargetPosition = targetPos;
+
+                AddLogToUI($"  创建连接: {connectionId}");
+                AddLogToUI($"    源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+                AddLogToUI($"    目标位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
+
+                // 直接添加到 SelectedTab.WorkflowConnections
+                selectedTab.WorkflowConnections.Add(newConnection);
+
+                _viewModel.StatusText = $"成功连接: {_connectionSourceNode.Name} -> {targetNode.Name}";
+                AddLogToUI($"  ✓ 成功连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
+                AddLogToUI($"  当前连接数: {selectedTab.WorkflowConnections.Count}");
+
+                // 退出连接模式
+                _connectionSourceNode = null;
             }
         }
 

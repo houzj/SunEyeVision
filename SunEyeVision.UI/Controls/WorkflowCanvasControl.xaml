@@ -14,6 +14,7 @@
         <converters:BoolToRunningBackgroundConverter x:Key="BoolToRunningBackgroundConverter"/>
         <converters:BoolToRunningBorderConverter x:Key="BoolToRunningBorderConverter"/>
         <converters:RunModeButtonConverter x:Key="RunModeButtonConverter"/>
+        <converters:BezierCurveConverter x:Key="BezierCurveConverter" ControlOffset="80"/>
     </UserControl.Resources>
 
     <DockPanel>
@@ -167,7 +168,7 @@
                     </DrawingBrush>
                 </Canvas.Background>
 
-                <!-- 连接线 -->
+                <!-- 连接线 - 使用贝塞尔曲线 -->
                 <ItemsControl ItemsSource="{Binding Connections, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -176,9 +177,21 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Line X1="{Binding StartX}" Y1="{Binding StartY}" 
-                                  X2="{Binding EndX}" Y2="{Binding EndY}" 
-                                  Stroke="#666666" StrokeThickness="2"/>
+                            <Path Data="{Binding ., Converter={StaticResource BezierCurveConverter}, ConverterParameter={Binding .}}"
+                                  Stroke="#666666" StrokeThickness="2" Fill="Transparent"
+                                  StrokeLineJoin="Round"
+                                  Cursor="Hand">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Stroke" Value="#0066CC"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -235,17 +248,46 @@
                                             <Ellipse Grid.Column="1" Width="8" Height="8" Fill="#00CC99" VerticalAlignment="Center" Margin="4,0,0,0"/>
                                         </Grid>
                                     </Border>
-                                    <!-- 连接点 -->
-                                    <Ellipse Width="10" Height="10" Fill="#0066CC" 
-                                             HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-5,0,0,0"
+                                    <!-- 连接点 - 左侧 -->
+                                    <Ellipse Width="14" Height="14" Fill="#0066CC" Stroke="#FFFFFF" StrokeThickness="2"
+                                             HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-7,0,0,0"
                                              Cursor="Cross"
                                              PreviewMouseLeftButtonDown="Node_ClickForConnection"
-                                             Tag="{Binding}"/>
-                                    <Ellipse Width="10" Height="10" Fill="#0066CC" 
-                                             HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-5,0"
+                                             Tag="{Binding}"
+                                             Panel.ZIndex="10">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Fill" Value="#FF6600"/>
+                                                        <Setter Property="Width" Value="16"/>
+                                                        <Setter Property="Height" Value="16"/>
+                                                        <Setter Property="Margin" Value="-8,0,0,0"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <!-- 连接点 - 右侧 -->
+                                    <Ellipse Width="14" Height="14" Fill="#0066CC" Stroke="#FFFFFF" StrokeThickness="2"
+                                             HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-7,0"
                                              Cursor="Cross"
                                              PreviewMouseLeftButtonDown="Node_ClickForConnection"
-                                             Tag="{Binding}"/>
+                                             Tag="{Binding}"
+                                             Panel.ZIndex="10">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Fill" Value="#FF6600"/>
+                                                        <Setter Property="Width" Value="16"/>
+                                                        <Setter Property="Height" Value="16"/>
+                                                        <Setter Property="Margin" Value="0,0,-8,0"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                 </Grid>
                             </Border>
                         </DataTemplate>

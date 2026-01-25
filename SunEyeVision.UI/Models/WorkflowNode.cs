@@ -89,6 +89,16 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
+        /// 获取左侧连接点位置（用于连接线）
+        /// </summary>
+        public Point LeftPortPosition => new Point(Position.X, Position.Y + 45);
+
+        /// <summary>
+        /// 获取右侧连接点位置（用于连接线）
+        /// </summary>
+        public Point RightPortPosition => new Point(Position.X + 140, Position.Y + 45);
+
+        /// <summary>
         /// Node Y coordinate for binding
         /// </summary>
         public double PositionY
@@ -263,6 +273,26 @@ namespace SunEyeVision.UI.Models
                 }
             }
         }
+
+        /// <summary>
+        /// 连接线起点X坐标（用于绑定）
+        /// </summary>
+        public double StartX => SourcePosition.X;
+
+        /// <summary>
+        /// 连接线起点Y坐标（用于绑定）
+        /// </summary>
+        public double StartY => SourcePosition.Y;
+
+        /// <summary>
+        /// 连接线终点X坐标（用于绑定）
+        /// </summary>
+        public double EndX => TargetPosition.X;
+
+        /// <summary>
+        /// 连接线终点Y坐标（用于绑定）
+        /// </summary>
+        public double EndY => TargetPosition.Y;
 
         public WorkflowConnection(string id, string sourceNodeId, string targetNodeId)
         {
