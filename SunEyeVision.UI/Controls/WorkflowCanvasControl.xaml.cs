@@ -60,6 +60,70 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
+        /// 是否显示最大外接矩形
+        /// </summary>
+        public bool ShowBoundingRectangle
+        {
+            get => (bool)(GetValue(ShowBoundingRectangleProperty) ?? false);
+            set => SetValue(ShowBoundingRectangleProperty, value);
+        }
+
+        public static readonly DependencyProperty ShowBoundingRectangleProperty =
+            DependencyProperty.Register(
+                nameof(ShowBoundingRectangle),
+                typeof(bool),
+                typeof(WorkflowCanvasControl),
+                new PropertyMetadata(false, OnShowBoundingRectangleChanged));
+
+        private static void OnShowBoundingRectangleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is WorkflowCanvasControl control)
+            {
+                control.UpdateBoundingRectangle();
+            }
+        }
+
+        /// <summary>
+        /// 最大外接矩形的源节点ID
+        /// </summary>
+        public string? BoundingSourceNodeId
+        {
+            get => (string)GetValue(BoundingSourceNodeIdProperty);
+            set => SetValue(BoundingSourceNodeIdProperty, value);
+        }
+
+        public static readonly DependencyProperty BoundingSourceNodeIdProperty =
+            DependencyProperty.Register(
+                nameof(BoundingSourceNodeId),
+                typeof(string),
+                typeof(WorkflowCanvasControl),
+                new PropertyMetadata(null, OnBoundingRectangleChanged));
+
+        /// <summary>
+        /// 最大外接矩形的目标节点ID
+        /// </summary>
+        public string? BoundingTargetNodeId
+        {
+            get => (string)GetValue(BoundingTargetNodeIdProperty);
+            set => SetValue(BoundingTargetNodeIdProperty, value);
+        }
+
+        public static readonly DependencyProperty BoundingTargetNodeIdProperty =
+            DependencyProperty.Register(
+                nameof(BoundingTargetNodeId),
+                typeof(string),
+                typeof(WorkflowCanvasControl),
+                new PropertyMetadata(null, OnBoundingRectangleChanged));
+
+        private static void OnBoundingRectangleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is WorkflowCanvasControl control)
+            {
+                control.UpdateBoundingRectangle();
+            }
+        }
+
+        /// <summary>
         /// 获取当前工作流Tab（从ViewModel中获取）
         /// </summary>
         public ViewModels.WorkflowTabViewModel? CurrentWorkflowTab
@@ -92,6 +156,23 @@ namespace SunEyeVision.UI.Controls
         {
             InitializeComponent();
 
+            // 验证BoundingRectangle元素
+            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] 开始初始化");
+
+            if (BoundingRectangle == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ❌ BoundingRectangle为null，XAML解析失败！");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ✓ BoundingRectangle元素加载成功");
+            }
+
+            // 禁用设备像素对齐，启用亚像素渲染
+            this.SnapsToDevicePixels = false;
+            this.UseLayoutRounding = false;
+            this.RenderTransform = new ScaleTransform(1.0, 1.0);
+
             Loaded += WorkflowCanvasControl_Loaded;
 
             // 尝试获取 ViewModel（从父窗口）
@@ -100,18 +181,28 @@ namespace SunEyeVision.UI.Controls
                 if (Window.GetWindow(this) is MainWindow mainWindow)
                 {
                     _viewModel = mainWindow.DataContext as MainWindowViewModel;
-                    _viewModel?.AddLog("[WorkflowCanvas] 构造函数中获取MainWindowViewModel: {_viewModel != null}");
+                    _viewModel?.AddLog("[WorkflowCanvas 构造函数] 获取MainWindowViewModel: {_viewModel != null}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ❌ 无法获取Window");
                 }
             }
             catch (Exception ex)
             {
-                _viewModel?.AddLog($"[WorkflowCanvas] 构造函数异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas 构造函数] ❌ 异常: {ex.Message}");
             }
+
+            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] 初始化完成");
         }
 
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            _viewModel?.AddLog("[WorkflowCanvas] ====== Loaded事件触发 ======");
+            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ====== Loaded事件触发 ======");
+
+            // 验证BoundingRectangle
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] BoundingRectangle可见性: {BoundingRectangle?.Visibility}");
 
             // 获取 MainWindowViewModel
             if (Window.GetWindow(this) is MainWindow mainWindow)
@@ -119,36 +210,44 @@ namespace SunEyeVision.UI.Controls
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
                 if (_viewModel == null)
                 {
-                    _viewModel?.AddLog("[WorkflowCanvas] ❌ 无法获取MainWindowViewModel");
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ❌ 无法获取MainWindowViewModel");
                 }
                 else
                 {
-                    _viewModel?.AddLog("[WorkflowCanvas] ✓ 成功获取MainWindowViewModel");
+                    _viewModel.AddLog("[WorkflowCanvas Loaded] ✓ Loaded事件触发");
+
+                    // 验证BoundingRectangle
+                    _viewModel.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
+                    _viewModel.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle可见性: {BoundingRectangle?.Visibility}");
 
                     // 检查 WorkflowTabViewModel
                     if (_viewModel.WorkflowTabViewModel == null)
                     {
-                        _viewModel?.AddLog("[WorkflowCanvas] ❌ WorkflowTabViewModel为null");
+                        _viewModel.AddLog("[WorkflowCanvas Loaded] ❌ WorkflowTabViewModel为null");
                     }
                     else
                     {
-                        _viewModel?.AddLog("[WorkflowCanvas] ✓ WorkflowTabViewModel不为null");
+                        _viewModel.AddLog("[WorkflowCanvas Loaded] ✓ WorkflowTabViewModel不为null");
 
                         // 检查 SelectedTab
                         var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
                         if (selectedTab == null)
                         {
-                            _viewModel?.AddLog("[WorkflowCanvas] ❌ SelectedTab为null");
+                            _viewModel.AddLog("[WorkflowCanvas Loaded] ❌ SelectedTab为null");
                         }
                         else
                         {
-                            _viewModel?.AddLog($"[WorkflowCanvas] ✓ SelectedTab: ID={selectedTab.Id}, Name={selectedTab.Name}");
-                            _viewModel?.AddLog($"[WorkflowCanvas] 当前节点数: {selectedTab.WorkflowNodes.Count}, 连接数: {selectedTab.WorkflowConnections.Count}");
+                            _viewModel.AddLog($"[WorkflowCanvas Loaded] ✓ SelectedTab: ID={selectedTab.Id}, Name={selectedTab.Name}");
+                            _viewModel.AddLog($"[WorkflowCanvas Loaded] 当前节点数: {selectedTab.WorkflowNodes.Count}, 连接数: {selectedTab.WorkflowConnections.Count}");
                         }
                     }
 
-                    _viewModel.AddLog($"[WorkflowCanvas] ✓ WorkflowCanvasControl 已加载，可以开始拖拽创建连接");
+                    _viewModel.AddLog($"[WorkflowCanvas Loaded] ✓ WorkflowCanvasControl 已加载，可以开始拖拽创建连接");
                 }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ❌ 无法获取Window");
             }
 
             // 初始化智能路径转换器的节点集合和连接集合
@@ -156,7 +255,7 @@ namespace SunEyeVision.UI.Controls
             {
                 Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
-                _viewModel?.AddLog($"[WorkflowCanvas] ✓ 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+                _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                 // 订阅节点集合变化事件
                 if (CurrentWorkflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
@@ -164,13 +263,45 @@ namespace SunEyeVision.UI.Controls
                     nodesCollection.CollectionChanged += (s, args) =>
                     {
                         Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
-                        _viewModel?.AddLog($"[WorkflowCanvas] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+                        _viewModel?.AddLog($"[WorkflowCanvas Loaded] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                         // 触发所有连接的属性变化，重新计算路径
                         RefreshAllConnectionPaths();
                     };
                 }
+
+                // 订阅连接集合变化事件，用于更新最大外接矩形
+                if (CurrentWorkflowTab.WorkflowConnections is ObservableCollection<WorkflowConnection> connectionsCollection)
+                {
+                    connectionsCollection.CollectionChanged += (s, args) =>
+                    {
+                        UpdateBoundingRectangle();
+                    };
+                }
             }
+
+            // 测试显示BoundingRectangle（临时测试）
+            _viewModel?.AddLog("[WorkflowCanvas Loaded] ========== 测试：临时显示BoundingRectangle ==========");
+            _viewModel?.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle当前可见性: {BoundingRectangle.Visibility}");
+
+            if (BoundingRectangle != null)
+            {
+                BoundingRectangle.Visibility = Visibility.Visible;
+                Canvas.SetLeft(BoundingRectangle, 100);
+                Canvas.SetTop(BoundingRectangle, 100);
+                BoundingRectangle.Width = 200;
+                BoundingRectangle.Height = 100;
+
+                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ BoundingRectangle已设置为可见");
+                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ 位置: (100, 100)");
+                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ 大小: 200 x 100");
+            }
+            else
+            {
+                _viewModel?.AddLog("[WorkflowCanvas Loaded] ❌ BoundingRectangle为null，无法设置");
+            }
+
+            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ========== Loaded事件完成 ==========");
         }
 
         /// <summary>
@@ -1536,22 +1667,35 @@ namespace SunEyeVision.UI.Controls
                     break;
             }
 
+            // ========== 关键调试信息：端口选择和调整 ==========
+            _viewModel?.AddLog($"[CreateConnection] ========== 端口选择和调整 ==========");
+
             // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口）
             var deltaX = targetNode.Position.X - sourcePos.X;
             var deltaY = targetNode.Position.Y - sourcePos.Y;
 
-            _viewModel?.AddLog($"[CreateConnection] 源端口:{initialSourcePort} 源位置:({sourcePos.X:F1},{sourcePos.Y:F1})");
-            _viewModel?.AddLog($"[CreateConnection] 目标节点:({targetNode.Position.X:F1},{targetNode.Position.Y:F1}) 偏移:({deltaX:F1},{deltaY:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 初始源端口: {initialSourcePort}");
+            _viewModel?.AddLog($"[CreateConnection] 初始源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 源节点位置: ({sourceNode.Position.X:F1}, {sourceNode.Position.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 目标节点位置: ({targetNode.Position.X:F1}, {targetNode.Position.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 节点偏移: delta X={deltaX:F1}, delta Y={deltaY:F1}");
+            _viewModel?.AddLog($"[CreateConnection] 偏移比率: |deltaX|/|deltaY| = {(Math.Abs(deltaX) / Math.Abs(deltaY)):F2}");
 
             string direction = "";
             bool isVerticalDominant = initialSourcePort == "TopPort" || initialSourcePort == "BottomPort";
 
+            _viewModel?.AddLog($"[CreateConnection] 源端口类型: {(isVerticalDominant ? "垂直方向(Top/Bottom)" : "水平方向(Left/Right)")}");
+
             if (isVerticalDominant)
             {
                 // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
-                if (Math.Abs(deltaX) > 2 * Math.Abs(deltaY))
+                bool horizontalDominant = Math.Abs(deltaX) > 2 * Math.Abs(deltaY);
+                _viewModel?.AddLog($"[CreateConnection] 判断: |deltaX|({Math.Abs(deltaX):F1}) > 2*|deltaY|({2 * Math.Abs(deltaY):F1}) = {horizontalDominant}");
+
+                if (horizontalDominant)
                 {
                     direction = "水平（源垂直但水平偏移过大）";
+                    _viewModel?.AddLog($"[CreateConnection] ⚠️ 端口调整: 从{initialSourcePort}调整为水平端口");
                     if (deltaX > 0)
                     {
                         _viewModel?.AddLog($"[CreateConnection] {direction}:源在左，目标在右 -> 源右->目标左");
@@ -1572,6 +1716,7 @@ namespace SunEyeVision.UI.Controls
                 else
                 {
                     direction = "垂直（源端口主导）";
+                    _viewModel?.AddLog($"[CreateConnection] 保持垂直端口");
                     if (deltaY > 0)
                     {
                         _viewModel?.AddLog($"[CreateConnection] {direction}:源在上，目标在下 -> 源底->目标顶");
@@ -1593,9 +1738,13 @@ namespace SunEyeVision.UI.Controls
             else
             {
                 // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
-                if (Math.Abs(deltaY) > 2 * Math.Abs(deltaX))
+                bool verticalDominant = Math.Abs(deltaY) > 2 * Math.Abs(deltaX);
+                _viewModel?.AddLog($"[CreateConnection] 判断: |deltaY|({Math.Abs(deltaY):F1}) > 2*|deltaX|({2 * Math.Abs(deltaX):F1}) = {verticalDominant}");
+
+                if (verticalDominant)
                 {
                     direction = "垂直（源水平但垂直偏移过大）";
+                    _viewModel?.AddLog($"[CreateConnection] ⚠️ 端口调整: 从{initialSourcePort}调整为垂直端口");
                     if (deltaY > 0)
                     {
                         _viewModel?.AddLog($"[CreateConnection] {direction}:源在上，目标在下 -> 源底->目标顶");
@@ -1616,6 +1765,7 @@ namespace SunEyeVision.UI.Controls
                 else
                 {
                     direction = "水平（源端口主导）";
+                    _viewModel?.AddLog($"[CreateConnection] 保持水平端口");
                     if (deltaX > 0)
                     {
                         _viewModel?.AddLog($"[CreateConnection] {direction}:源在左，目标在右 -> 源右->目标左");
@@ -1635,6 +1785,13 @@ namespace SunEyeVision.UI.Controls
                 }
             }
 
+            _viewModel?.AddLog($"[CreateConnection] ========== 最终端口配置 ==========");
+            _viewModel?.AddLog($"[CreateConnection] 最终源端口: {finalSourcePort}");
+            _viewModel?.AddLog($"[CreateConnection] 最终目标端口: {finalTargetPort}");
+            _viewModel?.AddLog($"[CreateConnection] 最终源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 最终目标位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] =======================================");
+
             _viewModel?.AddLog($"[CreateConnection] |deltaX|:{Math.Abs(deltaX):F1} |deltaY|:{Math.Abs(deltaY):F1} 最终端口:({sourcePos.X:F1},{sourcePos.Y:F1})->({targetPos.X:F1},{targetPos.Y:F1})");
 
             newConnection.SourcePort = finalSourcePort;
@@ -1642,8 +1799,41 @@ namespace SunEyeVision.UI.Controls
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            _viewModel?.AddLog($"[CreateConnection] ✓ 源端口位置: {sourcePos}");
-            _viewModel?.AddLog($"[CreateConnection] ✓ 目标端口位置: {targetPos}");
+            _viewModel?.AddLog($"[CreateConnection] ========== 连接属性设置 ==========");
+            _viewModel?.AddLog($"[CreateConnection] newConnection.SourcePort = {finalSourcePort}");
+            _viewModel?.AddLog($"[CreateConnection] newConnection.TargetPort = {finalTargetPort}");
+            _viewModel?.AddLog($"[CreateConnection] newConnection.SourcePosition = ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] newConnection.TargetPosition = ({targetPos.X:F1}, {targetPos.Y:F1})");
+
+            // 验证端口位置是否正确
+            _viewModel?.AddLog($"[CreateConnection] ========== 端口位置验证 ==========");
+            Point expectedSourcePos = finalSourcePort switch
+            {
+                "RightPort" => new Point(sourceNode.Position.X + 140, sourceNode.Position.Y + 45),
+                "LeftPort" => new Point(sourceNode.Position.X, sourceNode.Position.Y + 45),
+                "TopPort" => new Point(sourceNode.Position.X + 70, sourceNode.Position.Y),
+                "BottomPort" => new Point(sourceNode.Position.X + 70, sourceNode.Position.Y + 90),
+                _ => new Point(0, 0)
+            };
+            Point expectedTargetPos = finalTargetPort switch
+            {
+                "RightPort" => new Point(targetNode.Position.X + 140, targetNode.Position.Y + 45),
+                "LeftPort" => new Point(targetNode.Position.X, targetNode.Position.Y + 45),
+                "TopPort" => new Point(targetNode.Position.X + 70, targetNode.Position.Y),
+                "BottomPort" => new Point(targetNode.Position.X + 70, targetNode.Position.Y + 90),
+                _ => new Point(0, 0)
+            };
+
+            bool sourcePosCorrect = Math.Abs(sourcePos.X - expectedSourcePos.X) < 0.1 && Math.Abs(sourcePos.Y - expectedSourcePos.Y) < 0.1;
+            bool targetPosCorrect = Math.Abs(targetPos.X - expectedTargetPos.X) < 0.1 && Math.Abs(targetPos.Y - expectedTargetPos.Y) < 0.1;
+
+            _viewModel?.AddLog($"[CreateConnection] 源端口{finalSourcePort}期望位置: ({expectedSourcePos.X:F1}, {expectedSourcePos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 源端口实际位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 源端口位置正确: {sourcePosCorrect}");
+            _viewModel?.AddLog($"[CreateConnection] 目标端口{finalTargetPort}期望位置: ({expectedTargetPos.X:F1}, {expectedTargetPos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 目标端口实际位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
+            _viewModel?.AddLog($"[CreateConnection] 目标端口位置正确: {targetPosCorrect}");
+            _viewModel?.AddLog($"[CreateConnection] =======================================");
 
             // 关键信息：添加前后的连接数
             int beforeCount = selectedTab.WorkflowConnections.Count;
@@ -1932,6 +2122,198 @@ namespace SunEyeVision.UI.Controls
             }
         }
 
+        /// <summary>
+        /// 连接线鼠标左键点击事件 - 切换中间点的显示/隐藏
+        /// </summary>
+        private void ConnectionLine_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Path path && path.DataContext is WorkflowConnection connection)
+            {
+                // 切换 ShowPathPoints 属性
+                connection.ShowPathPoints = !connection.ShowPathPoints;
+
+                // 记录调试信息
+                _viewModel?.AddLog($"[ConnectionLine_Click] 连接ID: {connection.Id}");
+                _viewModel?.AddLog($"  中间点显示: {connection.ShowPathPoints}");
+                _viewModel?.AddLog($"  路径点数量: {connection.PathPoints.Count}");
+                if (connection.PathPoints.Count > 0)
+                {
+                    _viewModel?.AddLog($"  第一个点: ({connection.PathPoints[0].X:F0}, {connection.PathPoints[0].Y:F0})");
+                }
+
+                // 标记事件已处理，防止事件继续传播
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// 箭头Path加载事件 - 设置箭头旋转角度
+        /// </summary>
+        private void ArrowPath_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Path arrowPath && arrowPath.DataContext is WorkflowConnection connection)
+            {
+                // ========== 关键调试信息：箭头位置和旋转 ==========
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] ========== 连接 {connection.Id} 箭头渲染调试 ==========");
+
+                // 获取箭头的实际位置
+                double actualArrowX = Canvas.GetLeft(arrowPath);
+                double actualArrowY = Canvas.GetTop(arrowPath);
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头ArrowX: {connection.ArrowX}");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头ArrowY: {connection.ArrowY}");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 实际Canvas.Left: {actualArrowX}");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 实际Canvas.Top: {actualArrowY}");
+
+                // 设置箭头旋转角度
+                var rotateTransform = new RotateTransform(connection.ArrowAngle);
+                arrowPath.RenderTransform = rotateTransform;
+
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头旋转角度设置为: {connection.ArrowAngle}°");
+
+                // 解释箭头方向
+                string directionDescription = connection.ArrowAngle switch
+                {
+                    0 => "向右（默认方向）",
+                    90 => "向下",
+                    180 => "向左",
+                    270 => "向上",
+                    _ => $"自定义角度 {connection.ArrowAngle}°"
+                };
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头指向: {directionDescription}");
+
+                // 计算箭头几何形状的顶点位置
+                // 箭头几何形状：起点(0,0)=顶点，尾部(-8,-5)到(-8,5)
+                // 旋转后的顶点位置应该在 ArrowPosition
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头几何形状定义:");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   顶点(起点): (0,0)");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   左上角: (-8,-5)");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   左下角: (-8,5)");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   箭头长度: 8px");
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] RenderTransformOrigin: (0,0) - 从顶点旋转");
+
+                // 监听ArrowAngle变化，动态更新旋转角度
+                connection.PropertyChanged += (s, args) =>
+                {
+                    if (args.PropertyName == nameof(WorkflowConnection.ArrowAngle))
+                    {
+                        if (arrowPath.RenderTransform is RotateTransform rt)
+                        {
+                            rt.Angle = connection.ArrowAngle;
+                            System.Diagnostics.Debug.WriteLine($"[ArrowPath] ✓ 箭头角度更新为: {connection.ArrowAngle}°, 连接ID: {connection.Id}");
+                        }
+                    }
+                };
+
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] ======================================");
+            }
+        }
+
         #endregion
+
+        /// <summary>
+        /// 更新最大外接矩形的显示
+        /// </summary>
+        private void UpdateBoundingRectangle()
+        {
+            _viewModel?.AddLog($"[BoundingRectangle] ========== 更新外接矩形 ==========");
+            _viewModel?.AddLog($"[BoundingRectangle] ShowBoundingRectangle: {ShowBoundingRectangle}");
+            _viewModel?.AddLog($"[BoundingRectangle] BoundingSourceNodeId: {BoundingSourceNodeId ?? "null"}");
+            _viewModel?.AddLog($"[BoundingRectangle] BoundingTargetNodeId: {BoundingTargetNodeId ?? "null"}");
+            _viewModel?.AddLog($"[BoundingRectangle] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
+
+            if (!ShowBoundingRectangle)
+            {
+                BoundingRectangle.Visibility = Visibility.Collapsed;
+                _viewModel?.AddLog($"[BoundingRectangle] ❌ ShowBoundingRectangle为false，隐藏矩形");
+                return;
+            }
+
+            // 查找源节点和目标节点
+            WorkflowNode? sourceNode = null;
+            WorkflowNode? targetNode = null;
+
+            if (CurrentWorkflowTab?.WorkflowNodes != null)
+            {
+                _viewModel?.AddLog($"[BoundingRectangle] CurrentWorkflowTab存在，节点数: {CurrentWorkflowTab.WorkflowNodes.Count}");
+
+                if (!string.IsNullOrEmpty(BoundingSourceNodeId))
+                {
+                    sourceNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingSourceNodeId);
+                    _viewModel?.AddLog($"[BoundingRectangle] 源节点: {BoundingSourceNodeId} -> {(sourceNode?.Name ?? "未找到")}");
+                }
+
+                if (!string.IsNullOrEmpty(BoundingTargetNodeId))
+                {
+                    targetNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingTargetNodeId);
+                    _viewModel?.AddLog($"[BoundingRectangle] 目标节点: {BoundingTargetNodeId} -> {(targetNode?.Name ?? "未找到")}");
+                }
+            }
+            else
+            {
+                _viewModel?.AddLog($"[BoundingRectangle] ❌ CurrentWorkflowTab为null");
+            }
+
+            // 如果找到了源节点和目标节点，计算并显示矩形
+            if (sourceNode != null && targetNode != null)
+            {
+                double sourceLeft = sourceNode.Position.X;
+                double sourceRight = sourceNode.Position.X + 140; // NodeWidth
+                double sourceTop = sourceNode.Position.Y;
+                double sourceBottom = sourceNode.Position.Y + 90; // NodeHeight
+
+                double targetLeft = targetNode.Position.X;
+                double targetRight = targetNode.Position.X + 140;
+                double targetTop = targetNode.Position.Y;
+                double targetBottom = targetNode.Position.Y + 90;
+
+                _viewModel?.AddLog($"[BoundingRectangle] 源节点位置: ({sourceLeft:F1}, {sourceTop:F1}) - ({sourceRight:F1}, {sourceBottom:F1})");
+                _viewModel?.AddLog($"[BoundingRectangle] 目标节点位置: ({targetLeft:F1}, {targetTop:F1}) - ({targetRight:F1}, {targetBottom:F1})");
+
+                // 计算包围两个节点的原始矩形
+                double minX = Math.Min(sourceLeft, targetLeft);
+                double maxX = Math.Max(sourceRight, targetRight);
+                double minY = Math.Min(sourceTop, targetTop);
+                double maxY = Math.Max(sourceBottom, targetBottom);
+
+                // 计算矩形的宽度和高度
+                double rectWidth = maxX - minX;
+                double rectHeight = maxY - minY;
+
+                // 使用最大边长作为正方形的边长,增加搜索范围
+                double maxSide = Math.Max(rectWidth, rectHeight);
+
+                // 以源节点和目标节点的中心点为基准,构建正方形搜索区域
+                double centerX = (minX + maxX) / 2;
+                double centerY = (minY + maxY) / 2;
+
+                // 设置正方形的位置和大小
+                double rectX = centerX - maxSide / 2;
+                double rectY = centerY - maxSide / 2;
+
+                Canvas.SetLeft(BoundingRectangle, rectX);
+                Canvas.SetTop(BoundingRectangle, rectY);
+                BoundingRectangle.Width = maxSide;
+                BoundingRectangle.Height = maxSide;
+
+                BoundingRectangle.Visibility = Visibility.Visible;
+
+                _viewModel?.AddLog($"[BoundingRectangle] 原始矩形: X=[{minX:F1}, {maxX:F1}], Y=[{minY:F1}, {maxY:F1}]");
+                _viewModel?.AddLog($"[BoundingRectangle] 原始尺寸: 宽度={rectWidth:F1}, 高度={rectHeight:F1}");
+                _viewModel?.AddLog($"[BoundingRectangle] 最大边长: {maxSide:F1}px");
+                _viewModel?.AddLog($"[BoundingRectangle] 中心点: ({centerX:F1}, {centerY:F1})");
+                _viewModel?.AddLog($"[BoundingRectangle] ✓ 设置正方形: X={rectX:F1}, Y={rectY:F1}, Width={maxSide:F1}, Height={maxSide:F1}");
+                _viewModel?.AddLog($"[BoundingRectangle] ✓ 正方形范围: X=[{rectX:F1}, {rectX + maxSide:F1}], Y=[{rectY:F1}, {rectY + maxSide:F1}]");
+                _viewModel?.AddLog($"[BoundingRectangle] 搜索范围扩展: {(maxSide * maxSide) / (rectWidth * rectHeight):F2}x");
+            }
+            else
+            {
+                BoundingRectangle.Visibility = Visibility.Collapsed;
+                _viewModel?.AddLog($"[BoundingRectangle] ❌ 无法找到节点，隐藏矩形");
+                _viewModel?.AddLog($"[BoundingRectangle]   源节点: {(sourceNode != null ? "找到" : "未找到")}");
+                _viewModel?.AddLog($"[BoundingRectangle]   目标节点: {(targetNode != null ? "找到" : "未找到")}");
+            }
+            _viewModel?.AddLog($"[BoundingRectangle] =======================================");
+        }
     }
 }
+

@@ -143,5 +143,29 @@ namespace SunEyeVision.UI.Controls
             var timestamp = System.DateTime.Now.ToString("[HH:mm:ss]");
             LogText += $"{timestamp} {message}\n";
         }
+
+        /// <summary>
+        /// 日志文本框加载事件
+        /// </summary>
+        private void LogTextBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 确保ScrollViewer滚动到顶部（显示最新的日志）
+            if (LogScrollViewer != null)
+            {
+                LogScrollViewer.ScrollToTop();
+            }
+        }
+
+        /// <summary>
+        /// 日志文本变化事件
+        /// </summary>
+        private void LogTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // 日志变化时自动滚动到顶部
+            if (LogScrollViewer != null)
+            {
+                LogScrollViewer.ScrollToTop();
+            }
+        }
     }
 }

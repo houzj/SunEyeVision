@@ -16,7 +16,7 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool isRunning)
             {
-                // 运行时显示浅绿色，停止时显示浅红色
+                // 运行时显示浅绿色，停止时显示浅红�?
                 return isRunning ? new SolidColorBrush(Color.FromRgb(200, 255, 200)) : new SolidColorBrush(Color.FromRgb(255, 200, 200));
             }
             return new SolidColorBrush(Color.FromRgb(245, 245, 245));
@@ -37,7 +37,7 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool isRunning)
             {
-                // 运行时显示绿色边框，停止时显示红色边框
+                // 运行时显示绿色边框，停止时显示红色边�?
                 return isRunning ? new SolidColorBrush(Color.FromRgb(76, 175, 80)) : new SolidColorBrush(Color.FromRgb(244, 67, 54));
             }
             return new SolidColorBrush(Color.FromRgb(200, 200, 200));
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Converters
     }
 
     /// <summary>
-    /// 运行模式到颜色的转换器
+    /// 运行模式到颜色的转换�?
     /// </summary>
     public class RunModeToColorConverter : IValueConverter
     {
@@ -58,7 +58,7 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool isRunning)
             {
-                // 运行时显示绿色指示灯，停止时显示红色指示灯
+                // 运行时显示绿色指示灯，停止时显示红色指示�?
                 return isRunning ? Brushes.Green : Brushes.Red;
             }
             return Brushes.Gray;
@@ -71,7 +71,7 @@ namespace SunEyeVision.UI.Converters
     }
 
     /// <summary>
-    /// 运行模式到可见性的转换器
+    /// 运行模式到可见性的转换�?
     /// </summary>
     public class RunModeToVisibilityConverter : IValueConverter
     {

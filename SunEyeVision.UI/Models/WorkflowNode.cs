@@ -193,8 +193,10 @@ namespace SunEyeVision.UI.Models
         private string _targetPort = "input";
         private System.Windows.Point _sourcePosition;
         private System.Windows.Point _targetPosition;
+        private System.Windows.Point _arrowPosition;
         private double _arrowAngle = 0;
         private ConnectionStatus _status = ConnectionStatus.Idle;
+        private bool _showPathPoints = true;
 
         public string Id
         {
@@ -278,6 +280,34 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
+        /// 箭头位置 - 箭头尾部的实际显示位置
+        /// </summary>
+        public System.Windows.Point ArrowPosition
+        {
+            get => _arrowPosition;
+            set
+            {
+                if (_arrowPosition != value)
+                {
+                    _arrowPosition = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ArrowX));
+                    OnPropertyChanged(nameof(ArrowY));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 箭头X坐标
+        /// </summary>
+        public double ArrowX => ArrowPosition.X;
+
+        /// <summary>
+        /// 箭头Y坐标
+        /// </summary>
+        public double ArrowY => ArrowPosition.Y;
+
+        /// <summary>
         /// 箭头大小 - 固定为10px
         /// </summary>
         public double ArrowSize => 10;
@@ -314,6 +344,27 @@ namespace SunEyeVision.UI.Models
             ConnectionStatus.Error => "#FF3B30",
             _ => "#666666"
         };
+
+        /// <summary>
+        /// 是否显示路径点（用于调试）
+        /// </summary>
+        public bool ShowPathPoints
+        {
+            get => _showPathPoints;
+            set
+            {
+                if (_showPathPoints != value)
+                {
+                    _showPathPoints = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 连线路径点集合（拐点）
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<System.Windows.Point> PathPoints { get; set; } = new System.Collections.ObjectModel.ObservableCollection<System.Windows.Point>();
 
         public System.Windows.Point SourcePosition
         {
@@ -376,6 +427,7 @@ namespace SunEyeVision.UI.Models
             TargetNodeId = targetNodeId;
             SourcePosition = new Point(0, 0);
             TargetPosition = new Point(0, 0);
+            ArrowPosition = new Point(0, 0);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

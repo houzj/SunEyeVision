@@ -5,7 +5,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 布尔值转连续运行文本转换器
+    /// 布尔值转连续运行文本转换�?
     /// </summary>
     public class BoolToContinuousTextConverter : IValueConverter
     {

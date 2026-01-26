@@ -167,7 +167,15 @@ namespace SunEyeVision.UI.ViewModels
         public void AddLog(string message)
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            LogText += $"[{timestamp}] {message}\n";
+            // 新日志插入到最前面
+            LogText = $"[{timestamp}] {message}\n" + LogText;
+
+            // 限制日志条目数量，最多保留100条
+            var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length > 100)
+            {
+                LogText = string.Join("\n", lines.Take(100)) + "\n";
+            }
         }
 
         public ICommand NewWorkflowCommand { get; }
@@ -185,6 +193,8 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand RedoCommand { get; }
         public ICommand DeleteSelectedNodesCommand { get; }
         public ICommand OpenDebugWindowCommand { get; }
+        public ICommand ToggleBoundingRectangleCommand { get; }
+        public ICommand TogglePathPointsCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -229,6 +239,8 @@ namespace SunEyeVision.UI.ViewModels
             RedoCommand = new Commands.RelayCommand(ExecuteRedo, CanExecuteRedo);
             DeleteSelectedNodesCommand = new Commands.RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
             OpenDebugWindowCommand = new Commands.RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
+            ToggleBoundingRectangleCommand = new Commands.RelayCommand(ExecuteToggleBoundingRectangle);
+            TogglePathPointsCommand = new Commands.RelayCommand(ExecuteTogglePathPoints);
         }
 
         /// <summary>
@@ -688,6 +700,122 @@ namespace SunEyeVision.UI.ViewModels
                         System.Windows.MessageBoxImage.Error);
                 }
             }
+        }
+
+        /// <summary>
+        /// 切换最大外接矩形显示
+        /// </summary>
+        private void ExecuteToggleBoundingRectangle()
+        {
+            AddLog("[ToggleBoundingRectangle] ========== 切换最大外接矩形显示 ==========");
+
+            try
+            {
+                var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+                if (mainWindow == null)
+                {
+                    AddLog("[ToggleBoundingRectangle] ❌ MainWindow为null");
+                    return;
+                }
+
+                AddLog("[ToggleBoundingRectangle] ✓ MainWindow已找到");
+
+                // 使用MainWindow中保存的WorkflowCanvasControl引用
+                var workflowCanvas = mainWindow.GetCurrentWorkflowCanvas();
+                if (workflowCanvas == null)
+                {
+                    AddLog("[ToggleBoundingRectangle] ❌ 无法获取WorkflowCanvasControl");
+                    return;
+                }
+
+                AddLog("[ToggleBoundingRectangle] ✓ 获取到WorkflowCanvasControl");
+
+                ToggleBoundingRectangleOnCanvas(workflowCanvas);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[ToggleBoundingRectangle] ❌ 错误: {ex.Message}");
+                AddLog($"[ToggleBoundingRectangle] 堆栈: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 在指定的WorkflowCanvasControl上切换矩形显示
+        /// </summary>
+        private void ToggleBoundingRectangleOnCanvas(Controls.WorkflowCanvasControl workflowCanvas)
+        {
+            workflowCanvas.ShowBoundingRectangle = !workflowCanvas.ShowBoundingRectangle;
+
+            // 如果开启矩形显示，使用第一个连接作为示例
+            if (workflowCanvas.ShowBoundingRectangle)
+            {
+                var selectedTab = WorkflowTabViewModel?.SelectedTab;
+                if (selectedTab != null && selectedTab.WorkflowConnections != null && selectedTab.WorkflowConnections.Count > 0)
+                {
+                    var firstConnection = selectedTab.WorkflowConnections.FirstOrDefault();
+                    if (firstConnection != null)
+                    {
+                        workflowCanvas.BoundingSourceNodeId = firstConnection.SourceNodeId;
+                        workflowCanvas.BoundingTargetNodeId = firstConnection.TargetNodeId;
+                        AddLog($"[ToggleBoundingRectangle] 显示连接 {firstConnection.Id} 的外接矩形");
+                        AddLog($"[ToggleBoundingRectangle]   源节点ID: {firstConnection.SourceNodeId}");
+                        AddLog($"[ToggleBoundingRectangle]   目标节点ID: {firstConnection.TargetNodeId}");
+                    }
+                    else
+                    {
+                        AddLog("[ToggleBoundingRectangle] ⚠️ 未找到连接");
+                        workflowCanvas.ShowBoundingRectangle = false;
+                    }
+                }
+                else
+                {
+                    AddLog("[ToggleBoundingRectangle] ⚠️ 当前Tab没有连接");
+                    workflowCanvas.ShowBoundingRectangle = false;
+                }
+            }
+
+            AddLog($"[ToggleBoundingRectangle] ========== 外接矩形: {(workflowCanvas.ShowBoundingRectangle ? "显示" : "隐藏")} ==========");
+        }
+
+        /// <summary>
+        /// 切换路径拐点显示
+        /// </summary>
+        private void ExecuteTogglePathPoints()
+        {
+            AddLog("[TogglePathPoints] 切换所有连接的路径拐点显示");
+
+            if (WorkflowTabViewModel?.SelectedTab?.WorkflowConnections != null)
+            {
+                var newState = !WorkflowTabViewModel.SelectedTab.WorkflowConnections.Any(c => c.ShowPathPoints);
+
+                foreach (var connection in WorkflowTabViewModel.SelectedTab.WorkflowConnections)
+                {
+                    connection.ShowPathPoints = newState;
+                }
+
+                AddLog($"[TogglePathPoints] 所有连接的路径拐点: {(newState ? "显示" : "隐藏")}");
+            }
+        }
+
+        /// <summary>
+        /// 查找指定类型的子元素
+        /// </summary>
+        private static T? FindVisualChild<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject
+        {
+            if (parent == null)
+                return null;
+
+            if (parent is T child)
+                return child;
+
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var found = FindVisualChild<T>(System.Windows.Media.VisualTreeHelper.GetChild(parent, i));
+                if (found != null)
+                    return found;
+            }
+
+            return null;
         }
 
         /// <summary>

@@ -6,7 +6,7 @@ using System.Windows.Media;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 布尔值转运行边框转换器
+    /// 布尔值转运行边框转换�?
     /// </summary>
     public class BoolToRunningBorderConverter : IValueConverter
     {

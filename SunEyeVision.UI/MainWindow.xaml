@@ -61,6 +61,9 @@
                 <MenuItem Header="结果预览(_R)"/>
                 <MenuItem Header="系统信息(_I)"/>
                 <Separator/>
+                <MenuItem Header="显示最大外接矩形(_B)" InputGestureText="Ctrl+B" Command="{Binding ToggleBoundingRectangleCommand}"/>
+                <MenuItem Header="显示路径拐点(_P)" InputGestureText="Ctrl+P" Command="{Binding TogglePathPointsCommand}"/>
+                <Separator/>
                 <MenuItem Header="全屏(_F)" InputGestureText="F11"/>
                 <MenuItem Header="重置布局(_R)"/>
             </MenuItem>
@@ -603,9 +606,9 @@
                     <TabControl.ContentTemplate>
                         <DataTemplate>
                             <controls:WorkflowCanvasControl
-                                x:Name="WorkflowCanvas"
                                 Width="5000" Height="5000"
-                                RenderTransform="{Binding ScaleTransform}"/>
+                                RenderTransform="{Binding ScaleTransform}"
+                                Loaded="WorkflowCanvasControl_Loaded"/>
                         </DataTemplate>
                     </TabControl.ContentTemplate>
                 </TabControl>

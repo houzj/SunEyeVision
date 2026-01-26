@@ -88,15 +88,18 @@
 
                 <!-- 信息标签页 -->
                 <TabItem Header="📋 信息">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
-                        <TextBox IsReadOnly="True" 
-                                 Background="#F8F8F8" 
-                                 BorderThickness="0" 
-                                 FontFamily="Consolas, Courier New, monospace" 
-                                 FontSize="10" 
-                                 Padding="8" 
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4" x:Name="LogScrollViewer">
+                        <TextBox x:Name="LogTextBox"
+                                 IsReadOnly="True"
+                                 Background="#F8F8F8"
+                                 BorderThickness="0"
+                                 FontFamily="Consolas, Courier New, monospace"
+                                 FontSize="10"
+                                 Padding="8"
                                  TextWrapping="Wrap"
-                                 Text="{Binding LogText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                 Text="{Binding LogText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                 Loaded="LogTextBox_Loaded"
+                                 TextChanged="LogTextBox_TextChanged"/>
                     </ScrollViewer>
                 </TabItem>
             </TabControl>

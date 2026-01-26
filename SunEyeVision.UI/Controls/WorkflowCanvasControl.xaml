@@ -9,7 +9,9 @@
              d:DesignHeight="800" d:DesignWidth="1000">
 
     <UserControl.Resources>
-        <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
+        <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="1" NodeMargin="30"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:PointOffsetConverter x:Key="PointOffsetConverter"/>
 
         <!-- 箭头标记 - 尖端指向右侧（0度方向），方便旋转 -->
         <PathGeometry x:Key="ArrowGeometry">
@@ -38,7 +40,7 @@
 
         <!-- 网格背景 -->
         <Canvas.Background>
-            <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
+                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,1,1" TileMode="Tile">
                 <DrawingBrush.Drawing>
                     <GeometryDrawing Brush="Transparent">
                         <GeometryDrawing.Pen>
@@ -46,8 +48,8 @@
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <LineGeometry StartPoint="0,20" EndPoint="20,20"/>
-                                <LineGeometry StartPoint="20,0" EndPoint="20,20"/>
+                                <LineGeometry StartPoint="0,1" EndPoint="1,1"/>
+                                <LineGeometry StartPoint="1,0" EndPoint="1,1"/>
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -76,7 +78,8 @@
                               StrokeLineJoin="Round"
                               Cursor="Hand"
                               Loaded="Path_Loaded"
-                              DataContextChanged="Path_DataContextChanged">
+                              DataContextChanged="Path_DataContextChanged"
+                              MouseLeftButtonDown="ConnectionLine_MouseLeftButtonDown">
                             <Path.Style>
                                 <Style TargetType="Path">
                                     <Setter Property="Effect">
@@ -99,17 +102,37 @@
                             </Path.Style>
                         </Path>
 
+                        <!-- 连接线拐点（中间点）标记 -->
+                        <ItemsControl ItemsSource="{Binding PathPoints, Mode=OneWay}"
+                                      Visibility="{Binding ShowPathPoints, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Canvas>
+                                        <Ellipse Width="8" Height="8"
+                                                 Fill="#FF6600"
+                                                 Stroke="#FFFFFF"
+                                                 StrokeThickness="1"
+                                                 Opacity="0.7"
+                                                 Canvas.Left="{Binding X, Converter={StaticResource PointOffsetConverter}, ConverterParameter=-4}"
+                                                 Canvas.Top="{Binding Y, Converter={StaticResource PointOffsetConverter}, ConverterParameter=-4}"/>
+                                    </Canvas>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <!-- 箭头 -->
                         <Path Data="{StaticResource ArrowGeometry}"
                               Fill="{Binding StatusColor}"
-                              Canvas.Left="{Binding EndX}"
-                              Canvas.Top="{Binding EndY}"
-                              RenderTransformOrigin="0,0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <RotateTransform Angle="{Binding ArrowAngle}"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
+                              Canvas.Left="{Binding ArrowX}"
+                              Canvas.Top="{Binding ArrowY}"
+                              RenderTransformOrigin="0,0"
+                              Loaded="ArrowPath_Loaded"
+                              x:Name="ArrowPath">
                             <Path.Style>
                                 <Style TargetType="Path">
                                     <Style.Triggers>
@@ -368,5 +391,19 @@
 
         <!-- 框选控件 -->
         <controls:SelectionBox x:Name="SelectionBox" Canvas.ZIndex="9999"/>
+
+        <!-- 最大外接矩形（用于调试） -->
+        <Border x:Name="BoundingRectangle"
+                 BorderBrush="#FF0000"
+                 BorderThickness="3"
+                 Background="Red"
+                 CornerRadius="2"
+                 Opacity="0.5"
+                 Canvas.ZIndex="500"
+                 Visibility="Collapsed">
+            <Border.Effect>
+                <DropShadowEffect Color="#FF0000" BlurRadius="8" ShadowDepth="3" Opacity="0.8"/>
+            </Border.Effect>
+        </Border>
     </Canvas>
 </UserControl>

@@ -6,7 +6,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 运行模式到按钮文本的转换器
+    /// 运行模式到按钮文本的转换�?
     /// </summary>
     public class RunModeButtonConverter : IValueConverter
     {

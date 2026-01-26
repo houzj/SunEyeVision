@@ -20,6 +20,7 @@ namespace SunEyeVision.UI
     {
         private readonly MainWindowViewModel _viewModel;
         private bool _isTabItemClick = false;  // 标记是否是通过点击TabItem触发的切换
+        private Controls.WorkflowCanvasControl? _currentWorkflowCanvas = null;  // 当前显示的WorkflowCanvasControl
 
         // 缩放相关
         private const double MinScale = 0.25;  // 25%
@@ -113,6 +114,16 @@ namespace SunEyeVision.UI
                 Converters.SmartPathConverter.Nodes = _viewModel.WorkflowNodes;
 
                 // TODO: 加载工作流
+
+                // 延时测试矩形显示（等待所有布局完成）
+                System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
+                timer.Interval = TimeSpan.FromSeconds(2);
+                timer.Tick += (s, args) =>
+                {
+                    timer.Stop();
+                    TestBoundingRectangle();
+                };
+                timer.Start();
             }
             catch (Exception ex)
             {
@@ -122,6 +133,102 @@ namespace SunEyeVision.UI
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
             }
+        }
+
+        /// <summary>
+        /// 测试BoundingRectangle显示
+        /// </summary>
+        private void TestBoundingRectangle()
+        {
+            _viewModel?.AddLog("[TestBoundingRectangle] ========== 开始测试矩形显示 ==========");
+
+            try
+            {
+                // 获取TabControl
+                var tabControl = this.FindName("WorkflowTabControl") as TabControl;
+                if (tabControl == null)
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 无法找到TabControl");
+                    return;
+                }
+
+                _viewModel?.AddLog($"[TestBoundingRectangle] ✓ 找到TabControl，Tab数量: {tabControl.Items.Count}");
+
+                // 获取选中的TabItem
+                if (tabControl.SelectedIndex < 0)
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 没有选中的Tab");
+                    return;
+                }
+
+                _viewModel?.AddLog($"[TestBoundingRectangle] ✓ 选中的Tab索引: {tabControl.SelectedIndex}");
+
+                // 从TabItem的Content中查找WorkflowCanvasControl
+                var tabItem = tabControl.ItemContainerGenerator.ContainerFromIndex(tabControl.SelectedIndex) as TabItem;
+                if (tabItem == null)
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 无法获取TabItem");
+                    return;
+                }
+
+                _viewModel?.AddLog("[TestBoundingRectangle] ✓ 获取到TabItem");
+                _viewModel?.AddLog($"[TestBoundingRectangle] TabItem.Content类型: {tabItem.Content?.GetType().Name ?? "null"}");
+
+                // 递归查找WorkflowCanvasControl
+                var workflowCanvas = FindVisualChild<WorkflowCanvasControl>(tabItem);
+                if (workflowCanvas == null)
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
+
+                    // 尝试从tabItem.Content查找（如果Content是UI元素）
+                    if (tabItem.Content is DependencyObject contentObj)
+                    {
+                        workflowCanvas = FindVisualChild<WorkflowCanvasControl>(contentObj);
+                        _viewModel?.AddLog($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
+                    }
+                }
+                else
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
+                }
+
+                if (workflowCanvas != null)
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ====== 开始设置矩形 ==========");
+
+                    // 强制显示测试矩形
+                    if (workflowCanvas.BoundingRectangle != null)
+                    {
+                        _viewModel?.AddLog($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {workflowCanvas.BoundingRectangle.Visibility}");
+
+                        workflowCanvas.BoundingRectangle.Visibility = Visibility.Visible;
+                        Canvas.SetLeft(workflowCanvas.BoundingRectangle, 200);
+                        Canvas.SetTop(workflowCanvas.BoundingRectangle, 200);
+                        workflowCanvas.BoundingRectangle.Width = 300;
+                        workflowCanvas.BoundingRectangle.Height = 150;
+
+                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 矩形已设置为可见");
+                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 位置: (200, 200)");
+                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 大小: 300 x 150");
+                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 颜色: 红色");
+                    }
+                    else
+                    {
+                        _viewModel?.AddLog("[TestBoundingRectangle] ❌ BoundingRectangle为null");
+                    }
+                }
+                else
+                {
+                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ WorkflowCanvasControl为null");
+                }
+            }
+            catch (Exception ex)
+            {
+                _viewModel?.AddLog($"[TestBoundingRectangle] ❌ 异常: {ex.Message}");
+                _viewModel?.AddLog($"[TestBoundingRectangle] 堆栈: {ex.StackTrace}");
+            }
+
+            _viewModel?.AddLog("[TestBoundingRectangle] ========== 测试完成 ==========");
         }
 
         #endregion
@@ -140,6 +247,19 @@ namespace SunEyeVision.UI
         #endregion
 
         #region TabControl 多流程管理事件处理
+
+        /// <summary>
+        /// WorkflowCanvasControl加载事件 - 保存引用
+        /// </summary>
+        private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Controls.WorkflowCanvasControl workflowCanvas)
+            {
+                _currentWorkflowCanvas = workflowCanvas;
+                _viewModel?.AddLog($"[MainWindow] WorkflowCanvasControl已加载并保存引用");
+                _viewModel?.AddLog($"[MainWindow] BoundingRectangle元素: {(workflowCanvas.BoundingRectangle != null ? "存在" : "null")}");
+            }
+        }
 
         /// <summary>
         /// TabControl 加载完成后,监测ScrollViewer的ScrollableWidth变化
@@ -348,6 +468,14 @@ namespace SunEyeVision.UI
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 获取当前显示的WorkflowCanvasControl
+        /// </summary>
+        public Controls.WorkflowCanvasControl? GetCurrentWorkflowCanvas()
+        {
+            return _currentWorkflowCanvas;
         }
 
         /// <summary>
