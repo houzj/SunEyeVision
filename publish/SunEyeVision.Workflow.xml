@@ -1,0 +1,383 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Workflow</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Workflow.AlgorithmNode">
+            <summary>
+            绠楁硶鑺傜偣
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmNode.Processor">
+            <summary>
+            鍥惧儚澶勭悊鍣?
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmNode.LastResult">
+            <summary>
+            涓婃鎵ц缁撴灉
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmNode.Execute(SunEyeVision.Models.Mat)">
+            <summary>
+            鎵ц鑺傜偣
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEventPublisher">
+            <summary>
+            Event bus integration for Workflow module
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishWorkflowStarted(System.String,System.String)">
+            <summary>
+            Publish workflow execution started event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishWorkflowExecuted(System.String,System.String,System.Boolean,System.Int64,System.Int32,System.String)">
+            <summary>
+            Publish workflow executed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishNodeExecutionStarted(System.String,System.String,System.String)">
+            <summary>
+            Publish node execution started event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishNodeExecuted(System.String,System.String,System.String,System.String,System.Boolean,System.Int64,System.String)">
+            <summary>
+            Publish node executed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishError(System.String,System.Exception,SunEyeVision.Events.ErrorSeverity)">
+            <summary>
+            Publish error event
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.EventEnabledWorkflow">
+            <summary>
+            Example of extending Workflow class to use event bus
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventEnabledWorkflow.ExecuteWithEvents(SunEyeVision.Models.Mat)">
+            <summary>
+            Execute workflow with event publishing
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventEnabledWorkflow.ExecuteNode(SunEyeVision.Workflow.WorkflowNode,SunEyeVision.Models.Mat)">
+            <summary>
+            Execute a single node with event publishing
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEventBusSetup">
+            <summary>
+            Example of event bus usage in application startup
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventBusSetup.SetupWorkflowMonitoring(SunEyeVision.Events.IEventBus)">
+            <summary>
+            Setup event bus subscriptions for workflow monitoring
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.PortConnection">
+            <summary>
+            端口连接 - 记录源节点端口到目标节点端口的连接
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.SourceNodeId">
+            <summary>
+            源节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.SourcePort">
+            <summary>
+            源端口 (如: "output", "left", "right", "top", "bottom")
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.TargetNodeId">
+            <summary>
+            目标节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.TargetPort">
+            <summary>
+            目标端口 (如: "input", "left", "right", "top", "bottom")
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.Workflow">
+            <summary>
+            Workflow
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Id">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Name">
+            <summary>
+            Workflow name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Description">
+            <summary>
+            Workflow description
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Nodes">
+            <summary>
+            Node list
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Connections">
+            <summary>
+            Node connections (source node ID -> target node ID list)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.PortConnections">
+            <summary>
+            端口级连接列表 - 精确记录哪个端口连接到哪个端口
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.SetLogger(SunEyeVision.Interfaces.ILogger)">
+            <summary>
+            Set logger (internal use for deserialization)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.AddNode(SunEyeVision.Workflow.WorkflowNode)">
+            <summary>
+            Add node
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.RemoveNode(System.String)">
+            <summary>
+            Remove node
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ConnectNodes(System.String,System.String)">
+            <summary>
+            Connect nodes
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ConnectNodesByPort(System.String,System.String,System.String,System.String)">
+            <summary>
+            Connect nodes by port - 精确指定源端口和目标端口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DisconnectNodesByPort(System.String,System.String,System.String,System.String)">
+            <summary>
+            Disconnect nodes by port
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetParallelExecutionGroups">
+            <summary>
+            获取节点的并行执行分组
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetExecutionOrder">
+            <summary>
+            获取节点的执行顺序（拓扑排序）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DetectCycles">
+            <summary>
+            检测工作流中的循环依赖
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetNodePriority(System.String)">
+            <summary>
+            获取节点优先级
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DisconnectNodes(System.String,System.String)">
+            <summary>
+            Disconnect nodes
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.Execute(SunEyeVision.Models.Mat)">
+            <summary>
+            Execute workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CreateExecutionPlan">
+            <summary>
+            创建执行计划
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetInfo">
+            <summary>
+            Get workflow information
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionGroupStatus">
+            <summary>
+            执行组状态
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionGroup">
+            <summary>
+            执行组
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionPlan">
+            <summary>
+            执行计划
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEngine">
+            <summary>
+            Workflow Engine
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.Workflows">
+            <summary>
+            Workflow list
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.CurrentWorkflow">
+            <summary>
+            Current active workflow
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.Logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.CreateWorkflow(System.String,System.String,System.String)">
+            <summary>
+            Create new workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.DeleteWorkflow(System.String)">
+            <summary>
+            Delete workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.SetCurrentWorkflow(System.String)">
+            <summary>
+            Set current workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.GetWorkflow(System.String)">
+            <summary>
+            Get workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.GetAllWorkflows">
+            <summary>
+            Get all workflows
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.ExecuteWorkflow(System.String,SunEyeVision.Models.Mat)">
+            <summary>
+            Execute workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.ExecuteCurrentWorkflow(SunEyeVision.Models.Mat)">
+            <summary>
+            Execute current workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.SaveWorkflow(System.String,System.String)">
+            <summary>
+            Save workflow to file
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.LoadWorkflow(System.String)">
+            <summary>
+            Load workflow from file
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeType">
+            <summary>
+            宸ヤ綔娴佽妭鐐圭被鍨?
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeType.Algorithm">
+            <summary>
+            绠楁硶鑺傜偣
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeType.Input">
+            <summary>
+            杈撳叆鑺傜偣
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeType.Output">
+            <summary>
+            杈撳嚭鑺傜偣
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeType.Condition">
+            <summary>
+            鏉′欢鑺傜偣
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowNode">
+            <summary>
+            宸ヤ綔娴佽妭鐐?
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Id">
+            <summary>
+            鑺傜偣ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Name">
+            <summary>
+            鑺傜偣鍚嶇О
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Type">
+            <summary>
+            鑺傜偣绫诲瀷
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.AlgorithmType">
+            <summary>
+            绠楁硶绫诲瀷鍚嶇О
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Parameters">
+            <summary>
+            鑺傜偣鍙傛暟
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.IsEnabled">
+            <summary>
+            鏄惁鍚敤
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowNode.BeforeExecute">
+            <summary>
+            鎵ц鍓嶄簨浠?
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowNode.AfterExecute">
+            <summary>
+            鎵ц鍚庝簨浠?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.OnBeforeExecute">
+            <summary>
+            瑙﹀彂鎵ц鍓嶄簨浠?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.OnAfterExecute(SunEyeVision.Models.AlgorithmResult)">
+            <summary>
+            瑙﹀彂鎵ц鍚庝簨浠?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.CreateInstance">
+            <summary>
+            鍒涘缓绠楁硶瀹炰緥锛堢殑鍒濇澶勭悊鏂规硶锛?
+            </summary>
+        </member>
+    </members>
+</doc>

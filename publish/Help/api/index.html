@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 文档 - SunEyeVision 帮助文档</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>SunEyeVision</h1>
+                <p>机器视觉算法平台</p>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-item">🏠 首页</a>
+                <a href="../usermanual/index.html" class="nav-item">📖 用户手册</a>
+                <a href="../architecture/index.html" class="nav-item">🏗️ 软件架构</a>
+                <a href="../roadmap/index.html" class="nav-item">🗺️ 开发路线图</a>
+                <a href="../progress/index.html" class="nav-item">📊 开发进度</a>
+                <a href="../api/index.html" class="nav-item active">🔧 API 文档</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>API 文档</h1>
+                <div class="subtitle">SunEyeVision 开发者参考</div>
+            </header>
+
+            <section class="content-section">
+                <h2>概述</h2>
+                <p>SunEyeVision API 文档包含所有公共接口和类的详细说明。API 文档根据 XML 注释自动生成，确保与代码同步。</p>
+                <p>开发者可以使用这些 API 来：</p>
+                <ul>
+                    <li>开发自定义算法</li>
+                    <li>创建插件</li>
+                    <li>集成到现有系统</li>
+                    <li>自动化测试</li>
+                </ul>
+            </section>
+
+            <section class="content-section">
+                <h2>模块文档</h2>
+
+                <div class="module-list">
+                    <div class="module-item">
+                        <h3>SunEyeVision.Core</h3>
+                        <p>核心基础库，包含接口定义、日志系统、配置管理等基础功能。</p>
+                        <h4>主要命名空间：</h4>
+                        <ul>
+                            <li><code>SunEyeVision.Core.Interfaces</code> - 核心接口定义</li>
+                            <li><code>SunEyeVision.Core.Services</code> - 核心服务实现</li>
+                            <li><code>SunEyeVision.Core.Models</code> - 核心数据模型</li>
+                        </ul>
+                        <p><a href="core.html">查看 Core 模块 API →</a></p>
+                    </div>
+
+                    <div class="module-item">
+                        <h3>SunEyeVision.Algorithms</h3>
+                        <p>视觉算法库，提供图像预处理、特征提取、测量识别等算法。</p>
+                        <h4>主要命名空间：</h4>
+                        <ul>
+                            <li><code>SunEyeVision.Algorithms</code> - 算法基类和接口</li>
+                            <li><code>SunEyeVision.Algorithms.Preprocessing</code> - 预处理算法</li>
+                            <li><code>SunEyeVision.Algorithms.Feature</code> - 特征提取算法</li>
+                            <li><code>SunEyeVision.Algorithms.Measurement</code> - 测量算法</li>
+                            <li><code>SunEyeVision.Algorithms.Recognition</code> - 识别算法</li>
+                        </ul>
+                        <p><a href="algorithms.html">查看 Algorithms 模块 API →</a></p>
+                    </div>
+
+                    <div class="module-item">
+                        <h3>SunEyeVision.Workflow</h3>
+                        <p>工作流引擎，支持可视化的工作流设计和管理。</p>
+                        <h4>主要命名空间：</h4>
+                        <ul>
+                            <li><code>SunEyeVision.Workflow</code> - 工作流核心类</li>
+                            <li><code>SunEyeVision.Workflow.Nodes</code> - 工作流节点</li>
+                            <li><code>SunEyeVision.Workflow.Models</code> - 工作流模型</li>
+                        </ul>
+                        <p><a href="workflow.html">查看 Workflow 模块 API →</a></p>
+                    </div>
+
+                    <div class="module-item">
+                        <h3>SunEyeVision.PluginSystem</h3>
+                        <p>插件系统，支持动态加载和扩展功能。</p>
+                        <h4>主要命名空间：</h4>
+                        <ul>
+                            <li><code>SunEyeVision.PluginSystem</code> - 插件接口和类</li>
+                            <li><code>SunEyeVision.PluginSystem.Models</code> - 插件模型</li>
+                        </ul>
+                        <p><a href="plugins.html">查看 PluginSystem 模块 API →</a></p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>常用接口</h2>
+
+                <h3>IAlgorithm</h3>
+                <p>算法接口，所有算法必须实现此接口。</p>
+                <div class="api-signature">
+                    <code>
+                        public interface IAlgorithm
+                        {
+                            string Name { get; }
+                            string Description { get; }
+                            AlgorithmParameters Parameters { get; }
+                            AlgorithmResult Execute(Mat input);
+                        }
+                    </code>
+                </div>
+
+                <h3>ILogger</h3>
+                <p>日志接口，用于记录系统运行信息。</p>
+                <div class="api-signature">
+                    <code>
+                        public interface ILogger
+                        {
+                            void Info(string message);
+                            void Warning(string message);
+                            void Error(string message);
+                            void Debug(string message);
+                        }
+                    </code>
+                </div>
+
+                <h3>IDeviceDriver</h3>
+                <p>设备驱动接口，用于控制硬件设备。</p>
+                <div class="api-signature">
+                    <code>
+                        public interface IDeviceDriver : IDisposable
+                        {
+                            string DeviceId { get; }
+                            string DeviceName { get; }
+                            bool IsConnected { get; }
+                            Task ConnectAsync();
+                            Task DisconnectAsync();
+                            Task<Mat> CaptureImageAsync();
+                        }
+                    </code>
+                </div>
+
+                <h3>IVisionPlugin</h3>
+                <p>插件接口，所有插件必须实现此接口。</p>
+                <div class="api-signature">
+                    <code>
+                        public interface IVisionPlugin
+                        {
+                            string Name { get; }
+                            string Version { get; }
+                            string Description { get; }
+                            void Initialize(IPluginContext context);
+                            void Load();
+                            void Unload();
+                        }
+                    </code>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>代码示例</h2>
+
+                <h3>创建自定义算法</h3>
+                <pre><code>public class MyCustomAlgorithm : BaseAlgorithm
+{
+    public MyCustomAlgorithm(ILogger logger) : base(logger)
+    {
+        Name = "MyCustomAlgorithm";
+        Description = "我的自定义算法";
+    }
+
+    protected override AlgorithmResult ExecuteInternal(Mat input)
+    {
+        // 算法实现
+        Mat output = input.Clone();
+
+        // 处理图像...
+
+        return new AlgorithmResult
+        {
+            Success = true,
+            OutputImage = output,
+            ResultData = new { /* 结果数据 */ }
+        };
+    }
+}</code></pre>
+
+                <h3>创建工作流</h3>
+                <pre><code>// 创建工作流引擎
+var engine = new WorkflowEngine(logger);
+
+// 创建工作流
+var workflow = engine.CreateWorkflow("myworkflow", "我的工作流", "演示");
+
+// 添加算法节点
+var blurNode = new AlgorithmNode("blur", "高斯模糊", new GaussianBlurAlgorithm(logger));
+var grayNode = new AlgorithmNode("gray", "灰度转换", new GrayScaleAlgorithm(logger));
+
+workflow.AddNode(blurNode);
+workflow.AddNode(grayNode);
+
+// 连接节点
+workflow.ConnectNodes("blur", "gray");
+
+// 执行工作流
+var results = workflow.Execute(image);</code></pre>
+
+                <h3>创建插件</h3>
+                <pre><code>public class MyPlugin : IVisionPlugin
+{
+    public string Name => "My Plugin";
+    public string Version => "1.0.0";
+    public string Description => "我的插件";
+
+    public void Initialize(IPluginContext context)
+    {
+        // 初始化插件
+    }
+
+    public void Load()
+    {
+        // 加载插件
+    }
+
+    public void Unload()
+    {
+        // 卸载插件
+    }
+}</code></pre>
+            </section>
+
+            <section class="content-section">
+                <h2>最佳实践</h2>
+
+                <h3>算法开发</h3>
+                <ul>
+                    <li>继承 <code>BaseAlgorithm</code> 而不是直接实现 <code>IAlgorithm</code></li>
+                    <li>在 <code>ExecuteInternal</code> 中实现核心逻辑</li>
+                    <li>使用 <code>Logger</code> 记录关键信息</li>
+                    <li>处理异常并返回错误结果</li>
+                    <li>释放所有非托管资源</li>
+                </ul>
+
+                <h3>插件开发</h3>
+                <ul>
+                    <li>确保插件可以安全加载和卸载</li>
+                    <li>避免使用静态变量</li>
+                    <li>处理插件依赖关系</li>
+                    <li>提供清晰的错误信息</li>
+                    <li>遵循插件命名规范</li>
+                </ul>
+
+                <h3>性能优化</h3>
+                <ul>
+                    <li>重用图像对象，避免频繁创建</li>
+                    <li>使用并行处理加速算法</li>
+                    <li>合理设置图像分辨率</li>
+                    <li>使用对象池减少 GC 压力</li>
+                    <li>异步执行耗时操作</li>
+                </ul>
+            </section>
+
+            <footer class="footer">
+                <p>&copy; 2026 SunEyeVision. 保留所有权利。</p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // 导航已通过 a 标签实现，无需额外脚本
+    </script>
+</body>
+</html>

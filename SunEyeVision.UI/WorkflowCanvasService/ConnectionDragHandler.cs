@@ -29,10 +29,6 @@ namespace SunEyeVision.UI.WorkflowCanvasService
         private Point _startPosition;
 
         private Path? _tempConnectionLine;
-        private int _dragMoveCounter;
-        private int _highlightCounter;
-        private string? _lastHighlightedPort;
-        private string? _directHitTargetPort;
 
         #endregion
 
@@ -103,11 +99,6 @@ namespace SunEyeVision.UI.WorkflowCanvasService
             _sourcePort = sourcePort;
             _startPosition = startPosition;
 
-            _dragMoveCounter = 0;
-            _highlightCounter = 0;
-            _lastHighlightedPort = null;
-            _directHitTargetPort = null;
-
             ShowTempConnectionLine(startPosition);
 
             _canvas.CaptureMouse();
@@ -125,8 +116,6 @@ namespace SunEyeVision.UI.WorkflowCanvasService
             {
                 return;
             }
-
-            _dragMoveCounter++;
 
             if (_tempConnectionLine.Data is PathGeometry geometry && geometry.Figures.Count > 0)
             {
@@ -244,10 +233,6 @@ namespace SunEyeVision.UI.WorkflowCanvasService
             _isDragging = false;
             _sourceNode = null;
             _sourcePort = null;
-            _dragMoveCounter = 0;
-            _highlightCounter = 0;
-            _lastHighlightedPort = null;
-            _directHitTargetPort = null;
         }
 
         /// <summary>

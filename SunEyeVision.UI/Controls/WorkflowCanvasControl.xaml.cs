@@ -33,9 +33,7 @@ namespace SunEyeVision.UI.Controls
         private System.Windows.Point[]? _selectedNodesInitialPositions;
 
         // 连接模式相关
-        private bool _isCreatingConnection = false;
         private WorkflowNode? _connectionSourceNode = null;
-        private System.Windows.Point _connectionStartPoint;
 
         // 拖拽连接相关
         private bool _isDraggingConnection = false;
@@ -331,27 +329,6 @@ namespace SunEyeVision.UI.Controls
                     var stats = _connectionPathCache.GetStatistics();
                     _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 缓存预热完成，命中率: {stats.HitRate:P2}");
                 }
-            }
-
-            // 测试显示BoundingRectangle（临时测试）
-            _viewModel?.AddLog("[WorkflowCanvas Loaded] ========== 测试：临时显示BoundingRectangle ==========");
-            _viewModel?.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle当前可见性: {BoundingRectangle.Visibility}");
-
-            if (BoundingRectangle != null)
-            {
-                BoundingRectangle.Visibility = Visibility.Visible;
-                Canvas.SetLeft(BoundingRectangle, 100);
-                Canvas.SetTop(BoundingRectangle, 100);
-                BoundingRectangle.Width = 200;
-                BoundingRectangle.Height = 100;
-
-                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ BoundingRectangle已设置为可见");
-                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ 位置: (100, 100)");
-                _viewModel?.AddLog("[WorkflowCanvas Loaded] ✓ 大小: 200 x 100");
-            }
-            else
-            {
-                _viewModel?.AddLog("[WorkflowCanvas Loaded] ❌ BoundingRectangle为null，无法设置");
             }
 
             System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ========== Loaded事件完成 ==========");

@@ -1,0 +1,522 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.PluginSystem</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.PluginSystem.IToolPlugin">
+            <summary>
+            工具插件接口 - 扩展自IVisionPlugin，提供工具元数据和参数管理
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IToolPlugin.GetToolMetadata">
+            <summary>
+            获取工具元数据列表
+            </summary>
+            <returns>工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IToolPlugin.CreateToolInstance(System.String)">
+            <summary>
+            创建工具实例
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>图像处理器实例</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IToolPlugin.GetDefaultParameters(System.String)">
+            <summary>
+            获取工具的默认参数
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>默认算法参数</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IToolPlugin.ValidateParameters(System.String,SunEyeVision.Models.AlgorithmParameters)">
+            <summary>
+            验证参数
+            </summary>
+            <param name="toolId">工具ID</param>
+            <param name="parameters">算法参数</param>
+            <returns>验证结果</returns>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ToolPluginAttribute">
+            <summary>
+            工具插件特性 - 用于标记工具插件类
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolPluginAttribute.ToolId">
+            <summary>
+            工具ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolPluginAttribute.Name">
+            <summary>
+            工具名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolPluginAttribute.Version">
+            <summary>
+            工具版本
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolPluginAttribute.Category">
+            <summary>
+            工具分类
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.IVisionPlugin">
+            <summary>
+            瑙嗚鎻掍欢鎺ュ彛
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Name">
+            <summary>
+            鎻掍欢鍚嶇О
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Version">
+            <summary>
+            鎻掍欢鐗堟湰
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Author">
+            <summary>
+            鎻掍欢浣滆€?
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Description">
+            <summary>
+            鎻掍欢鎻忚堪
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.PluginId">
+            <summary>
+            鎻掍欢ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Dependencies">
+            <summary>
+            鎻掍欢渚濊禆
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.Icon">
+            <summary>
+            鎻掍欢鍥炬爣
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IVisionPlugin.Initialize">
+            <summary>
+            鍒濆鍖栨彃浠?
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IVisionPlugin.Unload">
+            <summary>
+            鍗歌浇鎻掍欢
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.IVisionPlugin.GetAlgorithmNodes">
+            <summary>
+            鑾峰彇绠楁硶鑺傜偣鍒楄〃
+            </summary>
+            <returns>绠楁硶鑺傜偣绫诲瀷鍒楄〃</returns>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.IVisionPlugin.IsLoaded">
+            <summary>
+            鎻掍欢鏄惁宸插姞杞?
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ParameterType">
+            <summary>
+            参数类型枚举
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ParameterMetadata">
+            <summary>
+            参数元数据 - 用于描述工具参数的完整信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Name">
+            <summary>
+            参数名(代码标识符)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.DisplayName">
+            <summary>
+            显示名称(UI显示)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Description">
+            <summary>
+            参数描述
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Type">
+            <summary>
+            参数类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.DefaultValue">
+            <summary>
+            默认值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.MinValue">
+            <summary>
+            最小值(用于数值类型)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.MaxValue">
+            <summary>
+            最大值(用于数值类型)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Options">
+            <summary>
+            枚举选项(用于枚举类型)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Required">
+            <summary>
+            是否必填
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.ReadOnly">
+            <summary>
+            是否只读
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.Category">
+            <summary>
+            参数分类(用于分组显示)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ParameterMetadata.EditableInDebug">
+            <summary>
+            是否支持调试模式下实时修改
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.PluginLoader">
+            <summary>
+            Plugin loader
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.LoadPluginsFromDirectory(System.String)">
+            <summary>
+            Load all plugins from directory
+            </summary>
+            <param name="pluginDirectory">Plugin directory</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.LoadPlugin(System.String)">
+            <summary>
+            Load single plugin
+            </summary>
+            <param name="pluginPath">Plugin DLL path</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.UnloadPlugin(System.String)">
+            <summary>
+            Unload plugin
+            </summary>
+            <param name="pluginId">Plugin ID</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.GetPlugin(System.String)">
+            <summary>
+            Get loaded plugin
+            </summary>
+            <param name="pluginId">Plugin ID</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.GetAllPlugins">
+            <summary>
+            Get all loaded plugins
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.GetAllAlgorithmNodes">
+            <summary>
+            Get all algorithm node types from plugins
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.PluginLoader.UnloadAllPlugins">
+            <summary>
+            Unload all plugins
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ColorConvertTool">
+            <summary>
+            颜色空间转换工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ColorConvertAlgorithm">
+            <summary>
+            颜色空间转换算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.EdgeDetectionTool">
+            <summary>
+            边缘检测工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.EdgeDetectionAlgorithm">
+            <summary>
+            边缘检测算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.GaussianBlurTool">
+            <summary>
+            高斯模糊工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.GaussianBlurAlgorithm">
+            <summary>
+            高斯模糊算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ImageCaptureTool">
+            <summary>
+            图像采集工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ImageCaptureAlgorithm">
+            <summary>
+            图像采集算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.OCRTool">
+            <summary>
+            OCR识别工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.OCRAlgorithm">
+            <summary>
+            OCR算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ROICropTool">
+            <summary>
+            ROI（感兴趣区域）裁剪工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ROICropAlgorithm">
+            <summary>
+            ROI裁剪算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.TemplateMatchingTool">
+            <summary>
+            模板匹配定位工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.TemplateMatchingAlgorithm">
+            <summary>
+            模板匹配算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ThresholdTool">
+            <summary>
+            图像阈值化工具插件示例
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.SampleTools.ThresholdAlgorithm">
+            <summary>
+            阈值化算法实现（简化版，仅用于演示）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ToolInitializer">
+            <summary>
+            工具插件初始化器 - 自动扫描和加载工具插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolInitializer.RegisterToolsFromAssembly(System.Reflection.Assembly)">
+            <summary>
+            从指定程序集自动注册所有工具插件
+            </summary>
+            <param name="assembly">要扫描的程序集</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolInitializer.RegisterAllTools">
+            <summary>
+            从当前应用程序域的所有程序集注册工具插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolInitializer.RegisterToolsByNamespace(System.String)">
+            <summary>
+            从特定命名空间的程序集注册工具插件
+            </summary>
+            <param name="namespacePattern">命名空间模式</param>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ToolMetadata">
+            <summary>
+            工具元数据 - 用于描述工具的完整信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Id">
+            <summary>
+            工具ID(唯一标识符)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Name">
+            <summary>
+            工具名称(代码标识符)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.DisplayName">
+            <summary>
+            显示名称(UI显示)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Description">
+            <summary>
+            工具描述
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Icon">
+            <summary>
+            工具图标
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Category">
+            <summary>
+            工具分类
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.AlgorithmType">
+            <summary>
+            算法类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.InputParameters">
+            <summary>
+            输入参数列表
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.OutputParameters">
+            <summary>
+            输出参数列表
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.HasDebugInterface">
+            <summary>
+            是否有调试界面
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Version">
+            <summary>
+            工具版本
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.Author">
+            <summary>
+            工具作者
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ToolMetadata.IsEnabled">
+            <summary>
+            是否已启用
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ValidationResult">
+            <summary>
+            参数验证结果
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ValidationResult.IsValid">
+            <summary>
+            是否验证通过
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ValidationResult.Errors">
+            <summary>
+            错误信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.PluginSystem.ValidationResult.Warnings">
+            <summary>
+            警告信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ValidationResult.Success">
+            <summary>
+            创建验证成功的结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ValidationResult.Failure(System.String)">
+            <summary>
+            创建验证失败的结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ValidationResult.AddError(System.String)">
+            <summary>
+            添加错误信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ValidationResult.AddWarning(System.String)">
+            <summary>
+            添加警告信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.PluginSystem.ToolRegistry">
+            <summary>
+            工具注册表 - 管理所有已注册的工具插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.RegisterTool(SunEyeVision.PluginSystem.IToolPlugin)">
+            <summary>
+            注册工具插件
+            </summary>
+            <param name="toolPlugin">工具插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetToolPlugin(System.String)">
+            <summary>
+            获取工具插件
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具插件实例，如果不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetToolMetadata(System.String)">
+            <summary>
+            获取工具元数据
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具元数据，如果不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetAllToolMetadata">
+            <summary>
+            获取所有工具元数据
+            </summary>
+            <returns>所有工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetToolsByCategory(System.String)">
+            <summary>
+            按分类获取工具元数据
+            </summary>
+            <param name="category">分类名称</param>
+            <returns>该分类下的工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.ToolExists(System.String)">
+            <summary>
+            检查工具是否存在
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否存在</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.UnregisterTool(System.String)">
+            <summary>
+            注销工具插件
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否成功</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.ClearAll">
+            <summary>
+            清空所有注册的工具
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetToolCount">
+            <summary>
+            获取已注册的工具数量
+            </summary>
+            <returns>工具数量</returns>
+        </member>
+        <member name="M:SunEyeVision.PluginSystem.ToolRegistry.GetAllCategories">
+            <summary>
+            获取所有分类
+            </summary>
+            <returns>分类列表</returns>
+        </member>
+    </members>
+</doc>
