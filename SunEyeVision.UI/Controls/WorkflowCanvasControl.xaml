@@ -26,17 +26,19 @@
         <SolidColorBrush x:Key="ArrowBrush" Color="#666666"/>
     </UserControl.Resources>
 
-    <!-- 工作流画布 -->
-    <Canvas x:Name="WorkflowCanvas"
-            ClipToBounds="True"
-            AllowDrop="True"
-            DragEnter="WorkflowCanvas_DragEnter"
-            DragOver="WorkflowCanvas_DragOver"
-            DragLeave="WorkflowCanvas_DragLeave"
-            Drop="WorkflowCanvas_Drop"
-            PreviewMouseLeftButtonDown="WorkflowCanvas_PreviewMouseLeftButtonDown"
-            PreviewMouseMove="WorkflowCanvas_PreviewMouseMove"
-            PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp">
+    <!-- 主容器 -->
+    <Grid x:Name="MainGrid">
+        <!-- 原有的 WorkflowCanvas -->
+        <Canvas x:Name="WorkflowCanvas"
+                ClipToBounds="True"
+                AllowDrop="True"
+                DragEnter="WorkflowCanvas_DragEnter"
+                DragOver="WorkflowCanvas_DragOver"
+                DragLeave="WorkflowCanvas_DragLeave"
+                Drop="WorkflowCanvas_Drop"
+                PreviewMouseLeftButtonDown="WorkflowCanvas_PreviewMouseLeftButtonDown"
+                PreviewMouseMove="WorkflowCanvas_PreviewMouseMove"
+                PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp">
 
         <!-- 网格背景 -->
         <Canvas.Background>
@@ -406,4 +408,8 @@
             </Border.Effect>
         </Border>
     </Canvas>
+
+    <!-- VirtualizedCanvas - 虚拟化画布（大规模节点时使用） -->
+    <!-- 注意：VirtualizedCanvas 在代码中动态添加到 MainGrid -->
+    </Grid>
 </UserControl>
