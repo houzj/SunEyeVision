@@ -26,6 +26,11 @@ namespace SunEyeVision.UI.Converters
         public static ObservableCollection<WorkflowConnection>? Connections { get; set; }
 
         /// <summary>
+        /// 连接线路径缓存（静态）
+        /// </summary>
+        public static Services.ConnectionPathCache? PathCache { get; set; }
+
+        /// <summary>
         /// 控件偏移量
         /// </summary>
         public double ControlOffset { get; set; } = 60;
@@ -45,8 +50,7 @@ namespace SunEyeVision.UI.Converters
             if (value is not WorkflowConnection connection || Nodes == null)
                 return string.Empty;
 
-            try
-            {
+            try {
                 // 根据 ID 查找源节点和目标节点
                 WorkflowNode? sourceNode = Nodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
                 WorkflowNode? targetNode = Nodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
@@ -60,8 +64,21 @@ namespace SunEyeVision.UI.Converters
                 Point startPoint = new Point(sourceNode.Position.X + NodeWidth / 2, sourceNode.Position.Y + NodeHeight / 2);
                 Point endPoint = new Point(targetNode.Position.X + NodeWidth / 2, targetNode.Position.Y + NodeHeight / 2);
 
+                // 尝试从缓存获取路径数据
+                if (PathCache != null)
+                {
+                    var cachedPathData = PathCache.GetPathData(connection);
+                    if (!string.IsNullOrEmpty(cachedPathData))
+                    {
+                        return cachedPathData;
+                    }
+                }
+
                 // 生成路径数据
                 string pathData = GeneratePathData(startPoint, endPoint, sourceNode, targetNode);
+
+                // 不在这里缓存，由 ConnectionPathService 负责
+                
                 return pathData;
             }
             catch (Exception)

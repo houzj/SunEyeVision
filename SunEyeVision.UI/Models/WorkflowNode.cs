@@ -184,7 +184,7 @@ namespace SunEyeVision.UI.Models
     /// <summary>
     /// 工作流连接线模型
     /// </summary>
-    public class WorkflowConnection : INotifyPropertyChanged
+        public class WorkflowConnection : INotifyPropertyChanged
     {
         private string _id = string.Empty;
         private string _sourceNodeId = string.Empty;
@@ -197,6 +197,7 @@ namespace SunEyeVision.UI.Models
         private double _arrowAngle = 0;
         private ConnectionStatus _status = ConnectionStatus.Idle;
         private bool _showPathPoints = true;
+        private string _pathData = string.Empty;
 
         public string Id
         {
@@ -362,6 +363,22 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
+        /// 连线路径数据（SVG路径字符串）
+        /// </summary>
+        public string PathData
+        {
+            get => _pathData;
+            set
+            {
+                if (_pathData != value)
+                {
+                    _pathData = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
         /// 连线路径点集合（拐点）
         /// </summary>
         public System.Collections.ObjectModel.ObservableCollection<System.Windows.Point> PathPoints { get; set; } = new System.Collections.ObjectModel.ObservableCollection<System.Windows.Point>();
@@ -419,6 +436,16 @@ namespace SunEyeVision.UI.Models
         /// 连接线终点Y坐标（用于绑定）
         /// </summary>
         public double EndY => TargetPosition.Y;
+
+        public WorkflowConnection()
+        {
+            Id = string.Empty;
+            SourceNodeId = string.Empty;
+            TargetNodeId = string.Empty;
+            SourcePosition = new Point(0, 0);
+            TargetPosition = new Point(0, 0);
+            ArrowPosition = new Point(0, 0);
+        }
 
         public WorkflowConnection(string id, string sourceNodeId, string targetNodeId)
         {

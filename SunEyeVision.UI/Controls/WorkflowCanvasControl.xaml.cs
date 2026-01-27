@@ -49,6 +49,13 @@ namespace SunEyeVision.UI.Controls
         private string? _lastHighlightedPort = null; // 上次高亮的端口名称
         private string? _directHitTargetPort = null; // 用户直接命中的目标端口名称
 
+        // 连接线路径缓存
+        private Services.ConnectionPathCache? _connectionPathCache;
+        
+        // 节点拖拽性能优化
+        private DateTime _lastConnectionUpdateTime = DateTime.MinValue;
+        private const int ConnectionUpdateIntervalMs = 50; // 连接线更新间隔（毫秒）
+
         /// <summary>
         /// 是否正在拖拽连接（用于绑定，控制连接点是否显示）
         /// </summary>
@@ -268,6 +275,15 @@ namespace SunEyeVision.UI.Controls
                 Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
                 _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
+                // 初始化连接线路径缓存
+                _connectionPathCache = new Services.ConnectionPathCache(
+                    CurrentWorkflowTab.WorkflowNodes
+                );
+                _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 已初始化ConnectionPathCache，共{CurrentWorkflowTab.WorkflowConnections.Count}个连接");
+                
+                // 设置SmartPathConverter的缓存引用
+                Converters.SmartPathConverter.PathCache = _connectionPathCache;
+
                 // 订阅节点集合变化事件
                 if (CurrentWorkflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
                 {
@@ -278,6 +294,18 @@ namespace SunEyeVision.UI.Controls
 
                         // 触发所有连接的属性变化，重新计算路径
                         RefreshAllConnectionPaths();
+                        
+                        // 标记相关连接为脏数据
+                        if (_connectionPathCache != null)
+                        {
+                            if (args.NewItems != null)
+                            {
+                                foreach (WorkflowNode node in args.NewItems)
+                                {
+                                    _connectionPathCache.MarkNodeDirty(node.Id);
+                                }
+                            }
+                        }
                     };
                 }
 
@@ -287,7 +315,21 @@ namespace SunEyeVision.UI.Controls
                     connectionsCollection.CollectionChanged += (s, args) =>
                     {
                         UpdateBoundingRectangle();
+                        
+                        // 标记所有缓存为脏数据
+                        if (_connectionPathCache != null)
+                        {
+                            _connectionPathCache.MarkAllDirty();
+                        }
                     };
+                }
+                
+                // 预热缓存
+                if (_connectionPathCache != null)
+                {
+                    _connectionPathCache.WarmUp(CurrentWorkflowTab.WorkflowConnections);
+                    var stats = _connectionPathCache.GetStatistics();
+                    _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 缓存预热完成，命中率: {stats.HitRate:P2}");
                 }
             }
 
@@ -322,6 +364,13 @@ namespace SunEyeVision.UI.Controls
         {
             if (CurrentWorkflowTab == null) return;
 
+            // 标记所有缓存为脏数据
+            if (_connectionPathCache != null)
+            {
+                _connectionPathCache.MarkAllDirty();
+            }
+
+            // 触发所有连接的属性变化，强制刷新UI
             foreach (var connection in CurrentWorkflowTab.WorkflowConnections)
             {
                 // 触发 SourcePosition 变化，导致转换器重新计算
@@ -501,6 +550,15 @@ namespace SunEyeVision.UI.Controls
                                 delta
                             );
                             _viewModel.WorkflowTabViewModel.SelectedTab.CommandManager.Execute(batchCommand);
+                            
+                            // 拖拽结束后，强制更新所有相关连接的缓存
+                            if (_connectionPathCache != null)
+                            {
+                                foreach (var node in selectedNodes)
+                                {
+                                    _connectionPathCache.MarkNodeDirty(node.Id);
+                                }
+                            }
                         }
                     }
                 }
@@ -519,6 +577,8 @@ namespace SunEyeVision.UI.Controls
             if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(WorkflowCanvas);
+                var now = DateTime.Now;
+                var shouldUpdateConnections = (now - _lastConnectionUpdateTime).TotalMilliseconds >= ConnectionUpdateIntervalMs;
 
                 // 批量移动所有选中的节点
                 if (_viewModel?.WorkflowTabViewModel.SelectedTab != null &&
@@ -539,6 +599,16 @@ namespace SunEyeVision.UI.Controls
                         );
                         selectedNodes[i].Position = newPos;
                     }
+                    
+                    // 节流更新连接线缓存
+                    if (shouldUpdateConnections && _connectionPathCache != null)
+                    {
+                        foreach (var node in selectedNodes)
+                        {
+                            _connectionPathCache.MarkNodeDirty(node.Id);
+                        }
+                        _lastConnectionUpdateTime = now;
+                    }
                 }
                 else
                 {
@@ -548,6 +618,13 @@ namespace SunEyeVision.UI.Controls
                         _initialNodePosition.X + offset.X,
                         _initialNodePosition.Y + offset.Y
                     );
+                    
+                    // 节流更新连接线缓存
+                    if (shouldUpdateConnections && _connectionPathCache != null)
+                    {
+                        _connectionPathCache.MarkNodeDirty(_draggedNode.Id);
+                        _lastConnectionUpdateTime = now;
+                    }
                 }
             }
         }
