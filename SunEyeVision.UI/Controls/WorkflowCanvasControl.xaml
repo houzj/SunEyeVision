@@ -24,6 +24,32 @@
 
         <!-- 箭头填充颜色 -->
         <SolidColorBrush x:Key="ArrowBrush" Color="#666666"/>
+
+        <!-- 端口椭圆样式（共享资源） -->
+        <Style x:Key="PortEllipseStyle" TargetType="Ellipse">
+            <Setter Property="Fill" Value="#0066CC"/>
+            <Setter Property="Stroke" Value="#FFFFFF"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Cursor" Value="Cross"/>
+            <Setter Property="Panel.ZIndex" Value="10"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Fill" Value="#FF6600"/>
+                    <Setter Property="Width" Value="18"/>
+                    <Setter Property="Height" Value="18"/>
+                    <Setter Property="StrokeThickness" Value="3"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 节点背景样式 -->
+        <SolidColorBrush x:Key="NodeBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NodeHeaderBackground" Color="#0066CC"/>
+        <SolidColorBrush x:Key="NodeFooterBackground" Color="#F0F8FF"/>
+        <SolidColorBrush x:Key="NodeTextForeground" Color="#0066CC"/>
+        <SolidColorBrush x:Key="NodeTimeForeground" Color="#666666"/>
     </UserControl.Resources>
 
     <!-- 主容器 -->
@@ -174,7 +200,8 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Width="140" Height="90"
-                            Background="#FFFFFF" CornerRadius="4"
+                            Background="{StaticResource NodeBackground}" 
+                            CornerRadius="4"
                             MouseLeftButtonDown="Node_MouseLeftButtonDown"
                             MouseLeftButtonUp="Node_MouseLeftButtonUp"
                             MouseMove="Node_MouseMove"
@@ -182,171 +209,84 @@
                             MouseEnter="Node_MouseEnter"
                             MouseLeave="Node_MouseLeave"
                             x:Name="NodeBorder">
-                        <Grid Background="Transparent">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Border Grid.Row="0" Background="#0066CC" Padding="6" CornerRadius="3,3,0,0">
-                                <StackPanel Orientation="Horizontal">
+                        <Canvas>
+                            <!-- 标题栏 (0-30) -->
+                            <Border Canvas.Top="0" Canvas.Left="0" Width="140" Height="30"
+                                    Background="{StaticResource NodeHeaderBackground}" 
+                                    CornerRadius="3,3,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="6,0,0,0">
                                     <TextBlock Text="🔧" FontSize="14"/>
-                                    <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                                    <TextBlock Text="{Binding Name}" Margin="6,0,0,0" 
+                                              FontWeight="Bold" FontSize="12" 
+                                              Foreground="White"/>
                                 </StackPanel>
                             </Border>
-                            <TextBlock Grid.Row="1" Text="{Binding AlgorithmType}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#0066CC"/>
-                            <Border Grid.Row="2" Background="#F0F8FF" Padding="4" CornerRadius="0,0,3,3">
-                                <TextBlock Text="⏱️ 0ms" HorizontalAlignment="Center" FontSize="10" Foreground="#666666"/>
+
+                            <!-- 算法类型 (30-60) -->
+                            <TextBlock Canvas.Top="30" Canvas.Left="0" Width="140" Height="30"
+                                      Text="{Binding AlgorithmType}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center" 
+                                      FontSize="10" 
+                                      Foreground="{StaticResource NodeTextForeground}"
+                                      TextAlignment="Center"/>
+
+                            <!-- 页脚 (60-90) -->
+                            <Border Canvas.Top="60" Canvas.Left="0" Width="140" Height="30"
+                                    Background="{StaticResource NodeFooterBackground}" 
+                                    CornerRadius="0,0,3,3">
+                                <TextBlock Text="⏱️ 0ms" 
+                                          HorizontalAlignment="Center" 
+                                          FontSize="10" 
+                                          Foreground="{StaticResource NodeTimeForeground}"
+                                          TextAlignment="Center"
+                                          Margin="0,0,0,0"/>
                             </Border>
 
                             <!-- 连接点 - 上方 -->
-                            <Ellipse Grid.RowSpan="3"
-                                     HorizontalAlignment="Center" VerticalAlignment="Top"
-                                     Cursor="Cross" Panel.ZIndex="10"
+                            <Ellipse Canvas.Left="63" Canvas.Top="-7"
+                                     Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
                                      Tag="{Binding}"
                                      MouseEnter="Ellipse_MouseEnter"
                                      MouseLeave="Ellipse_MouseLeave"
                                      x:Name="TopPortEllipse"
-                                     Visibility="Collapsed">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#0066CC"/>
-                                        <Setter Property="Stroke" Value="#FFFFFF"/>
-                                        <Setter Property="StrokeThickness" Value="2"/>
-                                        <Setter Property="Width" Value="14"/>
-                                        <Setter Property="Height" Value="14"/>
-                                        <Setter Property="Margin" Value="0,-7,0,0"/>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Fill" Value="#FF6600"/>
-                                                <Setter Property="Width" Value="18"/>
-                                                <Setter Property="Height" Value="18"/>
-                                                <Setter Property="Margin" Value="0,-9,0,0"/>
-                                                <Setter Property="StrokeThickness" Value="3"/>
-                                                <Setter Property="Effect">
-                                                    <Setter.Value>
-                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                                     Visibility="Collapsed"/>
 
                             <!-- 连接点 - 下方 -->
-                            <Ellipse Grid.RowSpan="3"
-                                     HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                                     Cursor="Cross" Panel.ZIndex="10"
+                            <Ellipse Canvas.Left="63" Canvas.Top="83"
+                                     Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
                                      Tag="{Binding}"
                                      MouseEnter="Ellipse_MouseEnter"
                                      MouseLeave="Ellipse_MouseLeave"
                                      x:Name="BottomPortEllipse"
-                                     Visibility="Collapsed">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#0066CC"/>
-                                        <Setter Property="Stroke" Value="#FFFFFF"/>
-                                        <Setter Property="StrokeThickness" Value="2"/>
-                                        <Setter Property="Width" Value="14"/>
-                                        <Setter Property="Height" Value="14"/>
-                                        <Setter Property="Margin" Value="0,0,0,-7"/>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Fill" Value="#FF6600"/>
-                                                <Setter Property="Width" Value="18"/>
-                                                <Setter Property="Height" Value="18"/>
-                                                <Setter Property="Margin" Value="0,0,0,-9"/>
-                                                <Setter Property="StrokeThickness" Value="3"/>
-                                                <Setter Property="Effect">
-                                                    <Setter.Value>
-                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                                     Visibility="Collapsed"/>
 
                             <!-- 连接点 - 左侧 -->
-                            <Ellipse Grid.RowSpan="3"
-                                     HorizontalAlignment="Left" VerticalAlignment="Center"
-                                     Cursor="Cross" Panel.ZIndex="10"
+                            <Ellipse Canvas.Left="-7" Canvas.Top="38"
+                                     Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
                                      Tag="{Binding}"
                                      MouseEnter="Ellipse_MouseEnter"
                                      MouseLeave="Ellipse_MouseLeave"
                                      x:Name="LeftPortEllipse"
-                                     Visibility="Collapsed">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#0066CC"/>
-                                        <Setter Property="Stroke" Value="#FFFFFF"/>
-                                        <Setter Property="StrokeThickness" Value="2"/>
-                                        <Setter Property="Width" Value="14"/>
-                                        <Setter Property="Height" Value="14"/>
-                                        <Setter Property="Margin" Value="-7,0,0,0"/>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Fill" Value="#FF6600"/>
-                                                <Setter Property="Width" Value="18"/>
-                                                <Setter Property="Height" Value="18"/>
-                                                <Setter Property="Margin" Value="-9,0,0,0"/>
-                                                <Setter Property="StrokeThickness" Value="3"/>
-                                                <Setter Property="Effect">
-                                                    <Setter.Value>
-                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                                     Visibility="Collapsed"/>
 
                             <!-- 连接点 - 右侧 -->
-                            <Ellipse Grid.RowSpan="3"
-                                     HorizontalAlignment="Right" VerticalAlignment="Center"
-                                     Cursor="Cross" Panel.ZIndex="10"
+                            <Ellipse Canvas.Left="133" Canvas.Top="38"
+                                     Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
                                      Tag="{Binding}"
                                      MouseEnter="Ellipse_MouseEnter"
                                      MouseLeave="Ellipse_MouseLeave"
                                      x:Name="RightPortEllipse"
-                                     Visibility="Collapsed">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="#0066CC"/>
-                                        <Setter Property="Stroke" Value="#FFFFFF"/>
-                                        <Setter Property="StrokeThickness" Value="2"/>
-                                        <Setter Property="Width" Value="14"/>
-                                        <Setter Property="Height" Value="14"/>
-                                        <Setter Property="Margin" Value="0,0,-7,0"/>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Fill" Value="#FF6600"/>
-                                                <Setter Property="Width" Value="18"/>
-                                                <Setter Property="Height" Value="18"/>
-                                                <Setter Property="Margin" Value="0,0,-9,0"/>
-                                                <Setter Property="StrokeThickness" Value="3"/>
-                                                <Setter Property="Effect">
-                                                    <Setter.Value>
-                                                        <DropShadowEffect Color="#FF6600" BlurRadius="8" ShadowDepth="0"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
-                        </Grid>
+                                     Visibility="Collapsed"/>
+                        </Canvas>
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Effect" Value="{x:Null}"/>
