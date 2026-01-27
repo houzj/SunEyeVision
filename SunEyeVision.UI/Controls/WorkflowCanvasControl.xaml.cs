@@ -472,25 +472,22 @@ namespace SunEyeVision.UI.Controls
 
                     if (selectedNodes.Count > 0)
                     {
-                        // 计算每个节点的移动偏移量
-                        var offsets = new List<System.Windows.Point>();
-                        for (int i = 0; i < selectedNodes.Count; i++)
+                        // 计算统一的移动偏移量
+                        Vector delta = new Vector(0, 0);
+                        if (_selectedNodesInitialPositions != null && selectedNodes.Count > 0)
                         {
-                            if (_selectedNodesInitialPositions != null && i < _selectedNodesInitialPositions.Length)
-                            {
-                                offsets.Add(new System.Windows.Point(
-                                    selectedNodes[i].Position.X - _selectedNodesInitialPositions[i].X,
-                                    selectedNodes[i].Position.Y - _selectedNodesInitialPositions[i].Y
-                                ));
-                            }
+                            delta = new Vector(
+                                selectedNodes[0].Position.X - _selectedNodesInitialPositions[0].X,
+                                selectedNodes[0].Position.Y - _selectedNodesInitialPositions[0].Y
+                            );
                         }
 
                         // 如果有移动，执行批量移动命令
-                        if (offsets.Any(o => o.X != 0 || o.Y != 0))
+                        if (delta.X != 0 || delta.Y != 0)
                         {
                             var batchCommand = new Commands.BatchMoveNodesCommand(
-                                new ObservableCollection<WorkflowNode>(selectedNodes),
-                                offsets
+                                new List<WorkflowNode>(selectedNodes),
+                                delta
                             );
                             _viewModel.WorkflowTabViewModel.SelectedTab.CommandManager.Execute(batchCommand);
                         }

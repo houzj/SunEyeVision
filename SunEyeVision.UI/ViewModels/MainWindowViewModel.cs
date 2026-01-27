@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using SunEyeVision.UI.Commands;
+using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.PluginSystem;
 
@@ -82,13 +82,13 @@ namespace SunEyeVision.UI.ViewModels
         /// 当前选中画布的命令管理器（用于撤销/重做功能）
         /// 每个画布都有独立的撤销/重做栈
         /// </summary>
-        public Commands.CommandManager? CurrentCommandManager
+        public AppCommands.CommandManager? CurrentCommandManager
         {
             get => WorkflowTabViewModel.SelectedTab?.CommandManager;
         }
 
         // 用于跟踪当前订阅的命令管理器，避免重复订阅
-        private Commands.CommandManager? _subscribedCommandManager;
+        private AppCommands.CommandManager? _subscribedCommandManager;
 
         public string StatusText
         {
@@ -224,23 +224,23 @@ namespace SunEyeVision.UI.ViewModels
             InitializeSampleNodes();
             InitializePropertyGroups();
 
-            NewWorkflowCommand = new Commands.RelayCommand(ExecuteNewWorkflow);
-            OpenWorkflowCommand = new Commands.RelayCommand(ExecuteOpenWorkflow);
-            SaveWorkflowCommand = new Commands.RelayCommand(ExecuteSaveWorkflow);
-            SaveAsWorkflowCommand = new Commands.RelayCommand(ExecuteSaveAsWorkflow);
-            RunWorkflowCommand = new Commands.RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
-            StopWorkflowCommand = new Commands.RelayCommand(ExecuteStopWorkflow, () => IsRunning);
-            ShowSettingsCommand = new Commands.RelayCommand(ExecuteShowSettings);
-            ShowAboutCommand = new Commands.RelayCommand(ExecuteShowAbout);
-            ShowHelpCommand = new Commands.RelayCommand(ExecuteShowHelp);
-            ShowShortcutsCommand = new Commands.RelayCommand(ExecuteShowShortcuts);
-            PauseCommand = new Commands.RelayCommand(ExecutePause);
-            UndoCommand = new Commands.RelayCommand(ExecuteUndo, CanExecuteUndo);
-            RedoCommand = new Commands.RelayCommand(ExecuteRedo, CanExecuteRedo);
-            DeleteSelectedNodesCommand = new Commands.RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
-            OpenDebugWindowCommand = new Commands.RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
-            ToggleBoundingRectangleCommand = new Commands.RelayCommand(ExecuteToggleBoundingRectangle);
-            TogglePathPointsCommand = new Commands.RelayCommand(ExecuteTogglePathPoints);
+            NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
+            OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
+            SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
+            SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
+            RunWorkflowCommand = new RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
+            StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
+            ShowSettingsCommand = new RelayCommand(ExecuteShowSettings);
+            ShowAboutCommand = new RelayCommand(ExecuteShowAbout);
+            ShowHelpCommand = new RelayCommand(ExecuteShowHelp);
+            ShowShortcutsCommand = new RelayCommand(ExecuteShowShortcuts);
+            PauseCommand = new RelayCommand(ExecutePause);
+            UndoCommand = new RelayCommand(ExecuteUndo, CanExecuteUndo);
+            RedoCommand = new RelayCommand(ExecuteRedo, CanExecuteRedo);
+            DeleteSelectedNodesCommand = new RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
+            OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
+            ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
+            TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
         }
 
         /// <summary>
@@ -285,8 +285,8 @@ namespace SunEyeVision.UI.ViewModels
         {
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                var undoCmd = UndoCommand as Commands.RelayCommand;
-                var redoCmd = RedoCommand as Commands.RelayCommand;
+                var undoCmd = UndoCommand as RelayCommand;
+                var redoCmd = RedoCommand as RelayCommand;
                 undoCmd?.RaiseCanExecuteChanged();
                 redoCmd?.RaiseCanExecuteChanged();
 
@@ -542,7 +542,7 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var command = new AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
+            var command = new AppCommands.AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
 
@@ -554,7 +554,7 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var command = new DeleteNodeCommand(
+            var command = new AppCommands.DeleteNodeCommand(
                 WorkflowTabViewModel.SelectedTab.WorkflowNodes,
                 WorkflowTabViewModel.SelectedTab.WorkflowConnections,
                 node);
@@ -566,7 +566,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void MoveNode(WorkflowNode node, Point newPosition)
         {
-            var command = new MoveNodeCommand(node, newPosition);
+            var command = new AppCommands.MoveNodeCommand(node, node.Position, newPosition);
             if (WorkflowTabViewModel.SelectedTab != null)
             {
                 WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
@@ -581,7 +581,7 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var command = new AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
+            var command = new AppCommands.AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
 
@@ -593,7 +593,7 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var command = new DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
+            var command = new AppCommands.DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
 
@@ -605,9 +605,11 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var command = new Commands.BatchDeleteNodesCommand(
+            var selectedNodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes.Where(n => n.IsSelected).ToList();
+            var command = new AppCommands.BatchDeleteNodesCommand(
                 WorkflowTabViewModel.SelectedTab.WorkflowNodes,
-                WorkflowTabViewModel.SelectedTab.WorkflowConnections);
+                WorkflowTabViewModel.SelectedTab.WorkflowConnections,
+                selectedNodes);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
 
             // 清除选中状态
@@ -648,7 +650,8 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var selectedCount = WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count(n => n.IsSelected);
+            var selectedNodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes.Where(n => n.IsSelected).ToList();
+            var selectedCount = selectedNodes.Count;
             if (selectedCount == 0)
                 return;
 
@@ -660,7 +663,16 @@ namespace SunEyeVision.UI.ViewModels
 
             if (result == System.Windows.MessageBoxResult.Yes)
             {
-                DeleteSelectedNodes();
+                var command = new AppCommands.BatchDeleteNodesCommand(
+                    WorkflowTabViewModel.SelectedTab.WorkflowNodes,
+                    WorkflowTabViewModel.SelectedTab.WorkflowConnections,
+                    selectedNodes);
+                WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+                // 清除选中状态
+                SelectedNode = null;
+                ClearNodeSelections();
+
                 AddLog($"已删除 {selectedCount} 个节点");
             }
         }

@@ -437,4 +437,15 @@ namespace SunEyeVision.UI.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
+
+    /// <summary>
+    /// 连接状态
+    /// </summary>
+    public enum ConnectionStatus
+    {
+        Idle,
+        Transmitting,
+        Completed,
+        Error
+    }
 }

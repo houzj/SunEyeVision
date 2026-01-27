@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
+using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 
@@ -25,7 +26,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 每个画布独立的撤销/重做命令管理器
         /// </summary>
-        public Commands.CommandManager CommandManager { get; }
+        public AppCommands.CommandManager CommandManager { get; }
 
         public WorkflowTabViewModel()
         {
@@ -39,7 +40,7 @@ namespace SunEyeVision.UI.ViewModels
             ScaleTransform = new ScaleTransform(1.0, 1.0);
 
             // 每个画布初始化独立的命令管理器
-            CommandManager = new Commands.CommandManager(WorkflowNodes, WorkflowConnections);
+            CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
         }
 
         /// <summary>

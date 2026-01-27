@@ -68,11 +68,6 @@ namespace SunEyeVision.Workflow
         public List<PortConnection> PortConnections { get; set; }
 
         /// <summary>
-        /// 依赖分析器
-        /// </summary>
-        private DependencyAnalyzer DependencyAnalyzer { get; set; }
-
-        /// <summary>
         /// Logger
         /// </summary>
         private ILogger Logger { get; set; }
@@ -93,7 +88,6 @@ namespace SunEyeVision.Workflow
             Nodes = new List<WorkflowNode>();
             Connections = new Dictionary<string, List<string>>();
             PortConnections = new List<PortConnection>();
-            DependencyAnalyzer = new DependencyAnalyzer(logger);
         }
 
         /// <summary>
@@ -198,7 +192,37 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public List<List<string>> GetParallelExecutionGroups()
         {
-            return DependencyAnalyzer.GetParallelExecutionGroups(this);
+            var groups = new List<List<string>>();
+            var remaining = new HashSet<string>(Nodes.Select(n => n.Id));
+            var processed = new HashSet<string>();
+
+            while (remaining.Count > 0)
+            {
+                var currentGroup = new List<string>();
+
+                foreach (var nodeId in remaining.ToList())
+                {
+                    var dependencies = Connections.Where(kvp => kvp.Value.Contains(nodeId)).Select(kvp => kvp.Key).ToList();
+                    if (dependencies.All(dep => processed.Contains(dep)))
+                    {
+                        currentGroup.Add(nodeId);
+                    }
+                }
+
+                if (currentGroup.Count == 0)
+                {
+                    break;
+                }
+
+                groups.Add(currentGroup);
+                foreach (var nodeId in currentGroup)
+                {
+                    processed.Add(nodeId);
+                    remaining.Remove(nodeId);
+                }
+            }
+
+            return groups;
         }
 
         /// <summary>
@@ -206,7 +230,43 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public List<string> GetExecutionOrder()
         {
-            return DependencyAnalyzer.TopologicalSort(this);
+            var order = new List<string>();
+            var visited = new HashSet<string>();
+            var tempVisited = new HashSet<string>();
+
+            void Visit(string nodeId)
+            {
+                if (tempVisited.Contains(nodeId))
+                {
+                    return;
+                }
+
+                if (visited.Contains(nodeId))
+                {
+                    return;
+                }
+
+                tempVisited.Add(nodeId);
+
+                if (Connections.ContainsKey(nodeId))
+                {
+                    foreach (var dependentId in Connections[nodeId])
+                    {
+                        Visit(dependentId);
+                    }
+                }
+
+                tempVisited.Remove(nodeId);
+                visited.Add(nodeId);
+                order.Add(nodeId);
+            }
+
+            foreach (var node in Nodes)
+            {
+                Visit(node.Id);
+            }
+
+            return order;
         }
 
         /// <summary>
@@ -214,7 +274,47 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public List<string> DetectCycles()
         {
-            return DependencyAnalyzer.DetectCycles(this);
+            var cycles = new List<string>();
+            var visited = new HashSet<string>();
+            var recursionStack = new HashSet<string>();
+
+            bool DetectCycle(string nodeId, string path)
+            {
+                visited.Add(nodeId);
+                recursionStack.Add(nodeId);
+
+                if (Connections.ContainsKey(nodeId))
+                {
+                    foreach (var dependentId in Connections[nodeId])
+                    {
+                        if (!visited.Contains(dependentId))
+                        {
+                            if (DetectCycle(dependentId, path + " -> " + dependentId))
+                            {
+                                return true;
+                            }
+                        }
+                        else if (recursionStack.Contains(dependentId))
+                        {
+                            cycles.Add(path + " -> " + dependentId);
+                            return true;
+                        }
+                    }
+                }
+
+                recursionStack.Remove(nodeId);
+                return false;
+            }
+
+            foreach (var node in Nodes)
+            {
+                if (!visited.Contains(node.Id))
+                {
+                    DetectCycle(node.Id, node.Id);
+                }
+            }
+
+            return cycles;
         }
 
         /// <summary>
@@ -222,7 +322,36 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public int GetNodePriority(string nodeId)
         {
-            return DependencyAnalyzer.GetNodePriority(this, nodeId);
+            var visited = new HashSet<string>();
+
+            int CalculatePriority(string id)
+            {
+                if (visited.Contains(id))
+                {
+                    return 0;
+                }
+
+                visited.Add(id);
+
+                if (!Connections.ContainsKey(id))
+                {
+                    return 0;
+                }
+
+                var maxPriority = 0;
+                foreach (var dependentId in Connections[id])
+                {
+                    var priority = CalculatePriority(dependentId);
+                    if (priority > maxPriority)
+                    {
+                        maxPriority = priority;
+                    }
+                }
+
+                return maxPriority + 1;
+            }
+
+            return CalculatePriority(nodeId);
         }
 
         /// <summary>
@@ -370,6 +499,61 @@ namespace SunEyeVision.Workflow
             }
 
             return info;
+        }
+    }
+
+    /// <summary>
+    /// 执行组状态
+    /// </summary>
+    public enum ExecutionGroupStatus
+    {
+        Pending,
+        Running,
+        Completed,
+        Failed
+    }
+
+    /// <summary>
+    /// 执行组
+    /// </summary>
+    public class ExecutionGroup
+    {
+        public int GroupNumber { get; set; }
+        public List<string> NodeIds { get; set; } = new List<string>();
+        public ExecutionGroupStatus Status { get; set; }
+    }
+
+    /// <summary>
+    /// 执行计划
+    /// </summary>
+    public class ExecutionPlan
+    {
+        public List<ExecutionGroup> Groups { get; set; } = new List<ExecutionGroup>();
+        private DateTime _startTime;
+        private DateTime _endTime;
+
+        public void Start()
+        {
+            _startTime = DateTime.Now;
+        }
+
+        public void Complete()
+        {
+            _endTime = DateTime.Now;
+        }
+
+        public string GetReport()
+        {
+            var duration = (_endTime - _startTime).TotalMilliseconds;
+            var report = $"Execution completed in {duration:F2}ms\n";
+            report += $"Groups: {Groups.Count}\n";
+
+            foreach (var group in Groups)
+            {
+                report += $"  Group {group.GroupNumber}: {group.NodeIds.Count} nodes - {group.Status}\n";
+            }
+
+            return report;
         }
     }
 }

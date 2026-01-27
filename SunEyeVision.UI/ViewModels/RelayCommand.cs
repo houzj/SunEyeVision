@@ -38,10 +38,15 @@ namespace SunEyeVision.UI.ViewModels
         {
             _execute(parameter);
         }
+
+        public void RaiseCanExecuteChanged()
+        {
+            CommandManager.RequerySuggested += null;
+        }
     }
 
     /// <summary>
-    /// 通用RelayCommand,简化参数处�?
+    /// 通用RelayCommand,简化参数处�?
     /// </summary>
     public class RelayCommand<T> : ICommand
     {
