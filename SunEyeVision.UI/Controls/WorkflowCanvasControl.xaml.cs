@@ -19,9 +19,8 @@ namespace SunEyeVision.UI.Controls
     public partial class WorkflowCanvasControl : UserControl
     {
         private MainWindowViewModel? _viewModel;
-        private VirtualizedCanvas? _virtualizedCanvas;
-        private ScaleTransform _scaleTransform;
-        private TranslateTransform _translateTransform;
+    private ScaleTransform _scaleTransform;
+    private TranslateTransform _translateTransform;
         
         private bool _isDragging;
         private WorkflowNode? _draggedNode;
@@ -187,9 +186,6 @@ namespace SunEyeVision.UI.Controls
             
             Loaded += WorkflowCanvasControl_Loaded;
 
-            // 初始化虚拟化画布
-            InitializeVirtualizedCanvas();
-
             // 尝试获取 ViewModel（从父窗口）
             try
             {
@@ -282,9 +278,6 @@ namespace SunEyeVision.UI.Controls
 
                         // 触发所有连接的属性变化，重新计算路径
                         RefreshAllConnectionPaths();
-
-                        // 更新画布模式（根据节点数量自动切换）
-                        UpdateCanvasMode();
                     };
                 }
 
@@ -320,66 +313,6 @@ namespace SunEyeVision.UI.Controls
             }
 
             System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ========== Loaded事件完成 ==========");
-
-            // 初始化虚拟化画布
-            InitializeVirtualizedCanvas();
-        }
-
-        /// <summary>
-        /// 初始化虚拟化画布
-        /// </summary>
-        private void InitializeVirtualizedCanvas()
-        {
-            if (CurrentWorkflowTab == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas] CurrentWorkflowTab为null，跳过虚拟化画布初始化");
-                return;
-            }
-
-            _virtualizedCanvas = new VirtualizedCanvas(
-                CurrentWorkflowTab.WorkflowNodes,
-                CurrentWorkflowTab.WorkflowConnections
-            );
-
-            // 设置初始变换
-            _virtualizedCanvas.Scale = _scaleTransform.ScaleX;
-            _virtualizedCanvas.Offset = new Point(_translateTransform.X, _translateTransform.Y);
-
-            // 添加到布局
-            MainGrid.Children.Add(_virtualizedCanvas);
-            _virtualizedCanvas.Visibility = Visibility.Collapsed;
-
-            // 根据节点数量决定是否使用虚拟化
-            UpdateCanvasMode();
-
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas] ✓ VirtualizedCanvas初始化完成");
-        }
-
-        /// <summary>
-        /// 更新画布模式（根据节点数量自动切换）
-        /// </summary>
-        private void UpdateCanvasMode()
-        {
-            if (CurrentWorkflowTab == null || _virtualizedCanvas == null)
-            {
-                return;
-            }
-
-            var nodeCount = CurrentWorkflowTab.WorkflowNodes.Count;
-            var shouldVirtualize = CanvasConfig.EnableVirtualization && nodeCount > CanvasConfig.MaxNodesBeforeVirtualization;
-
-            if (shouldVirtualize)
-            {
-                WorkflowCanvas.Visibility = Visibility.Collapsed;
-                _virtualizedCanvas.Visibility = Visibility.Visible;
-                _viewModel?.AddLog($"[画布模式] 切换到虚拟化模式（节点数: {nodeCount}）");
-            }
-            else
-            {
-                WorkflowCanvas.Visibility = Visibility.Visible;
-                _virtualizedCanvas.Visibility = Visibility.Collapsed;
-                _viewModel?.AddLog($"[画布模式] 切换到普通模式（节点数: {nodeCount}）");
-            }
         }
 
         /// <summary>

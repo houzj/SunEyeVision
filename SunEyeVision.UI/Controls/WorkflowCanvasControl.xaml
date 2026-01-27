@@ -408,8 +408,5 @@
             </Border.Effect>
         </Border>
     </Canvas>
-
-    <!-- VirtualizedCanvas - 虚拟化画布（大规模节点时使用） -->
-    <!-- 注意：VirtualizedCanvas 在代码中动态添加到 MainGrid -->
     </Grid>
 </UserControl>
