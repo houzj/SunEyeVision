@@ -73,6 +73,7 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<Models.WorkflowConnection> WorkflowConnections { get; }
 
         public Models.WorkflowNode? SelectedNode { get; set; }
+        public Models.WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
         // 多流程管理

@@ -605,10 +605,13 @@
                     <!-- TabItem内容 - 每个Tab包含一个WorkflowCanvasControl -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <controls:WorkflowCanvasControl
-                                Width="5000" Height="5000"
-                                RenderTransform="{Binding ScaleTransform}"
-                                Loaded="WorkflowCanvasControl_Loaded"/>
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                         PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
+                                <controls:WorkflowCanvasControl
+                                    Width="5000" Height="5000"
+                                    RenderTransform="{Binding ScaleTransform}"
+                                    Loaded="WorkflowCanvasControl_Loaded"/>
+                            </ScrollViewer>
                         </DataTemplate>
                     </TabControl.ContentTemplate>
                 </TabControl>

@@ -97,17 +97,17 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 获取下方连接点位置（用于连接线）
         /// </summary>
-        public Point BottomPortPosition => new Point(Position.X + 70, Position.Y + 90);
+        public Point BottomPortPosition => new Point(Position.X + 70, Position.Y + 70);
 
         /// <summary>
         /// 获取左侧连接点位置（用于连接线）
         /// </summary>
-        public Point LeftPortPosition => new Point(Position.X, Position.Y + 45);
+        public Point LeftPortPosition => new Point(Position.X, Position.Y + 35);
 
         /// <summary>
         /// 获取右侧连接点位置（用于连接线）
         /// </summary>
-        public Point RightPortPosition => new Point(Position.X + 140, Position.Y + 45);
+        public Point RightPortPosition => new Point(Position.X + 140, Position.Y + 35);
 
         /// <summary>
         /// Node Y coordinate for binding
@@ -198,6 +198,7 @@ namespace SunEyeVision.UI.Models
         private ConnectionStatus _status = ConnectionStatus.Idle;
         private bool _showPathPoints = true;
         private string _pathData = string.Empty;
+        private bool _isSelected = false;
 
         public string Id
         {
@@ -382,6 +383,22 @@ namespace SunEyeVision.UI.Models
         /// 连线路径点集合（拐点）
         /// </summary>
         public System.Collections.ObjectModel.ObservableCollection<System.Windows.Point> PathPoints { get; set; } = new System.Collections.ObjectModel.ObservableCollection<System.Windows.Point>();
+
+        /// <summary>
+        /// 是否被选中
+        /// </summary>
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public System.Windows.Point SourcePosition
         {

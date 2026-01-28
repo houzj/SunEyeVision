@@ -50,6 +50,8 @@
         <SolidColorBrush x:Key="NodeFooterBackground" Color="#F0F8FF"/>
         <SolidColorBrush x:Key="NodeTextForeground" Color="#0066CC"/>
         <SolidColorBrush x:Key="NodeTimeForeground" Color="#666666"/>
+        <SolidColorBrush x:Key="NodeBorderBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="NodeBorderBrushSelected" Color="#0066CC"/>
     </UserControl.Resources>
 
     <!-- 主容器 -->
@@ -68,11 +70,11 @@
 
         <!-- 网格背景 -->
         <Canvas.Background>
-                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,1,1" TileMode="Tile">
+                    <DrawingBrush ViewportUnits="Absolute" Viewport="0,0,20,20" TileMode="Tile">
                 <DrawingBrush.Drawing>
                     <GeometryDrawing Brush="Transparent">
                         <GeometryDrawing.Pen>
-                            <Pen Brush="#E0E0E0" Thickness="0.5"/>
+                            <Pen Brush="#E0E0E0" Thickness="0.15"/>
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
@@ -199,9 +201,11 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Width="140" Height="90"
+                    <Border Width="140" Height="70" 
                             Background="{StaticResource NodeBackground}" 
-                            CornerRadius="4"
+                            CornerRadius="15" 
+                            BorderThickness="2" 
+                            BorderBrush="{StaticResource NodeBorderBrush}"
                             MouseLeftButtonDown="Node_MouseLeftButtonDown"
                             MouseLeftButtonUp="Node_MouseLeftButtonUp"
                             MouseMove="Node_MouseMove"
@@ -210,37 +214,25 @@
                             MouseLeave="Node_MouseLeave"
                             x:Name="NodeBorder">
                         <Canvas>
-                            <!-- 标题栏 (0-30) -->
-                            <Border Canvas.Top="0" Canvas.Left="0" Width="140" Height="30"
+                            <!-- 主内容区域 -->
+                            <Border Canvas.Top="0" Canvas.Left="0" Width="140" Height="70"
                                     Background="{StaticResource NodeHeaderBackground}" 
-                                    CornerRadius="3,3,0,0">
-                                <StackPanel Orientation="Horizontal" Margin="6,0,0,0">
-                                    <TextBlock Text="🔧" FontSize="14"/>
-                                    <TextBlock Text="{Binding Name}" Margin="6,0,0,0" 
-                                              FontWeight="Bold" FontSize="12" 
-                                              Foreground="White"/>
+                                    CornerRadius="15">
+                                <StackPanel Orientation="Vertical" Margin="8,6,8,6">
+                                    <!-- 图标和名称 -->
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🔧" FontSize="16" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" Margin="6,0,0,0" 
+                                                  FontWeight="Bold" FontSize="12" 
+                                                  Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <!-- 执行时间 -->
+                                    <TextBlock Text="⏱️ 0ms" 
+                                              Margin="24,2,0,0" 
+                                              FontSize="10" 
+                                              Foreground="{StaticResource NodeTimeForeground}"
+                                              VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </Border>
-
-                            <!-- 算法类型 (30-60) -->
-                            <TextBlock Canvas.Top="30" Canvas.Left="0" Width="140" Height="30"
-                                      Text="{Binding AlgorithmType}" 
-                                      HorizontalAlignment="Center" 
-                                      VerticalAlignment="Center" 
-                                      FontSize="10" 
-                                      Foreground="{StaticResource NodeTextForeground}"
-                                      TextAlignment="Center"/>
-
-                            <!-- 页脚 (60-90) -->
-                            <Border Canvas.Top="60" Canvas.Left="0" Width="140" Height="30"
-                                    Background="{StaticResource NodeFooterBackground}" 
-                                    CornerRadius="0,0,3,3">
-                                <TextBlock Text="⏱️ 0ms" 
-                                          HorizontalAlignment="Center" 
-                                          FontSize="10" 
-                                          Foreground="{StaticResource NodeTimeForeground}"
-                                          TextAlignment="Center"
-                                          Margin="0,0,0,0"/>
                             </Border>
 
                             <!-- 连接点 - 上方 -->
@@ -255,7 +247,7 @@
                                      Visibility="Collapsed"/>
 
                             <!-- 连接点 - 下方 -->
-                            <Ellipse Canvas.Left="63" Canvas.Top="83"
+                            <Ellipse Canvas.Left="63" Canvas.Top="63"
                                      Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
@@ -266,7 +258,7 @@
                                      Visibility="Collapsed"/>
 
                             <!-- 连接点 - 左侧 -->
-                            <Ellipse Canvas.Left="-7" Canvas.Top="38"
+                            <Ellipse Canvas.Left="-7" Canvas.Top="30"
                                      Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
@@ -277,7 +269,7 @@
                                      Visibility="Collapsed"/>
 
                             <!-- 连接点 - 右侧 -->
-                            <Ellipse Canvas.Left="133" Canvas.Top="38"
+                            <Ellipse Canvas.Left="133" Canvas.Top="30"
                                      Style="{StaticResource PortEllipseStyle}"
                                      PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
                                      PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"

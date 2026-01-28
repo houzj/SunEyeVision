@@ -30,9 +30,12 @@ namespace SunEyeVision.UI.Controls.Helpers
 
         // 多选节点拖拽相关
         private System.Windows.Point[]? _selectedNodesInitialPositions;
+        private Dictionary<WorkflowNode, System.Windows.Point>? _initialNodePositions;
 
         // 连接模式相关
         private WorkflowNode? _connectionSourceNode = null;
+        private bool _isCreatingConnection = false;
+        private WorkflowNode? _connectionStartNode = null;
 
         public WorkflowNodeInteractionHandler(
             WorkflowCanvasControl canvasControl, 
@@ -103,58 +106,68 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not Border border || border.Tag is not WorkflowNode node)
-                return;
-
-            // 双击事件：打开调试窗口
-            if (e.ClickCount == 2)
+            try
             {
-                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                if (sender is not Border border || border.Tag is not WorkflowNode node)
                 {
-                    foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
-                    {
-                        n.IsSelected = (n == node);
-                    }
+                    return;
                 }
+
+                // 双击事件：打开调试窗口
+                if (e.ClickCount == 2)
+                {
+                    if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                    {
+                        foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                        {
+                            n.IsSelected = (n == node);
+                        }
+                    }
+                    _viewModel.SelectedNode = node;
+
+                    // 打开调试窗口
+                    _viewModel.OpenDebugWindowCommand.Execute(node);
+                    e.Handled = true;
+                    return;
+                }
+
+                // 检查是否按住 Shift 或 Ctrl 键（多选模式）
+                bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
+                                   (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+
+                // 如果节点未被选中，且不是多选模式，则只选中当前节点
+                if (!node.IsSelected && !isMultiSelect)
+                {
+                    ClearAllSelections();
+                    node.IsSelected = true;
+                }
+                // 如果是多选模式，切换选中状态
+                else if (isMultiSelect)
+                {
+                    node.IsSelected = !node.IsSelected;
+                }
+
                 _viewModel.SelectedNode = node;
 
-                // 打开调试窗口
-                _viewModel.OpenDebugWindowCommand.Execute(node);
+                // 记录所有选中节点的初始位置
+                RecordSelectedNodesPositions();
+
+                // 单击事件：拖拽准备
+                _isDragging = true;
+                _draggedNode = node;
+                _initialNodePosition = node.Position;
+                _startDragPosition = e.GetPosition(_canvasControl.WorkflowCanvas);
+
+                border.CaptureMouse();
+
+                // 阻�止事件冒泡到 Canvas，避免触发框选
                 e.Handled = true;
-                return;
             }
-
-            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
-            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
-                               (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-
-            // 如果节点未被选中，且不是多选模式，则只选中当前节点
-            if (!node.IsSelected && !isMultiSelect)
+            catch (Exception ex)
             {
-                ClearAllSelections();
-                node.IsSelected = true;
+                System.Diagnostics.Debug.WriteLine($"[Node_MouseLeftButtonDown] 异常: {ex.Message}");
+                throw;
             }
-            // 如果是多选模式，切换选中状态
-            else if (isMultiSelect)
-            {
-                node.IsSelected = !node.IsSelected;
-            }
-
-            _viewModel.SelectedNode = node;
-
-            // 记录所有选中节点的初始位置
-            RecordSelectedNodesPositions();
-
-            // 单击事件：拖拽准备
-            _isDragging = true;
-            _draggedNode = node;
-            _initialNodePosition = node.Position;
-            _startDragPosition = e.GetPosition(_canvasControl.WorkflowCanvas);
-
-            border.CaptureMouse();
-
-            // 阻止事件冒泡到 Canvas，避免触发框选
-            e.Handled = true;
         }
 
         /// <summary>
@@ -162,62 +175,84 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!_isDragging)
-                return;
-
-            _isDragging = false;
-            _draggedNode = null;
-
-            if (sender is Border border)
+            try
             {
-                border.ReleaseMouseCapture();
-            }
+                if (sender is not Border border || border.Tag is not WorkflowNode node)
+                {
+                    return;
+                }
 
-            e.Handled = true;
+                // 如果正在创建连接模式，则处理连接创建
+                if (_isCreatingConnection)
+                {
+                    HandleConnectionCreation(node);
+                    _isCreatingConnection = false;
+                    _connectionStartNode = null;
+                    border.ReleaseMouseCapture();
+                    e.Handled = true;
+                    return;
+                }
+
+                // 如果正在拖拽，则结束拖拽
+                if (node == _draggedNode && _isDragging)
+                {
+                    _isDragging = false;
+                    _draggedNode = null;
+                    border.ReleaseMouseCapture();
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Node_MouseLeftButtonUp] 异常: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
-        /// 节点鼠标移动 - 拖拽节点
+        /// 节点鼠标移动 - 处理拖拽
         /// </summary>
         public void Node_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isDragging || _draggedNode == null)
-                return;
-
-            var currentPos = e.GetPosition(_canvasControl.WorkflowCanvas);
-            var delta = new System.Windows.Point(
-                currentPos.X - _startDragPosition.X,
-                currentPos.Y - _startDragPosition.Y);
-
-            // 获取当前选中的所有节点
-            var selectedNodes = _viewModel?.WorkflowTabViewModel.SelectedTab?.WorkflowNodes
-                .Where(n => n.IsSelected)
-                .ToList();
-
-            if (selectedNodes == null || selectedNodes.Count == 0)
-                return;
-
-            // 移动所有选中的节点
-            for (int i = 0; i < selectedNodes.Count; i++)
+            try
             {
-                var node = selectedNodes[i];
-                if (_selectedNodesInitialPositions != null && i < _selectedNodesInitialPositions.Length)
+                if (!_isDragging || _draggedNode == null)
                 {
-                    node.Position = new System.Windows.Point(
-                        _selectedNodesInitialPositions[i].X + delta.X,
-                        _selectedNodesInitialPositions[i].Y + delta.Y);
+                    return;
+                }
+
+                if (sender is not Border border || border.Tag is not WorkflowNode node)
+                {
+                    return;
+                }
+
+                // 获取当前鼠标位置
+                Point currentPosition = e.GetPosition(_canvasControl.WorkflowCanvas);
+
+                // 计算偏移量
+                double offsetX = currentPosition.X - _startDragPosition.X;
+                double offsetY = currentPosition.Y - _startDragPosition.Y;
+
+                // 更新所有选中节点的位置
+                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                {
+                    int index = 0;
+                    foreach (var selectedNode in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Where(n => n.IsSelected))
+                    {
+                        if (_selectedNodesInitialPositions != null && index < _selectedNodesInitialPositions.Length)
+                        {
+                            selectedNode.Position = new Point(
+                                _selectedNodesInitialPositions[index].X + offsetX,
+                                _selectedNodesInitialPositions[index].Y + offsetY);
+                            index++;
+                        }
+                    }
                 }
             }
-
-            // 性能优化：限制连接线更新频率
-            var now = DateTime.Now;
-            if ((now - _lastConnectionUpdateTime).TotalMilliseconds >= ConnectionUpdateIntervalMs)
+            catch (Exception ex)
             {
-                _connectionManager.RefreshAllConnectionPaths();
-                _lastConnectionUpdateTime = now;
+                System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 异常: {ex.Message}");
             }
-
-            e.Handled = true;
         }
 
         /// <summary>
@@ -245,7 +280,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                 if (_connectionSourceNode == targetNode)
                 {
                     _viewModel!.StatusText = "无法连接到同一个节点";
-                    _viewModel.AddLog("[Connection] ❌ 无法连接到同一个节点");
+                    System.Diagnostics.Debug.WriteLine("[Connection] ❌ 无法连接到同一个节点");
                     _connectionSourceNode = null;
                     return;
                 }
@@ -262,11 +297,46 @@ namespace SunEyeVision.UI.Controls.Helpers
                 }
 
                 // 创建新连接
-                _viewModel?.AddLog($"[Connection] 创建连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
+                System.Diagnostics.Debug.WriteLine($"[Connection] 创建连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
                 _connectionManager.CreateConnection(_connectionSourceNode, targetNode, null);
 
                 // 退出连接模式
                 _connectionSourceNode = null;
+            }
+        }
+
+        /// <summary>
+        /// 节点点击事件 - 用于创建连接
+        /// </summary>
+        public void Node_ClickForConnection(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (sender is not Border border || border.Tag is not WorkflowNode node)
+                {
+                    return;
+                }
+
+                if (_connectionStartNode == null)
+                {
+                    _connectionStartNode = node;
+                    _isCreatingConnection = true;
+                    border.CaptureMouse();
+                    e.Handled = true;
+                }
+                else if (_connectionStartNode != node)
+                {
+                    HandleConnectionCreation(node);
+                    _isCreatingConnection = false;
+                    _connectionStartNode = null;
+                    border.ReleaseMouseCapture();
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Node_ClickForConnection] 异常: {ex.Message}");
+                throw;
             }
         }
 
@@ -289,15 +359,74 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         private void RecordSelectedNodesPositions()
         {
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab == null) return;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] 开始执行");
+                
+                if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] SelectedTab为null，返回");
+                    return;
+                }
 
-            var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
-                .Where(n => n.IsSelected)
-                .ToList();
+                var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                    .Where(n => n.IsSelected)
+                    .ToList();
 
-            _selectedNodesInitialPositions = selectedNodes
-                .Select(n => n.Position)
-                .ToArray();
+                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 选中节点数量: {selectedNodes.Count}");
+
+                _selectedNodesInitialPositions = selectedNodes
+                    .Select(n => n.Position)
+                    .ToArray();
+
+                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 记录了 {_selectedNodesInitialPositions.Length} 个初始位置");
+                for (int i = 0; i < _selectedNodesInitialPositions.Length; i++)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 节点 {i} 初始位置: ({_selectedNodesInitialPositions[i].X}, {_selectedNodesInitialPositions[i].Y})");
+                }
+                System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] 执行完成");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 堆栈: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 处理连接创建
+        /// </summary>
+        private void HandleConnectionCreation(WorkflowNode targetNode)
+        {
+            if (_connectionStartNode == null || targetNode == null)
+                return;
+
+            var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
+            if (selectedTab == null)
+                return;
+
+            // 检查是否自连接
+            if (_connectionStartNode.Id == targetNode.Id)
+            {
+                _viewModel!.StatusText = "不能连接到自身";
+                return;
+            }
+
+            // 检查连接是否已存在
+            var exists = selectedTab.WorkflowConnections.Any(c =>
+                c.SourceNodeId == _connectionStartNode.Id &&
+                c.TargetNodeId == targetNode.Id);
+
+            if (exists)
+            {
+                _viewModel!.StatusText = "连接已存在";
+                return;
+            }
+
+            // 创建新连接
+            _connectionManager.CreateConnection(_connectionStartNode, targetNode, "BottomPort");
+            _viewModel!.StatusText = $"成功连接: {_connectionStartNode.Name} -> {targetNode.Name}";
         }
     }
 }

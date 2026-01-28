@@ -33,6 +33,9 @@
     <SolidColorBrush x:Key="BackgroundBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="BackgroundGrayBrush" Color="#F8F8F8"/>
     <SolidColorBrush x:Key="HeaderBrush" Color="#F0F0F0"/>
+    
+    <!-- 节点样式资源 -->
+    <SolidColorBrush x:Key="NodeBorderBrush" Color="{StaticResource PrimaryBrush}"/>
 
     <!-- ========== 字体资源 ========== -->
     <FontFamily x:Key="DefaultFont">Microsoft YaHei UI</FontFamily>

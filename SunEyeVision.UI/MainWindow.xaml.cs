@@ -61,8 +61,8 @@ namespace SunEyeVision.UI
             DataContext = _viewModel;
 
             // 测试日志系统
-            _viewModel.AddLog("[系统] 主窗口已启动");
-            _viewModel.AddLog("[系统] 日志系统测试 - 如果能看到这条消息，说明日志系统正常工作！");
+            System.Diagnostics.Debug.WriteLine("[系统] 主窗口已启动");
+            System.Diagnostics.Debug.WriteLine("[系统] 日志系统测试 - 如果能看到这条消息，说明日志系统正常工作！");
 
             RegisterHotkeys();
         }
@@ -140,7 +140,7 @@ namespace SunEyeVision.UI
         /// </summary>
         private void TestBoundingRectangle()
         {
-            _viewModel?.AddLog("[TestBoundingRectangle] ========== 开始测试矩形显示 ==========");
+            System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ========== 开始测试矩形显示 ==========");
 
             try
             {
@@ -148,58 +148,58 @@ namespace SunEyeVision.UI
                 var tabControl = this.FindName("WorkflowTabControl") as TabControl;
                 if (tabControl == null)
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 无法找到TabControl");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 无法找到TabControl");
                     return;
                 }
 
-                _viewModel?.AddLog($"[TestBoundingRectangle] ✓ 找到TabControl，Tab数量: {tabControl.Items.Count}");
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ 找到TabControl，Tab数量: {tabControl.Items.Count}");
 
                 // 获取选中的TabItem
                 if (tabControl.SelectedIndex < 0)
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 没有选中的Tab");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 没有选中的Tab");
                     return;
                 }
 
-                _viewModel?.AddLog($"[TestBoundingRectangle] ✓ 选中的Tab索引: {tabControl.SelectedIndex}");
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ 选中的Tab索引: {tabControl.SelectedIndex}");
 
                 // 从TabItem的Content中查找WorkflowCanvasControl
                 var tabItem = tabControl.ItemContainerGenerator.ContainerFromIndex(tabControl.SelectedIndex) as TabItem;
                 if (tabItem == null)
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ 无法获取TabItem");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 无法获取TabItem");
                     return;
                 }
 
-                _viewModel?.AddLog("[TestBoundingRectangle] ✓ 获取到TabItem");
-                _viewModel?.AddLog($"[TestBoundingRectangle] TabItem.Content类型: {tabItem.Content?.GetType().Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 获取到TabItem");
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] TabItem.Content类型: {tabItem.Content?.GetType().Name ?? "null"}");
 
                 // 递归查找WorkflowCanvasControl
                 var workflowCanvas = FindVisualChild<WorkflowCanvasControl>(tabItem);
                 if (workflowCanvas == null)
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
 
                     // 尝试从tabItem.Content查找（如果Content是UI元素）
                     if (tabItem.Content is DependencyObject contentObj)
                     {
                         workflowCanvas = FindVisualChild<WorkflowCanvasControl>(contentObj);
-                        _viewModel?.AddLog($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
+                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
                     }
                 }
                 else
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
                 }
 
                 if (workflowCanvas != null)
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ====== 开始设置矩形 ==========");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ====== 开始设置矩形 ==========");
 
                     // 强制显示测试矩形
                     if (workflowCanvas.BoundingRectangle != null)
                     {
-                        _viewModel?.AddLog($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {workflowCanvas.BoundingRectangle.Visibility}");
+                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {workflowCanvas.BoundingRectangle.Visibility}");
 
                         workflowCanvas.BoundingRectangle.Visibility = Visibility.Visible;
                         Canvas.SetLeft(workflowCanvas.BoundingRectangle, 200);
@@ -207,28 +207,28 @@ namespace SunEyeVision.UI
                         workflowCanvas.BoundingRectangle.Width = 300;
                         workflowCanvas.BoundingRectangle.Height = 150;
 
-                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 矩形已设置为可见");
-                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 位置: (200, 200)");
-                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 大小: 300 x 150");
-                        _viewModel?.AddLog("[TestBoundingRectangle] ✓ 颜色: 红色");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 矩形已设置为可见");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 位置: (200, 200)");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 大小: 300 x 150");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 颜色: 红色");
                     }
                     else
                     {
-                        _viewModel?.AddLog("[TestBoundingRectangle] ❌ BoundingRectangle为null");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ BoundingRectangle为null");
                     }
                 }
                 else
                 {
-                    _viewModel?.AddLog("[TestBoundingRectangle] ❌ WorkflowCanvasControl为null");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ WorkflowCanvasControl为null");
                 }
             }
             catch (Exception ex)
             {
-                _viewModel?.AddLog($"[TestBoundingRectangle] ❌ 异常: {ex.Message}");
-                _viewModel?.AddLog($"[TestBoundingRectangle] 堆栈: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ❌ 异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 堆栈: {ex.StackTrace}");
             }
 
-            _viewModel?.AddLog("[TestBoundingRectangle] ========== 测试完成 ==========");
+            System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ========== 测试完成 ==========");
         }
 
         #endregion
@@ -256,8 +256,8 @@ namespace SunEyeVision.UI
             if (sender is Controls.WorkflowCanvasControl workflowCanvas)
             {
                 _currentWorkflowCanvas = workflowCanvas;
-                _viewModel?.AddLog($"[MainWindow] WorkflowCanvasControl已加载并保存引用");
-                _viewModel?.AddLog($"[MainWindow] BoundingRectangle元素: {(workflowCanvas.BoundingRectangle != null ? "存在" : "null")}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl已加载并保存引用");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] BoundingRectangle元素: {(workflowCanvas.BoundingRectangle != null ? "存在" : "null")}");
             }
         }
 
@@ -371,7 +371,12 @@ namespace SunEyeVision.UI
             // 使用更高优先级延迟执行 ApplyZoom，确保 Tab 内容已生成
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                ApplyZoom();
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                if (workflow != null)
+                {
+                    var currentScale = workflow.CurrentScale;
+                    ApplyZoom(currentScale, currentScale);
+                }
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
@@ -408,7 +413,12 @@ namespace SunEyeVision.UI
                 // 等待 Canvas 加载完成后应用初始缩放
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    ApplyZoom();
+                    var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                    if (workflow != null)
+                    {
+                        var currentScale = workflow.CurrentScale;
+                        ApplyZoom(currentScale, currentScale);
+                    }
                 }), System.Windows.Threading.DispatcherPriority.Render);
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
@@ -758,9 +768,11 @@ namespace SunEyeVision.UI
                 return;
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            if (workflow.CurrentScale < MaxScale)
+            var oldScale = workflow.CurrentScale;
+            
+            if (oldScale < MaxScale)
             {
-                workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.2, MaxScale);
+                var newScale = Math.Min(oldScale * 1.2, MaxScale);
 
                 // 使用Dispatcher延迟执行,确保TabItem已加载
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -776,7 +788,7 @@ namespace SunEyeVision.UI
                         canvasCenter = GetCanvasCenterPosition(scrollViewer);
                     }
 
-                    ApplyZoom(canvasCenter, scrollViewer);
+                    ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
                 }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             }
         }
@@ -790,9 +802,11 @@ namespace SunEyeVision.UI
                 return;
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            if (workflow.CurrentScale > MinScale)
+            var oldScale = workflow.CurrentScale;
+            
+            if (oldScale > MinScale)
             {
-                workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.2, MinScale);
+                var newScale = Math.Max(oldScale / 1.2, MinScale);
 
                 // 使用Dispatcher延迟执行,确保TabItem已加载
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -808,7 +822,7 @@ namespace SunEyeVision.UI
                         canvasCenter = GetCanvasCenterPosition(scrollViewer);
                     }
 
-                    ApplyZoom(canvasCenter, scrollViewer);
+                    ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
                 }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             }
         }
@@ -822,6 +836,7 @@ namespace SunEyeVision.UI
                 return;
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+            var oldScale = workflow.CurrentScale;
 
             // 延迟执行以确保 UI 已更新
             Dispatcher.BeginInvoke(new Action(() =>
@@ -837,12 +852,12 @@ namespace SunEyeVision.UI
                     // 计算适合的缩放比例，留出10%边距
                     var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
                     var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
-                    workflow.CurrentScale = Math.Min(scaleX, scaleY);
+                    var newScale = Math.Min(scaleX, scaleY);
 
                     // 限制在范围内
-                    workflow.CurrentScale = Math.Max(MinScale, Math.Min(MaxScale, workflow.CurrentScale));
+                    newScale = Math.Max(MinScale, Math.Min(MaxScale, newScale));
 
-                    ApplyZoom();
+                    ApplyZoom(oldScale, newScale);
                 }
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
@@ -854,9 +869,12 @@ namespace SunEyeVision.UI
         {
             if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                _viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale = 1.0;
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                var oldScale = workflow.CurrentScale;
+                var newScale = 1.0;
+                
                 // 延迟执行以确保 UI 已更新
-                Dispatcher.BeginInvoke(new Action(() => ApplyZoom()),
+                Dispatcher.BeginInvoke(new Action(() => ApplyZoom(oldScale, newScale)),
                     System.Windows.Threading.DispatcherPriority.Render);
             }
         }
@@ -864,16 +882,19 @@ namespace SunEyeVision.UI
         /// <summary>
         /// 应用缩放变换（支持围绕指定位置缩放）
         /// </summary>
+        /// <param name="oldScale">缩放前的缩放值</param>
+        /// <param name="newScale">缩放后的缩放值</param>
         /// <param name="centerPosition">缩放中心相对于ScrollViewer的坐标（可选）</param>
         /// <param name="scrollViewer">可用的ScrollViewer实例（可选，如果提供则不需要重新查找）</param>
-        private void ApplyZoom(Point? centerPosition = null, ScrollViewer? scrollViewer = null)
+        private void ApplyZoom(double oldScale, double newScale, Point? centerPosition = null, ScrollViewer? scrollViewer = null)
         {
             if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
                 return;
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            var oldScale = workflow.ScaleTransform.ScaleX; // 保存旧缩放值
-            var newScale = workflow.CurrentScale;
+            
+            // 更新CurrentScale
+            workflow.CurrentScale = newScale;
 
             // 如果没有提供ScrollViewer，尝试查找
             if (scrollViewer == null)
@@ -897,9 +918,9 @@ namespace SunEyeVision.UI
                 var oldHorizontalOffset = scrollViewer.HorizontalOffset;
                 var oldVerticalOffset = scrollViewer.VerticalOffset;
 
-                // 计算鼠标在画布坐标系中的位置（考虑当前缩放）
-                var mouseInCanvasX = (oldHorizontalOffset + centerPosition.Value.X) / oldScale;
-                var mouseInCanvasY = (oldVerticalOffset + centerPosition.Value.Y) / oldScale;
+                // 计算缩放中心在画布坐标系中的位置（考虑当前缩放）
+                var centerInCanvasX = (oldHorizontalOffset + centerPosition.Value.X) / oldScale;
+                var centerInCanvasY = (oldVerticalOffset + centerPosition.Value.Y) / oldScale;
 
                 // 应用新的缩放值（不使用CenterX/CenterY，因为我们在调整滚动偏移）
                 workflow.ScaleTransform.CenterX = 0;
@@ -907,10 +928,10 @@ namespace SunEyeVision.UI
                 workflow.ScaleTransform.ScaleX = newScale;
                 workflow.ScaleTransform.ScaleY = newScale;
 
-                // 计算新的滚动偏移，保持鼠标指向的内容位置不变
-                // 新的滚动偏移 = 鼠标在画布坐标 * 新缩放比例 - 鼠标在ScrollViewer位置
-                var newHorizontalOffset = mouseInCanvasX * newScale - centerPosition.Value.X;
-                var newVerticalOffset = mouseInCanvasY * newScale - centerPosition.Value.Y;
+                // 计算新的滚动偏移，保持缩放中心指向的内容位置不变
+                // 新的滚动偏移 = 缩放中心在画布坐标 * 新缩放比例 - 缩放中心在ScrollViewer位置
+                var newHorizontalOffset = centerInCanvasX * newScale - centerPosition.Value.X;
+                var newVerticalOffset = centerInCanvasY * newScale - centerPosition.Value.Y;
 
                 // 应用新的滚动偏移
                 scrollViewer.ScrollToHorizontalOffset(newHorizontalOffset);
@@ -1001,35 +1022,34 @@ namespace SunEyeVision.UI
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
 
-            // Ctrl+滚轮进行缩放
-            if (Keyboard.Modifiers == ModifierKeys.Control)
+            // 直接使用滚轮进行缩放（不要求Ctrl键）
+            e.Handled = true;
+
+            // sender 就是 ScrollViewer
+            if (sender is not ScrollViewer scrollViewer)
+                return;
+
+            // 获取鼠标位置
+            var mousePositionInScrollViewer = e.GetPosition(scrollViewer);
+
+            if (e.Delta > 0)
             {
-                e.Handled = true;
-
-                // sender 就是 ScrollViewer
-                if (sender is not ScrollViewer scrollViewer)
-                    return;
-
-                // 获取鼠标位置
-                var mousePositionInScrollViewer = e.GetPosition(scrollViewer);
-
-                if (e.Delta > 0)
+                // 向上滚动，放大
+                if (workflow.CurrentScale < MaxScale)
                 {
-                    // 向上滚动，放大
-                    if (workflow.CurrentScale < MaxScale)
-                    {
-                        workflow.CurrentScale = Math.Min(workflow.CurrentScale * 1.1, MaxScale);
-                        ApplyZoom(mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
-                    }
+                    var oldScale = workflow.CurrentScale;
+                    var newScale = Math.Min(oldScale * 1.1, MaxScale);
+                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
                 }
-                else
+            }
+            else
+            {
+                // 向下滚动，缩小
+                if (workflow.CurrentScale > MinScale)
                 {
-                    // 向下滚动，缩小
-                    if (workflow.CurrentScale > MinScale)
-                    {
-                        workflow.CurrentScale = Math.Max(workflow.CurrentScale / 1.1, MinScale);
-                        ApplyZoom(mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
-                    }
+                    var oldScale = workflow.CurrentScale;
+                    var newScale = Math.Max(oldScale / 1.1, MinScale);
+                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // 鼠标位置作为缩放中心
                 }
             }
         }

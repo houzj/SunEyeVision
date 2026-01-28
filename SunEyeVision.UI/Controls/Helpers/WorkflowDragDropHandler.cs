@@ -29,7 +29,7 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void Canvas_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(typeof(string)))
+            if (e.Data.GetDataPresent("ToolItem"))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -45,7 +45,7 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void Canvas_DragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(typeof(string)))
+            if (e.Data.GetDataPresent("ToolItem"))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -69,36 +69,55 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void Canvas_Drop(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(string)))
-                return;
-
-            var nodeType = e.Data.GetData(typeof(string)) as string;
-            if (string.IsNullOrEmpty(nodeType))
-                return;
-
-            var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
-            if (selectedTab == null)
-                return;
-
-            // 计算放置位置
-            var dropPosition = e.GetPosition(_canvasControl.WorkflowCanvas);
-
-            // 创建新节点
-            var newNode = new WorkflowNode(
-                Guid.NewGuid().ToString(),
-                $"Node_{selectedTab.WorkflowNodes.Count + 1}",
-                nodeType)
+            try
             {
-                Position = dropPosition,
-                IsSelected = false
-            };
+                if (sender is not Canvas canvas || e.Data.GetData("ToolItem") is not ToolItem item)
+                {
+                    return;
+                }
 
-            // 添加到节点集合
-            selectedTab.WorkflowNodes.Add(newNode);
+                // 获取放置位置
+                Point dropPosition = e.GetPosition(canvas);
 
-            _viewModel?.AddLog($"[Canvas] 创建节点: {newNode.Name} ({newNode.AlgorithmType}) at ({dropPosition.X:F0}, {dropPosition.Y:F0})");
+                // 验证数据
+                if (string.IsNullOrEmpty(item.ToolId))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] 警告: ToolItem 的 ToolId 为空");
+                    return;
+                }
 
-            e.Handled = true;
+                // 创建新节点，使用ToolId作为AlgorithmType
+                var newNode = new WorkflowNode(
+                    Guid.NewGuid().ToString(),
+                    item.Name,
+                    item.ToolId
+                );
+                newNode.Position = dropPosition;
+                newNode.IsSelected = true;
+
+                // 添加到当前标签页
+                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                {
+                    // 清除其他节点的选中状态
+                    foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                    {
+                        node.IsSelected = false;
+                    }
+
+                    // 添加新节点
+                    _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(newNode);
+                    _viewModel.SelectedNode = newNode;
+
+                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] 成功创建节点: {item.Name} (ID: {newNode.Id})");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] 异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] 堆栈: {ex.StackTrace}");
+                // 不要 throw，避免程序崩溃
+                MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

@@ -214,11 +214,11 @@ namespace SunEyeVision.UI.ViewModels
             // 计算连接点位置（节点右中心到左中心）
             var sourcePos = new Point(
                 ConnectionSourceNode.Position.X + 140,
-                ConnectionSourceNode.Position.Y + 45
+                ConnectionSourceNode.Position.Y + 35
             );
             var targetPos = new Point(
                 targetNode.Position.X,
-                targetNode.Position.Y + 45
+                targetNode.Position.Y + 35
             );
 
             newConnection.SourcePosition = sourcePos;
