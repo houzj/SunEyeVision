@@ -12,6 +12,10 @@
         <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="1" NodeMargin="30"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:PointOffsetConverter x:Key="PointOffsetConverter"/>
+        <converters:NodeDisplayTextConverter x:Key="NodeDisplayTextConverter"/>
+        <converters:NodeBackgroundColorConverter x:Key="NodeBackgroundColorConverter"/>
+        <converters:NodeBorderColorConverter x:Key="NodeBorderColorConverter"/>
+        <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
 
         <!-- 箭头标记 - 尖端指向右侧（0度方向），方便旋转 -->
         <PathGeometry x:Key="ArrowGeometry">
@@ -201,11 +205,11 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Width="140" Height="70" 
-                            Background="{StaticResource NodeBackground}" 
-                            CornerRadius="15" 
-                            BorderThickness="2" 
-                            BorderBrush="{StaticResource NodeBorderBrush}"
+                    <Border Width="160" Height="40"
+                            Background="{Binding Converter={StaticResource NodeBackgroundColorConverter}}"
+                            CornerRadius="20"
+                            BorderThickness="2"
+                            BorderBrush="{Binding Converter={StaticResource NodeBorderColorConverter}}"
                             MouseLeftButtonDown="Node_MouseLeftButtonDown"
                             MouseLeftButtonUp="Node_MouseLeftButtonUp"
                             MouseMove="Node_MouseMove"
@@ -213,91 +217,58 @@
                             MouseEnter="Node_MouseEnter"
                             MouseLeave="Node_MouseLeave"
                             x:Name="NodeBorder">
-                        <Canvas>
-                            <!-- 主内容区域 -->
-                            <Border Canvas.Top="0" Canvas.Left="0" Width="140" Height="70"
-                                    Background="{StaticResource NodeHeaderBackground}" 
-                                    CornerRadius="15">
-                                <StackPanel Orientation="Vertical" Margin="8,6,8,6">
-                                    <!-- 图标和名称 -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="🔧" FontSize="16" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding Name}" Margin="6,0,0,0" 
-                                                  FontWeight="Bold" FontSize="12" 
-                                                  Foreground="White" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <!-- 执行时间 -->
-                                    <TextBlock Text="⏱️ 0ms" 
-                                              Margin="24,2,0,0" 
-                                              FontSize="10" 
-                                              Foreground="{StaticResource NodeTimeForeground}"
-                                              VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
+                        <Grid Margin="12,0,12,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                            <!-- 连接点 - 上方 -->
-                            <Ellipse Canvas.Left="63" Canvas.Top="-7"
-                                     Style="{StaticResource PortEllipseStyle}"
-                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
-                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
-                                     Tag="{Binding}"
-                                     MouseEnter="Ellipse_MouseEnter"
-                                     MouseLeave="Ellipse_MouseLeave"
-                                     x:Name="TopPortEllipse"
-                                     Visibility="Collapsed"/>
+                            <!-- 节点类型图标 -->
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding NodeTypeIcon}"
+                                       FontSize="18"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
 
-                            <!-- 连接点 - 下方 -->
-                            <Ellipse Canvas.Left="63" Canvas.Top="63"
-                                     Style="{StaticResource PortEllipseStyle}"
-                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
-                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
-                                     Tag="{Binding}"
-                                     MouseEnter="Ellipse_MouseEnter"
-                                     MouseLeave="Ellipse_MouseLeave"
-                                     x:Name="BottomPortEllipse"
-                                     Visibility="Collapsed"/>
+                            <!-- 全局序号 -->
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding GlobalIndex, StringFormat='#{0}'}"
+                                       FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="#ff9500"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
 
-                            <!-- 连接点 - 左侧 -->
-                            <Ellipse Canvas.Left="-7" Canvas.Top="30"
-                                     Style="{StaticResource PortEllipseStyle}"
-                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
-                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
-                                     Tag="{Binding}"
-                                     MouseEnter="Ellipse_MouseEnter"
-                                     MouseLeave="Ellipse_MouseLeave"
-                                     x:Name="LeftPortEllipse"
-                                     Visibility="Collapsed"/>
+                            <!-- 节点名称 + 本地序号（使用适配器） -->
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Converter={StaticResource NodeDisplayTextConverter}}"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="#333333"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
 
-                            <!-- 连接点 - 右侧 -->
-                            <Ellipse Canvas.Left="133" Canvas.Top="30"
-                                     Style="{StaticResource PortEllipseStyle}"
-                                     PreviewMouseLeftButtonDown="Port_PreviewMouseLeftButtonDown"
-                                     PreviewMouseLeftButtonUp="Port_PreviewMouseLeftButtonUp"
-                                     Tag="{Binding}"
-                                     MouseEnter="Ellipse_MouseEnter"
-                                     MouseLeave="Ellipse_MouseLeave"
-                                     x:Name="RightPortEllipse"
-                                     Visibility="Collapsed"/>
-                        </Canvas>
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Effect" Value="{x:Null}"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="BorderBrush" Value="#0066CC"/>
+                                        <Setter Property="BorderBrush" Value="#ff6600"/>
                                         <Setter Property="BorderThickness" Value="3"/>
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#0066CC" BlurRadius="10" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#ff6600" BlurRadius="10" ShadowDepth="0"/>
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="BorderBrush" Value="#667EEA"/>
+                                        <Setter Property="BorderBrush" Value="#ff7700"/>
                                         <Setter Property="BorderThickness" Value="3"/>
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#667EEA" BlurRadius="8" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#ff7700" BlurRadius="8" ShadowDepth="0"/>
                                             </Setter.Value>
                                         </Setter>
                                     </Trigger>

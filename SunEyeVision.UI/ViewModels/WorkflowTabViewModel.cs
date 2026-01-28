@@ -3,8 +3,11 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using AppCommands = SunEyeVision.UI.Commands;
+using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Commands;
+using SunEyeVision.UI.Interfaces;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -24,12 +27,42 @@ namespace SunEyeVision.UI.ViewModels
         private double _currentScale;
 
         /// <summary>
+        /// 节点序号管理器
+        /// </summary>
+        private readonly INodeSequenceManager _sequenceManager;
+
+        /// <summary>
+        /// 节点显示适配器
+        /// </summary>
+        private readonly INodeDisplayAdapter _displayAdapter;
+
+        /// <summary>
+        /// 节点工厂
+        /// </summary>
+        private readonly IWorkflowNodeFactory _nodeFactory;
+
+        /// <summary>
         /// 每个画布独立的撤销/重做命令管理器
         /// </summary>
         public AppCommands.CommandManager CommandManager { get; }
 
-        public WorkflowTabViewModel()
+        public WorkflowTabViewModel() : this(
+            new NodeSequenceManager(),
+            new DefaultNodeDisplayAdapter())
         {
+        }
+
+        /// <summary>
+        /// 带依赖注入的构造函数
+        /// </summary>
+        public WorkflowTabViewModel(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
+        {
+            _sequenceManager = sequenceManager ?? throw new ArgumentNullException(nameof(sequenceManager));
+            _displayAdapter = displayAdapter ?? throw new ArgumentNullException(nameof(displayAdapter));
+
+            // 创建节点工厂
+            _nodeFactory = new WorkflowNodeFactory(_sequenceManager, _displayAdapter);
+
             Id = Guid.NewGuid().ToString();
             Name = "工作流1";
             State = WorkflowState.Stopped;
@@ -179,6 +212,29 @@ namespace SunEyeVision.UI.ViewModels
                     _ => "#999999"
                 };
             }
+        }
+
+        /// <summary>
+        /// 创建新节点并自动分配序号
+        /// </summary>
+        /// <param name="algorithmType">算法类型</param>
+        /// <param name="name">节点名称（可选，默认使用算法类型）</param>
+        /// <returns>新创建的节点</returns>
+        public Models.WorkflowNode CreateNode(string algorithmType, string? name = null)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] Creating node: Type={algorithmType}, Name={name}, WorkflowId={Id}");
+            // 使用工厂创建节点，自动处理序号分配
+            var node = _nodeFactory.CreateNode(algorithmType, name, Id);
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] Node created: Id={node.Id}, Index={node.Index}, GlobalIndex={node.GlobalIndex}");
+            return node;
+        }
+
+        /// <summary>
+        /// 重置工作流的所有序号
+        /// </summary>
+        public void ResetNodeSequences()
+        {
+            _sequenceManager.ResetWorkflow(Id);
         }
     }
 

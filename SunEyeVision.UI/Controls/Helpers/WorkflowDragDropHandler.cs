@@ -82,26 +82,26 @@ namespace SunEyeVision.UI.Controls.Helpers
                     return;
                 }
 
-                // 创建新节点，使用ToolId作为AlgorithmType
-                var newNode = new WorkflowNode(
-                    Guid.NewGuid().ToString(),
-                    item.Name,
-                    item.ToolId
-                );
-                newNode.Position = dropPosition;
-                newNode.IsSelected = true;
-
                 // 直接从 WorkflowCanvasControl 的 DataContext 获取当前标签页
                 if (_canvasControl.DataContext is WorkflowTabViewModel workflowTab)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] Creating node: ToolId={item.ToolId}, Name={item.Name}");
+
                     // 清除其他节点的选中状态
                     foreach (var node in workflowTab.WorkflowNodes)
                     {
                         node.IsSelected = false;
                     }
 
+                    // 使用 ViewModel 的 CreateNode 方法创建节点，自动分配序号
+                    var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
+                    newNode.Position = dropPosition;
+                    newNode.IsSelected = true;
+
                     // 添加新节点
                     workflowTab.WorkflowNodes.Add(newNode);
+
+                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] Node added: Index={newNode.Index}, GlobalIndex={newNode.GlobalIndex}");
                 }
             }
             catch (Exception ex)

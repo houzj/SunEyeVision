@@ -19,6 +19,19 @@ namespace SunEyeVision.UI.Models
         private bool _isSelected;
         private bool _isEnabled = true;
         private string _status = "待运行";
+        private int _index;
+        private int _globalIndex;
+        private string _nodeTypeIcon = string.Empty;
+
+        /// <summary>
+        /// 属性变更前事件
+        /// </summary>
+        public event Action<WorkflowNode, string>? PropertyChanging;
+
+        /// <summary>
+        /// 属性变更后事件（扩展的标准PropertyChanged）
+        /// </summary>
+        public event Action<WorkflowNode, string>? PropertyChangedExtended;
 
         public string Id
         {
@@ -92,22 +105,22 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 获取上方连接点位置（用于连接线）
         /// </summary>
-        public Point TopPortPosition => new Point(Position.X + 70, Position.Y);
+        public Point TopPortPosition => new Point(Position.X + 80, Position.Y);
 
         /// <summary>
         /// 获取下方连接点位置（用于连接线）
         /// </summary>
-        public Point BottomPortPosition => new Point(Position.X + 70, Position.Y + 70);
+        public Point BottomPortPosition => new Point(Position.X + 80, Position.Y + 40);
 
         /// <summary>
         /// 获取左侧连接点位置（用于连接线）
         /// </summary>
-        public Point LeftPortPosition => new Point(Position.X, Position.Y + 35);
+        public Point LeftPortPosition => new Point(Position.X, Position.Y + 20);
 
         /// <summary>
         /// 获取右侧连接点位置（用于连接线）
         /// </summary>
-        public Point RightPortPosition => new Point(Position.X + 140, Position.Y + 35);
+        public Point RightPortPosition => new Point(Position.X + 160, Position.Y + 20);
 
         /// <summary>
         /// Node Y coordinate for binding
@@ -165,12 +178,76 @@ namespace SunEyeVision.UI.Models
             }
         }
 
-        public WorkflowNode(string id, string name, string algorithmType)
+        /// <summary>
+        /// 工作流中的本地序号（同一工作流中相同类型节点的序号）
+        /// </summary>
+        public int Index
+        {
+            get => _index;
+            set
+            {
+                if (_index != value)
+                {
+                    OnPropertyChanging(nameof(Index));
+                    _index = value;
+                    OnPropertyChanged(nameof(Index));
+                    OnPropertyChanged(nameof(LocalDisplayName));
+                    OnPropertyChangedExtended(nameof(Index));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 全局唯一序号（所有工作流中的总序号，不可修改）
+        /// </summary>
+        public int GlobalIndex { get; private set; }
+
+        /// <summary>
+        /// 节点类型图标
+        /// </summary>
+        public string NodeTypeIcon
+        {
+            get => _nodeTypeIcon;
+            set
+            {
+                if (_nodeTypeIcon != value)
+                {
+                    _nodeTypeIcon = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 本地显示名称（节点名称 + 本地序号）
+        /// </summary>
+        public string LocalDisplayName => $"{_name} {_index}";
+
+        public WorkflowNode(string id, string name, string algorithmType, int index = 0, int globalIndex = 0)
         {
             Id = id;
             Name = name;
             AlgorithmType = algorithmType;
+            Index = index;
+            GlobalIndex = globalIndex;
             Position = new Point(0, 0);
+            // 图标由工厂设置，不再在这里设置
+        }
+
+        /// <summary>
+        /// 触发属性变更前事件
+        /// </summary>
+        protected void OnPropertyChanging(string propertyName)
+        {
+            PropertyChanging?.Invoke(this, propertyName);
+        }
+
+        /// <summary>
+        /// 触发属性变更后事件（扩展）
+        /// </summary>
+        protected void OnPropertyChangedExtended(string propertyName)
+        {
+            PropertyChangedExtended?.Invoke(this, propertyName);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
