@@ -105,22 +105,22 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 获取上方连接点位置（用于连接线）
         /// </summary>
-        public Point TopPortPosition => new Point(Position.X + 80, Position.Y);
+        public Point TopPortPosition => new Point(Position.X + 80, Position.Y - 10);
 
         /// <summary>
         /// 获取下方连接点位置（用于连接线）
         /// </summary>
-        public Point BottomPortPosition => new Point(Position.X + 80, Position.Y + 40);
+        public Point BottomPortPosition => new Point(Position.X + 80, Position.Y + 50);
 
         /// <summary>
         /// 获取左侧连接点位置（用于连接线）
         /// </summary>
-        public Point LeftPortPosition => new Point(Position.X, Position.Y + 20);
+        public Point LeftPortPosition => new Point(Position.X - 10, Position.Y + 20);
 
         /// <summary>
         /// 获取右侧连接点位置（用于连接线）
         /// </summary>
-        public Point RightPortPosition => new Point(Position.X + 160, Position.Y + 20);
+        public Point RightPortPosition => new Point(Position.X + 170, Position.Y + 20);
 
         /// <summary>
         /// Node Y coordinate for binding

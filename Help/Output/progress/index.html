@@ -15,6 +15,7 @@
             </div>
             <div class="nav-menu">
                 <a href="../index.html" class="nav-item">🏠 首页</a>
+                <a href="../features/index.html" class="nav-item">✨ 功能特性</a>
                 <a href="../usermanual/index.html" class="nav-item">📖 用户手册</a>
                 <a href="../architecture/index.html" class="nav-item">🏗️ 软件架构</a>
                 <a href="../roadmap/index.html" class="nav-item">🗺️ 开发路线图</a>
@@ -37,10 +38,10 @@
                     <div style="margin-bottom: 15px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <strong>整体完成度</strong>
-                            <strong>45%</strong>
+                            <strong>50%</strong>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: 45%;"></div>
+                            <div class="progress-fill" style="width: 50%;"></div>
                         </div>
                     </div>
                 </div>
@@ -69,9 +70,9 @@
                 </ul>
 
                 <h3>SunEyeVision.Algorithms</h3>
-                <p><strong>完成度：</strong> 60%</p>
+                <p><strong>完成度：</strong> 65%</p>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 60%;"></div>
+                    <div class="progress-fill" style="width: 65%;"></div>
                 </div>
                 <h4>已完成功能：</h4>
                 <ul>
@@ -90,9 +91,9 @@
                 </ul>
 
                 <h3>SunEyeVision.Workflow</h3>
-                <p><strong>完成度：</strong> 65%</p>
+                <p><strong>完成度：</strong> 70%</p>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 65%;"></div>
+                    <div class="progress-fill" style="width: 70%;"></div>
                 </div>
                 <h4>已完成功能：</h4>
                 <ul>
@@ -101,11 +102,13 @@
                     <li>✅ AlgorithmNode 算法节点</li>
                     <li>✅ 工作流执行基础功能</li>
                     <li>✅ 节点连接和参数管理</li>
+                    <li>✅ 工作流可视化拖拽</li>
+                    <li>✅ 节点参数编辑 (双击打开调试界面)</li>
                 </ul>
                 <h4>待完成功能：</h4>
                 <ul>
                     <li>⏳ 工作流序列化/反序列化</li>
-                    <li>⏳ 工作流调试功能</li>
+                    <li>⏳ 工作流调试功能 (单步执行、断点)</li>
                     <li>⏳ 并行执行支持</li>
                     <li>⏳ 条件分支和循环执行</li>
                 </ul>
@@ -132,27 +135,33 @@
                 </ul>
 
                 <h3>SunEyeVision.PluginSystem</h3>
-                <p><strong>完成度：</strong> 40%</p>
+                <p><strong>完成度：</strong> 75%</p>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 40%;"></div>
+                    <div class="progress-fill" style="width: 75%;"></div>
                 </div>
                 <h4>已完成功能：</h4>
                 <ul>
                     <li>✅ IVisionPlugin 插件接口</li>
-                    <li>✅ 插件元数据定义</li>
+                    <li>✅ IToolPlugin 工具插件接口</li>
+                    <li>✅ 插件元数据定义 (ToolMetadata, ParameterMetadata)</li>
+                    <li>✅ ToolRegistry 工具注册表</li>
+                    <li>✅ ToolInitializer 自动工具加载器</li>
+                    <li>✅ 参数控件工厂 (支持13种参数类型)</li>
+                    <li>✅ 分层混合模式调试界面</li>
+                    <li>✅ 8个示例工具插件 (采集、匹配、模糊、OCR、阈值、边缘、ROI、颜色转换)</li>
                 </ul>
                 <h4>待完成功能：</h4>
                 <ul>
-                    <li>⏳ PluginLoader 插件加载器</li>
+                    <li>⏳ 插件动态加载 (DLL加载)</li>
                     <li>⏳ 插件依赖解析</li>
                     <li>⏳ 插件生命周期管理</li>
                     <li>⏳ 插件热加载</li>
                 </ul>
 
                 <h3>SunEyeVision.UI</h3>
-                <p><strong>完成度：</strong> 55%</p>
+                <p><strong>完成度：</strong> 70%</p>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 55%;"></div>
+                    <div class="progress-fill" style="width: 70%;"></div>
                 </div>
                 <h4>已完成功能：</h4>
                 <ul>
@@ -160,21 +169,39 @@
                     <li>✅ MVVM 架构搭建</li>
                     <li>✅ 基础菜单和工具栏</li>
                     <li>✅ 工作流设计器基础框架</li>
+                    <li>✅ 工具箱动态加载 (从ToolRegistry)</li>
+                    <li>✅ 工作流可视化拖拽 (工具箱→画布)</li>
+                    <li>✅ 节点参数动态编辑 (双击打开DebugWindow)</li>
                     <li>✅ 参数面板基础功能</li>
                     <li>✅ 图像显示组件</li>
+                    <li>✅ 快捷键系统 (F1, F5, Ctrl+N, Ctrl+S等)</li>
                 </ul>
                 <h4>待完成功能：</h4>
                 <ul>
-                    <li>⏳ 工作流可视化拖拽</li>
-                    <li>⏳ 节点参数动态编辑</li>
+                    <li>⏳ 工作流缩放和平移</li>
                     <li>⏳ 实时结果预览</li>
                     <li>⏳ 主题切换功能</li>
-                    <li>⏳ 快捷键系统</li>
+                    <li>⏳ 撤销/重做功能</li>
                 </ul>
             </section>
 
             <section class="content-section">
                 <h2>近期更新</h2>
+
+                <h3>V0.5.1 (2026-01-21)</h3>
+                <ul>
+                    <li>✅ 实现分层混合模式调试界面系统</li>
+                    <li>✅ 创建 IDebugControlProvider 接口支持自定义调试控件</li>
+                    <li>✅ 实现 ToolRegistry 静态工具注册表</li>
+                    <li>✅ 实现 ToolInitializer 自动工具加载器</li>
+                    <li>✅ 构建 ParameterControlFactory 参数控件工厂 (支持13种参数类型)</li>
+                    <li>✅ 创建8个示例工具插件并添加完整元数据</li>
+                    <li>✅ 更新 DebugWindow 支持混合模式 (自定义→自动生成→降级)</li>
+                    <li>✅ 解决 WPF/WinForms 命名空间冲突问题</li>
+                    <li>✅ 修复流程编辑区工具双击打开调试界面的工具ID问题</li>
+                    <li>✅ 修复从工具箱拖拽工具后无法打开调试界面的问题</li>
+                    <li>✅ 生成 DEBUG_INTERFACE_TEST_GUIDE.md 调试接口测试文档</li>
+                </ul>
 
                 <h3>V0.5.0 (2026-01-21)</h3>
                 <ul>
@@ -205,10 +232,11 @@
 
                 <h3>2026-02 计划</h3>
                 <ul>
-                    <li>📋 完成事件总线 (EventBus) 实现</li>
+                    <li>📋 实现插件动态加载 (DLL加载)</li>
                     <li>📋 完善工作流序列化功能</li>
-                    <li>📋 实现 PluginLoader 插件加载器</li>
-                    <li>📋 优化配置文件读写功能</li>
+                    <li>📋 实现工作流撤销/重做功能</li>
+                    <li>📋 添加工作流缩放和平移功能</li>
+                    <li>📋 实现工作流实时结果预览</li>
                     <li>📋 添加单元测试</li>
                 </ul>
 
@@ -218,6 +246,7 @@
                     <li>📋 实现特征提取算法 (角点检测、斑点分析)</li>
                     <li>📋 开发测量算法 (距离、角度、面积)</li>
                     <li>📋 开发识别算法 (OCR、条形码)</li>
+                    <li>📋 实现插件依赖解析</li>
                 </ul>
             </section>
 

@@ -74,6 +74,7 @@ namespace SunEyeVision.UI.Controls.Helpers
 
                 // 获取放置位置
                 Point dropPosition = e.GetPosition(canvas);
+                System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] Drop position: ({dropPosition.X:F0}, {dropPosition.Y:F0})");
 
                 // 验证数据
                 if (string.IsNullOrEmpty(item.ToolId))
@@ -97,6 +98,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                     var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                     newNode.Position = dropPosition;
                     newNode.IsSelected = true;
+                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] Node position set to: ({newNode.Position.X:F0}, {newNode.Position.Y:F0})");
 
                     // 添加新节点
                     workflowTab.WorkflowNodes.Add(newNode);

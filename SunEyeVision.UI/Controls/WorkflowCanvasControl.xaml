@@ -34,15 +34,15 @@
             <Setter Property="Fill" Value="#0066CC"/>
             <Setter Property="Stroke" Value="#FFFFFF"/>
             <Setter Property="StrokeThickness" Value="2"/>
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="14"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
             <Setter Property="Cursor" Value="Cross"/>
             <Setter Property="Panel.ZIndex" Value="10"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Fill" Value="#FF6600"/>
-                    <Setter Property="Width" Value="18"/>
-                    <Setter Property="Height" Value="18"/>
+                    <Setter Property="Width" Value="24"/>
+                    <Setter Property="Height" Value="24"/>
                     <Setter Property="StrokeThickness" Value="3"/>
                 </Trigger>
             </Style.Triggers>
@@ -217,37 +217,96 @@
                             MouseEnter="Node_MouseEnter"
                             MouseLeave="Node_MouseLeave"
                             x:Name="NodeBorder">
-                        <Grid Margin="12,0,12,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <Grid>
+                            <!-- 节点内容 -->
+                            <Grid Margin="12,0,12,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <!-- 节点类型图标 -->
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding NodeTypeIcon}"
-                                       FontSize="18"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
+                                <!-- 节点类型图标 -->
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding NodeTypeIcon}"
+                                           FontSize="18"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
 
-                            <!-- 全局序号 -->
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding GlobalIndex, StringFormat='#{0}'}"
-                                       FontSize="13"
-                                       FontWeight="Bold"
-                                       Foreground="#ff9500"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
+                                <!-- 全局序号 -->
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding GlobalIndex, StringFormat='#{0}'}"
+                                           FontSize="13"
+                                           FontWeight="Bold"
+                                           Foreground="#ff9500"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
 
-                            <!-- 节点名称 + 本地序号（使用适配器） -->
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding Converter={StaticResource NodeDisplayTextConverter}}"
-                                       FontSize="13"
-                                       FontWeight="Medium"
-                                       Foreground="#333333"
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"/>
+                                <!-- 节点名称 + 本地序号（使用适配器） -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding Converter={StaticResource NodeDisplayTextConverter}}"
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Foreground="#333333"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+
+                            <!-- 连接点 - 上 -->
+                            <Ellipse Name="TopPortEllipse"
+                                     Style="{StaticResource PortEllipseStyle}"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Top"
+                                     Margin="0,-10,0,0"
+                                     MouseLeftButtonDown="Port_MouseLeftButtonDown"
+                                     MouseLeftButtonUp="Port_MouseLeftButtonUp"
+                                     MouseMove="Port_MouseMove"
+                                     MouseEnter="Port_MouseEnter"
+                                     MouseLeave="Port_MouseLeave"
+                                     Tag="TopPort"
+                                     Visibility="Collapsed"/>
+
+                            <!-- 连接点 - 下 -->
+                            <Ellipse Name="BottomPortEllipse"
+                                     Style="{StaticResource PortEllipseStyle}"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Bottom"
+                                     Margin="0,0,0,-10"
+                                     MouseLeftButtonDown="Port_MouseLeftButtonDown"
+                                     MouseLeftButtonUp="Port_MouseLeftButtonUp"
+                                     MouseMove="Port_MouseMove"
+                                     MouseEnter="Port_MouseEnter"
+                                     MouseLeave="Port_MouseLeave"
+                                     Tag="BottomPort"
+                                     Visibility="Collapsed"/>
+
+                            <!-- 连接点 - 左 -->
+                            <Ellipse Name="LeftPortEllipse"
+                                     Style="{StaticResource PortEllipseStyle}"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Center"
+                                     Margin="-10,0,0,0"
+                                     MouseLeftButtonDown="Port_MouseLeftButtonDown"
+                                     MouseLeftButtonUp="Port_MouseLeftButtonUp"
+                                     MouseMove="Port_MouseMove"
+                                     MouseEnter="Port_MouseEnter"
+                                     MouseLeave="Port_MouseLeave"
+                                     Tag="LeftPort"
+                                     Visibility="Collapsed"/>
+
+                            <!-- 连接点 - 右 -->
+                            <Ellipse Name="RightPortEllipse"
+                                     Style="{StaticResource PortEllipseStyle}"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,-10,0"
+                                     MouseLeftButtonDown="Port_MouseLeftButtonDown"
+                                     MouseLeftButtonUp="Port_MouseLeftButtonUp"
+                                     MouseMove="Port_MouseMove"
+                                     MouseEnter="Port_MouseEnter"
+                                     MouseLeave="Port_MouseLeave"
+                                     Tag="RightPort"
+                                     Visibility="Collapsed"/>
                         </Grid>
 
                         <Border.Style>
@@ -287,7 +346,8 @@
               StrokeDashArray="5,5"
               StrokeLineJoin="Round"
               Fill="Transparent"
-              Canvas.ZIndex="9998"
+              Canvas.ZIndex="-1"
+              IsHitTestVisible="False"
               Visibility="Collapsed">
             <Path.Data>
                 <PathGeometry x:Name="TempConnectionGeometry" />

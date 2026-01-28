@@ -54,8 +54,18 @@ namespace SunEyeVision.UI.Controls.Helpers
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
+            // 计算箭头位置（从目标端口向目标节点方向偏移一定距离）
+            Point arrowPos = CalculateArrowPosition(targetPos, targetNode);
+            newConnection.ArrowPosition = arrowPos;
+
+            // 计算箭头角度
+            double arrowAngle = CalculateArrowAngle(targetPos, targetNode, targetPortName);
+            newConnection.ArrowAngle = arrowAngle;
+
             System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 源端口:{sourcePortName} 位置:{sourcePos}");
             System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 目标端口:{targetPortName} 位置:{targetPos}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 箭头位置:{arrowPos}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 箭头角度:{arrowAngle:F1}°");
 
             currentTab.WorkflowConnections.Add(newConnection);
             System.Diagnostics.Debug.WriteLine("[CreateConnectionWithSpecificPort] ✓ 连接创建完成");
@@ -109,11 +119,21 @@ namespace SunEyeVision.UI.Controls.Helpers
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
+            // 计算箭头位置
+            Point arrowPos = CalculateArrowPosition(targetPos, targetNode);
+            newConnection.ArrowPosition = arrowPos;
+
+            // 计算箭头角度
+            double arrowAngle = CalculateArrowAngle(targetPos, targetNode, finalTargetPort);
+            newConnection.ArrowAngle = arrowAngle;
+
             System.Diagnostics.Debug.WriteLine("[CreateConnection] ========== 连接属性设置 ==========");
             System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.SourcePort = {finalSourcePort}");
             System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.TargetPort = {finalTargetPort}");
             System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.SourcePosition = ({sourcePos.X:F1}, {sourcePos.Y:F1})");
             System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.TargetPosition = ({targetPos.X:F1}, {targetPos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.ArrowPosition = ({arrowPos.X:F1}, {arrowPos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.ArrowAngle = {arrowAngle:F1}°");
 
             // 验证端口位置是否正确
             ValidatePortPositions(sourceNode, targetNode, finalSourcePort, finalTargetPort, sourcePos, targetPos);
@@ -297,6 +317,56 @@ namespace SunEyeVision.UI.Controls.Helpers
                 "LeftPort" => node.LeftPortPosition,
                 "RightPort" => node.RightPortPosition,
                 _ => node.Position // 默认返回节点中心
+            };
+        }
+
+        /// <summary>
+        /// 计算箭头位置
+        /// </summary>
+        private static Point CalculateArrowPosition(Point targetPortPos, WorkflowNode targetNode)
+        {
+            // 箭头偏移量（从目标端口向目标节点方向偏移）
+            const double ArrowOffset = 10;
+
+            // 判断目标端口在节点的哪个方向
+            var deltaX = targetPortPos.X - targetNode.Position.X;
+            var deltaY = targetPortPos.Y - targetNode.Position.Y;
+
+            // 箭头位置 = 目标端口位置 - 箭头偏移（向节点方向）
+            Point arrowPos;
+            if (Math.Abs(deltaX) > Math.Abs(deltaY))
+            {
+                // 水平方向
+                if (deltaX < 0) // LeftPort
+                    arrowPos = new Point(targetPortPos.X + ArrowOffset, targetPortPos.Y);
+                else // RightPort
+                    arrowPos = new Point(targetPortPos.X - ArrowOffset, targetPortPos.Y);
+            }
+            else
+            {
+                // 垂直方向
+                if (deltaY < 0) // TopPort
+                    arrowPos = new Point(targetPortPos.X, targetPortPos.Y + ArrowOffset);
+                else // BottomPort
+                    arrowPos = new Point(targetPortPos.X, targetPortPos.Y - ArrowOffset);
+            }
+
+            return arrowPos;
+        }
+
+        /// <summary>
+        /// 计算箭头角度（度）
+        /// </summary>
+        private static double CalculateArrowAngle(Point targetPortPos, WorkflowNode targetNode, string targetPortName)
+        {
+            // 箭头默认指向右方（0度），根据端口方向旋转
+            return targetPortName switch
+            {
+                "TopPort" => 270,    // 指向上方
+                "BottomPort" => 90,   // 指向下方
+                "LeftPort" => 180,    // 指向左方
+                "RightPort" => 0,     // 指向右方
+                _ => 0
             };
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -42,14 +42,20 @@ namespace SunEyeVision.UI.Controls
         // 拖拽连接相关
         private bool _isDraggingConnection = false;
         private WorkflowNode? _dragConnectionSourceNode = null;
+        private Border? _dragConnectionSourceBorder = null; // 拖拽连接时的源节点Border
         private System.Windows.Point _dragConnectionStartPoint;
+        private System.Windows.Point _dragConnectionEndPoint;
         private string? _dragConnectionSourcePort = null; // 记录拖拽开始时的源端口
-        private Border? _highlightedTargetBorder = null; // 高亮的目标节点Border（用于恢复原始样式）
-        private Ellipse? _highlightedTargetPort = null; // 高亮的目标端口（Ellipse）
-        private int _dragMoveCounter = 0; // 拖拽移动计数器，用于减少日志输出频率
-        private int _highlightCounter = 0; // 端口高亮计数器，用于减少日志输出频率
-        private string? _lastHighlightedPort = null; // 上次高亮的端口名称
-        private string? _directHitTargetPort = null; // 用户直接命中的目标端口名称
+    private Border? _highlightedTargetBorder = null; // 高亮的目标节点Border（用于恢复原始样式）
+    private Ellipse? _highlightedTargetPort = null; // 高亮的目标端口（Ellipse）
+    private int _dragMoveCounter = 0; // 拖拽移动计数器，用于减少日志输出频率
+    private int _globalMouseMoveCounter = 0; // 全局鼠标移动计数器，用于监控日志
+    private int _highlightCounter = 0; // 端口高亮计数器，用于减少日志输出频率
+    private string? _lastHighlightedPort = null; // 上次高亮的端口名称
+    private string? _directHitTargetPort = null; // 用户直接命中的目标端口名称
+    private Path? _tempConnectionLine = null; // 临时连接线（用于拖拽时显示）
+    private PathGeometry? _tempConnectionGeometry = null; // 临时连接线路径几何
+    private Border? _highlightedTargetNodeBorder = null; // 拖拽时高亮的目标节点Border（用于显示端口）
 
         // 连接线路径缓存
         private Services.ConnectionPathCache? _connectionPathCache;
@@ -67,7 +73,7 @@ namespace SunEyeVision.UI.Controls
             private set
             {
                 _isDraggingConnection = value;
-                SetPortsVisibility(value);
+                // 不再控制所有端口的可见性，改为只在鼠标悬停节点时显示该节点的端口
             }
         }
 
@@ -167,7 +173,7 @@ namespace SunEyeVision.UI.Controls
                     Mode = System.Windows.Data.BindingMode.OneWay
                 };
                 WorkflowCanvas.SetBinding(Canvas.RenderTransformProperty, binding);
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✓ 已绑定ScaleTransform到WorkflowCanvas");
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? 已绑定ScaleTransform到WorkflowCanvas");
             }
         }
 
@@ -180,11 +186,11 @@ namespace SunEyeVision.UI.Controls
 
             if (BoundingRectangle == null)
             {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ❌ BoundingRectangle为null，XAML解析失败！");
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? BoundingRectangle为null，XAML解析失败！");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ✓ BoundingRectangle元素加载成功");
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? BoundingRectangle元素加载成功");
             }
 
             // 禁用设备像素对齐，启用亚像素渲染
@@ -197,6 +203,19 @@ namespace SunEyeVision.UI.Controls
             Loaded += WorkflowCanvasControl_Loaded;
 
             System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] 初始化完成");
+
+            // 初始化临时连接线
+            _tempConnectionLine = this.FindName("TempConnectionLine") as Path;
+            _tempConnectionGeometry = this.FindName("TempConnectionGeometry") as PathGeometry;
+            if (_tempConnectionLine == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? 无法找到TempConnectionLine元素");
+            }
+            else
+            {
+                _tempConnectionLine.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? TempConnectionLine初始化成功");
+            }
 
             // 初始化辅助类
             _dragDropHandler = new WorkflowDragDropHandler(this);
@@ -216,11 +235,11 @@ namespace SunEyeVision.UI.Controls
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
                 if (_viewModel == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ❌ 无法获取MainWindowViewModel");
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? 无法获取MainWindowViewModel");
                 }
                 else
                 {
-                    _viewModel.AddLog("[WorkflowCanvas Loaded] ✓ Loaded事件触发");
+                    _viewModel.AddLog("[WorkflowCanvas Loaded] ? Loaded事件触发");
 
                     // 验证BoundingRectangle
                     _viewModel.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
@@ -229,26 +248,26 @@ namespace SunEyeVision.UI.Controls
                     // 检查 WorkflowTabViewModel
                     if (_viewModel.WorkflowTabViewModel == null)
                     {
-                        _viewModel.AddLog("[WorkflowCanvas Loaded] ❌ WorkflowTabViewModel为null");
+                        _viewModel.AddLog("[WorkflowCanvas Loaded] ? WorkflowTabViewModel为null");
                     }
                     else
                     {
-                        _viewModel.AddLog("[WorkflowCanvas Loaded] ✓ WorkflowTabViewModel不为null");
+                        _viewModel.AddLog("[WorkflowCanvas Loaded] ? WorkflowTabViewModel不为null");
 
                         // 检查 SelectedTab
                         var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
                         if (selectedTab == null)
                         {
-                            _viewModel.AddLog("[WorkflowCanvas Loaded] ❌ SelectedTab为null");
+                            _viewModel.AddLog("[WorkflowCanvas Loaded] ? SelectedTab为null");
                         }
                         else
                         {
-                            _viewModel.AddLog($"[WorkflowCanvas Loaded] ✓ SelectedTab: ID={selectedTab.Id}, Name={selectedTab.Name}");
+                            _viewModel.AddLog($"[WorkflowCanvas Loaded] ? SelectedTab: ID={selectedTab.Id}, Name={selectedTab.Name}");
                             _viewModel.AddLog($"[WorkflowCanvas Loaded] 当前节点数: {selectedTab.WorkflowNodes.Count}, 连接数: {selectedTab.WorkflowConnections.Count}");
                         }
                     }
 
-                    _viewModel.AddLog($"[WorkflowCanvas Loaded] ✓ WorkflowCanvasControl 已加载，可以开始拖拽创建连接");
+                    _viewModel.AddLog($"[WorkflowCanvas Loaded] ? WorkflowCanvasControl 已加载，可以开始拖拽创建连接");
 
                     // 初始化辅助类（需要ViewModel）
                     if (_portHighlighter == null)
@@ -263,7 +282,7 @@ namespace SunEyeVision.UI.Controls
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ❌ 无法获取Window");
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? 无法获取Window");
             }
 
             // 初始化智能路径转换器的节点集合和连接集合
@@ -271,13 +290,13 @@ namespace SunEyeVision.UI.Controls
             {
                 Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
-                _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                 // 初始化连接线路径缓存
                 _connectionPathCache = new Services.ConnectionPathCache(
                     CurrentWorkflowTab.WorkflowNodes
                 );
-                _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 已初始化ConnectionPathCache，共{CurrentWorkflowTab.WorkflowConnections.Count}个连接");
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 已初始化ConnectionPathCache，共{CurrentWorkflowTab.WorkflowConnections.Count}个连接");
 
                 // 设置SmartPathConverter的缓存引用
                 Converters.SmartPathConverter.PathCache = _connectionPathCache;
@@ -288,7 +307,7 @@ namespace SunEyeVision.UI.Controls
                     nodesCollection.CollectionChanged += (s, args) =>
                     {
                         Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
-                        _viewModel?.AddLog($"[WorkflowCanvas Loaded] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                         // 触发所有连接的属性变化，重新计算路径
                         RefreshAllConnectionPaths();
@@ -327,7 +346,7 @@ namespace SunEyeVision.UI.Controls
                 {
                     _connectionPathCache.WarmUp(CurrentWorkflowTab.WorkflowConnections);
                     var stats = _connectionPathCache.GetStatistics();
-                    _viewModel?.AddLog($"[WorkflowCanvas Loaded] ✓ 缓存预热完成，命中率: {stats.HitRate:P2}");
+                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 缓存预热完成，命中率: {stats.HitRate:P2}");
                 }
             }
 
@@ -360,6 +379,10 @@ namespace SunEyeVision.UI.Controls
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
             {
+                if (!_isDraggingConnection)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[NodeEnter] 节点:{node.Name} 位置:({node.Position.X:F0},{node.Position.Y:F0}) 显示端口");
+                }
                 SetPortsVisibility(border, true);
             }
         }
@@ -371,7 +394,11 @@ namespace SunEyeVision.UI.Controls
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
             {
-                SetPortsVisibility(border, false);
+                // 如果没有正在拖拽连接，则隐藏当前节点的端口
+                if (!_isDraggingConnection)
+                {
+                    SetPortsVisibility(border, false);
+                }
             }
         }
 
@@ -389,6 +416,28 @@ namespace SunEyeVision.UI.Controls
         private void Ellipse_MouseLeave(object sender, MouseEventArgs e)
         {
             // 连接点样式已通过 XAML 处理
+        }
+
+        /// <summary>
+        /// 端口鼠标进入事件 - 调试用
+        /// </summary>
+        private void Port_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is Ellipse ellipse && ellipse.Tag is string portName)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PortEnter] 端口:{portName}");
+            }
+        }
+
+        /// <summary>
+        /// 端口鼠标离开事件 - 调试用
+        /// </summary>
+        private void Port_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is Ellipse ellipse && ellipse.Tag is string portName)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PortLeave] 端口:{portName}");
+            }
         }
 
         /// <summary>
@@ -417,16 +466,29 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void SetPortsVisibility(Border border, bool isVisible)
         {
-            var ellipses = WorkflowVisualHelper.FindAllVisualChildren<Ellipse>(border);
-            foreach (var ellipse in ellipses)
+            if (border.Tag is WorkflowNode node)
             {
-                var ellipseName = ellipse.Name ?? "";
-                if (ellipseName.Contains("Port"))
+                var ellipses = WorkflowVisualHelper.FindAllVisualChildren<Ellipse>(border);
+                int portCount = 0;
+                foreach (var ellipse in ellipses)
                 {
-                    ellipse.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+                    var ellipseName = ellipse.Name ?? "";
+                    if (ellipseName.Contains("Port"))
+                    {
+                        // 使用 Visibility.Collapsed 而不是 Opacity，确保端口不响应鼠标事件
+                        // Collapsed 的元素不可见且不响应鼠标事件
+                        ellipse.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+                        portCount++;
+                    }
+                }
+                if (portCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PortsVis] 节点:{node.Name} 端口:{(isVisible?"显示":"隐藏")} 数量:{portCount}");
                 }
             }
         }
+
+
 
         /// <summary>
         /// 节点鼠标左键按下 - 开始拖拽
@@ -450,7 +512,9 @@ namespace SunEyeVision.UI.Controls
 
                 // 打开调试窗口
                 _viewModel.OpenDebugWindowCommand.Execute(node);
-                e.Handled = true;
+                // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
                 return;
             }
 
@@ -484,7 +548,9 @@ namespace SunEyeVision.UI.Controls
             border.CaptureMouse();
 
             // 阻止事件冒泡到 Canvas，避免触发框选
-            e.Handled = true;
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
         }
 
         /// <summary>
@@ -545,6 +611,10 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Node_MouseMove(object sender, MouseEventArgs e)
         {
+            // 如果正在拖拽连接，则不移动节点（避免冲突）
+            if (_isDraggingConnection)
+                return;
+
             if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(WorkflowCanvas);
@@ -601,6 +671,343 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
+        /// 端口鼠标左键按下 - 开始拖拽连接线
+        /// </summary>
+        private void Port_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[PortClick] ========== 端口按下 [{DateTime.Now:HH:mm:ss.fff}] ==========");
+            System.Diagnostics.Debug.WriteLine($"[PortClick] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[PortClick] 临时连接线可见性: {_tempConnectionLine?.Visibility}");
+            System.Diagnostics.Debug.WriteLine($"[PortClick] 当前状态: _isDraggingConnection={_isDraggingConnection}, _dragConnectionSourceNode={_dragConnectionSourceNode?.Name ?? "null"}");
+
+            if (sender is not Ellipse ellipse || ellipse.Tag is not string portName)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PortClick] ❌ 无效的发送者或端口名称");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[PortClick] 端口名称: {portName}");
+
+            // 保护：如果已经在拖拽状态，直接返回，不启动新的拖拽
+            if (_isDraggingConnection)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PortClick] ⚠ 检测到已在拖拽状态，拒绝启动新的拖拽 [{DateTime.Now:HH:mm:ss.fff}]");
+                e.Handled = true;
+                return;
+            }
+
+            // 获取父节点Border（向上遍历查找）
+            DependencyObject? current = VisualTreeHelper.GetParent(ellipse);
+            Border? border = null;
+            WorkflowNode? node = null;
+
+            while (current != null)
+            {
+                if (current is Border currentBorder && currentBorder.Tag is WorkflowNode workflowNode)
+                {
+                    border = currentBorder;
+                    node = workflowNode;
+                    break;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            if (border == null || node == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PortClick] ❌ 无法找到节点");
+                return;
+            }
+
+            // 设置连接拖拽状态
+            _isDraggingConnection = true;
+            _dragConnectionSourceNode = node;
+            _dragConnectionSourceBorder = border; // 保存源节点的Border
+            _dragConnectionSourcePort = portName;
+
+            System.Diagnostics.Debug.WriteLine($"[PortClick] 设置拖拽状态: _isDraggingConnection=true, 源节点:{node.Name}, 源端口:{portName}");
+
+            // 保持源节点的端口可见
+            SetPortsVisibility(border, true);
+
+            // 获取端口位置
+            Point portPosition = GetPortPositionByName(node, portName);
+            _dragConnectionStartPoint = portPosition;
+            _dragConnectionEndPoint = portPosition;
+
+            System.Diagnostics.Debug.WriteLine($"[DragStart] 节点:{node.Name}({node.Id.Substring(0,8)}...) 端口:{portName} 位置:({portPosition.X:F0},{portPosition.Y:F0})");
+
+            // 显示临时连接线
+            if (_tempConnectionLine != null && _tempConnectionGeometry != null)
+            {
+                var oldVisibility = _tempConnectionLine.Visibility;
+                _tempConnectionLine.Visibility = Visibility.Visible;
+                UpdateTempConnectionPath(portPosition, portPosition);
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ✓ 显示临时连接线 [{DateTime.Now:HH:mm:ss.fff}] 可见性:{oldVisibility}->{_tempConnectionLine.Visibility}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ❌ 无法显示临时连接线 [{DateTime.Now:HH:mm:ss.fff}] Line:{_tempConnectionLine!=null} Geometry:{_tempConnectionGeometry!=null}");
+            }
+
+            // 捕获鼠标
+            ellipse.CaptureMouse();
+
+            // 阻止事件冒泡到Border的Node_MouseLeftButtonDown
+            // 这样可以避免在拖拽连接时错误地触发节点移动
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 更新临时连接线路径
+        /// </summary>
+        private void UpdateTempConnectionPath(Point startPoint, Point endPoint)
+        {
+            if (_tempConnectionGeometry == null)
+                return;
+
+            // 创建简单的直线路径
+            var figure = new PathFigure
+            {
+                StartPoint = startPoint,
+                IsClosed = false
+            };
+            
+            var lineSegment = new LineSegment(endPoint, true);
+            figure.Segments.Add(lineSegment);
+            
+            _tempConnectionGeometry.Figures.Clear();
+            _tempConnectionGeometry.Figures.Add(figure);
+        }
+
+        /// <summary>
+        /// 端口鼠标左键释放 - 结束拖拽连接线
+        /// </summary>
+        private void Port_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ========== 端口释放触发 [{DateTime.Now:HH:mm:ss.fff}] ==========");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 临时连接线可见性: {_tempConnectionLine?.Visibility}");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 拖拽状态: {_isDraggingConnection}, 源节点: {_dragConnectionSourceNode?.Name ?? "null"}");
+
+            if (!_isDraggingConnection || _dragConnectionSourceNode == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? 不在拖拽状态");
+                return;
+            }
+
+            // 释放鼠标捕获
+            if (sender is Ellipse ellipse)
+            {
+                ellipse.ReleaseMouseCapture();
+            }
+
+            // 执行命中测试目标端口
+            var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
+
+            var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePos);
+
+            if (hitTestResult?.VisualHit is not null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? HitTest命中: {hitTestResult.VisualHit.GetType().Name}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? HitTest未命中任何元素");
+            }
+
+            if (hitTestResult?.VisualHit is Ellipse targetEllipse &&
+                targetEllipse.Tag is string targetPortName &&
+                targetEllipse.Name.Contains("PortEllipse"))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? 命中目标端口: {targetPortName}");
+
+                // 获取目标节点
+                var targetBorder = VisualTreeHelper.GetParent(targetEllipse) as Border;
+                if (targetBorder?.Tag is WorkflowNode targetNode &&
+                    targetNode != _dragConnectionSourceNode)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? 创建连接: {_dragConnectionSourceNode.Name} -> {targetNode.Name}");
+
+                    // 创建连接
+                    CreateConnectionBetweenPorts(
+                        _dragConnectionSourceNode,
+                        _dragConnectionSourcePort ?? "RightPort",
+                        targetNode,
+                        targetPortName
+                    );
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? 目标节点无效或与源节点相同");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? 未命中目标端口Ellipse");
+            }
+
+            // 重置连接拖拽状态
+            _isDraggingConnection = false;
+            _dragConnectionSourceNode = null;
+            _dragConnectionSourcePort = null;
+
+            // 清理源节点的端口可见性
+            if (_dragConnectionSourceBorder != null)
+            {
+                SetPortsVisibility(_dragConnectionSourceBorder, false);
+                _dragConnectionSourceBorder = null;
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✓ 清理源节点端口可见性");
+            }
+
+            // 隐藏临时连接线
+            if (_tempConnectionLine != null)
+            {
+                var oldVisibility = _tempConnectionLine.Visibility;
+                _tempConnectionLine.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ✓ 隐藏临时连接线 [{DateTime.Now:HH:mm:ss.fff}] 可见性:{oldVisibility}->{_tempConnectionLine.Visibility}");
+
+                // 清除几何数据，避免旧数据残留
+                if (_tempConnectionGeometry != null)
+                {
+                    _tempConnectionGeometry.Figures.Clear();
+                    System.Diagnostics.Debug.WriteLine($"[TempLine] ✓ 清除临时连接线几何数据");
+                }
+
+                _tempConnectionLine.UpdateLayout();
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ✓ 强制刷新临时连接线布局，当前可见性: {_tempConnectionLine.Visibility}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ? 临时连接线为null [{DateTime.Now:HH:mm:ss.fff}] 无需隐藏");
+            }
+
+            // 清理高亮的目标节点
+            if (_highlightedTargetNodeBorder != null)
+            {
+                SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                _highlightedTargetNodeBorder = null;
+            }
+
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
+        }
+
+        /// <summary>
+        /// 端口鼠标移动 - 更新临时连接线
+        /// </summary>
+        private void Port_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isDraggingConnection || e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            // 更新临时连接线终点
+            var currentPosition = e.GetPosition(WorkflowCanvas);
+            _dragConnectionEndPoint = currentPosition;
+
+            System.Diagnostics.Debug.WriteLine($"[PortMouseMove] 端口拖动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({currentPosition.X:F1},{currentPosition.Y:F1}) 临时线可见:{_tempConnectionLine?.Visibility}");
+
+            if (_tempConnectionLine != null)
+            {
+                UpdateTempConnectionPath(_dragConnectionStartPoint, currentPosition);
+            }
+
+            // HitTest 查找鼠标下的节点
+            var hitResult = VisualTreeHelper.HitTest(WorkflowCanvas, currentPosition);
+            if (hitResult?.VisualHit is DependencyObject obj)
+            {
+                // 向上查找 Border（节点容器）
+                Border? targetBorder = null;
+                while (obj != null)
+                {
+                    if (obj is Border border && border.Tag is WorkflowNode node)
+                    {
+                        targetBorder = border;
+                        break;
+                    }
+                    obj = VisualTreeHelper.GetParent(obj);
+                }
+
+                // 如果目标节点改变，更新端口可见性
+                if (targetBorder != null && targetBorder != _highlightedTargetNodeBorder)
+                {
+                    // 隐藏之前高亮的节点端口
+                    if (_highlightedTargetNodeBorder != null)
+                    {
+                        SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                    }
+
+                    // 显示新的目标节点端口
+                    _highlightedTargetNodeBorder = targetBorder;
+                    SetPortsVisibility(_highlightedTargetNodeBorder, true);
+                }
+            }
+            else
+            {
+                // 鼠标不在任何节点上，隐藏之前高亮的节点端口
+                if (_highlightedTargetNodeBorder != null)
+                {
+                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                    _highlightedTargetNodeBorder = null;
+                }
+            }
+
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
+        }
+
+        /// <summary>
+        /// 根据端口名称获取端口位置
+        /// </summary>
+        private Point GetPortPositionByName(WorkflowNode node, string portName)
+        {
+            return portName switch
+            {
+                "TopPort" => node.TopPortPosition,
+                "BottomPort" => node.BottomPortPosition,
+                "LeftPort" => node.LeftPortPosition,
+                "RightPort" => node.RightPortPosition,
+                _ => node.RightPortPosition
+            };
+        }
+
+        /// <summary>
+        /// 在两个端口之间创建连接
+        /// </summary>
+        private void CreateConnectionBetweenPorts(WorkflowNode sourceNode, string sourcePort, 
+            WorkflowNode targetNode, string targetPort)
+        {
+            var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
+            if (selectedTab == null)
+                return;
+
+            // 检查是否已存在相同连接
+            var existingConnection = selectedTab.WorkflowConnections?.FirstOrDefault(
+                c => c.SourceNodeId == sourceNode.Id && c.TargetNodeId == targetNode.Id);
+            
+            if (existingConnection != null)
+                return;
+
+            // 创建新连接
+            var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
+            var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
+            newConnection.SourcePort = sourcePort;
+            newConnection.TargetPort = targetPort;
+
+            // 添加连接到集合
+            selectedTab.WorkflowConnections?.Add(newConnection);
+
+            // 标记相关节点为脏，触发连接线更新
+            if (_connectionPathCache != null)
+            {
+                _connectionPathCache.MarkNodeDirty(sourceNode.Id);
+                _connectionPathCache.MarkNodeDirty(targetNode.Id);
+            }
+        }
+
+        /// <summary>
         /// 节点点击事件 - 用于连接或选中
         /// </summary>
         private void Node_ClickForConnection(object sender, RoutedEventArgs e)
@@ -635,7 +1042,9 @@ namespace SunEyeVision.UI.Controls
                 return;
 
             // 阻止事件冒泡到节点的点击事件
-            e.Handled = true;
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
 
             // 使用 SelectedTab 的连接模式状态
             var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
@@ -657,7 +1066,7 @@ namespace SunEyeVision.UI.Controls
                 if (_connectionSourceNode == targetNode)
                 {
                     _viewModel!.StatusText = "无法连接到同一个节点";
-                    _viewModel.AddLog("[Connection] ❌ 无法连接到同一个节点");
+                    _viewModel.AddLog("[Connection] ? 无法连接到同一个节点");
                     _connectionSourceNode = null;
                     return;
                 }
@@ -674,7 +1083,7 @@ namespace SunEyeVision.UI.Controls
                 }
 
                 // 创建新连接
-                _viewModel?.AddLog($"[Connection] 创建连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
+                System.Diagnostics.Debug.WriteLine($"[Connection] 创建连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
                 _connectionCreator?.CreateConnection(_connectionSourceNode, targetNode, "RightPort", CurrentWorkflowTab);
 
                 // 退出连接模式
@@ -687,63 +1096,8 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            _viewModel?.AddLog("[拖拽连接] ========== 开始拖拽连接 ==========");
-
-            if (sender is not Ellipse port || port.Tag is not WorkflowNode node)
-            {
-                _viewModel?.AddLog("[拖拽连接] ❌ 条件检查失败");
-                return;
-            }
-
-            e.Handled = true;
-
-            _viewModel?.AddLog($"[拖拽连接] 源节点: {node.Name} (ID={node.Id})");
-
-            // 选中当前节点
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
-            {
-                foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
-                {
-                    n.IsSelected = (n == node);
-                }
-                _viewModel.SelectedNode = node;
-            }
-
-
-            // 开始拖拽连接
-            IsDraggingConnection = true;
-            _dragConnectionSourceNode = node;
-            _dragMoveCounter = 0; // 重置移动计数器
-            _highlightCounter = 0; // 重置高亮计数器
-            _lastHighlightedPort = null; // 重置上次高亮的端口
-            _directHitTargetPort = null; // 重置直接命中的目标端口
-
-
-            // 获取连接点在画布上的位置
-            _dragConnectionStartPoint = e.GetPosition(WorkflowCanvas);
-
-            // 判断点击的是哪个端口并设置起始点
-            string? clickedPort = DetermineClickedPort(node, _dragConnectionStartPoint);
-            _viewModel?.AddLog($"[拖拽连接] 源端口: {clickedPort}, 起始点: {_dragConnectionStartPoint}");
-
-            // 显示临时连接线
-            if (TempConnectionGeometry != null)
-            {
-                TempConnectionGeometry.Figures.Clear();
-                var pathFigure = new PathFigure { StartPoint = _dragConnectionStartPoint, IsClosed = false };
-                pathFigure.Segments.Add(new LineSegment(_dragConnectionStartPoint, true));
-                TempConnectionGeometry.Figures.Add(pathFigure);
-            }
-
-            if (TempConnectionLine != null)
-            {
-                TempConnectionLine.Visibility = Visibility.Visible;
-            }
-
-            // 捕获鼠标
-            WorkflowCanvas.CaptureMouse();
-
-            _viewModel?.AddLog("[拖拽连接] ✓ 拖拽连接初始化完成");
+            // 移除此方法，统一使用 Port_MouseLeftButtonDown 和 Canvas 事件处理
+            // 避免事件处理器冲突
         }
 
         /// <summary>
@@ -751,114 +1105,8 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            _viewModel?.AddLog($"[拖拽连接] ========== 鼠标释放（Port） ==========");
-
-            if (!_isDraggingConnection || _dragConnectionSourceNode == null)
-            {
-                return;
-            }
-
-            // 在处理任何操作之前立即标记事件为已处理，阻止传播
-            e.Handled = true;
-
-            if (sender is Ellipse port)
-            {
-                port.ReleaseMouseCapture();
-            }
-
-            // 隐藏临时连接线
-            TempConnectionLine.Visibility = Visibility.Collapsed;
-
-            // 查找鼠标位置下的目标节点
-            var mousePosition = e.GetPosition(WorkflowCanvas);
-            _viewModel?.AddLog($"[拖拽连接] 鼠标位置: {mousePosition}");
-
-            WorkflowNode? targetNode = null;
-            Border? targetBorder = null;
-            int hitTestCount = 0;
-
-            // 使用 HitTest 查找鼠标位置下的所有元素
-            VisualTreeHelper.HitTest(WorkflowCanvas, null,
-                result =>
-                {
-                    hitTestCount++;
-
-                    // 如果找到 Border 且带有 WorkflowNode Tag，记录下来
-                    if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
-                    {
-                        targetNode = hitNode;
-                        targetBorder = hitBorder;
-                        return HitTestResultBehavior.Stop;
-                    }
-
-                    // 对于任何命中的元素，都向上查找带有WorkflowNode Tag的Border
-                    DependencyObject? current = result.VisualHit as DependencyObject;
-                    int depth = 0;
-                    while (current != null && depth < 30)
-                    {
-                        depth++;
-                        if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
-                        {
-                            targetNode = currentBorderNode;
-                            targetBorder = currentBorder;
-                            return HitTestResultBehavior.Stop;
-                        }
-                        current = VisualTreeHelper.GetParent(current);
-                    }
-
-                    return HitTestResultBehavior.Continue;
-                },
-                new PointHitTestParameters(mousePosition));
-
-            _viewModel?.AddLog($"[拖拽连接] HitTest检测到{hitTestCount}个元素");
-            _viewModel?.AddLog($"[拖拽连接] 源节点: {_dragConnectionSourceNode.Name}, 目标节点: {targetNode?.Name ?? "null"}");
-
-            // 检查是否找到目标节点
-            if (targetNode != null && targetNode != _dragConnectionSourceNode)
-            {
-                // 检查连接是否已存在
-                var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
-                if (selectedTab != null)
-                {
-                    _viewModel?.AddLog($"[拖拽连接] 当前连接数: {selectedTab.WorkflowConnections.Count}");
-
-                    var existingConnection = selectedTab.WorkflowConnections.FirstOrDefault(c =>
-                        c.SourceNodeId == _dragConnectionSourceNode.Id && c.TargetNodeId == targetNode.Id);
-
-                    if (existingConnection == null)
-                    {
-                        _viewModel?.AddLog($"[拖拽连接] 创建连接: {_dragConnectionSourceNode.Name} -> {targetNode.Name}");
-                        // 创建新连接
-                        _connectionCreator?.CreateConnection(_dragConnectionSourceNode, targetNode, _dragConnectionSourcePort ?? "RightPort", CurrentWorkflowTab);
-                        _viewModel?.AddLog($"[拖拽连接] ✓ 连接创建完成，新连接数: {selectedTab.WorkflowConnections.Count}");
-                    }
-                    else
-                    {
-                        _viewModel?.AddLog($"[拖拽连接] ❌ 连接已存在，ID={existingConnection.Id}");
-                    }
-                }
-                else
-                {
-                    _viewModel?.AddLog($"[拖拽连接] ❌ SelectedTab为null");
-                }
-            }
-            else
-            {
-                if (targetNode == null)
-                {
-                    _viewModel?.AddLog($"[拖拽连接] ❌ 未找到目标节点");
-                }
-                else
-                {
-                    _viewModel?.AddLog($"[拖拽连接] ❌ 目标节点与源节点相同");
-                }
-            }
-
-            // 重置拖拽状态（使用属性设置，会自动隐藏所有连接点）
-            IsDraggingConnection = false;
-            _dragConnectionSourceNode = null;
-            _portHighlighter?.ClearTargetPortHighlight(); // 清除端口高亮
-            _viewModel?.AddLog($"[拖拽连接] ========== Port_PreviewMouseLeftButtonUp 完成 ==========");
+            // 移除此方法，统一使用 Port_MouseLeftButtonUp 和 Canvas 事件处理
+            // 避免事件处理器冲突
         }
 
         #endregion
@@ -870,12 +1118,36 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void WorkflowCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 检查点击的是否是节点（通过原始源）
+            var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[CanvasDown] ========== Canvas鼠标按下 [{DateTime.Now:HH:mm:ss.fff}] ==========");
+            System.Diagnostics.Debug.WriteLine($"[CanvasDown] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[CanvasDown] 当前状态: _isDraggingConnection={_isDraggingConnection}, _isBoxSelecting={_isBoxSelecting}");
+            System.Diagnostics.Debug.WriteLine($"[CanvasDown] 临时连接线可见性: {_tempConnectionLine?.Visibility}");
+            System.Diagnostics.Debug.WriteLine($"[CanvasDown] 原始源: {e.OriginalSource?.GetType().Name}");
+
+            // 保护：如果处于拖拽连接状态，先重置状态
+            if (_isDraggingConnection)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CanvasDown] ⚠ 检测到残留的拖拽连接状态，重置状态并隐藏临时连接线");
+                _isDraggingConnection = false;
+                _dragConnectionSourceNode = null;
+                _dragConnectionSourcePort = null;
+                if (_tempConnectionLine != null)
+                {
+                    _tempConnectionLine.Visibility = Visibility.Collapsed;
+                    _tempConnectionLine.UpdateLayout();
+                    System.Diagnostics.Debug.WriteLine($"[CanvasDown] ✓ 临时连接线已隐藏，可见性: {_tempConnectionLine.Visibility}");
+                }
+            }
+
+            // 检查点击的是否是节点或端口（通过原始源）
             var originalSource = e.OriginalSource as DependencyObject;
 
-            // 手动查找带 WorkflowNode Tag 的 Border
+            // 手动查找带 WorkflowNode Tag 的 Border 或端口 Ellipse
             WorkflowNode? clickedNode = null;
+            bool clickedPort = false;
             DependencyObject? current = originalSource;
+
             while (current != null)
             {
                 if (current is Border border && border.Tag is WorkflowNode node)
@@ -883,12 +1155,23 @@ namespace SunEyeVision.UI.Controls
                     clickedNode = node;
                     break;
                 }
+                // 检查是否点击了端口 Ellipse
+                if (current is Ellipse ellipse)
+                {
+                    var ellipseName = ellipse.Name ?? "";
+                    if (ellipseName.Contains("Port"))
+                    {
+                        clickedPort = true;
+                        break;
+                    }
+                }
                 current = VisualTreeHelper.GetParent(current);
             }
 
-            // 如果点击的是有 WorkflowNode Tag 的 Border，则由节点的事件处理，不触发框选
-            if (clickedNode != null)
+            // 如果点击的是有 WorkflowNode Tag 的 Border 或端口 Ellipse，则由节点的事件处理，不触发框选
+            if (clickedNode != null || clickedPort)
             {
+                System.Diagnostics.Debug.WriteLine($"[CanvasDown] ? 点击的是节点:{clickedNode?.Name ?? "null"} 或端口，不触发框选");
                 return;
             }
 
@@ -910,7 +1193,9 @@ namespace SunEyeVision.UI.Controls
             SelectionBox?.StartSelection(_boxSelectStart);
 
             WorkflowCanvas.CaptureMouse();
-            e.Handled = true;
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
         }
 
         /// <summary>
@@ -918,19 +1203,54 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void WorkflowCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
         {
+            var mousePos = e.GetPosition(WorkflowCanvas);
+
+            // 全局鼠标移动监控 - 记录所有鼠标移动事件（每50次记录一次以减少日志量）
+            if (_globalMouseMoveCounter++ % 50 == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GlobalMouseMove] 鼠标移动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({mousePos.X:F1},{mousePos.Y:F1}) 左键状态:{e.LeftButton} 拖拽连接:{_isDraggingConnection}");
+            }
+
             // 处理拖拽连接
             if (_isDraggingConnection)
             {
+                // 每10次移动记录一次详细日志
+                if (_dragMoveCounter % 10 == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MouseMove] 鼠标移动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({mousePos.X:F1},{mousePos.Y:F1}) 拖拽连接状态:true");
+                }
                 _dragMoveCounter++;
 
-                if (TempConnectionGeometry != null && _dragConnectionSourceNode != null)
+                // 保护：如果状态不一致（_isDraggingConnection=true 但 _dragConnectionSourceNode=null），立即重置状态
+                if (_dragConnectionSourceNode == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TempLine] ⚠ 状态不一致！_isDraggingConnection=true 但 _dragConnectionSourceNode=null，重置状态并隐藏临时连接线");
+                    _isDraggingConnection = false;
+                    if (_tempConnectionLine != null)
+                    {
+                        _tempConnectionLine.Visibility = Visibility.Collapsed;
+                        _tempConnectionLine.UpdateLayout();
+                    }
+                    return;
+                }
+
+                // 保护：确保临时连接线没有意外显示
+                if (_tempConnectionLine != null && _tempConnectionLine.Visibility != Visibility.Visible)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TempLine] ⚠ 临时连接线可见性异常：{_tempConnectionLine.Visibility}，强制隐藏");
+                    _tempConnectionLine.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
+                // 确保源节点不为空才更新临时连接线
+                if (_tempConnectionGeometry != null && _dragConnectionSourceNode != null)
                 {
                     var currentPoint = e.GetPosition(WorkflowCanvas);
 
                     // 每20次移动事件才输出一次日志
                     if (_dragMoveCounter % 20 == 0 || _dragMoveCounter == 1)
                     {
-                        _viewModel?.AddLog($"[拖拽连接-Move] 移动次数: {_dragMoveCounter}, 鼠标位置: ({currentPoint.X:F1}, {currentPoint.Y:F1})");
+                        System.Diagnostics.Debug.WriteLine($"[拖拽连接-Move] 移动次数: {_dragMoveCounter}, 鼠标位置: ({currentPoint.X:F1}, {currentPoint.Y:F1})");
                     }
 
                     // 获取源节点的连接点位置
@@ -940,9 +1260,9 @@ namespace SunEyeVision.UI.Controls
                     var pathPoints = CalculateSmartPath(sourcePort, currentPoint);
 
                     // 更新临时连接线
-                    if (TempConnectionGeometry != null)
+                    if (_tempConnectionGeometry != null)
                     {
-                        TempConnectionGeometry.Figures.Clear();
+                        _tempConnectionGeometry.Figures.Clear();
                         var pathFigure = new PathFigure
                         {
                             StartPoint = sourcePort,
@@ -955,16 +1275,24 @@ namespace SunEyeVision.UI.Controls
                             pathFigure.Segments.Add(new LineSegment(point, true));
                         }
 
-                        TempConnectionGeometry.Figures.Add(pathFigure);
+                        _tempConnectionGeometry.Figures.Add(pathFigure);
+                        System.Diagnostics.Debug.WriteLine($"[TempLine] 更新临时连接线: 起点({sourcePort.X:F0},{sourcePort.Y:F0}) -> 终点({currentPoint.X:F0},{currentPoint.Y:F0}), 可见性:{_tempConnectionLine?.Visibility}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TempLine] ❌ TempConnectionGeometry为null，无法更新临时连接线");
                     }
 
                     // 动态高亮目标端口
                     var hitNodes = new List<(WorkflowNode node, Border border, double distance)>();
                     var hitPorts = new List<(Ellipse port, string portName)>();
+                    int hitTestCount = 0;
 
                     VisualTreeHelper.HitTest(WorkflowCanvas, null,
                         result =>
                         {
+                            hitTestCount++;
+
                             // 检查是否命中端口
                             if (result.VisualHit is Ellipse hitEllipse)
                             {
@@ -1003,6 +1331,11 @@ namespace SunEyeVision.UI.Controls
                         },
                         new PointHitTestParameters(currentPoint));
 
+                    if (_dragMoveCounter % 40 == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[DragMove] 鼠标:({currentPoint.X:F0},{currentPoint.Y:F0}) HitTest:{hitTestCount}元素 端口:{hitPorts.Count} 节点:{hitNodes.Count}");
+                    }
+
                     // 优先处理命中的端口（需要排除源节点的端口）
                     if (hitPorts.Count > 0)
                     {
@@ -1025,7 +1358,7 @@ namespace SunEyeVision.UI.Controls
                                         {
                                             if (_highlightCounter % 10 == 0)
                                             {
-                                                _viewModel?.AddLog($"[Move] ✓ 命中端口: {targetPortName}, 节点: {node.Name}");
+                                                System.Diagnostics.Debug.WriteLine($"[Move] ? 命中端口: {targetPortName}, 节点: {node.Name}");
                                             }
                                             _portHighlighter?.HighlightSpecificPort(border, targetPortName);
                                             _directHitTargetPort = targetPortName;
@@ -1055,17 +1388,29 @@ namespace SunEyeVision.UI.Controls
                         var nearest = hitNodes.OrderBy(n => n.distance).First();
                         if (nearest.node != _dragConnectionSourceNode)
                         {
+                            // 显示目标节点的所有端口（因为鼠标没有真正进入目标节点）
+                            SetPortsVisibility(nearest.border, true);
+
+                            // 高亮目标端口
                             _portHighlighter?.HighlightTargetPort(nearest.border, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
+
+                            // 保存高亮的节点Border，用于后续清理（即使鼠标离开也保持显示）
+                            if (_highlightedTargetNodeBorder != nearest.border)
+                            {
+                                if (_highlightedTargetNodeBorder != null)
+                                {
+                                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                                }
+                                _highlightedTargetNodeBorder = nearest.border;
+                            }
                         }
                         else
                         {
                             _portHighlighter?.ClearTargetPortHighlight();
                         }
                     }
-                    else
-                    {
-                        _portHighlighter?.ClearTargetPortHighlight();
-                    }
+                    // 注意：这里不再隐藏端口，保持目标节点的端口可见直到拖拽结束
+                    // 这样确保拖拽结束时也能命中目标节点的端口
                 }
                 return;
             }
@@ -1107,19 +1452,54 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void WorkflowCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            _viewModel?.AddLog($"[Canvas] ========== 鼠标释放（Canvas） ==========");
-            _viewModel?.AddLog($"[Canvas] 拖拽连接: {_isDraggingConnection}, 框选: {_isBoxSelecting}");
+            var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[CanvasUp] ========== Canvas鼠标释放 [{DateTime.Now:HH:mm:ss.fff}] ==========");
+            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 拖拽状态: _isDraggingConnection={_isDraggingConnection}, _isBoxSelecting={_isBoxSelecting}");
+            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 临时连接线可见性: {_tempConnectionLine?.Visibility}");
+
+            // 立即隐藏临时连接线（在任何逻辑处理之前）
+            // 这样可以确保无论后续逻辑如何，临时连接线都被隐藏
+            if (_isDraggingConnection && _tempConnectionLine != null)
+            {
+                var oldVisibility = _tempConnectionLine.Visibility;
+                _tempConnectionLine.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 立即隐藏临时连接线 [{DateTime.Now:HH:mm:ss.fff}] 可见性:{oldVisibility}->{_tempConnectionLine.Visibility}");
+
+                // 清除几何数据，避免旧数据残留
+                if (_tempConnectionGeometry != null)
+                {
+                    _tempConnectionGeometry.Figures.Clear();
+                    System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 清除临时连接线几何数据");
+                }
+
+                // 强制刷新UI，确保临时连接线立即被隐藏
+                _tempConnectionLine.UpdateLayout();
+                System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 强制刷新临时连接线布局，当前可见性: {_tempConnectionLine.Visibility}");
+            }
 
             // 如果正在拖拽连接，尝试创建连接
             if (_isDraggingConnection)
             {
-                e.Handled = true; // 阻止事件继续传播
-
-                // 隐藏临时连接线
-                TempConnectionLine.Visibility = Visibility.Collapsed;
-
-                // 查找鼠标位置下的目标节点
                 var mousePosition = e.GetPosition(WorkflowCanvas);
+
+            System.Diagnostics.Debug.WriteLine($"[DragEnd] 源节点:{_dragConnectionSourceNode?.Name} 源端口:{_dragConnectionSourcePort} 鼠标:({mousePosition.X:F0},{mousePosition.Y:F0})");
+
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
+
+            // 隐藏临时连接线
+            System.Diagnostics.Debug.WriteLine($"[TempLine] 隐藏临时连接线前，可见性: {_tempConnectionLine?.Visibility}");
+            if (_tempConnectionLine != null)
+            {
+                _tempConnectionLine.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ✓ 隐藏临时连接线，当前状态: _isDraggingConnection={_isDraggingConnection}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TempLine] ? 临时连接线为null，无法隐藏");
+            }
 
                 // 清除之前的高亮
                 if (_highlightedTargetBorder != null)
@@ -1135,8 +1515,40 @@ namespace SunEyeVision.UI.Controls
                 var hitPorts = new List<(Ellipse port, string portName, double distance)>(); // 新增：命中的端口列表
                 int hitTestCount = 0;
 
-                _viewModel?.AddLog($"[Canvas] 源节点: {_dragConnectionSourceNode?.Name}, 源端口: {_dragConnectionSourcePort}");
-                _viewModel?.AddLog($"[Canvas] 鼠标位置: {mousePosition.X:F1},{mousePosition.Y:F1}");
+                // 输出所有节点的位置信息（用于诊断）
+                if (CurrentWorkflowTab?.WorkflowNodes != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Canvas] 当前所有节点信息:");
+                    foreach (var node in CurrentWorkflowTab.WorkflowNodes)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name} (ID:{node.Id.Substring(0,8)}...) 位置:({node.Position.X:F0},{node.Position.Y:F0})");
+                        System.Diagnostics.Debug.WriteLine($"[Canvas]     RightPort:({node.RightPortPosition.X:F0},{node.RightPortPosition.Y:F0}) LeftPort:({node.LeftPortPosition.X:F0},{node.LeftPortPosition.Y:F0})");
+                    }
+                }
+
+                // 检查节点是否被渲染到Canvas（用于诊断）
+                var nodeBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
+                System.Diagnostics.Debug.WriteLine($"[Canvas] Canvas上找到{nodeBorders.Count()}个Border元素");
+                foreach (var border in nodeBorders)
+                {
+                    if (border.Tag is WorkflowNode node)
+                    {
+                        // 检查Border的父元素ContentPresenter的位置
+                        var parent = VisualTreeHelper.GetParent(border);
+                        if (parent is System.Windows.Controls.ContentPresenter cp)
+                        {
+                            double cpLeft = Canvas.GetLeft(cp);
+                            double cpTop = Canvas.GetTop(cp);
+                            System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name} 节点位置:({node.Position.X:F0},{node.Position.Y:F0})");
+                            System.Diagnostics.Debug.WriteLine($"[Canvas]     ContentPresenter位置:({cpLeft:F0},{cpTop:F0})");
+                            System.Diagnostics.Debug.WriteLine($"[Canvas]     Border相对位置:({Canvas.GetLeft(border):F0},{Canvas.GetTop(border):F0})");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name} 父元素不是ContentPresenter: {parent?.GetType().Name}");
+                        }
+                    }
+                }
 
                 // 使用 HitTest 查找鼠标位置下的所有元素
                 VisualTreeHelper.HitTest(WorkflowCanvas, null,
@@ -1144,11 +1556,10 @@ namespace SunEyeVision.UI.Controls
                     {
                         hitTestCount++;
 
-                        // 新增：检查是否命中了端口
+                        // 检查是否命中了端口
                         if (result.VisualHit is Ellipse hitEllipse)
                         {
                             var ellipseName = hitEllipse.Name;
-                            _viewModel?.AddLog($"[Canvas HitTest] 命中Ellipse: {ellipseName}");
 
                             // 检查是否是端口
                             if (!string.IsNullOrEmpty(ellipseName) && (ellipseName == "LeftPortEllipse" ||
@@ -1166,7 +1577,18 @@ namespace SunEyeVision.UI.Controls
                                                                     Math.Pow(mousePosition.Y - canvasPos.Y, 2));
 
                                 hitPorts.Add((hitEllipse, portName, portDistance));
-                                _viewModel?.AddLog($"[Canvas HitTest] ✓ 命中端口: {portName}, 距离={portDistance:F1}");
+
+                                // 查找端口所属的节点
+                                DependencyObject? parent = hitEllipse;
+                                while (parent != null)
+                                {
+                                    if (parent is Border border && border.Tag is WorkflowNode node)
+                                    {
+                                        System.Diagnostics.Debug.WriteLine($"[HitTest] 命中端口:{portName}, 节点:{node.Name}, 距离:{portDistance:F1}px");
+                                        break;
+                                    }
+                                    parent = VisualTreeHelper.GetParent(parent);
+                                }
                             }
                         }
 
@@ -1177,7 +1599,7 @@ namespace SunEyeVision.UI.Controls
                             var nodeCenterY = hitNode.Position.Y + 45; // 节点高度90，中心在45
                             double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenterX, 2) + Math.Pow(mousePosition.Y - nodeCenterY, 2));
                             hitNodes.Add((hitNode, hitBorder, distance));
-                            _viewModel?.AddLog($"[Canvas HitTest] 命中节点Border: {hitNode.Name}, 距离中心={distance:F1}");
+                            System.Diagnostics.Debug.WriteLine($"[HitTest] 命中节点:{hitNode.Name}, 距离:{distance:F1}px");
                         }
 
                         // 对于任何命中的元素，都向上查找带有WorkflowNode Tag的Border
@@ -1192,6 +1614,7 @@ namespace SunEyeVision.UI.Controls
                                 var nodeCenterY = currentBorderNode.Position.Y + 45;
                                 double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenterX, 2) + Math.Pow(mousePosition.Y - nodeCenterY, 2));
                                 hitNodes.Add((currentBorderNode, currentBorder, distance));
+                                System.Diagnostics.Debug.WriteLine($"[HitTest] 向上找到节点:{currentBorderNode.Name}, 距离:{distance:F1}px, 深度:{depth}");
                                 break;
                             }
                             current = VisualTreeHelper.GetParent(current);
@@ -1201,58 +1624,115 @@ namespace SunEyeVision.UI.Controls
                     },
                     new PointHitTestParameters(mousePosition));
 
-                if (hitPorts.Count > 0)
+            if (hitPorts.Count > 0)
+            {
+                var nearestPort = hitPorts.OrderBy(p => p.distance).First();
+                System.Diagnostics.Debug.WriteLine($"[DragEnd] 命中端口:{nearestPort.portName} 距离:{nearestPort.distance:F1}px");
+            }
+
+            if (hitPorts.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Canvas] 检测到{hitPorts.Count}个端口");
+            }
+            
+            if (hitNodes.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Canvas] HitTest检测到{hitNodes.Count}个节点");
+                foreach (var (node, border, distance) in hitNodes)
                 {
-                    _viewModel?.AddLog($"[Canvas] 检测到{hitPorts.Count}个端口");
+                    System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name}, 距离:{distance:F1}px");
                 }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Canvas] ⚠ HitTest未检测到任何节点");
+            }
 
                 // 选择距离鼠标最近的节点
                 WorkflowNode? targetNode = null;
                 Border? targetBorder = null;
 
-                // 优先选择命中的端口
+                // 优先选择命中的端口（排除源节点的端口）
                 if (hitPorts.Count > 0)
                 {
-                    var nearestPort = hitPorts.OrderBy(p => p.distance).First();
-                    var targetPortEllipse = nearestPort.port;
-
-                    // 找到端口所属的节点Border
-                    DependencyObject? parent = targetPortEllipse;
-                    while (parent != null)
+                    // 先过滤掉源节点的端口
+                    var validPorts = hitPorts.Where(p =>
                     {
-                        if (parent is Border border && border.Tag is WorkflowNode node)
+                        DependencyObject? parent = p.port;
+                        while (parent != null)
                         {
-                            // 排除源节点
-                            if (node != _dragConnectionSourceNode)
+                            if (parent is Border border && border.Tag is WorkflowNode node)
                             {
-                                targetNode = node;
-                                targetBorder = border;
-                                _viewModel?.AddLog($"[Canvas] ✓ 直接命中端口: {nearestPort.portName}, 节点: {node.Name}");
-                                _directHitTargetPort = nearestPort.portName;
-                                break;
+                                return node != _dragConnectionSourceNode;
                             }
+                            parent = VisualTreeHelper.GetParent(parent);
                         }
-                        parent = VisualTreeHelper.GetParent(parent);
-                    }
+                        return false;
+                    }).ToList();
 
-                    if (targetBorder != null)
+                    if (validPorts.Count > 0)
                     {
-                        _portHighlighter?.HighlightSpecificPort(targetBorder, nearestPort.portName);
+                        var nearestPort = validPorts.OrderBy(p => p.distance).First();
+                        var targetPortEllipse = nearestPort.port;
+
+                        // 找到端口所属的节点Border
+                        DependencyObject? parent = targetPortEllipse;
+                        while (parent != null)
+                        {
+                            if (parent is Border border && border.Tag is WorkflowNode node)
+                            {
+                                if (node != _dragConnectionSourceNode)
+                                {
+                                    targetNode = node;
+                                    targetBorder = border;
+                                    System.Diagnostics.Debug.WriteLine($"[Canvas] ✓ 直接命中目标端口: {nearestPort.portName}, 节点: {node.Name}, 距离:{nearestPort.distance:F1}px");
+                                    _directHitTargetPort = nearestPort.portName;
+                                    break;
+                                }
+                            }
+                            parent = VisualTreeHelper.GetParent(parent);
+                        }
+
+                        if (targetBorder != null)
+                        {
+                            _portHighlighter?.HighlightSpecificPort(targetBorder, nearestPort.portName);
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Canvas] ❌ 检测到{hitPorts.Count}个端口，但都是源节点的，已排除");
                     }
                 }
-                // 如果没有命中端口，则使用节点选择逻辑
-                else if (hitNodes.Count > 0)
-                {
-                    var nearest = hitNodes.OrderBy(n => n.distance).First();
-                    // 排除源节点
-                    if (nearest.node != _dragConnectionSourceNode)
-                    {
-                        targetNode = nearest.node;
-                        targetBorder = nearest.border;
-                        _viewModel?.AddLog($"[Canvas] 找到{hitNodes.Count}个节点，最近: {targetNode.Name}");
 
-                        // 高亮显示目标节点的端口（使用智能选择）
-                        _portHighlighter?.HighlightTargetPort(targetBorder, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
+                // 如果没有命中有效的目标端口，则使用节点选择逻辑
+                // 增加容错距离：即使鼠标不在节点上，如果距离足够近（150px以内），也认为命中该节点
+                if (targetNode == null && hitNodes.Count > 0)
+                {
+                    // 先过滤掉源节点，避免把自己当成目标节点
+                    var validNodes = hitNodes.Where(n => n.node != _dragConnectionSourceNode).ToList();
+                    
+                    if (validNodes.Count > 0)
+                    {
+                        var nearest = validNodes.OrderBy(n => n.distance).First();
+                        const double MaxDistance = 150.0; // 最大容错距离150px
+
+                        if (nearest.distance <= MaxDistance)
+                        {
+                            targetNode = nearest.node;
+                            targetBorder = nearest.border;
+                            System.Diagnostics.Debug.WriteLine($"[Canvas] ✓ 通过距离选择目标节点: {targetNode.Name}, 距离:{nearest.distance:F1}px (容错:{MaxDistance}px)");
+
+                            // 高亮显示目标节点的端口（使用智能选择）
+                            _portHighlighter?.HighlightTargetPort(targetBorder, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[Canvas] ❌ 节点距离过远: {nearest.node.Name}, 距离:{nearest.distance:F1}px > {MaxDistance}px");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Canvas] ❌ Hit检测到的都是源节点，已排除");
                     }
                 }
 
@@ -1275,44 +1755,62 @@ namespace SunEyeVision.UI.Controls
 
                         if (existingConnection == null)
                         {
-                            _viewModel?.AddLog($"[Canvas] 创建连接: {_dragConnectionSourceNode.Name}({sourcePort}) -> {targetNode.Name}({targetPort})");
-
                             if (!string.IsNullOrEmpty(targetPort))
                             {
                                 _connectionCreator?.CreateConnectionWithSpecificPort(_dragConnectionSourceNode, targetNode, _dragConnectionSourcePort ?? "RightPort", targetPort, CurrentWorkflowTab);
+                                System.Diagnostics.Debug.WriteLine($"[CreateConn] ✓ {_dragConnectionSourceNode.Name}({sourcePort}) -> {targetNode.Name}({targetPort})");
                             }
                             else
                             {
                                 _connectionCreator?.CreateConnection(_dragConnectionSourceNode, targetNode, _dragConnectionSourcePort ?? "RightPort", CurrentWorkflowTab);
+                                System.Diagnostics.Debug.WriteLine($"[CreateConn] ✓ {_dragConnectionSourceNode.Name}({sourcePort}) -> {targetNode.Name}");
                             }
                         }
                         else
                         {
-                            _viewModel?.AddLog($"[Canvas] ❌ 相同连接点已存在: {_dragConnectionSourceNode.Name}({sourcePort}) -> {targetNode.Name}({targetPort})");
+                            System.Diagnostics.Debug.WriteLine($"[CreateConn] ❌ 连接已存在: {_dragConnectionSourceNode.Name}({sourcePort}) -> {targetNode.Name}({targetPort})");
                         }
                     }
                 }
                 else if (targetNode != null && targetNode == _dragConnectionSourceNode)
                 {
-                    _viewModel?.AddLog($"[Canvas] ❌ 不允许自连接: {_dragConnectionSourceNode.Name}");
+                    System.Diagnostics.Debug.WriteLine($"[CreateConn] ❌ 不允许自连接: {_dragConnectionSourceNode.Name}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CreateConn] ❌ 未找到目标节点");
                 }
 
                 // 重置拖拽状态
+                System.Diagnostics.Debug.WriteLine($"[DragEnd] 开始重置拖拽状态 [{DateTime.Now:HH:mm:ss.fff}] 当前状态: _isDraggingConnection={_isDraggingConnection}, 临时线可见性: {_tempConnectionLine?.Visibility}");
                 WorkflowCanvas.ReleaseMouseCapture();
                 IsDraggingConnection = false;
                 _dragConnectionSourceNode = null;
+
+                // 清理源节点的端口可见性
+                if (_dragConnectionSourceBorder != null)
+                {
+                    SetPortsVisibility(_dragConnectionSourceBorder, false);
+                    _dragConnectionSourceBorder = null;
+                    System.Diagnostics.Debug.WriteLine($"[DragEnd] ✓ 清理源节点端口可见性");
+                }
+
                 _portHighlighter?.ClearTargetPortHighlight(); // 清除端口高亮
-                _viewModel?.AddLog($"[Canvas] ========== Canvas_PreviewMouseLeftButtonUp 完成（创建连接） ==========");
+                SetPortsVisibility(false); // 隐藏所有端口
+
+                System.Diagnostics.Debug.WriteLine($"[DragEnd] ✓ 重置拖拽状态完成 [{DateTime.Now:HH:mm:ss.fff}] _isDraggingConnection=false, _dragConnectionSourceNode=null");
+                System.Diagnostics.Debug.WriteLine($"[DragEnd] ✓ 所有端口已隐藏");
                 return;
             }
 
             if (!_isBoxSelecting)
             {
+                System.Diagnostics.Debug.WriteLine($"[CanvasUp] ? 既不在拖拽连接，也不在框选模式（直接点击空白处）");
                 return;
             }
 
             _isBoxSelecting = false;
-            _viewModel?.AddLog($"[Canvas] 结束框选模式");
+            System.Diagnostics.Debug.WriteLine($"[Canvas] 结束框选模式");
 
 
             // 结束框选
@@ -1322,8 +1820,10 @@ namespace SunEyeVision.UI.Controls
             // 记录选中节点的初始位置（用于批量移动）
             RecordSelectedNodesPositions();
 
-            e.Handled = true;
-            _viewModel?.AddLog($"[Canvas] ========== Canvas_PreviewMouseLeftButtonUp 完成（框选） ==========");
+            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
+            System.Diagnostics.Debug.WriteLine($"[BoxSelectEnd] 结束框选模式");
         }
 
         /// <summary>
@@ -1503,385 +2003,6 @@ namespace SunEyeVision.UI.Controls
         #endregion
 
         /// <summary>
-        /// 查找指定类型的首个子元素
-        /// [已废弃] 请使用 WorkflowVisualHelper.FindVisualChild
-        /// </summary>
-        // private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        // {
-        //     if (parent == null)
-        //         return null;
-        //
-        //     if (parent is T child)
-        //         return child;
-        //
-        //     for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        //     {
-        //         var found = FindVisualChild<T>(VisualTreeHelper.GetChild(parent, i));
-        //         if (found != null)
-        //             return found;
-        //     }
-        //
-        //     return null;
-        // }
-
-        /// <summary>
-        /// 在视觉树中查找指定类型的所有子元素
-        /// [已废弃] 请使用 WorkflowVisualHelper.FindAllVisualChildren
-        /// </summary>
-        // private List<T> FindAllVisualChildren<T>(DependencyObject parent) where T : DependencyObject
-        // {
-        //     var results = new List<T>();
-        //
-        //     if (parent == null)
-        //     {
-        //         return results;
-        //     }
-        //
-        //     int childCount = VisualTreeHelper.GetChildrenCount(parent);
-        //
-        //     for (int i = 0; i < childCount; i++)
-        //     {
-        //         var child = VisualTreeHelper.GetChild(parent, i);
-        //
-        //         if (child is T t)
-        //         {
-        //             results.Add(t);
-        //         }
-        //
-        //         results.AddRange(FindAllVisualChildren<T>(child));
-        //     }
-        //
-        //     return results;
-        // }
-
-        /// <summary>
-        /// 创建节点连接（使用指定的目标端口）
-        /// [已废弃] 请使用 _connectionCreator.CreateConnectionWithSpecificPort
-        /// </summary>
-        // private void CreateConnectionWithSpecificPort(WorkflowNode sourceNode, WorkflowNode targetNode, string targetPortName)
-        // {
-        //     _viewModel?.AddLog($"[CreateConnectionWithSpecificPort] ========== 开始创建连接（指定端口） ==========");
-        //
-        //     var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
-        //     if (selectedTab == null || selectedTab.WorkflowConnections == null)
-        //     {
-        //         _viewModel?.AddLog("[CreateConnectionWithSpecificPort] ❌ SelectedTab或WorkflowConnections为null");
-        //         return;
-        //     }
-        //
-        //     var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
-        //     var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
-        //     _viewModel?.AddLog($"[CreateConnectionWithSpecificPort] 新连接ID: {connectionId}");
-        //
-        //     // 设置源端口名称
-        //     newConnection.SourcePort = _dragConnectionSourcePort ?? "RightPort";
-        //     newConnection.TargetPort = targetPortName;
-        //
-        //     // 获取源端口位置
-        //     Point sourcePos;
-        //     switch (_dragConnectionSourcePort)
-        //     {
-        //         case "TopPort":
-        //             sourcePos = sourceNode.TopPortPosition;
-        //             break;
-        //         case "BottomPort":
-        //             sourcePos = sourceNode.BottomPortPosition;
-        //             break;
-        //         case "LeftPort":
-        //             sourcePos = sourceNode.LeftPortPosition;
-        //             break;
-        //         case "RightPort":
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //         default:
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //     }
-        //
-        //     // 获取目标端口位置（使用用户指定的端口）
-        //     Point targetPos;
-        //     switch (targetPortName)
-        //     {
-        //         case "TopPort":
-        //             targetPos = targetNode.TopPortPosition;
-        //             break;
-        //         case "BottomPort":
-        //             targetPos = targetNode.BottomPortPosition;
-        //             break;
-        //         case "LeftPort":
-        //             targetPos = targetNode.LeftPortPosition;
-        //             break;
-        //         case "RightPort":
-        //             targetPos = targetNode.RightPortPosition;
-        //             break;
-        //         default:
-        //             targetPos = targetNode.LeftPortPosition;
-        //             break;
-        //     }
-        //
-        //     newConnection.SourcePosition = sourcePos;
-        //     newConnection.TargetPosition = targetPos;
-        //
-        //     _viewModel?.AddLog($"[CreateConnectionWithSpecificPort] 源端口:{_dragConnectionSourcePort} 位置:{sourcePos}");
-        //     _viewModel?.AddLog($"[CreateConnectionWithSpecificPort] 目标端口:{targetPortName} 位置:{targetPos}");
-        //
-        //     CurrentWorkflowTab?.WorkflowConnections.Add(newConnection);
-        //     _viewModel?.AddLog($"[CreateConnectionWithSpecificPort] ✓ 连接创建完成");
-        // }
-
-        /// <summary>
-        /// 创建节点连接
-        /// [已废弃] 请使用 _connectionCreator.CreateConnection
-        /// </summary>
-        // private void CreateConnection(WorkflowNode sourceNode, WorkflowNode targetNode)
-        // {
-        //     _viewModel?.AddLog($"[CreateConnection] ========== 开始创建连接 ==========");
-        //
-        //     var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
-        //     if (selectedTab == null)
-        //     {
-        //         _viewModel?.AddLog("[CreateConnection] ❌ SelectedTab为null");
-        //         return;
-        //     }
-        //
-        //     if (selectedTab.WorkflowConnections == null)
-        //     {
-        //         _viewModel?.AddLog("[CreateConnection] ❌ WorkflowConnections为null");
-        //         return;
-        //     }
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] 源节点: {sourceNode.Name} (ID={sourceNode.Id}), 位置: {sourceNode.Position}");
-        //     _viewModel?.AddLog($"[CreateConnection] 目标节点: {targetNode.Name} (ID={targetNode.Id}), 位置: {targetNode.Position}");
-        //
-        //     var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
-        //     var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
-        //     _viewModel?.AddLog($"[CreateConnection] 新连接ID: {connectionId}");
-        //
-        //
-        //     // 智能选择连接点位置
-        //     Point sourcePos, targetPos;
-        //     string finalSourcePort, finalTargetPort;
-        //
-        //     // 使用记录的源端口
-        //     string initialSourcePort = _dragConnectionSourcePort ?? "RightPort";
-        //     switch (initialSourcePort)
-        //     {
-        //         case "TopPort":
-        //             sourcePos = sourceNode.TopPortPosition;
-        //             break;
-        //         case "BottomPort":
-        //             sourcePos = sourceNode.BottomPortPosition;
-        //             break;
-        //         case "LeftPort":
-        //             sourcePos = sourceNode.LeftPortPosition;
-        //             break;
-        //         case "RightPort":
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //         default:
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //     }
-        //
-        //     // ========== 关键调试信息：端口选择和调整 ==========
-        //     _viewModel?.AddLog($"[CreateConnection] ========== 端口选择和调整 ==========");
-        //
-        //     // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口）
-        //     var deltaX = targetNode.Position.X - sourcePos.X;
-        //     var deltaY = targetNode.Position.Y - sourcePos.Y;
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] 初始源端口: {initialSourcePort}");
-        //     _viewModel?.AddLog($"[CreateConnection] 初始源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 源节点位置: ({sourceNode.Position.X:F1}, {sourceNode.Position.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 目标节点位置: ({targetNode.Position.X:F1}, {targetNode.Position.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 节点偏移: delta X={deltaX:F1}, delta Y={deltaY:F1}");
-        //     _viewModel?.AddLog($"[CreateConnection] 偏移比率: |deltaX|/|deltaY| = {(Math.Abs(deltaX) / Math.Abs(deltaY)):F2}");
-        //
-        //     string direction = "";
-        //     bool isVerticalDominant = initialSourcePort == "TopPort" || initialSourcePort == "BottomPort";
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] 源端口类型: {(isVerticalDominant ? "垂直方向(Top/Bottom)" : "水平方向(Left/Right)")}");
-        //
-        //     if (isVerticalDominant)
-        //     {
-        //         // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
-        //         bool horizontalDominant = Math.Abs(deltaX) > 2 * Math.Abs(deltaY);
-        //         _viewModel?.AddLog($"[CreateConnection] 判断: |deltaX|({Math.Abs(deltaX):F1}) > 2*|deltaY|({2 * Math.Abs(deltaY):F1}) = {horizontalDominant}");
-        //
-        //         if (horizontalDominant)
-        //         {
-        //             direction = "水平（源垂直但水平偏移过大）";
-        //             _viewModel?.AddLog($"[CreateConnection] ⚠️ 端口调整: 从{initialSourcePort}调整为水平端口");
-        //             if (deltaX > 0)
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在左，目标在右 -> 源右->目标左");
-        //                 finalSourcePort = "RightPort";
-        //                 finalTargetPort = "LeftPort";
-        //                 sourcePos = sourceNode.RightPortPosition;
-        //                 targetPos = targetNode.LeftPortPosition;
-        //             }
-        //             else
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在右，目标在左 -> 源左->目标右");
-        //                 finalSourcePort = "LeftPort";
-        //                 finalTargetPort = "RightPort";
-        //                 sourcePos = sourceNode.LeftPortPosition;
-        //                 targetPos = targetNode.RightPortPosition;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             direction = "垂直（源端口主导）";
-        //             _viewModel?.AddLog($"[CreateConnection] 保持垂直端口");
-        //             if (deltaY > 0)
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在上，目标在下 -> 源底->目标顶");
-        //                 finalSourcePort = "BottomPort";
-        //                 finalTargetPort = "TopPort";
-        //                 sourcePos = sourceNode.BottomPortPosition;
-        //                 targetPos = targetNode.TopPortPosition;
-        //             }
-        //             else
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在下，目标在上 -> 源顶->目标底");
-        //                 finalSourcePort = "TopPort";
-        //                 finalTargetPort = "BottomPort";
-        //                 sourcePos = sourceNode.TopPortPosition;
-        //                 targetPos = targetNode.BottomPortPosition;
-        //             }
-        //         }
-        //     }
-        //     else
-        //     {
-        //         // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
-        //         bool verticalDominant = Math.Abs(deltaY) > 2 * Math.Abs(deltaX);
-        //         _viewModel?.AddLog($"[CreateConnection] 判断: |deltaY|({Math.Abs(deltaY):F1}) > 2*|deltaX|({2 * Math.Abs(deltaX):F1}) = {verticalDominant}");
-        //
-        //         if (verticalDominant)
-        //         {
-        //             direction = "垂直（源水平但垂直偏移过大）";
-        //             _viewModel?.AddLog($"[CreateConnection] ⚠️ 端口调整: 从{initialSourcePort}调整为垂直端口");
-        //             if (deltaY > 0)
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在上，目标在下 -> 源底->目标顶");
-        //                 finalSourcePort = "BottomPort";
-        //                 finalTargetPort = "TopPort";
-        //                 sourcePos = sourceNode.BottomPortPosition;
-        //                 targetPos = targetNode.TopPortPosition;
-        //             }
-        //             else
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在下，目标在上 -> 源顶->目标底");
-        //                 finalSourcePort = "TopPort";
-        //                 finalTargetPort = "BottomPort";
-        //                 sourcePos = sourceNode.TopPortPosition;
-        //                 targetPos = targetNode.BottomPortPosition;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             direction = "水平（源端口主导）";
-        //             _viewModel?.AddLog($"[CreateConnection] 保持水平端口");
-        //             if (deltaX > 0)
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在左，目标在右 -> 源右->目标左");
-        //                 finalSourcePort = "RightPort";
-        //                 finalTargetPort = "LeftPort";
-        //                 sourcePos = sourceNode.RightPortPosition;
-        //                 targetPos = targetNode.LeftPortPosition;
-        //             }
-        //             else
-        //             {
-        //                 _viewModel?.AddLog($"[CreateConnection] {direction}:源在右，目标在左 -> 源左->目标右");
-        //                 finalSourcePort = "LeftPort";
-        //                 finalTargetPort = "RightPort";
-        //                 sourcePos = sourceNode.LeftPortPosition;
-        //                 targetPos = targetNode.RightPortPosition;
-        //             }
-        //         }
-        //     }
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] ========== 最终端口配置 ==========");
-        //     _viewModel?.AddLog($"[CreateConnection] 最终源端口: {finalSourcePort}");
-        //     _viewModel?.AddLog($"[CreateConnection] 最终目标端口: {finalTargetPort}");
-        //     _viewModel?.AddLog($"[CreateConnection] 最终源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 最终目标位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] =======================================");
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] |deltaX|:{Math.Abs(deltaX):F1} |deltaY|:{Math.Abs(deltaY):F1} 最终端口:({sourcePos.X:F1},{sourcePos.Y:F1})->({targetPos.X:F1},{targetPos.Y:F1})");
-        //
-        //     newConnection.SourcePort = finalSourcePort;
-        //     newConnection.TargetPort = finalTargetPort;
-        //     newConnection.SourcePosition = sourcePos;
-        //     newConnection.TargetPosition = targetPos;
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] ========== 连接属性设置 ==========");
-        //     _viewModel?.AddLog($"[CreateConnection] newConnection.SourcePort = {finalSourcePort}");
-        //     _viewModel?.AddLog($"[CreateConnection] newConnection.TargetPort = {finalTargetPort}");
-        //     _viewModel?.AddLog($"[CreateConnection] newConnection.SourcePosition = ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] newConnection.TargetPosition = ({targetPos.X:F1}, {targetPos.Y:F1})");
-        //
-        //     // 验证端口位置是否正确
-        //     _viewModel?.AddLog($"[CreateConnection] ========== 端口位置验证 ==========");
-        //     Point expectedSourcePos = finalSourcePort switch
-        //     {
-        //         "RightPort" => new Point(sourceNode.Position.X + 140, sourceNode.Position.Y + 45),
-        //         "LeftPort" => new Point(sourceNode.Position.X, sourceNode.Position.Y + 45),
-        //         "TopPort" => new Point(sourceNode.Position.X + 70, sourceNode.Position.Y),
-        //         "BottomPort" => new Point(sourceNode.Position.X + 70, sourceNode.Position.Y + 90),
-        //         _ => new Point(0, 0)
-        //     };
-        //     Point expectedTargetPos = finalTargetPort switch
-        //     {
-        //         "RightPort" => new Point(targetNode.Position.X + 140, targetNode.Position.Y + 45),
-        //         "LeftPort" => new Point(targetNode.Position.X, targetNode.Position.Y + 45),
-        //         "TopPort" => new Point(targetNode.Position.X + 70, targetNode.Position.Y),
-        //         "BottomPort" => new Point(targetNode.Position.X + 70, targetNode.Position.Y + 90),
-        //         _ => new Point(0, 0)
-        //     };
-        //
-        //     bool sourcePosCorrect = Math.Abs(sourcePos.X - expectedSourcePos.X) < 0.1 && Math.Abs(sourcePos.Y - expectedSourcePos.Y) < 0.1;
-        //     bool targetPosCorrect = Math.Abs(targetPos.X - expectedTargetPos.X) < 0.1 && Math.Abs(targetPos.Y - expectedTargetPos.Y) < 0.1;
-        //
-        //     _viewModel?.AddLog($"[CreateConnection] 源端口{finalSourcePort}期望位置: ({expectedSourcePos.X:F1}, {expectedSourcePos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 源端口实际位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 源端口位置正确: {sourcePosCorrect}");
-        //     _viewModel?.AddLog($"[CreateConnection] 目标端口{finalTargetPort}期望位置: ({expectedTargetPos.X:F1}, {expectedTargetPos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 目标端口实际位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
-        //     _viewModel?.AddLog($"[CreateConnection] 目标端口位置正确: {targetPosCorrect}");
-        //     _viewModel?.AddLog($"[CreateConnection] =======================================");
-        //
-        //     // 关键信息：添加前后的连接数
-        //     int beforeCount = selectedTab.WorkflowConnections.Count;
-        //     _viewModel?.AddLog($"[CreateConnection] 添加前连接数: {beforeCount}");
-        //
-        //     CurrentWorkflowTab?.WorkflowConnections.Add(newConnection);
-        //
-        //     int afterCount = selectedTab.WorkflowConnections.Count;
-        //     _viewModel?.AddLog($"[CreateConnection] 添加后连接数: {afterCount}");
-        //
-        //     // 关键信息：验证连接是否真的在集合中
-        //     var addedConnection = selectedTab.WorkflowConnections.FirstOrDefault(c => c.Id == connectionId);
-        //     if (addedConnection != null)
-        //     {
-        //         _viewModel?.AddLog($"[CreateConnection] ✓ 连接验证成功，ID: {addedConnection.Id}");
-        //     }
-        //     else
-        //     {
-        //         _viewModel?.AddLog($"[CreateConnection] ❌ 连接验证失败，ID: {connectionId}");
-        //     }
-        //
-        //     // 关键信息：检查 WorkflowConnections 集合的引用
-        //     if (CurrentWorkflowTab != null)
-        //     {
-        //         _viewModel?.AddLog($"[CreateConnection] CurrentWorkflowTab.WorkflowConnections 引用相同: {ReferenceEquals(selectedTab.WorkflowConnections, CurrentWorkflowTab.WorkflowConnections)}");
-        //     }
-        //
-        //     _viewModel!.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
-        //     _viewModel.AddLog($"[CreateConnection] ========== 连接创建完成 ==========");
-        // }
-
-        /// <summary>
         /// 获取节点指定端口的Ellipse元素
         /// </summary>
         private Ellipse? GetPortElement(Border nodeBorder, string portName)
@@ -1903,7 +2024,7 @@ namespace SunEyeVision.UI.Controls
                 {
                     if (!found && _highlightCounter % 20 == 0) // 每20次高亮才输出一次
                     {
-                        _viewModel?.AddLog($"[GetPortElement] ✓ 找到端口: {element.Name}");
+                        System.Diagnostics.Debug.WriteLine($"[GetPortElement] ? 找到端口: {element.Name}");
                     }
                     return element as Ellipse;
                 }
@@ -1911,201 +2032,10 @@ namespace SunEyeVision.UI.Controls
 
             if (_highlightCounter % 20 == 0) // 每20次高亮才输出一次
             {
-                _viewModel?.AddLog($"[GetPortElement] ❌ 未找到端口: {ellipseName}");
+                System.Diagnostics.Debug.WriteLine($"[GetPortElement] ? 未找到端口: {ellipseName}");
             }
             return null;
         }
-
-        /// <summary>
-        /// 高亮显示目标端口
-        /// [已废弃] 请使用 _portHighlighter.HighlightTargetPort
-        /// </summary>
-        // private void HighlightTargetPort(Border? nodeBorder, WorkflowNode? sourceNode)
-        // {
-        //     // 先取消之前的高亮
-        //     ClearTargetPortHighlight();
-        //
-        //     if (nodeBorder == null || sourceNode == null) return;
-        //
-        //     // 获取源端口的实际位置（而不是节点中心）
-        //     Point sourcePos;
-        //     switch (_dragConnectionSourcePort)
-        //     {
-        //         case "TopPort":
-        //             sourcePos = sourceNode.TopPortPosition;
-        //             break;
-        //         case "BottomPort":
-        //             sourcePos = sourceNode.BottomPortPosition;
-        //             break;
-        //         case "LeftPort":
-        //             sourcePos = sourceNode.LeftPortPosition;
-        //             break;
-        //         case "RightPort":
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //         default:
-        //             sourcePos = sourceNode.RightPortPosition;
-        //             break;
-        //     }
-        //
-        //     var targetNode = nodeBorder.Tag as WorkflowNode;
-        //     if (targetNode == null) return;
-        //
-        //     var targetPos = targetNode.Position;
-        //     var deltaX = targetPos.X - sourcePos.X;
-        //     var deltaY = targetPos.Y - sourcePos.Y;
-        //
-        //     string targetPortName = "LeftPort"; // 默认
-        //
-        //     // 根据源端口方向和相对位置选择目标端口
-        //     // 策略：优先选择与源端口方向对应的目标端口，但允许根据实际位置调整
-        //     string direction = "";
-        //     bool isVerticalDominant = _dragConnectionSourcePort == "TopPort" || _dragConnectionSourcePort == "BottomPort";
-        //
-        //     if (isVerticalDominant)
-        //     {
-        //         // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
-        //         // 但如果水平偏移远大于垂直偏移（2倍以上），则选择水平方向
-        //         if (Math.Abs(deltaX) > 2 * Math.Abs(deltaY))
-        //         {
-        //             direction = "水平（源垂直但水平偏移过大）";
-        //             if (deltaX > 0)
-        //                 targetPortName = "LeftPort";
-        //             else
-        //                 targetPortName = "RightPort";
-        //         }
-        //         else
-        //         {
-        //             direction = "垂直（源端口主导）";
-        //             if (deltaY > 0)
-        //                 targetPortName = "TopPort";
-        //             else
-        //                 targetPortName = "BottomPort";
-        //         }
-        //     }
-        //     else
-        //     {
-        //         // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
-        //         // 但如果垂直偏移远大于水平偏移（2倍以上），则选择垂直方向
-        //         if (Math.Abs(deltaY) > 2 * Math.Abs(deltaX))
-        //         {
-        //             direction = "垂直（源水平但垂直偏移过大）";
-        //             if (deltaY > 0)
-        //                 targetPortName = "TopPort";
-        //             else
-        //                 targetPortName = "BottomPort";
-        //         }
-        //         else
-        //         {
-        //             direction = "水平（源端口主导）";
-        //             if (deltaX > 0)
-        //                 targetPortName = "LeftPort";
-        //             else
-        //                 targetPortName = "RightPort";
-        //         }
-        //     }
-        //
-        //     // 只在端口变化或每10次高亮时输出日志
-        //     bool shouldLog = _lastHighlightedPort != targetPortName || _highlightCounter % 10 == 0;
-        //     if (shouldLog)
-        //     {
-        //         _viewModel?.AddLog($"[HighlightTargetPort] 源端口:{_dragConnectionSourcePort} 源位置:({sourcePos.X:F1},{sourcePos.Y:F1})");
-        //         _viewModel?.AddLog($"[HighlightTargetPort] 目标节点:({targetPos.X:F1},{targetPos.Y:F1}) 偏移:({deltaX:F1},{deltaY:F1})");
-        //         _viewModel?.AddLog($"[HighlightTargetPort] 选择逻辑:{direction} |deltaX|:{Math.Abs(deltaX):F1} |deltaY|:{Math.Abs(deltaY):F1}");
-        //         _viewModel?.AddLog($"[HighlightTargetPort] ✓ 选择目标端口: {targetPortName}");
-        //         _lastHighlightedPort = targetPortName;
-        //     }
-        //     _highlightCounter++;
-        //
-        //     // 获取端口元素
-        //     var portElement = GetPortElement(nodeBorder, targetPortName);
-        //     if (portElement != null)
-        //     {
-        //         // 确保端口可见
-        //         portElement.Visibility = Visibility.Visible;
-        //
-        //         _highlightedTargetPort = portElement;
-        //         _highlightedTargetBorder = nodeBorder;
-        //
-        //         // 保存原始样式
-        //         _originalPortFill = portElement.Fill;
-        //         _originalPortStroke = portElement.Stroke;
-        //         _originalPortStrokeThickness = portElement.StrokeThickness;
-        //
-        //         // 设置高亮样式
-        //         portElement.Fill = new SolidColorBrush(Color.FromRgb(255, 200, 0)); // 金色填充
-        //         portElement.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 0)); // 深橙色边框
-        //         portElement.StrokeThickness = 3;
-        //     }
-        //     else
-        //     {
-        //         _viewModel?.AddLog($"[HighlightTargetPort] ❌ 未找到端口元素: {targetPortName}");
-        //     }
-        // }
-
-        /// <summary>
-        /// 高亮指定的端口（用于直接命中端口的情况）
-        /// [已废弃] 请使用 _portHighlighter.HighlightSpecificPort
-        /// </summary>
-        // private void HighlightSpecificPort(Border nodeBorder, string portName)
-        // {
-        //     ClearTargetPortHighlight();
-        //
-        //     if (nodeBorder == null) return;
-        //
-        //     var portElement = GetPortElement(nodeBorder, portName);
-        //     if (portElement != null)
-        //     {
-        //         portElement.Visibility = Visibility.Visible;
-        //
-        //         _highlightedTargetPort = portElement;
-        //         _highlightedTargetBorder = nodeBorder;
-        //
-        //         // 保存原始样式
-        //         _originalPortFill = portElement.Fill;
-        //         _originalPortStroke = portElement.Stroke;
-        //         _originalPortStrokeThickness = portElement.StrokeThickness;
-        //
-        //         // 设置高亮样式
-        //         portElement.Fill = new SolidColorBrush(Color.FromRgb(255, 200, 0)); // 金色填充
-        //         portElement.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 0)); // 深橙色边框
-        //         portElement.StrokeThickness = 3;
-        //
-        //         // 只在端口变化时记录日志
-        //         if (_lastHighlightedPort != portName && _highlightCounter % 5 == 0)
-        //         {
-        //             _viewModel?.AddLog($"[HighlightSpecificPort] ✓ 高亮成功: {portName}");
-        //         }
-        //     }
-        // }
-
-        /// <summary>
-        /// 清除目标端口的高亮
-        /// [已废弃] 请使用 _portHighlighter.ClearTargetPortHighlight
-        /// </summary>
-        // private void ClearTargetPortHighlight()
-        // {
-        //     if (_highlightedTargetPort != null && _originalPortFill != null)
-        //     {
-        //         // 恢复原始样式
-        //         _highlightedTargetPort.Fill = _originalPortFill;
-        //         _highlightedTargetPort.Stroke = _originalPortStroke ?? new SolidColorBrush(Colors.Transparent);
-        //         _highlightedTargetPort.StrokeThickness = _originalPortStrokeThickness;
-        //
-        //         // 注意：不要隐藏端口，因为拖拽时所有端口应该保持可见
-        //         // 端口的可见性由 IsDraggingConnection 属性控制
-        //     }
-        //
-        //     _highlightedTargetPort = null;
-        //     _originalPortFill = null;
-        //     _originalPortStroke = null;
-        //     _originalPortStrokeThickness = 0;
-        // }
-
-        // 保存端口原始样式
-        // private Brush? _originalPortFill;
-        // private Brush? _originalPortStroke;
-        // private double _originalPortStrokeThickness;
 
         /// <summary>
         /// Path元素加载事件 - 监控连接线路径创建
@@ -2114,15 +2044,15 @@ namespace SunEyeVision.UI.Controls
         {
             if (sender is Path path && path.DataContext is WorkflowConnection connection)
             {
-                _viewModel?.AddLog($"[Path_Loaded] ✓ Path加载，连接ID: {connection.Id}");
+                System.Diagnostics.Debug.WriteLine($"[Path_Loaded] ? Path加载，连接ID: {connection.Id}");
 
                 if (path.Data is PathGeometry geom && geom.Figures.Count > 0)
                 {
-                    _viewModel?.AddLog($"[Path_Loaded] ✓ 路径数据: {geom.Figures.Count}个Figure, {geom.Figures[0].Segments.Count}个Segment");
+                    System.Diagnostics.Debug.WriteLine($"[Path_Loaded] ? 路径数据: {geom.Figures.Count}个Figure, {geom.Figures[0].Segments.Count}个Segment");
                 }
                 else
                 {
-                    _viewModel?.AddLog($"[Path_Loaded] ⚠ 路径数据未正确创建");
+                    System.Diagnostics.Debug.WriteLine($"[Path_Loaded] ? 路径数据未正确创建");
                 }
             }
         }
@@ -2136,7 +2066,7 @@ namespace SunEyeVision.UI.Controls
             {
                 if (e.NewValue is WorkflowConnection newConn)
                 {
-                    _viewModel?.AddLog($"[Path_DataContextChanged] 连接ID: {newConn.Id}, 源: {newConn.SourcePosition}, 目标: {newConn.TargetPosition}");
+                    System.Diagnostics.Debug.WriteLine($"[Path_DataContextChanged] 连接ID: {newConn.Id}, 源: {newConn.SourcePosition}, 目标: {newConn.TargetPosition}");
                 }
             }
         }
@@ -2152,16 +2082,18 @@ namespace SunEyeVision.UI.Controls
                 connection.ShowPathPoints = !connection.ShowPathPoints;
 
                 // 记录调试信息
-                _viewModel?.AddLog($"[ConnectionLine_Click] 连接ID: {connection.Id}");
-                _viewModel?.AddLog($"  中间点显示: {connection.ShowPathPoints}");
-                _viewModel?.AddLog($"  路径点数量: {connection.PathPoints.Count}");
+                System.Diagnostics.Debug.WriteLine($"[ConnectionLine_Click] 连接ID: {connection.Id}");
+                System.Diagnostics.Debug.WriteLine($"  中间点显示: {connection.ShowPathPoints}");
+                System.Diagnostics.Debug.WriteLine($"  路径点数量: {connection.PathPoints.Count}");
                 if (connection.PathPoints.Count > 0)
                 {
-                    _viewModel?.AddLog($"  第一个点: ({connection.PathPoints[0].X:F0}, {connection.PathPoints[0].Y:F0})");
+                    System.Diagnostics.Debug.WriteLine($"  第一个点: ({connection.PathPoints[0].X:F0}, {connection.PathPoints[0].Y:F0})");
                 }
 
                 // 标记事件已处理，防止事件继续传播
-                e.Handled = true;
+                // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
+            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
+            // 从而导致临时连接线无法隐藏
             }
         }
 
@@ -2218,7 +2150,7 @@ namespace SunEyeVision.UI.Controls
                         if (arrowPath.RenderTransform is RotateTransform rt)
                         {
                             rt.Angle = connection.ArrowAngle;
-                            System.Diagnostics.Debug.WriteLine($"[ArrowPath] ✓ 箭头角度更新为: {connection.ArrowAngle}°, 连接ID: {connection.Id}");
+                            System.Diagnostics.Debug.WriteLine($"[ArrowPath] ? 箭头角度更新为: {connection.ArrowAngle}°, 连接ID: {connection.Id}");
                         }
                     }
                 };
@@ -2234,16 +2166,16 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void UpdateBoundingRectangle()
         {
-            _viewModel?.AddLog($"[BoundingRectangle] ========== 更新外接矩形 ==========");
-            _viewModel?.AddLog($"[BoundingRectangle] ShowBoundingRectangle: {ShowBoundingRectangle}");
-            _viewModel?.AddLog($"[BoundingRectangle] BoundingSourceNodeId: {BoundingSourceNodeId ?? "null"}");
-            _viewModel?.AddLog($"[BoundingRectangle] BoundingTargetNodeId: {BoundingTargetNodeId ?? "null"}");
-            _viewModel?.AddLog($"[BoundingRectangle] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ========== 更新外接矩形 ==========");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ShowBoundingRectangle: {ShowBoundingRectangle}");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingSourceNodeId: {BoundingSourceNodeId ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingTargetNodeId: {BoundingTargetNodeId ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
 
             if (!ShowBoundingRectangle)
             {
                 BoundingRectangle.Visibility = Visibility.Collapsed;
-                _viewModel?.AddLog($"[BoundingRectangle] ❌ ShowBoundingRectangle为false，隐藏矩形");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? ShowBoundingRectangle为false，隐藏矩形");
                 return;
             }
 
@@ -2253,23 +2185,23 @@ namespace SunEyeVision.UI.Controls
 
             if (CurrentWorkflowTab?.WorkflowNodes != null)
             {
-                _viewModel?.AddLog($"[BoundingRectangle] CurrentWorkflowTab存在，节点数: {CurrentWorkflowTab.WorkflowNodes.Count}");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] CurrentWorkflowTab存在，节点数: {CurrentWorkflowTab.WorkflowNodes.Count}");
 
                 if (!string.IsNullOrEmpty(BoundingSourceNodeId))
                 {
                     sourceNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingSourceNodeId);
-                    _viewModel?.AddLog($"[BoundingRectangle] 源节点: {BoundingSourceNodeId} -> {(sourceNode?.Name ?? "未找到")}");
+                    System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 源节点: {BoundingSourceNodeId} -> {(sourceNode?.Name ?? "未找到")}");
                 }
 
                 if (!string.IsNullOrEmpty(BoundingTargetNodeId))
                 {
                     targetNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingTargetNodeId);
-                    _viewModel?.AddLog($"[BoundingRectangle] 目标节点: {BoundingTargetNodeId} -> {(targetNode?.Name ?? "未找到")}");
+                    System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 目标节点: {BoundingTargetNodeId} -> {(targetNode?.Name ?? "未找到")}");
                 }
             }
             else
             {
-                _viewModel?.AddLog($"[BoundingRectangle] ❌ CurrentWorkflowTab为null");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? CurrentWorkflowTab为null");
             }
 
             // 如果找到了源节点和目标节点，计算并显示矩形
@@ -2285,8 +2217,8 @@ namespace SunEyeVision.UI.Controls
                 double targetTop = targetNode.Position.Y;
                 double targetBottom = targetNode.Position.Y + 90;
 
-                _viewModel?.AddLog($"[BoundingRectangle] 源节点位置: ({sourceLeft:F1}, {sourceTop:F1}) - ({sourceRight:F1}, {sourceBottom:F1})");
-                _viewModel?.AddLog($"[BoundingRectangle] 目标节点位置: ({targetLeft:F1}, {targetTop:F1}) - ({targetRight:F1}, {targetBottom:F1})");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 源节点位置: ({sourceLeft:F1}, {sourceTop:F1}) - ({sourceRight:F1}, {sourceBottom:F1})");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 目标节点位置: ({targetLeft:F1}, {targetTop:F1}) - ({targetRight:F1}, {targetBottom:F1})");
 
                 // 计算包围两个节点的原始矩形
                 double minX = Math.Min(sourceLeft, targetLeft);
@@ -2316,22 +2248,22 @@ namespace SunEyeVision.UI.Controls
 
                 BoundingRectangle.Visibility = Visibility.Visible;
 
-                _viewModel?.AddLog($"[BoundingRectangle] 原始矩形: X=[{minX:F1}, {maxX:F1}], Y=[{minY:F1}, {maxY:F1}]");
-                _viewModel?.AddLog($"[BoundingRectangle] 原始尺寸: 宽度={rectWidth:F1}, 高度={rectHeight:F1}");
-                _viewModel?.AddLog($"[BoundingRectangle] 最大边长: {maxSide:F1}px");
-                _viewModel?.AddLog($"[BoundingRectangle] 中心点: ({centerX:F1}, {centerY:F1})");
-                _viewModel?.AddLog($"[BoundingRectangle] ✓ 设置正方形: X={rectX:F1}, Y={rectY:F1}, Width={maxSide:F1}, Height={maxSide:F1}");
-                _viewModel?.AddLog($"[BoundingRectangle] ✓ 正方形范围: X=[{rectX:F1}, {rectX + maxSide:F1}], Y=[{rectY:F1}, {rectY + maxSide:F1}]");
-                _viewModel?.AddLog($"[BoundingRectangle] 搜索范围扩展: {(maxSide * maxSide) / (rectWidth * rectHeight):F2}x");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 原始矩形: X=[{minX:F1}, {maxX:F1}], Y=[{minY:F1}, {maxY:F1}]");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 原始尺寸: 宽度={rectWidth:F1}, 高度={rectHeight:F1}");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 最大边长: {maxSide:F1}px");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 中心点: ({centerX:F1}, {centerY:F1})");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? 设置正方形: X={rectX:F1}, Y={rectY:F1}, Width={maxSide:F1}, Height={maxSide:F1}");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? 正方形范围: X=[{rectX:F1}, {rectX + maxSide:F1}], Y=[{rectY:F1}, {rectY + maxSide:F1}]");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 搜索范围扩展: {(maxSide * maxSide) / (rectWidth * rectHeight):F2}x");
             }
             else
             {
                 BoundingRectangle.Visibility = Visibility.Collapsed;
-                _viewModel?.AddLog($"[BoundingRectangle] ❌ 无法找到节点，隐藏矩形");
-                _viewModel?.AddLog($"[BoundingRectangle]   源节点: {(sourceNode != null ? "找到" : "未找到")}");
-                _viewModel?.AddLog($"[BoundingRectangle]   目标节点: {(targetNode != null ? "找到" : "未找到")}");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? 无法找到节点，隐藏矩形");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle]   源节点: {(sourceNode != null ? "找到" : "未找到")}");
+                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle]   目标节点: {(targetNode != null ? "找到" : "未找到")}");
             }
-            _viewModel?.AddLog($"[BoundingRectangle] =======================================");
+            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] =======================================");
         }
     }
 }

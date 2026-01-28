@@ -1,0 +1,14 @@
+{
+  "pluginId": "CustomFilters",
+  "pluginName": "Custom Filters Plugin",
+  "version": "1.0.0",
+  "description": "Custom image filters plugin",
+  "author": "Team C",
+  "dependencies": [],
+  "permissions": [],
+  "minFrameworkVersion": "1.0.0",
+  "customData": {
+    "category": "Filters",
+    "filterTypes": ["Blur", "Sharpen", "EdgeDetection"]
+  }
+}

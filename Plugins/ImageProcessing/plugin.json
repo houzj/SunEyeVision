@@ -1,0 +1,14 @@
+{
+  "pluginId": "ImageProcessing",
+  "pluginName": "Image Processing Plugin",
+  "version": "1.0.0",
+  "description": "Image processing algorithms plugin",
+  "author": "Team A",
+  "dependencies": [],
+  "permissions": [],
+  "minFrameworkVersion": "1.0.0",
+  "customData": {
+    "category": "Image Processing",
+    "supportedFormats": ["jpg", "png", "bmp"]
+  }
+}

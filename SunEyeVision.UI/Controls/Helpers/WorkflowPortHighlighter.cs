@@ -77,7 +77,9 @@ namespace SunEyeVision.UI.Controls.Helpers
             var portElement = GetPortElement(nodeBorder, portName);
             if (portElement != null)
             {
+                // 确保端口可见且响应鼠标事件
                 portElement.Visibility = Visibility.Visible;
+                portElement.Opacity = 1.0;
 
                 _highlightedTargetPort = portElement;
                 _highlightedTargetBorder = nodeBorder;
@@ -112,8 +114,8 @@ namespace SunEyeVision.UI.Controls.Helpers
                 _highlightedTargetPort.Stroke = _originalPortStroke ?? new SolidColorBrush(Colors.Transparent);
                 _highlightedTargetPort.StrokeThickness = _originalPortStrokeThickness;
 
-                // 注意：不要隐藏端口，因为拖拽时所有端口应该保持可见
-                // 端口的可见性由 IsDraggingConnection 属性控制
+                // 隐藏端口，确保不响应鼠标事件
+                _highlightedTargetPort.Visibility = Visibility.Collapsed;
             }
 
             _highlightedTargetPort = null;

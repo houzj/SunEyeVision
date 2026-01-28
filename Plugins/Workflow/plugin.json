@@ -1,0 +1,14 @@
+{
+  "pluginId": "Workflow",
+  "pluginName": "Workflow Nodes Plugin",
+  "version": "1.0.0",
+  "description": "Workflow nodes plugin",
+  "author": "Team B",
+  "dependencies": [],
+  "permissions": [],
+  "minFrameworkVersion": "1.0.0",
+  "customData": {
+    "category": "Workflow",
+    "nodeTypes": ["Processing", "Source", "Output"]
+  }
+}

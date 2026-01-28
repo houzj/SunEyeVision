@@ -15,6 +15,7 @@
             </div>
             <div class="nav-menu">
                 <a href="../index.html" class="nav-item">🏠 首页</a>
+                <a href="../features/index.html" class="nav-item">✨ 功能特性</a>
                 <a href="../usermanual/index.html" class="nav-item">📖 用户手册</a>
                 <a href="../architecture/index.html" class="nav-item active">🏗️ 软件架构</a>
                 <a href="../roadmap/index.html" class="nav-item">🗺️ 开发路线图</a>
@@ -162,8 +163,17 @@
                 <ul>
                     <li><strong>WorkflowEngine</strong>：工作流引擎，负责工作流的创建、加载、执行</li>
                     <li><strong>Workflow</strong>：工作流定义，管理节点和连接关系</li>
-                    <li><strong>AlgorithmNode</strong>：算法节点，封装单个算法的执行逻辑</li>
                     <li><strong>WorkflowNode</strong>：工作流节点，支持条件分支和循环</li>
+                    <li><strong>WorkflowConnection</strong>：工作流连接，管理节点间的数据流</li>
+                    <li><strong>WorkflowNodeFactory</strong>：节点工厂，动态创建不同类型的节点</li>
+                </ul>
+                <h4>高级特性（规划中）：</h4>
+                <ul>
+                    <li><strong>LoopNode</strong>：循环节点，支持固定次数循环和条件循环</li>
+                    <li><strong>SwitchNode</strong>：分支节点，支持条件分支和多路选择</li>
+                    <li><strong>ParallelBranchNode</strong>：并行分支节点，支持并行执行和结果汇聚</li>
+                    <li><strong>SubWorkflowNode</strong>：子工作流节点，支持工作流嵌套调用</li>
+                    <li><strong>TryCatchNode</strong>：异常处理节点，支持 Try-Catch-Finally 结构</li>
                 </ul>
 
                 <h3>4. SunEyeVision.DeviceDriver</h3>
@@ -192,11 +202,91 @@
                 <h4>主要窗口：</h4>
                 <ul>
                     <li><strong>MainWindow</strong>：主窗口，包含菜单、工具栏、工作区</li>
-                    <li><strong>WorkflowDesigner</strong>：工作流设计器，可视化编辑工作流</li>
+                    <li><strong>WorkflowCanvasControl</strong>：工作流画布控件，可视化编辑工作流</li>
                     <li><strong>ParameterPanel</strong>：参数面板，编辑算法参数</li>
                     <li><strong>ImageDisplay</strong>：图像显示，实时显示图像和结果</li>
                 </ul>
+                <h4>UI 控件和服务：</h4>
+                <ul>
+                    <li><strong>WorkflowTabViewModel</strong>：工作流标签页视图模型</li>
+                    <li><strong>WorkflowNodeFactory</strong>：工作流节点工厂</li>
+                    <li><strong>NodeSequenceManager</strong>：节点序列管理器</li>
+                    <li><strong>WorkflowDragDropHandler</strong>：拖放操作处理器</li>
+                    <li><strong>WorkflowPortInteractionHandler</strong>：端口交互处理器</li>
+                    <li><strong>WorkflowPathCalculator</strong>：路径计算器</li>
+                    <li><strong>WorkflowConnectionManager</strong>：连接管理器</li>
+                    <li><strong>SelectionBox</strong>：选择框控件</li>
+                </ul>
+                <h4>高级功能（规划中）：</h4>
+                <ul>
+                    <li><strong>智能路径规划</strong>：A* 算法实现最优路径计算</li>
+                    <li><strong>智能避障</strong>：自动检测和避开节点障碍</li>
+                    <li><strong>多种连线样式</strong>：支持直线、折线、贝塞尔曲线、正交线</li>
+                    <li><strong>脚本编辑器</strong>：集成 Monaco Editor，支持代码编辑和调试</li>
+                    <li><strong>定制化界面</strong>：支持 Logo、主题、布局等定制</li>
+                </ul>
             </section>
+
+            <section class="content-section">
+                <h2>新增功能模块</h2>
+
+                <h3>5个核心功能模块规划</h3>
+                <p>基于现有架构，SunEyeVision 规划了5个核心功能模块：</p>
+
+                <div class="module-list">
+                    <div class="module-item">
+                        <h4>1. 工作流流程控制</h4>
+                        <ul>
+                            <li>循环节点：固定次数、条件、集合迭代</li>
+                            <li>分支节点：条件分支、多路选择</li>
+                            <li>并行分支：并行执行、结果汇聚</li>
+                            <li>子工作流：嵌套调用、参数传递</li>
+                            <li>异常处理：Try-Catch-Finally 结构</li>
+                        </ul>
+                    </div>
+
+                    <div class="module-item">
+                        <h4>2. 智能节点连线</h4>
+                        <ul>
+                            <li>A* 路径规划算法</li>
+                            <li>智能避障：碰撞检测、绕行点生成</li>
+                            <li>多种连线样式：直线、折线、曲线、正交线</li>
+                            <li>路径优化：缓存、动态更新、批量更新</li>
+                        </ul>
+                    </div>
+
+                    <div class="module-item">
+                        <h4>3. 节点执行控制</h4>
+                        <ul>
+                            <li>执行模式：同步、异步、混合</li>
+                            <li>依赖管理：依赖图分析、拓扑排序</li>
+                            <li>执行控制：并行度、资源限制、超时、取消</li>
+                            <li>执行监控：执行历史、性能统计、资源监控</li>
+                        </ul>
+                    </div>
+
+                    <div class="module-item">
+                        <h4>4. 脚本编辑器</h4>
+                        <ul>
+                            <li>编辑器特性：语法高亮、智能提示、语法检查</li>
+                            <li>调试功能：断点、单步执行、变量监视</li>
+                            <li>多语言支持：C#、Python、表达式计算</li>
+                            <li>集成功能：工作流集成、算法访问、设备访问</li>
+                        </ul>
+                    </div>
+
+                    <div class="module-item">
+                        <h4>5. 定制化客户界面</h4>
+                        <ul>
+                            <li>基础定制：Logo、主题配色、标题文本</li>
+                            <li>布局定制：面板布局、工具栏、菜单</li>
+                            <li>功能定制：权限控制、功能开关、操作流程</li>
+                            <li>工作流模板：预设模板、模板锁定、一键加载</li>
+                            <li>配置管理：可视化配置、导入导出、多配置</li>
+                            <li>用户和角色管理</li>
+                        </ul>
+                    </div>
+                </div>
 
             <section class="content-section">
                 <h2>数据流向</h2>

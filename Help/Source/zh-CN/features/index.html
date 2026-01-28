@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能特性 - SunEyeVision 帮助文档</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>SunEyeVision</h1>
+                <p>机器视觉算法平台</p>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-item">🏠 首页</a>
+                <a href="index.html" class="nav-item active">✨ 功能特性</a>
+                <a href="../usermanual/index.html" class="nav-item">📖 用户手册</a>
+                <a href="../architecture/index.html" class="nav-item">🏗️ 软件架构</a>
+                <a href="../roadmap/index.html" class="nav-item">🗺️ 开发路线图</a>
+                <a href="../progress/index.html" class="nav-item">📊 开发进度</a>
+                <a href="../api/index.html" class="nav-item">🔧 API 文档</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>核心功能特性</h1>
+                <div class="subtitle">SunEyeVision 强大的功能模块</div>
+            </header>
+
+            <section class="content-section">
+                <h2>1. 工作流流程控制</h2>
+                <p>支持复杂的工作流控制结构，让检测流程更灵活、更强大。</p>
+
+                <h3>循环节点</h3>
+                <ul>
+                    <li><strong>固定次数循环</strong>：按指定次数重复执行节点</li>
+                    <li><strong>条件循环</strong>：根据条件判断是否继续循环</li>
+                    <li><strong>集合迭代</strong>：对一组数据逐个处理</li>
+                </ul>
+
+                <h3>分支节点</h3>
+                <ul>
+                    <li><strong>条件分支</strong>：根据条件选择不同的执行路径</li>
+                    <li><strong>多分支路由</strong>：支持多个分支条件</li>
+                    <li><strong>默认分支</strong>：当所有条件都不匹配时执行</li>
+                </ul>
+
+                <h3>并行分支节点</h3>
+                <ul>
+                    <li><strong>多分支并行执行</strong>：同时执行多个分支</li>
+                    <li><strong>并行度控制</strong>：限制同时运行的分支数量</li>
+                    <li><strong>结果汇聚</strong>：等待所有分支完成后继续</li>
+                </ul>
+
+                <h3>子工作流节点</h3>
+                <ul>
+                    <li><strong>工作流嵌套</strong>：在一个工作流中调用另一个工作流</li>
+                    <li><strong>参数传递</strong>：支持输入输出参数</li>
+                    <li><strong>结果映射</strong>：将子工作流结果映射到父工作流</li>
+                </ul>
+
+                <h3>异常处理节点</h3>
+                <ul>
+                    <li><strong>Try-Catch-Finally</strong>：完整的异常处理结构</li>
+                    <li><strong>异常捕获</strong>：捕获并处理执行错误</li>
+                    <li><strong>错误恢复</strong>：从错误中恢复或提供回退方案</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>应用场景</h4>
+                    <p>批量检测多个产品、根据检测结果分拣、多相机并行采集、复杂的多步骤检测流程等。</p>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>2. 智能节点连线方案</h2>
+                <p>采用先进的路径规划算法，提供智能、美观的节点连线功能。</p>
+
+                <h3>A* 路径规划算法</h3>
+                <ul>
+                    <li><strong>智能寻路</strong>：自动寻找最优连接路径</li>
+                    <li><strong>网格化画布</strong>：将画布划分为网格进行路径搜索</li>
+                    <li><strong>障碍物识别</strong>：自动识别节点区域作为障碍</li>
+                </ul>
+
+                <h3>智能避障</h3>
+                <ul>
+                    <li><strong>碰撞检测</strong>：使用 Bresenham 算法检测线段碰撞</li>
+                    <li><strong>智能绕行</strong>：自动生成绕过障碍物的路径</li>
+                    <li><strong>路径平滑</strong>：减少不必要的拐点，路径更美观</li>
+                </ul>
+
+                <h3>多种连线样式</h3>
+                <ul>
+                    <li><strong>直线</strong>：最简单的直接连接</li>
+                    <li><strong>折线</strong>：智能选择拐点，路径清晰</li>
+                    <li><strong>贝塞尔曲线</strong>：平滑美观的曲线连接</li>
+                    <li><strong>正交线</strong>：水平/垂直的专业外观</li>
+                </ul>
+
+                <h3>路径优化策略</h3>
+                <ul>
+                    <li><strong>路径缓存</strong>：缓存计算结果，提升性能</li>
+                    <li><strong>动态更新</strong>：节点移动时自动调整连线</li>
+                    <li><strong>批量更新</strong>：同时更新多条连线，避免闪烁</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>应用场景</h4>
+                    <p>复杂的工作流设计、大量节点连接、需要清晰美观的流程图展示等。</p>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>3. 灵活的节点执行控制</h2>
+                <p>提供多种执行模式，优化工作流执行效率。</p>
+
+                <h3>执行模式</h3>
+                <ul>
+                    <li><strong>同步执行</strong>：按拓扑顺序依次执行节点</li>
+                    <li><strong>异步执行</strong>：利用多线程并行执行节点</li>
+                    <li><strong>混合模式</strong>：关键路径同步，非关键路径异步</li>
+                </ul>
+
+                <h3>依赖管理</h3>
+                <ul>
+                    <li><strong>依赖图分析</strong>：自动分析节点间的依赖关系</li>
+                    <li><strong>拓扑排序</strong>：使用 Kahn 算法确定执行顺序</li>
+                    <li><strong>循环依赖检测</strong>：检测并防止死循环</li>
+                </ul>
+
+                <h3>执行控制</h3>
+                <ul>
+                    <li><strong>并行度控制</strong>：限制同时执行的节点数量</li>
+                    <li><strong>资源限制</strong>：控制内存、CPU 等资源使用</li>
+                    <li><strong>超时控制</strong>：设置节点执行超时时间</li>
+                    <li><strong>取消执行</strong>：支持中断正在运行的工作流</li>
+                </ul>
+
+                <h3>执行监控</h3>
+                <ul>
+                    <li><strong>执行历史</strong>：记录节点执行历史</li>
+                    <li><strong>性能统计</strong>：统计每个节点的执行时间</li>
+                    <li><strong>资源监控</strong>：实时监控内存、CPU 使用情况</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>应用场景</h4>
+                    <p>需要高效率的实时检测、大规模并行处理、资源受限的环境等。</p>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>4. 强大的脚本编辑器</h2>
+                <p>集成了专业级的代码编辑器，支持自定义算法脚本。</p>
+
+                <h3>编辑器特性</h3>
+                <ul>
+                    <li><strong>语法高亮</strong>：清晰的代码语法着色</li>
+                    <li><strong>智能提示</strong>：自动补全代码和提示 API</li>
+                    <li><strong>语法检查</strong>：实时检查代码语法错误</li>
+                    <li><strong>代码格式化</strong>：自动格式化代码，保持整洁</li>
+                </ul>
+
+                <h3>调试功能</h3>
+                <ul>
+                    <li><strong>断点设置</strong>：在关键位置设置断点</li>
+                    <li><strong>单步执行</strong>：逐行调试代码</li>
+                    <li><strong>变量监视</strong>：实时查看变量值</li>
+                    <li><strong>调用栈</strong>：查看函数调用链</li>
+                </ul>
+
+                <h3>多语言支持</h3>
+                <ul>
+                    <li><strong>C# 脚本</strong>：完整的 C# 语言支持</li>
+                    <li><strong>Python 脚本</strong>：支持 Python 脚本开发</li>
+                    <li><strong>表达式计算</strong>：支持复杂的表达式求值</li>
+                </ul>
+
+                <h3>集成功能</h3>
+                <ul>
+                    <li><strong>工作流集成</strong>：脚本节点可直接调用</li>
+                    <li><strong>算法访问</strong>：可调用所有内置算法</li>
+                    <li><strong>设备访问</strong>：支持控制和读取设备数据</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>应用场景</h4>
+                    <p>自定义特殊算法、实现复杂的数据处理逻辑、集成第三方库等。</p>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>5. 定制化客户运行界面</h2>
+                <p>提供灵活的界面定制功能，满足不同客户的需求。</p>
+
+                <h3>基础定制</h3>
+                <ul>
+                    <li><strong>Logo 替换</strong>：使用客户自己的品牌 Logo</li>
+                    <li><strong>主题配色</strong>：自定义软件配色方案</li>
+                    <li><strong>标题文本</strong>：修改应用名称和标题</li>
+                </ul>
+
+                <h3>布局定制</h3>
+                <ul>
+                    <li><strong>面板布局</strong>：自定义面板的位置和大小</li>
+                    <li><strong>工具栏配置</strong>：显示/隐藏工具栏按钮</li>
+                    <li><strong>菜单定制</strong>：自定义菜单项和快捷键</li>
+                </ul>
+
+                <h3>功能定制</h3>
+                <ul>
+                    <li><strong>权限控制</strong>：基于角色的权限管理</li>
+                    <li><strong>功能开关</strong>：启用/禁用特定功能模块</li>
+                    <li><strong>操作流程定制</strong>：简化操作流程，适合最终用户</li>
+                </ul>
+
+                <h3>工作流模板</h3>
+                <ul>
+                    <li><strong>预设模板</strong>：提供常用检测流程模板</li>
+                    <li><strong>模板锁定</strong>：锁定模板，防止误修改</li>
+                    <li><strong>一键加载</strong>：快速加载预设流程</li>
+                </ul>
+
+                <h3>配置管理</h3>
+                <ul>
+                    <li><strong>可视化配置</strong>：图形化配置界面</li>
+                    <li><strong>配置导入导出</strong>：方便在不同环境间迁移</li>
+                    <li><strong>多配置支持</strong>：支持多套配置方案切换</li>
+                </ul>
+
+                <h3>用户和角色管理</h3>
+                <ul>
+                    <li><strong>用户管理</strong>：创建和管理系统用户</li>
+                    <li><strong>角色定义</strong>：定义不同角色和权限</li>
+                    <li><strong>操作日志</strong>：记录用户操作历史</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>应用场景</h4>
+                    <p>OEM 合作、为不同客户定制专用界面、简化操作以适合操作员使用等。</p>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>功能开发进度</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>功能模块</th>
+                            <th>开发状态</th>
+                            <th>优先级</th>
+                            <th>预计完成时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>工作流流程控制</td>
+                            <td><span class="status-badge status-planning">规划中</span></td>
+                            <td>P0</td>
+                            <td>Q1 2026</td>
+                        </tr>
+                        <tr>
+                            <td>智能节点连线</td>
+                            <td><span class="status-badge status-planning">规划中</span></td>
+                            <td>P0</td>
+                            <td>Q1 2026</td>
+                        </tr>
+                        <tr>
+                            <td>节点执行控制</td>
+                            <td><span class="status-badge status-planning">规划中</span></td>
+                            <td>P0</td>
+                            <td>Q2 2026</td>
+                        </tr>
+                        <tr>
+                            <td>脚本编辑器</td>
+                            <td><span class="status-badge status-planning">规划中</span></td>
+                            <td>P1</td>
+                            <td>Q3 2026</td>
+                        </tr>
+                        <tr>
+                            <td>定制化界面</td>
+                            <td><span class="status-badge status-planning">规划中</span></td>
+                            <td>P1</td>
+                            <td>Q4 2026</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <footer class="footer">
+                <p>&copy; 2026 SunEyeVision. 保留所有权利。</p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // 导航已通过 a 标签实现，无需额外脚本
+    </script>
+</body>
+</html>
