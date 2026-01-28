@@ -769,7 +769,7 @@ namespace SunEyeVision.UI
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
             var oldScale = workflow.CurrentScale;
-            
+
             if (oldScale < MaxScale)
             {
                 var newScale = Math.Min(oldScale * 1.2, MaxScale);
@@ -803,7 +803,7 @@ namespace SunEyeVision.UI
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
             var oldScale = workflow.CurrentScale;
-            
+
             if (oldScale > MinScale)
             {
                 var newScale = Math.Max(oldScale / 1.2, MinScale);

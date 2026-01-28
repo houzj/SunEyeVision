@@ -116,9 +116,9 @@ namespace SunEyeVision.UI.Controls.Helpers
                 // 双击事件：打开调试窗口
                 if (e.ClickCount == 2)
                 {
-                    if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                    if (_canvasControl.CurrentWorkflowTab != null)
                     {
-                        foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                        foreach (var n in _canvasControl.CurrentWorkflowTab.WorkflowNodes)
                         {
                             n.IsSelected = (n == node);
                         }
@@ -234,10 +234,10 @@ namespace SunEyeVision.UI.Controls.Helpers
                 double offsetY = currentPosition.Y - _startDragPosition.Y;
 
                 // 更新所有选中节点的位置
-                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                if (_canvasControl.CurrentWorkflowTab != null)
                 {
                     int index = 0;
-                    foreach (var selectedNode in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Where(n => n.IsSelected))
+                    foreach (var selectedNode in _canvasControl.CurrentWorkflowTab.WorkflowNodes.Where(n => n.IsSelected))
                     {
                         if (_selectedNodesInitialPositions != null && index < _selectedNodesInitialPositions.Length)
                         {
@@ -263,7 +263,7 @@ namespace SunEyeVision.UI.Controls.Helpers
             if (sender is not Border border || border.Tag is not WorkflowNode targetNode)
                 return;
 
-            var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
+            var selectedTab = _canvasControl.CurrentWorkflowTab;
             if (selectedTab == null)
                 return;
 
@@ -345,9 +345,9 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         private void ClearAllSelections()
         {
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+            if (_canvasControl.CurrentWorkflowTab != null)
             {
-                foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                foreach (var node in _canvasControl.CurrentWorkflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
@@ -362,14 +362,14 @@ namespace SunEyeVision.UI.Controls.Helpers
             try
             {
                 System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] 开始执行");
-                
-                if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
+
+                if (_canvasControl.CurrentWorkflowTab == null)
                 {
                     System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] SelectedTab为null，返回");
                     return;
                 }
 
-                var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                var selectedNodes = _canvasControl.CurrentWorkflowTab.WorkflowNodes
                     .Where(n => n.IsSelected)
                     .ToList();
 

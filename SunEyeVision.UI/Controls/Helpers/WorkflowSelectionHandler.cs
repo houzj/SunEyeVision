@@ -111,12 +111,12 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         private void SelectNodesInSelectionRectangle()
         {
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
+            if (_canvasControl.CurrentWorkflowTab == null)
                 return;
 
             var selectionRect = _canvasControl.SelectionBox.GetSelectionRect();
 
-            foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+            foreach (var node in _canvasControl.CurrentWorkflowTab.WorkflowNodes)
             {
                 var nodeElement = _canvasControl.WorkflowCanvas.Children
                     .OfType<Border>()
@@ -144,9 +144,9 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// </summary>
         public void ClearAllSelections()
         {
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+            if (_canvasControl.CurrentWorkflowTab != null)
             {
-                foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                foreach (var node in _canvasControl.CurrentWorkflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
@@ -160,10 +160,10 @@ namespace SunEyeVision.UI.Controls.Helpers
         {
             var positions = new Dictionary<WorkflowNode, System.Windows.Point>();
 
-            if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
+            if (_canvasControl.CurrentWorkflowTab == null)
                 return positions;
 
-            foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+            foreach (var node in _canvasControl.CurrentWorkflowTab.WorkflowNodes)
             {
                 if (node.IsSelected)
                 {

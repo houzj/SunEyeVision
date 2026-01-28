@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
 
@@ -14,14 +13,11 @@ namespace SunEyeVision.UI.Controls.Helpers
     public class WorkflowDragDropHandler
     {
         private readonly WorkflowCanvasControl _canvasControl;
-        private readonly MainWindowViewModel? _viewModel;
 
         public WorkflowDragDropHandler(
-            WorkflowCanvasControl canvasControl,
-            MainWindowViewModel? viewModel)
+            WorkflowCanvasControl canvasControl)
         {
             _canvasControl = canvasControl;
-            _viewModel = viewModel;
         }
 
         /// <summary>
@@ -95,20 +91,17 @@ namespace SunEyeVision.UI.Controls.Helpers
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
 
-                // 添加到当前标签页
-                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
+                // 直接从 WorkflowCanvasControl 的 DataContext 获取当前标签页
+                if (_canvasControl.DataContext is WorkflowTabViewModel workflowTab)
                 {
                     // 清除其他节点的选中状态
-                    foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
+                    foreach (var node in workflowTab.WorkflowNodes)
                     {
                         node.IsSelected = false;
                     }
 
                     // 添加新节点
-                    _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(newNode);
-                    _viewModel.SelectedNode = newNode;
-
-                    System.Diagnostics.Debug.WriteLine($"[Canvas_Drop] 成功创建节点: {item.Name} (ID: {newNode.Id})");
+                    workflowTab.WorkflowNodes.Add(newNode);
                 }
             }
             catch (Exception ex)

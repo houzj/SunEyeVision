@@ -605,11 +605,11 @@
                     <!-- TabItem内容 - 每个Tab包含一个WorkflowCanvasControl -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                            <ScrollViewer x:Name="CanvasScrollViewer"
+                                         HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                          PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
                                 <controls:WorkflowCanvasControl
                                     Width="5000" Height="5000"
-                                    RenderTransform="{Binding ScaleTransform}"
                                     Loaded="WorkflowCanvasControl_Loaded"/>
                             </ScrollViewer>
                         </DataTemplate>
