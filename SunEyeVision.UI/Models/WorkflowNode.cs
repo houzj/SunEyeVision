@@ -22,6 +22,29 @@ namespace SunEyeVision.UI.Models
         private int _index;
         private int _globalIndex;
         private string _nodeTypeIcon = string.Empty;
+        private NodeStyleConfig _styleConfig = NodeStyles.Standard; // 默认样式配置
+
+        /// <summary>
+        /// 节点样式配置（用于完全解耦样式和逻辑）
+        /// </summary>
+        public NodeStyleConfig StyleConfig
+        {
+            get => _styleConfig;
+            set
+            {
+                if (_styleConfig != value)
+                {
+                    _styleConfig = value ?? NodeStyles.Standard;
+                    _styleConfig.Validate();
+                    OnPropertyChanged();
+                    // 触发端口位置属性变化
+                    OnPropertyChanged(nameof(TopPortPosition));
+                    OnPropertyChanged(nameof(BottomPortPosition));
+                    OnPropertyChanged(nameof(LeftPortPosition));
+                    OnPropertyChanged(nameof(RightPortPosition));
+                }
+            }
+        }
 
         /// <summary>
         /// 属性变更前事件
@@ -103,24 +126,34 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 获取上方连接点位置（用于连接线）
+        /// 获取上方连接点位置（动态计算，完全解耦）
         /// </summary>
-        public Point TopPortPosition => new Point(Position.X + 80, Position.Y - 10);
+        public Point TopPortPosition => _styleConfig.GetTopPortPosition(Position);
 
         /// <summary>
-        /// 获取下方连接点位置（用于连接线）
+        /// 获取下方连接点位置（动态计算，完全解耦）
         /// </summary>
-        public Point BottomPortPosition => new Point(Position.X + 80, Position.Y + 50);
+        public Point BottomPortPosition => _styleConfig.GetBottomPortPosition(Position);
 
         /// <summary>
-        /// 获取左侧连接点位置（用于连接线）
+        /// 获取左侧连接点位置（动态计算，完全解耦）
         /// </summary>
-        public Point LeftPortPosition => new Point(Position.X - 10, Position.Y + 20);
+        public Point LeftPortPosition => _styleConfig.GetLeftPortPosition(Position);
 
         /// <summary>
-        /// 获取右侧连接点位置（用于连接线）
+        /// 获取右侧连接点位置（动态计算，完全解耦）
         /// </summary>
-        public Point RightPortPosition => new Point(Position.X + 170, Position.Y + 20);
+        public Point RightPortPosition => _styleConfig.GetRightPortPosition(Position);
+
+        /// <summary>
+        /// 获取节点边界矩形（用于框选等操作）
+        /// </summary>
+        public Rect NodeRect => _styleConfig.GetNodeRect(Position);
+
+        /// <summary>
+        /// 获取节点中心点（用于距离计算）
+        /// </summary>
+        public Point NodeCenter => _styleConfig.GetNodeCenter(Position);
 
         /// <summary>
         /// Node Y coordinate for binding

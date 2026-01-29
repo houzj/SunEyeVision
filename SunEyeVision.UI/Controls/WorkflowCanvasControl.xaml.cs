@@ -25,6 +25,7 @@ namespace SunEyeVision.UI.Controls
         private WorkflowDragDropHandler? _dragDropHandler;
         private WorkflowPortHighlighter? _portHighlighter;
         private WorkflowConnectionCreator? _connectionCreator;
+        private PortPositionService? _portPositionService; // 端口位置查询服务
 
         private bool _isDragging;
         private WorkflowNode? _draggedNode;
@@ -277,6 +278,13 @@ namespace SunEyeVision.UI.Controls
                     if (_connectionCreator == null)
                     {
                         _connectionCreator = new WorkflowConnectionCreator(_viewModel);
+                    }
+
+                    // 初始化端口位置查询服务（完全解耦方案）
+                    if (_portPositionService == null)
+                    {
+                        _portPositionService = new PortPositionService(WorkflowCanvas, NodeStyles.Standard);
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? PortPositionService初始化完成");
                     }
                 }
             }
@@ -1307,21 +1315,21 @@ namespace SunEyeVision.UI.Controls
                                 }
                             }
 
-                            if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
-                            {
-                                var nodeCenterX = hitNode.Position.X + 70;
-                                var nodeCenterY = hitNode.Position.Y + 45;
-                                double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenterX, 2) + Math.Pow(currentPoint.Y - nodeCenterY, 2));
-                                hitNodes.Add((hitNode, hitBorder, distance));
-                            }
+                        if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
+                        {
+                            // 动态计算节点中心（完全解耦）
+                            var nodeCenter = hitNode.NodeCenter;
+                            double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
+                            hitNodes.Add((hitNode, hitBorder, distance));
+                        }
                             DependencyObject? current = result.VisualHit as DependencyObject;
                             for (int depth = 0; current != null && depth < 10; depth++)
                             {
                                 if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
                                 {
-                                    var nodeCenterX = currentBorderNode.Position.X + 70;
-                                    var nodeCenterY = currentBorderNode.Position.Y + 45;
-                                    double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenterX, 2) + Math.Pow(currentPoint.Y - nodeCenterY, 2));
+                                    // 动态计算节点中心（完全解耦）
+                                    var nodeCenter = currentBorderNode.NodeCenter;
+                                    double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
                                     hitNodes.Add((currentBorderNode, currentBorder, distance));
                                     break;
                                 }
@@ -1432,8 +1440,8 @@ namespace SunEyeVision.UI.Controls
 
                 foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
                 {
-                    // 获取节点边界（节点大小为 140x90）
-                    var nodeRect = new Rect(node.Position.X, node.Position.Y, 140, 90);
+                    // 获取节点边界（动态计算，完全解耦）
+                    var nodeRect = node.NodeRect;
 
                     // 检查节点是否与框选区域相交
                     bool isSelected = selectionRect.IntersectsWith(nodeRect);
@@ -1595,9 +1603,9 @@ namespace SunEyeVision.UI.Controls
                         // 如果找到 Border 且带有 WorkflowNode Tag，计算距离并记录
                         if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
                         {
-                            var nodeCenterX = hitNode.Position.X + 70; // 节点宽度140，中心在70
-                            var nodeCenterY = hitNode.Position.Y + 45; // 节点高度90，中心在45
-                            double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenterX, 2) + Math.Pow(mousePosition.Y - nodeCenterY, 2));
+                            // 动态计算节点中心（完全解耦）
+                            var nodeCenter = hitNode.NodeCenter;
+                            double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenter.X, 2) + Math.Pow(mousePosition.Y - nodeCenter.Y, 2));
                             hitNodes.Add((hitNode, hitBorder, distance));
                             System.Diagnostics.Debug.WriteLine($"[HitTest] 命中节点:{hitNode.Name}, 距离:{distance:F1}px");
                         }
@@ -1610,9 +1618,9 @@ namespace SunEyeVision.UI.Controls
                             depth++;
                             if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
                             {
-                                var nodeCenterX = currentBorderNode.Position.X + 70;
-                                var nodeCenterY = currentBorderNode.Position.Y + 45;
-                                double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenterX, 2) + Math.Pow(mousePosition.Y - nodeCenterY, 2));
+                                // 动态计算节点中心（完全解耦）
+                                var nodeCenter = currentBorderNode.NodeCenter;
+                                double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenter.X, 2) + Math.Pow(mousePosition.Y - nodeCenter.Y, 2));
                                 hitNodes.Add((currentBorderNode, currentBorder, distance));
                                 System.Diagnostics.Debug.WriteLine($"[HitTest] 向上找到节点:{currentBorderNode.Name}, 距离:{distance:F1}px, 深度:{depth}");
                                 break;
