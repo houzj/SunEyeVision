@@ -50,8 +50,6 @@ namespace SunEyeVision.UI.Controls
     private Border? _highlightedTargetBorder = null; // 高亮的目标节点Border（用于恢复原始样式）
     private Ellipse? _highlightedTargetPort = null; // 高亮的目标端口（Ellipse）
     private int _dragMoveCounter = 0; // 拖拽移动计数器，用于减少日志输出频率
-    private int _globalMouseMoveCounter = 0; // 全局鼠标移动计数器，用于监控日志
-    private int _highlightCounter = 0; // 端口高亮计数器，用于减少日志输出频率
     private string? _lastHighlightedPort = null; // 上次高亮的端口名称
     private string? _directHitTargetPort = null; // 用户直接命中的目标端口名称
     private Path? _tempConnectionLine = null; // 临时连接线（用于拖拽时显示）
@@ -224,52 +222,12 @@ namespace SunEyeVision.UI.Controls
 
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ====== Loaded事件触发 ======");
-
-            // 验证BoundingRectangle
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] BoundingRectangle可见性: {BoundingRectangle?.Visibility}");
-
             // 获取 MainWindowViewModel
             if (Window.GetWindow(this) is MainWindow mainWindow)
             {
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
-                if (_viewModel == null)
+                if (_viewModel != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? 无法获取MainWindowViewModel");
-                }
-                else
-                {
-                    _viewModel.AddLog("[WorkflowCanvas Loaded] ? Loaded事件触发");
-
-                    // 验证BoundingRectangle
-                    _viewModel.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
-                    _viewModel.AddLog($"[WorkflowCanvas Loaded] BoundingRectangle可见性: {BoundingRectangle?.Visibility}");
-
-                    // 检查 WorkflowTabViewModel
-                    if (_viewModel.WorkflowTabViewModel == null)
-                    {
-                        _viewModel.AddLog("[WorkflowCanvas Loaded] ? WorkflowTabViewModel为null");
-                    }
-                    else
-                    {
-                        _viewModel.AddLog("[WorkflowCanvas Loaded] ? WorkflowTabViewModel不为null");
-
-                        // 检查 SelectedTab
-                        var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
-                        if (selectedTab == null)
-                        {
-                            _viewModel.AddLog("[WorkflowCanvas Loaded] ? SelectedTab为null");
-                        }
-                        else
-                        {
-                            _viewModel.AddLog($"[WorkflowCanvas Loaded] ? SelectedTab: ID={selectedTab.Id}, Name={selectedTab.Name}");
-                            _viewModel.AddLog($"[WorkflowCanvas Loaded] 当前节点数: {selectedTab.WorkflowNodes.Count}, 连接数: {selectedTab.WorkflowConnections.Count}");
-                        }
-                    }
-
-                    _viewModel.AddLog($"[WorkflowCanvas Loaded] ? WorkflowCanvasControl 已加载，可以开始拖拽创建连接");
-
                     // 初始化辅助类（需要ViewModel）
                     if (_portHighlighter == null)
                     {
@@ -284,13 +242,8 @@ namespace SunEyeVision.UI.Controls
                     if (_portPositionService == null)
                     {
                         _portPositionService = new PortPositionService(WorkflowCanvas, NodeStyles.Standard);
-                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? PortPositionService初始化完成");
                     }
                 }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ? 无法获取Window");
             }
 
             // 初始化智能路径转换器的节点集合和连接集合
@@ -298,13 +251,11 @@ namespace SunEyeVision.UI.Controls
             {
                 Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 已初始化SmartPathConverter的节点集合，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                 // 初始化连接线路径缓存
                 _connectionPathCache = new Services.ConnectionPathCache(
                     CurrentWorkflowTab.WorkflowNodes
                 );
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 已初始化ConnectionPathCache，共{CurrentWorkflowTab.WorkflowConnections.Count}个连接");
 
                 // 设置SmartPathConverter的缓存引用
                 Converters.SmartPathConverter.PathCache = _connectionPathCache;
@@ -315,7 +266,6 @@ namespace SunEyeVision.UI.Controls
                     nodesCollection.CollectionChanged += (s, args) =>
                     {
                         Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] 节点集合已更新，共{CurrentWorkflowTab.WorkflowNodes.Count}个节点");
 
                         // 触发所有连接的属性变化，重新计算路径
                         RefreshAllConnectionPaths();
@@ -354,11 +304,9 @@ namespace SunEyeVision.UI.Controls
                 {
                     _connectionPathCache.WarmUp(CurrentWorkflowTab.WorkflowConnections);
                     var stats = _connectionPathCache.GetStatistics();
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas Loaded] ? 缓存预热完成，命中率: {stats.HitRate:P2}");
+                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas] 缓存预热完成: {stats}");
                 }
             }
-
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas Loaded] ========== Loaded事件完成 ==========");
         }
 
         /// <summary>
@@ -431,10 +379,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_MouseEnter(object sender, MouseEventArgs e)
         {
-            if (sender is Ellipse ellipse && ellipse.Tag is string portName)
-            {
-                System.Diagnostics.Debug.WriteLine($"[PortEnter] 端口:{portName}");
-            }
+            // 移除高频日志
         }
 
         /// <summary>
@@ -442,10 +387,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_MouseLeave(object sender, MouseEventArgs e)
         {
-            if (sender is Ellipse ellipse && ellipse.Tag is string portName)
-            {
-                System.Diagnostics.Debug.WriteLine($"[PortLeave] 端口:{portName}");
-            }
+            // 移除高频日志
         }
 
         /// <summary>
@@ -1213,20 +1155,9 @@ namespace SunEyeVision.UI.Controls
         {
             var mousePos = e.GetPosition(WorkflowCanvas);
 
-            // 全局鼠标移动监控 - 记录所有鼠标移动事件（每50次记录一次以减少日志量）
-            if (_globalMouseMoveCounter++ % 50 == 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"[GlobalMouseMove] 鼠标移动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({mousePos.X:F1},{mousePos.Y:F1}) 左键状态:{e.LeftButton} 拖拽连接:{_isDraggingConnection}");
-            }
-
             // 处理拖拽连接
             if (_isDraggingConnection)
             {
-                // 每10次移动记录一次详细日志
-                if (_dragMoveCounter % 10 == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MouseMove] 鼠标移动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({mousePos.X:F1},{mousePos.Y:F1}) 拖拽连接状态:true");
-                }
                 _dragMoveCounter++;
 
                 // 保护：如果状态不一致（_isDraggingConnection=true 但 _dragConnectionSourceNode=null），立即重置状态
@@ -1255,12 +1186,6 @@ namespace SunEyeVision.UI.Controls
                 {
                     var currentPoint = e.GetPosition(WorkflowCanvas);
 
-                    // 每20次移动事件才输出一次日志
-                    if (_dragMoveCounter % 20 == 0 || _dragMoveCounter == 1)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[拖拽连接-Move] 移动次数: {_dragMoveCounter}, 鼠标位置: ({currentPoint.X:F1}, {currentPoint.Y:F1})");
-                    }
-
                     // 获取源节点的连接点位置
                     var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
 
@@ -1284,11 +1209,6 @@ namespace SunEyeVision.UI.Controls
                         }
 
                         _tempConnectionGeometry.Figures.Add(pathFigure);
-                        System.Diagnostics.Debug.WriteLine($"[TempLine] 更新临时连接线: 起点({sourcePort.X:F0},{sourcePort.Y:F0}) -> 终点({currentPoint.X:F0},{currentPoint.Y:F0}), 可见性:{_tempConnectionLine?.Visibility}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TempLine] ❌ TempConnectionGeometry为null，无法更新临时连接线");
                     }
 
                     // 动态高亮目标端口
@@ -1339,7 +1259,7 @@ namespace SunEyeVision.UI.Controls
                         },
                         new PointHitTestParameters(currentPoint));
 
-                    if (_dragMoveCounter % 40 == 0)
+                    if (_dragMoveCounter % 100 == 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"[DragMove] 鼠标:({currentPoint.X:F0},{currentPoint.Y:F0}) HitTest:{hitTestCount}元素 端口:{hitPorts.Count} 节点:{hitNodes.Count}");
                     }
@@ -1364,10 +1284,6 @@ namespace SunEyeVision.UI.Controls
                                         // 只在端口变化时才高亮和记录
                                         if (_lastHighlightedPort != targetPortName)
                                         {
-                                            if (_highlightCounter % 10 == 0)
-                                            {
-                                                System.Diagnostics.Debug.WriteLine($"[Move] ? 命中端口: {targetPortName}, 节点: {node.Name}");
-                                            }
                                             _portHighlighter?.HighlightSpecificPort(border, targetPortName);
                                             _directHitTargetPort = targetPortName;
                                             _lastHighlightedPort = targetPortName;
@@ -2023,25 +1939,15 @@ namespace SunEyeVision.UI.Controls
             // 在节点Border的视觉树中查找指定名称的端口
             var visualChildren = WorkflowVisualHelper.FindAllVisualChildren<DependencyObject>(nodeBorder);
 
-            // 只在第一次查找失败时输出日志
-            bool found = false;
             // 查找包含端口名称的元素（通过Name属性或Tag）
             foreach (var child in visualChildren)
             {
                 if (child is FrameworkElement element && element.Name == ellipseName)
                 {
-                    if (!found && _highlightCounter % 20 == 0) // 每20次高亮才输出一次
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[GetPortElement] ? 找到端口: {element.Name}");
-                    }
                     return element as Ellipse;
                 }
             }
 
-            if (_highlightCounter % 20 == 0) // 每20次高亮才输出一次
-            {
-                System.Diagnostics.Debug.WriteLine($"[GetPortElement] ? 未找到端口: {ellipseName}");
-            }
             return null;
         }
 
@@ -2089,15 +1995,6 @@ namespace SunEyeVision.UI.Controls
                 // 切换 ShowPathPoints 属性
                 connection.ShowPathPoints = !connection.ShowPathPoints;
 
-                // 记录调试信息
-                System.Diagnostics.Debug.WriteLine($"[ConnectionLine_Click] 连接ID: {connection.Id}");
-                System.Diagnostics.Debug.WriteLine($"  中间点显示: {connection.ShowPathPoints}");
-                System.Diagnostics.Debug.WriteLine($"  路径点数量: {connection.PathPoints.Count}");
-                if (connection.PathPoints.Count > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  第一个点: ({connection.PathPoints[0].X:F0}, {connection.PathPoints[0].Y:F0})");
-                }
-
                 // 标记事件已处理，防止事件继续传播
                 // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
             // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
@@ -2112,43 +2009,12 @@ namespace SunEyeVision.UI.Controls
         {
             if (sender is Path arrowPath && arrowPath.DataContext is WorkflowConnection connection)
             {
-                // ========== 关键调试信息：箭头位置和旋转 ==========
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] ========== 连接 {connection.Id} 箭头渲染调试 ==========");
-
-                // 获取箭头的实际位置
-                double actualArrowX = Canvas.GetLeft(arrowPath);
-                double actualArrowY = Canvas.GetTop(arrowPath);
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头ArrowX: {connection.ArrowX}");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头ArrowY: {connection.ArrowY}");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 实际Canvas.Left: {actualArrowX}");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 实际Canvas.Top: {actualArrowY}");
-
                 // 设置箭头旋转角度
                 var rotateTransform = new RotateTransform(connection.ArrowAngle);
                 arrowPath.RenderTransform = rotateTransform;
 
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头旋转角度设置为: {connection.ArrowAngle}°");
-
-                // 解释箭头方向
-                string directionDescription = connection.ArrowAngle switch
-                {
-                    0 => "向右（默认方向）",
-                    90 => "向下",
-                    180 => "向左",
-                    270 => "向上",
-                    _ => $"自定义角度 {connection.ArrowAngle}°"
-                };
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头指向: {directionDescription}");
-
-                // 计算箭头几何形状的顶点位置
-                // 箭头几何形状：起点(0,0)=顶点，尾部(-8,-5)到(-8,5)
-                // 旋转后的顶点位置应该在 ArrowPosition
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] 箭头几何形状定义:");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   顶点(起点): (0,0)");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   左上角: (-8,-5)");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   左下角: (-8,5)");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded]   箭头长度: 8px");
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] RenderTransformOrigin: (0,0) - 从顶点旋转");
+                // 关键日志：记录箭头渲染
+                System.Diagnostics.Debug.WriteLine($"[ArrowPath] 连接{connection.Id} 箭头渲染完成: 位置({connection.ArrowX:F1},{connection.ArrowY:F1}), 角度{connection.ArrowAngle:F1}°");
 
                 // 监听ArrowAngle变化，动态更新旋转角度
                 connection.PropertyChanged += (s, args) =>
@@ -2158,12 +2024,9 @@ namespace SunEyeVision.UI.Controls
                         if (arrowPath.RenderTransform is RotateTransform rt)
                         {
                             rt.Angle = connection.ArrowAngle;
-                            System.Diagnostics.Debug.WriteLine($"[ArrowPath] ? 箭头角度更新为: {connection.ArrowAngle}°, 连接ID: {connection.Id}");
                         }
                     }
                 };
-
-                System.Diagnostics.Debug.WriteLine($"[ArrowPath_Loaded] ======================================");
             }
         }
 
@@ -2174,16 +2037,9 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void UpdateBoundingRectangle()
         {
-            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ========== 更新外接矩形 ==========");
-            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ShowBoundingRectangle: {ShowBoundingRectangle}");
-            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingSourceNodeId: {BoundingSourceNodeId ?? "null"}");
-            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingTargetNodeId: {BoundingTargetNodeId ?? "null"}");
-            System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] BoundingRectangle元素: {BoundingRectangle?.Name ?? "null"}");
-
             if (!ShowBoundingRectangle)
             {
                 BoundingRectangle.Visibility = Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? ShowBoundingRectangle为false，隐藏矩形");
                 return;
             }
 
@@ -2193,23 +2049,15 @@ namespace SunEyeVision.UI.Controls
 
             if (CurrentWorkflowTab?.WorkflowNodes != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] CurrentWorkflowTab存在，节点数: {CurrentWorkflowTab.WorkflowNodes.Count}");
-
                 if (!string.IsNullOrEmpty(BoundingSourceNodeId))
                 {
                     sourceNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingSourceNodeId);
-                    System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 源节点: {BoundingSourceNodeId} -> {(sourceNode?.Name ?? "未找到")}");
                 }
 
                 if (!string.IsNullOrEmpty(BoundingTargetNodeId))
                 {
                     targetNode = CurrentWorkflowTab.WorkflowNodes.FirstOrDefault(n => n.Id == BoundingTargetNodeId);
-                    System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] 目标节点: {BoundingTargetNodeId} -> {(targetNode?.Name ?? "未找到")}");
                 }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[BoundingRectangle] ? CurrentWorkflowTab为null");
             }
 
             // 如果找到了源节点和目标节点，计算并显示矩形

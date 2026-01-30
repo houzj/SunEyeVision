@@ -18,10 +18,11 @@
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
 
         <!-- 箭头标记 - 尖端指向右侧（0度方向），方便旋转 -->
+        <!-- 箭头长度与OrthogonalPathCalculator.ArrowLength保持一致（15px） -->
         <PathGeometry x:Key="ArrowGeometry">
             <PathFigure StartPoint="0,0">
-                <LineSegment Point="-8,-5" />
-                <LineSegment Point="-8,5" />
+                <LineSegment Point="-15,-8" />
+                <LineSegment Point="-15,8" />
                 <LineSegment Point="0,0" />
             </PathFigure>
         </PathGeometry>

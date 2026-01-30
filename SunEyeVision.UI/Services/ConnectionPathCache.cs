@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services.PathCalculators;
 
 namespace SunEyeVision.UI.Services
 {
@@ -16,6 +16,7 @@ namespace SunEyeVision.UI.Services
         private readonly Dictionary<string, bool> _dirtyFlags;
         private readonly ObservableCollection<WorkflowNode> _nodes;
         private readonly object _lockObj;
+        private readonly IPathCalculator _pathCalculator;
 
         /// <summary>
         /// 缓存命中次数
@@ -39,12 +40,13 @@ namespace SunEyeVision.UI.Services
             ? (double)CacheHits / (CacheHits + CacheMisses)
             : 0;
 
-        public ConnectionPathCache(ObservableCollection<WorkflowNode> nodes)
+        public ConnectionPathCache(ObservableCollection<WorkflowNode> nodes, IPathCalculator? pathCalculator = null)
         {
-            _pathCache = new Dictionary<string, CachedPath>();
-            _dirtyFlags = new Dictionary<string, bool>();
+            _pathCache = [];
+            _dirtyFlags = [];
             _nodes = nodes;
             _lockObj = new object();
+            _pathCalculator = pathCalculator ?? new OrthogonalPathCalculator();
 
             SubscribeToNodes();
         }
@@ -161,14 +163,17 @@ namespace SunEyeVision.UI.Services
         {
             lock (_lockObj)
             {
+                int warmedCount = 0;
                 foreach (var connection in connections)
                 {
                     if (!_pathCache.ContainsKey(connection.Id))
                     {
                         var path = CalculatePath(connection);
                         UpdateCache(connection.Id, path);
+                        warmedCount++;
                     }
                 }
+                System.Diagnostics.Debug.WriteLine($"[PathCache] 缓存预热完成: 预热{warmedCount}个连接");
             }
         }
 
@@ -197,29 +202,74 @@ namespace SunEyeVision.UI.Services
             if (sourceNode == null || targetNode == null)
                 return new PathGeometry();
 
-            var sourcePos = new Point(
-                sourceNode.Position.X + CanvasConfig.NodeWidth / 2,
-                sourceNode.Position.Y + CanvasConfig.NodeHeight / 2
-            );
-            var targetPos = new Point(
-                targetNode.Position.X + CanvasConfig.NodeWidth / 2,
-                targetNode.Position.Y + CanvasConfig.NodeHeight / 2
-            );
+            // 根据端口名称获取端口方向和位置
+            var sourceDirection = PortDirectionExtensions.FromPortName(connection.SourcePort);
+            var targetDirection = PortDirectionExtensions.FromPortName(connection.TargetPort);
 
-            var pathGeometry = new PathGeometry();
-            var pathFigure = new PathFigure
-            {
-                StartPoint = sourcePos,
-                IsClosed = false
-            };
+            var sourcePos = GetPortPosition(sourceNode, connection.SourcePort);
+            var targetPos = GetPortPosition(targetNode, connection.TargetPort);
 
-            var midPoint1 = new Point(sourcePos.X, sourcePos.Y + (targetPos.Y - sourcePos.Y) / 2);
-            var midPoint2 = new Point(targetPos.X, sourcePos.Y + (targetPos.Y - sourcePos.Y) / 2);
+            // 关键日志：记录路径计算输入和目标节点信息
+            System.Diagnostics.Debug.WriteLine($"[PathCache] 计算路径: {connection.Id}");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   源节点:{sourceNode.Name} 位置:({sourceNode.Position.X:F1},{sourceNode.Position.Y:F1}), 端口:{connection.SourcePort}({sourcePos.X:F1},{sourcePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点:{targetNode.Name} 位置:({targetNode.Position.X:F1},{targetNode.Position.Y:F1}), 端口:{connection.TargetPort}({targetPos.X:F1},{targetPos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点边界: 左{targetNode.Position.X:F1} 右{targetNode.Position.X + targetNode.StyleConfig.NodeWidth:F1}, 上{targetNode.Position.Y:F1} 下{targetNode.Position.Y + targetNode.StyleConfig.NodeHeight:F1}");
 
-            pathFigure.Segments.Add(new BezierSegment(midPoint1, midPoint2, targetPos, true));
-            pathGeometry.Figures.Add(pathFigure);
+            // 使用路径计算器计算正交路径
+            var pathPoints = _pathCalculator.CalculateOrthogonalPath(
+                sourcePos,
+                targetPos,
+                sourceDirection,
+                targetDirection);
+
+            // 关键日志：记录路径终点位置
+            var lastPoint = pathPoints[pathPoints.Length - 1];
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   路径终点:({lastPoint.X:F1},{lastPoint.Y:F1}), 距目标端口X:{lastPoint.X - targetPos.X:F1}px, Y:{lastPoint.Y - targetPos.Y:F1}px");
+
+            // 创建路径几何
+            var pathGeometry = _pathCalculator.CreatePathGeometry(pathPoints);
+
+            // 更新连线路径点集合（用于调试和显示）
+            UpdateConnectionPathPoints(connection, pathPoints);
+
+            // 计算箭头位置和角度
+            var (arrowPosition, arrowAngle) = _pathCalculator.CalculateArrow(pathPoints, targetPos, targetDirection);
+            connection.ArrowPosition = arrowPosition;
+            connection.ArrowAngle = arrowAngle;
+
+            // 关键日志：记录路径计算结果
+            System.Diagnostics.Debug.WriteLine($"[PathCache] 路径计算完成: {connection.Id}, 箭头角度{arrowAngle:F1}°, 路径点数{pathPoints.Length}");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   箭头渲染位置:({arrowPosition.X:F1},{arrowPosition.Y:F1}), 距目标端口X:{arrowPosition.X - targetPos.X:F1}px, Y:{arrowPosition.Y - targetPos.Y:F1}px");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口方向:{targetDirection}, 路径终点{(lastPoint.X >= targetNode.Position.X && lastPoint.X <= targetNode.Position.X + targetNode.StyleConfig.NodeWidth ? "在节点内" : "在节点外")}");
 
             return pathGeometry;
+        }
+
+        /// <summary>
+        /// 根据端口名称获取端口位置
+        /// </summary>
+        private static Point GetPortPosition(WorkflowNode node, string portName)
+        {
+            return portName?.ToLower() switch
+            {
+                "top" or "topport" => node.TopPortPosition,
+                "bottom" or "bottomport" => node.BottomPortPosition,
+                "left" or "leftport" => node.LeftPortPosition,
+                "right" or "rightport" => node.RightPortPosition,
+                _ => node.RightPortPosition // 默认为右侧端口
+            };
+        }
+
+        /// <summary>
+        /// 更新连线的路径点集合
+        /// </summary>
+        private static void UpdateConnectionPathPoints(WorkflowConnection connection, Point[] pathPoints)
+        {
+            connection.PathPoints.Clear();
+            foreach (var point in pathPoints)
+            {
+                connection.PathPoints.Add(point);
+            }
         }
 
         private void UpdateCache(string connectionId, PathGeometry path)
@@ -234,12 +284,12 @@ namespace SunEyeVision.UI.Services
             _dirtyFlags[connectionId] = false;
         }
 
-        private string ExtractSourceNodeId(string connectionId)
+        private static string ExtractSourceNodeId(string connectionId)
         {
             return connectionId.Split('_')[0];
         }
 
-        private string ExtractTargetNodeId(string connectionId)
+        private static string ExtractTargetNodeId(string connectionId)
         {
             return connectionId.Split('_')[1];
         }

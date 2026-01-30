@@ -23,23 +23,20 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// 创建节点连接（使用指定的目标端口）
         /// </summary>
         public WorkflowConnection? CreateConnectionWithSpecificPort(
-            WorkflowNode sourceNode, 
-            WorkflowNode targetNode, 
+            WorkflowNode sourceNode,
+            WorkflowNode targetNode,
             string sourcePortName,
             string targetPortName,
             WorkflowTabViewModel? currentTab)
         {
-            System.Diagnostics.Debug.WriteLine("[CreateConnectionWithSpecificPort] ========== 开始创建连接（指定端口） ==========");
-
             if (currentTab == null || currentTab.WorkflowConnections == null)
             {
-                System.Diagnostics.Debug.WriteLine("[CreateConnectionWithSpecificPort] ❌ CurrentTab或WorkflowConnections为null");
+                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ CurrentTab或WorkflowConnections为null");
                 return null;
             }
 
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 新连接ID: {connectionId}");
 
             // 设置端口名称
             newConnection.SourcePort = sourcePortName;
@@ -47,28 +44,21 @@ namespace SunEyeVision.UI.Controls.Helpers
 
             // 获取源端口位置
             Point sourcePos = GetPortPosition(sourceNode, sourcePortName);
-            
+
             // 获取目标端口位置
             Point targetPos = GetPortPosition(targetNode, targetPortName);
 
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            // 计算箭头位置（从目标端口向目标节点方向偏移一定距离）
-            Point arrowPos = CalculateArrowPosition(targetPos, targetNode);
-            newConnection.ArrowPosition = arrowPos;
-
-            // 计算箭头角度
-            double arrowAngle = CalculateArrowAngle(targetPos, targetNode, targetPortName);
-            newConnection.ArrowAngle = arrowAngle;
-
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 源端口:{sourcePortName} 位置:{sourcePos}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 目标端口:{targetPortName} 位置:{targetPos}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 箭头位置:{arrowPos}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionWithSpecificPort] 箭头角度:{arrowAngle:F1}°");
+            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认值
+            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
+            newConnection.ArrowAngle = 0;
 
             currentTab.WorkflowConnections.Add(newConnection);
-            System.Diagnostics.Debug.WriteLine("[CreateConnectionWithSpecificPort] ✓ 连接创建完成");
+
+            // 关键日志：记录连接创建
+            System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ✓ 创建连接: {sourceNode.Name}({sourcePortName}) -> {targetNode.Name}({targetPortName}), ID:{connectionId}");
 
             return newConnection;
         }
@@ -77,89 +67,45 @@ namespace SunEyeVision.UI.Controls.Helpers
         /// 创建节点连接（智能选择端口）
         /// </summary>
         public WorkflowConnection? CreateConnection(
-            WorkflowNode sourceNode, 
+            WorkflowNode sourceNode,
             WorkflowNode targetNode,
             string initialSourcePort,
             WorkflowTabViewModel? currentTab)
         {
-            System.Diagnostics.Debug.WriteLine("[CreateConnection] ========== 开始创建连接 ==========");
-
             if (currentTab == null)
             {
-                System.Diagnostics.Debug.WriteLine("[CreateConnection] ❌ CurrentTab为null");
+                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ CurrentTab为null");
                 return null;
             }
 
             if (currentTab.WorkflowConnections == null)
             {
-                System.Diagnostics.Debug.WriteLine("[CreateConnection] ❌ WorkflowConnections为null");
+                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ WorkflowConnections为null");
                 return null;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 源节点: {sourceNode.Name} (ID={sourceNode.Id}), 位置: {sourceNode.Position}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 目标节点: {targetNode.Name} (ID={targetNode.Id}), 位置: {targetNode.Position}");
-
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 新连接ID: {connectionId}");
 
             // 智能选择连接点位置
-            var (sourcePos, targetPos, finalSourcePort, finalTargetPort) = 
+            var (sourcePos, targetPos, finalSourcePort, finalTargetPort) =
                 CalculateSmartPortPositions(sourceNode, targetNode, initialSourcePort);
-
-            System.Diagnostics.Debug.WriteLine("[CreateConnection] ========== 最终端口配置 ==========");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 最终源端口: {finalSourcePort}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 最终目标端口: {finalTargetPort}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 最终源位置: ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 最终目标位置: ({targetPos.X:F1}, {targetPos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine("[CreateConnection] =======================================");
 
             newConnection.SourcePort = finalSourcePort;
             newConnection.TargetPort = finalTargetPort;
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            // 计算箭头位置
-            Point arrowPos = CalculateArrowPosition(targetPos, targetNode);
-            newConnection.ArrowPosition = arrowPos;
-
-            // 计算箭头角度
-            double arrowAngle = CalculateArrowAngle(targetPos, targetNode, finalTargetPort);
-            newConnection.ArrowAngle = arrowAngle;
-
-            System.Diagnostics.Debug.WriteLine("[CreateConnection] ========== 连接属性设置 ==========");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.SourcePort = {finalSourcePort}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.TargetPort = {finalTargetPort}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.SourcePosition = ({sourcePos.X:F1}, {sourcePos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.TargetPosition = ({targetPos.X:F1}, {targetPos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.ArrowPosition = ({arrowPos.X:F1}, {arrowPos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] newConnection.ArrowAngle = {arrowAngle:F1}°");
-
-            // 验证端口位置是否正确
-            ValidatePortPositions(sourceNode, targetNode, finalSourcePort, finalTargetPort, sourcePos, targetPos);
-
-            // 关键信息：添加前后的连接数
-            int beforeCount = currentTab.WorkflowConnections.Count;
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 添加前连接数: {beforeCount}");
+            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认值
+            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
+            newConnection.ArrowAngle = 0;
 
             currentTab.WorkflowConnections.Add(newConnection);
 
-            int afterCount = currentTab.WorkflowConnections.Count;
-            System.Diagnostics.Debug.WriteLine($"[CreateConnection] 添加后连接数: {afterCount}");
-
-            // 关键信息：验证连接是否真的在集合中
-            var addedConnection = currentTab.WorkflowConnections.FirstOrDefault(c => c.Id == connectionId);
-            if (addedConnection != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnection] ✓ 连接验证成功，ID: {addedConnection.Id}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnection] ❌ 连接验证失败，ID: {connectionId}");
-            }
+            // 关键日志：记录智能连接创建
+            System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ✓ 智能连接: {sourceNode.Name}({finalSourcePort}) -> {targetNode.Name}({finalTargetPort}), ID:{connectionId}");
 
             _viewModel!.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
-            System.Diagnostics.Debug.WriteLine("[CreateConnection] ========== 连接创建完成 ==========");
 
             return newConnection;
         }
@@ -318,40 +264,6 @@ namespace SunEyeVision.UI.Controls.Helpers
                 "RightPort" => node.RightPortPosition,
                 _ => node.Position // 默认返回节点中心
             };
-        }
-
-        /// <summary>
-        /// 计算箭头位置
-        /// </summary>
-        private static Point CalculateArrowPosition(Point targetPortPos, WorkflowNode targetNode)
-        {
-            // 箭头偏移量（从目标端口向目标节点方向偏移）
-            const double ArrowOffset = 10;
-
-            // 判断目标端口在节点的哪个方向
-            var deltaX = targetPortPos.X - targetNode.Position.X;
-            var deltaY = targetPortPos.Y - targetNode.Position.Y;
-
-            // 箭头位置 = 目标端口位置 - 箭头偏移（向节点方向）
-            Point arrowPos;
-            if (Math.Abs(deltaX) > Math.Abs(deltaY))
-            {
-                // 水平方向
-                if (deltaX < 0) // LeftPort
-                    arrowPos = new Point(targetPortPos.X + ArrowOffset, targetPortPos.Y);
-                else // RightPort
-                    arrowPos = new Point(targetPortPos.X - ArrowOffset, targetPortPos.Y);
-            }
-            else
-            {
-                // 垂直方向
-                if (deltaY < 0) // TopPort
-                    arrowPos = new Point(targetPortPos.X, targetPortPos.Y + ArrowOffset);
-                else // BottomPort
-                    arrowPos = new Point(targetPortPos.X, targetPortPos.Y - ArrowOffset);
-            }
-
-            return arrowPos;
         }
 
         /// <summary>

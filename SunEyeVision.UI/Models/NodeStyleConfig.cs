@@ -78,45 +78,45 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算上端口位置
+        /// 计算上端口中心位置
         /// </summary>
         public Point GetTopPortPosition(Point position)
         {
             return new Point(
                 position.X + NodeWidth / 2,
-                position.Y - PortMargin
+                position.Y
             );
         }
 
         /// <summary>
-        /// 计算下端口位置
+        /// 计算下端口中心位置
         /// </summary>
         public Point GetBottomPortPosition(Point position)
         {
             return new Point(
                 position.X + NodeWidth / 2,
-                position.Y + NodeHeight + PortMargin
+                position.Y + NodeHeight
             );
         }
 
         /// <summary>
-        /// 计算左端口位置
+        /// 计算左端口中心位置
         /// </summary>
         public Point GetLeftPortPosition(Point position)
         {
             return new Point(
-                position.X - PortMargin,
+                position.X,
                 position.Y + NodeHeight / 2
             );
         }
 
         /// <summary>
-        /// 计算右端口位置
+        /// 计算右端口中心位置
         /// </summary>
         public Point GetRightPortPosition(Point position)
         {
             return new Point(
-                position.X + NodeWidth + PortMargin,
+                position.X + NodeWidth,
                 position.Y + NodeHeight / 2
             );
         }
