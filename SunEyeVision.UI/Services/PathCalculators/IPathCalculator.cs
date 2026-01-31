@@ -9,7 +9,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
     public interface IPathCalculator
     {
         /// <summary>
-        /// 计算正交折线路径点集合
+        /// 计算正交折线路径点集合（基础方法）
         /// </summary>
         /// <param name="sourcePosition">源端口位置</param>
         /// <param name="targetPosition">目标端口位置</param>
@@ -21,6 +21,26 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Point targetPosition,
             PortDirection sourceDirection,
             PortDirection targetDirection);
+
+        /// <summary>
+        /// 计算正交折线路径点集合（增强方法，带节点信息）
+        /// </summary>
+        /// <param name="sourcePosition">源端口位置</param>
+        /// <param name="targetPosition">目标端口位置</param>
+        /// <param name="sourceDirection">源端口方向</param>
+        /// <param name="targetDirection">目标端口方向</param>
+        /// <param name="sourceNodeRect">源节点边界矩形</param>
+        /// <param name="targetNodeRect">目标节点边界矩形</param>
+        /// <param name="allNodeRects">所有节点的边界矩形（用于碰撞检测）</param>
+        /// <returns>路径点集合（包括起点和终点）</returns>
+        Point[] CalculateOrthogonalPath(
+            Point sourcePosition,
+            Point targetPosition,
+            PortDirection sourceDirection,
+            PortDirection targetDirection,
+            Rect sourceNodeRect,
+            Rect targetNodeRect,
+            params Rect[] allNodeRects);
 
         /// <summary>
         /// 根据路径点创建路径几何

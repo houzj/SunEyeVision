@@ -209,18 +209,48 @@ namespace SunEyeVision.UI.Services
             var sourcePos = GetPortPosition(sourceNode, connection.SourcePort);
             var targetPos = GetPortPosition(targetNode, connection.TargetPort);
 
+            // 计算节点边界矩形
+            var sourceNodeRect = new Rect(
+                sourceNode.Position.X,
+                sourceNode.Position.Y,
+                sourceNode.StyleConfig.NodeWidth,
+                sourceNode.StyleConfig.NodeHeight);
+
+            var targetNodeRect = new Rect(
+                targetNode.Position.X,
+                targetNode.Position.Y,
+                targetNode.StyleConfig.NodeWidth,
+                targetNode.StyleConfig.NodeHeight);
+
+            // 计算所有节点边界（用于碰撞检测）
+            var allNodeRects = _nodes.Select(n => new Rect(
+                n.Position.X,
+                n.Position.Y,
+                n.StyleConfig.NodeWidth,
+                n.StyleConfig.NodeHeight)).ToArray();
+
             // 关键日志：记录路径计算输入和目标节点信息
             System.Diagnostics.Debug.WriteLine($"[PathCache] 计算路径: {connection.Id}");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   源节点:{sourceNode.Name} 位置:({sourceNode.Position.X:F1},{sourceNode.Position.Y:F1}), 端口:{connection.SourcePort}({sourcePos.X:F1},{sourcePos.Y:F1})");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点:{targetNode.Name} 位置:({targetNode.Position.X:F1},{targetNode.Position.Y:F1}), 端口:{connection.TargetPort}({targetPos.X:F1},{targetPos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点边界: 左{targetNode.Position.X:F1} 右{targetNode.Position.X + targetNode.StyleConfig.NodeWidth:F1}, 上{targetNode.Position.Y:F1} 下{targetNode.Position.Y + targetNode.StyleConfig.NodeHeight:F1}");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   源节点边界:({sourceNodeRect.X:F1},{sourceNodeRect.Y:F1},{sourceNodeRect.Width:F1}x{sourceNodeRect.Height:F1})");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点边界:({targetNodeRect.X:F1},{targetNodeRect.Y:F1},{targetNodeRect.Width:F1}x{targetNodeRect.Height:F1})");
 
-            // 使用路径计算器计算正交路径
+            // 根据端口方向计算箭头尾部位置（路径终点）
+            var arrowTailPos = CalculateArrowTailPosition(targetPos, targetDirection);
+
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口位置（箭头尖端）:({targetPos.X:F1},{targetPos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   箭头尾部位置（路径终点）:({arrowTailPos.X:F1},{arrowTailPos.Y:F1})");
+
+            // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检测
             var pathPoints = _pathCalculator.CalculateOrthogonalPath(
                 sourcePos,
-                targetPos,
+                arrowTailPos,  // 路径终点 = 箭头尾部
                 sourceDirection,
-                targetDirection);
+                targetDirection,
+                sourceNodeRect,  // 源节点边界
+                targetNodeRect,  // 目标节点边界
+                allNodeRects);   // 所有节点边界（用于碰撞检测）
 
             // 关键日志：记录路径终点位置
             var lastPoint = pathPoints[pathPoints.Length - 1];
@@ -240,7 +270,7 @@ namespace SunEyeVision.UI.Services
             // 关键日志：记录路径计算结果
             System.Diagnostics.Debug.WriteLine($"[PathCache] 路径计算完成: {connection.Id}, 箭头角度{arrowAngle:F1}°, 路径点数{pathPoints.Length}");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   箭头渲染位置:({arrowPosition.X:F1},{arrowPosition.Y:F1}), 距目标端口X:{arrowPosition.X - targetPos.X:F1}px, Y:{arrowPosition.Y - targetPos.Y:F1}px");
-            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口方向:{targetDirection}, 路径终点{(lastPoint.X >= targetNode.Position.X && lastPoint.X <= targetNode.Position.X + targetNode.StyleConfig.NodeWidth ? "在节点内" : "在节点外")}");
+            System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口方向:{targetDirection}, 路径终点{(lastPoint.X >= targetNode.Position.X && lastPoint.X <= targetNode.Position.X + targetNode.StyleConfig.NodeWidth && lastPoint.Y >= targetNode.Position.Y && lastPoint.Y <= targetNode.Position.Y + targetNode.StyleConfig.NodeHeight ? "在节点内" : "在节点外")}");
 
             return pathGeometry;
         }
@@ -257,6 +287,25 @@ namespace SunEyeVision.UI.Services
                 "left" or "leftport" => node.LeftPortPosition,
                 "right" or "rightport" => node.RightPortPosition,
                 _ => node.RightPortPosition // 默认为右侧端口
+            };
+        }
+
+        /// <summary>
+        /// 计算箭头尾部位置（路径终点）
+        /// 箭头尖端在目标端口中心，箭头尾部向外偏移箭头长度
+        /// </summary>
+        private static Point CalculateArrowTailPosition(Point arrowTipPosition, PathCalculators.PortDirection targetDirection)
+        {
+            const double arrowLength = 15.0; // 箭头长度
+
+            // 根据端口方向，将箭头尖端向后偏移箭头长度
+            return targetDirection switch
+            {
+                PathCalculators.PortDirection.Top => new Point(arrowTipPosition.X, arrowTipPosition.Y - arrowLength),
+                PathCalculators.PortDirection.Bottom => new Point(arrowTipPosition.X, arrowTipPosition.Y + arrowLength),
+                PathCalculators.PortDirection.Left => new Point(arrowTipPosition.X - arrowLength, arrowTipPosition.Y),
+                PathCalculators.PortDirection.Right => new Point(arrowTipPosition.X + arrowLength, arrowTipPosition.Y),
+                _ => arrowTipPosition
             };
         }
 

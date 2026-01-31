@@ -1,0 +1,18 @@
+  正在确定要还原的项目…
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-8g4q-xg66-9fp4
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-hh2w-p6rv-4g7w
+  所有项目均是最新的，无法还原。
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-8g4q-xg66-9fp4
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-hh2w-p6rv-4g7w
+  SunEyeVision.Core -> d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\bin\Debug\net9.0\SunEyeVision.Core.dll
+
+已成功生成。
+
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-8g4q-xg66-9fp4
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-hh2w-p6rv-4g7w
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-8g4q-xg66-9fp4
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.Core\SunEyeVision.Core.csproj : warning NU1903: 包 "System.Text.Json" 8.0.0 具有已知的 高 严重性漏洞，https://github.com/advisories/GHSA-hh2w-p6rv-4g7w
+    4 个警告
+    0 个错误
+
+已用时间 00:00:00.80

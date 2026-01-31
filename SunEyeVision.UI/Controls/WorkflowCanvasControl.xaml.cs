@@ -856,8 +856,6 @@ namespace SunEyeVision.UI.Controls
             var currentPosition = e.GetPosition(WorkflowCanvas);
             _dragConnectionEndPoint = currentPosition;
 
-            System.Diagnostics.Debug.WriteLine($"[PortMouseMove] 端口拖动 [{DateTime.Now:HH:mm:ss.fff}] 位置:({currentPosition.X:F1},{currentPosition.Y:F1}) 临时线可见:{_tempConnectionLine?.Visibility}");
-
             if (_tempConnectionLine != null)
             {
                 UpdateTempConnectionPath(_dragConnectionStartPoint, currentPosition);
