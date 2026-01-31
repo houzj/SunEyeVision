@@ -1506,20 +1506,104 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // 计算第一个拐点：沿源方向延伸（确保不穿过源节点）
             var p1 = CalculateFirstPoint(sourcePosition, sourceDirection, dx, dy, sourceNodeRect);
 
-            // 计算第二个拐点：水平或垂直到目标
+            // 计算第二个拐点：水平或垂直到目标，确保不穿过目标节点
             Point p2;
 
             if (sourceDirection.IsVertical())
             {
                 // 垂直相对：Top-Bottom, Bottom-Top
                 // 先垂直延伸（p1），再水平移动（p2）
-                p2 = new Point(targetPosition.X, p1.Y);
+                // 智能避让策略：选择最佳的避让方向
+                var targetNodeLeft = targetNodeRect.Left;
+                var targetNodeRight = targetNodeRect.Right;
+                var targetNodeTop = targetNodeRect.Top;
+                var targetNodeBottom = targetNodeRect.Bottom;
+                var targetNodeCenterX = (targetNodeLeft + targetNodeRight) / 2;
+                
+                // 确保安全距离，根据节点大小动态调整
+                var safeDistance = NodeSafeDistance * 2 + targetNodeRect.Width / 2;
+                
+                // 智能选择避让方向
+                if (targetPosition.X > sourcePosition.X)
+                {
+                    // 目标在右侧
+                    if (targetPosition.X > targetNodeCenterX)
+                    {
+                        // 目标偏右：从左侧避让（更自然）
+                        var safeX = targetNodeLeft - safeDistance;
+                        p2 = new Point(Math.Min(targetPosition.X, safeX), p1.Y);
+                    }
+                    else
+                    {
+                        // 目标在中间：从右侧避让（避免穿过）
+                        var safeX = targetNodeRight + safeDistance;
+                        p2 = new Point(Math.Max(targetPosition.X, safeX), p1.Y);
+                    }
+                }
+                else
+                {
+                    // 目标在左侧
+                    if (targetPosition.X < targetNodeCenterX)
+                    {
+                        // 目标偏左：从右侧避让（更自然）
+                        var safeX = targetNodeRight + safeDistance;
+                        p2 = new Point(Math.Max(targetPosition.X, safeX), p1.Y);
+                    }
+                    else
+                    {
+                        // 目标在中间：从左侧避让（避免穿过）
+                        var safeX = targetNodeLeft - safeDistance;
+                        p2 = new Point(Math.Min(targetPosition.X, safeX), p1.Y);
+                    }
+                }
             }
             else
             {
                 // 水平相对：Left-Right, Right-Left
                 // 先水平延伸（p1），再垂直移动（p2）
-                p2 = new Point(p1.X, targetPosition.Y);
+                // 智能避让策略：选择最佳的避让方向
+                var targetNodeTop = targetNodeRect.Top;
+                var targetNodeBottom = targetNodeRect.Bottom;
+                var targetNodeLeft = targetNodeRect.Left;
+                var targetNodeRight = targetNodeRect.Right;
+                var targetNodeCenterY = (targetNodeTop + targetNodeBottom) / 2;
+                
+                // 确保安全距离，根据节点大小动态调整
+                var safeDistance = NodeSafeDistance * 2 + targetNodeRect.Height / 2;
+                
+                // 智能选择避让方向
+                if (targetPosition.Y > sourcePosition.Y)
+                {
+                    // 目标在下侧
+                    if (targetPosition.Y > targetNodeCenterY)
+                    {
+                        // 目标偏下：从上侧避让（更自然）
+                        var safeY = targetNodeTop - safeDistance;
+                        p2 = new Point(p1.X, Math.Min(targetPosition.Y, safeY));
+                    }
+                    else
+                    {
+                        // 目标在中间：从下侧避让（避免穿过）
+                        var safeY = targetNodeBottom + safeDistance;
+                        p2 = new Point(p1.X, Math.Max(targetPosition.Y, safeY));
+                    }
+                }
+                else
+                {
+                    // 目标在上侧
+                    if (targetPosition.Y < targetNodeCenterY)
+                    {
+                        // 目标偏上：从下侧避让（更自然）
+                        var safeY = targetNodeBottom + safeDistance;
+                        p2 = new Point(p1.X, Math.Max(targetPosition.Y, safeY));
+                    }
+                    else
+                    {
+                        // 目标在中间：从上侧避让（避免穿过）
+                        var safeY = targetNodeTop - safeDistance;
+                        p2 = new Point(p1.X, Math.Min(targetPosition.Y, safeY));
+                    }
+                }
             }
 
             System.Diagnostics.Debug.WriteLine($"[OppositeDirection] 基本路径计算完成（避让由统一后处理处理）");
@@ -1840,6 +1924,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Point targetPosition,
             PortDirection sourceDirection,
             PortDirection targetDirection,
+            Rect targetNodeRect,
             Rect[] allNodeRects)
         {
             // 1. 计算路径总长度
@@ -1870,10 +1955,17 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return true;
             }
 
-            // 5. 如果节点数量少（<= 2），且路径点数少，跳过避让
+            // 5. 如果节点数量少（<= 2），且路径点数少，检查是否需要避让
             int obstacleCount = (allNodeRects?.Length ?? 0);
             if (obstacleCount <= 2 && pathPoints.Length <= 4)
             {
+                // 检查路径是否会穿过目标节点
+                bool willCrossTarget = WillPathCrossTarget(pathPoints, targetNodeRect);
+                if (willCrossTarget)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 节点少({obstacleCount})但路径会穿过目标，需要避让");
+                    return false;
+                }
                 System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 节点少({obstacleCount})且路径简单，跳过避让");
                 return true;
             }
@@ -1886,6 +1978,63 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 检查路径是否会穿过目标节点
+        /// </summary>
+        private bool WillPathCrossTarget(Point[] pathPoints, Rect targetNodeRect)
+        {
+            if (pathPoints == null || pathPoints.Length < 2 || targetNodeRect.IsEmpty)
+            {
+                return false;
+            }
+
+            // 检查每一段路径是否会穿过目标节点
+            for (int i = 0; i < pathPoints.Length - 1; i++)
+            {
+                var p1 = pathPoints[i];
+                var p2 = pathPoints[i + 1];
+
+                // 检查这一段路径是否会穿过目标节点
+                if (LineIntersectsRect(p1, p2, targetNodeRect))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WillPathCrossTarget] 路径段[{i}]穿过目标节点: ({p1.X:F1},{p1.Y:F1}) -> ({p2.X:F1},{p2.Y:F1})");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 检查两条线段是否相交
+        /// </summary>
+        private bool LineIntersectsLine(Point p1, Point p2, Point p3, Point p4)
+        {
+            // 使用叉积方法判断两线段是否相交
+            double d1 = CrossProduct(p3, p4, p1);
+            double d2 = CrossProduct(p3, p4, p2);
+            double d3 = CrossProduct(p1, p2, p3);
+            double d4 = CrossProduct(p1, p2, p4);
+
+            // 如果叉积符号不同，说明线段相交
+            if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+            {
+                return true;
+            }
+
+            // 端点在另一条线段上的情况
+            return false;
+        }
+
+        /// <summary>
+        /// 计算叉积
+        /// </summary>
+        private double CrossProduct(Point p1, Point p2, Point p)
+        {
+            return (p2.X - p1.X) * (p.Y - p1.Y) - (p.Y - p1.Y) * (p2.X - p1.X);
         }
 
         /// <summary>
@@ -1907,7 +2056,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
             // 新增：快速检查 - 如果场景简单，直接返回
             if (ShouldSkipAvoidance(pathPoints, sourcePosition, targetPosition,
-                sourceDirection, targetDirection, allNodeRects))
+                sourceDirection, targetDirection, targetNodeRect, allNodeRects))
             {
                 System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 简单场景，跳过避让处理");
                 return pathPoints;
