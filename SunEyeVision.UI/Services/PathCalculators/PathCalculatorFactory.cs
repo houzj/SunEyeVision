@@ -20,7 +20,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// <summary>
         /// 简单正交路径计算器（内置）
         /// </summary>
-        Orthogonal
+        Orthogonal,
+
+        /// <summary>
+        /// 贝塞尔曲线路径计算器（内置）
+        /// </summary>
+        Bezier
     }
 
     /// <summary>
@@ -31,7 +36,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// <summary>
         /// 当前使用的路径计算器类型（可在运行时修改）
         /// </summary>
-        public static PathCalculatorType CurrentCalculatorType { get; set; } = PathCalculatorType.Orthogonal;
+        public static PathCalculatorType CurrentCalculatorType { get; set; } = PathCalculatorType.Bezier;
 
         /// <summary>
         /// 创建路径计算器实例
@@ -59,6 +64,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     case PathCalculatorType.Orthogonal:
                         System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 OrthogonalPathCalculator...");
                         return new OrthogonalPathCalculator();
+
+                    case PathCalculatorType.Bezier:
+                        System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 BezierPathCalculator...");
+                        return new BezierPathCalculator();
 
                     default:
                         throw new ArgumentException($"未知的路径计算器类型: {type}");
@@ -124,6 +133,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 PathCalculatorType.Libavoid => "Libavoid (LGPL-2.1)",
                 PathCalculatorType.AIStudio => "AIStudio.Wpf.DiagramDesigner (MIT)",
                 PathCalculatorType.Orthogonal => "简单正交路径 (内置)",
+                PathCalculatorType.Bezier => "贝塞尔曲线 (内置)",
                 _ => "未知"
             };
         }
@@ -140,6 +150,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 PathCalculatorType.Libavoid => "基于 C++ Libavoid 库的正交路径路由器，支持节点和连线避让，性能优异",
                 PathCalculatorType.AIStudio => "基于 AIStudio.Wpf.DiagramDesigner 的路径计算器，MIT 协议，适合商业项目",
                 PathCalculatorType.Orthogonal => "内置的简单正交路径计算器，无需外部依赖，适合简单场景",
+                PathCalculatorType.Bezier => "内置的贝塞尔曲线路径计算器，提供平滑的曲线连接，适合需要美观曲线的场景",
                 _ => "未知类型"
             };
         }

@@ -82,7 +82,7 @@ namespace SunEyeVision.UI
         }
 
         /// <summary>
-        /// 切换到默认配置：NativeDiagramControl画布（使用贝塞尔曲线）
+        /// 切换到默认配置：WorkflowCanvasControl画布 + BezierPathCalculator路径计算器
         /// </summary>
         private void SwitchToDefaultConfiguration()
         {
@@ -90,21 +90,53 @@ namespace SunEyeVision.UI
             {
                 System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 开始切换到默认配置 ==========");
 
-                // 切换画布到NativeDiagramControl（原生AIStudio.Wpf.DiagramDesigner库）
+                // 切换画布到WorkflowCanvasControl（自定义画布）
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
-                    _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.NativeDiagram;
+                    _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
                     _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 NativeDiagramControl（使用贝塞尔曲线）");
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 WorkflowCanvasControl");
                 }
 
-                // NativeDiagramControl 使用原生贝塞尔曲线，无需路径计算器设置
+                // 设置路径计算器为 Bezier（贝塞尔曲线）
+                Services.CanvasEngineManager.SetPathCalculator("Bezier");
+                System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 路径计算器已设置为 Bezier（贝塞尔曲线）");
 
                 System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 默认配置切换完成 ==========");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 切换默认配置失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 切换到WorkflowCanvasControl画布（使用贝塞尔曲线）
+        /// </summary>
+        private void SwitchToWorkflowCanvasConfiguration()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 开始切换到WorkflowCanvas配置 ==========");
+
+                // 切换画布到WorkflowCanvasControl（自定义画布）
+                if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
+                    _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 WorkflowCanvasControl（使用贝塞尔曲线）");
+
+                    // 使用 CanvasEngineManager 设置路径计算器为贝塞尔曲线
+                    Services.CanvasEngineManager.SetPathCalculator("Bezier");
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 路径计算器已设置为 Bezier（通过 CanvasEngineManager）");
+                }
+
+                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== WorkflowCanvas配置切换完成 ==========");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 切换WorkflowCanvas配置失败: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈: {ex.StackTrace}");
             }
         }
@@ -417,6 +449,53 @@ namespace SunEyeVision.UI
         /// </summary>
         private void WorkflowTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔄 Tab切换事件触发");
+            System.Diagnostics.Debug.WriteLine($"[MainWindow]   AddedItems: {e.AddedItems?.Count ?? 0}, RemovedItems: {e.RemovedItems?.Count ?? 0}");
+
+            // 输出选中的Tab信息
+            var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
+            if (selectedTab != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ 选中的Tab: {selectedTab.Name}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   Id: {selectedTab.Id}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   CanvasType: {selectedTab.CanvasType}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   节点数: {selectedTab.WorkflowNodes?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   连接数: {selectedTab.WorkflowConnections?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   缩放: {selectedTab.CurrentScale:P0}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   WorkflowNodes Hash: {selectedTab.WorkflowNodes?.GetHashCode() ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   ScaleTransform Hash: {selectedTab.ScaleTransform?.GetHashCode() ?? 0}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ⚠ 选中的Tab为null");
+            }
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
+
+            // 🔥 关键修复：更新WorkflowCanvasControl的DataContext
+            if (selectedTab != null && _currentWorkflowCanvas != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔥 更新WorkflowCanvasControl.DataContext");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   当前DataContext: {_currentWorkflowCanvas.DataContext?.GetType().Name ?? "null"}");
+                if (_currentWorkflowCanvas.DataContext is WorkflowTabViewModel oldTab)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow]   旧Tab: {oldTab.Name} (Id: {oldTab.Id})");
+                }
+                
+                // 更新DataContext为当前选中的Tab
+                _currentWorkflowCanvas.DataContext = selectedTab;
+                
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   新DataContext: {_currentWorkflowCanvas.DataContext?.GetType().Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   新Tab: {selectedTab.Name} (Id: {selectedTab.Id})");
+                
+                // 强制刷新ItemsControl绑定
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔥 强制刷新ItemsControl绑定...");
+                _currentWorkflowCanvas.ForceRefreshItemsControls();
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ ItemsControl绑定刷新完成");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
+
             // 使用Dispatcher延迟执行，确保UI已更新
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -439,6 +518,7 @@ namespace SunEyeVision.UI
                 {
                     var currentScale = workflow.CurrentScale;
                     ApplyZoom(currentScale, currentScale);
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ 缩放已应用: {currentScale:P0}");
                 }
                 // 更新缩放显示
                 UpdateZoomDisplay();
@@ -1165,7 +1245,7 @@ namespace SunEyeVision.UI
         private void ZoomReset_Click(object sender, RoutedEventArgs e)
         {
             var canvasType = GetCurrentCanvasType();
-            
+
             if (canvasType == CanvasType.NativeDiagram)
             {
                 NativeDiagramZoomReset();
@@ -1176,11 +1256,31 @@ namespace SunEyeVision.UI
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
                 var newScale = 1.0;
-                
+
                 // 延迟执行以确保 UI 已更新
                 Dispatcher.BeginInvoke(new Action(() => ApplyZoom(oldScale, newScale)),
                     System.Windows.Threading.DispatcherPriority.Render);
             }
+        }
+
+        /// <summary>
+        /// 切换到正交折线画布 (WorkflowCanvas)
+        /// </summary>
+        private void SwitchToWorkflowCanvas_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToWorkflowCanvas_Click 开始 ======");
+            SwitchToWorkflowCanvasConfiguration();
+            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToWorkflowCanvas_Click 结束 ======");
+        }
+
+        /// <summary>
+        /// 切换到贝塞尔曲线画布 (NativeDiagram)
+        /// </summary>
+        private void SwitchToNativeDiagram_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToNativeDiagram_Click 开始 ======");
+            SwitchToDefaultConfiguration();
+            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToNativeDiagram_Click 结束 ======");
         }
 
         /// <summary>

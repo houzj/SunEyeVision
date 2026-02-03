@@ -306,7 +306,7 @@ namespace SunEyeVision.UI.Models
         private System.Windows.Point _arrowPosition;
         private double _arrowAngle = 0;
         private ConnectionStatus _status = ConnectionStatus.Idle;
-        private bool _showPathPoints = true;
+        private bool _showPathPoints = false;
         private string _pathData = string.Empty;
         private bool _isSelected = false;
 

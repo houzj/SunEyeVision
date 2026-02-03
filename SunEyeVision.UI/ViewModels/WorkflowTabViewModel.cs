@@ -52,6 +52,7 @@ namespace SunEyeVision.UI.ViewModels
             new NodeSequenceManager(),
             new DefaultNodeDisplayAdapter())
         {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ✅ 使用默认构造函数创建");
         }
 
         /// <summary>
@@ -73,10 +74,24 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
-            CanvasType = CanvasType.NativeDiagram;
+            CanvasType = CanvasType.WorkflowCanvas; // 默认使用 WorkflowCanvas，每个工作流独立
 
             // 每个画布初始化独立的命令管理器
             CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
+
+            // 订阅节点和连接集合变化事件
+            WorkflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
+            WorkflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
+
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ════════════════════════════════════");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ✅ 新建工作流: {Name}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Id: {Id}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   CanvasType: {CanvasType}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   WorkflowNodes (Hash): {WorkflowNodes.GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   WorkflowConnections (Hash): {WorkflowConnections.GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   ScaleTransform (Hash): {ScaleTransform.GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   CommandManager (Hash): {CommandManager.GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ════════════════════════════════════");
         }
 
         /// <summary>
@@ -136,7 +151,27 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<Models.WorkflowNode> WorkflowNodes
         {
             get => _workflowNodes;
-            set => SetProperty(ref _workflowNodes, value);
+            set
+            {
+                if (_workflowNodes != null)
+                {
+                    _workflowNodes.CollectionChanged -= (s, e) => OnWorkflowNodesChanged(s, e);
+                }
+                SetProperty(ref _workflowNodes, value);
+                if (_workflowNodes != null)
+                {
+                    _workflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
+                }
+            }
+        }
+
+        private void OnWorkflowNodesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] 📝 节点集合变化 (Name: {Name})");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Action: {e.Action}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   NewItems: {e.NewItems?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   OldItems: {e.OldItems?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   总节点数: {WorkflowNodes?.Count ?? 0}");
         }
 
         /// <summary>
@@ -145,7 +180,27 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<Models.WorkflowConnection> WorkflowConnections
         {
             get => _workflowConnections;
-            set => SetProperty(ref _workflowConnections, value);
+            set
+            {
+                if (_workflowConnections != null)
+                {
+                    _workflowConnections.CollectionChanged -= (s, e) => OnWorkflowConnectionsChanged(s, e);
+                }
+                SetProperty(ref _workflowConnections, value);
+                if (_workflowConnections != null)
+                {
+                    _workflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
+                }
+            }
+        }
+
+        private void OnWorkflowConnectionsChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] 🔗 连接集合变化 (Name: {Name})");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Action: {e.Action}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   NewItems: {e.NewItems?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   OldItems: {e.OldItems?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   总连接数: {WorkflowConnections?.Count ?? 0}");
         }
 
         /// <summary>

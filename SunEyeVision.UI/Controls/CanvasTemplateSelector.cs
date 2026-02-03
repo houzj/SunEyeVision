@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.UI.ViewModels;
+using SunEyeVision.UI;
 
 namespace SunEyeVision.UI.Controls
 {
@@ -52,11 +53,33 @@ namespace SunEyeVision.UI.Controls
             else
             {
                 System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] ⚠ item is null, trying to get CanvasType from Application");
+
+                // 尝试从 Application 获取 MainWindow，然后获取当前选中的 WorkflowTab
+                if (Application.Current?.MainWindow is MainWindow mainWindow)
+                {
+                    if (mainWindow.DataContext is MainWindowViewModel mainWindowViewModel)
+                    {
+                        var selectedTab = mainWindowViewModel?.WorkflowTabViewModel?.SelectedTab;
+                        if (selectedTab != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] ✓ Got CanvasType from SelectedTab: {selectedTab.CanvasType}");
+                            switch (selectedTab.CanvasType)
+                            {
+                                case CanvasType.WorkflowCanvas:
+                                    System.Diagnostics.Debug.WriteLine("[CanvasTemplateSelector] Returning WorkflowCanvasTemplate");
+                                    return WorkflowCanvasTemplate;
+                                case CanvasType.NativeDiagram:
+                                    System.Diagnostics.Debug.WriteLine("[CanvasTemplateSelector] Returning NativeDiagramTemplate");
+                                    return NativeDiagramTemplate;
+                            }
+                        }
+                    }
+                }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] Returning NativeDiagramTemplate as default");
-            // 默认返回NativeDiagramTemplate
-            return NativeDiagramTemplate;
+            System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] Returning WorkflowCanvasTemplate as default (changed from NativeDiagramTemplate)");
+            // 默认返回 WorkflowCanvasTemplate（改为默认值）
+            return WorkflowCanvasTemplate;
         }
     }
 }

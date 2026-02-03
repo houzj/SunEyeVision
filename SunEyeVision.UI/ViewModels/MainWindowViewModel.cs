@@ -79,8 +79,10 @@ namespace SunEyeVision.UI.ViewModels
 
         public ObservableCollection<Models.ToolItem> Tools { get; }
         public ToolboxViewModel Toolbox { get; }
-        public ObservableCollection<Models.WorkflowNode> WorkflowNodes { get; }
-        public ObservableCollection<Models.WorkflowConnection> WorkflowConnections { get; }
+
+        // 注意：删除了全局的 WorkflowNodes 和 WorkflowConnections 属性
+        // 所有节点和连接都应该通过 WorkflowTabViewModel.SelectedTab 访问
+        // 这样确保每个工作流 Tab 都是独立的
 
         public Models.WorkflowNode? SelectedNode { get; set; }
         public Models.WorkflowConnection? SelectedConnection { get; set; }
@@ -219,8 +221,7 @@ namespace SunEyeVision.UI.ViewModels
 
             Tools = new ObservableCollection<Models.ToolItem>();
             Toolbox = new ToolboxViewModel();
-            WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
-            WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
+            // 删除了全局 WorkflowNodes 和 WorkflowConnections 的初始化
 
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
@@ -235,7 +236,7 @@ namespace SunEyeVision.UI.ViewModels
             SubscribeToCurrentCommandManager();
 
             InitializeTools();
-            InitializeSampleNodes();
+            // InitializeSampleNodes(); // 已禁用：程序启动时不加载测试节点和连线
             InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);

@@ -184,6 +184,18 @@
 
             <Separator/>
 
+            <!-- 画布切换组 - 已禁用，默认使用 WorkflowCanvasControl + BezierPathCalculator -->
+            <!--
+            <Button ToolTip="切换到正交折线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToWorkflowCanvas_Click">
+                <TextBlock Text="📐" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="切换到贝塞尔曲线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToNativeDiagram_Click">
+                <TextBlock Text="〰️" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            -->
+
+            <Separator/>
+
             <TextBlock x:Name="ZoomTextBlock" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
         </ToolBar>
 
@@ -604,7 +616,7 @@
                     <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控件 -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <ContentControl Content="{Binding}">
+                            <ContentControl Content="{Binding}" x:Shared="False">
                                 <ContentControl.ContentTemplateSelector>
                                     <controls:CanvasTemplateSelector>
                                         <controls:CanvasTemplateSelector.WorkflowCanvasTemplate>
@@ -632,6 +644,7 @@
                                                                    Panel.ZIndex="-1"/>
                                                         <controls:WorkflowCanvasControl
                                                             Width="5000" Height="5000"
+                                                            DataContext="{Binding}"
                                                             Loaded="WorkflowCanvasControl_Loaded"/>
                                                     </Grid>
                                                 </ScrollViewer>
@@ -643,7 +656,9 @@
                                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                                              VerticalScrollBarVisibility="Auto"
                                                              Background="#F5F8FC">
-                                                    <controls:NativeDiagramControl Loaded="NativeDiagramControl_Loaded"/>
+                                                    <controls:NativeDiagramControl
+                                                        DataContext="{Binding}"
+                                                        Loaded="NativeDiagramControl_Loaded"/>
                                                 </ScrollViewer>
                                             </DataTemplate>
                                         </controls:CanvasTemplateSelector.NativeDiagramTemplate>
