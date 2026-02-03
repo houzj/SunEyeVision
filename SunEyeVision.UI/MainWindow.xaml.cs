@@ -118,26 +118,19 @@ namespace SunEyeVision.UI
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 开始切换到WorkflowCanvas配置 ==========");
-
                 // 切换画布到WorkflowCanvasControl（自定义画布）
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
                     _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 WorkflowCanvasControl（使用贝塞尔曲线）");
 
                     // 使用 CanvasEngineManager 设置路径计算器为贝塞尔曲线
                     Services.CanvasEngineManager.SetPathCalculator("Bezier");
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 路径计算器已设置为 Bezier（通过 CanvasEngineManager）");
                 }
-
-                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== WorkflowCanvas配置切换完成 ==========");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 切换WorkflowCanvas配置失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈: {ex.StackTrace}");
+                // 忽略异常
             }
         }
 
@@ -146,24 +139,16 @@ namespace SunEyeVision.UI
         /// </summary>
         private void NativeDiagramControl_Loaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[MainWindow] NativeDiagramControl_Loaded 事件触发");
-
             // 缓存 NativeDiagramControl 引用
             if (sender is Controls.NativeDiagramControl nativeDiagram)
             {
                 _currentNativeDiagram = nativeDiagram;
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 已缓存 NativeDiagramControl 引用");
 
                 // 延迟更新缩放显示，确保DiagramViewModel已初始化
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] NativeDiagramControl加载后更新缩放显示");
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ sender 不是 NativeDiagramControl 类型: {sender?.GetType().Name ?? "null"}");
             }
         }
 
@@ -215,14 +200,12 @@ namespace SunEyeVision.UI
                 {
                     Converters.SmartPathConverter.Nodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                     Converters.SmartPathConverter.Connections = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections;
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] SmartPathConverter 初始化 - Nodes count: {_viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes?.Count ?? 0}");
                 }
 
                 // 初始化缩放显示
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] 初始化缩放显示完成");
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 
                 // TODO: 加载工作流
@@ -259,46 +242,28 @@ namespace SunEyeVision.UI
         /// </summary>
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] ===== WorkflowCanvasControl Loaded Event Fired =====");
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender type: {sender?.GetType().Name}");
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender is WorkflowCanvasControl: {sender is Controls.WorkflowCanvasControl}");
-
             // 清除 NativeDiagram 缓存（当前加载的是 WorkflowCanvas）
             _currentNativeDiagram = null;
 
             if (sender is Controls.WorkflowCanvasControl workflowCanvas)
             {
                 _currentWorkflowCanvas = workflowCanvas;
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl已加载并保存引用");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] BoundingRectangle元素: {(workflowCanvas.BoundingRectangle != null ? "存在" : "null")}");
 
                 // 检查DataContext
                 var dataContext = workflowCanvas.DataContext;
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl.DataContext type: {dataContext?.GetType().Name ?? "null"}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl.DataContext is WorkflowTabViewModel: {dataContext is ViewModels.WorkflowTabViewModel}");
 
                 // 如果DataContext为null，手动设置为当前选中的Tab
                 if (dataContext == null && _viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] DataContext为null，手动设置为SelectedTab");
                     workflowCanvas.DataContext = _viewModel.WorkflowTabViewModel.SelectedTab;
                     dataContext = workflowCanvas.DataContext;
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 手动设置后DataContext type: {dataContext?.GetType().Name ?? "null"}");
                 }
 
                 // 订阅DataContextChanged事件，以便在CanvasType变化时更新Visibility
                 workflowCanvas.DataContextChanged += (s, args) =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl DataContextChanged] CanvasType更新Visibility");
                     UpdateCanvasVisibility();
                 };
-
-                if (dataContext is ViewModels.WorkflowTabViewModel tabViewModel)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.Name: {tabViewModel.Name}");
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.WorkflowNodes.Count: {tabViewModel.WorkflowNodes.Count}");
-                }
 
                 // 立即根据CanvasType更新Visibility
                 UpdateCanvasVisibility();
@@ -307,7 +272,6 @@ namespace SunEyeVision.UI
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] WorkflowCanvasControl加载后更新缩放显示");
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }
@@ -321,14 +285,11 @@ namespace SunEyeVision.UI
             {
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[UpdateCanvasVisibility] SelectedTab为null，无法更新");
                     return;
                 }
 
                 var currentTab = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var canvasType = currentTab.CanvasType;
-
-                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] CanvasType: {canvasType}");
 
                 // 查找两个画布的ScrollViewer
                 var tabItem = WorkflowTabControl.ItemContainerGenerator.ContainerFromIndex(WorkflowTabControl.SelectedIndex) as TabItem;
@@ -342,17 +303,13 @@ namespace SunEyeVision.UI
                         {
                             var shouldShow = canvasType == CanvasType.WorkflowCanvas;
                             workflowScrollViewer.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
-                            System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] WorkflowCanvas ScrollViewer Visibility设置为: {workflowScrollViewer.Visibility}");
                         }
                     }
-
-
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] 错误: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] 堆栈: {ex.StackTrace}");
+                // 忽略异常
             }
         }
 
@@ -449,76 +406,33 @@ namespace SunEyeVision.UI
         /// </summary>
         private void WorkflowTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔄 Tab切换事件触发");
-            System.Diagnostics.Debug.WriteLine($"[MainWindow]   AddedItems: {e.AddedItems?.Count ?? 0}, RemovedItems: {e.RemovedItems?.Count ?? 0}");
-
-            // 输出选中的Tab信息
+            // 获取选中的Tab
             var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
-            if (selectedTab != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ 选中的Tab: {selectedTab.Name}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   Id: {selectedTab.Id}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   CanvasType: {selectedTab.CanvasType}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   节点数: {selectedTab.WorkflowNodes?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   连接数: {selectedTab.WorkflowConnections?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   缩放: {selectedTab.CurrentScale:P0}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   WorkflowNodes Hash: {selectedTab.WorkflowNodes?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   ScaleTransform Hash: {selectedTab.ScaleTransform?.GetHashCode() ?? 0}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ⚠ 选中的Tab为null");
-            }
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
-
-            // 🔥 关键修复：更新WorkflowCanvasControl的DataContext
+            
+            // 优化：更新WorkflowCanvasControl的DataContext（ObservableCollection会自动通知UI更新）
             if (selectedTab != null && _currentWorkflowCanvas != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔥 更新WorkflowCanvasControl.DataContext");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   当前DataContext: {_currentWorkflowCanvas.DataContext?.GetType().Name ?? "null"}");
-                if (_currentWorkflowCanvas.DataContext is WorkflowTabViewModel oldTab)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow]   旧Tab: {oldTab.Name} (Id: {oldTab.Id})");
-                }
-                
-                // 更新DataContext为当前选中的Tab
                 _currentWorkflowCanvas.DataContext = selectedTab;
-                
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   新DataContext: {_currentWorkflowCanvas.DataContext?.GetType().Name ?? "null"}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   新Tab: {selectedTab.Name} (Id: {selectedTab.Id})");
-                
-                // 强制刷新ItemsControl绑定
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 🔥 强制刷新ItemsControl绑定...");
-                _currentWorkflowCanvas.ForceRefreshItemsControls();
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ ItemsControl绑定刷新完成");
             }
-            
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ════════════════════════════════════");
 
-            // 使用Dispatcher延迟执行，确保UI已更新
+            // 优化：合并Dispatcher调用，减少UI重绘次数
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 // 只有通过下拉器切换时才滚动到中间，点击TabItem时不滚动
                 if (!_isTabItemClick)
                 {
-                    ScrollToSelectedTabItem();  // 只滚动到选中的TabItem，使其居中显示
+                    ScrollToSelectedTabItem();
                 }
-                // 更新添加按钮位置，确保始终在最右边
+                // 更新添加按钮位置
                 UpdateAddButtonPosition(WorkflowTabControl);
                 // 重置标志
                 _isTabItemClick = false;
-            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
-
-            // 使用更高优先级延迟执行 ApplyZoom，确保 Tab 内容已生成
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
+                
+                // 应用缩放
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 if (workflow != null)
                 {
-                    var currentScale = workflow.CurrentScale;
-                    ApplyZoom(currentScale, currentScale);
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ 缩放已应用: {currentScale:P0}");
+                    ApplyZoom(workflow.CurrentScale, workflow.CurrentScale);
                 }
                 // 更新缩放显示
                 UpdateZoomDisplay();

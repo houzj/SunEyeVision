@@ -59,9 +59,8 @@ namespace SunEyeVision.UI.Controls
         // 连接线路径缓存
         private Services.ConnectionPathCache? _connectionPathCache;
 
-        // 节点拖拽性能优化
-        private DateTime _lastConnectionUpdateTime = DateTime.MinValue;
-        private const int ConnectionUpdateIntervalMs = 50; // 连接线更新间隔（毫秒）
+        // 批量延迟更新管理器
+        private Services.ConnectionBatchUpdateManager? _batchUpdateManager;
 
         /// <summary>
         /// 是否正在拖拽连接（用于绑定，控制连接点是否显示）
@@ -165,12 +164,12 @@ namespace SunEyeVision.UI.Controls
         {
             if (DataContext is WorkflowTabViewModel workflowTab)
             {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ════════════════════════════════════");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContext已设置为: {workflowTab.Name}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Id: {workflowTab.Id}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   节点数: {workflowTab.WorkflowNodes?.Count ?? 0}, 连接数: {workflowTab.WorkflowConnections?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowNodes Hash: {workflowTab.WorkflowNodes?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowConnections Hash: {workflowTab.WorkflowConnections?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ════════════════════════════════════");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContext已设置为: {workflowTab.Name}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Id: {workflowTab.Id}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   节点数: {workflowTab.WorkflowNodes?.Count ?? 0}, 连接数: {workflowTab.WorkflowConnections?.Count ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowNodes Hash: {workflowTab.WorkflowNodes?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowConnections Hash: {workflowTab.WorkflowConnections?.GetHashCode() ?? 0}");
 
                 // 将WorkflowCanvas的RenderTransform绑定到ViewModel的ScaleTransform
                 var binding = new System.Windows.Data.Binding("ScaleTransform")
@@ -179,54 +178,62 @@ namespace SunEyeVision.UI.Controls
                     Mode = System.Windows.Data.BindingMode.OneWay
                 };
                 WorkflowCanvas.SetBinding(Canvas.RenderTransformProperty, binding);
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? 已绑定ScaleTransform到WorkflowCanvas");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? 已绑定ScaleTransform到WorkflowCanvas");
 
                 // 设置SmartPathConverter的节点集合和连接集合
                 Converters.SmartPathConverter.Nodes = workflowTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = workflowTab.WorkflowConnections;
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.Nodes/Connections已设置");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Nodes Hash: {Converters.SmartPathConverter.Nodes?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Connections Hash: {Converters.SmartPathConverter.Connections?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.Nodes/Connections已设置");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Nodes Hash: {Converters.SmartPathConverter.Nodes?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Connections Hash: {Converters.SmartPathConverter.Connections?.GetHashCode() ?? 0}");
 
                 // 🔥 关键修复：强制刷新所有 ItemsControl 的 ItemsSource 绑定
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] 🔥 强制刷新 ItemsControl 绑定...");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] 🔥 强制刷新 ItemsControl 绑定...");
                 ForceRefreshItemsControls();
 
                 // 每次 DataContext 变化时都重新创建 ConnectionPathCache（确保每个工作流独立）
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║      正在创建路径计算器...                        ║");
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║      正在创建路径计算器...                        ║");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
 
                 try
                 {
                     var calculatorType = Services.PathCalculators.PathCalculatorFactory.CurrentCalculatorType;
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 当前路径计算器类型: {calculatorType}");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 当前路径计算器类型: {calculatorType}");
 
                     var calculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator();
-                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ 路径计算器实例创建成功");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ 路径计算器实例创建成功");
 
                     // 每次都创建新的 ConnectionPathCache，确保每个工作流独立
                     _connectionPathCache = new Services.ConnectionPathCache(
                         workflowTab.WorkflowNodes,
                         calculator
                     );
-                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ ConnectionPathCache 创建成功（工作流独立）");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ ConnectionPathCache 创建成功（工作流独立）");
 
                     // 设置SmartPathConverter的PathCache引用
                     Converters.SmartPathConverter.PathCache = _connectionPathCache;
-                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.PathCache已设置");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.PathCache已设置");
+
+                    // 初始化批量延迟更新管理器
+                    if (_connectionPathCache != null)
+                    {
+                        _batchUpdateManager = new Services.ConnectionBatchUpdateManager(_connectionPathCache);
+                        _batchUpdateManager.SetCurrentTab(workflowTab);
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ BatchUpdateManager已初始化");
+                    }
 
                         // 预热缓存
                         _connectionPathCache.WarmUp(workflowTab.WorkflowConnections);
                         var stats = _connectionPathCache.GetStatistics();
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 缓存预热完成: {stats.CacheSize}个连接");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 缓存预热完成: {stats.CacheSize}个连接");
 
                         // 订阅连接集合变化事件
                         if (workflowTab.WorkflowConnections != null)
                         {
                             workflowTab.WorkflowConnections.CollectionChanged += (s, args) =>
                             {
-                                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 连接集合变化: Added={args.NewItems?.Count ?? 0}, Removed={args.OldItems?.Count ?? 0}");
+                                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 连接集合变化: Added={args.NewItems?.Count ?? 0}, Removed={args.OldItems?.Count ?? 0}");
                                 UpdateBoundingRectangle();
                                 if (_connectionPathCache != null)
                                 {
@@ -255,14 +262,14 @@ namespace SunEyeVision.UI.Controls
                             };
                         }
 
-                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
-                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║  ✅ 路径计算器初始化成功！                        ║");
-                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║  ✅ 路径计算器初始化成功！                        ║");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ❌ 路径计算器创建失败: {ex.GetType().Name}");
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 消息: {ex.Message}");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ❌ 路径计算器创建失败: {ex.GetType().Name}");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 消息: {ex.Message}");
 
                         // 备用方案：使用 OrthogonalPathCalculator
                         _connectionPathCache = new Services.ConnectionPathCache(
@@ -270,12 +277,12 @@ namespace SunEyeVision.UI.Controls
                             new Services.PathCalculators.OrthogonalPathCalculator()
                         );
                         Converters.SmartPathConverter.PathCache = _connectionPathCache;
-                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ OrthogonalPathCalculator 备用方案已启用");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ OrthogonalPathCalculator 备用方案已启用");
                     }
                 }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ⚠ DataContext 不是 WorkflowTabViewModel: {DataContext?.GetType().Name ?? "null"}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ⚠ DataContext 不是 WorkflowTabViewModel: {DataContext?.GetType().Name ?? "null"}");
             }
         }
 
@@ -287,123 +294,34 @@ namespace SunEyeVision.UI.Controls
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ════════════════════════════════════");
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] 🔥 开始强制刷新ItemsControl绑定");
-
-                // 🔥 关键诊断：检查WorkflowCanvasControl的DataContext
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] WorkflowCanvasControl.DataContext: {DataContext?.GetType().Name ?? "null"}");
-                if (DataContext is WorkflowTabViewModel currentTab)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   Tab Name: {currentTab.Name}");
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   Tab Id: {currentTab.Id}");
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   节点数: {currentTab.WorkflowNodes?.Count ?? 0}");
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   连接数: {currentTab.WorkflowConnections?.Count ?? 0}");
-                }
-
                 // 查找 WorkflowCanvas 中的所有 ItemsControl
                 var itemsControls = FindVisualChildren<ItemsControl>(WorkflowCanvas).ToList();
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] 找到 {itemsControls.Count} 个 ItemsControl");
-
-                // 输出每个ItemsControl的详细信息
-                foreach (var itemsControl in itemsControls)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ═─ ItemsControl信息 ═─");
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   名称: {itemsControl.Name ?? "(未命名)"}");
-
-                    // 检查ItemsControl的DataContext
-                    var itemsControlDataContext = itemsControl.DataContext;
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   DataContext: {itemsControlDataContext?.GetType().Name ?? "null"}");
-                    if (itemsControlDataContext is WorkflowTabViewModel tab)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   DataContext Tab Name: {tab.Name}");
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   DataContext Tab Id: {tab.Id}");
-                    }
-
-                    // 检查当前的ItemsSource
-                    var currentItemsSource = itemsControl.ItemsSource;
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   当前ItemsSource类型: {currentItemsSource?.GetType().Name ?? "null"}");
-                    if (currentItemsSource != null)
-                    {
-                        var sourceCollection = currentItemsSource as System.Collections.IList;
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   当前ItemsSource数量: {sourceCollection?.Count ?? 0}");
-
-                        // 输出ItemsSource的HashCode，用于验证是否是正确的集合
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   ItemsSource Hash: {currentItemsSource.GetHashCode()}");
-                    }
-
-                    // 检查绑定表达式
-                    var bindingExpression = itemsControl.GetBindingExpression(ItemsControl.ItemsSourceProperty);
-                    if (bindingExpression != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   绑定路径: {bindingExpression.ParentBinding.Path.Path}");
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   绑定源: {bindingExpression.ResolvedSource?.GetType().Name ?? "null"}");
-                        if (bindingExpression.ResolvedSource is WorkflowTabViewModel resolvedTab)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   绑定源 Tab Name: {resolvedTab.Name}");
-                            System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   绑定源 Tab Id: {resolvedTab.Id}");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   ⚠ 没有绑定表达式");
-                    }
-                }
 
                 int refreshed = 0;
                 foreach (var itemsControl in itemsControls)
                 {
-                    // 🔥 关键修复：使用BindingExpression.UpdateTarget()而不是重新设置ItemsSource
-                    // 这样可以保留XAML中定义的绑定表达式
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ── 刷新 ItemsControl ──");
-
                     // 获取绑定表达式
                     var bindingExpression = itemsControl.GetBindingExpression(ItemsControl.ItemsSourceProperty);
                     if (bindingExpression != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   找到绑定表达式: {bindingExpression.ParentBinding.Path.Path}");
-
                         // 刷新绑定表达式，强制重新从DataContext读取数据
                         bindingExpression.UpdateTarget();
-
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   ✅ 已刷新绑定表达式");
-
-                        // 验证刷新后的ItemsSource
-                        var newItemsSource = itemsControl.ItemsSource;
-                        int newCount = newItemsSource != null ? newItemsSource.Cast<object>().Count() : 0;
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   刷新后ItemsSource数量: {newCount}");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   ⚠ 没有绑定表达式，尝试手动绑定...");
-
                         // 如果没有绑定表达式，可能是因为绑定还没有建立
                         // 我们需要手动触发DataContextChanged事件
                         var oldDataContext = itemsControl.DataContext;
                         itemsControl.DataContext = null;
                         itemsControl.DataContext = oldDataContext;
-
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   ✅ 已触发DataContextChanged");
                     }
 
                     refreshed++;
-                    System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ✅ ItemsControl刷新完成");
-
-                    // 🔥 关键诊断：验证DataContext是否更新
-                    var itemsControlDataContext = itemsControl.DataContext;
-                    if (itemsControlDataContext is WorkflowTabViewModel tabAfterRefresh)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   刷新后DataContext Tab: {tabAfterRefresh.Name} (Id: {tabAfterRefresh.Id})");
-                    }
                 }
-
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ✅ 成功刷新 {refreshed}/{itemsControls.Count} 个 ItemsControl");
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ════════════════════════════════════");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls] ❌ 刷新失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   异常类型: {ex.GetType().Name}");
-                System.Diagnostics.Debug.WriteLine($"[ForceRefreshItemsControls]   堆栈: {ex.StackTrace}");
+                // 忽略异常
             }
         }
 
@@ -434,16 +352,6 @@ namespace SunEyeVision.UI.Controls
             InitializeComponent();
 
             // 验证BoundingRectangle元素
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] 开始初始化");
-
-            if (BoundingRectangle == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? BoundingRectangle为null，XAML解析失败！");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? BoundingRectangle元素加载成功");
-            }
 
             // 禁用设备像素对齐，启用亚像素渲染
             this.SnapsToDevicePixels = false;
@@ -454,19 +362,12 @@ namespace SunEyeVision.UI.Controls
 
             Loaded += WorkflowCanvasControl_Loaded;
 
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] 初始化完成");
-
             // 初始化临时连接线
             _tempConnectionLine = this.FindName("TempConnectionLine") as Path;
             _tempConnectionGeometry = this.FindName("TempConnectionGeometry") as PathGeometry;
-            if (_tempConnectionLine == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? 无法找到TempConnectionLine元素");
-            }
-            else
+            if (_tempConnectionLine != null)
             {
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas 构造函数] ? TempConnectionLine初始化成功");
             }
 
             // 初始化辅助类
@@ -475,34 +376,34 @@ namespace SunEyeVision.UI.Controls
 
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ════════════════════════════════════");
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ✅ WorkflowCanvasControl Loaded Event Triggered");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ════════════════════════════════════");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ✅ WorkflowCanvasControl Loaded Event Triggered");
 
             // 检查DataContext
             var dataContext = DataContext;
-            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] DataContext: {dataContext?.GetType().Name ?? "null"}");
+            // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] DataContext: {dataContext?.GetType().Name ?? "null"}");
             if (dataContext is WorkflowTabViewModel workflowTab)
             {
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Tab Name: {workflowTab.Name}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Tab Id: {workflowTab.Id}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Nodes Count: {workflowTab.WorkflowNodes?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Connections Count: {workflowTab.WorkflowConnections?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   CurrentScale: {workflowTab.CurrentScale:P0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   ScaleTransform Hash: {workflowTab.ScaleTransform?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowNodes Hash: {workflowTab.WorkflowNodes?.GetHashCode() ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowConnections Hash: {workflowTab.WorkflowConnections?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Tab Name: {workflowTab.Name}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Tab Id: {workflowTab.Id}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Nodes Count: {workflowTab.WorkflowNodes?.Count ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   Connections Count: {workflowTab.WorkflowConnections?.Count ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   CurrentScale: {workflowTab.CurrentScale:P0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   ScaleTransform Hash: {workflowTab.ScaleTransform?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowNodes Hash: {workflowTab.WorkflowNodes?.GetHashCode() ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowConnections Hash: {workflowTab.WorkflowConnections?.GetHashCode() ?? 0}");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ⚠ DataContext is not WorkflowTabViewModel!");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ⚠ DataContext is not WorkflowTabViewModel!");
             }
 
             // 添加调试：检查 ItemsControl 的绑定
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] 🔍 检查 UI 元素绑定...");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] 🔍 检查 UI 元素绑定...");
             var nodesItemsControl = this.FindName("WorkflowCanvas") as Canvas;
             if (nodesItemsControl != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowCanvas 元素存在");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowCanvas 元素存在");
             }
 
             // 获取 MainWindowViewModel
@@ -511,37 +412,37 @@ namespace SunEyeVision.UI.Controls
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
                 if (_viewModel != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ MainWindowViewModel 获取成功");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ MainWindowViewModel 获取成功");
 
                     // 初始化辅助类（需要ViewModel）
                     if (_portHighlighter == null)
                     {
                         _portHighlighter = new WorkflowPortHighlighter(_viewModel);
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ PortHighlighter 初始化成功");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ PortHighlighter 初始化成功");
                     }
                     if (_connectionCreator == null)
                     {
                         _connectionCreator = new WorkflowConnectionCreator(_viewModel);
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ ConnectionCreator 初始化成功");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ ConnectionCreator 初始化成功");
                     }
 
                     // 初始化端口位置查询服务（完全解耦方案）
                     if (_portPositionService == null)
                     {
                         _portPositionService = new PortPositionService(WorkflowCanvas, NodeStyles.Standard);
-                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ PortPositionService 初始化成功");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ✅ PortPositionService 初始化成功");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ⚠ MainWindowViewModel 获取失败");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ⚠ MainWindowViewModel 获取失败");
                 }
             }
 
             // 注意：ConnectionPathCache 的初始化已移到 OnDataContextChanged 方法中
             // 这样可以确保在 DataContext 设置后立即初始化，避免 PathCache 为 null 的问题
 
-            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ════════════════════════════════════");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ════════════════════════════════════");
         }
 
         /// <summary>
@@ -612,13 +513,9 @@ namespace SunEyeVision.UI.Controls
         private void Node_MouseEnter(object sender, MouseEventArgs e)
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
-            {
-                if (!_isDraggingConnection)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[NodeEnter] 节点:{node.Name} 位置:({node.Position.X:F0},{node.Position.Y:F0}) 显示端口");
-                }
-                SetPortsVisibility(border, true);
-            }
+        {
+            SetPortsVisibility(border, true);
+        }
         }
 
         /// <summary>
@@ -697,7 +594,6 @@ namespace SunEyeVision.UI.Controls
             if (border.Tag is WorkflowNode node)
             {
                 var ellipses = WorkflowVisualHelper.FindAllVisualChildren<Ellipse>(border);
-                int portCount = 0;
                 foreach (var ellipse in ellipses)
                 {
                     var ellipseName = ellipse.Name ?? "";
@@ -706,12 +602,7 @@ namespace SunEyeVision.UI.Controls
                         // 使用 Visibility.Collapsed 而不是 Opacity，确保端口不响应鼠标事件
                         // Collapsed 的元素不可见且不响应鼠标事件
                         ellipse.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
-                        portCount++;
                     }
-                }
-                if (portCount > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[PortsVis] 节点:{node.Name} 端口:{(isVisible?"显示":"隐藏")} 数量:{portCount}");
                 }
             }
         }
@@ -788,49 +679,61 @@ namespace SunEyeVision.UI.Controls
         {
             if (_isDragging && _draggedNode != null)
             {
-                // 拖拽结束，执行批量移动命令
+                // 🔥 减少日志输出以提高性能
+                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ========== 节点释放 [{DateTime.Now:HH:mm:ss.fff}] ==========");
+
+                // 拖拽结束
                 if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
                 {
                     var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
                         .Where(n => n.IsSelected)
                         .ToList();
 
-                    if (selectedNodes.Count > 0)
+                    if (selectedNodes.Count > 0 && _selectedNodesInitialPositions != null)
                     {
-                        // 计算统一的移动偏移量
-                        Vector delta = new Vector(0, 0);
-                        if (_selectedNodesInitialPositions != null && selectedNodes.Count > 0)
-                        {
-                            delta = new Vector(
-                                selectedNodes[0].Position.X - _selectedNodesInitialPositions[0].X,
-                                selectedNodes[0].Position.Y - _selectedNodesInitialPositions[0].Y
-                            );
-                        }
+                        // 计算统一的移动偏移量（从初始位置到当前位置）
+                        var delta = new Vector(
+                            selectedNodes[0].Position.X - _selectedNodesInitialPositions[0].X,
+                            selectedNodes[0].Position.Y - _selectedNodesInitialPositions[0].Y
+                        );
 
-                        // 如果有移动，执行批量移动命令
-                        if (delta.X != 0 || delta.Y != 0)
-                        {
-                            var batchCommand = new Commands.BatchMoveNodesCommand(
-                                new List<WorkflowNode>(selectedNodes),
-                                delta
-                            );
-                            _viewModel.WorkflowTabViewModel.SelectedTab.CommandManager.Execute(batchCommand);
+                        /*
+                        System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   移动偏移量: ({delta.X:F1}, {delta.Y:F1})");
+                        System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   节点数: {selectedNodes.Count}");
+                        System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   节点当前位置: ({selectedNodes[0].Position.X:F1}, {selectedNodes[0].Position.Y:F1})");
+                        System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   节点初始位置: ({_selectedNodesInitialPositions[0].X:F1}, {_selectedNodesInitialPositions[0].Y:F1})");
+                        */
 
-                            // 拖拽结束后，强制更新所有相关连接的缓存
-                            if (_connectionPathCache != null)
+                        // 🔥 关键修复：不要再次执行 BatchMoveNodesCommand
+                        // 因为节点位置已经在 Node_MouseMove 中被更新了
+                        // 如果这里再执行一次，会导致节点被移动两次
+
+                        // 拖拽结束后，强制更新所有相关连接的缓存
+                        if (_connectionPathCache != null)
+                        {
+                            foreach (var node in selectedNodes)
                             {
-                                foreach (var node in selectedNodes)
-                                {
-                                    _connectionPathCache.MarkNodeDirty(node.Id);
-                                }
+                                _connectionPathCache.MarkNodeDirty(node.Id);
+                                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   已标记节点 {node.Name} 为脏");
                             }
                         }
+
+                        // 🔥 使用批量延迟更新管理器：立即执行所有待处理的更新
+                        if (_batchUpdateManager != null)
+                        {
+                            _batchUpdateManager.ForceUpdateAll();
+                            // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] 已强制执行所有待处理的连接更新");
+                        }
+
+                        // 🔥 TODO: 如果需要支持撤销/重做，需要在这里创建并执行命令
+                        // 但是要确保命令不会重复移动节点
                     }
                 }
 
                 _isDragging = false;
                 _draggedNode = null!;
                 (sender as Border)?.ReleaseMouseCapture();
+                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   拖拽已结束，_isDragging={_isDragging}");
             }
         }
 
@@ -846,16 +749,21 @@ namespace SunEyeVision.UI.Controls
             if (_isDragging && _draggedNode != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(WorkflowCanvas);
-                var now = DateTime.Now;
-                var shouldUpdateConnections = (now - _lastConnectionUpdateTime).TotalMilliseconds >= ConnectionUpdateIntervalMs;
 
-                // 批量移动所有选中的节点
-                if (_viewModel?.WorkflowTabViewModel.SelectedTab != null &&
-                    _selectedNodesInitialPositions != null)
-                {
-                    var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
-                        .Where(n => n.IsSelected)
-                        .ToList();
+                // 🔥 减少日志输出以提高性能
+                // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 拖拽节点: {_draggedNode.Name} (Id: {_draggedNode.Id})");
+                // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   当前位置: ({currentPosition.X:F1}, {currentPosition.Y:F1})");
+
+                    // 批量移动所有选中的节点
+                    if (_viewModel?.WorkflowTabViewModel.SelectedTab != null &&
+                        _selectedNodesInitialPositions != null)
+                    {
+                        var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                            .Where(n => n.IsSelected)
+                            .ToList();
+
+                        // 🔥 减少日志输出以提高性能
+                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   选中节点数: {selectedNodes.Count}");
 
                     // 计算从拖动开始到现在的总偏移量
                     var totalOffset = currentPosition - _startDragPosition;
@@ -869,14 +777,12 @@ namespace SunEyeVision.UI.Controls
                         selectedNodes[i].Position = newPos;
                     }
 
-                    // 节流更新连接线缓存
-                    if (shouldUpdateConnections && _connectionPathCache != null)
+                    // 🔥 使用批量延迟更新管理器（方案3）
+                    if (_batchUpdateManager != null)
                     {
-                        foreach (var node in selectedNodes)
-                        {
-                            _connectionPathCache.MarkNodeDirty(node.Id);
-                        }
-                        _lastConnectionUpdateTime = now;
+                        var nodeIds = selectedNodes.Select(n => n.Id).ToList();
+                        _batchUpdateManager.ScheduleUpdateForNodes(nodeIds);
+                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 已调度 {nodeIds.Count} 个节点的批量更新");
                     }
                 }
                 else
@@ -888,11 +794,14 @@ namespace SunEyeVision.UI.Controls
                         _initialNodePosition.Y + offset.Y
                     );
 
-                    // 节流更新连接线缓存
-                    if (shouldUpdateConnections && _connectionPathCache != null)
+                    // 🔥 减少日志输出以提高性能
+                    // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   新位置: ({_draggedNode.Position.X:F1}, {_draggedNode.Position.Y:F1})");
+
+                    // 🔥 使用批量延迟更新管理器（方案3）
+                    if (_batchUpdateManager != null)
                     {
-                        _connectionPathCache.MarkNodeDirty(_draggedNode.Id);
-                        _lastConnectionUpdateTime = now;
+                        _batchUpdateManager.ScheduleUpdateForNode(_draggedNode.Id);
+                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 已调度单个节点 {_draggedNode.Id} 的批量更新");
                     }
                 }
             }
@@ -1653,10 +1562,6 @@ namespace SunEyeVision.UI.Controls
         private void WorkflowCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             var mousePos = e.GetPosition(WorkflowCanvas);
-            System.Diagnostics.Debug.WriteLine($"[CanvasUp] ========== Canvas鼠标释放 [{DateTime.Now:HH:mm:ss.fff}] ==========");
-            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 拖拽状态: _isDraggingConnection={_isDraggingConnection}, _isBoxSelecting={_isBoxSelecting}");
-            System.Diagnostics.Debug.WriteLine($"[CanvasUp] 临时连接线可见性: {_tempConnectionLine?.Visibility}");
 
             // 立即隐藏临时连接线（在任何逻辑处理之前）
             // 这样可以确保无论后续逻辑如何，临时连接线都被隐藏
@@ -1664,18 +1569,15 @@ namespace SunEyeVision.UI.Controls
             {
                 var oldVisibility = _tempConnectionLine.Visibility;
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 立即隐藏临时连接线 [{DateTime.Now:HH:mm:ss.fff}] 可见性:{oldVisibility}->{_tempConnectionLine.Visibility}");
 
                 // 清除几何数据，避免旧数据残留
                 if (_tempConnectionGeometry != null)
                 {
                     _tempConnectionGeometry.Figures.Clear();
-                    System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 清除临时连接线几何数据");
                 }
 
                 // 强制刷新UI，确保临时连接线立即被隐藏
                 _tempConnectionLine.UpdateLayout();
-                System.Diagnostics.Debug.WriteLine($"[CanvasUp] ✓ 强制刷新临时连接线布局，当前可见性: {_tempConnectionLine.Visibility}");
             }
 
             // 如果正在拖拽连接，尝试创建连接
@@ -2399,4 +2301,3 @@ namespace SunEyeVision.UI.Controls
         }
     }
 }
-

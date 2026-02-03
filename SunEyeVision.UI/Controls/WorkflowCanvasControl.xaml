@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="1" NodeMargin="30"/>
+        <converters:SmartPathMultiConverter x:Key="SmartPathMultiConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:PointOffsetConverter x:Key="PointOffsetConverter"/>
         <converters:NodeDisplayTextConverter x:Key="NodeDisplayTextConverter"/>
@@ -108,15 +109,21 @@
                 <DataTemplate>
                     <Canvas>
                         <!-- 连接线 -->
-                        <Path Data="{Binding Path=., Converter={StaticResource SmartPathConverter}}"
-                              Stroke="{Binding StatusColor}" StrokeThickness="2"
-                              StrokeLineJoin="Round"
-                              Cursor="Hand"
-                              Loaded="Path_Loaded"
+                        <Path Loaded="Path_Loaded"
                               DataContextChanged="Path_DataContextChanged"
                               MouseLeftButtonDown="ConnectionLine_MouseLeftButtonDown">
+                            <Path.Data>
+                                <MultiBinding Converter="{StaticResource SmartPathMultiConverter}">
+                                    <Binding Path="."/>
+                                    <Binding Path="PathUpdateCounter"/>
+                                </MultiBinding>
+                            </Path.Data>
                             <Path.Style>
                                 <Style TargetType="Path">
+                                    <Setter Property="Stroke" Value="{Binding StatusColor}"/>
+                                    <Setter Property="StrokeThickness" Value="2"/>
+                                    <Setter Property="StrokeLineJoin" Value="Round"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
                                     <Setter Property="Effect">
                                         <Setter.Value>
                                             <DropShadowEffect Color="#666666" BlurRadius="2" ShadowDepth="1" Opacity="0.5"/>

@@ -59,20 +59,31 @@ namespace SunEyeVision.UI.Services
         {
             lock (_lockObj)
             {
+                // 🔥 减少日志输出以提高性能
+                // System.Diagnostics.Debug.WriteLine($"[PathCache] GetPath called for connection: {connection.Id}");
+                // System.Diagnostics.Debug.WriteLine($"[PathCache]   Cache size: {_pathCache.Count}, Dirty flags: {_dirtyFlags.Count}");
+
                 if (_pathCache.TryGetValue(connection.Id, out var cachedPath))
                 {
+                    // System.Diagnostics.Debug.WriteLine($"[PathCache]   Found in cache. Checking dirty flag...");
                     if (_dirtyFlags.TryGetValue(connection.Id, out bool isDirty) && isDirty)
                     {
+                        // System.Diagnostics.Debug.WriteLine($"[PathCache]   Cache is DIRTY, recalculating...");
                         var path = CalculatePath(connection);
                         UpdateCache(connection.Id, path);
                         CacheMisses++;
                         return path;
                     }
+                    // else
+                    // {
+                    //     System.Diagnostics.Debug.WriteLine($"[PathCache]   Cache is CLEAN, returning cached. isDirty={isDirty}");
+                    // }
 
                     CacheHits++;
                     return cachedPath.Geometry;
                 }
 
+                // System.Diagnostics.Debug.WriteLine($"[PathCache]   Not in cache, calculating...");
                 var newPath = CalculatePath(connection);
                 UpdateCache(connection.Id, newPath);
                 CacheMisses++;
@@ -96,7 +107,10 @@ namespace SunEyeVision.UI.Services
         {
             lock (_lockObj)
             {
+                // 🔥 减少日志输出以提高性能
+                // System.Diagnostics.Debug.WriteLine($"[PathCache] MarkDirty called for connection: {connection.Id}");
                 _dirtyFlags[connection.Id] = true;
+                // System.Diagnostics.Debug.WriteLine($"[PathCache]   Dirty flag set. Total dirty flags: {_dirtyFlags.Count}");
             }
         }
 
@@ -121,13 +135,19 @@ namespace SunEyeVision.UI.Services
         {
             lock (_lockObj)
             {
+                // 🔥 减少日志输出以提高性能
+                // System.Diagnostics.Debug.WriteLine($"[PathCache] MarkNodeDirty called for node: {nodeId}");
+                // int markedCount = 0;
                 foreach (var kvp in _pathCache)
                 {
                     if (kvp.Value.SourceNodeId == nodeId || kvp.Value.TargetNodeId == nodeId)
                     {
                         _dirtyFlags[kvp.Key] = true;
+                        // markedCount++;
+                        // System.Diagnostics.Debug.WriteLine($"[PathCache]   Marked connection {kvp.Key} as dirty");
                     }
                 }
+                // System.Diagnostics.Debug.WriteLine($"[PathCache]   Marked {markedCount} connections as dirty");
             }
         }
 
@@ -230,18 +250,23 @@ namespace SunEyeVision.UI.Services
                 n.StyleConfig.NodeWidth,
                 n.StyleConfig.NodeHeight)).ToArray();
 
+            // 🔥 减少日志输出以提高性能
+            /*
             // 关键日志：记录路径计算输入和目标节点信息
             System.Diagnostics.Debug.WriteLine($"[PathCache] 计算路径: {connection.Id}");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   源节点:{sourceNode.Name} 位置:({sourceNode.Position.X:F1},{sourceNode.Position.Y:F1}), 端口:{connection.SourcePort}({sourcePos.X:F1},{sourcePos.Y:F1})");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点:{targetNode.Name} 位置:({targetNode.Position.X:F1},{targetNode.Position.Y:F1}), 端口:{connection.TargetPort}({targetPos.X:F1},{targetPos.Y:F1})");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   源节点边界:({sourceNodeRect.X:F1},{sourceNodeRect.Y:F1},{sourceNodeRect.Width:F1}x{sourceNodeRect.Height:F1})");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   目标节点边界:({targetNodeRect.X:F1},{targetNodeRect.Y:F1},{targetNodeRect.Width:F1}x{targetNodeRect.Height:F1})");
+            */
 
             // 根据端口方向计算箭头尾部位置（路径终点）
             var arrowTailPos = CalculateArrowTailPosition(targetPos, targetDirection);
 
+            /*
             System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口位置（箭头尖端）:({targetPos.X:F1},{targetPos.Y:F1})");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   箭头尾部位置（路径终点）:({arrowTailPos.X:F1},{arrowTailPos.Y:F1})");
+            */
 
             // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检测
             var pathPoints = _pathCalculator.CalculateOrthogonalPath(
@@ -253,9 +278,10 @@ namespace SunEyeVision.UI.Services
                 targetNodeRect,  // 目标节点边界
                 allNodeRects);   // 所有节点边界（用于碰撞检测）
 
+            // 🔥 减少日志输出以提高性能
             // 关键日志：记录路径终点位置
-            var lastPoint = pathPoints[pathPoints.Length - 1];
-            System.Diagnostics.Debug.WriteLine($"[PathCache]   路径终点:({lastPoint.X:F1},{lastPoint.Y:F1}), 距目标端口X:{lastPoint.X - targetPos.X:F1}px, Y:{lastPoint.Y - targetPos.Y:F1}px");
+            // var lastPoint = pathPoints[pathPoints.Length - 1];
+            // System.Diagnostics.Debug.WriteLine($"[PathCache]   路径终点:({lastPoint.X:F1},{lastPoint.Y:F1}), 距目标端口X:{lastPoint.X - targetPos.X:F1}px, Y:{lastPoint.Y - targetPos.Y:F1}px");
 
             // 创建路径几何
             var pathGeometry = _pathCalculator.CreatePathGeometry(pathPoints);
@@ -268,10 +294,13 @@ namespace SunEyeVision.UI.Services
             connection.ArrowPosition = arrowPosition;
             connection.ArrowAngle = arrowAngle;
 
+            /*
             // 关键日志：记录路径计算结果
+            var lastPoint = pathPoints[pathPoints.Length - 1];
             System.Diagnostics.Debug.WriteLine($"[PathCache] 路径计算完成: {connection.Id}, 箭头角度{arrowAngle:F1}°, 路径点数{pathPoints.Length}");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   箭头渲染位置:({arrowPosition.X:F1},{arrowPosition.Y:F1}), 距目标端口X:{arrowPosition.X - targetPos.X:F1}px, Y:{arrowPosition.Y - targetPos.Y:F1}px");
             System.Diagnostics.Debug.WriteLine($"[PathCache]   目标端口方向:{targetDirection}, 路径终点{(lastPoint.X >= targetNode.Position.X && lastPoint.X <= targetNode.Position.X + targetNode.StyleConfig.NodeWidth && lastPoint.Y >= targetNode.Position.Y && lastPoint.Y <= targetNode.Position.Y + targetNode.StyleConfig.NodeHeight ? "在节点内" : "在节点外")}");
+            */
 
             return pathGeometry;
         }

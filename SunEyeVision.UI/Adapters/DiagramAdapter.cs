@@ -23,7 +23,6 @@ namespace SunEyeVision.UI.Adapters
 
         public DiagramAdapter()
         {
-            System.Diagnostics.Debug.WriteLine("[DiagramAdapter] ✅ 初始化成功（直接引用类型）");
         }
 
         /// <summary>
@@ -31,8 +30,6 @@ namespace SunEyeVision.UI.Adapters
         /// </summary>
         public object CreateNode(WorkflowNode workflowNode)
         {
-            System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] CreateNode: {workflowNode.Id} -> {workflowNode.Name}");
-
             // 缓存 WorkflowNode，稍后在 SyncNodes 中创建实际的 ViewModel
             _nodeMap[workflowNode.Id] = null!;
 
@@ -56,8 +53,6 @@ namespace SunEyeVision.UI.Adapters
             // 缓存映射
             _nodeMap[workflowNode.Id] = nativeNode;
 
-            System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] 创建节点: {workflowNode.Id} -> {workflowNode.Name} at ({workflowNode.Position.X}, {workflowNode.Position.Y})");
-
             return nativeNode;
         }
 
@@ -76,7 +71,6 @@ namespace SunEyeVision.UI.Adapters
         public object CreateConnection(WorkflowConnection workflowConnection)
         {
             // 暂时返回 null，实际创建在 SyncConnections 中完成
-            System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] CreateConnection: {workflowConnection.Id} ({workflowConnection.SourceNodeId} -> {workflowConnection.TargetNodeId})");
             return null!;
         }
 
@@ -105,7 +99,6 @@ namespace SunEyeVision.UI.Adapters
 
             if (sourceConnector == null || targetConnector == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 连接端口为空");
                 throw new InvalidOperationException("连接端口为空");
             }
 
@@ -123,8 +116,6 @@ namespace SunEyeVision.UI.Adapters
 
             // 缓存映射
             _connectionMap[workflowConnection.Id] = nativeConnection;
-
-            System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ✅ 创建贝塞尔连接: {workflowConnection.Id} ({workflowConnection.SourceNodeId} -> {workflowConnection.TargetNodeId})");
 
             return nativeConnection;
         }
@@ -155,12 +146,9 @@ namespace SunEyeVision.UI.Adapters
                     diagramViewModel.Add(nativeNode);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ✅ 同步节点: {nodes.Count()} 个");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 同步节点失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] 堆栈: {ex.StackTrace}");
                 throw;
             }
         }
@@ -191,7 +179,7 @@ namespace SunEyeVision.UI.Adapters
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 创建连接失败: {connection.Id} - {ex.Message}");
+                        // 忽略单个连接创建失败
                     }
                 }
 

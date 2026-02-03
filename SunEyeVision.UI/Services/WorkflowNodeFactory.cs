@@ -28,13 +28,8 @@ namespace SunEyeVision.UI.Services
 
             string workflowIdSafe = workflowId ?? Guid.NewGuid().ToString();
 
-            System.Diagnostics.Debug.WriteLine($"[WorkflowNodeFactory] Creating node: Type={algorithmType}, WorkflowId={workflowIdSafe}");
-
             int localIndex = _sequenceManager.GetNextLocalIndex(workflowIdSafe, algorithmType);
-            System.Diagnostics.Debug.WriteLine($"[WorkflowNodeFactory] LocalIndex assigned: {localIndex}");
-
             int globalIndex = _sequenceManager.GetNextGlobalIndex();
-            System.Diagnostics.Debug.WriteLine($"[WorkflowNodeFactory] GlobalIndex assigned: {globalIndex}");
 
             var node = new WorkflowModel.WorkflowNode(
                 Guid.NewGuid().ToString(),
@@ -46,8 +41,6 @@ namespace SunEyeVision.UI.Services
 
             // 使用显示适配器设置图标
             node.NodeTypeIcon = _displayAdapter.GetIcon(node);
-
-            System.Diagnostics.Debug.WriteLine($"[WorkflowNodeFactory] Node created successfully: Name={node.Name}, LocalIndex={node.Index}, GlobalIndex={node.GlobalIndex}");
 
             return node;
         }

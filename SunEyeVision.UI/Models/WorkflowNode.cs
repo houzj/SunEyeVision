@@ -309,6 +309,7 @@ namespace SunEyeVision.UI.Models
         private bool _showPathPoints = false;
         private string _pathData = string.Empty;
         private bool _isSelected = false;
+        private int _pathUpdateCounter = 0;
 
         public string Id
         {
@@ -589,6 +590,37 @@ namespace SunEyeVision.UI.Models
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// 路径更新计数器（用于触发绑定更新）
+        /// </summary>
+        public int PathUpdateCounter
+        {
+            get => _pathUpdateCounter;
+            private set
+            {
+                if (_pathUpdateCounter != value)
+                {
+                    _pathUpdateCounter = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 触发路径相关属性的更新（用于节点移动时刷新连接线）
+        /// </summary>
+        public void InvalidatePath()
+        {
+            // 增加更新计数器，强制多值绑定重新计算
+            _pathUpdateCounter++;
+            OnPropertyChanged(nameof(PathUpdateCounter));
+            OnPropertyChanged(nameof(PathData));
+            OnPropertyChanged(nameof(ArrowPosition));
+            OnPropertyChanged(nameof(ArrowAngle));
+            OnPropertyChanged(nameof(ArrowX));
+            OnPropertyChanged(nameof(ArrowY));
         }
     }
 

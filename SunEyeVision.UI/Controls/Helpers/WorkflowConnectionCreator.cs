@@ -31,7 +31,6 @@ namespace SunEyeVision.UI.Controls.Helpers
         {
             if (currentTab == null || currentTab.WorkflowConnections == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ CurrentTab或WorkflowConnections为null");
                 return null;
             }
 
@@ -57,9 +56,6 @@ namespace SunEyeVision.UI.Controls.Helpers
 
             currentTab.WorkflowConnections.Add(newConnection);
 
-            // 关键日志：记录连接创建
-            System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ✓ 创建连接: {sourceNode.Name}({sourcePortName}) -> {targetNode.Name}({targetPortName}), ID:{connectionId}");
-
             return newConnection;
         }
 
@@ -74,13 +70,11 @@ namespace SunEyeVision.UI.Controls.Helpers
         {
             if (currentTab == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ CurrentTab为null");
                 return null;
             }
 
             if (currentTab.WorkflowConnections == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ❌ WorkflowConnections为null");
                 return null;
             }
 
@@ -101,9 +95,6 @@ namespace SunEyeVision.UI.Controls.Helpers
             newConnection.ArrowAngle = 0;
 
             currentTab.WorkflowConnections.Add(newConnection);
-
-            // 关键日志：记录智能连接创建
-            System.Diagnostics.Debug.WriteLine($"[ConnectionCreator] ✓ 智能连接: {sourceNode.Name}({finalSourcePort}) -> {targetNode.Name}({finalTargetPort}), ID:{connectionId}");
 
             _viewModel!.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
 

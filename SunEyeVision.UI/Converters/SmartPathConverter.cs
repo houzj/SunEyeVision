@@ -49,13 +49,14 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is not WorkflowConnection connection || Nodes == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] value is WorkflowConnection: {value is WorkflowConnection}, Nodes is null: {Nodes == null}");
+                // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] value is WorkflowConnection: {value is WorkflowConnection}, Nodes is null: {Nodes == null}");
                 return string.Empty;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Convert called for connection: {connection.Id}");
-            System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   SourceNodeId: '{connection.SourceNodeId}', TargetNodeId: '{connection.TargetNodeId}'");
-            System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   Nodes count: {Nodes.Count}");
+            // 🔥 减少日志输出以提高性能
+            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Convert called for connection: {connection.Id}");
+            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   SourceNodeId: '{connection.SourceNodeId}', TargetNodeId: '{connection.TargetNodeId}'");
+            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   Nodes count: {Nodes.Count}");
 
             try {
                 // 根据 ID 查找源节点和目标节点
@@ -81,23 +82,24 @@ namespace SunEyeVision.UI.Converters
                     var cachedPathData = PathCache.GetPathData(connection);
                     if (!string.IsNullOrEmpty(cachedPathData))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache hit for connection: {connection.Id}");
+                        // 🔥 减少日志输出以提高性能
+                        // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache hit for connection: {connection.Id}");
                         return cachedPathData;
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache miss or empty data for connection: {connection.Id}");
-                    }
+                    // else
+                    // {
+                    //     System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache miss or empty data for connection: {connection.Id}");
+                    // }
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] PathCache is null for connection: {connection.Id}");
-                }
+                // else
+                // {
+                //     System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] PathCache is null for connection: {connection.Id}");
+                // }
 
                 // 生成路径数据
                 string pathData = GeneratePathData(startPoint, endPoint, sourceNode, targetNode);
 
-                System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Generated path data for connection {connection.Id}: {pathData.Substring(0, Math.Min(50, pathData.Length))}...");
+                // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Generated path data for connection {connection.Id}: {pathData.Substring(0, Math.Min(50, pathData.Length))}...");
 
                 // 不在这里缓存，由 ConnectionPathService 负责
 

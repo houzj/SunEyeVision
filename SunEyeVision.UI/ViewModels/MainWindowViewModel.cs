@@ -277,7 +277,6 @@ namespace SunEyeVision.UI.ViewModels
             {
                 Converters.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
-                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Tab 切换 - 更新 SmartPathConverter, Nodes count: {WorkflowTabViewModel.SelectedTab.WorkflowNodes?.Count ?? 0}");
             }
         }
 
@@ -295,7 +294,6 @@ namespace SunEyeVision.UI.ViewModels
                 Controls.CanvasType.NativeDiagram => "原生 Diagram (贝塞尔曲线)",
                 _ => "未知画布"
             };
-                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] 当前画布类型: {CurrentCanvasTypeText}");
             }
             else
             {
