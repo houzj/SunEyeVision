@@ -18,7 +18,7 @@ namespace SunEyeVision.UI.ViewModels
         private bool _isRunning = false;
         private string _status = "就绪";
         private string _selectedWorkflowName = "默认工作流";
-        private string _currentCanvasTypeText = "工作流画布";
+        private string _currentCanvasTypeText = "原生 Diagram (贝塞尔曲线)";
 
         // 图像显示相关
         private BitmapSource? _displayImage;
@@ -288,7 +288,12 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel?.SelectedTab != null)
             {
                 var canvasType = WorkflowTabViewModel.SelectedTab.CanvasType;
-                CurrentCanvasTypeText = canvasType == Controls.CanvasType.WorkflowCanvas ? "工作流画布" : "AI Studio 图表";
+            CurrentCanvasTypeText = canvasType switch
+            {
+                Controls.CanvasType.WorkflowCanvas => "工作流画布",
+                Controls.CanvasType.NativeDiagram => "原生 Diagram (贝塞尔曲线)",
+                _ => "未知画布"
+            };
                 System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] 当前画布类型: {CurrentCanvasTypeText}");
             }
             else

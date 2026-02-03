@@ -5,6 +5,7 @@ using SunEyeVision.UI.Adapters;
 using SunEyeVision.Core.Services;
 using System.Diagnostics;
 using System.Windows.Threading;
+using System.Windows.Data;
 
 namespace SunEyeVision.UI;
 
@@ -13,6 +14,14 @@ namespace SunEyeVision.UI;
 /// </summary>
 public partial class App : Application
 {
+    static App()
+    {
+        // 抑制 AIStudio.Wpf.DiagramDesigner 库内部的绑定警告
+        // 这些警告不影响功能，来自库的默认模板
+        // 只显示 Warning 及以上级别，不显示 Information 级别的绑定信息
+        PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Warning;
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

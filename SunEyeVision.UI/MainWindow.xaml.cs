@@ -11,6 +11,8 @@ using SunEyeVision.UI.Controls;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.ViewModels;
+using AIStudio.Wpf.DiagramDesigner;
+using AIStudio.Wpf.DiagramDesigner.ViewModels;
 
 namespace SunEyeVision.UI
 {
@@ -23,7 +25,7 @@ namespace SunEyeVision.UI
         private readonly MainWindowViewModel _viewModel;
         private bool _isTabItemClick = false;  // 标记是否是通过点击TabItem触发的切换
         private Controls.WorkflowCanvasControl? _currentWorkflowCanvas = null;  // 当前显示的WorkflowCanvasControl
-        private Controls.AIStudioDiagramControl? _currentAIStudioDiagram = null;  // 当前显示的AIStudioDiagramControl
+        private Controls.NativeDiagramControl? _currentNativeDiagram = null;  // 当前显示的NativeDiagramControl
 
         // 画布引擎管理器容器
         public System.Windows.Controls.Decorator CanvasContainer { get; private set; } = new System.Windows.Controls.Decorator();
@@ -74,6 +76,63 @@ namespace SunEyeVision.UI
             CanvasEngineManager.SetDataContext(_viewModel.WorkflowTabViewModel?.SelectedTab);
 
             RegisterHotkeys();
+
+            // 后台切换到NativeDiagramControl（使用原生AIStudio.Wpf.DiagramDesigner库）
+            SwitchToDefaultConfiguration();
+        }
+
+        /// <summary>
+        /// 切换到默认配置：NativeDiagramControl画布（使用贝塞尔曲线）
+        /// </summary>
+        private void SwitchToDefaultConfiguration()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 开始切换到默认配置 ==========");
+
+                // 切换画布到NativeDiagramControl（原生AIStudio.Wpf.DiagramDesigner库）
+                if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.NativeDiagram;
+                    _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 NativeDiagramControl（使用贝塞尔曲线）");
+                }
+
+                // NativeDiagramControl 使用原生贝塞尔曲线，无需路径计算器设置
+
+                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 默认配置切换完成 ==========");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 切换默认配置失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// NativeDiagramControl Loaded事件处理
+        /// </summary>
+        private void NativeDiagramControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] NativeDiagramControl_Loaded 事件触发");
+
+            // 缓存 NativeDiagramControl 引用
+            if (sender is Controls.NativeDiagramControl nativeDiagram)
+            {
+                _currentNativeDiagram = nativeDiagram;
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 已缓存 NativeDiagramControl 引用");
+
+                // 延迟更新缩放显示，确保DiagramViewModel已初始化
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    UpdateZoomDisplay();
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] NativeDiagramControl加载后更新缩放显示");
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ sender 不是 NativeDiagramControl 类型: {sender?.GetType().Name ?? "null"}");
+            }
         }
 
         /// <summary>
@@ -127,17 +186,14 @@ namespace SunEyeVision.UI
                     System.Diagnostics.Debug.WriteLine($"[MainWindow] SmartPathConverter 初始化 - Nodes count: {_viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes?.Count ?? 0}");
                 }
 
-                // TODO: 加载工作流
-
-                // 延时测试矩形显示（等待所有布局完成）
-                System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
-                timer.Interval = TimeSpan.FromSeconds(2);
-                timer.Tick += (s, args) =>
+                // 初始化缩放显示
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    timer.Stop();
-                    TestBoundingRectangle();
-                };
-                timer.Start();
+                    UpdateZoomDisplay();
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] 初始化缩放显示完成");
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+
+                // TODO: 加载工作流
             }
             catch (Exception ex)
             {
@@ -146,210 +202,6 @@ namespace SunEyeVision.UI
                     "加载失败",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
-            }
-        }
-
-        /// <summary>
-        /// 测试BoundingRectangle显示
-        /// </summary>
-        private void TestBoundingRectangle()
-        {
-            System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ========== 开始测试矩形显示 ==========");
-
-            try
-            {
-                // 获取TabControl
-                var tabControl = this.FindName("WorkflowTabControl") as TabControl;
-                if (tabControl == null)
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 无法找到TabControl");
-                    return;
-                }
-
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ 找到TabControl，Tab数量: {tabControl.Items.Count}");
-
-                // 获取选中的TabItem
-                if (tabControl.SelectedIndex < 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 没有选中的Tab");
-                    return;
-                }
-
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ 选中的Tab索引: {tabControl.SelectedIndex}");
-
-                // 从TabItem的Content中查找WorkflowCanvasControl
-                var tabItem = tabControl.ItemContainerGenerator.ContainerFromIndex(tabControl.SelectedIndex) as TabItem;
-                if (tabItem == null)
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ 无法获取TabItem");
-                    return;
-                }
-
-                System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 获取到TabItem");
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] TabItem.Content类型: {tabItem.Content?.GetType().Name ?? "null"}");
-
-                // 检查ScrollViewer
-                var scrollViewers = FindVisualChildren<ScrollViewer>(tabItem).ToList();
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ScrollViewer count: {scrollViewers.Count}");
-                foreach (var sv in scrollViewers)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ScrollViewer Visibility: {sv.Visibility}, Background: {sv.Background}");
-                }
-
-                // 声明 workflowCanvas 变量，以便在整个方法中使用
-                WorkflowCanvasControl? workflowCanvas = null;
-
-                // 直接使用已保存的控件引用
-                if (_currentWorkflowCanvas != null)
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 使用已保存的WorkflowCanvasControl引用");
-                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] WorkflowCanvasControl.Visibility: {_currentWorkflowCanvas.Visibility}");
-
-                    // 查找WorkflowCanvasControl的父级ScrollViewer
-                    var workflowScrollViewer = FindVisualParent<ScrollViewer>(_currentWorkflowCanvas);
-                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] WorkflowCanvas的ScrollViewer: {(workflowScrollViewer != null ? workflowScrollViewer.Visibility.ToString() : "null")}");
-
-                    // 强制显示测试矩形
-                    if (_currentWorkflowCanvas.BoundingRectangle != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {_currentWorkflowCanvas.BoundingRectangle.Visibility}");
-
-                        _currentWorkflowCanvas.BoundingRectangle.Visibility = Visibility.Visible;
-                        Canvas.SetLeft(_currentWorkflowCanvas.BoundingRectangle, 200);
-                        Canvas.SetTop(_currentWorkflowCanvas.BoundingRectangle, 200);
-                        _currentWorkflowCanvas.BoundingRectangle.Width = 300;
-                        _currentWorkflowCanvas.BoundingRectangle.Height = 150;
-
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 矩形已设置为可见");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 位置: (200, 200)");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 大小: 300 x 150");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 颜色: 红色");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ BoundingRectangle为null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ _currentWorkflowCanvas为null");
-
-                    // 尝试传统方式查找
-                    workflowCanvas = FindVisualChild<WorkflowCanvasControl>(tabItem);
-                    if (workflowCanvas == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
-
-                        // 尝试从tabItem.Content查找（如果Content是UI元素）
-                        if (tabItem.Content is DependencyObject contentObj)
-                        {
-                            workflowCanvas = FindVisualChild<WorkflowCanvasControl>(contentObj);
-                            System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
-                    }
-                }
-
-                if (workflowCanvas != null)
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ====== 开始设置矩形 ==========");
-
-                    // 强制显示测试矩形
-                    if (workflowCanvas.BoundingRectangle != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {workflowCanvas.BoundingRectangle.Visibility}");
-
-                        workflowCanvas.BoundingRectangle.Visibility = Visibility.Visible;
-                        Canvas.SetLeft(workflowCanvas.BoundingRectangle, 200);
-                        Canvas.SetTop(workflowCanvas.BoundingRectangle, 200);
-                        workflowCanvas.BoundingRectangle.Width = 300;
-                        workflowCanvas.BoundingRectangle.Height = 150;
-
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 矩形已设置为可见");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 位置: (200, 200)");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 大小: 300 x 150");
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 颜色: 红色");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ BoundingRectangle为null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ WorkflowCanvasControl为null");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ❌ 异常: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 堆栈: {ex.StackTrace}");
-            }
-
-            System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ========== 测试完成 ==========");
-        }
-
-        /// <summary>
-        /// 检查画布ScrollViewer的Visibility状态
-        /// </summary>
-        private void CheckCanvasVisibility()
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] ========== 开始检查画布Visibility ==========");
-
-                // 获取当前选中的TabItem
-                var selectedItem = WorkflowTabControl.SelectedItem;
-                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] SelectedTab type: {selectedItem?.GetType().Name ?? "null"}");
-
-                if (selectedItem is ViewModels.WorkflowTabViewModel tabViewModel)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] TabViewModel.Name: {tabViewModel.Name}");
-                    System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
-
-                    // 查找当前TabItem的ContentPresenter
-                    var tabItem = FindVisualChild<System.Windows.Controls.TabItem>(WorkflowTabControl);
-                    if (tabItem != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 找到TabItem: {tabItem.Name}");
-
-                        // 查找ScrollViewer
-                        var scrollViewer = FindVisualChild<ScrollViewer>(tabItem);
-                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer count: {FindVisualChildren<ScrollViewer>(tabItem).Count()}");
-
-                        var scrollViewers = FindVisualChildren<ScrollViewer>(tabItem).ToList();
-                        foreach (var sv in scrollViewers)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer Visibility: {sv.Visibility}");
-                            System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer Background: {sv.Background}");
-                        }
-
-                        // 查找两个ScrollViewer
-                        var workflowScrollViewer = scrollViewers.FirstOrDefault(sv => sv.Background.ToString().Contains("F5F8FC") || sv.Background.ToString().Contains("255, 245, 252"));
-                        var aiStudioScrollViewer = scrollViewers.FirstOrDefault(sv => sv.Background.ToString().Contains("1A1A2E") || sv.Background.ToString().Contains("26, 26, 46"));
-
-                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] Workflow ScrollViewer: {(workflowScrollViewer != null ? $"Visibility={workflowScrollViewer.Visibility}" : "null")}");
-                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] AIStudio ScrollViewer: {(aiStudioScrollViewer != null ? $"Visibility={aiStudioScrollViewer.Visibility}" : "null")}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] TabItem is null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] SelectedTab is not WorkflowTabViewModel");
-                }
-
-                System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] ========== 检查完成 ==========");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 错误: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 堆栈: {ex.StackTrace}");
             }
         }
 
@@ -378,6 +230,9 @@ namespace SunEyeVision.UI
             System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] ===== WorkflowCanvasControl Loaded Event Fired =====");
             System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender type: {sender?.GetType().Name}");
             System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender is WorkflowCanvasControl: {sender is Controls.WorkflowCanvasControl}");
+
+            // 清除 NativeDiagram 缓存（当前加载的是 WorkflowCanvas）
+            _currentNativeDiagram = null;
 
             if (sender is Controls.WorkflowCanvasControl workflowCanvas)
             {
@@ -415,65 +270,13 @@ namespace SunEyeVision.UI
 
                 // 立即根据CanvasType更新Visibility
                 UpdateCanvasVisibility();
-            }
-        }
 
-        /// <summary>
-        /// AIStudioDiagramControl加载事件 - 保存引用
-        /// </summary>
-        private void AIStudioDiagramControl_Loaded(object sender, RoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] ===== AIStudioDiagramControl Loaded Event Fired =====");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] sender type: {sender?.GetType().Name}");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] sender is AIStudioDiagramControl: {sender is Controls.AIStudioDiagramControl}");
-
-            if (sender is Controls.AIStudioDiagramControl aiStudioDiagram)
-            {
-                _currentAIStudioDiagram = aiStudioDiagram;
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl已加载并保存引用");
-
-                // 检查DataContext
-                var dataContext = aiStudioDiagram.DataContext;
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl.DataContext type: {dataContext?.GetType().Name ?? "null"}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl.DataContext is WorkflowTabViewModel: {dataContext is ViewModels.WorkflowTabViewModel}");
-
-                // 如果DataContext为null，手动设置为当前选中的Tab
-                if (dataContext == null && _viewModel?.WorkflowTabViewModel?.SelectedTab != null)
+                // 延迟更新缩放显示
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] DataContext为null，手动设置为SelectedTab");
-                    aiStudioDiagram.DataContext = _viewModel.WorkflowTabViewModel.SelectedTab;
-                    dataContext = aiStudioDiagram.DataContext;
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 手动设置后DataContext type: {dataContext?.GetType().Name ?? "null"}");
-                }
-
-                // 订阅DataContextChanged事件，以便在CanvasType变化时更新Visibility
-                aiStudioDiagram.DataContextChanged += (s, args) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl DataContextChanged] CanvasType更新Visibility");
-                    UpdateCanvasVisibility();
-                };
-
-                if (dataContext is ViewModels.WorkflowTabViewModel tabViewModel)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
-                }
-
-                // 初始化DiagramControl
-                aiStudioDiagram.Initialize();
-
-                // 订阅事件
-                aiStudioDiagram.NodeAdded += (s, args) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagram: 节点已添加");
-                };
-
-                aiStudioDiagram.ConnectionAdded += (s, args) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagram: 连接已添加");
-                };
-
-                // 立即根据CanvasType更新Visibility
-                UpdateCanvasVisibility();
+                    UpdateZoomDisplay();
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] WorkflowCanvasControl加载后更新缩放显示");
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }
 
@@ -511,17 +314,7 @@ namespace SunEyeVision.UI
                         }
                     }
 
-                    // 查找AIStudioDiagramControl的父级ScrollViewer
-                    if (_currentAIStudioDiagram != null)
-                    {
-                        var aiStudioScrollViewer = FindVisualParent<ScrollViewer>(_currentAIStudioDiagram);
-                        if (aiStudioScrollViewer != null)
-                        {
-                            var shouldShow = canvasType == CanvasType.AIStudioDiagram;
-                            aiStudioScrollViewer.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
-                            System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] AIStudioDiagram ScrollViewer Visibility设置为: {aiStudioScrollViewer.Visibility}");
-                        }
-                    }
+
                 }
             }
             catch (Exception ex)
@@ -647,6 +440,8 @@ namespace SunEyeVision.UI
                     var currentScale = workflow.CurrentScale;
                     ApplyZoom(currentScale, currentScale);
                 }
+                // 更新缩放显示
+                UpdateZoomDisplay();
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
@@ -1023,6 +818,195 @@ namespace SunEyeVision.UI
         #region 缩放功能
 
         /// <summary>
+        /// 获取当前活动的NativeDiagramControl
+        /// </summary>
+        private NativeDiagramControl? GetCurrentNativeDiagramControl()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetCurrentNativeDiagramControl 开始 ======");
+
+            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] SelectedTab 为 null，无法获取NativeDiagramControl");
+                return null;
+            }
+
+            var canvasType = _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType;
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
+
+            // 只有当前画布类型是NativeDiagram时才返回
+            if (canvasType != CanvasType.NativeDiagram)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型不是 NativeDiagram，跳过");
+                return null;
+            }
+
+            // 直接返回缓存的引用（通过 NativeDiagramControl_Loaded 事件缓存）
+            if (_currentNativeDiagram != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 返回缓存的 NativeDiagramControl 引用");
+                return _currentNativeDiagram;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ _currentNativeDiagram 为 null");
+            return null;
+        }
+
+        /// <summary>
+        /// 获取NativeDiagramControl的DiagramViewModel
+        /// </summary>
+        private DiagramViewModel? GetNativeDiagramViewModel()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetNativeDiagramViewModel 开始 ======");
+
+            var nativeDiagram = GetCurrentNativeDiagramControl();
+            if (nativeDiagram == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagramControl 为 null，无法获取 DiagramViewModel");
+                return null;
+            }
+
+            // 使用公开的 GetDiagramViewModel 方法
+            var diagramViewModel = nativeDiagram.GetDiagramViewModel();
+
+            if (diagramViewModel != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ DiagramViewModel 获取成功，当前缩放: {diagramViewModel.ZoomValue * 100:F0}%");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   - MinimumZoomValue: {diagramViewModel.MinimumZoomValue * 100:F0}%");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow]   - MaximumZoomValue: {diagramViewModel.MaximumZoomValue * 100:F0}%");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ GetDiagramViewModel 返回 null");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetNativeDiagramViewModel 结束 ======");
+
+            return diagramViewModel;
+        }
+
+        /// <summary>
+        /// NativeDiagramControl的放大
+        /// </summary>
+        private void NativeDiagramZoomIn()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomIn 开始 ======");
+
+            var diagramViewModel = GetNativeDiagramViewModel();
+            if (diagramViewModel != null)
+            {
+                var oldZoom = diagramViewModel.ZoomValue;
+                var newZoom = Math.Min(diagramViewModel.MaximumZoomValue, diagramViewModel.ZoomValue + 0.1);
+                diagramViewModel.ZoomValue = newZoom;
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 放大: {oldZoom * 100:F0}% → {newZoom * 100:F0}%");
+                UpdateZoomDisplay();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法放大");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomIn 结束 ======");
+        }
+
+        /// <summary>
+        /// NativeDiagramControl的缩小
+        /// </summary>
+        private void NativeDiagramZoomOut()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomOut 开始 ======");
+
+            var diagramViewModel = GetNativeDiagramViewModel();
+            if (diagramViewModel != null)
+            {
+                var oldZoom = diagramViewModel.ZoomValue;
+                var newZoom = Math.Max(diagramViewModel.MinimumZoomValue, diagramViewModel.ZoomValue - 0.1);
+                diagramViewModel.ZoomValue = newZoom;
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 缩小: {oldZoom * 100:F0}% → {newZoom * 100:F0}%");
+                UpdateZoomDisplay();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法缩小");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomOut 结束 ======");
+        }
+
+        /// <summary>
+        /// NativeDiagramControl的重置
+        /// </summary>
+        private void NativeDiagramZoomReset()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomReset 开始 ======");
+
+            var diagramViewModel = GetNativeDiagramViewModel();
+            if (diagramViewModel != null)
+            {
+                var oldZoom = diagramViewModel.ZoomValue;
+                diagramViewModel.ZoomValue = 1.0;
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 重置: {oldZoom * 100:F0}% → 100%");
+                UpdateZoomDisplay();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法重置");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomReset 结束 ======");
+        }
+
+        /// <summary>
+        /// NativeDiagramControl的适应窗口
+        /// </summary>
+        private void NativeDiagramZoomFit()
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomFit 开始 ======");
+
+            var diagramViewModel = GetNativeDiagramViewModel();
+            if (diagramViewModel == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法适应窗口");
+                return;
+            }
+
+            var nativeDiagram = GetCurrentNativeDiagramControl();
+            if (nativeDiagram == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagramControl 为 null，无法适应窗口");
+                return;
+            }
+
+            var scrollViewer = FindVisualParent<ScrollViewer>(nativeDiagram);
+            if (scrollViewer != null)
+            {
+                var viewportWidth = scrollViewer.ViewportWidth;
+                var viewportHeight = scrollViewer.ViewportHeight;
+                
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ScrollViewer 视口大小: {viewportWidth:F0} x {viewportHeight:F0}");
+
+                // 画布是10000x10000
+                var scaleX = (viewportWidth * 0.9) / 10000;
+                var scaleY = (viewportHeight * 0.9) / 10000;
+                var newScale = Math.Min(scaleX, scaleY);
+                
+                newScale = Math.Max(0.25, Math.Min(3.0, newScale));
+                diagramViewModel.ZoomValue = newScale;
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 适应窗口: {newScale * 100:F0}%");
+                UpdateZoomDisplay();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ ScrollViewer 为 null，无法适应窗口");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomFit 结束 ======");
+        }
+
+        /// <summary>
         /// 诊断方法:打印视觉树层次结构
         /// </summary>
         private void PrintVisualTree(DependencyObject parent, int indent = 0)
@@ -1044,33 +1028,54 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
-                return;
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== ZoomIn_Click 开始 ======");
 
-            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            var oldScale = workflow.CurrentScale;
-
-            if (oldScale < MaxScale)
+            var canvasType = GetCurrentCanvasType();
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
+            
+            if (canvasType == CanvasType.NativeDiagram)
             {
-                var newScale = Math.Min(oldScale * 1.2, MaxScale);
-
-                // 使用Dispatcher延迟执行,确保TabItem已加载
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    ScrollViewer? scrollViewer = null;
-                    Point canvasCenter = new Point(0, 0);
-
-                    // 获取ScrollViewer
-                    scrollViewer = GetCurrentScrollViewer();
-
-                    if (scrollViewer != null)
-                    {
-                        canvasCenter = GetCanvasCenterPosition(scrollViewer);
-                    }
-
-                    ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
-                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 调用 NativeDiagramZoomIn()");
+                NativeDiagramZoomIn();
             }
+            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] 调用 WorkflowCanvas 缩放逻辑");
+
+                // 原有的WorkflowCanvas缩放逻辑
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                var oldScale = workflow.CurrentScale;
+
+                if (oldScale < MaxScale)
+                {
+                    var newScale = Math.Min(oldScale * 1.2, MaxScale);
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        ScrollViewer? scrollViewer = null;
+                        Point canvasCenter = new Point(0, 0);
+
+                        scrollViewer = GetCurrentScrollViewer();
+
+                        if (scrollViewer != null)
+                        {
+                            canvasCenter = GetCanvasCenterPosition(scrollViewer);
+                        }
+
+                        ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
+                    }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 已达到最大缩放比例 {MaxScale * 100:F0}%");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ SelectedTab 为 null，无法缩放");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== ZoomIn_Click 结束 ======");
         }
 
         /// <summary>
@@ -1078,32 +1083,37 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomOut_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
-                return;
-
-            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            var oldScale = workflow.CurrentScale;
-
-            if (oldScale > MinScale)
+            var canvasType = GetCurrentCanvasType();
+            
+            if (canvasType == CanvasType.NativeDiagram)
             {
-                var newScale = Math.Max(oldScale / 1.2, MinScale);
+                NativeDiagramZoomOut();
+            }
+            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                // 原有的WorkflowCanvas缩放逻辑
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                var oldScale = workflow.CurrentScale;
 
-                // 使用Dispatcher延迟执行,确保TabItem已加载
-                Dispatcher.BeginInvoke(new Action(() =>
+                if (oldScale > MinScale)
                 {
-                    ScrollViewer? scrollViewer = null;
-                    Point canvasCenter = new Point(0, 0);
+                    var newScale = Math.Max(oldScale / 1.2, MinScale);
 
-                    // 获取ScrollViewer
-                    scrollViewer = GetCurrentScrollViewer();
-
-                    if (scrollViewer != null)
+                    Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        canvasCenter = GetCanvasCenterPosition(scrollViewer);
-                    }
+                        ScrollViewer? scrollViewer = null;
+                        Point canvasCenter = new Point(0, 0);
 
-                    ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
-                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                        scrollViewer = GetCurrentScrollViewer();
+
+                        if (scrollViewer != null)
+                        {
+                            canvasCenter = GetCanvasCenterPosition(scrollViewer);
+                        }
+
+                        ApplyZoom(oldScale, newScale, canvasCenter, scrollViewer);
+                    }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
             }
         }
 
@@ -1112,34 +1122,41 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomFit_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
-                return;
-
-            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            var oldScale = workflow.CurrentScale;
-
-            // 延迟执行以确保 UI 已更新
-            Dispatcher.BeginInvoke(new Action(() =>
+            var canvasType = GetCurrentCanvasType();
+            
+            if (canvasType == CanvasType.NativeDiagram)
             {
-                var currentCanvas = GetCurrentCanvas();
-                var scrollViewer = GetCurrentScrollViewer();
+                NativeDiagramZoomFit();
+            }
+            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                // 原有的WorkflowCanvas缩放逻辑
+                var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+                var oldScale = workflow.CurrentScale;
 
-                if (currentCanvas != null && scrollViewer != null)
+                // 延迟执行以确保 UI 已更新
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var viewportWidth = scrollViewer.ViewportWidth;
-                    var viewportHeight = scrollViewer.ViewportHeight;
+                    var currentCanvas = GetCurrentCanvas();
+                    var scrollViewer = GetCurrentScrollViewer();
 
-                    // 计算适合的缩放比例，留出10%边距
-                    var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
-                    var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
-                    var newScale = Math.Min(scaleX, scaleY);
+                    if (currentCanvas != null && scrollViewer != null)
+                    {
+                        var viewportWidth = scrollViewer.ViewportWidth;
+                        var viewportHeight = scrollViewer.ViewportHeight;
 
-                    // 限制在范围内
-                    newScale = Math.Max(MinScale, Math.Min(MaxScale, newScale));
+                        // 计算适合的缩放比例，留出10%边距
+                        var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
+                        var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
+                        var newScale = Math.Min(scaleX, scaleY);
 
-                    ApplyZoom(oldScale, newScale);
-                }
-            }), System.Windows.Threading.DispatcherPriority.Render);
+                        // 限制在范围内
+                        newScale = Math.Max(MinScale, Math.Min(MaxScale, newScale));
+
+                        ApplyZoom(oldScale, newScale);
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
         }
 
         /// <summary>
@@ -1147,8 +1164,15 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomReset_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            var canvasType = GetCurrentCanvasType();
+            
+            if (canvasType == CanvasType.NativeDiagram)
             {
+                NativeDiagramZoomReset();
+            }
+            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            {
+                // 原有的WorkflowCanvas缩放逻辑
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
                 var newScale = 1.0;
@@ -1272,24 +1296,60 @@ namespace SunEyeVision.UI
         /// </summary>
         private void UpdateZoomDisplay()
         {
-            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
-                return;
-
-            int percentage = (int)(_viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale * 100);
-
-            // 查找工具栏中的ZoomText
-            var toolBar = FindVisualChild<ToolBar>(this);
-            if (toolBar != null)
+            // 使用 Dispatcher 延迟执行，确保 TabItem 内容已完全加载
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                foreach (var child in toolBar.Items)
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== UpdateZoomDisplay 开始 ======");
+
+                int percentage = 100;
+
+                try
                 {
-                    if (child is TextBlock textBlock && textBlock.Name == "ZoomText")
+                    var canvasType = GetCurrentCanvasType();
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
+
+                    if (canvasType == CanvasType.NativeDiagram)
                     {
-                        textBlock.Text = $"缩放: {percentage}%";
-                        break;
+                        var diagramViewModel = GetNativeDiagramViewModel();
+                        if (diagramViewModel != null)
+                        {
+                            percentage = (int)(diagramViewModel.ZoomValue * 100);
+                            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagram 缩放: {percentage}%");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagram DiagramViewModel 为 null，使用默认值 100%");
+                        }
+                    }
+                    else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                    {
+                        percentage = (int)(_viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale * 100);
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ WorkflowCanvas 缩放: {percentage}%");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ SelectedTab 为 null，使用默认值 100%");
                     }
                 }
-            }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ UpdateZoomDisplay 错误: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈跟踪: {ex.StackTrace}");
+                }
+
+                // 直接使用命名的ZoomTextBlock控件
+                if (ZoomTextBlock != null)
+                {
+                    ZoomTextBlock.Text = $"缩放: {percentage}%";
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 更新 ZoomTextBlock 为: {percentage}%");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ ZoomTextBlock 为 null，无法更新显示");
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== UpdateZoomDisplay 结束 ======");
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         /// <summary>
@@ -1568,17 +1628,17 @@ namespace SunEyeVision.UI
                     }
                     break;
 
-                case CanvasType.AIStudioDiagram:
-                    // 查找当前显示的AIStudioDiagramControl
-                    var aistudioDiagram = FindVisualChild<AIStudioDiagramControl>(this);
-                    if (aistudioDiagram != null)
+                case CanvasType.NativeDiagram:
+                    // 查找当前显示的NativeDiagramControl
+                    var nativeDiagram = FindVisualChild<NativeDiagramControl>(this);
+                    if (nativeDiagram != null)
                     {
-                        aistudioDiagram.SetPathCalculator(pathCalculatorType);
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ AIStudioDiagramControl 路径计算器已设置");
+                        nativeDiagram.SetPathCalculator(pathCalculatorType);
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ NativeDiagramControl 路径设置调用（使用原生贝塞尔曲线）");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 AIStudioDiagramControl");
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 NativeDiagramControl");
                     }
                     break;
             }

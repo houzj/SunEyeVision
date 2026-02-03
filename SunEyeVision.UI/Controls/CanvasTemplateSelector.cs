@@ -16,9 +16,9 @@ namespace SunEyeVision.UI.Controls
         public DataTemplate? WorkflowCanvasTemplate { get; set; }
 
         /// <summary>
-        /// AIStudioDiagramControl的模板
+        /// NativeDiagramControl的模板（原生AIStudio.Wpf.DiagramDesigner控件）
         /// </summary>
-        public DataTemplate? AIStudioDiagramTemplate { get; set; }
+        public DataTemplate? NativeDiagramTemplate { get; set; }
 
         /// <summary>
         /// 根据画布类型选择模板
@@ -40,19 +40,23 @@ namespace SunEyeVision.UI.Controls
                     case CanvasType.WorkflowCanvas:
                         System.Diagnostics.Debug.WriteLine("[CanvasTemplateSelector] Returning WorkflowCanvasTemplate");
                         return WorkflowCanvasTemplate;
-                    case CanvasType.AIStudioDiagram:
-                        System.Diagnostics.Debug.WriteLine("[CanvasTemplateSelector] Returning AIStudioDiagramTemplate");
-                        return AIStudioDiagramTemplate;
+                    case CanvasType.NativeDiagram:
+                        System.Diagnostics.Debug.WriteLine("[CanvasTemplateSelector] Returning NativeDiagramTemplate");
+                        return NativeDiagramTemplate;
                 }
             }
             else if (item != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] ✗ item is not WorkflowTabViewModel");
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] ⚠ item is null, trying to get CanvasType from Application");
+            }
 
-            System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] Returning WorkflowCanvasTemplate as fallback");
-            // 默认返回WorkflowCanvasTemplate
-            return WorkflowCanvasTemplate;
+            System.Diagnostics.Debug.WriteLine($"[CanvasTemplateSelector] Returning NativeDiagramTemplate as default");
+            // 默认返回NativeDiagramTemplate
+            return NativeDiagramTemplate;
         }
     }
 }

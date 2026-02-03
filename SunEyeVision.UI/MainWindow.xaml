@@ -184,7 +184,7 @@
 
             <Separator/>
 
-            <TextBlock x:Name="ZoomText" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
+            <TextBlock x:Name="ZoomTextBlock" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
         </ToolBar>
 
 
@@ -601,36 +601,55 @@
                         </Style>
                     </TabControl.ItemContainerStyle>
 
-                    <!-- TabItem内容 - 统一使用WorkflowCanvas -->
+                    <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控件 -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                                         PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
-                                         Background="#F5F8FC">
-                                <Grid Width="5000" Height="5000" Background="#FFFFFF" DataContext="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Content}">
-                                    <!-- 画布边框 -->
-                                    <Border BorderBrush="#0066CC" BorderThickness="3" Margin="10" CornerRadius="5">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="#0066CC" BlurRadius="15" ShadowDepth="0" Opacity="0.3"/>
-                                        </Border.Effect>
-                                    </Border>
-                                    <!-- 画布标题水印 -->
-                                    <TextBlock Text="📋 工作流画布 (Workflow Canvas)"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Top"
-                                               Margin="0,30,0,0"
-                                               FontSize="28"
-                                               FontWeight="Bold"
-                                               Foreground="#E6F0FF"
-                                               IsHitTestVisible="False"
-                                               Opacity="0.8"
-                                               Panel.ZIndex="-1"/>
-                                    <controls:WorkflowCanvasControl
-                                        Width="5000" Height="5000"
-                                        DataContext="{Binding}"
-                                        Loaded="WorkflowCanvasControl_Loaded"/>
-                                </Grid>
-                            </ScrollViewer>
+                            <ContentControl Content="{Binding}">
+                                <ContentControl.ContentTemplateSelector>
+                                    <controls:CanvasTemplateSelector>
+                                        <controls:CanvasTemplateSelector.WorkflowCanvasTemplate>
+                                            <DataTemplate>
+                                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                                             PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
+                                                             Background="#F5F8FC">
+                                                    <Grid Width="5000" Height="5000" Background="#FFFFFF">
+                                                        <!-- 画布边框 -->
+                                                        <Border BorderBrush="#0066CC" BorderThickness="3" Margin="10" CornerRadius="5">
+                                                            <Border.Effect>
+                                                                <DropShadowEffect Color="#0066CC" BlurRadius="15" ShadowDepth="0" Opacity="0.3"/>
+                                                            </Border.Effect>
+                                                        </Border>
+                                                        <!-- 画布标题水印 -->
+                                                        <TextBlock Text="📋 工作流画布 (Workflow Canvas)"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="0,30,0,0"
+                                                                   FontSize="28"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#E6F0FF"
+                                                                   IsHitTestVisible="False"
+                                                                   Opacity="0.8"
+                                                                   Panel.ZIndex="-1"/>
+                                                        <controls:WorkflowCanvasControl
+                                                            Width="5000" Height="5000"
+                                                            Loaded="WorkflowCanvasControl_Loaded"/>
+                                                    </Grid>
+                                                </ScrollViewer>
+                                            </DataTemplate>
+                                        </controls:CanvasTemplateSelector.WorkflowCanvasTemplate>
+
+                                        <controls:CanvasTemplateSelector.NativeDiagramTemplate>
+                                            <DataTemplate>
+                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                             VerticalScrollBarVisibility="Auto"
+                                                             Background="#F5F8FC">
+                                                    <controls:NativeDiagramControl Loaded="NativeDiagramControl_Loaded"/>
+                                                </ScrollViewer>
+                                            </DataTemplate>
+                                        </controls:CanvasTemplateSelector.NativeDiagramTemplate>
+                                    </controls:CanvasTemplateSelector>
+                                </ContentControl.ContentTemplateSelector>
+                            </ContentControl>
                         </DataTemplate>
                     </TabControl.ContentTemplate>
                 </TabControl>

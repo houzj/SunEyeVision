@@ -73,7 +73,7 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
-            CanvasType = CanvasType.WorkflowCanvas;
+            CanvasType = CanvasType.NativeDiagram;
 
             // 每个画布初始化独立的命令管理器
             CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);

@@ -6,18 +6,18 @@ using SunEyeVision.UI.Interfaces;
 namespace SunEyeVision.UI.Engines
 {
     /// <summary>
-    /// AIStudioDiagram画布引擎
-    /// 包装现有的AIStudioDiagramControl，不修改其内部逻辑
+    /// NativeDiagram画布引擎
+    /// 包装NativeDiagramControl，使用原生AIStudio.Wpf.DiagramDesigner库
     /// </summary>
-    public class AIStudioDiagramEngine : ICanvasEngine
+    public class NativeDiagramEngine : ICanvasEngine
     {
-        private AIStudioDiagramControl _control;
+        private NativeDiagramControl _control;
 
-        public string EngineName => "AIStudioDiagram";
+        public string EngineName => "NativeDiagram";
 
-        public AIStudioDiagramEngine()
+        public NativeDiagramEngine()
         {
-            _control = new AIStudioDiagramControl();
+            _control = new NativeDiagramControl();
             _control.Initialize();
         }
 
@@ -36,7 +36,8 @@ namespace SunEyeVision.UI.Engines
 
         public void SetPathCalculator(string pathCalculatorType)
         {
-            // 调用控件的SetPathCalculator方法，实现实际的路径计算器切换
+            // NativeDiagramControl 使用原生贝塞尔曲线，不需要路径计算器设置
+            // 此方法用于兼容性
             _control.SetPathCalculator(pathCalculatorType);
         }
 

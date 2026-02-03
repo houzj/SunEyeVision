@@ -26,7 +26,7 @@ namespace SunEyeVision.UI.Services
             return engineType.ToLower() switch
             {
                 "workflow" => new WorkflowCanvasEngine(),
-                "aistudio" => new AIStudioDiagramEngine(),
+                "native" => new NativeDiagramEngine(),
                 "test" => new TestCanvasEngine(),
                 _ => throw new ArgumentException($"不支持的画布引擎类型: {engineType}")
             };

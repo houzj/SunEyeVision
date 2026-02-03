@@ -271,7 +271,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// <summary>
         /// 计算正交折线路径点集合（增强方法，带节点信息和障碍物检测）
         /// </summary>
-        /// <param name="sourcePosition">源端口位置
+        /// <param name="sourcePosition">源端口位置</param>
         /// <param name="targetPosition">目标端口位置（箭头尾部位置，路径终点）</param>
         /// <param name="sourceDirection">源端口方向</param>
         /// <param name="targetDirection">目标端口方向</param>

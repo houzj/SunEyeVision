@@ -13,10 +13,10 @@ namespace SunEyeVision.UI.Controls
         [Description("WorkflowCanvasControl")]
         WorkflowCanvas,
 
-        [Description("AIStudioDiagramControl")]
         /// <summary>
-        /// AIStudioDiagramControl
+        /// 原生AIStudio.Wpf.DiagramDesigner控件（使用贝塞尔曲线连线）
         /// </summary>
-        AIStudioDiagram
+        [Description("NativeDiagramControl")]
+        NativeDiagram
     }
 }
