@@ -8,6 +8,7 @@ using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Interfaces;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services;
+using SunEyeVision.UI.Controls;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -25,6 +26,7 @@ namespace SunEyeVision.UI.ViewModels
         private ObservableCollection<Models.WorkflowConnection> _workflowConnections;
         private ScaleTransform _scaleTransform;
         private double _currentScale;
+        private CanvasType _canvasType;
 
         /// <summary>
         /// 节点序号管理器
@@ -71,6 +73,7 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
+            CanvasType = CanvasType.WorkflowCanvas;
 
             // 每个画布初始化独立的命令管理器
             CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
@@ -164,6 +167,15 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 画布类型
+        /// </summary>
+        public CanvasType CanvasType
+        {
+            get => _canvasType;
+            set => SetProperty(ref _canvasType, value);
+        }
+
+        /// <summary>
         /// 单次运行按钮文本
         /// </summary>
         public string SingleRunButtonText => "▶";
@@ -235,6 +247,14 @@ namespace SunEyeVision.UI.ViewModels
         public void ResetNodeSequences()
         {
             _sequenceManager.ResetWorkflow(Id);
+        }
+
+        /// <summary>
+        /// 强制刷新属性通知（用于手动触发属性更新）
+        /// </summary>
+        public void RefreshProperty(string propertyName)
+        {
+            base.OnPropertyChanged(propertyName);
         }
     }
 

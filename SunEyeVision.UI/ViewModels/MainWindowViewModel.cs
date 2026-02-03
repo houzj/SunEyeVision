@@ -18,6 +18,7 @@ namespace SunEyeVision.UI.ViewModels
         private bool _isRunning = false;
         private string _status = "就绪";
         private string _selectedWorkflowName = "默认工作流";
+        private string _currentCanvasTypeText = "工作流画布";
 
         // 图像显示相关
         private BitmapSource? _displayImage;
@@ -57,6 +58,15 @@ namespace SunEyeVision.UI.ViewModels
         {
             get => _status;
             set => SetProperty(ref _status, value);
+        }
+
+        /// <summary>
+        /// 当前画布类型显示文本
+        /// </summary>
+        public string CurrentCanvasTypeText
+        {
+            get => _currentCanvasTypeText;
+            set => SetProperty(ref _currentCanvasTypeText, value);
         }
 
         public string SelectedWorkflowName
@@ -215,6 +225,9 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
+            // 初始化当前画布类型
+            UpdateCurrentCanvasType();
+
             // 订阅选中画布变化事件，更新撤销/重做按钮状态
             WorkflowTabViewModel.SelectionChanged += OnSelectedTabChanged;
 
@@ -254,6 +267,34 @@ namespace SunEyeVision.UI.ViewModels
 
             // 更新撤销/重做按钮状态
             UpdateUndoRedoCommands();
+
+            // 更新当前画布类型显示
+            UpdateCurrentCanvasType();
+
+            // 更新 SmartPathConverter 的节点和连接集合
+            if (WorkflowTabViewModel?.SelectedTab != null)
+            {
+                Converters.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
+                Converters.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] Tab 切换 - 更新 SmartPathConverter, Nodes count: {WorkflowTabViewModel.SelectedTab.WorkflowNodes?.Count ?? 0}");
+            }
+        }
+
+        /// <summary>
+        /// 更新当前画布类型显示
+        /// </summary>
+        public void UpdateCurrentCanvasType()
+        {
+            if (WorkflowTabViewModel?.SelectedTab != null)
+            {
+                var canvasType = WorkflowTabViewModel.SelectedTab.CanvasType;
+                CurrentCanvasTypeText = canvasType == Controls.CanvasType.WorkflowCanvas ? "工作流画布" : "AI Studio 图表";
+                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] 当前画布类型: {CurrentCanvasTypeText}");
+            }
+            else
+            {
+                CurrentCanvasTypeText = "工作流画布";
+            }
         }
 
         /// <summary>
@@ -385,35 +426,39 @@ namespace SunEyeVision.UI.ViewModels
 
         private void InitializeSampleNodes()
         {
-            WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
+            if (WorkflowTabViewModel.SelectedTab != null)
             {
-                Position = new System.Windows.Point(100, 100),
-                IsSelected = false
-            });
+                // 添加节点到当前选中的标签页
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
+                {
+                    Position = new System.Windows.Point(100, 100),
+                    IsSelected = false
+                });
 
-            WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
-            {
-                Position = new System.Windows.Point(300, 100),
-                IsSelected = false
-            });
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
+                {
+                    Position = new System.Windows.Point(300, 100),
+                    IsSelected = false
+                });
 
-            WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
-            {
-                Position = new System.Windows.Point(500, 100),
-                IsSelected = false
-            });
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
+                {
+                    Position = new System.Windows.Point(500, 100),
+                    IsSelected = false
+                });
 
-            WorkflowConnections.Add(new Models.WorkflowConnection("conn_1", "1", "2")
-            {
-                SourcePosition = new System.Windows.Point(240, 145),
-                TargetPosition = new System.Windows.Point(300, 145)
-            });
+                WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(new Models.WorkflowConnection("conn_1", "1", "2")
+                {
+                    SourcePosition = new System.Windows.Point(240, 145),
+                    TargetPosition = new System.Windows.Point(300, 145)
+                });
 
-            WorkflowConnections.Add(new Models.WorkflowConnection("conn_2", "2", "3")
-            {
-                SourcePosition = new System.Windows.Point(440, 145),
-                TargetPosition = new System.Windows.Point(500, 145)
-            });
+                WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(new Models.WorkflowConnection("conn_2", "2", "3")
+                {
+                    SourcePosition = new System.Windows.Point(440, 145),
+                    TargetPosition = new System.Windows.Point(500, 145)
+                });
+            }
         }
 
         private void ExecuteNewWorkflow()

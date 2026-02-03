@@ -25,12 +25,10 @@ namespace SunEyeVision.Core.Services
         {
             if (!Directory.Exists(pluginDirectory))
             {
-                Console.WriteLine($"Plugin directory not found: {pluginDirectory}");
                 return;
             }
 
             var dllFiles = Directory.GetFiles(pluginDirectory, "*.dll", SearchOption.AllDirectories);
-            Console.WriteLine($"Found {dllFiles.Length} plugin DLLs in {pluginDirectory}");
 
             foreach (var dllFile in dllFiles)
             {
@@ -62,7 +60,6 @@ namespace SunEyeVision.Core.Services
             catch (Exception ex)
             {
                 // 记录加载失败日志
-                Console.WriteLine($"Failed to load plugin from {dllPath}: {ex.Message}");
             }
         }
 
@@ -75,7 +72,6 @@ namespace SunEyeVision.Core.Services
         {
             if (_plugins.ContainsKey(plugin.PluginId))
             {
-                Console.WriteLine($"Plugin {plugin.PluginId} is already registered.");
                 return;
             }
 
@@ -86,7 +82,6 @@ namespace SunEyeVision.Core.Services
             _pluginMetadata[plugin.PluginId] = metadata;
 
             plugin.Initialize();
-            Console.WriteLine($"Plugin {plugin.PluginName} ({plugin.PluginId}) registered successfully.");
         }
 
         /// <summary>
@@ -162,7 +157,6 @@ namespace SunEyeVision.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to start plugin {plugin.PluginId}: {ex.Message}");
                 }
             }
         }
@@ -180,7 +174,6 @@ namespace SunEyeVision.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to stop plugin {plugin.PluginId}: {ex.Message}");
                 }
             }
         }
@@ -199,7 +192,6 @@ namespace SunEyeVision.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to cleanup plugin {plugin.PluginId}: {ex.Message}");
                 }
             }
             _plugins.Clear();

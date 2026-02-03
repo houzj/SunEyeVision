@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -159,12 +159,16 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// DataContext变化时绑定ScaleTransform
+        /// DataContext变化时绑定ScaleTransform并初始化ConnectionPathCache
         /// </summary>
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (DataContext is WorkflowTabViewModel workflowTab)
             {
+                System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ════════════════════════════════════");
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContext已设置为: {workflowTab.Name}");
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 节点数: {workflowTab.WorkflowNodes?.Count ?? 0}, 连接数: {workflowTab.WorkflowConnections?.Count ?? 0}");
+
                 // 将WorkflowCanvas的RenderTransform绑定到ViewModel的ScaleTransform
                 var binding = new System.Windows.Data.Binding("ScaleTransform")
                 {
@@ -173,6 +177,94 @@ namespace SunEyeVision.UI.Controls
                 };
                 WorkflowCanvas.SetBinding(Canvas.RenderTransformProperty, binding);
                 System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? 已绑定ScaleTransform到WorkflowCanvas");
+
+                // 设置SmartPathConverter的节点集合和连接集合
+                Converters.SmartPathConverter.Nodes = workflowTab.WorkflowNodes;
+                Converters.SmartPathConverter.Connections = workflowTab.WorkflowConnections;
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.Nodes/Connections已设置");
+
+                // 初始化连接线路径缓存（仅在第一次设置时）
+                if (_connectionPathCache == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║      正在创建路径计算器...                        ║");
+                    System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
+
+                    try
+                    {
+                        var calculatorType = Services.PathCalculators.PathCalculatorFactory.CurrentCalculatorType;
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 当前路径计算器类型: {calculatorType}");
+
+                        var calculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator();
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ 路径计算器实例创建成功");
+
+                        _connectionPathCache = new Services.ConnectionPathCache(
+                            workflowTab.WorkflowNodes,
+                            calculator
+                        );
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ ConnectionPathCache 创建成功");
+
+                        // 设置SmartPathConverter的PathCache引用
+                        Converters.SmartPathConverter.PathCache = _connectionPathCache;
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ SmartPathConverter.PathCache已设置");
+
+                        // 预热缓存
+                        _connectionPathCache.WarmUp(workflowTab.WorkflowConnections);
+                        var stats = _connectionPathCache.GetStatistics();
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 缓存预热完成: {stats.CacheSize}个连接");
+
+                        // 订阅连接集合变化事件
+                        if (workflowTab.WorkflowConnections != null)
+                        {
+                            workflowTab.WorkflowConnections.CollectionChanged += (s, args) =>
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 连接集合变化: Added={args.NewItems?.Count ?? 0}, Removed={args.OldItems?.Count ?? 0}");
+                                UpdateBoundingRectangle();
+                                if (_connectionPathCache != null)
+                                {
+                                    _connectionPathCache.MarkAllDirty();
+                                }
+                            };
+                        }
+
+                        // 订阅节点集合变化事件
+                        if (workflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
+                        {
+                            nodesCollection.CollectionChanged += (s, args) =>
+                            {
+                                Converters.SmartPathConverter.Nodes = workflowTab.WorkflowNodes;
+                                RefreshAllConnectionPaths();
+                                if (_connectionPathCache != null)
+                                {
+                                    if (args.NewItems != null)
+                                    {
+                                        foreach (WorkflowNode node in args.NewItems)
+                                        {
+                                            _connectionPathCache.MarkNodeDirty(node.Id);
+                                        }
+                                    }
+                                }
+                            };
+                        }
+
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╔═════════════════════════════════════════════════════╗");
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ║  ✅ 路径计算器初始化成功！                        ║");
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ╚═════════════════════════════════════════════════════╝");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ❌ 路径计算器创建失败: {ex.GetType().Name}");
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 消息: {ex.Message}");
+
+                        // 备用方案：使用 OrthogonalPathCalculator
+                        _connectionPathCache = new Services.ConnectionPathCache(
+                            workflowTab.WorkflowNodes,
+                            new Services.PathCalculators.OrthogonalPathCalculator()
+                        );
+                        Converters.SmartPathConverter.PathCache = _connectionPathCache;
+                        System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ OrthogonalPathCalculator 备用方案已启用");
+                    }
+                }
             }
         }
 
@@ -246,67 +338,10 @@ namespace SunEyeVision.UI.Controls
                 }
             }
 
-            // 初始化智能路径转换器的节点集合和连接集合
-            if (CurrentWorkflowTab != null)
-            {
-                Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
-                Converters.SmartPathConverter.Connections = CurrentWorkflowTab.WorkflowConnections;
+            // 注意：ConnectionPathCache 的初始化已移到 OnDataContextChanged 方法中
+            // 这样可以确保在 DataContext 设置后立即初始化，避免 PathCache 为 null 的问题
 
-                // 初始化连接线路径缓存
-                _connectionPathCache = new Services.ConnectionPathCache(
-                    CurrentWorkflowTab.WorkflowNodes
-                );
-
-                // 设置SmartPathConverter的缓存引用
-                Converters.SmartPathConverter.PathCache = _connectionPathCache;
-
-                // 订阅节点集合变化事件
-                if (CurrentWorkflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
-                {
-                    nodesCollection.CollectionChanged += (s, args) =>
-                    {
-                        Converters.SmartPathConverter.Nodes = CurrentWorkflowTab.WorkflowNodes;
-
-                        // 触发所有连接的属性变化，重新计算路径
-                        RefreshAllConnectionPaths();
-
-                        // 标记相关连接为脏数据
-                        if (_connectionPathCache != null)
-                        {
-                            if (args.NewItems != null)
-                            {
-                                foreach (WorkflowNode node in args.NewItems)
-                                {
-                                    _connectionPathCache.MarkNodeDirty(node.Id);
-                                }
-                            }
-                        }
-                    };
-                }
-
-                // 订阅连接集合变化事件，用于更新最大外接矩形
-                if (CurrentWorkflowTab.WorkflowConnections is ObservableCollection<WorkflowConnection> connectionsCollection)
-                {
-                    connectionsCollection.CollectionChanged += (s, args) =>
-                    {
-                        UpdateBoundingRectangle();
-
-                        // 标记所有缓存为脏数据
-                        if (_connectionPathCache != null)
-                        {
-                            _connectionPathCache.MarkAllDirty();
-                        }
-                    };
-                }
-
-                // 预热缓存
-                if (_connectionPathCache != null)
-                {
-                    _connectionPathCache.WarmUp(CurrentWorkflowTab.WorkflowConnections);
-                    var stats = _connectionPathCache.GetStatistics();
-                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas] 缓存预热完成: {stats}");
-                }
-            }
+            System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ===== WorkflowCanvasControl Loaded Event Completed =====");
         }
 
         /// <summary>
@@ -324,6 +359,49 @@ namespace SunEyeVision.UI.Controls
 
             // 使用 WorkflowPathCalculator 刷新所有连接路径
             WorkflowPathCalculator.RefreshAllConnectionPaths(CurrentWorkflowTab.WorkflowConnections);
+        }
+
+        /// <summary>
+        /// 设置路径计算器（支持运行时切换）
+        /// </summary>
+        public void SetPathCalculator(string pathCalculatorType)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl] 切换路径计算器到: {pathCalculatorType}");
+
+            try
+            {
+                // 解析路径计算器类型
+                if (System.Enum.TryParse<Services.PathCalculators.PathCalculatorType>(pathCalculatorType, true, out var type))
+                {
+                    // 创建新的路径计算器实例
+                    var newCalculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator(type);
+
+                    // 替换ConnectionPathCache
+                    if (CurrentWorkflowTab != null)
+                    {
+                        _connectionPathCache = new Services.ConnectionPathCache(
+                            CurrentWorkflowTab.WorkflowNodes,
+                            newCalculator
+                        );
+
+                        // 更新SmartPathConverter的缓存引用
+                        Converters.SmartPathConverter.PathCache = _connectionPathCache;
+
+                        // 刷新所有连接路径
+                        RefreshAllConnectionPaths();
+
+                        System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl] ✅ 路径计算器已切换到: {type}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl] ❌ 未知的路径计算器类型: {pathCalculatorType}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl] ❌ 切换路径计算器失败: {ex.Message}");
+            }
         }
 
         #region 节点交互事件
@@ -685,7 +763,7 @@ namespace SunEyeVision.UI.Controls
             _dragConnectionStartPoint = portPosition;
             _dragConnectionEndPoint = portPosition;
 
-            System.Diagnostics.Debug.WriteLine($"[DragStart] 节点:{node.Name}({node.Id.Substring(0,8)}...) 端口:{portName} 位置:({portPosition.X:F0},{portPosition.Y:F0})");
+            System.Diagnostics.Debug.WriteLine($"[DragStart] 节点:{node.Name}({node.Id.Substring(0, Math.Min(8, node.Id.Length))}...) 端口:{portName} 位置:({portPosition.X:F0},{portPosition.Y:F0})");
 
             // 显示临时连接线
             if (_tempConnectionLine != null && _tempConnectionGeometry != null)
@@ -1443,7 +1521,7 @@ namespace SunEyeVision.UI.Controls
                     System.Diagnostics.Debug.WriteLine($"[Canvas] 当前所有节点信息:");
                     foreach (var node in CurrentWorkflowTab.WorkflowNodes)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name} (ID:{node.Id.Substring(0,8)}...) 位置:({node.Position.X:F0},{node.Position.Y:F0})");
+                        System.Diagnostics.Debug.WriteLine($"[Canvas]   - {node.Name} (ID:{node.Id.Substring(0, Math.Min(8, node.Id.Length))}...) 位置:({node.Position.X:F0},{node.Position.Y:F0})");
                         System.Diagnostics.Debug.WriteLine($"[Canvas]     RightPort:({node.RightPortPosition.X:F0},{node.RightPortPosition.Y:F0}) LeftPort:({node.LeftPortPosition.X:F0},{node.LeftPortPosition.Y:F0})");
                     }
                 }

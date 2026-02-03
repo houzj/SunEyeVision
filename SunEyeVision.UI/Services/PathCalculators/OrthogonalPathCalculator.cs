@@ -60,6 +60,40 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
+        /// 矩形相对位置枚举
+        /// </summary>
+        private enum RectRelativePosition
+        {
+            /// <summary>在左侧</summary>
+            OnLeft,
+            /// <summary>在右侧</summary>
+            OnRight,
+            /// <summary>在上方</summary>
+            OnTop,
+            /// <summary>在下方</summary>
+            OnBottom,
+            /// <summary>重叠</summary>
+            Overlapping
+        }
+
+        /// <summary>
+        /// 碰撞信息类
+        /// </summary>
+        private class CollisionInfo
+        {
+            public int SegmentIndex { get; set; }
+            public Rect CollidingRect { get; set; }
+            public Point[] PathPoints { get; set; }
+
+            public CollisionInfo(int segmentIndex, Rect collidingRect, Point[] pathPoints)
+            {
+                SegmentIndex = segmentIndex;
+                CollidingRect = collidingRect;
+                PathPoints = pathPoints;
+            }
+        }
+
+        /// <summary>
         /// 计算正交折线路径点集合（基础方法，向后兼容）
         /// 箭头尾部已经在 ConnectionPathCache 中计算并作为 targetPosition 传入
         /// 直接计算基本路径即可
@@ -140,7 +174,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             var horizontalDistance = Math.Abs(dx);
             var verticalDistance = Math.Abs(dy);
 
-            // 2. 选择最佳路径策略（考虑碰撞检测）
+            // 2. 选择最佳路径策略（仅基于端口关系、位置关系和节点位置，不涉及碰撞检测）
             var strategy = SelectPathStrategy(sourcePosition,targetPosition,
                 sourceDirection,
                 targetDirection,
@@ -149,8 +183,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 horizontalDistance,
                 verticalDistance,
                 sourceNodeRect,
-                targetNodeRect,
-                allNodeRects);
+                targetNodeRect);
 
             // 3. 根据策略计算路径点（目标位置是箭头尾部）
             System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] 最终选择的策略: {strategy}");
@@ -209,7 +242,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 选择最佳路径策略（优化版本：基于场景复杂度而非距离）
+        /// 选择最佳路径策略（优化版本：仅基于端口关系、位置关系和节点位置，不涉及碰撞检测）
         /// 分层优先级：Priority 1(极简场景) > Priority 2(相对方向) > Priority 3(垂直方向) > Priority 4(同向)
         /// </summary>
         private PathStrategy SelectPathStrategy(Point sourcePosition, Point targetPosition,
@@ -219,8 +252,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double horizontalDistance,
             double verticalDistance,
             Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
+            Rect targetNodeRect)
         {
             System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] ========== 开始优化分层决策 ==========");
             System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] 源方向:{sourceDirection}, 目标方向:{targetDirection}");
@@ -241,10 +273,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] 节点相对位置: {relativePos} (dx={relativeDx:F0}, dy={relativeDy:F0})");
             }
 
-            // 检测场景复杂度
-            var sceneComplexity = DetectSceneComplexity(sourcePosition, targetPosition,
+            // 检测场景复杂度（不涉及碰撞检测）
+            var sceneComplexity = DetectSceneComplexitySimple(sourcePosition, targetPosition,
                 sourceDirection, targetDirection, dx, dy, horizontalDistance, verticalDistance,
-                sourceNodeRect, targetNodeRect, allNodeRects);
+                sourceNodeRect, targetNodeRect);
             System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] 场景复杂度: {sceneComplexity}");
 
             // 检测几何对齐情况
@@ -252,7 +284,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 sourceDirection, targetDirection, horizontalDistance, verticalDistance);
             System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] 几何对齐: {geometricAlignment}");
 
-            // Priority 1: 极简场景（直接对齐，无障碍，距离极近）
+            // Priority 1: 极简场景（直接对齐，距离极近）
             if (sceneComplexity == SceneComplexity.Direct)
             {
                 System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] ========== Priority 1 命中（极简场景） ==========");
@@ -272,10 +304,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // Priority 3: 垂直方向（一个水平一个垂直）
             if (IsPerpendicularDirection(sourceDirection, targetDirection))
             {
-                var strategy = SelectStrategyForPerpendicularDirection(
+                var strategy = SelectStrategyForPerpendicularDirectionSimple(
                     sceneComplexity, geometricAlignment,
                     sourceDirection, targetDirection, horizontalDistance, verticalDistance,
-                    sourceNodeRect, targetNodeRect, allNodeRects);
+                    sourceNodeRect, targetNodeRect);
                 System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] ========== Priority 3 命中（垂直方向） ==========");
                 return strategy;
             }
@@ -283,10 +315,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // Priority 4: 同向（Left-Left, Right-Right, Top-Top, Bottom-Bottom）
             if (IsSameDirection(sourceDirection, targetDirection))
             {
-                var strategy = SelectStrategyForSameDirection(
+                var strategy = SelectStrategyForSameDirectionSimple(
                     sceneComplexity, geometricAlignment,
                     sourceDirection, targetDirection, dx, dy, horizontalDistance, verticalDistance,
-                    sourceNodeRect, targetNodeRect, allNodeRects);
+                    sourceNodeRect, targetNodeRect);
                 System.Diagnostics.Debug.WriteLine($"[OrthogonalPath] ========== Priority 4 命中（同向） ==========");
                 return strategy;
             }
@@ -314,18 +346,17 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 检测场景复杂度
-        /// 考虑因素：障碍数量、碰撞场景、对齐程度
+        /// 检测场景复杂度（简化版本：不涉及碰撞检测）
+        /// 考虑因素：对齐程度、距离
         /// </summary>
-        private SceneComplexity DetectSceneComplexity(Point sourcePosition, Point targetPosition,
+        private SceneComplexity DetectSceneComplexitySimple(Point sourcePosition, Point targetPosition,
             PortDirection sourceDirection,
             PortDirection targetDirection,
             double dx, double dy,
             double horizontalDistance,
             double verticalDistance,
             Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
+            Rect targetNodeRect)
         {
             // 1. 完全水平对齐：极简场景
             if (verticalDistance < 3)
@@ -341,69 +372,20 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return SceneComplexity.Direct;
             }
 
-            // 2. 计算障碍节点数量（排除源和目标节点）
-            int obstacleCount = 0;
-            if (allNodeRects != null && allNodeRects.Length > 0)
-            {
-                obstacleCount = allNodeRects.Count(rect =>
-                    !rect.IsEmpty &&
-                    rect != sourceNodeRect &&
-                    rect != targetNodeRect);
-            }
-            System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 障碍节点数量: {obstacleCount}");
-
-            // 3. 检查基本路径是否会发生碰撞
-            bool hasPotentialCollision = false;
-            if (obstacleCount > 0)
-            {
-                // 尝试计算简单路径，检查是否碰撞
-                var simplePath = sourceDirection.IsHorizontal()?
-                    CalculateHorizontalFirstPath(sourcePosition, targetPosition, sourceDirection, targetDirection, dx, dy, sourceNodeRect, targetNodeRect):
-                    CalculateVerticalFirstPath(sourcePosition, targetPosition, sourceDirection, targetDirection, dx, dy, sourceNodeRect, targetNodeRect);
-
-                if (simplePath != null)
-                {
-                    hasPotentialCollision = HasCollision(
-                        simplePath, allNodeRects, sourceNodeRect, targetNodeRect);
-                }
-                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 潜在碰撞检测: {(hasPotentialCollision ? "是" : "否")}");
-            }
-
-            // 4. 检查对齐程度
-            bool horizontallyAligned = horizontalDistance < 3;
-            bool verticallyAligned = verticalDistance < 3;
+            // 3. 检查对齐程度
+            bool horizontallyAligned = horizontalDistance < 20;
+            bool verticallyAligned = verticalDistance < 20;
             System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 对齐状态: 水平{(horizontallyAligned ? "对齐" : "不对齐")}, 垂直{(verticallyAligned ? "对齐" : "不对齐")}");
 
-            // 5. 根据综合条件判断场景复杂度
-            if (obstacleCount == 0)
+            // 4. 根据对齐程度判断场景复杂度
+            if (horizontallyAligned || verticallyAligned)
             {
-                // 无障碍：简单场景
-                if (horizontallyAligned || verticallyAligned)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 无障碍且对齐 -> Direct");
-                    return SceneComplexity.Direct;
-                }
-                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 无障碍且不对齐 -> Simple");
+                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 对齐 -> Simple");
                 return SceneComplexity.Simple;
             }
-            else if (obstacleCount == 1 && !hasPotentialCollision)
-            {
-                // 有一个障碍但不会碰撞：简单场景
-                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 1个障碍且无碰撞 -> Simple");
-                return SceneComplexity.Simple;
-            }
-            else if (obstacleCount <= 2 && !hasPotentialCollision)
-            {
-                // 少量障碍但不会碰撞：中等场景
-                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] {obstacleCount}个障碍且无碰撞 -> Medium");
-                return SceneComplexity.Medium;
-            }
-            else
-            {
-                // 多障碍或有碰撞风险：复杂场景
-                System.Diagnostics.Debug.WriteLine($"[DetectComplexity] {obstacleCount}个障碍或有碰撞 -> Complex");
-                return SceneComplexity.Complex;
-            }
+
+            System.Diagnostics.Debug.WriteLine($"[DetectComplexity] 不对齐 -> Simple");
+            return SceneComplexity.Simple;
         }
 
         /// <summary>
@@ -448,45 +430,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算简单测试路径（用于碰撞检测）
-        /// </summary>
-        private Point[] CalculateSimpleTestPath(
-            PortDirection sourceDirection,
-            PortDirection targetDirection,
-            double dx, double dy,
-            double horizontalDistance,
-            double verticalDistance)
-        {
-            // 根据端口方向选择最简单的路径策略
-            if (sourceDirection.IsHorizontal())
-            {
-                // 源端口水平：优先水平延伸
-                var midPoint = new Point(sourcePositionPlaceholder.X + dx * 0.5, sourcePositionPlaceholder.Y + dy);
-                return new Point[]
-                {
-                    new Point(0, 0),
-                    new Point(dx * 0.25, 0),
-                    new Point(dx * 0.25, dy),
-                    new Point(dx, dy)
-                };
-            }
-            else
-            {
-                // 源端口垂直：优先垂直延伸
-                return new Point[]
-                {
-                    new Point(0, 0),
-                    new Point(0, dy * 0.25),
-                    new Point(dx, dy * 0.25),
-                    new Point(dx, dy)
-                };
-            }
-        }
-
-        // 占位符，用于简单测试路径计算
-        private static Point sourcePositionPlaceholder = new Point(0, 0);
-
-        /// <summary>
         /// 为相对方向场景选择策略（优化版本：基于场景复杂度）
         /// Left-Right, Right-Left, Top-Bottom, Bottom-Top
         /// </summary>
@@ -527,10 +470,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 为垂直方向场景选择策略（优化版本：基于场景复杂度）
+        /// 为垂直方向场景选择策略（简化版本：不涉及碰撞检测）
         /// 一个水平一个垂直（Left-Top, Left-Bottom, Right-Top, Right-Bottom等）
         /// </summary>
-        private PathStrategy SelectStrategyForPerpendicularDirection(
+        private PathStrategy SelectStrategyForPerpendicularDirectionSimple(
             SceneComplexity sceneComplexity,
             GeometricAlignment geometricAlignment,
             PortDirection sourceDirection,
@@ -538,8 +481,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double horizontalDistance,
             double verticalDistance,
             Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
+            Rect targetNodeRect)
         {
             System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 垂直方向策略选择 - 源方向:{sourceDirection}, 目标方向:{targetDirection}");
             System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 场景复杂度:{sceneComplexity}, 几何对齐:{geometricAlignment}");
@@ -551,29 +493,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     sourceDirection, targetDirection, horizontalDistance, verticalDistance);
                 System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 简单场景，使用{simpleStrategy}策略");
                 return simpleStrategy;
-            }
-
-            // 中等或复杂场景：尝试碰撞检测优化
-            if (sceneComplexity == SceneComplexity.Medium || sceneComplexity == SceneComplexity.Complex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 中等/复杂场景，尝试碰撞检测优化");
-                if (allNodeRects != null && allNodeRects.Length > 0)
-                {
-                    var bestStrategy = FindBestStrategyWithoutCollision(
-                        sourceDirection, targetDirection,
-                        horizontalDistance > 0 ? horizontalDistance : -horizontalDistance,
-                        verticalDistance > 0 ? verticalDistance : -verticalDistance,
-                        horizontalDistance, verticalDistance,
-                        sourceNodeRect, targetNodeRect,
-                        allNodeRects);
-
-                    if (bestStrategy.HasValue)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 碰撞检测优化，使用{bestStrategy.Value}策略");
-                        return bestStrategy.Value;
-                    }
-                    System.Diagnostics.Debug.WriteLine($"[SelectPerpendicular] 碰撞检测优化失败，进入智能判断");
-                }
             }
 
             // 计算节点之间的相对距离
@@ -731,10 +650,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 为同向场景选择策略（优化版本：基于场景复杂度）
+        /// 为同向场景选择策略（简化版本：不涉及碰撞检测）
         /// Left-Left, Right-Right, Top-Top, Bottom-Bottom
         /// </summary>
-        private PathStrategy SelectStrategyForSameDirection(
+        private PathStrategy SelectStrategyForSameDirectionSimple(
             SceneComplexity sceneComplexity,
             GeometricAlignment geometricAlignment,
             PortDirection sourceDirection,
@@ -743,8 +662,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double horizontalDistance,
             double verticalDistance,
             Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
+            Rect targetNodeRect)
         {
             System.Diagnostics.Debug.WriteLine($"[SelectSame] 同向策略选择 - 源方向:{sourceDirection}, 目标方向:{targetDirection}");
             System.Diagnostics.Debug.WriteLine($"[SelectSame] 场景复杂度:{sceneComplexity}, 几何对齐:{geometricAlignment}");
@@ -756,46 +674,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     sourceDirection, targetDirection, horizontalDistance, verticalDistance);
                 System.Diagnostics.Debug.WriteLine($"[SelectSame] 简单/极简场景，使用{simpleStrategy}策略");
                 return simpleStrategy;
-            }
-
-            // 中等场景：检查是否可以使用三段式策略
-            if (sceneComplexity == SceneComplexity.Medium)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SelectSame] 中等场景，检查ThreeSegment可用性");
-                if (CanUseThreeSegmentWithAvoidance(
-                    sourceDirection, targetDirection, dx, dy,
-                    sourceNodeRect, targetNodeRect, allNodeRects))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SelectSame] 中等场景，可以使用ThreeSegment策略");
-                    return PathStrategy.ThreeSegment;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SelectSame] 中等场景，ThreeSegment不足，使用FourSegment策略");
-                    return PathStrategy.FourSegment;
-                }
-            }
-
-            // 复杂场景：使用更复杂的策略
-            if (sceneComplexity == SceneComplexity.Complex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SelectSame] 复杂场景，估计避让点数量");
-                // 估计需要的避让点数量
-                int requiredAvoidancePoints = CountRequiredAvoidancePoints(
-                    sourceDirection, targetDirection, dx, dy,
-                    sourceNodeRect, targetNodeRect, allNodeRects);
-                System.Diagnostics.Debug.WriteLine($"[SelectSame] 需要的避让点数量: {requiredAvoidancePoints}");
-
-                if (requiredAvoidancePoints <= 1)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SelectSame] 复杂场景，避让点少，使用FourSegment策略");
-                    return PathStrategy.FourSegment;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SelectSame] 复杂场景，避让点多，使用FiveSegment策略");
-                    return PathStrategy.FiveSegment;
-                }
             }
 
             // 默认：基于几何对齐选择
@@ -851,86 +729,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
         }
 
-        /// <summary>
-        /// 检查是否可以使用三段式策略进行避让
-        /// </summary>
-        private bool CanUseThreeSegmentWithAvoidance(
-            PortDirection sourceDirection,
-            PortDirection targetDirection,
-            double dx, double dy,
-            Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
-        {
-            // 如果没有节点信息，假设可以使用
-            if (allNodeRects == null || allNodeRects.Length == 0)
-            {
-                return true;
-            }
-
-            // 计算三段式路径的两个可能中间点
-            var midPoint1 = new Point(dx * 0.5, 0); // 水平优先
-            var midPoint2 = new Point(0, dy * 0.5); // 垂直优先
-
-            // 测试两个中间点是否会碰撞
-            Point[] testPath1 = { new Point(0, 0), midPoint1, new Point(dx, dy) };
-            Point[] testPath2 = { new Point(0, 0), midPoint2, new Point(dx, dy) };
-
-            bool path1HasCollision = HasCollision(testPath1, allNodeRects, sourceNodeRect, targetNodeRect);
-            bool path2HasCollision = HasCollision(testPath2, allNodeRects, sourceNodeRect, targetNodeRect);
-
-            // 如果至少有一个路径不会碰撞，可以使用三段式
-            return !path1HasCollision || !path2HasCollision;
-        }
-
-        /// <summary>
-        /// 估计需要的避让点数量
-        /// </summary>
-        private int CountRequiredAvoidancePoints(
-            PortDirection sourceDirection,
-            PortDirection targetDirection,
-            double dx, double dy,
-            Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
-        {
-            if (allNodeRects == null || allNodeRects.Length == 0)
-            {
-                return 0;
-            }
-
-            // 计算基本路径
-            var basicPath = CalculateSimpleTestPath(
-                sourceDirection, targetDirection, dx, dy,
-                Math.Abs(dx), Math.Abs(dy));
-
-            if (basicPath == null)
-            {
-                return 0;
-            }
-
-            // 统计碰撞数量
-            int collisionCount = 0;
-            for (int i = 0; i < basicPath.Length - 1; i++)
-            {
-                var p1 = basicPath[i];
-                var p2 = basicPath[i + 1];
-
-                foreach (var rect in allNodeRects)
-                {
-                    if (!rect.IsEmpty && rect != sourceNodeRect && rect != targetNodeRect)
-                    {
-                        if (LineIntersectsRect(p1, p2, rect))
-                        {
-                            collisionCount++;
-                        }
-                    }
-                }
-            }
-
-            // 每个碰撞可能需要1-2个避让点
-            return (int)Math.Ceiling(collisionCount * 1.5);
-        }
 
         /// <summary>
         /// 判断两个端口方向是否相反（对向）
@@ -949,46 +747,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
         private bool IsVeryCloseDistance(double horizontalDistance, double verticalDistance)
         {
             return horizontalDistance == 0 && verticalDistance == 0;
-        }
-
-        /// <summary>
-        /// 查找无碰撞的最佳策略
-        /// </summary>
-        private PathStrategy? FindBestStrategyWithoutCollision(
-            PortDirection sourceDirection,
-            PortDirection targetDirection,
-            double dx, double dy,
-            double hDist, double vDist,
-            Rect sourceNodeRect,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
-        {
-            // 如果没有节点信息，返回null
-            if (allNodeRects == null || allNodeRects.Length == 0)
-                return null;
-
-            // 尝试两种策略，选择无碰撞的
-            var strategies = new[] { PathStrategy.HorizontalFirst, PathStrategy.VerticalFirst };
-
-            foreach (var strategy in strategies)
-            {
-                var pathPoints = CalculatePathByStrategy(
-                    new Point(0, 0),  // 源位置（临时）
-                    new Point(dx, dy), // 目标位置（临时）
-                    sourceDirection,
-                    targetDirection,
-                    strategy,
-                    dx, dy,
-                    sourceNodeRect,
-                    targetNodeRect);
-
-                if (!HasCollision(pathPoints, allNodeRects, sourceNodeRect, targetNodeRect))
-                {
-                    return strategy;
-                }
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -1351,7 +1109,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// <summary>
         /// 计算相对方向路径（用于Top-Bottom, Bottom-Top, Left-Right, Right-Left等相对方向连接）
         /// 路径模式：沿源方向延伸 → 水平/垂直 → 到达目标
-        /// 注意：避让逻辑已由统一的ApplyNodeAvoidance方法处理，此方法只负责基本路径计算
+        /// 简化版本：只负责基本路径计算，所有避让逻辑由ApplyNodeAvoidance统一处理
         /// </summary>
         private Point[] CalculateOppositeDirectionPath(
             Point sourcePosition,
@@ -1363,107 +1121,28 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect sourceNodeRect,
             Rect targetNodeRect)
         {
-            // 计算第一个拐点：沿源方向延伸（确保不穿过源节点）
-            var p1 = CalculateOptimizedFirstPoint(sourcePosition,targetPosition ,sourceDirection, dx, dy, sourceNodeRect, targetNodeRect);
+            // 计算第一个拐点：沿源方向延伸
+            var p1 = CalculateOptimizedFirstPoint(sourcePosition, targetPosition, sourceDirection, dx, dy, sourceNodeRect, targetNodeRect);
 
-            // 计算第二个拐点：水平或垂直到目标，确保不穿过目标节点
+            // 计算第二个拐点：简单的水平或垂直到目标
+            // 不进行复杂的避让判断，避让逻辑由ApplyNodeAvoidance统一处理
             Point p2;
 
             if (sourceDirection.IsVertical())
             {
                 // 垂直相对：Top-Bottom, Bottom-Top
                 // 先垂直延伸（p1），再水平移动（p2）
-                // 智能避让策略：选择最佳的避让方向
-                var targetNodeLeft = targetNodeRect.Left;
-                var targetNodeRight = targetNodeRect.Right;
-                var targetNodeTop = targetNodeRect.Top;
-                var targetNodeBottom = targetNodeRect.Bottom;
-                var targetNodeCenterX = (targetNodeLeft + targetNodeRight) / 2;
-                
-                // 确保安全距离，根据节点大小动态调整
-                var safeDistance = NodeSafeDistance * 2 + targetNodeRect.Width / 2;
-                
-                // 智能选择避让方向
-                if (targetPosition.X > sourcePosition.X)
-                {
-                    // 目标在右侧
-                    if (targetPosition.X > targetNodeCenterX)
-                    {
-                        // 目标偏右：从左侧避让（更自然）
-                        var safeX = targetNodeLeft - safeDistance;
-                        p2 = new Point(Math.Min(targetPosition.X, safeX), p1.Y);
-                    }
-                    else
-                    {
-                        // 目标在中间：从右侧避让（避免穿过）
-                        var safeX = targetNodeRight + safeDistance;
-                        p2 = new Point(Math.Max(targetPosition.X, safeX), p1.Y);
-                    }
-                }
-                else
-                {
-                    // 目标在左侧
-                    if (targetPosition.X < targetNodeCenterX)
-                    {
-                        // 目标偏左：从右侧避让（更自然）
-                        var safeX = targetNodeRight + safeDistance;
-                        p2 = new Point(Math.Max(targetPosition.X, safeX), p1.Y);
-                    }
-                    else
-                    {
-                        // 目标在中间：从左侧避让（避免穿过）
-                        var safeX = targetNodeLeft - safeDistance;
-                        p2 = new Point(Math.Min(targetPosition.X, safeX), p1.Y);
-                    }
-                }
+                // 使用目标位置和p1坐标计算拐点
+                var midX = (p1.X + targetPosition.X) / 2;
+                p2 = new Point(midX, p1.Y);
             }
             else
             {
                 // 水平相对：Left-Right, Right-Left
                 // 先水平延伸（p1），再垂直移动（p2）
-                // 智能避让策略：选择最佳的避让方向
-                var targetNodeTop = targetNodeRect.Top;
-                var targetNodeBottom = targetNodeRect.Bottom;
-                var targetNodeLeft = targetNodeRect.Left;
-                var targetNodeRight = targetNodeRect.Right;
-                var targetNodeCenterY = (targetNodeTop + targetNodeBottom) / 2;
-                
-                // 确保安全距离，根据节点大小动态调整
-                var safeDistance = NodeSafeDistance * 2 + targetNodeRect.Height / 2;
-                
-                // 智能选择避让方向
-                if (targetPosition.Y > sourcePosition.Y)
-                {
-                    // 目标在下侧
-                    if (targetPosition.Y > targetNodeCenterY)
-                    {
-                        // 目标偏下：从上侧避让（更自然）
-                        var safeY = targetNodeTop - safeDistance;
-                        p2 = new Point(p1.X, Math.Min(targetPosition.Y, safeY));
-                    }
-                    else
-                    {
-                        // 目标在中间：从下侧避让（避免穿过）
-                        var safeY = targetNodeBottom + safeDistance;
-                        p2 = new Point(p1.X, Math.Max(targetPosition.Y, safeY));
-                    }
-                }
-                else
-                {
-                    // 目标在上侧
-                    if (targetPosition.Y < targetNodeCenterY)
-                    {
-                        // 目标偏上：从下侧避让（更自然）
-                        var safeY = targetNodeBottom + safeDistance;
-                        p2 = new Point(p1.X, Math.Max(targetPosition.Y, safeY));
-                    }
-                    else
-                    {
-                        // 目标在中间：从上侧避让（避免穿过）
-                        var safeY = targetNodeTop - safeDistance;
-                        p2 = new Point(p1.X, Math.Min(targetPosition.Y, safeY));
-                    }
-                }
+                // 使用目标位置和p1坐标计算拐点
+                var midY = (p1.Y + targetPosition.Y) / 2;
+                p2 = new Point(p1.X, midY);
             }
 
             System.Diagnostics.Debug.WriteLine($"[OppositeDirection] 基本路径计算完成（避让由统一后处理处理）");
@@ -1809,132 +1488,11 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 检查是否应该跳过避让处理（方案A：智能避让触发机制）
-        /// 避免简单场景下过度曲折
-        /// </summary>
-        private bool ShouldSkipAvoidance(
-            Point[] pathPoints,
-            Point sourcePosition,
-            Point targetPosition,
-            PortDirection sourceDirection,
-            PortDirection targetDirection,
-            Rect targetNodeRect,
-            Rect[] allNodeRects)
-        {
-            // 1. 计算路径总长度
-            double totalDistance = 0;
-            for (int i = 0; i < pathPoints.Length - 1; i++)
-            {
-                var dx = pathPoints[i + 1].X - pathPoints[i].X;
-                var dy = pathPoints[i + 1].Y - pathPoints[i].Y;
-                totalDistance += Math.Sqrt(dx * dx + dy * dy);
-            }
-
-            // 2. 直线距离（欧几里得距离）
-            var directDx = targetPosition.X - sourcePosition.X;
-            var directDy = targetPosition.Y - sourcePosition.Y;
-            var directDistance = Math.Sqrt(directDx * directDx + directDy * directDy);
-
-            // 3. 如果路径长度接近直线距离（< 1.5倍），说明路径已经很合理
-            if (totalDistance < directDistance * 1.5)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 路径合理（路径长度={totalDistance:F0}, 直线距离={directDistance:F0}），优先保持");
-                return true;
-            }
-
-            // 4. 如果路径点数 <= 4 且 路径长度合理，跳过避让
-            if (pathPoints.Length <= 4 && totalDistance < directDistance * 2.0)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 简单路径（点数={pathPoints.Length}, 长度比={totalDistance/directDistance:F2}），跳过避让");
-                return true;
-            }
-
-            // 5. 如果节点数量少（<= 2），且路径点数少，检查是否需要避让
-            int obstacleCount = (allNodeRects?.Length ?? 0);
-            if (obstacleCount <= 2 && pathPoints.Length <= 4)
-            {
-                // 检查路径是否会穿过目标节点
-                bool willCrossTarget = WillPathCrossTarget(pathPoints, targetNodeRect);
-                if (willCrossTarget)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 节点少({obstacleCount})但路径会穿过目标，需要避让");
-                    return false;
-                }
-                System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 节点少({obstacleCount})且路径简单，跳过避让");
-                return true;
-            }
-
-            // 6. 如果路径点数很少（2-4个），说明已经是简单路径
-            if (pathPoints.Length <= 4 && totalDistance < directDistance * 2.5)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ShouldSkipAvoidance] 路径点数少({pathPoints.Length})，优先保持");
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 检查路径是否会穿过目标节点
-        /// </summary>
-        private bool WillPathCrossTarget(Point[] pathPoints, Rect targetNodeRect)
-        {
-            if (pathPoints == null || pathPoints.Length < 2 || targetNodeRect.IsEmpty)
-            {
-                return false;
-            }
-
-            // 检查每一段路径是否会穿过目标节点
-            for (int i = 0; i < pathPoints.Length - 1; i++)
-            {
-                var p1 = pathPoints[i];
-                var p2 = pathPoints[i + 1];
-
-                // 检查这一段路径是否会穿过目标节点
-                if (LineIntersectsRect(p1, p2, targetNodeRect))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[WillPathCrossTarget] 路径段[{i}]穿过目标节点: ({p1.X:F1},{p1.Y:F1}) -> ({p2.X:F1},{p2.Y:F1})");
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 检查两条线段是否相交
-        /// </summary>
-        private bool LineIntersectsLine(Point p1, Point p2, Point p3, Point p4)
-        {
-            // 使用叉积方法判断两线段是否相交
-            double d1 = CrossProduct(p3, p4, p1);
-            double d2 = CrossProduct(p3, p4, p2);
-            double d3 = CrossProduct(p1, p2, p3);
-            double d4 = CrossProduct(p1, p2, p4);
-
-            // 如果叉积符号不同，说明线段相交
-            if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
-            {
-                return true;
-            }
-
-            // 端点在另一条线段上的情况
-            return false;
-        }
-
-        /// <summary>
-        /// 计算叉积
-        /// </summary>
-        private double CrossProduct(Point p1, Point p2, Point p)
-        {
-            return (p2.X - p1.X) * (p.Y - p1.Y) - (p.Y - p1.Y) * (p2.X - p1.X);
-        }
-
-        /// <summary>
-        /// 模块3：统一的节点避让后处理方法（优化版本：智能触发机制）
+        /// 模块3：统一的节点避让后处理方法（双点避让策略）
         /// 对计算好的路径进行后处理，确保路径不穿过任何节点
-        /// 优先级：与目标端口方向一致 > 垂直/水平延伸 > 其他方向
+        /// 每个碰撞添加两个避让点：
+        /// 1. shapePreservingPoint：保持原路径形状，使用 0.7 * NodeSafeDistance 的偏移
+        /// 2. strategyPoint：基于策略的避让点
         /// </summary>
         private Point[] ApplyNodeAvoidance(
             Point[] pathPoints,
@@ -1946,15 +1504,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect targetNodeRect,
             Rect[] allNodeRects)
         {
-            System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] ========== 开始节点避让后处理 ==========");
-
-            // 新增：快速检查 - 如果场景简单，直接返回
-            if (ShouldSkipAvoidance(pathPoints, sourcePosition, targetPosition,
-                sourceDirection, targetDirection, targetNodeRect, allNodeRects))
-            {
-                System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 简单场景，跳过避让处理");
-                return pathPoints;
-            }
+            System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] ========== 开始节点避让后处理（双点策略） ==========");
 
             if (allNodeRects == null || allNodeRects.Length == 0)
             {
@@ -1962,71 +1512,61 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return pathPoints;
             }
 
-            // 迭代检测和调整（最多5次）
             var currentPath = pathPoints;
-            int maxIterations = 5;
 
-            for (int iteration = 0; iteration < maxIterations; iteration++)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 迭代 {iteration + 1}/{maxIterations}");
+                // 按顺序查找所有碰撞（不按严重程度排序）
+                var collisions = FindCollisionsInOrder(currentPath, allNodeRects, sourceNodeRect, targetNodeRect);
 
-                // 检查路径是否与任何节点发生碰撞
-                var collisionResult = FindCollisionSegment(
-                    currentPath,
-                    allNodeRects,
-                    sourceNodeRect,
-                    targetNodeRect);
-
-                if (!collisionResult.HasValue)
+                if (collisions == null || collisions.Count == 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 无碰撞，避让处理完成");
-                    break;
+                    return currentPath;
                 }
 
-                var (segmentIndex, collidingRect) = collisionResult.Value;
-                System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 发现碰撞: 段{segmentIndex}与节点({collidingRect.X:F1},{collidingRect.Y:F1},{collidingRect.Width:F1}x{collidingRect.Height:F1})");
+                System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 发现 {collisions.Count} 个碰撞");
 
-                // 计算避让拐点
-                var avoidancePoints = CalculateAvoidancePoints(
-                    currentPath,
-                    segmentIndex,
-                    collidingRect,
-                    sourceDirection,
-                    targetDirection,
-                    allNodeRects,
-                    targetNodeRect);
-
-                if (avoidancePoints != null && avoidancePoints.Length > 0)
+                // 按顺序处理每个碰撞
+                foreach (var collision in collisions)
                 {
-                    // 插入避让拐点到路径中
-                    currentPath = InsertAvoidancePoints(currentPath, segmentIndex, avoidancePoints);
-                    System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 插入{avoidancePoints.Length}个避让拐点，新路径点数:{currentPath.Length}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 警告: 无法找到有效的避让拐点");
-                    break;
-                }
-            }
+                    System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 处理碰撞: 段{collision.SegmentIndex}与节点({collision.CollidingRect.X:F1},{collision.CollidingRect.Y:F1},{collision.CollidingRect.Width:F1}x{collision.CollidingRect.Height:F1})");
 
+                    // 生成双避让点
+                    var avoidancePoints = GenerateDualAvoidancePoints(
+                        collision,
+                        sourcePosition,
+                        targetDirection,
+                        allNodeRects,
+                        sourceNodeRect,
+                        targetNodeRect);
+
+                    if (avoidancePoints != null && avoidancePoints.Length > 0)
+                    {
+                        // 插入避让点到路径中
+                        currentPath = InsertAvoidancePoints(currentPath, collision.SegmentIndex, avoidancePoints);
+                        System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 插入{avoidancePoints.Length}个避让拐点，新路径点数:{currentPath.Length}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] 警告: 无法找到有效的避让拐点");
+                    }
+                }
             System.Diagnostics.Debug.WriteLine($"[ApplyNodeAvoidance] ========== 避让处理完成 ==========");
             return currentPath;
         }
 
         /// <summary>
-        /// 查找路径中与节点发生碰撞的线段（优化版本：方案B - 排除目标节点）
-        /// 注意：排除目标节点，避免与目标节点边界"碰撞"触发不必要的避让
+        /// 按顺序查找所有碰撞（包括源节点和目标节点）
+        /// 统一由避障模块处理所有节点避让，包括源节点和目标节点
         /// </summary>
-        private (int segmentIndex, Rect collidingRect)? FindCollisionSegment(
-            Point[] pathPoints,
-            Rect[] allNodeRects,
-            Rect excludeSource,
-            Rect excludeTarget)
+        private List<CollisionInfo> FindCollisionsInOrder(Point[] pathPoints, Rect[] allNodeRects, Rect excludeSource, Rect excludeTarget)
         {
-            var relevantRects = allNodeRects.Where(rect =>
-                !rect.IsEmpty &&
-                rect != excludeSource &&
-                rect != excludeTarget).ToList(); // 方案B：排除目标节点，避免误判碰撞
+            var collisions = new List<CollisionInfo>();
+
+            // 保留所有节点进行碰撞检测，包括源节点和目标节点
+            // 避障模块会统一处理所有避让逻辑
+            var relevantRects = allNodeRects.Where(rect => !rect.IsEmpty).ToList();
+
+            System.Diagnostics.Debug.WriteLine($"[FindCollisionsInOrder] 检测碰撞，节点数量:{relevantRects.Count}");
 
             for (int i = 0; i < pathPoints.Length - 1; i++)
             {
@@ -2037,358 +1577,298 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 {
                     if (LineIntersectsRect(p1, p2, rect))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FindCollisionSegment] 发现碰撞: 段{i} ({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1}) 与节点({rect.X:F1},{rect.Y:F1},{rect.Width:F1}x{rect.Height:F1})");
-                        return (i, rect);
+                        bool isSourceOrTarget = rect == excludeSource || rect == excludeTarget;
+                        System.Diagnostics.Debug.WriteLine($"[FindCollisionsInOrder] 发现碰撞{(isSourceOrTarget ? "(源/目标节点)" : "")}: 段{i} ({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1}) 与节点({rect.X:F1},{rect.Y:F1},{rect.Width:F1}x{rect.Height:F1})");
+                        collisions.Add(new CollisionInfo(i, rect, pathPoints));
                     }
                 }
             }
 
-            return null;
+            return collisions;
         }
 
         /// <summary>
-        /// 计算避让拐点（核心算法）
-        /// 根据碰撞情况和目标端口方向，计算最优的避让拐点
+        /// 检测源矩形与碰撞矩形的相对位置
         /// </summary>
-        private Point[] CalculateAvoidancePoints(
-            Point[] pathPoints,
-            int collisionSegmentIndex,
-            Rect collidingRect,
-            PortDirection sourceDirection,
+        private RectRelativePosition DetectRelativePosition(Rect sourceRect, Rect collidingRect)
+        {
+            if (sourceRect.IsEmpty || collidingRect.IsEmpty)
+                return RectRelativePosition.Overlapping;
+
+            // 检查水平方向关系
+            bool isOnRight = collidingRect.X > sourceRect.Right;
+            bool isOnLeft = collidingRect.Right < sourceRect.Left;
+
+            // 检查垂直方向关系
+            bool isBelow = collidingRect.Y > sourceRect.Bottom;
+            bool isAbove = collidingRect.Bottom < sourceRect.Top;
+
+            if (isOnRight)
+                return RectRelativePosition.OnRight;
+            if (isOnLeft)
+                return RectRelativePosition.OnLeft;
+            if (isBelow)
+                return RectRelativePosition.OnBottom;
+            if (isAbove)
+                return RectRelativePosition.OnTop;
+
+            return RectRelativePosition.Overlapping;
+        }
+
+        /// <summary>
+        /// 生成双避让点
+        /// 1. shapePreservingPoint：保持原路径形状，使用动态偏移距离
+        /// 2. strategyPoint：基于策略的避让点
+        ///
+        /// 智能处理源节点和目标节点的碰撞：
+        /// - 源节点碰撞：使用更大的避让距离（2.0 * NodeSafeDistance）
+        /// - 目标节点碰撞：确保最后一个拐点接近目标端口方向
+        /// - 普通节点碰撞：使用标准避让距离（0.7 * NodeSafeDistance）
+        /// </summary>
+        private Point[] GenerateDualAvoidancePoints(
+            CollisionInfo collision,
+            Point sourcePosition,
             PortDirection targetDirection,
             Rect[] allNodeRects,
+            Rect sourceNodeRect,
             Rect targetNodeRect)
         {
-            var p1 = pathPoints[collisionSegmentIndex];
-            var p2 = pathPoints[collisionSegmentIndex + 1];
+            var p1 = collision.PathPoints[collision.SegmentIndex];
+            var p2 = collision.PathPoints[collision.SegmentIndex + 1];
+            var collidingRect = collision.CollidingRect;
+
+            // 判断碰撞节点类型
+            bool isSourceNode = collidingRect == sourceNodeRect;
+            bool isTargetNode = collidingRect == targetNodeRect;
+            bool isRegularNode = !isSourceNode && !isTargetNode;
 
             // 判断线段是水平还是垂直
             bool isHorizontal = Math.Abs(p1.Y - p2.Y) < 1.0;
 
-            System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 碰撞线段: ({p1.X:F1},{p1.Y:F1}) -> ({p2.X:F1},{p2.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 碰撞节点: ({collidingRect.X:F1},{collidingRect.Y:F1},{collidingRect.Width:F1}x{collidingRect.Height:F1})");
-            System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 线段类型: {(isHorizontal ? "水平" : "垂直")}");
+            System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] 碰撞线段: ({p1.X:F1},{p1.Y:F1}) -> ({p2.X:F1},{p2.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] 碰撞节点: ({collidingRect.X:F1},{collidingRect.Y:F1},{collidingRect.Width:F1}x{collidingRect.Height:F1})");
+            System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] 碰撞类型: {(isSourceNode ? "源节点" : isTargetNode ? "目标节点" : "普通节点")}, 线段类型: {(isHorizontal ? "水平" : "垂直")}");
 
-            // 计算两个候选避让拐点（一个绕上/左，一个绕下/右）
-            Point[] candidatePoints;
+            // 计算形状保持点（shapePreservingPoint）
+            Point shapePreservingPoint = CalculateShapePreservingPoint(
+                sourcePosition, p1, p2, collidingRect, isHorizontal, isSourceNode, isTargetNode);
 
-            if (isHorizontal)
+            // 计算策略避让点（strategyPoint）
+            Point strategyPoint = CalculateStrategyPoint(
+                p1, p2, collidingRect, isHorizontal, targetDirection, isSourceNode, isTargetNode);
+
+            // 尝试使用双点避让
+            var avoidancePoints = new[] { shapePreservingPoint, strategyPoint };
+
+            // 测试避让路径是否有效
+            if (!HasCollision(new[] { p1, shapePreservingPoint, strategyPoint, p2 },
+                allNodeRects, Rect.Empty, Rect.Empty, excludeTargetNode: false))
             {
-                // 水平线段：垂直避让（绕上方或绕下方）
-                candidatePoints = new Point[]
-                {
-                    new Point(p1.X, collidingRect.Top - NodeSafeDistance),  // 上方避让
-                    new Point(p1.X, collidingRect.Bottom + NodeSafeDistance) // 下方避让
-                };
+                System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] ✓ 双点避让成功");
+                System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints]   形状保持点:({shapePreservingPoint.X:F1},{shapePreservingPoint.Y:F1})");
+                System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints]   策略避让点:({strategyPoint.X:F1},{strategyPoint.Y:F1})");
+                return avoidancePoints;
+            }
+
+            // 双点避让失败，尝试单点避让
+            System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] 双点避让失败，尝试单点避让");
+            if (!HasCollision(new[] { p1, strategyPoint, p2 },
+                allNodeRects, Rect.Empty, Rect.Empty, excludeTargetNode: false))
+            {
+                System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] ✓ 单点避让成功");
+                return new[] { strategyPoint };
+            }
+
+            // 单点避让也失败，返回空
+            System.Diagnostics.Debug.WriteLine($"[GenerateDualAvoidancePoints] 警告: 所有避让方案都失败");
+            return null;
+        }
+
+        /// <summary>
+        /// 计算形状保持点（shapePreservingPoint）
+        /// 使用动态偏移距离：
+        /// - 源节点碰撞：使用 2.0 * NodeSafeDistance（更大避让）
+        /// - 目标节点碰撞：使用 1.5 * NodeSafeDistance（中等避让）
+        /// - 普通节点碰撞：使用 0.7 * NodeSafeDistance（标准避让）
+        /// 根据相对位置动态计算避让方向
+        /// </summary>
+        private Point CalculateShapePreservingPoint(
+            Point sourcePosition,
+            Point p1,
+            Point p2,
+            Rect collidingRect,
+            bool isHorizontal,
+            bool isSourceNode = false,
+            bool isTargetNode = false)
+        {
+            // 根据碰撞节点类型确定避让距离
+            double offset;
+            if (isSourceNode)
+            {
+                offset = NodeSafeDistance * 2.0;  // 源节点需要更大的避让距离
+                System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 源节点碰撞，使用大避让距离: {offset:F1}");
+            }
+            else if (isTargetNode)
+            {
+                offset = NodeSafeDistance * 1.5;  // 目标节点使用中等避让距离
+                System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 目标节点碰撞，使用中等避让距离: {offset:F1}");
             }
             else
             {
-                // 垂直线段：水平避让（绕左侧或绕右侧）
-                candidatePoints = new Point[]
-                {
-                    new Point(collidingRect.Left - NodeSafeDistance, p1.Y),  // 左侧避让
-                    new Point(collidingRect.Right + NodeSafeDistance, p1.Y) // 右侧避让
-                };
+                offset = NodeSafeDistance * 0.7;  // 普通节点使用标准避让距离
             }
-
-            // 按优先级选择避让点：第一优先级是与目标端口方向一致
-            Point[] prioritizedPoints;
 
             if (isHorizontal)
             {
-                // 水平线段，目标端口在Top或Bottom方向
+                // 水平线段：计算基于源节点与碰撞矩形的相对位置的Y坐标
+                var relativePosition = DetectRelativePosition(
+                    new Rect(sourcePosition.X, sourcePosition.Y, 1, 1),
+                    collidingRect);
+
+                double safeY;
+                switch (relativePosition)
+                {
+                    case RectRelativePosition.OnRight:
+                        // 碰撞矩形在源节点右侧
+                        safeY = collidingRect.Top - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在右侧，使用上方避让: {safeY:F1}");
+                        break;
+                    case RectRelativePosition.OnLeft:
+                        // 碰撞矩形在源节点左侧
+                        safeY = collidingRect.Bottom + offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在左侧，使用下方避让: {safeY:F1}");
+                        break;
+                    case RectRelativePosition.OnBottom:
+                        // 碰撞矩形在源节点下方
+                        safeY = collidingRect.Top - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在下方，使用上方避让: {safeY:F1}");
+                        break;
+                    case RectRelativePosition.OnTop:
+                        // 碰撞矩形在源节点上方
+                        safeY = collidingRect.Bottom + offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在上方，使用下方避让: {safeY:F1}");
+                        break;
+                    default:
+                        // 重叠情况，使用上方避让
+                        safeY = collidingRect.Top - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 重叠情况，使用上方避让: {safeY:F1}");
+                        break;
+                }
+
+                return new Point(p1.X, safeY);
+            }
+            else
+            {
+                // 垂直线段：计算基于源节点与碰撞矩形的相对位置的X坐标
+                var relativePosition = DetectRelativePosition(
+                    new Rect(sourcePosition.X, sourcePosition.Y, 1, 1),
+                    collidingRect);
+
+                double safeX;
+                switch (relativePosition)
+                {
+                    case RectRelativePosition.OnRight:
+                        // 碰撞矩形在源节点右侧
+                        safeX = collidingRect.Left - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在右侧，使用左侧避让: {safeX:F1}");
+                        break;
+                    case RectRelativePosition.OnLeft:
+                        // 碰撞矩形在源节点左侧
+                        safeX = collidingRect.Right + offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在左侧，使用右侧避让: {safeX:F1}");
+                        break;
+                    case RectRelativePosition.OnBottom:
+                        // 碰撞矩形在源节点下方
+                        safeX = collidingRect.Right + offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在下方，使用右侧避让: {safeX:F1}");
+                        break;
+                    case RectRelativePosition.OnTop:
+                        // 碰撞矩形在源节点上方
+                        safeX = collidingRect.Left - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 碰撞在上方，使用左侧避让: {safeX:F1}");
+                        break;
+                    default:
+                        // 重叠情况，使用左侧避让
+                        safeX = collidingRect.Left - offset;
+                        System.Diagnostics.Debug.WriteLine($"[CalculateShapePreservingPoint] 重叠情况，使用左侧避让: {safeX:F1}");
+                        break;
+                }
+
+                return new Point(safeX, p1.Y);
+            }
+        }
+
+        /// <summary>
+        /// 计算策略避让点（strategyPoint）
+        /// 基于目标端口方向的策略避让
+        ///
+        /// 智能处理源节点和目标节点碰撞：
+        /// - 源节点碰撞：使用 2.0 * NodeSafeDistance，确保从源节点出发的方向
+        /// - 目标节点碰撞：使用 1.5 * NodeSafeDistance，确保接近目标端口方向
+        /// - 普通节点碰撞：使用标准的 NodeSafeDistance
+        /// </summary>
+        private Point CalculateStrategyPoint(
+            Point p1,
+            Point p2,
+            Rect collidingRect,
+            bool isHorizontal,
+            PortDirection targetDirection,
+            bool isSourceNode = false,
+            bool isTargetNode = false)
+        {
+            // 根据碰撞节点类型确定避让距离
+            double offset;
+            if (isSourceNode)
+            {
+                offset = NodeSafeDistance * 2.0;  // 源节点需要更大的避让距离
+            }
+            else if (isTargetNode)
+            {
+                offset = NodeSafeDistance * 1.5;  // 目标节点使用中等避让距离
+            }
+            else
+            {
+                offset = NodeSafeDistance;  // 普通节点使用标准避让距离
+            }
+
+            if (isHorizontal)
+            {
+                // 水平线段：垂直避让
                 if (targetDirection == PortDirection.Bottom)
                 {
-                    // 目标端口在下方，优先从上方接近（最后一段向下）
-                    prioritizedPoints = new Point[] { candidatePoints[0], candidatePoints[1] };
+                    // 目标端口在下方，优先从上方接近
+                    return new Point(p1.X, collidingRect.Top - offset);
                 }
                 else if (targetDirection == PortDirection.Top)
                 {
-                    // 目标端口在上方，优先从下方接近（最后一段向上）
-                    prioritizedPoints = new Point[] { candidatePoints[1], candidatePoints[0] };
+                    // 目标端口在上方，优先从下方接近
+                    return new Point(p1.X, collidingRect.Bottom + offset);
                 }
                 else
                 {
-                    // 其他方向，使用默认顺序
-                    prioritizedPoints = candidatePoints;
+                    // 其他方向，默认上方避让
+                    return new Point(p1.X, collidingRect.Top - offset);
                 }
             }
             else
             {
-                // 垂直线段，目标端口在Left或Right方向
+                // 垂直线段：水平避让
                 if (targetDirection == PortDirection.Right)
                 {
-                    // 目标端口在右方，优先从左方接近（最后一段向右）
-                    prioritizedPoints = new Point[] { candidatePoints[0], candidatePoints[1] };
+                    // 目标端口在右方，优先从左方接近
+                    return new Point(collidingRect.Left - offset, p1.Y);
                 }
                 else if (targetDirection == PortDirection.Left)
                 {
-                    // 目标端口在左方，优先从右方接近（最后一段向左）
-                    prioritizedPoints = new Point[] { candidatePoints[1], candidatePoints[0] };
+                    // 目标端口在左方，优先从右方接近
+                    return new Point(collidingRect.Right + offset, p1.Y);
                 }
                 else
                 {
-                    // 其他方向，使用默认顺序
-                    prioritizedPoints = candidatePoints;
+                    // 其他方向，默认左侧避让
+                    return new Point(collidingRect.Left - offset, p1.Y);
                 }
             }
-
-            // 选择第一个无碰撞的候选点
-            foreach (var candidate in prioritizedPoints)
-            {
-                // 测试从p1到candidate到p2的路径是否与任何节点碰撞
-                // 注意：excludeTargetNode=false，确保检测与目标节点的碰撞
-                if (!HasCollision(new[] { p1, candidate, p2 }, allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 选择避让点:({candidate.X:F1},{candidate.Y:F1})");
-                    return new Point[] { candidate };
-                }
-            }
-
-            // 如果两个单点都无法满足，尝试双点避让（更复杂的避让）
-            System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 单点避让失败，尝试双点避让");
-            var twoPointResult = CalculateTwoPointAvoidance(
-                p1, p2, collidingRect, isHorizontal,
-                sourceDirection, targetDirection,
-                allNodeRects, targetNodeRect);
-
-            if (twoPointResult != null)
-            {
-                return twoPointResult;
-            }
-
-            // 如果双点避让也失败，尝试三段式避让（更灵活的绕行）
-            System.Diagnostics.Debug.WriteLine($"[CalculateAvoidancePoints] 双点避让失败，尝试三段式避让");
-            return CalculateThreePointAvoidance(
-                p1, p2, collidingRect, isHorizontal,
-                sourceDirection, targetDirection,
-                allNodeRects, targetNodeRect);
-        }
-
-        /// <summary>
-        /// 计算三段式避让（最复杂的避让策略）
-        /// </summary>
-        private Point[] CalculateThreePointAvoidance(
-            Point p1, Point p2, Rect collidingRect, bool isHorizontal,
-            PortDirection sourceDirection, PortDirection targetDirection,
-            Rect[] allNodeRects, Rect targetNodeRect)
-        {
-            System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] 开始三段式避让");
-
-            if (isHorizontal)
-            {
-                // 水平线段：绕上或绕下，使用三个拐点
-                // 方案1：向上绕行：p1 -> (p1.X, safeY) -> (p2.X, safeY) -> p2
-                double safeY1 = collidingRect.Top - NodeSafeDistance * 1.5;
-                double safeY2 = collidingRect.Bottom + NodeSafeDistance * 1.5;
-
-                // 尝试向上绕行
-                var upPoints = new Point[]
-                {
-                    new Point(p1.X, safeY1),
-                    new Point(p2.X, safeY1)
-                };
-
-                if (!HasCollision(new[] { p1, upPoints[0], upPoints[1], p2 },
-                    allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] ✓ 向上绕行成功");
-                    return upPoints;
-                }
-
-                // 尝试向下绕行
-                var downPoints = new Point[]
-                {
-                    new Point(p1.X, safeY2),
-                    new Point(p2.X, safeY2)
-                };
-
-                if (!HasCollision(new[] { p1, downPoints[0], downPoints[1], p2 },
-                    allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] ✓ 向下绕行成功");
-                    return downPoints;
-                }
-            }
-            else
-            {
-                // 垂直线段：绕左或绕右，使用三个拐点
-                // 方案1：向左绕行：p1 -> (safeX, p1.Y) -> (safeX, p2.Y) -> p2
-                double safeX1 = collidingRect.Left - NodeSafeDistance * 1.5;
-                double safeX2 = collidingRect.Right + NodeSafeDistance * 1.5;
-
-                // 尝试向左绕行
-                var leftPoints = new Point[]
-                {
-                    new Point(safeX1, p1.Y),
-                    new Point(safeX1, p2.Y)
-                };
-
-                if (!HasCollision(new[] { p1, leftPoints[0], leftPoints[1], p2 },
-                    allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] ✓ 向左绕行成功");
-                    return leftPoints;
-                }
-
-                // 尝试向右绕行
-                var rightPoints = new Point[]
-                {
-                    new Point(safeX2, p1.Y),
-                    new Point(safeX2, p2.Y)
-                };
-
-                if (!HasCollision(new[] { p1, rightPoints[0], rightPoints[1], p2 },
-                    allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] ✓ 向右绕行成功");
-                    return rightPoints;
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[CalculateThreePointAvoidance] 警告: 三段式避让也失败，尝试直接绕过");
-            return CalculateDirectBypass(p1, p2, collidingRect, isHorizontal, allNodeRects, targetNodeRect);
-        }
-
-        /// <summary>
-        /// 计算直接绕过（绕过四个角落）
-        /// </summary>
-        private Point[] CalculateDirectBypass(
-            Point p1, Point p2, Rect rect, bool isHorizontal,
-            Rect[] allNodeRects, Rect targetNodeRect)
-        {
-            System.Diagnostics.Debug.WriteLine($"[CalculateDirectBypass] 尝试直接绕过四个角落");
-
-            // 尝试绕过四个角落
-            var cornerPoints = new Point[]
-            {
-                new Point(rect.Left - NodeSafeDistance, rect.Top - NodeSafeDistance),    // 左上
-                new Point(rect.Right + NodeSafeDistance, rect.Top - NodeSafeDistance),   // 右上
-                new Point(rect.Right + NodeSafeDistance, rect.Bottom + NodeSafeDistance), // 右下
-                new Point(rect.Left - NodeSafeDistance, rect.Bottom + NodeSafeDistance)   // 左下
-            };
-
-            foreach (var corner in cornerPoints)
-            {
-                // 使用两个拐点绕过角落
-                Point[] bypassPoints;
-                if (isHorizontal)
-                {
-                    bypassPoints = new Point[]
-                    {
-                        new Point(p1.X, corner.Y),
-                        new Point(p2.X, corner.Y)
-                    };
-                }
-                else
-                {
-                    bypassPoints = new Point[]
-                    {
-                        new Point(corner.X, p1.Y),
-                        new Point(corner.X, p2.Y)
-                    };
-                }
-
-                if (!HasCollision(new[] { p1, bypassPoints[0], bypassPoints[1], p2 },
-                    allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CalculateDirectBypass] ✓ 绕过角落成功:({corner.X:F1},{corner.Y:F1})");
-                    return bypassPoints;
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[CalculateDirectBypass] 警告: 所有避让方案都失败");
-            return null;
-        }
-
-        /// <summary>
-        /// 计算双点避让（用于复杂场景）
-        /// </summary>
-        private Point[] CalculateTwoPointAvoidance(
-            Point p1, Point p2, Rect collidingRect, bool isHorizontal,
-            PortDirection sourceDirection, PortDirection targetDirection,
-            Rect[] allNodeRects, Rect targetNodeRect)
-        {
-            System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 开始双点避让: 线段({p1.X:F1},{p1.Y:F1})->({p2.X:F1},{p2.Y:F1}), 类型:{(isHorizontal?"水平":"垂直")}");
-
-            Point[] avoidancePoints;
-
-            if (isHorizontal)
-            {
-                // 水平线段：先避让到安全距离，再水平通过
-                double safeY = targetDirection == PortDirection.Bottom
-                    ? collidingRect.Top - NodeSafeDistance  // 目标在下方，从上方接近
-                    : collidingRect.Bottom + NodeSafeDistance; // 目标在上方，从下方接近
-
-                avoidancePoints = new Point[]
-                {
-                    new Point(p1.X, safeY),      // 第一个拐点
-                    new Point(p2.X, safeY)       // 第二个拐点
-                };
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 候选方案1(优先): ({avoidancePoints[0].X:F1},{avoidancePoints[0].Y:F1}) -> ({avoidancePoints[1].X:F1},{avoidancePoints[1].Y:F1})");
-            }
-            else
-            {
-                // 垂直线段：先避让到安全距离，再垂直通过
-                double safeX = targetDirection == PortDirection.Right
-                    ? collidingRect.Left - NodeSafeDistance  // 目标在右方，从左方接近
-                    : collidingRect.Right + NodeSafeDistance; // 目标在左方，从右方接近
-
-                avoidancePoints = new Point[]
-                {
-                    new Point(safeX, p1.Y),      // 第一个拐点
-                    new Point(safeX, p2.Y)       // 第二个拐点
-                };
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 候选方案1(优先): ({avoidancePoints[0].X:F1},{avoidancePoints[0].Y:F1}) -> ({avoidancePoints[1].X:F1},{avoidancePoints[1].Y:F1})");
-            }
-
-            // 测试避让路径是否有效
-            if (!HasCollision(new[] { p1, avoidancePoints[0], avoidancePoints[1], p2 },
-                allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-            {
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] ✓ 方案1成功");
-                return avoidancePoints;
-            }
-
-            // 双点避让失败，尝试另一个方向
-            System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 方案1失败，尝试相反方向");
-
-            if (isHorizontal)
-            {
-                double safeY = targetDirection == PortDirection.Bottom
-                    ? collidingRect.Bottom + NodeSafeDistance
-                    : collidingRect.Top - NodeSafeDistance;
-
-                avoidancePoints = new Point[]
-                {
-                    new Point(p1.X, safeY),
-                    new Point(p2.X, safeY)
-                };
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 候选方案2: ({avoidancePoints[0].X:F1},{avoidancePoints[0].Y:F1}) -> ({avoidancePoints[1].X:F1},{avoidancePoints[1].Y:F1})");
-            }
-            else
-            {
-                double safeX = targetDirection == PortDirection.Right
-                    ? collidingRect.Right + NodeSafeDistance
-                    : collidingRect.Left - NodeSafeDistance;
-
-                avoidancePoints = new Point[]
-                {
-                    new Point(safeX, p1.Y),
-                    new Point(safeX, p2.Y)
-                };
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 候选方案2: ({avoidancePoints[0].X:F1},{avoidancePoints[0].Y:F1}) -> ({avoidancePoints[1].X:F1},{avoidancePoints[1].Y:F1})");
-            }
-
-            if (!HasCollision(new[] { p1, avoidancePoints[0], avoidancePoints[1], p2 },
-                allNodeRects, Rect.Empty, targetNodeRect, excludeTargetNode: false))
-            {
-                System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] ✓ 方案2成功");
-                return avoidancePoints;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[CalculateTwoPointAvoidance] 警告: 双点避让也失败");
-            return null;
         }
 
         /// <summary>

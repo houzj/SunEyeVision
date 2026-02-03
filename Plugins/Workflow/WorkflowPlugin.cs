@@ -58,7 +58,6 @@ namespace SunEyeVision.Plugins.Workflow
 
         public void Initialize()
         {
-            System.Console.WriteLine($"[WorkflowPlugin] Initializing...");
             _isInitialized = true;
         }
 
@@ -68,19 +67,16 @@ namespace SunEyeVision.Plugins.Workflow
             {
                 Initialize();
             }
-            System.Console.WriteLine($"[WorkflowPlugin] Starting...");
             _isRunning = true;
         }
 
         public void Stop()
         {
-            System.Console.WriteLine($"[WorkflowPlugin] Stopping...");
             _isRunning = false;
         }
 
         public void Cleanup()
         {
-            System.Console.WriteLine($"[WorkflowPlugin] Cleaning up...");
             _isInitialized = false;
         }
 
@@ -125,7 +121,6 @@ namespace SunEyeVision.Plugins.Workflow
                 throw new System.InvalidOperationException("Plugin is not running");
             }
 
-            System.Console.WriteLine($"[WorkflowPlugin] Executing with {inputs.Length} inputs");
 
             // 这里应该实现实际的工作流节点逻辑
             // 当前版本仅返回第一个输入作为示例

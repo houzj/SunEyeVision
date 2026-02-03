@@ -28,7 +28,6 @@ namespace SunEyeVision.Plugins.CustomFilters
 
         public void Initialize()
         {
-            System.Console.WriteLine($"[CustomFiltersPlugin] Initializing...");
             _isInitialized = true;
         }
 
@@ -38,19 +37,16 @@ namespace SunEyeVision.Plugins.CustomFilters
             {
                 Initialize();
             }
-            System.Console.WriteLine($"[CustomFiltersPlugin] Starting...");
             _isRunning = true;
         }
 
         public void Stop()
         {
-            System.Console.WriteLine($"[CustomFiltersPlugin] Stopping...");
             _isRunning = false;
         }
 
         public void Cleanup()
         {
-            System.Console.WriteLine($"[CustomFiltersPlugin] Cleaning up...");
             _isInitialized = false;
         }
 
@@ -67,7 +63,6 @@ namespace SunEyeVision.Plugins.CustomFilters
                 throw new System.InvalidOperationException("Plugin is not running");
             }
 
-            System.Console.WriteLine($"[CustomFiltersPlugin] Executing custom filter...");
 
             // 这里应该实现实际的自定义滤镜逻辑
             // 当前版本仅返回输入图像作为示例

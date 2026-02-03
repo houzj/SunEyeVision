@@ -16,8 +16,6 @@ namespace ApiDocGenerator
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("SunEyeVision API 文档生成器");
-            Console.WriteLine("==============================");
 
             // 配置路径
             string currentDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -25,10 +23,6 @@ namespace ApiDocGenerator
             string sourceDir = Path.Combine(solutionDir, "Help/Source/zh-CN/api");
             string outputDir = Path.Combine(solutionDir, "Help/Output");
 
-            Console.WriteLine($"解决方案目录: {solutionDir}");
-            Console.WriteLine($"API 文档目录: {sourceDir}");
-            Console.WriteLine($"输出目录: {outputDir}");
-            Console.WriteLine();
 
             // XML 文档路径 - 使用 tools 目录下的副本
             var xmlFiles = new[]
@@ -46,8 +40,6 @@ namespace ApiDocGenerator
             GenerateApiDocumentation("Workflow", xmlFiles[2], sourceDir, solutionDir);
             GenerateApiDocumentation("Plugins", xmlFiles[3], sourceDir, solutionDir);
 
-            Console.WriteLine();
-            Console.WriteLine("API 文档生成完成!");
         }
 
         /// <summary>
@@ -55,11 +47,9 @@ namespace ApiDocGenerator
         /// </summary>
         static void GenerateApiDocumentation(string moduleName, string xmlPath, string outputDir, string solutionDir)
         {
-            Console.WriteLine($"正在生成 {moduleName} 模块文档...");
 
             if (!File.Exists(xmlPath))
             {
-                Console.WriteLine($"  警告: XML 文档文件不存在: {xmlPath}");
                 return;
             }
 
@@ -71,7 +61,6 @@ namespace ApiDocGenerator
                 var members = doc.SelectNodes("//member");
                 if (members == null || members.Count == 0)
                 {
-                    Console.WriteLine($"  提示: 未找到任何成员文档");
                     return;
                 }
 
@@ -94,11 +83,9 @@ namespace ApiDocGenerator
                 string outputFile = Path.Combine(outputDir, $"{moduleName.ToLower()}.html");
                 GenerateHtml(moduleName, namespaces, outputFile);
 
-                Console.WriteLine($"  已生成: {outputFile}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  错误: {ex.Message}");
             }
         }
 

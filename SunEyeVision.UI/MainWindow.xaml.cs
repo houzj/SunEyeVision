@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using SunEyeVision.UI.Controls;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services;
 using SunEyeVision.UI.ViewModels;
 
 namespace SunEyeVision.UI
@@ -21,6 +23,10 @@ namespace SunEyeVision.UI
         private readonly MainWindowViewModel _viewModel;
         private bool _isTabItemClick = false;  // 标记是否是通过点击TabItem触发的切换
         private Controls.WorkflowCanvasControl? _currentWorkflowCanvas = null;  // 当前显示的WorkflowCanvasControl
+        private Controls.AIStudioDiagramControl? _currentAIStudioDiagram = null;  // 当前显示的AIStudioDiagramControl
+
+        // 画布引擎管理器容器
+        public System.Windows.Controls.Decorator CanvasContainer { get; private set; } = new System.Windows.Controls.Decorator();
 
         // 缩放相关
         private const double MinScale = 0.25;  // 25%
@@ -63,6 +69,9 @@ namespace SunEyeVision.UI
             // 测试日志系统
             System.Diagnostics.Debug.WriteLine("[系统] 主窗口已启动");
             System.Diagnostics.Debug.WriteLine("[系统] 日志系统测试 - 如果能看到这条消息，说明日志系统正常工作！");
+
+            // 初始化画布引擎管理器 - 设置默认引擎
+            CanvasEngineManager.SetDataContext(_viewModel.WorkflowTabViewModel?.SelectedTab);
 
             RegisterHotkeys();
         }
@@ -110,8 +119,13 @@ namespace SunEyeVision.UI
                 var toolCount = PluginSystem.ToolRegistry.GetToolCount();
                 _viewModel.StatusText = $"已加载 {toolCount} 个工具插件";
 
-                // 初始化智能路径转换器的节点集合
-                Converters.SmartPathConverter.Nodes = _viewModel.WorkflowNodes;
+                // 初始化智能路径转换器的节点集合（使用当前选中的 Tab 的节点集合）
+                if (_viewModel.WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    Converters.SmartPathConverter.Nodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes;
+                    Converters.SmartPathConverter.Connections = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] SmartPathConverter 初始化 - Nodes count: {_viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes?.Count ?? 0}");
+                }
 
                 // TODO: 加载工作流
 
@@ -174,22 +188,69 @@ namespace SunEyeVision.UI
                 System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 获取到TabItem");
                 System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] TabItem.Content类型: {tabItem.Content?.GetType().Name ?? "null"}");
 
-                // 递归查找WorkflowCanvasControl
-                var workflowCanvas = FindVisualChild<WorkflowCanvasControl>(tabItem);
-                if (workflowCanvas == null)
+                // 检查ScrollViewer
+                var scrollViewers = FindVisualChildren<ScrollViewer>(tabItem).ToList();
+                System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ScrollViewer count: {scrollViewers.Count}");
+                foreach (var sv in scrollViewers)
                 {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
+                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ScrollViewer Visibility: {sv.Visibility}, Background: {sv.Background}");
+                }
 
-                    // 尝试从tabItem.Content查找（如果Content是UI元素）
-                    if (tabItem.Content is DependencyObject contentObj)
+                // 声明 workflowCanvas 变量，以便在整个方法中使用
+                WorkflowCanvasControl? workflowCanvas = null;
+
+                // 直接使用已保存的控件引用
+                if (_currentWorkflowCanvas != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 使用已保存的WorkflowCanvasControl引用");
+                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] WorkflowCanvasControl.Visibility: {_currentWorkflowCanvas.Visibility}");
+
+                    // 查找WorkflowCanvasControl的父级ScrollViewer
+                    var workflowScrollViewer = FindVisualParent<ScrollViewer>(_currentWorkflowCanvas);
+                    System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] WorkflowCanvas的ScrollViewer: {(workflowScrollViewer != null ? workflowScrollViewer.Visibility.ToString() : "null")}");
+
+                    // 强制显示测试矩形
+                    if (_currentWorkflowCanvas.BoundingRectangle != null)
                     {
-                        workflowCanvas = FindVisualChild<WorkflowCanvasControl>(contentObj);
-                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
+                        System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] ✓ BoundingRectangle存在，当前可见性: {_currentWorkflowCanvas.BoundingRectangle.Visibility}");
+
+                        _currentWorkflowCanvas.BoundingRectangle.Visibility = Visibility.Visible;
+                        Canvas.SetLeft(_currentWorkflowCanvas.BoundingRectangle, 200);
+                        Canvas.SetTop(_currentWorkflowCanvas.BoundingRectangle, 200);
+                        _currentWorkflowCanvas.BoundingRectangle.Width = 300;
+                        _currentWorkflowCanvas.BoundingRectangle.Height = 150;
+
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 矩形已设置为可见");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 位置: (200, 200)");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 大小: 300 x 150");
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 颜色: 红色");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ BoundingRectangle为null");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
+                    System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ _currentWorkflowCanvas为null");
+
+                    // 尝试传统方式查找
+                    workflowCanvas = FindVisualChild<WorkflowCanvasControl>(tabItem);
+                    if (workflowCanvas == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ❌ TabItem中找不到WorkflowCanvasControl");
+
+                        // 尝试从tabItem.Content查找（如果Content是UI元素）
+                        if (tabItem.Content is DependencyObject contentObj)
+                        {
+                            workflowCanvas = FindVisualChild<WorkflowCanvasControl>(contentObj);
+                            System.Diagnostics.Debug.WriteLine($"[TestBoundingRectangle] 从Content对象查找: {(workflowCanvas != null ? "成功" : "失败")}");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ✓ 从TabItem找到WorkflowCanvasControl");
+                    }
                 }
 
                 if (workflowCanvas != null)
@@ -231,6 +292,67 @@ namespace SunEyeVision.UI
             System.Diagnostics.Debug.WriteLine("[TestBoundingRectangle] ========== 测试完成 ==========");
         }
 
+        /// <summary>
+        /// 检查画布ScrollViewer的Visibility状态
+        /// </summary>
+        private void CheckCanvasVisibility()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] ========== 开始检查画布Visibility ==========");
+
+                // 获取当前选中的TabItem
+                var selectedItem = WorkflowTabControl.SelectedItem;
+                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] SelectedTab type: {selectedItem?.GetType().Name ?? "null"}");
+
+                if (selectedItem is ViewModels.WorkflowTabViewModel tabViewModel)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] TabViewModel.Name: {tabViewModel.Name}");
+                    System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
+
+                    // 查找当前TabItem的ContentPresenter
+                    var tabItem = FindVisualChild<System.Windows.Controls.TabItem>(WorkflowTabControl);
+                    if (tabItem != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 找到TabItem: {tabItem.Name}");
+
+                        // 查找ScrollViewer
+                        var scrollViewer = FindVisualChild<ScrollViewer>(tabItem);
+                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer count: {FindVisualChildren<ScrollViewer>(tabItem).Count()}");
+
+                        var scrollViewers = FindVisualChildren<ScrollViewer>(tabItem).ToList();
+                        foreach (var sv in scrollViewers)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer Visibility: {sv.Visibility}");
+                            System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] ScrollViewer Background: {sv.Background}");
+                        }
+
+                        // 查找两个ScrollViewer
+                        var workflowScrollViewer = scrollViewers.FirstOrDefault(sv => sv.Background.ToString().Contains("F5F8FC") || sv.Background.ToString().Contains("255, 245, 252"));
+                        var aiStudioScrollViewer = scrollViewers.FirstOrDefault(sv => sv.Background.ToString().Contains("1A1A2E") || sv.Background.ToString().Contains("26, 26, 46"));
+
+                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] Workflow ScrollViewer: {(workflowScrollViewer != null ? $"Visibility={workflowScrollViewer.Visibility}" : "null")}");
+                        System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] AIStudio ScrollViewer: {(aiStudioScrollViewer != null ? $"Visibility={aiStudioScrollViewer.Visibility}" : "null")}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] TabItem is null");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] SelectedTab is not WorkflowTabViewModel");
+                }
+
+                System.Diagnostics.Debug.WriteLine("[CheckCanvasVisibility] ========== 检查完成 ==========");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 错误: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CheckCanvasVisibility] 堆栈: {ex.StackTrace}");
+            }
+        }
+
         #endregion
 
         #region 初始化
@@ -253,11 +375,159 @@ namespace SunEyeVision.UI
         /// </summary>
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] ===== WorkflowCanvasControl Loaded Event Fired =====");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender type: {sender?.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl_Loaded] sender is WorkflowCanvasControl: {sender is Controls.WorkflowCanvasControl}");
+
             if (sender is Controls.WorkflowCanvasControl workflowCanvas)
             {
                 _currentWorkflowCanvas = workflowCanvas;
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl已加载并保存引用");
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] BoundingRectangle元素: {(workflowCanvas.BoundingRectangle != null ? "存在" : "null")}");
+
+                // 检查DataContext
+                var dataContext = workflowCanvas.DataContext;
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl.DataContext type: {dataContext?.GetType().Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] WorkflowCanvasControl.DataContext is WorkflowTabViewModel: {dataContext is ViewModels.WorkflowTabViewModel}");
+
+                // 如果DataContext为null，手动设置为当前选中的Tab
+                if (dataContext == null && _viewModel?.WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] DataContext为null，手动设置为SelectedTab");
+                    workflowCanvas.DataContext = _viewModel.WorkflowTabViewModel.SelectedTab;
+                    dataContext = workflowCanvas.DataContext;
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 手动设置后DataContext type: {dataContext?.GetType().Name ?? "null"}");
+                }
+
+                // 订阅DataContextChanged事件，以便在CanvasType变化时更新Visibility
+                workflowCanvas.DataContextChanged += (s, args) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WorkflowCanvasControl DataContextChanged] CanvasType更新Visibility");
+                    UpdateCanvasVisibility();
+                };
+
+                if (dataContext is ViewModels.WorkflowTabViewModel tabViewModel)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.Name: {tabViewModel.Name}");
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.WorkflowNodes.Count: {tabViewModel.WorkflowNodes.Count}");
+                }
+
+                // 立即根据CanvasType更新Visibility
+                UpdateCanvasVisibility();
+            }
+        }
+
+        /// <summary>
+        /// AIStudioDiagramControl加载事件 - 保存引用
+        /// </summary>
+        private void AIStudioDiagramControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] ===== AIStudioDiagramControl Loaded Event Fired =====");
+            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] sender type: {sender?.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl_Loaded] sender is AIStudioDiagramControl: {sender is Controls.AIStudioDiagramControl}");
+
+            if (sender is Controls.AIStudioDiagramControl aiStudioDiagram)
+            {
+                _currentAIStudioDiagram = aiStudioDiagram;
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl已加载并保存引用");
+
+                // 检查DataContext
+                var dataContext = aiStudioDiagram.DataContext;
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl.DataContext type: {dataContext?.GetType().Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagramControl.DataContext is WorkflowTabViewModel: {dataContext is ViewModels.WorkflowTabViewModel}");
+
+                // 如果DataContext为null，手动设置为当前选中的Tab
+                if (dataContext == null && _viewModel?.WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] DataContext为null，手动设置为SelectedTab");
+                    aiStudioDiagram.DataContext = _viewModel.WorkflowTabViewModel.SelectedTab;
+                    dataContext = aiStudioDiagram.DataContext;
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 手动设置后DataContext type: {dataContext?.GetType().Name ?? "null"}");
+                }
+
+                // 订阅DataContextChanged事件，以便在CanvasType变化时更新Visibility
+                aiStudioDiagram.DataContextChanged += (s, args) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AIStudioDiagramControl DataContextChanged] CanvasType更新Visibility");
+                    UpdateCanvasVisibility();
+                };
+
+                if (dataContext is ViewModels.WorkflowTabViewModel tabViewModel)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] TabViewModel.CanvasType: {tabViewModel.CanvasType}");
+                }
+
+                // 初始化DiagramControl
+                aiStudioDiagram.Initialize();
+
+                // 订阅事件
+                aiStudioDiagram.NodeAdded += (s, args) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagram: 节点已添加");
+                };
+
+                aiStudioDiagram.ConnectionAdded += (s, args) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] AIStudioDiagram: 连接已添加");
+                };
+
+                // 立即根据CanvasType更新Visibility
+                UpdateCanvasVisibility();
+            }
+        }
+
+        /// <summary>
+        /// 根据CanvasType更新画布的Visibility
+        /// </summary>
+        private void UpdateCanvasVisibility()
+        {
+            try
+            {
+                if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[UpdateCanvasVisibility] SelectedTab为null，无法更新");
+                    return;
+                }
+
+                var currentTab = _viewModel.WorkflowTabViewModel.SelectedTab;
+                var canvasType = currentTab.CanvasType;
+
+                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] CanvasType: {canvasType}");
+
+                // 查找两个画布的ScrollViewer
+                var tabItem = WorkflowTabControl.ItemContainerGenerator.ContainerFromIndex(WorkflowTabControl.SelectedIndex) as TabItem;
+                if (tabItem != null)
+                {
+                    // 查找WorkflowCanvasControl的父级ScrollViewer
+                    if (_currentWorkflowCanvas != null)
+                    {
+                        var workflowScrollViewer = FindVisualParent<ScrollViewer>(_currentWorkflowCanvas);
+                        if (workflowScrollViewer != null)
+                        {
+                            var shouldShow = canvasType == CanvasType.WorkflowCanvas;
+                            workflowScrollViewer.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+                            System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] WorkflowCanvas ScrollViewer Visibility设置为: {workflowScrollViewer.Visibility}");
+                        }
+                    }
+
+                    // 查找AIStudioDiagramControl的父级ScrollViewer
+                    if (_currentAIStudioDiagram != null)
+                    {
+                        var aiStudioScrollViewer = FindVisualParent<ScrollViewer>(_currentAIStudioDiagram);
+                        if (aiStudioScrollViewer != null)
+                        {
+                            var shouldShow = canvasType == CanvasType.AIStudioDiagram;
+                            aiStudioScrollViewer.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+                            System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] AIStudioDiagram ScrollViewer Visibility设置为: {aiStudioScrollViewer.Visibility}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] 错误: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[UpdateCanvasVisibility] 堆栈: {ex.StackTrace}");
             }
         }
 
@@ -352,7 +622,7 @@ namespace SunEyeVision.UI
         /// <summary>
         /// TabControl 选择变化事件 - 根据切换方式决定是否滚动
         /// </summary>
-        private void WorkflowTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void WorkflowTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             // 使用Dispatcher延迟执行，确保UI已更新
             Dispatcher.BeginInvoke(new Action(() =>
@@ -523,6 +793,16 @@ namespace SunEyeVision.UI
             {
                 FindVisualChildren<T>(VisualTreeHelper.GetChild(parent, i), results);
             }
+        }
+
+        /// <summary>
+        /// 在视觉树中查找指定类型的所有子元素（返回IEnumerable的便捷方法）
+        /// </summary>
+        private IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        {
+            var results = new List<T>();
+            FindVisualChildren(parent, results);
+            return results;
         }
 
         /// <summary>
@@ -1240,6 +1520,87 @@ namespace SunEyeVision.UI
                 ? ToggleDirectionType.Left
                 : ToggleDirectionType.Right;
             RightPanelSplitter.ToggleDirection = newDirection;
+        }
+
+        #endregion
+
+        #region 画布引擎管理器支持
+
+        /// <summary>
+        /// 通过代码切换画布类型（用于单元测试和特殊场景）
+        /// </summary>
+        public void SwitchCanvasType(CanvasType canvasType)
+        {
+            if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
+            {
+                throw new InvalidOperationException("请先选择一个工作流标签页");
+            }
+
+            var currentTab = _viewModel.WorkflowTabViewModel.SelectedTab;
+            currentTab.CanvasType = canvasType;
+            currentTab.RefreshProperty("CanvasType");
+        }
+
+        /// <summary>
+        /// 设置路径计算器类型（用于单元测试）
+        /// </summary>
+        public void SetPathCalculator(string pathCalculatorType)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] 设置路径计算器到: {pathCalculatorType}");
+
+            // 获取当前画布类型
+            var canvasType = GetCurrentCanvasType();
+
+            // 根据画布类型调用对应的控件方法
+            switch (canvasType)
+            {
+                case CanvasType.WorkflowCanvas:
+                    // 查找当前显示的WorkflowCanvasControl
+                    var workflowCanvas = FindVisualChild<WorkflowCanvasControl>(this);
+                    if (workflowCanvas != null)
+                    {
+                        workflowCanvas.SetPathCalculator(pathCalculatorType);
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ WorkflowCanvasControl 路径计算器已设置");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 WorkflowCanvasControl");
+                    }
+                    break;
+
+                case CanvasType.AIStudioDiagram:
+                    // 查找当前显示的AIStudioDiagramControl
+                    var aistudioDiagram = FindVisualChild<AIStudioDiagramControl>(this);
+                    if (aistudioDiagram != null)
+                    {
+                        aistudioDiagram.SetPathCalculator(pathCalculatorType);
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ AIStudioDiagramControl 路径计算器已设置");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 AIStudioDiagramControl");
+                    }
+                    break;
+            }
+
+            // 同时调用CanvasEngineManager，保持兼容性
+            CanvasEngineManager.SetPathCalculator(pathCalculatorType);
+        }
+
+        /// <summary>
+        /// 获取当前画布类型
+        /// </summary>
+        public CanvasType GetCurrentCanvasType()
+        {
+            return _viewModel?.WorkflowTabViewModel?.SelectedTab?.CanvasType ?? CanvasType.WorkflowCanvas;
+        }
+
+        /// <summary>
+        /// 获取当前画布引擎
+        /// </summary>
+        public Interfaces.ICanvasEngine? GetCurrentCanvasEngine()
+        {
+            return CanvasEngineManager.GetCurrentEngine();
         }
 
         #endregion

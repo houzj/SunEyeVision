@@ -21,7 +21,6 @@ namespace SunEyeVision.Services
                 {
                     Console.ForegroundColor = color;
                     var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                    Console.WriteLine($"[{timestamp}] [{level}] {message}");
                 }
                 finally
                 {

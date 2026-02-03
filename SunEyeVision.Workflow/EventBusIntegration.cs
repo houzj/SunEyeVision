@@ -195,27 +195,20 @@ namespace SunEyeVision.Workflow
             eventBus.Subscribe<WorkflowNodeExecutedEvent>(OnNodeExecuted);
             eventBus.Subscribe<ErrorEvent>(OnError);
 
-            Console.WriteLine("Workflow event monitoring setup complete");
         }
 
         private static void OnWorkflowExecuted(WorkflowExecutedEvent eventData)
         {
-            Console.WriteLine($"[MONITOR] Workflow '{eventData.WorkflowName}' completed in {eventData.ExecutionDurationMs}ms");
-            Console.WriteLine($"  - Success: {eventData.Success}");
-            Console.WriteLine($"  - Nodes: {eventData.NodesExecuted}");
 
             if (!eventData.Success)
             {
-                Console.WriteLine($"  - Error: {eventData.ErrorMessage}");
             }
         }
 
         private static void OnNodeExecuted(WorkflowNodeExecutedEvent eventData)
         {
-            Console.WriteLine($"[MONITOR] Node '{eventData.NodeName}' ({eventData.AlgorithmType}) - {eventData.ExecutionDurationMs}ms");
             if (!eventData.Success)
             {
-                Console.WriteLine($"  - Error: {eventData.ErrorMessage}");
             }
         }
 
@@ -229,7 +222,6 @@ namespace SunEyeVision.Workflow
                 _ => Console.ForegroundColor = ConsoleColor.Gray
             };
 
-            Console.WriteLine($"[ERROR {eventData.Severity}] {eventData.ErrorMessage}");
 
             Console.ResetColor();
         }

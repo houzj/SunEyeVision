@@ -166,7 +166,6 @@ namespace SunEyeVision.Core.Services
         {
             var levelStr = level.ToString().ToUpper();
             var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            Debug.WriteLine($"[{timestamp}] [{levelStr}] {message}");
         }
 
         /// <summary>

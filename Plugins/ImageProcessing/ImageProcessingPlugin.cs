@@ -25,7 +25,6 @@ namespace SunEyeVision.Plugins.ImageProcessing
 
         public void Initialize()
         {
-            System.Console.WriteLine($"[ImageProcessingPlugin] Initializing...");
             _isInitialized = true;
         }
 
@@ -35,19 +34,16 @@ namespace SunEyeVision.Plugins.ImageProcessing
             {
                 Initialize();
             }
-            System.Console.WriteLine($"[ImageProcessingPlugin] Starting...");
             _isRunning = true;
         }
 
         public void Stop()
         {
-            System.Console.WriteLine($"[ImageProcessingPlugin] Stopping...");
             _isRunning = false;
         }
 
         public void Cleanup()
         {
-            System.Console.WriteLine($"[ImageProcessingPlugin] Cleaning up...");
             _isInitialized = false;
         }
 
@@ -102,7 +98,6 @@ namespace SunEyeVision.Plugins.ImageProcessing
                 throw new System.InvalidOperationException("Plugin is not running");
             }
 
-            System.Console.WriteLine($"[ImageProcessingPlugin] Executing with parameters: {System.Text.Json.JsonSerializer.Serialize(parameters)}");
 
             // 这里应该实现实际的图像处理逻辑
             // 当前版本仅返回输入图像作为示例

@@ -40,18 +40,15 @@ namespace SunEyeVision.PluginSystem
                             // 注册到ToolRegistry
                             ToolRegistry.RegisterTool(plugin);
 
-                            System.Diagnostics.Debug.WriteLine($"成功注册工具插件: {plugin.Name} ({plugin.PluginId})");
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"注册工具插件失败 {toolType.Name}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"扫描程序集失败 {assembly.GetName().Name}: {ex.Message}");
             }
         }
 
