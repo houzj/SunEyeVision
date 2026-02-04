@@ -20,7 +20,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// </summary>
         public AIStudioPathCalculator()
         {
-            System.Diagnostics.Debug.WriteLine("[AIStudioPathCalculator] 创建实例（延迟初始化）");
+            
         }
 
         /// <summary>
@@ -38,13 +38,13 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine("[AIStudioPathCalculator] 正在初始化...");
+                    
 
                     // 检查 AIStudio.Wpf.DiagramDesigner 程序集是否可用
                     var assembly = System.Reflection.Assembly.GetAssembly(typeof(AIStudioPathCalculator));
                     if (assembly != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 当前程序集: {assembly.GetName().Name}");
+                        
                     }
 
                     // 尝试加载 AIStudio.Wpf.DiagramDesigner 程序集
@@ -53,21 +53,21 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         var aiStudioAssembly = System.Reflection.Assembly.Load("AIStudio.Wpf.DiagramDesigner");
                         if (aiStudioAssembly != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] AIStudio.Wpf.DiagramDesigner 已加载: {aiStudioAssembly.GetName().Version}");
+                            
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] AIStudio.Wpf.DiagramDesigner 加载失败: {ex.Message}");
+                        
                         // 这不是致命错误，我们仍然可以使用简化实现
                     }
 
                     _isInitialized = true;
-                    System.Diagnostics.Debug.WriteLine("[AIStudioPathCalculator] ✅ 初始化完成");
+                    
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] ❌ 初始化失败: {ex.Message}");
+                    
                     throw;
                 }
             }
@@ -84,8 +84,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         {
             EnsureEditorInitialized();
 
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 计算正交路径: {sourcePosition} -> {targetPosition}");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 方向: {sourceDirection} -> {targetDirection}");
+            
 
             try
             {
@@ -99,7 +98,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 计算失败: {ex.Message}");
+                
                 // 返回简单的直线路径
                 return new Point[] { sourcePosition, targetPosition };
             }
@@ -119,10 +118,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         {
             EnsureEditorInitialized();
 
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 计算增强正交路径");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 源点: {sourcePosition}, 目标点: {targetPosition}");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioudiPathCalculator] 源节点: {sourceNodeRect}, 目标节点: {targetNodeRect}");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 障碍物数量: {allNodeRects?.Length ?? 0}");
+            
 
             try
             {
@@ -150,12 +146,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         targetDirection);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] ✅ 路径计算完成，包含 {pathList.Count} 个点");
+                
                 return pathList.ToArray();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] ❌ 计算失败: {ex.Message}");
+                
                 // 返回简单的直线路径
                 return new Point[] { sourcePosition, targetPosition };
             }
@@ -404,10 +400,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             var lastPoint = pathPoints[pathPoints.Length - 1];
 
             // 关键日志：记录箭头计算结果
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] ========== 箭头计算结果 ==========");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 箭头尖端位置（目标端口）:({arrowPosition.X:F1},{arrowPosition.Y:F1})");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 目标端口方向:{targetDirection}, 固定箭头角度:{arrowAngle:F1}°");
-            System.Diagnostics.Debug.WriteLine($"[AIStudioPathCalculator] 箭头尾部位置（路径终点）:({lastPoint.X:F1},{lastPoint.Y:F1})");
+            
 
             return (arrowPosition, arrowAngle);
         }

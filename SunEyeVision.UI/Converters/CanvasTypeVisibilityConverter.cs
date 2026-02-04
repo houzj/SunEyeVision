@@ -12,18 +12,12 @@ namespace SunEyeVision.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            System.Diagnostics.Debug.WriteLine($"[CanvasTypeToWorkflowVisibilityConverter] ===== Convert called =====");
-            System.Diagnostics.Debug.WriteLine($"[CanvasTypeToWorkflowVisibilityConverter] value: {value}");
-            System.Diagnostics.Debug.WriteLine($"[CanvasTypeToWorkflowVisibilityConverter] value type: {value?.GetType().Name ?? "null"}");
-
             if (value is CanvasType canvasType)
             {
-                var visibility = canvasType == CanvasType.WorkflowCanvas ? Visibility.Visible : Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine($"[CanvasTypeToWorkflowVisibilityConverter] CanvasType: {canvasType}, Returning Visibility: {visibility}");
+                Visibility visibility = canvasType == CanvasType.WorkflowCanvas ? Visibility.Visible : Visibility.Collapsed;
                 return visibility;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[CanvasTypeToWorkflowVisibilityConverter] value is not CanvasType, returning Collapsed");
+            
             return Visibility.Collapsed;
         }
 

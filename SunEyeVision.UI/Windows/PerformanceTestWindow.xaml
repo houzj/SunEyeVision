@@ -1,0 +1,48 @@
+<Window x:Class="SunEyeVision.UI.Windows.PerformanceTestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="性能基准测试" Height="600" Width="800"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <TextBlock Grid.Row="0" Text="SunEyeVision 性能基准测试"
+                   FontSize="20" FontWeight="Bold"
+                   Margin="0,0,0,10"/>
+
+        <!-- 测试按钮 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="运行完整测试" Click="RunFullTest_Click"
+                    Width="120" Height="35" Margin="0,0,10,0"/>
+            <Button Content="运行节点渲染测试" Click="RunNodeTest_Click"
+                    Width="140" Height="35" Margin="0,0,10,0"/>
+            <Button Content="运行连线更新测试" Click="RunConnectionTest_Click"
+                    Width="140" Height="35" Margin="0,0,10,0"/>
+            <Button Content="清除结果" Click="ClearResults_Click"
+                    Width="100" Height="35"/>
+        </StackPanel>
+
+        <!-- 测试结果 -->
+        <TextBox Grid.Row="2" x:Name="ResultsTextBox"
+                 IsReadOnly="True"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"
+                 FontFamily="Consolas" FontSize="12"
+                 Background="#F5F5F5"
+                 BorderThickness="1"
+                 Text="点击按钮开始性能测试..."/>
+
+        <!-- 状态栏 -->
+        <StatusBar Grid.Row="3">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusBarText" Text="准备就绪"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

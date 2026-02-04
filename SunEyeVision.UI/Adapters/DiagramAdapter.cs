@@ -83,13 +83,13 @@ namespace SunEyeVision.UI.Adapters
             // 查找源节点和目标节点
             if (!_nodeMap.TryGetValue(workflowConnection.SourceNodeId, out var sourceNode) || sourceNode == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 源节点未找到: {workflowConnection.SourceNodeId}");
+    
                 throw new InvalidOperationException($"源节点未找到: {workflowConnection.SourceNodeId}");
             }
 
             if (!_nodeMap.TryGetValue(workflowConnection.TargetNodeId, out var targetNode) || targetNode == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 目标节点未找到: {workflowConnection.TargetNodeId}");
+    
                 throw new InvalidOperationException($"目标节点未找到: {workflowConnection.TargetNodeId}");
             }
 
@@ -183,12 +183,12 @@ namespace SunEyeVision.UI.Adapters
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ✅ 同步连接: {successCount}/{connections.Count()} 个");
+    
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 同步连接失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] 堆栈: {ex.StackTrace}");
+
+
                 throw;
             }
         }
@@ -211,7 +211,7 @@ namespace SunEyeVision.UI.Adapters
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 添加节点失败: {ex.Message}");
+
             }
         }
 
@@ -228,11 +228,11 @@ namespace SunEyeVision.UI.Adapters
 
                 diagramViewModel.Add(nativeConnection);
 
-                System.Diagnostics.Debug.WriteLine("[DiagramAdapter] ✅ 添加连接");
+    
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 添加连接失败: {ex.Message}");
+    
             }
         }
 
@@ -250,12 +250,12 @@ namespace SunEyeVision.UI.Adapters
                 if (nativeNode is SelectableDesignerItemViewModelBase item)
                 {
                     diagramViewModel.Items.Remove(item);
-                    System.Diagnostics.Debug.WriteLine("[DiagramAdapter] ✅ 移除节点");
+        
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 移除节点失败: {ex.Message}");
+    
             }
         }
 
@@ -273,12 +273,12 @@ namespace SunEyeVision.UI.Adapters
                 if (nativeConnection is SelectableDesignerItemViewModelBase item)
                 {
                     diagramViewModel.Items.Remove(item);
-                    System.Diagnostics.Debug.WriteLine("[DiagramAdapter] ✅ 移除连接");
+        
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DiagramAdapter] ❌ 移除连接失败: {ex.Message}");
+    
             }
         }
 
@@ -291,7 +291,7 @@ namespace SunEyeVision.UI.Adapters
             // AIStudio.Wpf.DiagramDesigner原生库默认使用贝塞尔曲线
             // 在 CreateConnectionInternal 中已设置 DrawMode.ConnectingLineSmooth
             // 此方法为接口实现预留
-            System.Diagnostics.Debug.WriteLine("[DiagramAdapter] SetBezierCurveStyle: 已在创建连接时设置 DrawMode.ConnectingLineSmooth");
+
         }
     }
 }

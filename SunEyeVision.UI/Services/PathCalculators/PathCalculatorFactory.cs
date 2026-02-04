@@ -47,26 +47,20 @@ namespace SunEyeVision.UI.Services.PathCalculators
         {
             var type = calculatorType ?? CurrentCalculatorType;
 
-            System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] 创建路径计算器: {type}");
-
             try
             {
                 switch (type)
                 {
                     case PathCalculatorType.Libavoid:
-                        System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 LibavoidPathCalculator...");
                         return new LibavoidPathCalculator();
 
                     case PathCalculatorType.AIStudio:
-                        System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 AIStudioPathCalculator...");
                         return new AIStudioPathCalculator();
 
                     case PathCalculatorType.Orthogonal:
-                        System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 OrthogonalPathCalculator...");
                         return new OrthogonalPathCalculator();
 
                     case PathCalculatorType.Bezier:
-                        System.Diagnostics.Debug.WriteLine("[PathCalculatorFactory] 尝试创建 BezierPathCalculator...");
                         return new BezierPathCalculator();
 
                     default:
@@ -75,9 +69,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] ❌ 创建 {type} 路径计算器失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] 尝试回退到 OrthogonalPathCalculator...");
-
                 // 回退到内置的正交路径计算器
                 try
                 {
@@ -85,7 +76,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 }
                 catch (Exception fallbackEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] ❌ 回退失败: {fallbackEx.Message}");
                     throw new InvalidOperationException("无法创建任何路径计算器实例", fallbackEx);
                 }
             }
@@ -107,13 +97,11 @@ namespace SunEyeVision.UI.Services.PathCalculators
             {
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] 尝试创建 {type} 路径计算器...");
                     return CreateCalculator(type);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] ⚠️ {type} 路径计算器创建失败: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"[PathCalculatorFactory] 尝试下一个选项...");
+                    // 尝试下一个选项
                 }
             }
 

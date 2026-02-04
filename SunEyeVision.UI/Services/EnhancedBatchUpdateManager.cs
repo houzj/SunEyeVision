@@ -8,29 +8,33 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services
 {
     /// <summary>
-    /// 连接批量延迟更新管理器
-    /// 用于优化节点拖拽时连接线的更新性能
+    /// 增强的批量更新管理器
+    /// 实现真正的批量路径计算和UI更新
     /// </summary>
-    public class ConnectionBatchUpdateManager
+    public class EnhancedBatchUpdateManager
     {
         private readonly ConnectionPathCache _pathCache;
         private readonly DispatcherTimer _updateTimer;
-        private readonly HashSet<string> _pendingConnectionUpdates = new();
+
+        // 待更新的节点和连接
         private readonly HashSet<string> _pendingNodeUpdates = new();
+        private readonly HashSet<string> _pendingConnectionUpdates = new();
+
+        // 批量大小控制
+        private const int MaxBatchSize = 100;
+        private const int UpdateDelayMs = 16; // 60FPS
+
         private bool _isUpdateScheduled = false;
-
-        /// <summary>
-        /// 批量更新延迟(毫秒)
-        /// 16ms ≈ 60FPS, 既能保证流畅度又能合并快速连续的更新
-        /// </summary>
-        private const int UpdateDelayMs = 16;
-
-        /// <summary>
-        /// 当前活动的WorkflowTab，用于查找连接
-        /// </summary>
         private ViewModels.WorkflowTabViewModel? _currentTab;
 
-        public ConnectionBatchUpdateManager(ConnectionPathCache pathCache)
+        // 性能统计
+        public int TotalUpdatesProcessed { get; private set; }
+        public int TotalBatchesProcessed { get; private set; }
+        public double AverageBatchSize => TotalBatchesProcessed > 0
+            ? (double)TotalUpdatesProcessed / TotalBatchesProcessed
+            : 0;
+
+        public EnhancedBatchUpdateManager(ConnectionPathCache pathCache)
         {
             _pathCache = pathCache ?? throw new ArgumentNullException(nameof(pathCache));
             _updateTimer = new DispatcherTimer
@@ -178,35 +182,87 @@ namespace SunEyeVision.UI.Services
                     return;
                 }
 
-                // 收集所有需要更新的连接（去重）
-                var allConnectionIds = new HashSet<string>(connectionsToUpdate);
-
-                // 根据节点ID查找相关连接
-                foreach (var nodeId in nodesToUpdate)
-                {
-                    var connections = GetConnectionsForNode(nodeId);
-                    foreach (var conn in connections)
-                    {
-                        allConnectionIds.Add(conn.Id);
-                    }
-                }
-
-                // 批量更新连接
-                foreach (var connectionId in allConnectionIds)
-                {
-                    var connection = FindConnection(connectionId);
-                    if (connection != null)
-                    {
-                        // 标记缓存为脏
-                        _pathCache.MarkDirty(connection);
-
-                        // 触发连接更新
-                        connection.InvalidatePath();
-                    }
-                }
+                // 执行批量更新
+                PerformBatchUpdate(nodesToUpdate, connectionsToUpdate);
             }
             catch (Exception ex)
             {
+                // 记录错误但不中断程序
+                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 更新失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行批量更新（核心优化）
+        /// </summary>
+        private void PerformBatchUpdate(
+            HashSet<string> nodesToUpdate,
+            HashSet<string> connectionsToUpdate)
+        {
+            // 收集所有需要更新的连接（去重）
+            var allConnectionIds = new HashSet<string>(connectionsToUpdate);
+
+            // 根据节点ID查找相关连接
+            foreach (var nodeId in nodesToUpdate)
+            {
+                var connections = GetConnectionsForNode(nodeId);
+                foreach (var conn in connections)
+                {
+                    allConnectionIds.Add(conn.Id);
+                }
+            }
+
+            if (allConnectionIds.Count == 0)
+            {
+                return;
+            }
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            // === 优化点1: 批量标记缓存为脏 ===
+            // 一次性标记所有连接的缓存为脏，避免重复检查
+            var connectionsToRecalculate = new List<WorkflowConnection>();
+            foreach (var connectionId in allConnectionIds)
+            {
+                var connection = FindConnection(connectionId);
+                if (connection != null)
+                {
+                    _pathCache.MarkDirty(connection);
+                    connectionsToRecalculate.Add(connection);
+                }
+            }
+
+            // === 优化点2: 批量计算路径 ===
+            // 批量预热缓存，利用缓存的批处理能力
+            if (connectionsToRecalculate.Count > 0)
+            {
+                _pathCache.WarmUp(connectionsToRecalculate);
+            }
+
+            // === 优化点3: 批量触发UI更新 ===
+            // 使用Dispatcher一次性触发所有UI更新
+            Dispatcher.CurrentDispatcher.Invoke(() =>
+            {
+                foreach (var connection in connectionsToRecalculate)
+                {
+                    connection.InvalidatePath();
+                }
+            }, DispatcherPriority.Background);
+
+            stopwatch.Stop();
+
+            // 更新统计
+            TotalUpdatesProcessed += connectionsToRecalculate.Count;
+            TotalBatchesProcessed++;
+
+            // 性能监控
+            if (stopwatch.ElapsedMilliseconds > 20) // 超过20ms的批量操作才记录
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[EnhancedBatchUpdateManager] 批量更新: " +
+                    $"{connectionsToRecalculate.Count}条连线, " +
+                    $"{stopwatch.ElapsedMilliseconds:F2}ms " +
+                    $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/条)");
             }
         }
 
@@ -227,6 +283,7 @@ namespace SunEyeVision.UI.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 获取节点连接失败: {ex.Message}");
                 return Enumerable.Empty<WorkflowConnection>();
             }
         }
@@ -247,6 +304,7 @@ namespace SunEyeVision.UI.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 查找连接失败: {ex.Message}");
                 return null;
             }
         }
@@ -268,6 +326,21 @@ namespace SunEyeVision.UI.Services
             {
                 _pendingNodeUpdates.Clear();
             }
+
+            System.Diagnostics.Debug.WriteLine("[EnhancedBatchUpdateManager] 已释放");
+            PrintStatistics();
+        }
+
+        /// <summary>
+        /// 打印统计信息
+        /// </summary>
+        public void PrintStatistics()
+        {
+            System.Diagnostics.Debug.WriteLine("========== 批量更新统计 ==========");
+            System.Diagnostics.Debug.WriteLine($"总更新数: {TotalUpdatesProcessed}");
+            System.Diagnostics.Debug.WriteLine($"总批次数: {TotalBatchesProcessed}");
+            System.Diagnostics.Debug.WriteLine($"平均批次大小: {AverageBatchSize:F1}");
+            System.Diagnostics.Debug.WriteLine("=================================");
         }
     }
 }

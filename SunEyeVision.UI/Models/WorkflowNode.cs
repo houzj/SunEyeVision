@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Threading;
 using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Models
@@ -23,6 +24,11 @@ namespace SunEyeVision.UI.Models
         private int _globalIndex;
         private string _nodeTypeIcon = string.Empty;
         private NodeStyleConfig _styleConfig = NodeStyles.Standard; // 默认样式配置
+
+        // 4A: 智能属性变更批处理 - 批处理机制
+        private readonly HashSet<string> _pendingPropertyChanges = new HashSet<string>();
+        private bool _isBatchingProperties = false;
+        private DispatcherTimer? _batchTimer;
 
         /// <summary>
         /// 节点样式配置（用于完全解耦样式和逻辑）
@@ -103,9 +109,16 @@ namespace SunEyeVision.UI.Models
                 if (_position != value)
                 {
                     _position = value;
-                    OnPropertyChanged();
+                    // 5B: 位置更新必须实时，不使用批处理
+                    // 拖拽时节点位置必须立即更新，否则会出现延迟和闪烁
+                    OnPropertyChanged(nameof(Position));
                     OnPropertyChanged(nameof(PositionX));
                     OnPropertyChanged(nameof(PositionY));
+                    // 端口位置依赖于Position，也必须立即更新
+                    OnPropertyChanged(nameof(TopPortPosition));
+                    OnPropertyChanged(nameof(BottomPortPosition));
+                    OnPropertyChanged(nameof(LeftPortPosition));
+                    OnPropertyChanged(nameof(RightPortPosition));
                 }
             }
         }
@@ -196,6 +209,24 @@ namespace SunEyeVision.UI.Models
             }
         }
 
+        private bool _isVisible = true;
+
+        /// <summary>
+        /// 节点是否可见（用于虚拟化渲染）
+        /// </summary>
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                if (_isVisible != value)
+                {
+                    _isVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
 
         public string Status
@@ -264,7 +295,82 @@ namespace SunEyeVision.UI.Models
             Index = index;
             GlobalIndex = globalIndex;
             Position = new Point(0, 0);
+
+            // 初始化批处理定时器(16ms延迟)
+            _batchTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(16)
+            };
+            _batchTimer.Tick += OnBatchTimerTick;
+
             // 图标由工厂设置，不再在这里设置
+        }
+
+        /// <summary>
+        /// 4A: 开始属性变更批处理（用于批量更新节点位置）
+        /// </summary>
+        public void BeginPropertyBatch()
+        {
+            _isBatchingProperties = true;
+            _pendingPropertyChanges.Clear();
+            _batchTimer?.Stop();
+        }
+
+        /// <summary>
+        /// 4A: 结束属性变更批处理并触发所有挂起的属性变更
+        /// </summary>
+        public void EndPropertyBatch()
+        {
+            _isBatchingProperties = false;
+
+            if (_pendingPropertyChanges.Count > 0)
+            {
+                // 立即触发所有挂起的属性变更
+                foreach (var propertyName in _pendingPropertyChanges)
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                }
+                _pendingPropertyChanges.Clear();
+            }
+        }
+
+        /// <summary>
+        /// 4A: 批处理定时器触发 - 在延迟后触发所有挂起的属性变更
+        /// </summary>
+        private void OnBatchTimerTick(object? sender, EventArgs e)
+        {
+            _batchTimer?.Stop();
+
+            if (_pendingPropertyChanges.Count > 0)
+            {
+                foreach (var propertyName in _pendingPropertyChanges)
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                }
+                _pendingPropertyChanges.Clear();
+            }
+        }
+
+        /// <summary>
+        /// 4A: 智能属性变更通知（支持批处理）
+        /// </summary>
+        protected void OnPropertyChangedSmart(string propertyName, bool batchPositionChanges = false)
+        {
+            // 如果是位置相关属性且启用了批处理，则加入批处理队列
+            if (batchPositionChanges && _isBatchingProperties)
+            {
+                _pendingPropertyChanges.Add(propertyName);
+
+                // 启动批处理定时器（如果尚未启动）
+                if (_batchTimer != null && !_batchTimer.IsEnabled)
+                {
+                    _batchTimer.Start();
+                }
+                return;
+            }
+
+            // 正常情况立即触发属性变更
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         /// <summary>
@@ -511,6 +617,24 @@ namespace SunEyeVision.UI.Models
             }
         }
 
+        private bool _isVisible = true;
+
+        /// <summary>
+        /// 连线是否可见（用于虚拟化渲染）
+        /// </summary>
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                if (_isVisible != value)
+                {
+                    _isVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public System.Windows.Point SourcePosition
         {
             get => _sourcePosition;
@@ -609,18 +733,21 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 触发路径相关属性的更新（用于节点移动时刷新连接线）
+        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新）
         /// </summary>
         public void InvalidatePath()
         {
-            // 增加更新计数器，强制多值绑定重新计算
+            // 只触发PathUpdateCounter，其他属性在XAML中通过PathUpdateCounter自动更新
+            // 这样可以将PropertyChanged事件从6个减少到1个，性能提升83%
             _pathUpdateCounter++;
             OnPropertyChanged(nameof(PathUpdateCounter));
-            OnPropertyChanged(nameof(PathData));
-            OnPropertyChanged(nameof(ArrowPosition));
-            OnPropertyChanged(nameof(ArrowAngle));
-            OnPropertyChanged(nameof(ArrowX));
-            OnPropertyChanged(nameof(ArrowY));
+
+            // 移除这些不必要的PropertyChanged（通过绑定自动更新）：
+            // OnPropertyChanged(nameof(PathData));         // 通过MultiBinding自动更新
+            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计算
+            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计算
+            // OnPropertyChanged(nameof(ArrowX));           // 通过ArrowPosition自动更新
+            // OnPropertyChanged(nameof(ArrowY));           // 通过ArrowPosition自动更新
         }
     }
 
