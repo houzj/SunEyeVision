@@ -1,3 +1,5 @@
+Building SunEyeVision...
+Build complete. Output saved to build_debug_output.txt
 d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.sln : 解决方案文件 error MSB5010: 未找到文件格式头。
 
 生成失败。
@@ -7,3 +9,4 @@ d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.sln : 解决方案文件 error 
     1 个错误
 
 已用时间 00:00:00.01
+�밴���������. . . 

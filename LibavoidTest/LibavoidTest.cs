@@ -56,7 +56,6 @@ namespace LibavoidTest
         {
             _logBox.Text += $"[{DateTime.Now:HH:mm:ss.fff}] {message}\n";
             _logBox.ScrollToEnd();
-            System.Diagnostics.Debug.WriteLine(message);
         }
 
         private void TestButton_Click(object sender, RoutedEventArgs e)
@@ -134,14 +133,14 @@ namespace LibavoidTest
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("========== LibavoidTest 启动 ==========");
+                
                 var app = new Application();
                 var window = new TestWindow();
                 app.Run(window);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"========== 全局异常: {ex.Message} ==========");
+                
                 MessageBox.Show($"程序启动失败:\n{ex.Message}\n\n{ex.StackTrace}",
                     "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
