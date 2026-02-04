@@ -62,6 +62,10 @@ namespace SunEyeVision.UI.Controls
         // 批量延迟更新管理器
         private Services.ConnectionBatchUpdateManager? _batchUpdateManager;
 
+        // 位置节流优化 - 只在移动超过阈值时才触发连接线更新
+        private const double PositionUpdateThreshold = 5.0; // 5px 阈值
+        private Dictionary<string, Point> _lastReportedNodePositions = new Dictionary<string, Point>();
+
         /// <summary>
         /// 是否正在拖拽连接（用于绑定，控制连接点是否显示）
         /// </summary>
@@ -271,10 +275,10 @@ namespace SunEyeVision.UI.Controls
                         // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ❌ 路径计算器创建失败: {ex.GetType().Name}");
                         // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 消息: {ex.Message}");
 
-                        // 备用方案：使用 OrthogonalPathCalculator
+                        // 备用方案：使用 PathCalculatorFactory 创建（默认贝塞尔曲线）
                         _connectionPathCache = new Services.ConnectionPathCache(
                             workflowTab.WorkflowNodes,
-                            new Services.PathCalculators.OrthogonalPathCalculator()
+                            Services.PathCalculators.PathCalculatorFactory.CreateCalculator()
                         );
                         Converters.SmartPathConverter.PathCache = _connectionPathCache;
                         // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ✅ OrthogonalPathCalculator 备用方案已启用");
@@ -734,11 +738,14 @@ namespace SunEyeVision.UI.Controls
                 _draggedNode = null!;
                 (sender as Border)?.ReleaseMouseCapture();
                 // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   拖拽已结束，_isDragging={_isDragging}");
+
+                // 清除位置节流记录，准备下次拖拽
+                ClearPositionThrottling();
             }
         }
 
         /// <summary>
-        /// 节点鼠标移动 - 执行拖拽
+        /// 节点鼠标移动 - 执行拖拽（方案5优化：分层更新策略 - 实时位置+延迟路径）
         /// </summary>
         private void Node_MouseMove(object sender, MouseEventArgs e)
         {
@@ -750,61 +757,108 @@ namespace SunEyeVision.UI.Controls
             {
                 var currentPosition = e.GetPosition(WorkflowCanvas);
 
-                // 🔥 减少日志输出以提高性能
-                // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 拖拽节点: {_draggedNode.Name} (Id: {_draggedNode.Id})");
-                // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   当前位置: ({currentPosition.X:F1}, {currentPosition.Y:F1})");
+                // 计算从拖动开始到现在的总偏移量
+                var totalOffset = currentPosition - _startDragPosition;
 
-                    // 批量移动所有选中的节点
-                    if (_viewModel?.WorkflowTabViewModel.SelectedTab != null &&
-                        _selectedNodesInitialPositions != null)
-                    {
-                        var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
-                            .Where(n => n.IsSelected)
-                            .ToList();
+                // 5A: 获取所有选中节点
+                var selectedNodes = _viewModel?.WorkflowTabViewModel.SelectedTab?.WorkflowNodes
+                    .Where(n => n.IsSelected)
+                    .ToList();
 
-                        // 🔥 减少日志输出以提高性能
-                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   选中节点数: {selectedNodes.Count}");
-
-                    // 计算从拖动开始到现在的总偏移量
-                    var totalOffset = currentPosition - _startDragPosition;
-
+                if (selectedNodes != null && selectedNodes.Count > 0 && _selectedNodesInitialPositions != null)
+                {
+                    // 🔥 关键优化：立即更新节点位置（实时层），不使用批处理
+                    // 位置更新必须实时响应鼠标移动，否则会出现延迟和闪烁
                     for (int i = 0; i < selectedNodes.Count && i < _selectedNodesInitialPositions.Length; i++)
                     {
                         var newPos = new System.Windows.Point(
                             _selectedNodesInitialPositions[i].X + totalOffset.X,
                             _selectedNodesInitialPositions[i].Y + totalOffset.Y
                         );
+
+                        // 直接设置位置，立即触发PropertyChanged
+                        // 这会立即更新Canvas绑定，节点位置实时跟随鼠标
                         selectedNodes[i].Position = newPos;
                     }
 
-                    // 🔥 使用批量延迟更新管理器（方案3）
+                    // 5C: 路径更新使用位置节流 + 批量延迟机制（双层优化）
+                    // 路径计算成本高，先通过距离节流减少更新次数，再通过批量延迟合并快速更新
                     if (_batchUpdateManager != null)
                     {
-                        var nodeIds = selectedNodes.Select(n => n.Id).ToList();
-                        _batchUpdateManager.ScheduleUpdateForNodes(nodeIds);
-                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 已调度 {nodeIds.Count} 个节点的批量更新");
+                        // 收集需要更新的节点ID（通过位置节流过滤）
+                        var nodesToUpdate = new List<string>();
+                        foreach (var node in selectedNodes)
+                        {
+                            if (ShouldScheduleConnectionUpdate(node.Id, node.Position))
+                            {
+                                nodesToUpdate.Add(node.Id);
+                            }
+                        }
+
+                        // 只有当有节点需要更新时才调用批量更新管理器
+                        if (nodesToUpdate.Count > 0)
+                        {
+                            _batchUpdateManager.ScheduleUpdateForNodes(nodesToUpdate);
+                        }
                     }
                 }
                 else
                 {
                     // 单个节点移动（向后兼容）
-                    var offset = currentPosition - _startDragPosition;
-                    _draggedNode.Position = new System.Windows.Point(
-                        _initialNodePosition.X + offset.X,
-                        _initialNodePosition.Y + offset.Y
+                    var newPos = new System.Windows.Point(
+                        _initialNodePosition.X + totalOffset.X,
+                        _initialNodePosition.Y + totalOffset.Y
                     );
 
-                    // 🔥 减少日志输出以提高性能
-                    // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove]   新位置: ({_draggedNode.Position.X:F1}, {_draggedNode.Position.Y:F1})");
+                    // 直接设置位置，立即触发PropertyChanged
+                    _draggedNode.Position = newPos;
 
-                    // 🔥 使用批量延迟更新管理器（方案3）
+                    // 5C: 单个节点的路径更新也使用位置节流机制
                     if (_batchUpdateManager != null)
                     {
-                        _batchUpdateManager.ScheduleUpdateForNode(_draggedNode.Id);
-                        // System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 已调度单个节点 {_draggedNode.Id} 的批量更新");
+                        if (ShouldScheduleConnectionUpdate(_draggedNode.Id, _draggedNode.Position))
+                        {
+                            _batchUpdateManager.ScheduleUpdateForNode(_draggedNode.Id);
+                        }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 判断是否应该触发连接线更新（位置节流）
+        /// 只有当节点移动距离超过阈值时才触发更新
+        /// </summary>
+        private bool ShouldScheduleConnectionUpdate(string nodeId, Point currentPosition)
+        {
+            // 如果没有记录过该节点的位置，则记录并返回true（首次更新）
+            if (!_lastReportedNodePositions.ContainsKey(nodeId))
+            {
+                _lastReportedNodePositions[nodeId] = currentPosition;
+                return true;
+            }
+
+            // 计算距离上次报告位置的偏移
+            Point lastPosition = _lastReportedNodePositions[nodeId];
+            double deltaX = Math.Abs(currentPosition.X - lastPosition.X);
+            double deltaY = Math.Abs(currentPosition.Y - lastPosition.Y);
+
+            // 检查是否超过阈值
+            if (deltaX > PositionUpdateThreshold || deltaY > PositionUpdateThreshold)
+            {
+                _lastReportedNodePositions[nodeId] = currentPosition;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 清除位置节流记录（在拖拽结束时调用）
+        /// </summary>
+        private void ClearPositionThrottling()
+        {
+            _lastReportedNodePositions.Clear();
         }
 
         /// <summary>

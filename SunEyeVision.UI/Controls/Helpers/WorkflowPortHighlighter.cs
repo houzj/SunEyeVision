@@ -54,9 +54,6 @@ namespace SunEyeVision.UI.Controls.Helpers
             bool shouldLog = _lastHighlightedPort != targetPortName || _highlightCounter % 10 == 0;
             if (shouldLog)
             {
-                System.Diagnostics.Debug.WriteLine($"[HighlightTargetPort] 源端口:{sourcePortName} 源位置:({sourcePos.X:F1},{sourcePos.Y:F1})");
-                System.Diagnostics.Debug.WriteLine($"[HighlightTargetPort] 目标节点:({targetPos.X:F1},{targetPos.Y:F1}) 偏移:({deltaX:F1},{deltaY:F1})");
-                System.Diagnostics.Debug.WriteLine($"[HighlightTargetPort] ✓ 选择目标端口: {targetPortName}");
                 _lastHighlightedPort = targetPortName;
             }
             _highlightCounter++;
@@ -97,7 +94,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                 // 只在端口变化时记录日志
                 if (_lastHighlightedPort != portName && _highlightCounter % 5 == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[HighlightSpecificPort] ✓ 高亮成功: {portName}");
+    
                 }
             }
         }
@@ -146,7 +143,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                 {
                     if (!found && _highlightCounter % 20 == 0) // 每20次高亮才输出一次
                     {
-                        System.Diagnostics.Debug.WriteLine($"[GetPortElement] ✓ 找到端口: {element.Name}");
+        
                     }
                     return element as Ellipse;
                 }
@@ -154,7 +151,7 @@ namespace SunEyeVision.UI.Controls.Helpers
 
             if (_highlightCounter % 20 == 0) // 每20次高亮才输出一次
             {
-                System.Diagnostics.Debug.WriteLine($"[GetPortElement] ❌ 未找到端口: {ellipseName}");
+
             }
             return null;
         }

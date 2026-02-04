@@ -67,7 +67,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[RefreshAllConnectionPaths] 处理连接时异常: {ex.Message}");
+    
                     }
                 }
             }

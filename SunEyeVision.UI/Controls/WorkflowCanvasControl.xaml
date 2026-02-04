@@ -110,7 +110,6 @@
                     <Canvas>
                         <!-- 连接线 -->
                         <Path Loaded="Path_Loaded"
-                              DataContextChanged="Path_DataContextChanged"
                               MouseLeftButtonDown="ConnectionLine_MouseLeftButtonDown">
                             <Path.Data>
                                 <MultiBinding Converter="{StaticResource SmartPathMultiConverter}">
@@ -124,18 +123,16 @@
                                     <Setter Property="StrokeThickness" Value="2"/>
                                     <Setter Property="StrokeLineJoin" Value="Round"/>
                                     <Setter Property="Cursor" Value="Hand"/>
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#666666" BlurRadius="2" ShadowDepth="1" Opacity="0.5"/>
-                                        </Setter.Value>
-                                    </Setter>
+                                    <!-- 6D: 移除默认的DropShadowEffect，仅在鼠标悬停时启用（性能提升） -->
+                                    <Setter Property="Effect" Value="{x:Null}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Stroke" Value="#0066CC"/>
                                             <Setter Property="StrokeThickness" Value="3"/>
+                                            <!-- 6D: 降低BlurRadius从4降到3，减少阴影计算开销 -->
                                             <Setter Property="Effect">
                                                 <Setter.Value>
-                                                    <DropShadowEffect Color="#0066CC" BlurRadius="4" ShadowDepth="2" Opacity="0.7"/>
+                                                    <DropShadowEffect Color="#0066CC" BlurRadius="3" ShadowDepth="1" Opacity="0.6"/>
                                                 </Setter.Value>
                                             </Setter>
                                         </Trigger>
@@ -207,8 +204,9 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style>
-                    <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=TwoWay}"/>
-                    <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=TwoWay}"/>
+                    <!-- 6C: 改为OneWay绑定，消除不必要的反向绑定开销 -->
+                    <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=OneWay}"/>
+                    <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=OneWay}"/>
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
@@ -324,18 +322,20 @@
                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                         <Setter Property="BorderBrush" Value="#ff6600"/>
                                         <Setter Property="BorderThickness" Value="3"/>
+                                        <!-- 6D: 大幅降低BlurRadius从10降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#ff6600" BlurRadius="10" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#ff6600" BlurRadius="3" ShadowDepth="0"/>
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="BorderBrush" Value="#ff7700"/>
                                         <Setter Property="BorderThickness" Value="3"/>
+                                        <!-- 6D: 大幅降低BlurRadius从8降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#ff7700" BlurRadius="8" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#ff7700" BlurRadius="3" ShadowDepth="0"/>
                                             </Setter.Value>
                                         </Setter>
                                     </Trigger>

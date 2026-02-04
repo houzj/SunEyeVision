@@ -165,7 +165,7 @@ namespace SunEyeVision.UI.Controls.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Node_MouseLeftButtonDown] 异常: {ex.Message}");
+    
                 throw;
             }
         }
@@ -204,7 +204,7 @@ namespace SunEyeVision.UI.Controls.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Node_MouseLeftButtonUp] 异常: {ex.Message}");
+    
                 throw;
             }
         }
@@ -251,7 +251,7 @@ namespace SunEyeVision.UI.Controls.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Node_MouseMove] 异常: {ex.Message}");
+    
             }
         }
 
@@ -280,7 +280,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                 if (_connectionSourceNode == targetNode)
                 {
                     _viewModel!.StatusText = "无法连接到同一个节点";
-                    System.Diagnostics.Debug.WriteLine("[Connection] ❌ 无法连接到同一个节点");
+    
                     _connectionSourceNode = null;
                     return;
                 }
@@ -297,7 +297,7 @@ namespace SunEyeVision.UI.Controls.Helpers
                 }
 
                 // 创建新连接
-                System.Diagnostics.Debug.WriteLine($"[Connection] 创建连接: {_connectionSourceNode.Name} -> {targetNode.Name}");
+
                 _connectionManager.CreateConnection(_connectionSourceNode, targetNode, null);
 
                 // 退出连接模式
@@ -335,7 +335,7 @@ namespace SunEyeVision.UI.Controls.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Node_ClickForConnection] 异常: {ex.Message}");
+    
                 throw;
             }
         }
@@ -361,11 +361,11 @@ namespace SunEyeVision.UI.Controls.Helpers
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] 开始执行");
+    
 
                 if (_canvasControl.CurrentWorkflowTab == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] SelectedTab为null，返回");
+    
                     return;
                 }
 
@@ -373,23 +373,23 @@ namespace SunEyeVision.UI.Controls.Helpers
                     .Where(n => n.IsSelected)
                     .ToList();
 
-                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 选中节点数量: {selectedNodes.Count}");
+    
 
                 _selectedNodesInitialPositions = selectedNodes
                     .Select(n => n.Position)
                     .ToArray();
 
-                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 记录了 {_selectedNodesInitialPositions.Length} 个初始位置");
+    
                 for (int i = 0; i < _selectedNodesInitialPositions.Length; i++)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 节点 {i} 初始位置: ({_selectedNodesInitialPositions[i].X}, {_selectedNodesInitialPositions[i].Y})");
+    
                 }
-                System.Diagnostics.Debug.WriteLine("[RecordSelectedNodesPositions] 执行完成");
+    
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 异常: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[RecordSelectedNodesPositions] 堆栈: {ex.StackTrace}");
+    
+    
                 throw;
             }
         }

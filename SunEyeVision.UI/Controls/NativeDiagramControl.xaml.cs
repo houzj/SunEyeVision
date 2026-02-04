@@ -51,13 +51,13 @@ namespace SunEyeVision.UI.Controls
         {
             if (_isInitialized)
             {
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 控件已初始化，跳过重复初始化");
+
                 return;
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ========== 控件初始化开始 ==========");
+
 
                 // 初始化适配器
                 _adapter = new DiagramAdapter();
@@ -73,12 +73,12 @@ namespace SunEyeVision.UI.Controls
 
                 _isInitialized = true;
 
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ========== 控件初始化完成 ==========");
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ 初始化失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 堆栈跟踪: {ex.StackTrace}");
+
+
 
                 // 显示错误信息
                 MessageBox.Show($"初始化失败: {ex.Message}\n请确保已安装 AIStudio.Wpf.DiagramDesigner 包",
@@ -96,7 +96,7 @@ namespace SunEyeVision.UI.Controls
             {
                 // 创建 DiagramViewModel 实例
                 _diagramViewModel = new DiagramViewModel();
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✅ DiagramViewModel 创建成功");
+
 
                 // 创建 DiagramControl 实例
                 _diagramControl = new DiagramControl();
@@ -107,7 +107,7 @@ namespace SunEyeVision.UI.Controls
                 _diagramControl.Height = 10000;
                 
             
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✅ 画布尺寸设置为 10000x10000");
+
                 // ==========================================
 
                 // 启用拖放
@@ -121,11 +121,11 @@ namespace SunEyeVision.UI.Controls
 
                 // 设置到容器
                 DiagramContainer.Content = _diagramControl;
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✅ DiagramControl 加载成功 (画布: 10000x10000)");
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ 加载原生图表失败: {ex.Message}");
+
                 throw;
             }
         }
@@ -152,11 +152,11 @@ namespace SunEyeVision.UI.Controls
                 // 显示网格
                 _diagramViewModel.DiagramOption.LayoutOption.ShowGrid = true;
 
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✅ 原生图表功能配置完成");
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ⚠ 配置原生图表功能失败: {ex.Message}");
+
             }
         }
 
@@ -170,7 +170,7 @@ namespace SunEyeVision.UI.Controls
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 同步数据 - Nodes: {_nodes.Count}, Connections: {_connections.Count}");
+
 
                 // 同步节点（传入 DiagramViewModel）
                 _adapter.SyncNodes(_nodes, _diagramViewModel);
@@ -181,11 +181,11 @@ namespace SunEyeVision.UI.Controls
                 // 更新空状态
                 UpdateEmptyState();
 
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✅ 数据同步完成");
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ 数据同步失败: {ex.Message}");
+
             }
         }
 
@@ -212,42 +212,22 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ========== Loaded 事件触发 ==========");
-
-            // 检查DataContext
-            var dataContext = this.DataContext;
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] DataContext: {dataContext?.GetType().Name ?? "null"}");
-
             // 获取 MainWindowViewModel
             if (Window.GetWindow(this) is MainWindow mainWindow)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] MainWindow: {mainWindow?.GetType().Name ?? "null"}");
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
                 if (_viewModel != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ✓ ViewModel 已获取");
-
                     if (_viewModel.WorkflowTabViewModel == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ❌ WorkflowTabViewModel 为 null");
                         return;
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] WorkflowTabViewModel.SelectedTab: {_viewModel.WorkflowTabViewModel.SelectedTab?.Name ?? "null"}");
 
                     // 订阅节点集合变化
                     if (_viewModel.WorkflowTabViewModel.SelectedTab is WorkflowTabViewModel workflowTab)
                     {
                         SubscribeToWorkflowChanges(workflowTab);
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ❌ SelectedTab 不是 WorkflowTabViewModel");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] ❌ 无法获取 ViewModel");
                 }
             }
         }
@@ -263,7 +243,7 @@ namespace SunEyeVision.UI.Controls
             _nodes.CollectionChanged += OnNodesCollectionChanged;
             _connections.CollectionChanged += OnConnectionsCollectionChanged;
 
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ✓ 订阅到工作流 - Nodes: {_nodes.Count}, Connections: {_connections.Count}");
+            
 
             // 初始化并同步数据
             if (!_isInitialized)
@@ -281,7 +261,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnNodesCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 节点集合变化 - Action: {e.Action}");
+            
 
             if (_adapter != null && _diagramViewModel != null)
             {
@@ -290,7 +270,7 @@ namespace SunEyeVision.UI.Controls
                     case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
                         foreach (WorkflowNode node in e.NewItems!)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] OnNodesCollectionChanged: 添加节点 {node.Id}");
+
 
                             // 使用公开方法创建节点（不使用反射）
                             var nativeNode = _adapter.CreateNativeNode(node, _diagramViewModel);
@@ -315,7 +295,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnConnectionsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 连接集合变化 - Action: {e.Action}");
+            
 
             if (_adapter != null && _diagramViewModel != null)
             {
@@ -338,7 +318,7 @@ namespace SunEyeVision.UI.Controls
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ 创建连接失败: {ex.Message}");
+                                
                             }
                         }
                         break;
@@ -360,18 +340,18 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void DiagramControl_DragEnter(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] DragEnter 事件触发");
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] GetDataPresent('ToolItem'): {e.Data.GetDataPresent("ToolItem")}");
+            
+            
 
             if (e.Data.GetDataPresent("ToolItem"))
             {
                 e.Effects = DragDropEffects.Copy;
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] DragEnter: 设置 Copy 效果");
+                
             }
             else
             {
                 e.Effects = DragDropEffects.None;
-                System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] DragEnter: 设置 None 效果");
+                
             }
             e.Handled = true;
         }
@@ -397,7 +377,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void NativeDiagramControl_DragEnter(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] NativeDiagramControl_DragEnter 事件触发（备选方案）");
+            
 
             if (e.Data.GetDataPresent("ToolItem"))
             {
@@ -415,13 +395,13 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void NativeDiagramControl_PreviewDrop(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] PreviewDrop 事件触发（隧道事件）");
+            
 
             try
             {
                 if (e.Data.GetData("ToolItem") is not ToolItem item)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] PreviewDrop: 数据不是 ToolItem 类型");
+
                     return;
                 }
 
@@ -431,7 +411,7 @@ namespace SunEyeVision.UI.Controls
 
                 if (_lastDragDropId != null && timeSinceLastDrop < 100)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 去重：忽略重复的 Drop 事件（距离上次 {timeSinceLastDrop:F0}ms）");
+
                     e.Handled = true;
                     return;
                 }
@@ -441,23 +421,23 @@ namespace SunEyeVision.UI.Controls
 
                 // 获取放置位置（相对于 NativeDiagramControl）
                 Point dropPosition = e.GetPosition(this);
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] PreviewDrop position: ({dropPosition.X:F0}, {dropPosition.Y:F0})");
+                
 
                 // 验证数据
                 if (string.IsNullOrEmpty(item.ToolId))
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: ToolItem 的 ToolId 为空");
+
                     return;
                 }
 
                 // 获取当前工作流标签页
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab is not WorkflowTabViewModel workflowTab)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: 无法获取 WorkflowTabViewModel");
+
                     return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Creating node: ToolId={item.ToolId}, Name={item.Name}");
+                
 
                 // 清除其他节点的选中状态
                 foreach (var node in workflowTab.WorkflowNodes)
@@ -469,20 +449,20 @@ namespace SunEyeVision.UI.Controls
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node position set to: ({newNode.Position.X:F0}, {newNode.Position.Y:F0})");
+                
 
                 // 添加新节点到工作流（这会触发 OnNodesCollectionChanged，自动创建原生节点）
                 workflowTab.WorkflowNodes.Add(newNode);
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node added: Index={newNode.Index}, GlobalIndex={newNode.GlobalIndex}");
+                
 
                 // 标记为已处理，防止其他事件处理器再次处理
                 e.Handled = true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ PreviewDrop 失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 堆栈: {ex.StackTrace}");
+                
+                
                 // 不要 throw，避免程序崩溃
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -509,35 +489,35 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void NativeDiagramControl_Drop(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] NativeDiagramControl_Drop 事件触发（备选方案）");
+            
 
             try
             {
                 if (e.Data.GetData("ToolItem") is not ToolItem item)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] NativeDiagramControl_Drop: 数据不是 ToolItem 类型");
+
                     return;
                 }
 
                 // 获取放置位置（相对于 NativeDiagramControl）
                 Point dropPosition = e.GetPosition(this);
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] NativeDiagramControl_Drop position: ({dropPosition.X:F0}, {dropPosition.Y:F0})");
+                
 
                 // 验证数据
                 if (string.IsNullOrEmpty(item.ToolId))
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: ToolItem 的 ToolId 为空");
+
                     return;
                 }
 
                 // 获取当前工作流标签页
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab is not WorkflowTabViewModel workflowTab)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: 无法获取 WorkflowTabViewModel");
+
                     return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Creating node: ToolId={item.ToolId}, Name={item.Name}");
+                
 
                 // 清除其他节点的选中状态
                 foreach (var node in workflowTab.WorkflowNodes)
@@ -549,7 +529,7 @@ namespace SunEyeVision.UI.Controls
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node position set to: ({newNode.Position.X:F0}, {newNode.Position.Y:F0})");
+                
 
                 // 添加新节点到工作流
                 workflowTab.WorkflowNodes.Add(newNode);
@@ -560,15 +540,15 @@ namespace SunEyeVision.UI.Controls
                     // 直接调用公开方法，不使用反射
                     var nativeNode = _adapter.CreateNativeNode(newNode, _diagramViewModel);
                     _diagramViewModel.Add(nativeNode);
-                    System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Native node created and added");
+                    
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node added: Index={newNode.Index}, GlobalIndex={newNode.GlobalIndex}");
+                
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ NativeDiagramControl_Drop 失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 堆栈: {ex.StackTrace}");
+                
+                
                 // 不要 throw，避免程序崩溃
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -579,40 +559,40 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void DiagramControl_Drop(object sender, DragEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] Drop 事件触发");
+            
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] GetDataPresent('ToolItem'): {e.Data.GetDataPresent("ToolItem")}");
+
 
                 var data = e.Data.GetData("ToolItem");
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] GetData 结果: {data?.GetType().Name ?? "null"}");
+
 
                 if (data is not ToolItem item)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] Drop: 数据不是 ToolItem 类型");
+
                     return;
                 }
 
                 // 获取放置位置（相对于 DiagramControl）
                 Point dropPosition = e.GetPosition(_diagramControl);
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Drop position: ({dropPosition.X:F0}, {dropPosition.Y:F0})");
+                
 
                 // 验证数据
                 if (string.IsNullOrEmpty(item.ToolId))
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: ToolItem 的 ToolId 为空");
+
                     return;
                 }
 
                 // 获取当前工作流标签页
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab is not WorkflowTabViewModel workflowTab)
                 {
-                    System.Diagnostics.Debug.WriteLine("[NativeDiagramControl] 警告: 无法获取 WorkflowTabViewModel");
+
                     return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Creating node: ToolId={item.ToolId}, Name={item.Name}");
+                
 
                 // 清除其他节点的选中状态
                 foreach (var node in workflowTab.WorkflowNodes)
@@ -624,7 +604,7 @@ namespace SunEyeVision.UI.Controls
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node position set to: ({newNode.Position.X:F0}, {newNode.Position.Y:F0})");
+                
 
                 // 添加新节点到工作流
                 workflowTab.WorkflowNodes.Add(newNode);
@@ -635,15 +615,15 @@ namespace SunEyeVision.UI.Controls
                     // 直接调用公开方法，不使用反射
                     var nativeNode = _adapter.CreateNativeNode(newNode, _diagramViewModel);
                     _diagramViewModel.Add(nativeNode);
-                    System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Native node created and added");
+                    
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] Node added: Index={newNode.Index}, GlobalIndex={newNode.GlobalIndex}");
+                
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] ❌ Drop 失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] 堆栈: {ex.StackTrace}");
+                
+                
                 // 不要 throw，避免程序崩溃
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -654,7 +634,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public void SetPathCalculator(string pathCalculatorType)
         {
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] NativeDiagram 使用贝塞尔曲线，忽略路径计算器设置: {pathCalculatorType}");
+
         }
 
         /// <summary>
@@ -662,7 +642,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public DiagramViewModel? GetDiagramViewModel()
         {
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] GetDiagramViewModel 被调用，返回: {_diagramViewModel?.GetType().Name ?? "null"}");
+
             return _diagramViewModel;
         }
 
@@ -671,7 +651,7 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public DiagramControl? GetDiagramControl()
         {
-            System.Diagnostics.Debug.WriteLine($"[NativeDiagramControl] GetDiagramControl 被调用，返回: {_diagramControl?.GetType().Name ?? "null"}");
+
             return _diagramControl;
         }
     }

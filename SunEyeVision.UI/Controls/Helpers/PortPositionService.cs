@@ -38,7 +38,7 @@ namespace SunEyeVision.UI.Controls.Helpers
 
                 if (nodeBorder == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PortPositionService] ❌ 未找到节点Border: {nodeId}");
+    
                     return null;
                 }
 
@@ -49,7 +49,7 @@ namespace SunEyeVision.UI.Controls.Helpers
 
                 if (portEllipse == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PortPositionService] ❌ 未找到端口Ellipse: {ellipseName}");
+    
                     return null;
                 }
 
@@ -62,12 +62,12 @@ namespace SunEyeVision.UI.Controls.Helpers
                 // 5. 将端口中心点转换为Canvas坐标
                 var canvasPosition = portEllipse.PointToCanvas(portCenterInEllipse);
 
-                System.Diagnostics.Debug.WriteLine($"[PortPositionService] ✓ 找到端口: {portName} 位置:({canvasPosition.X:F1},{canvasPosition.Y:F1})");
+
                 return canvasPosition;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PortPositionService] ❌ 查询端口位置异常: {ex.Message}");
+
                 return null;
             }
         }
@@ -130,11 +130,7 @@ namespace SunEyeVision.UI.Controls.Helpers
 
             var isValid = diff < 5.0; // 允许5像素误差
 
-            System.Diagnostics.Debug.WriteLine($"[PortPositionService] 端口位置验证 {portName}: " +
-                $"实际({actualPosition.Value.X:F1},{actualPosition.Value.Y:F1}) vs " +
-                $"期望({expectedPosition.X:F1},{expectedPosition.Y:F1}) " +
-                $"差异:{diff:F2}px " +
-                (isValid ? "✓" : "❌"));
+
 
             return isValid;
         }
