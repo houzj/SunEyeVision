@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Media;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.PathCalculators;
-using SunEyeVision.UI.Services.PathCalculators.LibavoidPure;
 
 namespace SunEyeVision.UI.Services
 {

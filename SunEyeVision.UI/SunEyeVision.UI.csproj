@@ -14,6 +14,10 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
 
+  <Target Name="PreBuildClean" BeforeTargets="Build">
+    <Exec Command="powershell -Command &quot;Get-ChildItem '$(ProjectDir)..\SunEyeVision*' -Directory -Recurse | Where-Object { $_.Name -eq 'bin' } | ForEach-Object { $otherConfig = if ('$(Configuration)' -eq 'Debug') { 'Release' } else { 'Debug' }; $path = Join-Path $_.FullName $otherConfig; if (Test-Path $path) { Remove-Item $path -Recurse -Force; Write-Host 'Removed: $path' } }&quot;" />
+  </Target>
+
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -33,11 +37,6 @@
     <ProjectReference Include="..\SunEyeVision.Workflow\SunEyeVision.Workflow.csproj" />
     <ProjectReference Include="..\SunEyeVision.DeviceDriver\SunEyeVision.DeviceDriver.csproj" />
     <ProjectReference Include="..\SunEyeVision.PluginSystem\SunEyeVision.PluginSystem.csproj" />
-    <Reference Include="SunEyeVision.LibavoidWrapper">
-      <HintPath Condition="'$(Configuration)'=='Debug'">..\SunEyeVision.LibavoidWrapper\bin\x64\Debug\SunEyeVision.LibavoidWrapper.dll</HintPath>
-      <HintPath Condition="'$(Configuration)'=='Release'">..\SunEyeVision.LibavoidWrapper\bin\x64\Release\SunEyeVision.LibavoidWrapper.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>

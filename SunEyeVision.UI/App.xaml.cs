@@ -30,24 +30,6 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
-        // 检查 SunEyeVision.LibavoidWrapper.dll 是否存在
-        string libavoidDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SunEyeVision.LibavoidWrapper.dll");
-        // Debug.WriteLine($"[App] 检查 LibavoidWrapper DLL: {libavoidDllPath}");
-        // Debug.WriteLine($"[App] DLL 存在: {File.Exists(libavoidDllPath)}");
-
-        if (File.Exists(libavoidDllPath))
-        {
-            try
-            {
-                var versionInfo = FileVersionInfo.GetVersionInfo(libavoidDllPath);
-                // Debug.WriteLine($"[App] LibavoidWrapper 版本: {versionInfo.FileVersion}");
-            }
-            catch (Exception ex)
-            {
-                // Debug.WriteLine($"[App] 无法读取 DLL 版本信息: {ex.Message}");
-            }
-        }
-
         // 初始化服务（包括节点显示适配器）
         // Debug.WriteLine("[App] 正在初始化服务...");
         ServiceInitializer.InitializeServices();

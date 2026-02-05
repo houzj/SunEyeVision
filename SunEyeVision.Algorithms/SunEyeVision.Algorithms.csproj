@@ -13,10 +13,4 @@
     <ProjectReference Include="..\SunEyeVision.Core\SunEyeVision.Core.csproj"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="SunEyeVision.LibavoidWrapper">
-      <HintPath>..\SunEyeVision.LibavoidWrapper\bin\$(Configuration)\SunEyeVision.LibavoidWrapper.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

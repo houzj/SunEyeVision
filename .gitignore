@@ -151,3 +151,15 @@ Thumbs.db
 *.tmp
 *.temp
 *.tempfile
+
+# Build logs (SunEyeVision specific)
+build_*.txt
+build_log.txt
+restore_log.txt
+
+# Temporary files (SunEyeVision specific)
+temp_*.txt
+*_temp.*
+
+# Example files (SunEyeVision specific)
+UsageExample.cs
