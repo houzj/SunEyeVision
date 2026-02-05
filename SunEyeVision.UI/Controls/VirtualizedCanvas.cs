@@ -217,16 +217,10 @@ namespace SunEyeVision.UI.Controls
         public void PrintStatistics()
         {
             var stats = GetStatistics();
-            System.Diagnostics.Debug.WriteLine("========== 虚拟化统计 ==========");
-            System.Diagnostics.Debug.WriteLine($"节点: {stats.VisibleNodes}/{stats.TotalNodes} ({stats.NodeVisibilityRate:F1}%)");
-            System.Diagnostics.Debug.WriteLine($"连线: {stats.VisibleConnections}/{stats.TotalConnections} ({stats.ConnectionVisibilityRate:F1}%)");
             var viewX1 = _viewPort.X;
             var viewY1 = _viewPort.Y;
             var viewX2 = _viewPort.X + _viewPort.Width;
             var viewY2 = _viewPort.Y + _viewPort.Height;
-            System.Diagnostics.Debug.WriteLine($"视图区域:({viewX1:F0},{viewY1:F0})-({viewX2:F0},{viewY2:F0})");
-            System.Diagnostics.Debug.WriteLine($"缓冲区: {_bufferSize}px");
-            System.Diagnostics.Debug.WriteLine("============================");
         }
     }
 

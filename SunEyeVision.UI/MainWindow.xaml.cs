@@ -805,32 +805,26 @@ namespace SunEyeVision.UI
         /// </summary>
         private NativeDiagramControl? GetCurrentNativeDiagramControl()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetCurrentNativeDiagramControl 开始 ======");
 
             if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] SelectedTab 为 null，无法获取NativeDiagramControl");
                 return null;
             }
 
             var canvasType = _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType;
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
 
             // 只有当前画布类型是NativeDiagram时才返回
             if (canvasType != CanvasType.NativeDiagram)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型不是 NativeDiagram，跳过");
                 return null;
             }
 
             // 直接返回缓存的引用（通过 NativeDiagramControl_Loaded 事件缓存）
             if (_currentNativeDiagram != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 返回缓存的 NativeDiagramControl 引用");
                 return _currentNativeDiagram;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ _currentNativeDiagram 为 null");
             return null;
         }
 
@@ -839,12 +833,10 @@ namespace SunEyeVision.UI
         /// </summary>
         private DiagramViewModel? GetNativeDiagramViewModel()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetNativeDiagramViewModel 开始 ======");
 
             var nativeDiagram = GetCurrentNativeDiagramControl();
             if (nativeDiagram == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagramControl 为 null，无法获取 DiagramViewModel");
                 return null;
             }
 
@@ -853,16 +845,11 @@ namespace SunEyeVision.UI
 
             if (diagramViewModel != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ DiagramViewModel 获取成功，当前缩放: {diagramViewModel.ZoomValue * 100:F0}%");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   - MinimumZoomValue: {diagramViewModel.MinimumZoomValue * 100:F0}%");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow]   - MaximumZoomValue: {diagramViewModel.MaximumZoomValue * 100:F0}%");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ GetDiagramViewModel 返回 null");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== GetNativeDiagramViewModel 结束 ======");
 
             return diagramViewModel;
         }
@@ -872,7 +859,6 @@ namespace SunEyeVision.UI
         /// </summary>
         private void NativeDiagramZoomIn()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomIn 开始 ======");
 
             var diagramViewModel = GetNativeDiagramViewModel();
             if (diagramViewModel != null)
@@ -881,15 +867,12 @@ namespace SunEyeVision.UI
                 var newZoom = Math.Min(diagramViewModel.MaximumZoomValue, diagramViewModel.ZoomValue + 0.1);
                 diagramViewModel.ZoomValue = newZoom;
 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 放大: {oldZoom * 100:F0}% → {newZoom * 100:F0}%");
                 UpdateZoomDisplay();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法放大");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomIn 结束 ======");
         }
 
         /// <summary>
@@ -897,7 +880,6 @@ namespace SunEyeVision.UI
         /// </summary>
         private void NativeDiagramZoomOut()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomOut 开始 ======");
 
             var diagramViewModel = GetNativeDiagramViewModel();
             if (diagramViewModel != null)
@@ -906,15 +888,12 @@ namespace SunEyeVision.UI
                 var newZoom = Math.Max(diagramViewModel.MinimumZoomValue, diagramViewModel.ZoomValue - 0.1);
                 diagramViewModel.ZoomValue = newZoom;
 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 缩小: {oldZoom * 100:F0}% → {newZoom * 100:F0}%");
                 UpdateZoomDisplay();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法缩小");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomOut 结束 ======");
         }
 
         /// <summary>
@@ -922,7 +901,6 @@ namespace SunEyeVision.UI
         /// </summary>
         private void NativeDiagramZoomReset()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomReset 开始 ======");
 
             var diagramViewModel = GetNativeDiagramViewModel();
             if (diagramViewModel != null)
@@ -930,15 +908,12 @@ namespace SunEyeVision.UI
                 var oldZoom = diagramViewModel.ZoomValue;
                 diagramViewModel.ZoomValue = 1.0;
 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 重置: {oldZoom * 100:F0}% → 100%");
                 UpdateZoomDisplay();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法重置");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomReset 结束 ======");
         }
 
         /// <summary>
@@ -946,19 +921,16 @@ namespace SunEyeVision.UI
         /// </summary>
         private void NativeDiagramZoomFit()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomFit 开始 ======");
 
             var diagramViewModel = GetNativeDiagramViewModel();
             if (diagramViewModel == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ DiagramViewModel 为 null，无法适应窗口");
                 return;
             }
 
             var nativeDiagram = GetCurrentNativeDiagramControl();
             if (nativeDiagram == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagramControl 为 null，无法适应窗口");
                 return;
             }
 
@@ -968,7 +940,6 @@ namespace SunEyeVision.UI
                 var viewportWidth = scrollViewer.ViewportWidth;
                 var viewportHeight = scrollViewer.ViewportHeight;
                 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ScrollViewer 视口大小: {viewportWidth:F0} x {viewportHeight:F0}");
 
                 // 画布是10000x10000
                 var scaleX = (viewportWidth * 0.9) / 10000;
@@ -978,15 +949,12 @@ namespace SunEyeVision.UI
                 newScale = Math.Max(0.25, Math.Min(3.0, newScale));
                 diagramViewModel.ZoomValue = newScale;
 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagramControl 适应窗口: {newScale * 100:F0}%");
                 UpdateZoomDisplay();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ ScrollViewer 为 null，无法适应窗口");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== NativeDiagramZoomFit 结束 ======");
         }
 
         /// <summary>
@@ -1010,19 +978,15 @@ namespace SunEyeVision.UI
         /// </summary>
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== ZoomIn_Click 开始 ======");
 
             var canvasType = GetCurrentCanvasType();
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
             
             if (canvasType == CanvasType.NativeDiagram)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 调用 NativeDiagramZoomIn()");
                 NativeDiagramZoomIn();
             }
             else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 调用 WorkflowCanvas 缩放逻辑");
 
                 // 原有的WorkflowCanvas缩放逻辑
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
@@ -1049,15 +1013,12 @@ namespace SunEyeVision.UI
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 已达到最大缩放比例 {MaxScale * 100:F0}%");
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ SelectedTab 为 null，无法缩放");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== ZoomIn_Click 结束 ======");
         }
 
         /// <summary>
@@ -1170,9 +1131,7 @@ namespace SunEyeVision.UI
         /// </summary>
         private void SwitchToWorkflowCanvas_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToWorkflowCanvas_Click 开始 ======");
             SwitchToWorkflowCanvasConfiguration();
-            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToWorkflowCanvas_Click 结束 ======");
         }
 
         /// <summary>
@@ -1180,9 +1139,7 @@ namespace SunEyeVision.UI
         /// </summary>
         private void SwitchToNativeDiagram_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToNativeDiagram_Click 开始 ======");
             SwitchToDefaultConfiguration();
-            System.Diagnostics.Debug.WriteLine("[MainWindow] ====== SwitchToNativeDiagram_Click 结束 ======");
         }
 
         /// <summary>
@@ -1301,14 +1258,12 @@ namespace SunEyeVision.UI
             // 使用 Dispatcher 延迟执行，确保 TabItem 内容已完全加载
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== UpdateZoomDisplay 开始 ======");
 
                 int percentage = 100;
 
                 try
                 {
                     var canvasType = GetCurrentCanvasType();
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 当前画布类型: {canvasType}");
 
                     if (canvasType == CanvasType.NativeDiagram)
                     {
@@ -1316,41 +1271,32 @@ namespace SunEyeVision.UI
                         if (diagramViewModel != null)
                         {
                             percentage = (int)(diagramViewModel.ZoomValue * 100);
-                            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ NativeDiagram 缩放: {percentage}%");
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ NativeDiagram DiagramViewModel 为 null，使用默认值 100%");
                         }
                     }
                     else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
                     {
                         percentage = (int)(_viewModel.WorkflowTabViewModel.SelectedTab.CurrentScale * 100);
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ WorkflowCanvas 缩放: {percentage}%");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ SelectedTab 为 null，使用默认值 100%");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ UpdateZoomDisplay 错误: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈跟踪: {ex.StackTrace}");
                 }
 
                 // 直接使用命名的ZoomTextBlock控件
                 if (ZoomTextBlock != null)
                 {
                     ZoomTextBlock.Text = $"缩放: {percentage}%";
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✓ 更新 ZoomTextBlock 为: {percentage}%");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainWindow] ✗ ZoomTextBlock 为 null，无法更新显示");
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ====== UpdateZoomDisplay 结束 ======");
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
@@ -1608,7 +1554,6 @@ namespace SunEyeVision.UI
         /// </summary>
         public void SetPathCalculator(string pathCalculatorType)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainWindow] 设置路径计算器到: {pathCalculatorType}");
 
             // 获取当前画布类型
             var canvasType = GetCurrentCanvasType();
@@ -1622,11 +1567,9 @@ namespace SunEyeVision.UI
                     if (workflowCanvas != null)
                     {
                         workflowCanvas.SetPathCalculator(pathCalculatorType);
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ WorkflowCanvasControl 路径计算器已设置");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 WorkflowCanvasControl");
                     }
                     break;
 
@@ -1636,11 +1579,9 @@ namespace SunEyeVision.UI
                     if (nativeDiagram != null)
                     {
                         nativeDiagram.SetPathCalculator(pathCalculatorType);
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ✅ NativeDiagramControl 路径设置调用（使用原生贝塞尔曲线）");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 未找到 NativeDiagramControl");
                     }
                     break;
             }

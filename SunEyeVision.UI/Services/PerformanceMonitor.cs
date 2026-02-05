@@ -84,21 +84,10 @@ namespace SunEyeVision.UI.Services
         public void PrintStatistics()
         {
             var stats = GetStatistics();
-            Debug.WriteLine("========== 性能统计 ==========");
-            Debug.WriteLine($"时间: {stats.Timestamp:yyyy-MM-dd HH:mm:ss}");
-            Debug.WriteLine($"总操作数: {stats.TotalOperations}");
 
             foreach (var metric in stats.Metrics.OrderByDescending(m => m.TotalMilliseconds))
             {
-                Debug.WriteLine($"[操作] {metric.Name}");
-                Debug.WriteLine($"  次数: {metric.Count}");
-                Debug.WriteLine($"  总耗时: {metric.TotalMilliseconds:F2}ms");
-                Debug.WriteLine($"  平均耗时: {metric.AverageMilliseconds:F2}ms");
-                Debug.WriteLine($"  最小耗时: {metric.MinMilliseconds:F2}ms");
-                Debug.WriteLine($"  最大耗时: {metric.MaxMilliseconds:F2}ms");
-                Debug.WriteLine(string.Empty);
             }
-            Debug.WriteLine("============================");
         }
 
         /// <summary>

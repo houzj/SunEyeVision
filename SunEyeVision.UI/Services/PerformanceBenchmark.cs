@@ -90,7 +90,7 @@ namespace SunEyeVision.UI.Services
                     Passed = elapsedMs < nodeCount * 0.5
                 });
 
-                Debug.WriteLine($"[节点渲染] {nodeCount}个节点: {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[节点渲染] {nodeCount}个节点: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
@@ -141,7 +141,7 @@ namespace SunEyeVision.UI.Services
                     Passed = elapsedMs < 20.0
                 });
 
-                Debug.WriteLine($"[连线更新] {connectionCount}条连线: {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[连线更新] {connectionCount}条连线: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
@@ -200,7 +200,7 @@ namespace SunEyeVision.UI.Services
                     Passed = elapsedMs < 30.0
                 });
 
-                Debug.WriteLine($"[拖拽响应] {nodeCount}个节点: {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[拖拽响应] {nodeCount}个节点: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
@@ -261,8 +261,6 @@ namespace SunEyeVision.UI.Services
                     TargetMs = 1.0,
                     Passed = avgPerPath < 1.0
                 });
-
-                Debug.WriteLine($"[路径计算] {iterations}次: {elapsedMs:F2}ms (平均: {avgPerPath:F3}ms/条)");
             }
 
             result.Metrics = metrics;
@@ -271,7 +269,6 @@ namespace SunEyeVision.UI.Services
 
             return result;
         }
-
         /// <summary>
         /// 测试5: 批量更新性能
         /// 测试目标: 批量更新优于单个更新50%+
@@ -322,7 +319,7 @@ namespace SunEyeVision.UI.Services
                     AdditionalInfo = $"提升: {improvement:F1}%"
                 });
 
-                Debug.WriteLine($"[批量更新] {connectionCount}条: 单个{singleTime:F2}ms, 批量{batchTime:F2}ms, 提升{improvement:F1}%");
+                
             }
 
             result.Metrics = metrics;
@@ -394,12 +391,6 @@ namespace SunEyeVision.UI.Services
         /// </summary>
         public void PrintBenchmarkReport(BenchmarkResults results)
         {
-            Debug.WriteLine("========================================");
-            Debug.WriteLine("      SunEyeVision 性能基准测试报告");
-            Debug.WriteLine($"      测试时间: {results.TestDate:yyyy-MM-dd HH:mm:ss}");
-            Debug.WriteLine("========================================");
-            Debug.WriteLine(string.Empty);
-
             var resultsList = new List<BenchmarkResult>
             {
                 results.NodeRenderingResults,
@@ -411,32 +402,27 @@ namespace SunEyeVision.UI.Services
 
             foreach (var result in resultsList)
             {
-                Debug.WriteLine($"【{result.TestName}】");
-                Debug.WriteLine($"目标: {result.Target}");
-                Debug.WriteLine($"结果: {(result.Passed ? "✅ 通过" : "❌ 未通过")}");
-                Debug.WriteLine($"摘要: {result.Summary}");
-                Debug.WriteLine(string.Empty);
+                // Debug.WriteLine($"【{result.TestName}】");
+                // Debug.WriteLine($"目标: {result.Target}");
+                // Debug.WriteLine($"结果: {(result.Passed ? "✅ 通过" : "❌ 未通过")}");
+                // Debug.WriteLine($"摘要: {result.Summary}");
+                // Debug.WriteLine(string.Empty);
 
                 if (result.Metrics.Any())
                 {
-                    Debug.WriteLine("详细指标:");
+                    // Debug.WriteLine("详细指标:");
                     foreach (var metric in result.Metrics)
                     {
-                        var status = metric.Passed ? "✅" : "❌";
-                        Debug.WriteLine($"  {status} {metric.MetricName}: {metric.ValueMs:F2}ms (目标: {metric.TargetMs:F2}ms)");
-                        if (!string.IsNullOrEmpty(metric.AdditionalInfo))
-                        {
-                            Debug.WriteLine($"     {metric.AdditionalInfo}");
-                        }
+                    var status = metric.Passed ? "✅" : "❌";
+
+                    if (!string.IsNullOrEmpty(metric.AdditionalInfo))
+                    {
+                        // Debug.WriteLine($"     {metric.AdditionalInfo}");
                     }
-                    Debug.WriteLine(string.Empty);
+                }
                 }
             }
 
-            Debug.WriteLine("========================================");
-
-            // 打印性能监控统计
-            _monitor.PrintStatistics();
         }
     }
 

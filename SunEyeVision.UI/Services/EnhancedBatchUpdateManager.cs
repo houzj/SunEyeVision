@@ -188,7 +188,6 @@ namespace SunEyeVision.UI.Services
             catch (Exception ex)
             {
                 // 记录错误但不中断程序
-                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 更新失败: {ex.Message}");
             }
         }
 
@@ -258,11 +257,11 @@ namespace SunEyeVision.UI.Services
             // 性能监控
             if (stopwatch.ElapsedMilliseconds > 20) // 超过20ms的批量操作才记录
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[EnhancedBatchUpdateManager] 批量更新: " +
-                    $"{connectionsToRecalculate.Count}条连线, " +
-                    $"{stopwatch.ElapsedMilliseconds:F2}ms " +
-                    $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/条)");
+                // System.Diagnostics.Debug.WriteLine(
+                //     $"[EnhancedBatchUpdateManager] 批量更新: " +
+                //     $"{connectionsToRecalculate.Count}条连线, " +
+                //     $"{stopwatch.ElapsedMilliseconds:F2}ms " +
+                //     $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/条)");
             }
         }
 
@@ -283,7 +282,6 @@ namespace SunEyeVision.UI.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 获取节点连接失败: {ex.Message}");
                 return Enumerable.Empty<WorkflowConnection>();
             }
         }
@@ -304,7 +302,6 @@ namespace SunEyeVision.UI.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EnhancedBatchUpdateManager] 查找连接失败: {ex.Message}");
                 return null;
             }
         }
@@ -327,7 +324,6 @@ namespace SunEyeVision.UI.Services
                 _pendingNodeUpdates.Clear();
             }
 
-            System.Diagnostics.Debug.WriteLine("[EnhancedBatchUpdateManager] 已释放");
             PrintStatistics();
         }
 
@@ -336,11 +332,7 @@ namespace SunEyeVision.UI.Services
         /// </summary>
         public void PrintStatistics()
         {
-            System.Diagnostics.Debug.WriteLine("========== 批量更新统计 ==========");
-            System.Diagnostics.Debug.WriteLine($"总更新数: {TotalUpdatesProcessed}");
-            System.Diagnostics.Debug.WriteLine($"总批次数: {TotalBatchesProcessed}");
-            System.Diagnostics.Debug.WriteLine($"平均批次大小: {AverageBatchSize:F1}");
-            System.Diagnostics.Debug.WriteLine("=================================");
+            // 统计信息打印（已禁用）
         }
     }
 }

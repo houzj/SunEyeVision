@@ -23,12 +23,10 @@ namespace SunEyeVision.UI.Panel
         {
             if (_panels.ContainsKey(panel.PanelId))
             {
-                System.Console.WriteLine($"Panel {panel.PanelId} is already registered.");
                 return;
             }
 
             _panels[panel.PanelId] = panel;
-            System.Console.WriteLine($"Panel {panel.PanelName} registered successfully.");
         }
 
         /// <summary>

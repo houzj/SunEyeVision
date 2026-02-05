@@ -15,62 +15,43 @@ namespace SunEyeVision.UI.Adapters
         {
             try
             {
-                Console.WriteLine("========== 验证 AIStudio.Wpf.DiagramDesigner 库 ==========");
 
                 // 加载程序集
                 var assembly = Assembly.Load("AIStudio.Wpf.DiagramDesigner");
-                Console.WriteLine($"✅ 程序集加载成功: {assembly.FullName}");
-                Console.WriteLine($"   位置: {assembly.Location}");
 
                 // 获取核心类型
                 var diagramType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.DiagramDesigner");
                 var nodeType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.Node");
                 var linkType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.Link");
 
-                Console.WriteLine($"\n核心类型:");
-                Console.WriteLine($"   DiagramDesigner: {diagramType != null}");
-                Console.WriteLine($"   Node: {nodeType != null}");
-                Console.WriteLine($"   Link: {linkType != null}");
 
                 // 检查连接算法枚举
                 var algorithmEnumType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.LinkAlgorithm");
                 if (algorithmEnumType != null)
                 {
-                    Console.WriteLine($"\n✅ LinkAlgorithm 枚举类型存在");
-                    Console.WriteLine("\n支持的连接算法:");
                     foreach (var value in Enum.GetValues(algorithmEnumType))
                     {
-                        Console.WriteLine($"   - {value}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"\n❌ LinkAlgorithm 枚举类型不存在");
                 }
 
                 // 检查Diagram类型
                 var diagramClassType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.Diagram");
                 if (diagramClassType != null)
                 {
-                    Console.WriteLine($"\n✅ Diagram 类存在");
                     
                     // 检查关键属性
                     var nodesProperty = diagramClassType.GetProperty("Nodes");
                     var linksProperty = diagramClassType.GetProperty("Links");
                     var zoomProperty = diagramClassType.GetProperty("Zoom");
 
-                    Console.WriteLine("\n关键属性:");
-                    Console.WriteLine($"   Nodes: {nodesProperty != null}");
-                    Console.WriteLine($"   Links: {linksProperty != null}");
-                    Console.WriteLine($"   Zoom: {zoomProperty != null}");
                 }
 
-                Console.WriteLine("\n========== 验证完成 ==========\n");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ 库验证失败: {ex.Message}");
-                Console.WriteLine($"堆栈跟踪: {ex.StackTrace}");
             }
         }
 
