@@ -44,22 +44,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect targetNodeRect,
             params Rect[] allNodeRects)
         {
-            // System.Diagnostics.Debug.WriteLine("[BezierPathCalculator] ========== 贝塞尔曲线路径计算 ==========");
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 源位置:({sourcePosition.X:F1},{sourcePosition.Y:F1}), 目标位置:({targetPosition.X:F1},{targetPosition.Y:F1})");
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 源方向:{sourceDirection}, 目标方向:{targetDirection}");
-
             // 计算贝塞尔曲线控制点
             var controlPoints = CalculateBezierControlPoints(
                 sourcePosition,
                 targetPosition,
                 sourceDirection,
                 targetDirection);
-
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 控制点数:{controlPoints.Length}");
-            // for (int i = 0; i < controlPoints.Length; i++)
-            // {
-            //     System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator]   控制点[{i}]:({controlPoints[i].X:F1},{controlPoints[i].Y:F1})");
-            // }
 
             return controlPoints;
         }
@@ -80,7 +70,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // 如果距离太近，使用直线
             if (distance < MinCurveDistance)
             {
-                // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 距离太近({distance:F1} < {MinCurveDistance})，使用直线");
                 return new Point[] { sourcePosition, targetPosition };
             }
 
@@ -212,11 +201,6 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 // 直线，使用端点方向的固定角度
                 arrowAngle = GetFixedArrowAngle(targetDirection);
             }
-
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] ========== 箭头计算结果 ==========");
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 箭头尖端位置:({arrowPosition.X:F1},{arrowPosition.Y:F1})");
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 目标端口方向:{targetDirection}");
-            // System.Diagnostics.Debug.WriteLine($"[BezierPathCalculator] 箭头角度:{arrowAngle:F1}°");
 
             return (arrowPosition, arrowAngle);
         }

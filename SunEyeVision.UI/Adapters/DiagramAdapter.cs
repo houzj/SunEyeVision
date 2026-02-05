@@ -83,13 +83,11 @@ namespace SunEyeVision.UI.Adapters
             // 查找源节点和目标节点
             if (!_nodeMap.TryGetValue(workflowConnection.SourceNodeId, out var sourceNode) || sourceNode == null)
             {
-    
                 throw new InvalidOperationException($"源节点未找到: {workflowConnection.SourceNodeId}");
             }
 
             if (!_nodeMap.TryGetValue(workflowConnection.TargetNodeId, out var targetNode) || targetNode == null)
             {
-    
                 throw new InvalidOperationException($"目标节点未找到: {workflowConnection.TargetNodeId}");
             }
 
@@ -205,13 +203,9 @@ namespace SunEyeVision.UI.Adapters
                     return;
 
                 diagramViewModel.Add(nativeNode);
-
-                // 不输出日志，因为在 CreateNodeInternal 中已经输出过
-                // System.Diagnostics.Debug.WriteLine("[DiagramAdapter] ✅ 添加节点");
             }
             catch (Exception ex)
             {
-
             }
         }
 
@@ -227,12 +221,9 @@ namespace SunEyeVision.UI.Adapters
                     return;
 
                 diagramViewModel.Add(nativeConnection);
-
-    
             }
             catch (Exception ex)
             {
-    
             }
         }
 
@@ -250,12 +241,10 @@ namespace SunEyeVision.UI.Adapters
                 if (nativeNode is SelectableDesignerItemViewModelBase item)
                 {
                     diagramViewModel.Items.Remove(item);
-        
                 }
             }
             catch (Exception ex)
             {
-    
             }
         }
 
@@ -273,12 +262,10 @@ namespace SunEyeVision.UI.Adapters
                 if (nativeConnection is SelectableDesignerItemViewModelBase item)
                 {
                     diagramViewModel.Items.Remove(item);
-        
                 }
             }
             catch (Exception ex)
             {
-    
             }
         }
 

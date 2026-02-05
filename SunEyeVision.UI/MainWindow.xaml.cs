@@ -68,10 +68,6 @@ namespace SunEyeVision.UI
             _viewModel = new MainWindowViewModel();
             DataContext = _viewModel;
 
-            // 测试日志系统
-            System.Diagnostics.Debug.WriteLine("[系统] 主窗口已启动");
-            System.Diagnostics.Debug.WriteLine("[系统] 日志系统测试 - 如果能看到这条消息，说明日志系统正常工作！");
-
             // 初始化画布引擎管理器 - 设置默认引擎
             CanvasEngineManager.SetDataContext(_viewModel.WorkflowTabViewModel?.SelectedTab);
 
@@ -88,26 +84,19 @@ namespace SunEyeVision.UI
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 开始切换到默认配置 ==========");
-
                 // 切换画布到WorkflowCanvasControl（自定义画布）
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
                     _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
-                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 画布已切换到 WorkflowCanvasControl");
                 }
 
                 // 设置路径计算器为 Bezier（贝塞尔曲线）
                 Services.CanvasEngineManager.SetPathCalculator("Bezier");
-                System.Diagnostics.Debug.WriteLine("[MainWindow] ✅ 路径计算器已设置为 Bezier（贝塞尔曲线）");
-
-                System.Diagnostics.Debug.WriteLine("[MainWindow] ========== 默认配置切换完成 ==========");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ 切换默认配置失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[MainWindow] 堆栈: {ex.StackTrace}");
+                // 忽略异常
             }
         }
 
@@ -1006,7 +995,6 @@ namespace SunEyeVision.UI
         private void PrintVisualTree(DependencyObject parent, int indent = 0)
         {
             // 注意：此方法未使用，如果需要输出日志，应使用 _viewModel?.AddLog
-            // System.Diagnostics.Debug.WriteLine($"{prefix}{parent.GetType().Name}...");
             string prefix = new string(' ', indent * 2);
 
             int childCount = VisualTreeHelper.GetChildrenCount(parent);

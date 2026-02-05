@@ -43,8 +43,6 @@ namespace SunEyeVision.UI.Converters
             if (values.Length >= 2 && values[0] is WorkflowConnection connection)
             {
                 int counter = values[1] is int ? (int)values[1] : 0;
-                // 🔥 减少日志输出以提高性能
-                // System.Diagnostics.Debug.WriteLine($"[SmartPathMultiConverter] Convert called - ConnectionId: {connection.Id}, PathUpdateCounter: {counter}");
 
                 // 4B: 检查缓存
                 string cacheKey = connection.Id;
@@ -59,8 +57,6 @@ namespace SunEyeVision.UI.Converters
 
                 // 使用原有的 SmartPathConverter 进行转换，获取字符串
                 string pathString = _converter.Convert(connection, typeof(string), parameter, culture) as string;
-
-                // System.Diagnostics.Debug.WriteLine($"[SmartPathMultiConverter]   Path string length: {pathString?.Length ?? 0}");
 
                 // 4D: 优化 - 检查路径字符串是否变化
                 if (_lastPathStrings.TryGetValue(cacheKey, out string lastPathString) &&

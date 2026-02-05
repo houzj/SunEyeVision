@@ -52,7 +52,6 @@ namespace SunEyeVision.UI.ViewModels
             new NodeSequenceManager(),
             new DefaultNodeDisplayAdapter())
         {
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ✅ 使用默认构造函数创建");
         }
 
         /// <summary>
@@ -82,16 +81,6 @@ namespace SunEyeVision.UI.ViewModels
             // 订阅节点和连接集合变化事件
             WorkflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
             WorkflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
-
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ════════════════════════════════════");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ✅ 新建工作流: {Name}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Id: {Id}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   CanvasType: {CanvasType}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   WorkflowNodes (Hash): {WorkflowNodes.GetHashCode()}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   WorkflowConnections (Hash): {WorkflowConnections.GetHashCode()}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   ScaleTransform (Hash): {ScaleTransform.GetHashCode()}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   CommandManager (Hash): {CommandManager.GetHashCode()}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] ════════════════════════════════════");
         }
 
         /// <summary>
@@ -167,11 +156,6 @@ namespace SunEyeVision.UI.ViewModels
 
         private void OnWorkflowNodesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] 📝 节点集合变化 (Name: {Name})");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Action: {e.Action}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   NewItems: {e.NewItems?.Count ?? 0}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   OldItems: {e.OldItems?.Count ?? 0}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   总节点数: {WorkflowNodes?.Count ?? 0}");
         }
 
         /// <summary>
@@ -196,11 +180,6 @@ namespace SunEyeVision.UI.ViewModels
 
         private void OnWorkflowConnectionsChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] 🔗 连接集合变化 (Name: {Name})");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   Action: {e.Action}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   NewItems: {e.NewItems?.Count ?? 0}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   OldItems: {e.OldItems?.Count ?? 0}");
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel]   总连接数: {WorkflowConnections?.Count ?? 0}");
         }
 
         /// <summary>
@@ -289,10 +268,8 @@ namespace SunEyeVision.UI.ViewModels
         /// <returns>新创建的节点</returns>
         public Models.WorkflowNode CreateNode(string algorithmType, string? name = null)
         {
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] Creating node: Type={algorithmType}, Name={name}, WorkflowId={Id}");
             // 使用工厂创建节点，自动处理序号分配
             var node = _nodeFactory.CreateNode(algorithmType, name, Id);
-            // System.Diagnostics.Debug.WriteLine($"[WorkflowTabViewModel] Node created: Id={node.Id}, Index={node.Index}, GlobalIndex={node.GlobalIndex}");
             return node;
         }
 

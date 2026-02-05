@@ -50,14 +50,8 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is not WorkflowConnection connection || Nodes == null)
             {
-                // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] value is WorkflowConnection: {value is WorkflowConnection}, Nodes is null: {Nodes == null}");
                 return string.Empty;
             }
-
-            // 🔥 减少日志输出以提高性能
-            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Convert called for connection: {connection.Id}");
-            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   SourceNodeId: '{connection.SourceNodeId}', TargetNodeId: '{connection.TargetNodeId}'");
-            // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter]   Nodes count: {Nodes.Count}");
 
             try {
                 // 根据 ID 查找源节点和目标节点
@@ -69,27 +63,17 @@ namespace SunEyeVision.UI.Converters
                     return string.Empty;
                 }
 
-                // 🔥 修复：优先使用PathCache获取路径数据（PathCache使用BezierPathCalculator）
+                // 修复：优先使用PathCache获取路径数据（PathCache使用BezierPathCalculator）
                 if (PathCache != null)
                 {
                     var cachedPathData = PathCache.GetPathData(connection);
                     if (!string.IsNullOrEmpty(cachedPathData))
                     {
-                        // 🔥 减少日志输出以提高性能
-                        // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache hit for connection: {connection.Id}");
                         return cachedPathData;
                     }
-                    // else
-                    // {
-                    //     System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Cache miss or empty data for connection: {connection.Id}");
-                    // }
                 }
-                // else
-                // {
-                //     System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] PathCache is null for connection: {connection.Id}");
-                // }
 
-                // 🔥 降级方案：如果没有PathCache或缓存未命中，使用GeneratePathData生成简单路径
+                // 降级方案：如果没有PathCache或缓存未命中，使用GeneratePathData生成简单路径
                 // 计算起点和终点（节点中心，假设节点大小为 180x80）
                 const double NodeWidth = 180;
                 const double NodeHeight = 80;
@@ -98,8 +82,6 @@ namespace SunEyeVision.UI.Converters
 
                 // 生成路径数据
                 string pathData = GeneratePathData(startPoint, endPoint, sourceNode, targetNode);
-
-                // System.Diagnostics.Debug.WriteLine($"[SmartPathConverter] Generated path data for connection {connection.Id}: {pathData.Substring(0, Math.Min(50, pathData.Length))}...");
 
                 return pathData;
             }
