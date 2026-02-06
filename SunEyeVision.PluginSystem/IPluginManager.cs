@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using SunEyeVision.Interfaces;
 
 namespace SunEyeVision.PluginSystem
 {
@@ -61,10 +63,10 @@ namespace SunEyeVision.PluginSystem
         /// </summary>
         private readonly PluginLoader _pluginLoader;
 
-        public PluginManager()
+        public PluginManager(ILogger logger)
         {
             _loadedPlugins = new List<object>();
-            _pluginLoader = new PluginLoader();
+            _pluginLoader = new PluginLoader(logger);
         }
 
         /// <summary>
@@ -72,8 +74,13 @@ namespace SunEyeVision.PluginSystem
         /// </summary>
         public void LoadPlugins()
         {
-            var plugins = _pluginLoader.LoadAllPlugins();
-            _loadedPlugins.AddRange(plugins);
+            // 从Plugins目录加载插件
+            var pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+            _pluginLoader.LoadPluginsFromDirectory(pluginDirectory);
+            
+            // 将加载的插件添加到列表
+            var loadedPlugins = _pluginLoader.GetAllPlugins();
+            _loadedPlugins.AddRange(loadedPlugins);
         }
 
         /// <summary>

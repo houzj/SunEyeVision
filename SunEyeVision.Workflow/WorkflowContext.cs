@@ -89,9 +89,9 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// 节点执行状态
+    /// 节点执行状态（内部使用）
     /// </summary>
-    public class NodeExecutionStatus
+    public class NodeExecutionStatusInternal
     {
         /// <summary>
         /// 状态
@@ -109,28 +109,12 @@ namespace SunEyeVision.Workflow
         public DateTime? EndTime { get; set; }
 
         /// <summary>
-        /// 执行结果
-        /// </summary>
-        public ExecutionResult Result { get; set; }
-
-        /// <summary>
-        /// 错误消息
-        /// </summary>
-        public List<string> ErrorMessages { get; set; }
-
-        /// <summary>
-        /// 重试次数
-        /// </summary>
-        public int RetryCount { get; set; }
-
-        /// <summary>
         /// 执行时长
         /// </summary>
         public TimeSpan? Duration => EndTime.HasValue ? EndTime.Value - StartTime : null;
 
-        public NodeExecutionStatus()
+        public NodeExecutionStatusInternal()
         {
-            ErrorMessages = new List<string>();
         }
     }
 
@@ -244,7 +228,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 节点执行状态
         /// </summary>
-        public Dictionary<string, NodeExecutionStatus> NodeStates { get; set; }
+        public Dictionary<string, NodeExecutionStatusInternal> NodeStates { get; set; }
 
         /// <summary>
         /// 工作流控制插件引用
@@ -288,7 +272,7 @@ namespace SunEyeVision.Workflow
             Variables = new Dictionary<string, object>();
             CallStack = new Stack<SubroutineCallInfo>();
             ExecutionPath = new List<ExecutionPathItem>();
-            NodeStates = new Dictionary<string, NodeExecutionStatus>();
+            NodeStates = new Dictionary<string, NodeExecutionStatusInternal>();
             Logs = new List<ExecutionLog>();
             Metadata = new Dictionary<string, object>();
             IsDebugMode = false;
@@ -379,7 +363,7 @@ namespace SunEyeVision.Workflow
         {
             if (!NodeStates.ContainsKey(nodeId))
             {
-                NodeStates[nodeId] = new NodeExecutionStatus
+                NodeStates[nodeId] = new NodeExecutionStatusInternal
                 {
                     StartTime = DateTime.Now,
                     Status = status
@@ -392,12 +376,11 @@ namespace SunEyeVision.Workflow
             if (status == NodeStatus.Completed || status == NodeStatus.Failed)
             {
                 nodeStatus.EndTime = DateTime.Now;
-                nodeStatus.Result = result;
             }
 
-            if (status == NodeStatus.Failed && result != null)
+            if (status == NodeStatus.Failed && result != null && result.Errors.Any())
             {
-                nodeStatus.ErrorMessages.AddRange(result.Errors.Select(e => e.Message));
+                // 节点执行失败，错误信息已记录在result.Errors中
             }
         }
 

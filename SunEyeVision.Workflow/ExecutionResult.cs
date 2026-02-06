@@ -22,7 +22,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 错误列表
         /// </summary>
-        public List<ExecutionError> Errors { get; set; }
+        public List<string> Errors { get; set; }
 
         /// <summary>
         /// 执行时间
@@ -42,7 +42,7 @@ namespace SunEyeVision.Workflow
         public ExecutionResult()
         {
             Outputs = new Dictionary<string, object>();
-            Errors = new List<ExecutionError>();
+            Errors = new List<string>();
             NodeResults = new Dictionary<string, NodeExecutionResult>();
         }
 
@@ -62,13 +62,9 @@ namespace SunEyeVision.Workflow
             return new ExecutionResult
             {
                 Success = false,
-                Errors = new List<ExecutionError>
+                Errors = new List<string>
                 {
-                    new ExecutionError
-                    {
-                        Message = errorMessage,
-                        Timestamp = DateTime.Now
-                    }
+                    errorMessage
                 }
             };
         }
@@ -79,12 +75,7 @@ namespace SunEyeVision.Workflow
         public void AddError(string message, string nodeId = null)
         {
             Success = false;
-            Errors.Add(new ExecutionError
-            {
-                NodeId = nodeId,
-                Message = message,
-                Timestamp = DateTime.Now
-            });
+            Errors.Add(message);
         }
 
         /// <summary>
@@ -117,33 +108,7 @@ namespace SunEyeVision.Workflow
 
     /// <summary>
     /// 执行错误
-    /// </summary>
-    public class ExecutionError
-    {
-        /// <summary>
-        /// 节点ID
         /// </summary>
-        public string NodeId { get; set; }
-
-        /// <summary>
-        /// 错误消息
-        /// </summary>
-        public string Message { get; set; }
-
-        /// <summary>
-        /// 堆栈跟踪
-        /// </summary>
-        public string StackTrace { get; set; }
-
-        /// <summary>
-        /// 时间戳
-        /// </summary>
-        public DateTime Timestamp { get; set; }
-    }
-
-    /// <summary>
-    /// 节点执行结果
-    /// </summary>
     public class NodeExecutionResult
     {
         /// <summary>

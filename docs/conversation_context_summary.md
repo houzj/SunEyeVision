@@ -28,7 +28,7 @@ SunEyeVision是一个插件化的机器视觉工作流系统,支持可视化工�
 
 ### 已完成功能
 
-#### 1. 插件化工作流控制系统 (✅ 第一、二阶段完成)
+#### 1. 插件化工作流控制系统 (✅ 第一、二、三阶段完成)
 
 **核心组件**:
 - `SubroutineNode.cs`: 子程序节点,支持循环执行
@@ -38,6 +38,9 @@ SunEyeVision是一个插件化的机器视觉工作流系统,支持可视化工�
 - `IWorkflowControlPlugin.cs`: 工作流控制插件接口
 - `ExecutionResult.cs`: 执行结果和状态系统
 - `WorkflowControlNode.cs`: 控制节点基类
+- `WorkflowExecutionEngine.cs`: 执行引擎,支持控制节点
+- `WorkflowEngineFactory.cs`: 工厂类,简化引擎创建
+- `WorkflowExecutionEngineTests.cs`: 集成测试
 
 **主要特性**:
 - ✅ 子程序调用和参数映射
@@ -47,6 +50,9 @@ SunEyeVision是一个插件化的机器视觉工作流系统,支持可视化工�
 - ✅ 进度报告和取消令牌支持
 - ✅ 调试模式和性能分析模式
 - ✅ 执行统计和日志系统
+- ✅ 异步执行控制（暂停/恢复/停止）
+- ✅ 执行状态追踪和事件通知
+- ✅ 循环依赖自动检测
 
 #### 2. AIStudioDiagramControl 性能优化
 
@@ -62,17 +68,14 @@ SunEyeVision是一个插件化的机器视觉工作流系统,支持可视化工�
 #### 当前未提交的文件
 ```
 新增文件:
-- SunEyeVision.PluginSystem/IPluginManager.cs
-- SunEyeVision.Workflow/ConditionNode.cs
-- SunEyeVision.Workflow/ExecutionResult.cs
-- SunEyeVision.Workflow/IWorkflowControlPlugin.cs
-- SunEyeVision.Workflow/SubroutineNode.cs
-- SunEyeVision.Workflow/SubroutinePlugin.cs
-- SunEyeVision.Workflow/WorkflowContext.cs
-- SunEyeVision.Workflow/WorkflowControlNode.cs
+- SunEyeVision.Workflow/WorkflowExecutionEngine.cs (650行)
+- SunEyeVision.Workflow/WorkflowEngineFactory.cs (90行)
+- SunEyeVision.Workflow/WorkflowExecutionEngineTests.cs (420行)
+- docs/WorkflowExecutionEngine使用指南.md (650行)
+- docs/WorkflowExecutionEngine开发进度报告.md
 
 修改文件:
-- SunEyeVision.Workflow/SunEyeVision.Workflow.csproj
+- (无)
 ```
 
 ---
@@ -81,19 +84,17 @@ SunEyeVision是一个插件化的机器视觉工作流系统,支持可视化工�
 
 ### 高优先级 (立即执行)
 
-1. **WorkflowEngine扩展** (第三阶段)
-   - 添加工作流控制节点执行方法
-   - 集成子程序执行
-   - 集成条件判断执行
-   - 添加执行状态追踪
-   - 实现异步执行控制
-
-2. **UI层集成** (第四阶段)
+1. **UI层集成** (第四阶段)
    - 扩展ToolboxViewModel集成控制节点
    - 实现子程序编辑器UI
    - 实现参数映射界面
    - 实现条件配置界面
    - 添加执行状态可视化
+
+2. **编译验证和测试**
+   - 编译项目确保无错误
+   - 运行集成测试验证功能
+   - 提交第三阶段代码到git
 
 ### 中优先级 (2-4周内)
 
@@ -175,7 +176,9 @@ ExecutionResult (执行结果)
 ## 🔍 关键代码位置
 
 ### 工作流核心
-- `SunEyeVision.Workflow/WorkflowEngine.cs`: 工作流引擎
+- `SunEyeVision.Workflow/WorkflowEngine.cs`: 基础工作流引擎
+- `SunEyeVision.Workflow/WorkflowExecutionEngine.cs`: 扩展执行引擎 ⭐ 新增
+- `SunEyeVision.Workflow/WorkflowEngineFactory.cs`: 工厂类 ⭐ 新增
 - `SunEyeVision.Workflow/Workflow.cs`: 工作流模型
 - `SunEyeVision.Workflow/WorkflowNode.cs`: 节点基类
 - `SunEyeVision.Workflow/AlgorithmNode.cs`: 算法节点
@@ -189,6 +192,11 @@ ExecutionResult (执行结果)
 - `SunEyeVision.Workflow/WorkflowContext.cs`: 执行上下文
 - `SunEyeVision.Workflow/ExecutionResult.cs`: 执行结果
 - `SunEyeVision.Workflow/SubroutinePlugin.cs`: 插件实现
+
+### 测试和文档
+- `SunEyeVision.Workflow/WorkflowExecutionEngineTests.cs`: 集成测试 ⭐ 新增
+- `docs/WorkflowExecutionEngine使用指南.md`: 使用文档 ⭐ 新增
+- `docs/WorkflowExecutionEngine开发进度报告.md`: 进度报告 ⭐ 新增
 
 ### 插件系统
 - `SunEyeVision.PluginSystem/IPluginManager.cs`: 插件管理器接口
@@ -234,11 +242,13 @@ ExecutionResult (执行结果)
 ## 📊 项目统计
 
 - **总文件数**: 约250个
-- **新增工作流控制文件**: 8个
-- **代码行数**: 约2000+行(工作流控制部分)
-- **核心类数量**: 20+个
+- **新增工作流控制文件**: 12个
+- **代码行数**: 约3800+行(工作流控制部分)
+- **核心类数量**: 25+个
 - **接口数量**: 2个核心接口
-- **枚举数量**: 8个
+- **枚举数量**: 10个
+- **新增测试用例**: 6个
+- **文档行数**: 约1300行(使用指南+进度报告)
 
 ---
 
@@ -301,19 +311,21 @@ ExecutionResult (执行结果)
 ## 📝 下一步行动
 
 ### 立即执行 (本周)
-1. 完成WorkflowEngine扩展,支持控制节点执行
-2. 实现UI层的基本集成
-3. 编写单元测试
+1. 编译项目,确保第三阶段代码无错误
+2. 运行集成测试,验证WorkflowExecutionEngine功能
+3. 提交第三阶段代码到git
+4. 开始第四阶段: UI层集成
 
 ### 短期计划 (2周内)
-1. 完成UI层的完整集成
-2. 进行集成测试
-3. 性能优化和调优
+1. 完成UI层的核心集成(ToolboxViewModel扩展)
+2. 实现基础的子程序编辑器UI
+3. 实现参数映射界面
+4. 在实际UI场景中测试引擎功能
 
 ### 中期计划 (1-2月)
-1. 功能增强和完善
-2. 高级特性实现
-3. 文档更新
+1. 完成UI层的完整集成(条件配置、状态可视化)
+2. 功能增强: 完善表达式解析器、添加断点调试
+3. 性能优化和调优: 大规模工作流测试
 
 ---
 

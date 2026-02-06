@@ -146,7 +146,7 @@ namespace SunEyeVision.Workflow
             result.Outputs["branch"] = EvaluationResult ? TrueBranchId : FalseBranchId;
             result.Outputs["branchName"] = EvaluationResult ? TrueBranchName : FalseBranchName;
 
-            return Task.FromResult(result);
+            return result;
         }
 
         /// <summary>

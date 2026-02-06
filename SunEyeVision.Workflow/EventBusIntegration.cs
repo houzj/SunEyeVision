@@ -24,7 +24,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public void PublishWorkflowStarted(string workflowId, string workflowName)
         {
-            var eventData = new LogEvent(_source, $"Workflow started: {workflowName}", LogLevel.Info, "Workflow")
+            var eventData = new LogEvent(_source, $"Workflow started: {workflowName}", Events.LogLevel.Info, "Workflow")
             {
                 Message = $"Workflow '{workflowName}' (ID: {workflowId}) execution started"
             };
@@ -51,7 +51,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public void PublishNodeExecutionStarted(string workflowId, string nodeId, string nodeName)
         {
-            var eventData = new LogEvent(_source, $"Node execution started: {nodeName}", LogLevel.Debug, "WorkflowNode")
+            var eventData = new LogEvent(_source, $"Node execution started: {nodeName}", Events.LogLevel.Debug, "WorkflowNode")
             {
                 Message = $"Node '{nodeName}' (ID: {nodeId}) in workflow '{workflowId}' execution started"
             };

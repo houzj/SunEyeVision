@@ -84,19 +84,19 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 执行工作流（同步，支持工作流控制节点）
         /// </summary>
-        public ExecutionResult ExecuteWorkflow(string workflowId, Mat inputImage)
+        public async Task<ExecutionResult> ExecuteWorkflow(string workflowId, Mat inputImage)
         {
             if (_currentState == WorkflowExecutionState.Running)
             {
                 _logger.LogWarning("工作流正在执行中，无法重复执行");
-                return ExecutionResult.CreateError("工作流正在执行中");
+                return ExecutionResult.CreateFailure("工作流正在执行中");
             }
 
             var workflow = _workflowEngine.GetWorkflow(workflowId);
             if (workflow == null)
             {
                 _logger.LogError($"工作流不存在: {workflowId}");
-                return ExecutionResult.CreateError($"工作流不存在: {workflowId}");
+                return ExecutionResult.CreateFailure($"工作流不存在: {workflowId}");
             }
 
             // 检测循环依赖
@@ -105,15 +105,12 @@ namespace SunEyeVision.Workflow
             {
                 var cycleMsg = $"检测到循环依赖: {string.Join("; ", cycles)}";
                 _logger.LogError(cycleMsg);
-                return ExecutionResult.CreateError(cycleMsg);
+                return ExecutionResult.CreateFailure(cycleMsg);
             }
 
             // 创建执行上下文
-            _currentContext = new WorkflowContext(_logger)
-            {
-                VariableName = "InputImage",
-                InputImage = inputImage
-            };
+            _currentContext = new WorkflowContext();
+            _currentContext.SetVariable("InputImage", inputImage);
             
             _currentState = WorkflowExecutionState.Running;
             _executionStartTime = DateTime.Now;
@@ -121,28 +118,30 @@ namespace SunEyeVision.Workflow
             try
             {
                 _logger.LogInfo($"开始执行工作流: {workflow.Name}");
-                
+
                 // 执行节点
                 var executionOrder = workflow.GetExecutionOrder();
-                var result = ExecuteNodesSequential(workflow, executionOrder, inputImage, _currentContext);
-                
+                var result = await ExecuteNodesSequential(workflow, executionOrder, inputImage, _currentContext);
+
                 _currentState = result.Success ? WorkflowExecutionState.Completed : WorkflowExecutionState.Error;
-                
+
                 _logger.LogInfo($"工作流执行完成: {workflow.Name}, 耗时: {(DateTime.Now - _executionStartTime).TotalMilliseconds:F2}ms");
-                
+
                 return result;
             }
             catch (OperationCanceledException)
             {
                 _currentState = WorkflowExecutionState.Stopped;
                 _logger.LogWarning("工作流执行被取消");
-                return ExecutionResult.CreateCancelled();
+                var result = ExecutionResult.CreateFailure("工作流执行被取消");
+                result.IsStopped = true;
+                return result;
             }
             catch (Exception ex)
             {
                 _currentState = WorkflowExecutionState.Error;
                 _logger.LogError($"工作流执行失败: {ex.Message}", ex);
-                return ExecutionResult.CreateError(ex.Message, ex.StackTrace);
+                return ExecutionResult.CreateFailure($"{ex.Message}\n{ex.StackTrace}");
             }
             finally
             {
@@ -157,7 +156,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 按顺序执行节点（支持工作流控制节点）
         /// </summary>
-        private ExecutionResult ExecuteNodesSequential(
+        private async Task<ExecutionResult> ExecuteNodesSequential(
             Workflow workflow,
             List<string> executionOrder,
             Mat inputImage,
@@ -188,7 +187,7 @@ namespace SunEyeVision.Workflow
                 var nodeInput = GetNodeInput(workflow, node, inputImage, nodeResults);
 
                 // 执行节点
-                var nodeResult = ExecuteNode(node, nodeInput, context, workflow);
+                var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
                 
                 // 记录结果
                 if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
@@ -197,22 +196,18 @@ namespace SunEyeVision.Workflow
                 }
 
                 nodeExecutionResults[nodeId] = nodeResult;
-                context.UpdateNodeStatus(nodeId, nodeResult.Success ? NodeStatus.Success : NodeStatus.Failed);
-                NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = nodeResult.Success ? NodeStatus.Success : NodeStatus.Failed });
+                context.UpdateNodeStatus(nodeId, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
+                NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed });
 
                 if (!nodeResult.Success)
                 {
-                    result.AddError(new ExecutionError
-                    {
-                        NodeId = nodeId,
-                        Message = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败",
-                        Timestamp = DateTime.Now
-                    });
+                    var errorMessage = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败";
+                    result.AddError(errorMessage, nodeId);
                 }
             }
 
             result.Success = result.Errors.Count == 0;
-            result.ExecutionTime = (DateTime.Now - _executionStartTime).TotalMilliseconds;
+            result.ExecutionTime = DateTime.Now - _executionStartTime;
             result.NodeResults = nodeExecutionResults;
 
             // 合并成功节点的输出
@@ -259,7 +254,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 执行单个节点（支持多种节点类型）
         /// </summary>
-        private NodeExecutionResult ExecuteNode(
+        private async Task<NodeExecutionResult> ExecuteNode(
             WorkflowNode node,
             Mat inputImage,
             WorkflowContext context,
@@ -277,15 +272,21 @@ namespace SunEyeVision.Workflow
                 switch (node)
                 {
                     case AlgorithmNode algorithmNode:
-                        nodeResult = ExecuteAlgorithmNode(algorithmNode, inputImage);
+                        var algoResult = ExecuteAlgorithmNode(algorithmNode, inputImage);
+                        nodeResult.Outputs = algoResult.Outputs;
+                        nodeResult.Success = algoResult.Success;
+                        nodeResult.ErrorMessages = algoResult.ErrorMessages;
                         break;
 
                     case SubroutineNode subroutineNode:
-                        nodeResult = ExecuteSubroutineNode(subroutineNode, inputImage, context, workflow).GetAwaiter().GetResult();
+                        nodeResult = await ExecuteSubroutineNode(subroutineNode, inputImage, context, workflow);
                         break;
 
                     case ConditionNode conditionNode:
-                        nodeResult = ExecuteConditionNode(conditionNode, inputImage, context);
+                        var condResult = ExecuteConditionNode(conditionNode, inputImage, context);
+                        nodeResult.Outputs = condResult.Outputs;
+                        nodeResult.Success = condResult.Success;
+                        nodeResult.ErrorMessages = condResult.ErrorMessages;
                         break;
 
                     default:
@@ -293,15 +294,14 @@ namespace SunEyeVision.Workflow
                 }
 
                 nodeResult.EndTime = DateTime.Now;
-                nodeResult.Duration = (nodeResult.EndTime - nodeResult.StartTime).TotalMilliseconds;
-                nodeResult.Success = true;
+                // Duration是计算属性，自动从StartTime和EndTime计算
 
                 return nodeResult;
             }
             catch (Exception ex)
             {
                 nodeResult.EndTime = DateTime.Now;
-                nodeResult.Duration = (nodeResult.EndTime - nodeResult.StartTime).TotalMilliseconds;
+                // Duration是计算属性，自动从StartTime和EndTime计算
                 nodeResult.Success = false;
                 nodeResult.ErrorMessages = new List<string> { ex.Message };
 
@@ -315,20 +315,22 @@ namespace SunEyeVision.Workflow
         /// </summary>
         private NodeExecutionResult ExecuteAlgorithmNode(AlgorithmNode node, Mat inputImage)
         {
-            var result = new NodeExecutionResult { NodeId = node.Id };
+            var result = new NodeExecutionResult { NodeId = node.Id, StartTime = DateTime.Now, EndTime = DateTime.Now };
 
             var algorithmResult = node.Execute(inputImage);
-            
+
             if (algorithmResult.Success && algorithmResult.ResultImage != null)
             {
                 result.Outputs = new Dictionary<string, object>
                 {
                     { "Output", algorithmResult.ResultImage }
                 };
+                result.Success = true;
             }
             else if (!algorithmResult.Success)
             {
                 result.ErrorMessages = new List<string> { algorithmResult.ErrorMessage };
+                result.Success = false;
             }
 
             return result;
@@ -368,7 +370,7 @@ namespace SunEyeVision.Workflow
             else if (!result.Success)
             {
                 nodeResult.ErrorMessages = new List<string> { 
-                    result.Errors?.FirstOrDefault()?.Message ?? "子程序执行失败" 
+                    result.Errors?.FirstOrDefault() ?? "子程序执行失败" 
                 };
             }
 
@@ -398,8 +400,14 @@ namespace SunEyeVision.Workflow
 
             // 评估条件
             var conditionResult = plugin.EvaluateCondition(node, context);
-            
-            var nodeResult = new NodeExecutionResult { NodeId = node.Id, Success = true };
+
+            var nodeResult = new NodeExecutionResult
+            {
+                NodeId = node.Id,
+                StartTime = DateTime.Now,
+                EndTime = DateTime.Now,
+                Success = true
+            };
             nodeResult.Outputs = new Dictionary<string, object>
             {
                 { "ConditionResult", conditionResult },
@@ -419,8 +427,8 @@ namespace SunEyeVision.Workflow
         public async Task<ExecutionResult> ExecuteWorkflowAsync(string workflowId, Mat inputImage)
         {
             _cancellationTokenSource = new CancellationTokenSource();
-            
-            return await Task.Run(() => ExecuteWorkflow(workflowId, inputImage), _cancellationTokenSource.Token);
+
+            return await Task.Run(async () => await ExecuteWorkflow(workflowId, inputImage), _cancellationTokenSource.Token);
         }
 
         /// <summary>
@@ -483,18 +491,5 @@ namespace SunEyeVision.Workflow
     {
         public string NodeId { get; set; } = string.Empty;
         public NodeStatus Status { get; set; }
-    }
-
-    /// <summary>
-    /// 执行统计信息
-    /// </summary>
-    public class ExecutionStatistics
-    {
-        public int TotalNodes { get; set; }
-        public int SuccessNodes { get; set; }
-        public int FailedNodes { get; set; }
-        public int SkippedNodes { get; set; }
-        public double TotalExecutionTime { get; set; }
-        public Dictionary<string, double> NodeExecutionTimes { get; set; } = new Dictionary<string, double>();
     }
 }

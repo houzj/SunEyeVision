@@ -163,19 +163,17 @@ namespace SunEyeVision.Workflow
                     currentCallInfo.OutputResults = new Dictionary<string, object>(result.Outputs);
                     if (!result.Success)
                     {
-                        currentCallInfo.Error = string.Join("; ", result.Errors.Select(e => e.Message));
+                        currentCallInfo.Error = string.Join("; ", result.Errors);
                     }
                 }
             }
             catch (OperationCanceledException)
             {
                 result.IsStopped = true;
-                context.AddLog($"子程序 {node.SubroutineId} 执行被取消", LogLevel.Warning);
             }
             catch (Exception ex)
             {
                 result.AddError($"子程序执行失败: {ex.Message}", node.Id);
-                context.AddLog($"子程序执行异常: {ex.Message}", LogLevel.Error);
             }
             finally
             {
@@ -205,7 +203,6 @@ namespace SunEyeVision.Workflow
             }
             catch (Exception ex)
             {
-                context.AddLog($"条件评估失败: {ex.Message}", LogLevel.Error);
                 return false;
             }
         }
@@ -236,11 +233,11 @@ namespace SunEyeVision.Workflow
                 {
                     if (algorithmResult.Success)
                     {
-                        result.Outputs[$"Result_{algorithmResult.AlgorithmType}"] = algorithmResult.OutputImage;
+                        result.Outputs[$"Result_{algorithmResult.AlgorithmName}"] = algorithmResult.ResultImage;
                     }
                     else
                     {
-                        result.AddError($"算法 {algorithmResult.AlgorithmType} 执行失败", node.Id);
+                        result.AddError($"算法 {algorithmResult.AlgorithmName} 执行失败", node.Id);
                     }
                 }
             }
@@ -594,7 +591,7 @@ namespace SunEyeVision.Workflow
             {
                 return context.GetVariable<Mat>("InputImage");
             }
-            return new Mat();
+            return new Mat(640, 480, 3);
         }
 
         #endregion
