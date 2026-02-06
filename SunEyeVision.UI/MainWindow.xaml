@@ -21,6 +21,7 @@
             </ResourceDictionary.MergedDictionaries>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
+            <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -121,18 +122,115 @@
 
             <Separator/>
 
-            <!-- 执行控制组 -->
-            <Button ToolTip="运行 (F5)" Padding="8,4" Margin="2" Style="{StaticResource PrimaryButton}" Command="{Binding RunWorkflowCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="▶️" FontSize="16" VerticalAlignment="Center"/>
-                    <TextBlock Text="运行" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
+            <!-- 执行控制组 - 所有工作流控制 -->
+            <Button ToolTip="单次运行全部工作流 (Shift+F5)"
+                    Width="36"
+                    Height="36"
+                    Margin="2"
+                    Padding="0"
+                    BorderThickness="0"
+                    Command="{Binding RunAllWorkflowsCommand}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#4CAF50" Offset="0"/>
+                        <GradientStop Color="#45A049" Offset="1"/>
+                    </LinearGradientBrush>
+                </Button.Background>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="6">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <Path Data="M8,6 L20,12 L8,18 Z"
+                      Fill="White"
+                      Stretch="Uniform"
+                      Width="20" Height="20"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
             </Button>
-            <Button ToolTip="停止 (Shift+F5)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding StopWorkflowCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="⏹️" FontSize="16" VerticalAlignment="Center"/>
-                    <TextBlock Text="停止" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
+
+            <Button ToolTip="连续运行全部工作流 (Ctrl+Shift+F5)"
+                    Width="36"
+                    Height="36"
+                    Margin="2"
+                    Padding="0"
+                    BorderThickness="0"
+                    Command="{Binding ToggleContinuousAllCommand}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#4CAF50" Offset="0"/>
+                        <GradientStop Color="#45A049" Offset="1"/>
+                    </LinearGradientBrush>
+                </Button.Background>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="6">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAllWorkflowsRunning}" Value="True">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#F44336" Offset="0"/>
+                                            <GradientStop Color="#D32F2F" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#F44336" BlurRadius="8" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <Path Data="{Binding IsAllWorkflowsRunning, Converter={StaticResource ContinuousRunIconTriangleInLoopConverter}}"
+                      Fill="White"
+                      Stretch="Uniform"
+                      Width="20" Height="20"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
             </Button>
 
             <Separator/>

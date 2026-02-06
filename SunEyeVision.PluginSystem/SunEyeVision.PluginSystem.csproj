@@ -10,7 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SunEyeVision.Core\SunEyeVision.Core.csproj"/>
+    <PackageReference Include="OpenCVSharp" Version="2.4.0.1" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SunEyeVision.Core\SunEyeVision.Core.csproj" />
   </ItemGroup>
 
 </Project>

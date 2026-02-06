@@ -24,6 +24,10 @@ namespace SunEyeVision.UI.ViewModels
         private BitmapSource? _displayImage;
         private double _imageScale = 1.0;
 
+        // 所有工作流运行状态
+        private bool _isAllWorkflowsRunning = false;
+        private string _allWorkflowsRunButtonText = "连续运行";
+
         // 属性面板相关
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待操作...\n";
@@ -175,6 +179,24 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 所有工作流是否正在运行
+        /// </summary>
+        public bool IsAllWorkflowsRunning
+        {
+            get => _isAllWorkflowsRunning;
+            set => SetProperty(ref _isAllWorkflowsRunning, value);
+        }
+
+        /// <summary>
+        /// 所有工作流运行按钮文本
+        /// </summary>
+        public string AllWorkflowsRunButtonText
+        {
+            get => _allWorkflowsRunButtonText;
+            set => SetProperty(ref _allWorkflowsRunButtonText, value);
+        }
+
+        /// <summary>
         /// 添加日志
         /// </summary>
         public void AddLog(string message)
@@ -209,6 +231,10 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ToggleBoundingRectangleCommand { get; }
         public ICommand TogglePathPointsCommand { get; }
 
+        // 所有工作流控制命令
+        public ICommand RunAllWorkflowsCommand { get; }
+        public ICommand ToggleContinuousAllCommand { get; }
+
         public MainWindowViewModel()
         {
             Workflows = new ObservableCollection<string>
@@ -231,6 +257,9 @@ namespace SunEyeVision.UI.ViewModels
 
             // 订阅选中画布变化事件，更新撤销/重做按钮状态
             WorkflowTabViewModel.SelectionChanged += OnSelectedTabChanged;
+
+            // 订阅工作流状态变化事件
+            WorkflowTabViewModel.WorkflowStatusChanged += OnWorkflowStatusChanged;
 
             // 订阅初始画布的命令管理器
             SubscribeToCurrentCommandManager();
@@ -256,6 +285,10 @@ namespace SunEyeVision.UI.ViewModels
             OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
             ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
+            
+            // 所有工作流控制命令
+            RunAllWorkflowsCommand = new RelayCommand(async () => await ExecuteRunAllWorkflows(), () => !IsAllWorkflowsRunning);
+            ToggleContinuousAllCommand = new RelayCommand(ExecuteToggleContinuousAll, () => true);
         }
 
         /// <summary>
@@ -278,6 +311,20 @@ namespace SunEyeVision.UI.ViewModels
                 Converters.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                 Converters.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
             }
+        }
+
+        /// <summary>
+        /// 工作流状态变化处理
+        /// </summary>
+        private void OnWorkflowStatusChanged(object? sender, EventArgs e)
+        {
+            // 更新所有工作流运行状态
+            IsAllWorkflowsRunning = WorkflowTabViewModel.IsAnyWorkflowRunning;
+            AllWorkflowsRunButtonText = IsAllWorkflowsRunning ? "停止运行" : "连续运行";
+
+            // 更新命令的CanExecute状态
+            (RunAllWorkflowsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleContinuousAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         /// <summary>
@@ -856,6 +903,33 @@ namespace SunEyeVision.UI.ViewModels
                 }
 
                 AddLog($"[TogglePathPoints] 所有连接的路径拐点: {(newState ? "显示" : "隐藏")}");
+            }
+        }
+
+        /// <summary>
+        /// 执行单次运行所有工作流
+        /// </summary>
+        private async System.Threading.Tasks.Task ExecuteRunAllWorkflows()
+        {
+            AddLog("🚀 开始单次运行所有工作流...");
+            await WorkflowTabViewModel.RunAllWorkflowsAsync();
+            AddLog("✅ 所有工作流单次运行完成");
+        }
+
+        /// <summary>
+        /// 切换所有工作流的连续运行/停止
+        /// </summary>
+        private void ExecuteToggleContinuousAll()
+        {
+            if (IsAllWorkflowsRunning)
+            {
+                AddLog("⏹️ 停止所有工作流连续运行");
+                WorkflowTabViewModel.StopAllWorkflows();
+            }
+            else
+            {
+                AddLog("🔄 开始所有工作流连续运行");
+                WorkflowTabViewModel.StartAllWorkflows();
             }
         }
 

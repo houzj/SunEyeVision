@@ -14,8 +14,8 @@ namespace SunEyeVision.UI.ViewModels
     /// </summary>
     public class WorkflowTabControlViewModel : ObservableObject
     {
-        private ObservableCollection<WorkflowTabViewModel> _tabs;
-        private WorkflowTabViewModel _selectedTab;
+        private ObservableCollection<WorkflowTabViewModel> _tabs = new ObservableCollection<WorkflowTabViewModel>();
+        private WorkflowTabViewModel? _selectedTab;
         private int _workflowCounter = 1;
         private SortedSet<int> _usedWorkflowNumbers = new SortedSet<int>();
 
@@ -24,10 +24,13 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public event EventHandler? SelectionChanged;
 
+        /// <summary>
+        /// 工作流状态变化事件
+        /// </summary>
+        public event EventHandler? WorkflowStatusChanged;
+
         public WorkflowTabControlViewModel()
         {
-            Tabs = new ObservableCollection<WorkflowTabViewModel>();
-            
             // 创建默认工作流
             CreateDefaultWorkflow();
         }
@@ -44,7 +47,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 当前选中的标签页
         /// </summary>
-        public WorkflowTabViewModel SelectedTab
+        public WorkflowTabViewModel? SelectedTab
         {
             get => _selectedTab;
             set
@@ -180,6 +183,7 @@ namespace SunEyeVision.UI.ViewModels
             Task.Delay(500).ContinueWith(_ =>
             {
                 workflow.IsRunning = false;
+                WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
@@ -192,6 +196,7 @@ namespace SunEyeVision.UI.ViewModels
                 return;
 
             workflow.IsRunning = true;
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -203,6 +208,7 @@ namespace SunEyeVision.UI.ViewModels
                 return;
 
             workflow.IsRunning = false;
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -221,6 +227,87 @@ namespace SunEyeVision.UI.ViewModels
             {
                 StartContinuous(workflow);
             }
+        }
+
+        /// <summary>
+        /// 单次运行所有工作流
+        /// </summary>
+        public async Task RunAllWorkflowsAsync()
+        {
+            var runningWorkflows = new List<WorkflowTabViewModel>();
+            
+            foreach (var workflow in Tabs)
+            {
+                if (!workflow.IsRunning)
+                {
+                    workflow.IsRunning = true;
+                    runningWorkflows.Add(workflow);
+                }
+            }
+
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
+
+            // 模拟执行所有工作流
+            await Task.Delay(500);
+
+            foreach (var workflow in runningWorkflows)
+            {
+                workflow.IsRunning = false;
+            }
+
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 开始连续运行所有工作流
+        /// </summary>
+        public void StartAllWorkflows()
+        {
+            foreach (var workflow in Tabs)
+            {
+                if (!workflow.IsRunning)
+                {
+                    workflow.IsRunning = true;
+                }
+            }
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 停止所有工作流
+        /// </summary>
+        public void StopAllWorkflows()
+        {
+            foreach (var workflow in Tabs)
+            {
+                workflow.IsRunning = false;
+            }
+            WorkflowStatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 切换所有工作流的连续运行/停止
+        /// </summary>
+        public void ToggleAllWorkflows()
+        {
+            var anyRunning = Tabs.Any(w => w.IsRunning);
+            
+            if (anyRunning)
+            {
+                StopAllWorkflows();
+            }
+            else
+            {
+                StartAllWorkflows();
+            }
+        }
+
+        /// <summary>
+        /// 判断是否有任何工作流正在运行
+        /// </summary>
+        public bool IsAnyWorkflowRunning
+        {
+            get => Tabs.Any(w => w.IsRunning);
         }
 
         #endregion
