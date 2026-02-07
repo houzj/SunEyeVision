@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using SunEyeVision.PluginSystem;
-using SunEyeVision.PluginSystem.UI.Tools;
+using SunEyeVision.PluginSystem.Base;
 using SunEyeVision.PluginSystem.Tools.GaussianBlurTool.DTOs;
 using SunEyeVision.PluginSystem.Parameters;
 using SunEyeVision.UI.MVVM;

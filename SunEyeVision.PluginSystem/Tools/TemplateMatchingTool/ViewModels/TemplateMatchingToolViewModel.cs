@@ -1,5 +1,5 @@
 using SunEyeVision.PluginSystem;
-using SunEyeVision.PluginSystem.UI.Tools;
+using SunEyeVision.PluginSystem.Base;
 
 namespace SunEyeVision.PluginSystem.Tools.TemplateMatchingTool.ViewModels
 {

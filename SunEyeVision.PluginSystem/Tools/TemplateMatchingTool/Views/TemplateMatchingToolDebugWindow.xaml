@@ -1,0 +1,40 @@
+<local:BaseToolDebugWindow x:Class="SunEyeVision.PluginSystem.Tools.TemplateMatchingTool.Views.TemplateMatchingToolDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:SunEyeVision.PluginSystem.Base.Windows"
+        Title="模板匹配工具调试" Height="500" Width="450">
+    
+    <local:BaseToolDebugWindow.CustomContent>
+        <StackPanel Margin="16">
+            <!-- 匹配方法 -->
+            <TextBlock Text="匹配方法:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <ComboBox ItemsSource="{Binding Methods}" SelectedItem="{Binding Method}"
+                     Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1" Margin="0,0,0,12"/>
+
+            <!-- 匹配阈值 -->
+            <TextBlock Text="匹配阈值:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding Threshold, StringFormat={}{0:F2}}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding Threshold}" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding Threshold, StringFormat={}{0:F2}}" FontSize="12" FontWeight="Bold" 
+                           Margin="8,0,0,0" Width="50"/>
+            </StackPanel>
+
+            <!-- 最大匹配数 -->
+            <TextBlock Text="最大匹配数:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding MaxMatches, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding MaxMatches}" Minimum="1" Maximum="100" IsSnapToTickEnabled="True"
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding MaxMatches}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 多尺度匹配 -->
+            <CheckBox Content="多尺度匹配" IsChecked="{Binding MultiScale}" 
+                     FontSize="12"/>
+        </StackPanel>
+    </local:BaseToolDebugWindow.CustomContent>
+</local:BaseToolDebugWindow>
