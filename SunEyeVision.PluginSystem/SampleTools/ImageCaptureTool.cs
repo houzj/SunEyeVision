@@ -56,6 +56,7 @@ namespace SunEyeVision.PluginSystem.SampleTools
                     Version = "1.0.0",
                     Author = "SunEyeVision",
                     HasDebugInterface = true,
+                    NodeType = NodeType.Start,  // 改为Start类型
                     InputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata

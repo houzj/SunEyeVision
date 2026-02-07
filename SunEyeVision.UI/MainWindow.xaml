@@ -817,16 +817,15 @@
                                  HorizontalAlignment="Stretch"/>
 
                     <!-- 属性面板 - 使用PropertyPanelControl -->
-                    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
+                    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"
+                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                             <!-- 属性内容 -->
                             <controls:PropertyPanelControl
                                 PropertyGroups="{Binding PropertyGroups}"
                                 LogText="{Binding LogText}"
+                                VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
                                 x:Name="PropertyPanelContent"/>
                         </Grid>
                     </Border>

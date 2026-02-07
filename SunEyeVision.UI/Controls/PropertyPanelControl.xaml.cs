@@ -10,6 +10,8 @@ namespace SunEyeVision.UI.Controls
     /// </summary>
     public partial class PropertyPanelControl : UserControl
     {
+        private bool _isUpdatingLogText = false; // 防止递归更新日志
+
         public static readonly DependencyProperty PropertyGroupsProperty =
             DependencyProperty.Register("PropertyGroups", typeof(ObservableCollection<PropertyGroup>), typeof(PropertyPanelControl),
                 new PropertyMetadata(new ObservableCollection<PropertyGroup>(), OnPropertyGroupsChanged));
@@ -140,8 +142,18 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public void AddLogEntry(string message)
         {
-            var timestamp = System.DateTime.Now.ToString("[HH:mm:ss]");
-            LogText += $"{timestamp} {message}\n";
+            if (_isUpdatingLogText) return; // 防止递归
+
+            try
+            {
+                _isUpdatingLogText = true;
+                var timestamp = System.DateTime.Now.ToString("[HH:mm:ss]");
+                LogText += $"{timestamp} {message}\n";
+            }
+            finally
+            {
+                _isUpdatingLogText = false;
+            }
         }
 
         /// <summary>
@@ -149,10 +161,10 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void LogTextBox_Loaded(object sender, RoutedEventArgs e)
         {
-            // 确保ScrollViewer滚动到顶部（显示最新的日志）
+            // 确保ScrollViewer滚动到底部（显示最新的日志）
             if (LogScrollViewer != null)
             {
-                LogScrollViewer.ScrollToTop();
+                LogScrollViewer.ScrollToEnd();
             }
         }
 
@@ -161,11 +173,22 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void LogTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // 日志变化时自动滚动到顶部
+            // 如果是我们自己修改日志文本，不需要处理
+            if (_isUpdatingLogText) return;
+
+            // 日志变化时自动滚动到底部（显示最新日志）
             if (LogScrollViewer != null)
             {
-                LogScrollViewer.ScrollToTop();
+                LogScrollViewer.ScrollToEnd();
             }
+        }
+
+        /// <summary>
+        /// TabControl 选中项变化事件
+        /// </summary>
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 空实现，预留扩展
         }
     }
 }

@@ -33,6 +33,59 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
+    /// 执行链 - 由Start节点驱动的独立执行单元
+    /// </summary>
+    public class ExecutionChain
+    {
+        /// <summary>
+        /// 执行链唯一标识
+        /// </summary>
+        public string ChainId { get; set; }
+
+        /// <summary>
+        /// 起始节点ID
+        /// </summary>
+        public string StartNodeId { get; set; }
+
+        /// <summary>
+        /// 执行链中的节点ID列表（按拓扑顺序）
+        /// </summary>
+        public List<string> NodeIds { get; set; }
+
+        /// <summary>
+        /// 执行链中的所有依赖（用于跨链同步）
+        /// </summary>
+        public List<ChainDependency> Dependencies { get; set; }
+
+        public ExecutionChain()
+        {
+            NodeIds = new List<string>();
+            Dependencies = new List<ChainDependency>();
+        }
+    }
+
+    /// <summary>
+    /// 执行链依赖关系
+    /// </summary>
+    public class ChainDependency
+    {
+        /// <summary>
+        /// 依赖的源链ID
+        /// </summary>
+        public string SourceChainId { get; set; }
+
+        /// <summary>
+        /// 源节点ID
+        /// </summary>
+        public string SourceNodeId { get; set; }
+
+        /// <summary>
+        /// 本链中依赖该源的节点ID
+        /// </summary>
+        public string TargetNodeId { get; set; }
+    }
+
+    /// <summary>
     /// Workflow
     /// </summary>
     public class Workflow
@@ -247,6 +300,8 @@ namespace SunEyeVision.Workflow
                 }
 
                 tempVisited.Add(nodeId);
+                visited.Add(nodeId);
+                order.Add(nodeId);  // 前序遍历：先添加当前节点，确保执行顺序与连接方向一致
 
                 if (Connections.ContainsKey(nodeId))
                 {
@@ -257,8 +312,6 @@ namespace SunEyeVision.Workflow
                 }
 
                 tempVisited.Remove(nodeId);
-                visited.Add(nodeId);
-                order.Add(nodeId);
             }
 
             foreach (var node in Nodes)
@@ -499,6 +552,111 @@ namespace SunEyeVision.Workflow
             }
 
             return info;
+        }
+
+        /// <summary>
+        /// 获取Start驱动执行链列表
+        /// </summary>
+        public List<ExecutionChain> GetStartDrivenExecutionChains()
+        {
+            var chains = new List<ExecutionChain>();
+            var allVisitedNodes = new HashSet<string>();
+            var chainIndex = 0;
+
+            // 获取所有Start节点
+            var startNodes = Nodes.Where(n => n.Type == NodeType.Start).ToList();
+
+            if (startNodes.Count == 0)
+            {
+                // 向后兼容：无Start节点时，创建默认执行链
+                chains.Add(new ExecutionChain
+                {
+                    ChainId = "default",
+                    NodeIds = GetExecutionOrder()
+                });
+                return chains;
+            }
+
+            // 为每个Start节点创建执行链
+            foreach (var startNode in startNodes)
+            {
+                var chain = new ExecutionChain
+                {
+                    ChainId = $"chain_{chainIndex}",
+                    StartNodeId = startNode.Id,
+                    NodeIds = new List<string>(),
+                    Dependencies = new List<ChainDependency>()
+                };
+
+                // 收集执行链中的节点
+                CollectExecutionChain(startNode.Id, chain.NodeIds, allVisitedNodes);
+
+                // 分析跨链依赖关系
+                AnalyzeChainDependencies(chain, allVisitedNodes, chains);
+
+                chains.Add(chain);
+                chainIndex++;
+            }
+
+            return chains;
+        }
+
+        /// <summary>
+        /// 收集执行链中的节点
+        /// </summary>
+        private void CollectExecutionChain(
+            string nodeId,
+            List<string> chainNodes,
+            HashSet<string> allVisitedNodes)
+        {
+            if (allVisitedNodes.Contains(nodeId) || chainNodes.Contains(nodeId))
+            {
+                return;
+            }
+
+            chainNodes.Add(nodeId);
+            allVisitedNodes.Add(nodeId);
+
+            // 递归收集下游节点
+            if (Connections.ContainsKey(nodeId))
+            {
+                foreach (var childId in Connections[nodeId])
+                {
+                    CollectExecutionChain(childId, chainNodes, allVisitedNodes);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 分析跨链依赖关系
+        /// </summary>
+        private void AnalyzeChainDependencies(ExecutionChain chain, HashSet<string> allVisitedNodes, List<ExecutionChain> existingChains)
+        {
+            foreach (var nodeId in chain.NodeIds)
+            {
+                var parentIds = Connections
+                    .Where(kvp => kvp.Value.Contains(nodeId))
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var parentId in parentIds)
+                {
+                    // 如果父节点不在本链中，则创建跨链依赖
+                    if (!chain.NodeIds.Contains(parentId))
+                    {
+                        // 查找源链
+                        var sourceChain = existingChains.FirstOrDefault(c => c.NodeIds.Contains(parentId));
+                        var sourceChainId = sourceChain?.ChainId ?? "unknown";
+
+                        chain.Dependencies.Add(new ChainDependency
+                        {
+                            SourceChainId = sourceChainId,
+                            SourceNodeId = parentId,
+                            TargetNodeId = nodeId
+                        });
+                    }
+                }
+            }
         }
     }
 

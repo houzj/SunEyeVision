@@ -182,11 +182,6 @@
         <Setter Property="BorderBrush" Value="{StaticResource SecondaryBrush}"/>
     </Style>
 
-    <Style x:Key="OutputNode" TargetType="Border" BasedOn="{StaticResource NodeBorder}">
-        <Setter Property="Background" Value="#F8E8FF"/>
-        <Setter Property="BorderBrush" Value="#9900CC"/>
-    </Style>
-
     <!-- ========== TreeView样式 ========== -->
     <Style x:Key="StyledTreeView" TargetType="TreeView">
         <Setter Property="Background" Value="White"/>

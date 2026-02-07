@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SunEyeVision.Models;
 
 namespace SunEyeVision.PluginSystem
 {
@@ -39,6 +40,11 @@ namespace SunEyeVision.PluginSystem
         public string Category { get; set; } = "未分类";
 
         /// <summary>
+        /// 节点类型 - 指定此工具创建的工作流节点类型
+        /// </summary>
+        public NodeType NodeType { get; set; } = NodeType.Algorithm;
+
+        /// <summary>
         /// 算法类型
         /// </summary>
         public Type? AlgorithmType { get; set; }
@@ -72,6 +78,53 @@ namespace SunEyeVision.PluginSystem
         /// 是否已启用
         /// </summary>
         public bool IsEnabled { get; set; } = true;
+
+        // ==================== 执行特性 ====================
+
+        /// <summary>
+        /// 是否支持并行执行
+        /// </summary>
+        public bool SupportParallel { get; set; } = true;
+
+        /// <summary>
+        /// 是否为纯函数(相同输入总是产生相同输出,无副作用)
+        /// </summary>
+        public bool IsPureFunction { get; set; } = true;
+
+        /// <summary>
+        /// 是否有副作用(如修改全局状态、IO操作等)
+        /// </summary>
+        public bool HasSideEffects { get; set; } = false;
+
+        /// <summary>
+        /// 估计执行时间(毫秒)
+        /// </summary>
+        public int EstimatedExecutionTimeMs { get; set; } = 100;
+
+        /// <summary>
+        /// 是否支持结果缓存
+        /// </summary>
+        public bool SupportCaching { get; set; } = true;
+
+        /// <summary>
+        /// 缓存有效期(毫秒)
+        /// </summary>
+        public int CacheTtlMs { get; set; } = 60000;
+
+        /// <summary>
+        /// 最大重试次数
+        /// </summary>
+        public int MaxRetryCount { get; set; } = 3;
+
+        /// <summary>
+        /// 重试延迟(毫秒)
+        /// </summary>
+        public int RetryDelayMs { get; set; } = 1000;
+
+        /// <summary>
+        /// 资源需求等级(1-10,数字越大资源需求越高)
+        /// </summary>
+        public int ResourceDemand { get; set; } = 5;
     }
 
     /// <summary>

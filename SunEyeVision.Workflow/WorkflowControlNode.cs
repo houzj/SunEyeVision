@@ -1,10 +1,12 @@
+using System;
 using System.Threading.Tasks;
+using SunEyeVision.Models;
 using SunEyeVision.PluginSystem;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 工作流控制类型
+    /// 工作流控制类型（内部使用，用于控制节点分类）
     /// </summary>
     public enum WorkflowControlType
     {
@@ -19,19 +21,9 @@ namespace SunEyeVision.Workflow
         Condition,
 
         /// <summary>
-        /// 循环控制
-        /// </summary>
-        Loop,
-
-        /// <summary>
         /// 多路分支
         /// </summary>
-        Switch,
-
-        /// <summary>
-        /// 异常处理
-        /// </summary>
-        TryCatch
+        Switch
     }
 
     /// <summary>
@@ -55,9 +47,23 @@ namespace SunEyeVision.Workflow
         public ValidationResult LastValidationResult { get; private set; }
 
         public WorkflowControlNode(string id, string name, WorkflowControlType controlType)
-            : base(id, name, NodeType.Condition)
+            : base(id, name, MapControlTypeToNodeType(controlType))
         {
             ControlType = controlType;
+        }
+
+        /// <summary>
+        /// 将WorkflowControlType映射到NodeType
+        /// </summary>
+        private static NodeType MapControlTypeToNodeType(WorkflowControlType controlType)
+        {
+            return controlType switch
+            {
+                WorkflowControlType.Subroutine => NodeType.Subroutine,
+                WorkflowControlType.Condition => NodeType.Condition,
+                WorkflowControlType.Switch => NodeType.Switch,
+                _ => throw new ArgumentException($"Unknown control type: {controlType}")
+            };
         }
 
         /// <summary>

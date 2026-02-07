@@ -631,11 +631,17 @@ namespace SunEyeVision.UI
         /// <summary>
         /// TabItem 单次运行点击事件
         /// </summary>
-        private void TabItem_SingleRun_Click(object sender, RoutedEventArgs e)
+        private async void TabItem_SingleRun_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
             {
-                _viewModel.WorkflowTabViewModel.RunSingle(workflow);
+                // 设置选中的工作流
+                _viewModel.WorkflowTabViewModel.SelectedTab = workflow;
+                
+                // 触发 RunWorkflowCommand 的 Execute 方法
+                // RunWorkflowCommand 是异步命令，Execute 方法会启动异步任务
+                _viewModel.RunWorkflowCommand.Execute(null);
+                
                 _viewModel.StatusText = $"单次运行: {workflow.Name}";
             }
         }

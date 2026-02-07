@@ -28,6 +28,9 @@ namespace SunEyeVision.UI.ViewModels
         private bool _isAllWorkflowsRunning = false;
         private string _allWorkflowsRunButtonText = "连续运行";
 
+        // 工作流执行管理器
+        private readonly Services.WorkflowExecutionManager _executionManager;
+
         // 属性面板相关
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待操作...\n";
@@ -252,6 +255,16 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
+            // 初始化工作流执行管理器
+            _executionManager = new Services.WorkflowExecutionManager(new Services.DefaultInputProvider());
+
+            // 订阅执行管理器的事件
+            _executionManager.WorkflowExecutionStarted += OnWorkflowExecutionStarted;
+            _executionManager.WorkflowExecutionCompleted += OnWorkflowExecutionCompleted;
+            _executionManager.WorkflowExecutionStopped += OnWorkflowExecutionStopped;
+            _executionManager.WorkflowExecutionError += OnWorkflowExecutionError;
+            _executionManager.WorkflowExecutionProgress += OnWorkflowExecutionProgress;
+
             // 初始化当前画布类型
             UpdateCurrentCanvasType();
 
@@ -272,7 +285,7 @@ namespace SunEyeVision.UI.ViewModels
             OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
             SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
             SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
-            RunWorkflowCommand = new RelayCommand(ExecuteRunWorkflow, () => !IsRunning);
+            RunWorkflowCommand = new RelayCommand(async () => await ExecuteRunWorkflow(), () => !IsRunning);
             StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
             ShowSettingsCommand = new RelayCommand(ExecuteShowSettings);
             ShowAboutCommand = new RelayCommand(ExecuteShowAbout);
@@ -532,16 +545,65 @@ namespace SunEyeVision.UI.ViewModels
             // TODO: 另存为工作流文件
         }
 
-        private void ExecuteRunWorkflow()
+        private async System.Threading.Tasks.Task ExecuteRunWorkflow()
         {
+            AddLog("=== 开始执行工作流 ===");
+
+            if (WorkflowTabViewModel == null)
+            {
+                AddLog("⚠️ WorkflowTabViewModel 为 null");
+                return;
+            }
+
+            if (WorkflowTabViewModel.SelectedTab == null)
+            {
+                AddLog("⚠️ 没有选中的工作流标签页");
+                AddLog("⚠️ 请确保至少有一个工作流标签页被选中");
+                return;
+            }
+
+            AddLog($"📋 当前工作流: {WorkflowTabViewModel.SelectedTab.Name}");
+            AddLog($"📊 节点数量: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}");
+            AddLog($"🔗 连接数量: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
+
+            if (WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count == 0)
+            {
+                AddLog("⚠️ 当前工作流没有节点");
+                AddLog("💡 提示：请从左侧工具箱拖拽算法节点到画布上");
+                AddLog("💡 可选节点：图像采集、灰度化、高斯模糊、二值化、边缘检测、形态学操作");
+                return;
+            }
+
             IsRunning = true;
-            // TODO: 执行工作流
+            AddLog("🚀 调用执行引擎...");
+
+            try
+            {
+                await _executionManager.RunSingleAsync(WorkflowTabViewModel.SelectedTab);
+                AddLog("✅ 工作流执行完成");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 工作流执行失败: {ex.Message}");
+                AddLog($"❌ 异常详情: {ex.StackTrace}");
+            }
+            finally
+            {
+                IsRunning = false;
+            }
         }
 
         private void ExecuteStopWorkflow()
         {
+            if (WorkflowTabViewModel?.SelectedTab == null)
+            {
+                AddLog("⚠️ 没有选中的工作流标签页");
+                return;
+            }
+
+            _executionManager.StopContinuousRun(WorkflowTabViewModel.SelectedTab);
             IsRunning = false;
-            // TODO: 停止工作流
+            AddLog("⏹️ 停止工作流执行");
         }
 
         private void ExecuteShowSettings()
@@ -930,6 +992,54 @@ namespace SunEyeVision.UI.ViewModels
             {
                 AddLog("🔄 开始所有工作流连续运行");
                 WorkflowTabViewModel.StartAllWorkflows();
+            }
+        }
+
+        /// <summary>
+        /// 工作流执行开始事件处理
+        /// </summary>
+        private void OnWorkflowExecutionStarted(object? sender, Services.WorkflowExecutionEventArgs e)
+        {
+            AddLog($"🚀 工作流开始执行: {e.WorkflowId}");
+        }
+
+        /// <summary>
+        /// 工作流执行完成事件处理
+        /// </summary>
+        private void OnWorkflowExecutionCompleted(object? sender, Services.WorkflowExecutionEventArgs e)
+        {
+            AddLog($"✅ 工作流执行完成: {e.WorkflowId}");
+        }
+
+        /// <summary>
+        /// 工作流执行停止事件处理
+        /// </summary>
+        private void OnWorkflowExecutionStopped(object? sender, Services.WorkflowExecutionEventArgs e)
+        {
+            AddLog($"⏹️ 工作流执行停止: {e.WorkflowId}");
+        }
+
+        /// <summary>
+        /// 工作流执行错误事件处理
+        /// </summary>
+        private void OnWorkflowExecutionError(object? sender, Services.WorkflowExecutionEventArgs e)
+        {
+            AddLog($"❌ 工作流执行错误: {e.WorkflowId} - {e.ErrorMessage}");
+        }
+
+        /// <summary>
+        /// 工作流执行进度事件处理
+        /// </summary>
+        private void OnWorkflowExecutionProgress(object? sender, Services.WorkflowExecutionProgressEventArgs e)
+        {
+            try
+            {
+                AddLog(e.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MainWindowViewModel] OnWorkflowExecutionProgress异常: {ex.Message}");
+                AddLog($"⚠️ 日志处理异常: {ex.Message}");
             }
         }
 

@@ -5,29 +5,6 @@ using SunEyeVision.Models;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 宸ヤ綔娴佽妭鐐圭被鍨?
-    /// </summary>
-    public enum NodeType
-    {
-        /// <summary>
-        /// 绠楁硶鑺傜偣
-        /// </summary>
-        Algorithm,
-        /// <summary>
-        /// 杈撳叆鑺傜偣
-        /// </summary>
-        Input,
-        /// <summary>
-        /// 杈撳嚭鑺傜偣
-        /// </summary>
-        Output,
-        /// <summary>
-        /// 鏉′欢鑺傜偣
-        /// </summary>
-        Condition
-    }
-
-    /// <summary>
     /// 宸ヤ綔娴佽妭鐐?
     /// </summary>
     public class WorkflowNode
@@ -77,6 +54,7 @@ namespace SunEyeVision.Workflow
             Id = id;
             Name = name;
             Type = type;
+            AlgorithmType = string.Empty;  // 初始化为非null值
             Parameters = new AlgorithmParameters();
         }
 
