@@ -279,46 +279,66 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取节点的执行顺序（拓扑排序）
+        /// 获取节点的执行顺序（真正的拓扑排序 - Kahn算法）
         /// </summary>
         public List<string> GetExecutionOrder()
         {
             var order = new List<string>();
-            var visited = new HashSet<string>();
-            var tempVisited = new HashSet<string>();
 
-            void Visit(string nodeId)
+            // 1. 计算每个节点的入度
+            var inDegree = new Dictionary<string, int>();
+            foreach (var node in Nodes)
             {
-                if (tempVisited.Contains(nodeId))
+                inDegree[node.Id] = 0;
+            }
+
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
                 {
-                    return;
+                    inDegree[targetId]++;
                 }
+            }
 
-                if (visited.Contains(nodeId))
+            // 2. 将入度为0的节点加入队列
+            var queue = new Queue<string>();
+            foreach (var node in Nodes)
+            {
+                if (inDegree[node.Id] == 0)
                 {
-                    return;
+                    queue.Enqueue(node.Id);
                 }
+            }
 
-                tempVisited.Add(nodeId);
-                visited.Add(nodeId);
-                order.Add(nodeId);  // 前序遍历：先添加当前节点，确保执行顺序与连接方向一致
+            // 3. 拓扑排序
+            var processedCount = 0;
+            while (queue.Count > 0)
+            {
+                var nodeId = queue.Dequeue();
+                order.Add(nodeId);
+                processedCount++;
 
+                // 4. 减少后继节点的入度
                 if (Connections.ContainsKey(nodeId))
                 {
                     foreach (var dependentId in Connections[nodeId])
                     {
-                        Visit(dependentId);
+                        inDegree[dependentId]--;
+                        if (inDegree[dependentId] == 0)
+                        {
+                            queue.Enqueue(dependentId);
+                        }
                     }
                 }
-
-                tempVisited.Remove(nodeId);
             }
 
-            foreach (var node in Nodes)
+            // 5. 检测循环依赖
+            if (processedCount != Nodes.Count)
             {
-                Visit(node.Id);
+                Logger?.LogWarning($"拓扑排序检测到循环依赖，已处理 {processedCount}/{Nodes.Count} 个节点");
             }
 
+            Logger?.LogInfo($"拓扑排序完成，执行顺序: [{string.Join(" -> ", order)}]");
             return order;
         }
 
@@ -555,50 +575,90 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取Start驱动执行链列表
+        /// 自动识别执行链（基于节点连接关系和入度）
         /// </summary>
-        public List<ExecutionChain> GetStartDrivenExecutionChains()
+        /// <returns>识别到的执行链列表</returns>
+        public List<ExecutionChain> GetAutoDetectExecutionChains()
         {
             var chains = new List<ExecutionChain>();
             var allVisitedNodes = new HashSet<string>();
             var chainIndex = 0;
 
-            // 获取所有Start节点
-            var startNodes = Nodes.Where(n => n.Type == NodeType.Start).ToList();
-
-            if (startNodes.Count == 0)
+            // ==================== 步骤1：计算每个节点的入度 ====================
+            var inDegree = new Dictionary<string, int>();
+            foreach (var node in Nodes)
             {
-                // 向后兼容：无Start节点时，创建默认执行链
-                chains.Add(new ExecutionChain
-                {
-                    ChainId = "default",
-                    NodeIds = GetExecutionOrder()
-                });
-                return chains;
+                inDegree[node.Id] = 0;  // 初始化入度为0
             }
 
-            // 为每个Start节点创建执行链
-            foreach (var startNode in startNodes)
+            // 遍历所有连接，计算每个目标节点的入度
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
+                {
+                    inDegree[targetId]++;  // 每有一个输入连接，入度+1
+                }
+            }
+
+            // ==================== 步骤2：识别所有入口节点（入度=0且已启用） ====================
+            var entryNodes = Nodes
+                .Where(n => inDegree[n.Id] == 0 && n.IsEnabled)
+                .ToList();
+
+            Logger?.LogInfo($"[AutoDetect] 找到 {entryNodes.Count} 个入口节点");
+
+            // ==================== 步骤3：为每个入口节点构建独立的执行链 ====================
+            foreach (var entryNode in entryNodes)
             {
                 var chain = new ExecutionChain
                 {
                     ChainId = $"chain_{chainIndex}",
-                    StartNodeId = startNode.Id,
+                    StartNodeId = entryNode.Id,
                     NodeIds = new List<string>(),
                     Dependencies = new List<ChainDependency>()
                 };
 
-                // 收集执行链中的节点
-                CollectExecutionChain(startNode.Id, chain.NodeIds, allVisitedNodes);
+                // 递归收集该入口节点下游的所有节点
+                CollectExecutionChain(entryNode.Id, chain.NodeIds, allVisitedNodes);
 
                 // 分析跨链依赖关系
                 AnalyzeChainDependencies(chain, allVisitedNodes, chains);
 
                 chains.Add(chain);
                 chainIndex++;
+
+                Logger?.LogInfo($"[AutoDetect] 创建执行链[{chainIndex}]: {entryNode.Name} (包含{chain.NodeIds.Count}个节点)");
             }
 
+            // ==================== 步骤4：处理未访问的节点（孤岛节点） ====================
+            var unvisitedNodes = Nodes.Where(n => !allVisitedNodes.Contains(n.Id) && n.IsEnabled).ToList();
+            foreach (var isolatedNode in unvisitedNodes)
+            {
+                var chain = new ExecutionChain
+                {
+                    ChainId = $"chain_{chainIndex}",
+                    StartNodeId = isolatedNode.Id,
+                    NodeIds = new List<string> { isolatedNode.Id },
+                    Dependencies = new List<ChainDependency>()
+                };
+
+                chains.Add(chain);
+                chainIndex++;
+
+                Logger?.LogInfo($"[AutoDetect] 创建孤岛链[{chainIndex}]: {isolatedNode.Name}");
+            }
+
+            Logger?.LogInfo($"[AutoDetect] 共识别 {chains.Count} 条执行链");
             return chains;
+        }
+
+        /// <summary>
+        /// 获取执行链（基于连接关系自动识别入口节点）
+        /// </summary>
+        /// <returns>执行链列表</returns>
+        public List<ExecutionChain> GetExecutionChains()
+        {
+            return GetAutoDetectExecutionChains();
         }
 
         /// <summary>

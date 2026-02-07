@@ -32,10 +32,9 @@ namespace SunEyeVision.Workflow
                     // 条件节点：使用子程序编辑器（条件配置界面）
                     return NodeInterfaceType.SubroutineEditor;
 
-                case NodeType.Start:
                 case NodeType.Algorithm:
                 default:
-                    // 算法节点和开始节点：使用调试窗口
+                    // 算法节点：使用调试窗口
                     if (toolMetadata != null && toolMetadata.HasDebugInterface)
                     {
                         return NodeInterfaceType.DebugWindow;

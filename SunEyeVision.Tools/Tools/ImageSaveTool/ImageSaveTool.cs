@@ -59,7 +59,6 @@ namespace SunEyeVision.Tools.ImageSaveTool
                     Version = "1.0.0",
                     Author = "SunEyeVision",
                     HasDebugInterface = true,
-                    NodeType = NodeType.Algorithm,  // 改为Algorithm类型
                     InputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata

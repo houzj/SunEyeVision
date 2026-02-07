@@ -16,7 +16,7 @@ namespace SunEyeVision.Workflow
     public static class WorkflowNodeFactory
     {
         /// <summary>
-        /// 从工具元数据创建节点（根据NodeType自动选择节点类型）
+        /// 从工具元数据创建算法节点
         /// </summary>
         /// <param name="toolId">工具ID(统一标识符)</param>
         /// <param name="nodeId">节点ID</param>
@@ -24,8 +24,8 @@ namespace SunEyeVision.Workflow
         /// <param name="parameters">算法参数</param>
         /// <param name="enableCaching">是否启用缓存</param>
         /// <param name="enableRetry">是否启用重试</param>
-        /// <returns>创建的WorkflowNode,如果工具不存在则返回null</returns>
-        public static WorkflowNode? CreateNode(
+        /// <returns>创建的AlgorithmNode,如果工具不存在则返回null</returns>
+        public static AlgorithmNode? CreateNode(
             string toolId,
             string nodeId,
             string nodeName,
@@ -33,41 +33,7 @@ namespace SunEyeVision.Workflow
             bool enableCaching = true,
             bool enableRetry = false)
         {
-            try
-            {
-                // 从ToolRegistry获取工具元数据
-                var metadata = ToolRegistry.GetToolMetadata(toolId);
-                if (metadata == null)
-                {
-                    Console.WriteLine($"[WorkflowNodeFactory] 工具不存在: {toolId}");
-                    return null;
-                }
-
-                // 根据NodeType创建相应类型的节点
-                switch (metadata.NodeType)
-                {
-                    case NodeType.Start:
-                    case NodeType.Algorithm:
-                        return CreateAlgorithmNode(toolId, nodeId, nodeName, parameters, enableCaching, enableRetry);
-
-                    case NodeType.Subroutine:
-                        return CreateSubroutineNode(nodeId, nodeName, parameters);
-
-                    case NodeType.Condition:
-                        // 需要从parameters获取条件表达式
-                        var conditionExpr = parameters?.Get<string>("Condition") ?? "";
-                        return CreateConditionNode(nodeId, nodeName, conditionExpr, parameters);
-
-                    default:
-                        Console.WriteLine($"[WorkflowNodeFactory] 不支持的节点类型: {metadata.NodeType}，默认创建AlgorithmNode");
-                        return CreateAlgorithmNode(toolId, nodeId, nodeName, parameters, enableCaching, enableRetry);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[WorkflowNodeFactory] 创建节点失败: {ex.Message}");
-                return null;
-            }
+            return CreateAlgorithmNode(toolId, nodeId, nodeName, parameters, enableCaching, enableRetry);
         }
 
         /// <summary>
@@ -175,13 +141,8 @@ namespace SunEyeVision.Workflow
             return nodes;
         }
 
-        /// <summary>
-        /// 创建Start节点
-        /// </summary>
-        public static WorkflowNode CreateStartNode(string nodeId, string nodeName = "Start")
-        {
-            return new WorkflowNode(nodeId, nodeName, NodeType.Start);
-        }
+        // Start 节点已废弃，不再需要特殊节点类型
+        // 执行顺序由连线关系决定，基于入度自动识别入口节点
 
         /// <summary>
         /// 创建子程序节点

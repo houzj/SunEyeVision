@@ -34,22 +34,31 @@ namespace SunEyeVision.UI
             switch (toolId)
             {
                 case "ImageSaveTool":
+                case "image_save":
                     return new ImageSaveToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "ColorConvertTool":
+                case "color_convert":
                     return new ColorConvertToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "EdgeDetectionTool":
+                case "edge_detection":
                     return new EdgeDetectionToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "GaussianBlurTool":
+                case "gaussian_blur":
                     return new GaussianBlurToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "ImageCaptureTool":
+                case "image_capture":
                     return new ImageCaptureToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "OCRTool":
+                case "ocr_recognition":
                     return new OCRToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "ROICropTool":
+                case "roi_crop":
                     return new ROICropToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "TemplateMatchingTool":
+                case "template_matching":
                     return new TemplateMatchingToolDebugWindow(toolId, toolPlugin, toolMetadata);
                 case "ThresholdTool":
+                case "threshold":
                     return new ThresholdToolDebugWindow(toolId, toolPlugin, toolMetadata);
 
                 default:
@@ -68,14 +77,23 @@ namespace SunEyeVision.UI
             switch (toolId)
             {
                 case "ImageSaveTool":
+                case "image_save":
                 case "ColorConvertTool":
+                case "color_convert":
                 case "EdgeDetectionTool":
+                case "edge_detection":
                 case "GaussianBlurTool":
+                case "gaussian_blur":
                 case "ImageCaptureTool":
+                case "image_capture":
                 case "OCRTool":
+                case "ocr_recognition":
                 case "ROICropTool":
+                case "roi_crop":
                 case "TemplateMatchingTool":
+                case "template_matching":
                 case "ThresholdTool":
+                case "threshold":
                     return true;
 
                 default:

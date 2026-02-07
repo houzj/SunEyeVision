@@ -70,7 +70,6 @@ namespace SunEyeVision.Tools.ImageSaveTool.DTOs
                 Description = "将处理后的图像保存到指定路径",
                 Icon = "💾",
                 Category = "输出",
-                NodeType = SunEyeVision.Models.NodeType.Algorithm,
                 InputParameters = new List<ParameterMetadata>
                 {
                     new ParameterMetadata

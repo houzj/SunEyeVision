@@ -27,6 +27,7 @@ namespace SunEyeVision.Workflow
 
     /// <summary>
     /// 工作流执行引擎 - 扩展WorkflowEngine以支持工作流控制节点
+    /// 简化版本：使用基于拓扑排序的并行组执行
     /// </summary>
     public class WorkflowExecutionEngine
     {
@@ -37,12 +38,10 @@ namespace SunEyeVision.Workflow
         // 执行状态管理
         private WorkflowExecutionState _currentState;
         private CancellationTokenSource _cancellationTokenSource;
-        private WorkflowContext? _currentContext;  // 改为可空
-        private Task<ExecutionResult>? _executionTask;  // 改为可空
+        private WorkflowContext? _currentContext;
         
         // 执行统计
         private DateTime _executionStartTime;
-        private string _currentNodeId;
 
         /// <summary>
         /// 当前执行状态
@@ -53,16 +52,6 @@ namespace SunEyeVision.Workflow
         /// 当前执行上下文
         /// </summary>
         public WorkflowContext CurrentContext => _currentContext;
-
-        /// <summary>
-        /// 当前执行的节点ID
-        /// </summary>
-        public string CurrentNodeId => _currentNodeId;
-
-        /// <summary>
-        /// 执行进度事件
-        /// </summary>
-        public event EventHandler<ExecutionProgress>? ProgressChanged;
 
         /// <summary>
         /// 节点执行状态变化事件
@@ -83,6 +72,203 @@ namespace SunEyeVision.Workflow
         }
 
         #region 同步执行
+
+        /// <summary>
+        /// 使用基于拓扑排序的并行组执行工作流（简化方案）
+        /// </summary>
+        private async Task<ExecutionResult> ExecuteWorkflowWithParallelGroups(
+            Workflow workflow,
+            Mat inputImage,
+            WorkflowContext context)
+        {
+            var result = new ExecutionResult();
+            var nodeResults = new ConcurrentDictionary<string, object>();
+            var nodeExecutionResults = new ConcurrentDictionary<string, NodeExecutionResult>();
+            int totalExecutedNodes = 0;
+
+            _logger.LogInfo($"========== 使用并行组执行模式 ==========");
+
+            // 获取并行执行组（基于拓扑排序）
+            var parallelGroups = workflow.GetParallelExecutionGroups();
+            _logger.LogInfo($"获取到 {parallelGroups.Count} 个并行执行组");
+
+            // 显示执行组信息
+            for (int i = 0; i < parallelGroups.Count; i++)
+            {
+                var group = parallelGroups[i];
+                var groupInfo = $"组{i + 1}: {string.Join(", ", group.Select(id => 
+                {
+                    var node = workflow.Nodes.FirstOrDefault(n => n.Id == id);
+                    return node != null ? $"{node.Name}({id})" : id;
+                }))}";
+                _logger.LogInfo($"  {groupInfo}");
+            }
+            _logger.LogInfo($"=====================================================");
+
+            // 按组顺序执行
+            for (int groupIndex = 0; groupIndex < parallelGroups.Count; groupIndex++)
+            {
+                var group = parallelGroups[groupIndex];
+                _logger.LogInfo($"");
+                _logger.LogInfo($"========== 执行组 {groupIndex + 1}/{parallelGroups.Count} ({group.Count}个节点) ==========");
+
+                if (_cancellationTokenSource?.IsCancellationRequested == true)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                // 并行执行当前组的节点
+                var groupStartTime = DateTime.Now;
+                var groupResult = await ExecuteNodesInParallel(
+                    workflow,
+                    group,
+                    inputImage,
+                    context,
+                    nodeResults,
+                    nodeExecutionResults);
+
+                totalExecutedNodes += group.Count;
+
+                var groupDuration = (DateTime.Now - groupStartTime).TotalMilliseconds;
+                _logger.LogInfo($"组 {groupIndex + 1} 执行完成, 耗时: {groupDuration:F2}ms, 成功节点: {groupResult.Success}");
+
+                if (!groupResult.Success)
+                {
+                    _currentState = WorkflowExecutionState.Error;
+                    return groupResult;
+                }
+            }
+
+            // 合并所有节点结果
+            result.Success = nodeExecutionResults.Values.All(r => r.Success);
+            result.ExecutionTime = DateTime.Now - _executionStartTime;
+            result.NodeResults = nodeExecutionResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            // 收集错误
+            foreach (var nodeResult in nodeExecutionResults.Values.Where(r => !r.Success))
+            {
+                if (nodeResult.ErrorMessages?.Any() == true)
+                {
+                    foreach (var error in nodeResult.ErrorMessages.Where(e => e != null))
+                    {
+                        result.AddError(error, nodeResult.NodeId);
+                    }
+                }
+            }
+
+            // 合并成功节点的输出
+            if (result.Success && nodeResults.Any())
+            {
+                result.Outputs = new Dictionary<string, object>
+                {
+                    { "FinalResult", nodeResults.Values.Last() }
+                };
+            }
+
+            _logger.LogInfo($"");
+            _logger.LogInfo($"========== 工作流执行总结 ==========");
+            _logger.LogInfo($"  总执行节点: {totalExecutedNodes}");
+            _logger.LogInfo($"  执行组数: {parallelGroups.Count}");
+            _logger.LogInfo($"  成功节点: {nodeExecutionResults.Values.Count(r => r.Success)}");
+            _logger.LogInfo($"  失败节点: {nodeExecutionResults.Values.Count(r => !r.Success)}");
+            _logger.LogInfo($"  总耗时: {(DateTime.Now - _executionStartTime).TotalMilliseconds:F2} ms");
+            _logger.LogInfo($"======================================");
+
+            ExecutionCompleted?.Invoke(this, result);
+            return result;
+        }
+
+        /// <summary>
+        /// 并行执行一组节点（同一组内节点无依赖关系）
+        /// </summary>
+        private async Task<ExecutionResult> ExecuteNodesInParallel(
+            Workflow workflow,
+            List<string> nodeIds,
+            Mat defaultInput,
+            WorkflowContext context,
+            ConcurrentDictionary<string, object> nodeResults,
+            ConcurrentDictionary<string, NodeExecutionResult> nodeExecutionResults)
+        {
+            var result = new ExecutionResult();
+
+            // 如果组内只有一个节点，直接顺序执行
+            if (nodeIds.Count == 1)
+            {
+                var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeIds[0]);
+                if (node != null && node.IsEnabled)
+                {
+                    _logger.LogInfo($"  执行节点: {node.Name} (ID: {nodeIds[0]})");
+                    context.UpdateNodeStatus(node.Id, NodeStatus.Running);
+                    NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = node.Id, Status = NodeStatus.Running });
+
+                    var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+                    var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
+
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}");
+
+                    if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
+                    {
+                        var firstOutput = nodeResult.Outputs.Values.FirstOrDefault();
+                        if (firstOutput != null)
+                        {
+                            nodeResults.TryAdd(node.Id, firstOutput);
+                        }
+                    }
+
+                    nodeExecutionResults.TryAdd(node.Id, nodeResult);
+                    context.UpdateNodeStatus(node.Id, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
+                    NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = node.Id, Status = nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed });
+
+                    if (!nodeResult.Success)
+                    {
+                        var errorMessage = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败";
+                        result.AddError(errorMessage, node.Id);
+                    }
+                }
+                result.Success = result.Errors.Count == 0;
+                return result;
+            }
+
+            // 并行执行组内所有节点
+            var tasks = nodeIds.Select(async nodeId =>
+            {
+                var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
+                if (node != null && node.IsEnabled)
+                {
+                    context.UpdateNodeStatus(node.Id, NodeStatus.Running);
+                    NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = node.Id, Status = NodeStatus.Running });
+
+                    var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+                    var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
+
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}");
+
+                    if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
+                    {
+                        var firstOutput = nodeResult.Outputs.Values.FirstOrDefault();
+                        if (firstOutput != null)
+                        {
+                            nodeResults.TryAdd(node.Id, firstOutput);
+                        }
+                    }
+
+                    nodeExecutionResults.TryAdd(node.Id, nodeResult);
+                    context.UpdateNodeStatus(node.Id, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
+                    NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = node.Id, Status = nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed });
+
+                    if (!nodeResult.Success)
+                    {
+                        var errorMessage = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败";
+                        result.AddError(errorMessage, node.Id);
+                    }
+                }
+            }).ToArray();
+
+            await Task.WhenAll(tasks);
+
+            result.Success = result.Errors.Count == 0;
+            return result;
+        }
 
         /// <summary>
         /// 执行工作流（同步，支持工作流控制节点）
@@ -121,49 +307,10 @@ namespace SunEyeVision.Workflow
             try
             {
                 _logger.LogInfo($"开始执行工作流: {workflow.Name}");
-
-                // 检查是否有Start节点
-                var hasStartNodes = workflow.Nodes.Any(n => n.Type == NodeType.Start);
-
-                // 智能选择执行策略
-                var strategy = ExecutionStrategySelector.SelectStrategy(workflow);
-                _logger.LogInfo($"选择执行策略: {strategy}");
-
-                ExecutionResult result;
-                switch (strategy)
-                {
-                    case ExecutionStrategy.Sequential:
-                        // 顺序执行
-                        _logger.LogInfo("使用顺序执行模式");
-                        var executionOrder = workflow.GetExecutionOrder();
-                        result = await ExecuteNodesSequential(workflow, executionOrder, inputImage, _currentContext);
-                        break;
-
-                    case ExecutionStrategy.Parallel:
-                        // 并行执行
-                        _logger.LogInfo("使用并行执行模式");
-                        result = await ExecuteWorkflowParallel(workflow, inputImage, _currentContext);
-                        break;
-
-                    case ExecutionStrategy.Hybrid:
-                        // 混合执行
-                        _logger.LogInfo("使用混合执行模式");
-                        result = await ExecuteWorkflowHybrid(workflow, inputImage, _currentContext);
-                        break;
-
-                    case ExecutionStrategy.PerformanceOptimized:
-                        // 性能优化执行
-                        _logger.LogInfo("使用性能优化执行模式");
-                        result = await ExecuteWorkflowOptimized(workflow, inputImage, _currentContext);
-                        break;
-
-                    default:
-                        // 默认顺序执行
-                        executionOrder = workflow.GetExecutionOrder();
-                        result = await ExecuteNodesSequential(workflow, executionOrder, inputImage, _currentContext);
-                        break;
-                }
-
+                
+                // 使用基于拓扑排序的并行组执行（简化方案）
+                var result = await ExecuteWorkflowWithParallelGroups(workflow, inputImage, _currentContext);
+                
                 _currentState = result.Success ? WorkflowExecutionState.Completed : WorkflowExecutionState.Error;
 
                 _logger.LogInfo($"工作流执行完成: {workflow.Name}, 耗时: {(DateTime.Now - _executionStartTime).TotalMilliseconds:F2}ms");
@@ -195,442 +342,6 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 按顺序执行节点（支持工作流控制节点）
-        /// </summary>
-        private async Task<ExecutionResult> ExecuteNodesSequential(
-            Workflow workflow,
-            List<string> executionOrder,
-            Mat inputImage,
-            WorkflowContext context)
-        {
-            var result = new ExecutionResult();
-            var nodeResults = new Dictionary<string, object>();  // 修改为object类型
-            var nodeExecutionResults = new Dictionary<string, NodeExecutionResult>();
-
-            // 记录执行顺序
-            _logger.LogInfo($"========== 节点执行顺序 (共{executionOrder.Count}个节点) ==========");
-            for (int i = 0; i < executionOrder.Count; i++)
-            {
-                var node = workflow.Nodes.FirstOrDefault(n => n.Id == executionOrder[i]);
-                var nodeInfo = node != null ? $"{node.Name} ({node.AlgorithmType})" : executionOrder[i];
-                _logger.LogInfo($"  [{i + 1}] {executionOrder[i]} - {nodeInfo}");
-            }
-            _logger.LogInfo($"=====================================================");
-
-            int executedNodeCount = 0;
-            foreach (var nodeId in executionOrder)
-            {
-                if (_cancellationTokenSource?.IsCancellationRequested == true)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
-                if (node == null || !node.IsEnabled)
-                {
-                    continue;
-                }
-
-                executedNodeCount++;
-                var nodeStartTime = DateTime.Now;
-                var nodeIndex = executedNodeCount;
-
-                _currentNodeId = nodeId;
-                _logger.LogInfo($"");
-                _logger.LogInfo($"[{nodeIndex}/{executionOrder.Count}] 开始执行节点: {node.Name} (ID: {nodeId}, 类型: {node.AlgorithmType})");
-
-                context.UpdateNodeStatus(nodeId, NodeStatus.Running);
-                NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = NodeStatus.Running });
-
-                // 获取节点输入
-                var nodeInput = GetNodeInput(workflow, node, inputImage, nodeResults);
-
-                // 执行节点
-                var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
-
-                var nodeEndTime = DateTime.Now;
-                var nodeDuration = (nodeEndTime - nodeStartTime).TotalMilliseconds;
-
-                // 记录节点执行结果
-                _logger.LogInfo($"[{nodeIndex}/{executionOrder.Count}] 节点执行完成: {node.Name}");
-                _logger.LogInfo($"  └─ 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}");
-                _logger.LogInfo($"  └─ 耗时: {nodeDuration:F2} ms");
-
-                if (!nodeResult.Success && nodeResult.ErrorMessages?.Any() == true)
-                {
-                    foreach (var error in nodeResult.ErrorMessages.Where(e => e != null))
-                    {
-                        _logger.LogError($"  └─ 错误: {error}");
-                    }
-                }
-
-                // 记录结果
-                if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
-                {
-                    nodeResults[nodeId] = nodeResult.Outputs.Values.First();
-                }
-
-                nodeExecutionResults[nodeId] = nodeResult;
-                context.UpdateNodeStatus(nodeId, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
-                NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed });
-
-                if (!nodeResult.Success)
-                {
-                    var errorMessage = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败";
-                    result.AddError(errorMessage, nodeId);
-                }
-            }
-
-            _logger.LogInfo($"");
-            _logger.LogInfo($"========== 工作流执行总结 ==========");
-            _logger.LogInfo($"  总执行节点: {executedNodeCount}/{executionOrder.Count}");
-            _logger.LogInfo($"  成功节点: {nodeExecutionResults.Values.Count(r => r.Success)}");
-            _logger.LogInfo($"  失败节点: {nodeExecutionResults.Values.Count(r => !r.Success)}");
-            _logger.LogInfo($"  总耗时: {(DateTime.Now - _executionStartTime).TotalMilliseconds:F2} ms");
-            _logger.LogInfo($"======================================");
-
-            result.Success = result.Errors.Count == 0;
-            result.ExecutionTime = DateTime.Now - _executionStartTime;
-            result.NodeResults = nodeExecutionResults;
-
-            // 合并成功节点的输出
-            if (result.Success && nodeResults.Any())
-            {
-                result.Outputs = new Dictionary<string, object>
-                {
-                    { "FinalResult", nodeResults.Values.Last() }
-                };
-            }
-
-            ExecutionCompleted?.Invoke(this, result);
-            return result;
-        }
-
-        /// <summary>
-        /// 混合执行工作流 - 根据工作流特征智能选择顺序或并行
-        /// </summary>
-        private async Task<ExecutionResult> ExecuteWorkflowHybrid(
-            Workflow workflow,
-            Mat inputImage,
-            WorkflowContext context)
-        {
-            var result = new ExecutionResult();
-            var nodeResults = new ConcurrentDictionary<string, object>();
-            var nodeExecutionResults = new ConcurrentDictionary<string, NodeExecutionResult>();
-
-            _logger.LogInfo($"========== 混合执行模式 ==========");
-
-            // 获取执行链
-            var chains = workflow.GetStartDrivenExecutionChains();
-
-            if (chains.Count == 0)
-            {
-                // 无执行链,使用顺序执行
-                _logger.LogInfo("无执行链,回退到顺序执行");
-                var executionOrder = workflow.GetExecutionOrder();
-                return await ExecuteNodesSequential(workflow, executionOrder, inputImage, context);
-            }
-
-            _logger.LogInfo($"检测到{chains.Count}条执行链");
-
-            // 按依赖关系分组执行
-            var executedChainIds = new HashSet<string>();
-            int iteration = 0;
-
-            while (executedChainIds.Count < chains.Count)
-            {
-                iteration++;
-                _logger.LogInfo($"========== 执行迭代 {iteration} ==========");
-
-                // 找出所有可以执行的链(依赖已满足)
-                var readyChains = chains.Where(chain =>
-                    !executedChainIds.Contains(chain.ChainId) &&
-                    chain.Dependencies.All(dep => executedChainIds.Contains(dep.SourceChainId))
-                ).ToList();
-
-                _logger.LogInfo($"本批次可执行链数: {readyChains.Count}");
-
-                if (readyChains.Count == 0)
-                {
-                    // 检测到循环依赖
-                    _logger.LogError("检测到循环依赖,无法继续执行");
-                    result.AddError("检测到循环依赖");
-                    break;
-                }
-
-                // 并行执行这些链
-                var chainTasks = readyChains.Select(chain =>
-                    ExecuteChainSequential(workflow, chain, inputImage, context, nodeResults, nodeExecutionResults)
-                ).ToList();
-
-                var chainResults = await Task.WhenAll(chainTasks);
-
-                // 合并结果
-                foreach (var chainResult in chainResults)
-                {
-                    result.Merge(chainResult);
-                }
-
-                // 标记已执行的链
-                foreach (var chain in readyChains)
-                {
-                    executedChainIds.Add(chain.ChainId);
-                }
-
-                _logger.LogInfo($"迭代{iteration}完成, 已执行{executedChainIds.Count}/{chains.Count}条链");
-            }
-
-            result.Success = result.Errors.Count == 0;
-            result.ExecutionTime = DateTime.Now - _executionStartTime;
-
-            _logger.LogInfo($"========== 混合执行完成 ==========");
-
-            ExecutionCompleted?.Invoke(this, result);
-            return result;
-        }
-
-        /// <summary>
-        /// 性能优化执行工作流 - 基于节点特性优化执行顺序
-        /// </summary>
-        private async Task<ExecutionResult> ExecuteWorkflowOptimized(
-            Workflow workflow,
-            Mat inputImage,
-            WorkflowContext context)
-        {
-            var result = new ExecutionResult();
-            var nodeResults = new ConcurrentDictionary<string, object>();
-            var nodeExecutionResults = new ConcurrentDictionary<string, NodeExecutionResult>();
-
-            _logger.LogInfo($"========== 性能优化执行模式 ==========");
-
-            // 获取执行顺序
-            var executionOrder = workflow.GetExecutionOrder();
-
-            // 将节点按特性分组
-            var fastNodes = new List<string>();
-            var slowNodes = new List<string>();
-            var ioNodes = new List<string>();
-
-            foreach (var nodeId in executionOrder)
-            {
-                var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
-                if (node is AlgorithmNode algorithmNode)
-                {
-                    var metadata = ToolRegistry.GetToolMetadata(algorithmNode.AlgorithmType);
-                    if (metadata != null)
-                    {
-                        if (metadata.HasSideEffects)
-                        {
-                            // 有副作用的节点(IO操作等)
-                            ioNodes.Add(nodeId);
-                        }
-                        else if (metadata.EstimatedExecutionTimeMs > 500)
-                        {
-                            // 慢节点
-                            slowNodes.Add(nodeId);
-                        }
-                        else
-                        {
-                            // 快节点
-                            fastNodes.Add(nodeId);
-                        }
-                    }
-                    else
-                    {
-                        fastNodes.Add(nodeId);
-                    }
-                }
-                else
-                {
-                    fastNodes.Add(nodeId);
-                }
-            }
-
-            _logger.LogInfo($"节点分类: 快节点{fastNodes.Count}, 慢节点{slowNodes.Count}, IO节点{ioNodes.Count}");
-
-            // 优先执行IO节点
-            foreach (var nodeId in ioNodes)
-            {
-                await ExecuteSingleNode(workflow, nodeId, inputImage, context, nodeResults, nodeExecutionResults);
-            }
-
-            // 并行执行快节点
-            var fastNodeTasks = fastNodes.Select(nodeId =>
-                ExecuteSingleNode(workflow, nodeId, inputImage, context, nodeResults, nodeExecutionResults)
-            ).ToList();
-
-            await Task.WhenAll(fastNodeTasks);
-
-            // 最后执行慢节点(顺序执行,避免资源竞争)
-            foreach (var nodeId in slowNodes)
-            {
-                await ExecuteSingleNode(workflow, nodeId, inputImage, context, nodeResults, nodeExecutionResults);
-            }
-
-            result.Success = result.Errors.Count == 0;
-            result.ExecutionTime = DateTime.Now - _executionStartTime;
-
-            _logger.LogInfo($"========== 性能优化执行完成 ==========");
-
-            ExecutionCompleted?.Invoke(this, result);
-            return result;
-        }
-
-        /// <summary>
-        /// 执行单个节点
-        /// </summary>
-        private async Task ExecuteSingleNode(
-            Workflow workflow,
-            string nodeId,
-            Mat defaultInput,
-            WorkflowContext context,
-            ConcurrentDictionary<string, object> nodeResults,
-            ConcurrentDictionary<string, NodeExecutionResult> nodeExecutionResults)
-        {
-            var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
-            if (node == null || !node.IsEnabled)
-            {
-                return;
-            }
-
-            _logger.LogInfo($"执行节点: {node.Name} (ID: {nodeId})");
-
-            context.UpdateNodeStatus(nodeId, NodeStatus.Running);
-            NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = NodeStatus.Running });
-
-            var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
-            var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
-
-            if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
-            {
-                var firstOutput = nodeResult.Outputs.Values.FirstOrDefault();
-                if (firstOutput != null)
-                {
-                    nodeResults.TryAdd(nodeId, firstOutput);
-                }
-            }
-
-            nodeExecutionResults.TryAdd(nodeId, nodeResult);
-            context.UpdateNodeStatus(nodeId, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
-        }
-
-        /// <summary>
-        /// 并行执行工作流（支持多个执行链）
-        /// </summary>
-        private async Task<ExecutionResult> ExecuteWorkflowParallel(
-            Workflow workflow,
-            Mat inputImage,
-            WorkflowContext context)
-        {
-            var result = new ExecutionResult();
-            var nodeResults = new ConcurrentDictionary<string, object>();  // 线程安全
-            var nodeExecutionResults = new ConcurrentDictionary<string, NodeExecutionResult>();
-
-            // 获取执行链
-            var chains = workflow.GetStartDrivenExecutionChains();
-
-            _logger.LogInfo($"========== 执行链分析 (共{chains.Count}条链) ==========");
-            for (int i = 0; i < chains.Count; i++)
-            {
-                var chain = chains[i];
-                _logger.LogInfo($"  执行链[{i}]: {chain.ChainId}");
-                _logger.LogInfo($"    - 起始节点: {chain.StartNodeId}");
-                _logger.LogInfo($"    - 节点数量: {chain.NodeIds.Count}");
-                _logger.LogInfo($"    - 跨链依赖: {chain.Dependencies.Count}");
-            }
-            _logger.LogInfo($"=====================================================");
-
-            // 并行执行所有链
-            var chainTasks = chains.Select(async chain =>
-            {
-                return await ExecuteChainSequential(workflow, chain, inputImage, context, nodeResults, nodeExecutionResults);
-            }).ToList();
-
-            // 等待所有链执行完成
-            var chainResults = await Task.WhenAll(chainTasks);
-
-            // 合并所有链的结果
-            foreach (var chainResult in chainResults)
-            {
-                result.Merge(chainResult);
-            }
-
-            result.Success = result.Errors.Count == 0;
-            result.ExecutionTime = DateTime.Now - _executionStartTime;
-
-            ExecutionCompleted?.Invoke(this, result);
-            return result;
-        }
-
-        /// <summary>
-        /// 顺序执行单个执行链
-        /// </summary>
-        private async Task<ExecutionResult> ExecuteChainSequential(
-            Workflow workflow,
-            ExecutionChain chain,
-            Mat defaultInput,
-            WorkflowContext context,
-            ConcurrentDictionary<string, object> nodeResults,
-            ConcurrentDictionary<string, NodeExecutionResult> nodeExecutionResults)
-        {
-            var result = new ExecutionResult();
-
-            _logger.LogInfo($"========== 开始执行链: {chain.ChainId} ==========");
-
-            foreach (var nodeId in chain.NodeIds)
-            {
-                if (_cancellationTokenSource?.IsCancellationRequested == true)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
-                if (node == null || !node.IsEnabled)
-                {
-                    continue;
-                }
-
-                var nodeStartTime = DateTime.Now;
-
-                _logger.LogInfo($"  执行节点: {node.Name} (ID: {nodeId})");
-
-                context.UpdateNodeStatus(nodeId, NodeStatus.Running);
-                NodeStatusChanged?.Invoke(this, new NodeExecutionStatus { NodeId = nodeId, Status = NodeStatus.Running });
-
-                // 获取节点输入（可能是单个对象或List<object>）
-                var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
-
-                // 执行节点
-                var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
-
-                var nodeDuration = (DateTime.Now - nodeStartTime).TotalMilliseconds;
-
-                // 记录结果到线程安全字典
-                if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
-                {
-                    var firstOutput = nodeResult.Outputs.Values.FirstOrDefault();
-                    if (firstOutput != null)
-                    {
-                        nodeResults.TryAdd(nodeId, firstOutput);
-                    }
-                }
-
-                nodeExecutionResults.TryAdd(nodeId, nodeResult);
-                context.UpdateNodeStatus(nodeId, nodeResult.Success ? NodeStatus.Completed : NodeStatus.Failed);
-
-                if (!nodeResult.Success)
-                {
-                    var errorMessage = nodeResult.ErrorMessages?.FirstOrDefault() ?? "执行失败";
-                    result.AddError(errorMessage, nodeId);
-                }
-            }
-
-            _logger.LogInfo($"========== 执行链完成: {chain.ChainId} ==========");
-
-            return result;
-        }
-
-        /// <summary>
         /// 获取节点输入 - 总是返回所有父节点的输出
         /// </summary>
         /// <returns>
@@ -638,7 +349,7 @@ namespace SunEyeVision.Workflow
         /// - 单个父节点：返回父节点输出（object类型）
         /// - 多个父节点：返回 List<object>，包含所有父节点输出
         /// </returns>
-        private object GetNodeInput(Workflow workflow, WorkflowNode node, object defaultInput, Dictionary<string, object> nodeResults)
+        private static object GetNodeInput(Workflow workflow, WorkflowNode node, object defaultInput, Dictionary<string, object> nodeResults)
         {
             // 查找所有父节点
             var parentIds = workflow.Connections
@@ -646,7 +357,7 @@ namespace SunEyeVision.Workflow
                 .Select(kvp => kvp.Key)
                 .ToList();
 
-            if (!parentIds.Any())
+            if (parentIds.Count == 0)
             {
                 // 无父节点，返回默认输入
                 return defaultInput;
@@ -683,7 +394,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         private async Task<NodeExecutionResult> ExecuteNode(
             WorkflowNode node,
-            object inputImage,  // 改为object类型，支持Mat或List<object>
+            object inputImage,
             WorkflowContext context,
             Workflow workflow)
         {
@@ -704,7 +415,6 @@ namespace SunEyeVision.Workflow
                 else if (inputImage is List<object> inputList && inputList.Count > 0)
                 {
                     // 多输入情况：使用第一个输入作为主输入（算法节点默认行为）
-                    // 算法节点可以通过其他方式获取所有输入
                     matInput = inputList[0] as Mat;
                 }
                 else
@@ -747,14 +457,11 @@ namespace SunEyeVision.Workflow
                 }
 
                 nodeResult.EndTime = DateTime.Now;
-                // Duration是计算属性，自动从StartTime和EndTime计算
-
                 return nodeResult;
             }
             catch (Exception ex)
             {
                 nodeResult.EndTime = DateTime.Now;
-                // Duration是计算属性，自动从StartTime和EndTime计算
                 nodeResult.Success = false;
                 nodeResult.ErrorMessages = new List<string> { ex.Message };
 
@@ -766,7 +473,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 执行算法节点
         /// </summary>
-        private NodeExecutionResult ExecuteAlgorithmNode(AlgorithmNode node, Mat inputImage)
+        private static NodeExecutionResult ExecuteAlgorithmNode(AlgorithmNode node, Mat inputImage)
         {
             var result = new NodeExecutionResult { NodeId = node.Id, StartTime = DateTime.Now, EndTime = DateTime.Now };
 

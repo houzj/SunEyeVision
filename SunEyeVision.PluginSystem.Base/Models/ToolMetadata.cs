@@ -39,10 +39,8 @@ namespace SunEyeVision.PluginSystem.Base.Models
         /// </summary>
         public string Category { get; set; } = "未分类";
 
-        /// <summary>
-        /// 节点类型 - 指定此工具创建的工作流节点类型
-        /// </summary>
-        public NodeType NodeType { get; set; } = NodeType.Algorithm;
+        // 工具插件创建的节点始终为 AlgorithmNode
+        // NodeType 已移除，不再需要指定节点类型
 
         /// <summary>
         /// 算法类型

@@ -212,14 +212,14 @@ namespace SunEyeVision.UI.ViewModels
         public void AddLog(string message)
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            // 新日志插入到最前面
-            LogText = $"[{timestamp}] {message}\n" + LogText;
+            // 新日志追加到末尾
+            LogText += $"[{timestamp}] {message}\n";
 
             // 限制日志条目数量，最多保留100条
             var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length > 100)
             {
-                LogText = string.Join("\n", lines.Take(100)) + "\n";
+                LogText = string.Join("\n", lines.Skip(lines.Length - 100)) + "\n";
             }
         }
 

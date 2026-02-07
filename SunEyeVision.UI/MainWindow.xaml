@@ -719,29 +719,12 @@
                                     <controls:CanvasTemplateSelector>
                                         <controls:CanvasTemplateSelector.WorkflowCanvasTemplate>
                                             <DataTemplate>
-                                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                                              PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
                                                              Background="#F5F8FC">
                                                     <Grid Width="5000" Height="5000" Background="#FFFFFF">
-                                                        <!-- 画布边框 -->
-                                                        <Border BorderBrush="#0066CC" BorderThickness="3" Margin="10" CornerRadius="5">
-                                                            <Border.Effect>
-                                                                <DropShadowEffect Color="#0066CC" BlurRadius="15" ShadowDepth="0" Opacity="0.3"/>
-                                                            </Border.Effect>
-                                                        </Border>
-                                                        <!-- 画布标题水印 -->
-                                                        <TextBlock Text="📋 工作流画布 (Workflow Canvas)"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="0,30,0,0"
-                                                                   FontSize="28"
-                                                                   FontWeight="Bold"
-                                                                   Foreground="#E6F0FF"
-                                                                   IsHitTestVisible="False"
-                                                                   Opacity="0.8"
-                                                                   Panel.ZIndex="-1"/>
                                                         <controls:WorkflowCanvasControl
-                                                            Width="5000" Height="5000"
+                                                            Width="10000" Height="10000"
                                                             DataContext="{Binding}"
                                                             Loaded="WorkflowCanvasControl_Loaded"/>
                                                     </Grid>
