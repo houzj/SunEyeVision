@@ -39,7 +39,9 @@
     <ProjectReference Include="..\SunEyeVision.Algorithms\SunEyeVision.Algorithms.csproj" />
     <ProjectReference Include="..\SunEyeVision.Workflow\SunEyeVision.Workflow.csproj" />
     <ProjectReference Include="..\SunEyeVision.DeviceDriver\SunEyeVision.DeviceDriver.csproj" />
+    <ProjectReference Include="..\SunEyeVision.PluginSystem.Base\SunEyeVision.PluginSystem.Base.csproj" />
     <ProjectReference Include="..\SunEyeVision.PluginSystem\SunEyeVision.PluginSystem.csproj" />
+    <ProjectReference Include="..\SunEyeVision.Tools\SunEyeVision.Tools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,8 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using SunEyeVision.PluginSystem;
-using SunEyeVision.PluginSystem.Tools.ImageSaveTool.UI;
-using SunEyeVision.PluginSystem.UI.Tools;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Base.Models;
+using SunEyeVision.Tools.ImageSaveTool.Views;
+using SunEyeVision.Tools.ColorConvertTool.Views;
+using SunEyeVision.Tools.EdgeDetectionTool.Views;
+using SunEyeVision.Tools.GaussianBlurTool.Views;
+using SunEyeVision.Tools.ImageCaptureTool.Views;
+using SunEyeVision.Tools.OCRTool.Views;
+using SunEyeVision.Tools.ROICropTool.Views;
+using SunEyeVision.Tools.TemplateMatchingTool.Views;
+using SunEyeVision.Tools.ThresholdTool.Views;
 
 namespace SunEyeVision.UI
 {

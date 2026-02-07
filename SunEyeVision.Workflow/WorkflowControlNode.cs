@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using SunEyeVision.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Models;
 
 namespace SunEyeVision.Workflow
 {

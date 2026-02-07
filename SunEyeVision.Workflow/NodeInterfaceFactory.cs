@@ -1,4 +1,5 @@
 using SunEyeVision.Models;
+using SunEyeVision.PluginSystem.Base.Models;
 
 namespace SunEyeVision.Workflow
 {
@@ -13,7 +14,7 @@ namespace SunEyeVision.Workflow
         /// <param name="node">工作流节点</param>
         /// <param name="toolMetadata">工具元数据</param>
         /// <returns>界面类型</returns>
-        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, SunEyeVision.PluginSystem.ToolMetadata? toolMetadata)
+        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata)
         {
             if (node == null)
             {
@@ -49,7 +50,7 @@ namespace SunEyeVision.Workflow
         /// <param name="node">工作流节点</param>
         /// <param name="toolMetadata">工具元数据</param>
         /// <returns>是否可以打开界面</returns>
-        public static bool CanOpenInterface(WorkflowNode node, SunEyeVision.PluginSystem.ToolMetadata? toolMetadata)
+        public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata)
         {
             return GetInterfaceType(node, toolMetadata) != NodeInterfaceType.None;
         }

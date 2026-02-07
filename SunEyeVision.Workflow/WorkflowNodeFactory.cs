@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using SunEyeVision.Interfaces;
 using SunEyeVision.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Base.Models;
+using SunEyeVision.PluginSystem.Base.Services;
 using SunEyeVision.PluginSystem.Decorators;
 
 namespace SunEyeVision.Workflow

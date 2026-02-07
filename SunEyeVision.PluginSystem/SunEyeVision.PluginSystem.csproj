@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SunEyeVision.Core\SunEyeVision.Core.csproj" />
+    <ProjectReference Include="..\\SunEyeVision.PluginSystem.Base\\SunEyeVision.PluginSystem.Base.csproj" />
   </ItemGroup>
 
 </Project>

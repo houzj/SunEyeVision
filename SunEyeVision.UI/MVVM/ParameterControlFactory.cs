@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Models;
 
 namespace SunEyeVision.UI.MVVM
 {
@@ -31,8 +32,8 @@ namespace SunEyeVision.UI.MVVM
             FrameworkElement control = param.Type switch
             {
                 ParameterType.String => CreateTextBox(value, onValueChanged, param.Required),
-                ParameterType.Int => CreateIntControl(value, onValueChanged, param.MinValue, param.MaxValue),
-                ParameterType.Double => CreateDoubleControl(value, onValueChanged, param.MinValue, param.MaxValue),
+                ParameterType.Int => CreateIntControl(value, onValueChanged, Convert.ToDouble(param.MinValue), Convert.ToDouble(param.MaxValue)),
+                ParameterType.Double => CreateDoubleControl(value, onValueChanged, Convert.ToDouble(param.MinValue), Convert.ToDouble(param.MaxValue)),
                 ParameterType.Bool => CreateCheckBox(value, onValueChanged, param.DisplayName ?? param.Name),
                 ParameterType.Enum => CreateComboBox(value, onValueChanged, param.Options),
                 _ => CreateTextBox(value, onValueChanged, param.Required)

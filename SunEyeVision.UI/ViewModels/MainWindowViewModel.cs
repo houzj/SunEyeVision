@@ -6,6 +6,9 @@ using System.Windows.Media.Imaging;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Base.Models;
+using SunEyeVision.PluginSystem.Base.Services;
 using SunEyeVision.UI;
 using SunEyeVision.Workflow;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
@@ -1152,7 +1155,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 默认工具插件 - 用于兼容性
         /// </summary>
-        private class DefaultToolPlugin : SunEyeVision.PluginSystem.IToolPlugin
+        private class DefaultToolPlugin : IToolPlugin
         {
             public string Name => "Default Tool";
             public string Version => "1.0.0";
@@ -1170,7 +1173,7 @@ namespace SunEyeVision.UI.ViewModels
 
             public List<System.Type> GetAlgorithmNodes() => new List<System.Type>();
 
-            public List<SunEyeVision.PluginSystem.ToolMetadata> GetToolMetadata() => new List<SunEyeVision.PluginSystem.ToolMetadata>();
+            public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
 
             public SunEyeVision.Interfaces.IImageProcessor CreateToolInstance(string toolId)
             {
@@ -1182,9 +1185,9 @@ namespace SunEyeVision.UI.ViewModels
                 return new SunEyeVision.Models.AlgorithmParameters();
             }
 
-            public SunEyeVision.PluginSystem.ValidationResult ValidateParameters(string toolId, SunEyeVision.Models.AlgorithmParameters parameters)
+            public ValidationResult ValidateParameters(string toolId, SunEyeVision.Models.AlgorithmParameters parameters)
             {
-                return SunEyeVision.PluginSystem.ValidationResult.Success();
+                return ValidationResult.Success();
             }
         }
     }

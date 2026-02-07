@@ -11,6 +11,7 @@ using SunEyeVision.UI.Controls;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.ViewModels;
+using SunEyeVision.PluginSystem.Base.Services;
 using AIStudio.Wpf.DiagramDesigner;
 using AIStudio.Wpf.DiagramDesigner.ViewModels;
 
@@ -178,10 +179,8 @@ namespace SunEyeVision.UI
         {
             try
             {
-                // 自动加载所有工具插件
-                PluginSystem.ToolInitializer.RegisterAllTools();
-
-                var toolCount = PluginSystem.ToolRegistry.GetToolCount();
+                // 工具插件现在通过ToolboxViewModel自动加载
+                var toolCount = ToolRegistry.GetToolCount();
                 _viewModel.StatusText = $"已加载 {toolCount} 个工具插件";
 
                 // 初始化智能路径转换器的节点集合（使用当前选中的 Tab 的节点集合）

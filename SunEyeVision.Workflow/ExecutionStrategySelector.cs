@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SunEyeVision.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Services;
 
 namespace SunEyeVision.Workflow
 {

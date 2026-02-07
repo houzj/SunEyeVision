@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using SunEyeVision.Interfaces;
 using SunEyeVision.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Infrastructure;
 
 namespace SunEyeVision.Workflow
 {

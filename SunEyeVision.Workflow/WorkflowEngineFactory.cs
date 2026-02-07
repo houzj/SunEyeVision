@@ -1,6 +1,8 @@
 using System;
 using SunEyeVision.Interfaces;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Infrastructure;
 
 namespace SunEyeVision.Workflow
 {

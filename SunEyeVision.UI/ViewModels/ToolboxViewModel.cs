@@ -2,10 +2,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.PluginSystem.Base.Interfaces;
+using SunEyeVision.PluginSystem.Base.Services;
 using SunEyeVision.UI.Models;
-
-// 用于反射加载插件
-using PluginAssembly = SunEyeVision.PluginSystem.SampleTools;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -87,7 +86,11 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void LoadToolsFromAssembly()
         {
-            var pluginAssembly = typeof(SunEyeVision.PluginSystem.SampleTools.GaussianBlurTool).Assembly;
+            // 动态加载SunEyeVision.Tools程序集
+            var toolsAssemblyName = System.Reflection.AssemblyName.GetAssemblyName(
+                System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SunEyeVision.Tools.dll"));
+            var pluginAssembly = System.Reflection.Assembly.Load(toolsAssemblyName);
+
             var toolTypes = pluginAssembly.GetTypes()
                 .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsAbstract);
 

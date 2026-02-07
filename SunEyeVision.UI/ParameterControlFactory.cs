@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using SunEyeVision.PluginSystem.Base.Models;
 
 namespace SunEyeVision.UI
 {
@@ -14,42 +15,42 @@ namespace SunEyeVision.UI
         /// </summary>
         /// <param name="metadata">参数元数据</param>
         /// <returns>生成的控件</returns>
-        public static FrameworkElement CreateControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        public static FrameworkElement CreateControl(ParameterMetadata metadata)
         {
             switch (metadata.Type)
             {
-                case SunEyeVision.PluginSystem.ParameterType.Int:
-                case SunEyeVision.PluginSystem.ParameterType.Double:
+                case ParameterType.Int:
+                case ParameterType.Double:
                     return CreateNumericControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Bool:
+                case ParameterType.Bool:
                     return CreateBoolControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Enum:
+                case ParameterType.Enum:
                     return CreateEnumControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Color:
+                case ParameterType.Color:
                     return CreateColorControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Image:
+                case ParameterType.Image:
                     return CreateImageControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.FilePath:
+                case ParameterType.FilePath:
                     return CreateFilePathControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.String:
+                case ParameterType.String:
                     return CreateStringControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Point:
+                case ParameterType.Point:
                     return CreatePointControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Size:
+                case ParameterType.Size:
                     return CreateSizeControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.Rect:
+                case ParameterType.Rect:
                     return CreateRectControl(metadata);
 
-                case SunEyeVision.PluginSystem.ParameterType.List:
+                case ParameterType.List:
                     return CreateListControl(metadata);
 
                 default:
@@ -59,7 +60,7 @@ namespace SunEyeVision.UI
 
         #region 数值类型控件
 
-        private static FrameworkElement CreateNumericControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateNumericControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -106,7 +107,7 @@ namespace SunEyeVision.UI
 
         #region 布尔类型控件
 
-        private static Control CreateBoolControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static Control CreateBoolControl(ParameterMetadata metadata)
         {
             var checkBox = new CheckBox
             {
@@ -120,7 +121,7 @@ namespace SunEyeVision.UI
 
         #region 枚举类型控件
 
-        private static FrameworkElement CreateEnumControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateEnumControl(ParameterMetadata metadata)
         {
             var comboBox = new ComboBox
             {
@@ -152,7 +153,7 @@ namespace SunEyeVision.UI
 
         #region 颜色类型控件
 
-        private static FrameworkElement CreateColorControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateColorControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -209,7 +210,7 @@ namespace SunEyeVision.UI
 
         #region 图像类型控件
 
-        private static FrameworkElement CreateImageControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateImageControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -254,7 +255,7 @@ namespace SunEyeVision.UI
 
         #region 文件路径控件
 
-        private static FrameworkElement CreateFilePathControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateFilePathControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -297,7 +298,7 @@ namespace SunEyeVision.UI
 
         #region 字符串控件
 
-        private static FrameworkElement CreateStringControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateStringControl(ParameterMetadata metadata)
         {
             if (metadata.Description?.Contains("\n") == true || metadata.Description?.Length > 50 == true)
             {
@@ -326,7 +327,7 @@ namespace SunEyeVision.UI
 
         #region 点坐标控件
 
-        private static FrameworkElement CreatePointControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreatePointControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -358,7 +359,7 @@ namespace SunEyeVision.UI
 
         #region 尺寸控件
 
-        private static FrameworkElement CreateSizeControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateSizeControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -390,7 +391,7 @@ namespace SunEyeVision.UI
 
         #region 矩形控件
 
-        private static FrameworkElement CreateRectControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateRectControl(ParameterMetadata metadata)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -442,7 +443,7 @@ namespace SunEyeVision.UI
 
         #region 列表控件
 
-        private static FrameworkElement CreateListControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateListControl(ParameterMetadata metadata)
         {
             var listBox = new ListBox
             {
@@ -466,7 +467,7 @@ namespace SunEyeVision.UI
 
         #region 默认控件
 
-        private static FrameworkElement CreateDefaultControl(SunEyeVision.PluginSystem.ParameterMetadata metadata)
+        private static FrameworkElement CreateDefaultControl(ParameterMetadata metadata)
         {
             return new TextBox
             {
