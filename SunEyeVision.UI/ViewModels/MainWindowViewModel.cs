@@ -6,6 +6,10 @@ using System.Windows.Media.Imaging;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.PluginSystem;
+using SunEyeVision.UI;
+using SunEyeVision.Workflow;
+using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
+using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -696,7 +700,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 添加节点到当前工作流（通过命令模式）
         /// </summary>
-        public void AddNodeToWorkflow(WorkflowNode node)
+        public void AddNodeToWorkflow(UIWorkflowNode node)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
@@ -708,7 +712,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 从当前工作流删除节点（通过命令模式）
         /// </summary>
-        public void DeleteNodeFromWorkflow(WorkflowNode node)
+        public void DeleteNodeFromWorkflow(UIWorkflowNode node)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
@@ -723,7 +727,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 移动节点到新位置（通过命令模式）
         /// </summary>
-        public void MoveNode(WorkflowNode node, Point newPosition)
+        public void MoveNode(UIWorkflowNode node, Point newPosition)
         {
             var command = new AppCommands.MoveNodeCommand(node, node.Position, newPosition);
             if (WorkflowTabViewModel.SelectedTab != null)
@@ -857,19 +861,100 @@ namespace SunEyeVision.UI.ViewModels
                         return;
                     }
 
-                    // 创建调试窗口
-                    var debugWindow = new DebugWindow(toolId, toolPlugin ?? new DefaultToolPlugin(), toolMetadata);
-                    debugWindow.Owner = System.Windows.Application.Current.MainWindow;
-                    debugWindow.ShowDialog();
+                    // 使用NodeInterfaceFactory决定打开哪个界面
+                    var interfaceType = NodeInterfaceFactory.GetInterfaceType(node.ToWorkflowNode(), toolMetadata);
+
+                    switch (interfaceType)
+                    {
+                        case NodeInterfaceType.DebugWindow:
+                            // 使用工厂创建调试窗口
+                            var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, toolPlugin, toolMetadata);
+                            debugWindow.Owner = System.Windows.Application.Current.MainWindow;
+                            debugWindow.ShowDialog();
+                            AddLog($"🔧 打开调试窗口: {node.Name}");
+                            break;
+
+                        case NodeInterfaceType.NewWorkflowCanvas:
+                            // 创建新的工作流标签页（子程序节点）
+                            CreateSubroutineWorkflowTab(node);
+                            break;
+
+                        case NodeInterfaceType.SubroutineEditor:
+                            // 子程序编辑器（条件配置界面）
+                            AddLog($"📝 打开子程序编辑器: {node.Name}");
+                            // TODO: 实现子程序编辑器
+                            System.Windows.MessageBox.Show(
+                                "子程序编辑器功能待实现",
+                                "功能提示",
+                                System.Windows.MessageBoxButton.OK,
+                                System.Windows.MessageBoxImage.Information);
+                            break;
+
+                        case NodeInterfaceType.None:
+                        default:
+                            // 不打开任何界面
+                            break;
+                    }
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show(
-                        $"打开调试窗口失败: {ex.Message}",
+                        $"打开节点界面失败: {ex.Message}",
                         "错误",
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Error);
+                    AddLog($"❌ 打开节点界面失败: {ex.Message}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// 为子程序节点创建新的工作流标签页
+        /// </summary>
+        /// <param name="subroutineNode">子程序节点</param>
+        private void CreateSubroutineWorkflowTab(Models.WorkflowNode subroutineNode)
+        {
+            try
+            {
+                if (WorkflowTabViewModel == null)
+                {
+                    AddLog("⚠️ WorkflowTabViewModel 为 null");
+                    return;
+                }
+
+                // 使用子程序节点名称作为工作流名称
+                string workflowName = subroutineNode.Name;
+                if (string.IsNullOrWhiteSpace(workflowName))
+                {
+                    workflowName = "子程序工作流";
+                }
+
+                AddLog($"📋 创建子程序工作流标签页: {workflowName}");
+
+                // 创建新的工作流标签页
+                var newWorkflowTab = new WorkflowTabViewModel
+                {
+                    Name = workflowName,
+                    Id = Guid.NewGuid().ToString()
+                };
+
+                // 添加到标签页集合
+                WorkflowTabViewModel.Tabs.Add(newWorkflowTab);
+
+                // 选中新创建的标签页
+                WorkflowTabViewModel.SelectedTab = newWorkflowTab;
+
+                AddLog($"✅ 子程序工作流 '{workflowName}' 创建成功");
+                AddLog($"💡 提示：您现在可以在这个工作流中添加节点来定义子程序逻辑");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"创建子程序工作流失败: {ex.Message}",
+                    "错误",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+                AddLog($"❌ 创建子程序工作流失败: {ex.Message}");
             }
         }
 
