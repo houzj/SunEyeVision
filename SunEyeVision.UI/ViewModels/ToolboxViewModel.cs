@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using SunEyeVision.PluginSystem;
-using SunEyeVision.PluginSystem.SampleTools;
 using SunEyeVision.UI.Models;
+
+// 用于反射加载插件
+using PluginAssembly = SunEyeVision.PluginSystem.SampleTools;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -67,25 +69,8 @@ namespace SunEyeVision.UI.ViewModels
             // 清空ToolRegistry
             ToolRegistry.ClearAll();
 
-            // 创建并注册示例工具插件
-            var imageCapturePlugin = new ImageCaptureTool();
-            var templateMatchingPlugin = new TemplateMatchingTool();
-            var gaussianBlurPlugin = new GaussianBlurTool();
-            var ocrPlugin = new OCRTool();
-            var thresholdPlugin = new ThresholdTool();
-            var edgeDetectionPlugin = new EdgeDetectionTool();
-            var roiCropPlugin = new ROICropTool();
-            var colorConvertPlugin = new ColorConvertTool();
-
-            // 注册插件
-            RegisterPlugin(imageCapturePlugin);
-            RegisterPlugin(templateMatchingPlugin);
-            RegisterPlugin(gaussianBlurPlugin);
-            RegisterPlugin(ocrPlugin);
-            RegisterPlugin(thresholdPlugin);
-            RegisterPlugin(edgeDetectionPlugin);
-            RegisterPlugin(roiCropPlugin);
-            RegisterPlugin(colorConvertPlugin);
+            // 从Tools目录加载实际工具插件
+            LoadToolsFromAssembly();
 
             // 从ToolRegistry加载工具
             LoadToolsFromRegistry();
@@ -95,6 +80,29 @@ namespace SunEyeVision.UI.ViewModels
 
             // 初始化过滤后的工具
             FilteredTools = new ObservableCollection<ToolItem>(AllTools);
+        }
+
+        /// <summary>
+        /// 从程序集加载工具插件
+        /// </summary>
+        private void LoadToolsFromAssembly()
+        {
+            var pluginAssembly = typeof(SunEyeVision.PluginSystem.SampleTools.GaussianBlurTool).Assembly;
+            var toolTypes = pluginAssembly.GetTypes()
+                .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsAbstract);
+
+            foreach (var type in toolTypes)
+            {
+                try
+                {
+                    var plugin = (IToolPlugin)Activator.CreateInstance(type);
+                    RegisterPlugin(plugin);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"加载工具插件失败: {type.Name} - {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

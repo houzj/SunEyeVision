@@ -99,7 +99,7 @@
                 <Setter Property="Background" Value="White"/>
                 <Setter Property="BorderBrush" Value="#E0E0E0"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="CornerRadius"="8"/>
+                <Setter Property="CornerRadius" Value="8"/>
                 <Setter Property="Padding" Value="16"/>
                 <Setter Property="Margin" Value="8"/>
             </Style>

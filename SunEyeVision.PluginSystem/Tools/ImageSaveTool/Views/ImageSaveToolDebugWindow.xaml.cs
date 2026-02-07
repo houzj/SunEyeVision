@@ -3,7 +3,7 @@ using SunEyeVision.PluginSystem;
 using SunEyeVision.PluginSystem.Tools.ImageSaveTool.ViewModels;
 using SunEyeVision.PluginSystem.UI;
 
-namespace SunEyeVision.PluginSystem.Tools.ImageSaveTool.UI
+namespace SunEyeVision.PluginSystem.Tools.ImageSaveTool.Views
 {
     /// <summary>
     /// ImageSaveToolDebugWindow.xaml 的交互逻辑 - 图像保存工具的调试窗口
