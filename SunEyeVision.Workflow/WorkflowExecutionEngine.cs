@@ -86,10 +86,10 @@ namespace SunEyeVision.Workflow
             var nodeExecutionResults = new ConcurrentDictionary<string, NodeExecutionResult>();
             int totalExecutedNodes = 0;
 
-            _logger.LogInfo($"========== 使用并行组执行模式 ==========");
+            _logger.LogInfo($"========== 使用基于执行链的并行组执行模式 ==========");
 
-            // 获取并行执行组（基于拓扑排序）
-            var parallelGroups = workflow.GetParallelExecutionGroups();
+            // 获取并行执行组（基于执行链识别）
+            var parallelGroups = workflow.GetParallelExecutionGroupsByChains();
             _logger.LogInfo($"获取到 {parallelGroups.Count} 个并行执行组");
 
             // 显示执行组信息
@@ -204,7 +204,8 @@ namespace SunEyeVision.Workflow
                     var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
 
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}");
+                    var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}, 耗时: {duration:F2}ms");
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {
@@ -241,7 +242,8 @@ namespace SunEyeVision.Workflow
                     var nodeInput = GetNodeInput(workflow, node, defaultInput, nodeResults.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
 
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}");
+                    var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✓ 成功" : "✗ 失败")}, 耗时: {duration:F2}ms");
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {

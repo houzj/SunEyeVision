@@ -718,6 +718,242 @@ namespace SunEyeVision.Workflow
                 }
             }
         }
+
+        /// <summary>
+        /// 基于执行链的并行执行分组（改进版 - 使用层级分组最大化并行度）
+        /// 确保不同执行链的节点不会被错误地混合到同一组
+        /// 使用BFS层级感知分组，将同一层级的节点分到同一执行组
+        /// </summary>
+        /// <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
+        public List<List<string>> GetParallelExecutionGroupsByChains()
+        {
+            var groups = new List<List<string>>();
+
+            // 1. 识别所有执行链
+            var chains = GetAutoDetectExecutionChains();
+            Logger?.LogInfo($"[ParallelGroups] 识别到 {chains.Count} 条执行链");
+
+            // 2. 为每个执行链生成层级分组（而非线性排序）
+            var chainExecutionLevels = new Dictionary<string, List<List<string>>>();
+
+            foreach (var chain in chains)
+            {
+                var chainNodes = new HashSet<string>(chain.NodeIds);
+                var levels = GetExecutionLevelsForNodes(chainNodes);
+                chainExecutionLevels[chain.ChainId] = levels;
+
+                Logger?.LogInfo($"[ParallelGroups] 执行链 {chain.ChainId} ({GetNodeDisplayName(chain.StartNodeId)}):");
+                for (int i = 0; i < levels.Count; i++)
+                {
+                    Logger?.LogInfo($"    层级{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
+                }
+            }
+
+            // 3. 跨链并行合并：将不同执行链中同一层级的节点合并
+            int maxLevel = chainExecutionLevels.Values.Max(l => l.Count);
+
+            for (int level = 0; level < maxLevel; level++)
+            {
+                var currentGroup = new List<string>();
+
+                foreach (var chainId in chainExecutionLevels.Keys)
+                {
+                    var levels = chainExecutionLevels[chainId];
+                    if (level < levels.Count)
+                    {
+                        // 将该链在当前层级的所有节点加入执行组
+                        currentGroup.AddRange(levels[level]);
+                    }
+                }
+
+                if (currentGroup.Count > 0)
+                {
+                    groups.Add(currentGroup);
+                    Logger?.LogInfo($"[ParallelGroups] 执行组{level + 1}: [{FormatNodeListDisplay(currentGroup)}]");
+                }
+            }
+
+            Logger?.LogInfo($"[ParallelGroups] 共生成 {groups.Count} 个并行执行组（优化后）");
+            return groups;
+        }
+
+        /// <summary>
+        /// 获取指定节点集合的执行顺序（拓扑排序）
+        /// </summary>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>按拓扑排序的节点ID列表</returns>
+        private List<string> GetExecutionOrderForNodes(HashSet<string> nodeIds)
+        {
+            var order = new List<string>();
+            var inDegree = new Dictionary<string, int>();
+
+            // 1. 计算指定节点的入度
+            foreach (var nodeId in nodeIds)
+            {
+                inDegree[nodeId] = 0;
+            }
+
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
+                {
+                    if (nodeIds.Contains(targetId) && nodeIds.Contains(connection.Key))
+                    {
+                        inDegree[targetId]++;
+                    }
+                }
+            }
+
+            // 2. 将入度为0的节点加入队列
+            var queue = new Queue<string>();
+            foreach (var nodeId in nodeIds)
+            {
+                if (inDegree[nodeId] == 0)
+                {
+                    queue.Enqueue(nodeId);
+                }
+            }
+
+            // 3. 拓扑排序
+            var processedCount = 0;
+            while (queue.Count > 0)
+            {
+                var nodeId = queue.Dequeue();
+                order.Add(nodeId);
+                processedCount++;
+
+                // 4. 减少后继节点的入度
+                if (Connections.ContainsKey(nodeId))
+                {
+                    foreach (var dependentId in Connections[nodeId])
+                    {
+                        if (nodeIds.Contains(dependentId))
+                        {
+                            inDegree[dependentId]--;
+                            if (inDegree[dependentId] == 0)
+                            {
+                                queue.Enqueue(dependentId);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (processedCount != nodeIds.Count)
+            {
+                Logger?.LogWarning($"拓扑排序检测到循环依赖，已处理 {processedCount}/{nodeIds.Count} 个节点");
+            }
+
+            return order;
+        }
+
+        /// <summary>
+        /// 获取指定节点集合的执行层级（BFS层级感知分组）
+        /// 将具有相同依赖深度的节点分到同一层级，以最大化并行度
+        /// </summary>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>层级列表，每个层级包含可并行执行的节点ID</returns>
+        private List<List<string>> GetExecutionLevelsForNodes(HashSet<string> nodeIds)
+        {
+            var levels = new List<List<string>>();
+            var inDegree = new Dictionary<string, int>();
+            var remaining = new HashSet<string>(nodeIds);
+
+            // 1. 计算指定节点的入度（仅考虑集合内的连接）
+            foreach (var nodeId in nodeIds)
+            {
+                inDegree[nodeId] = 0;
+            }
+
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
+                {
+                    if (nodeIds.Contains(targetId) && nodeIds.Contains(connection.Key))
+                    {
+                        inDegree[targetId]++;
+                    }
+                }
+            }
+
+            // 2. BFS层级遍历，将同一层级的节点分组
+            while (remaining.Count > 0)
+            {
+                var currentLevel = new List<string>();
+
+                // 找出当前所有入度为0的节点（可并行执行）
+                foreach (var nodeId in remaining.ToList())
+                {
+                    if (inDegree[nodeId] == 0)
+                    {
+                        currentLevel.Add(nodeId);
+                    }
+                }
+
+                if (currentLevel.Count == 0)
+                {
+                    // 没有可执行的节点，可能是循环依赖
+                    Logger?.LogWarning($"无法处理剩余节点，可能存在循环依赖: [{FormatNodeListDisplay(remaining)}]");
+                    break;
+                }
+
+                levels.Add(currentLevel);
+
+                // 从剩余节点中移除已处理的节点
+                foreach (var nodeId in currentLevel)
+                {
+                    remaining.Remove(nodeId);
+                }
+
+                // 减少这些节点的后继节点的入度
+                foreach (var nodeId in currentLevel)
+                {
+                    if (Connections.ContainsKey(nodeId))
+                    {
+                        foreach (var dependentId in Connections[nodeId])
+                        {
+                            if (nodeIds.Contains(dependentId) && inDegree.ContainsKey(dependentId))
+                            {
+                                inDegree[dependentId]--;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Logger?.LogInfo($"层级分组完成，共{levels.Count}个层级");
+            for (int i = 0; i < levels.Count; i++)
+            {
+                Logger?.LogInfo($"  层级{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
+            }
+
+            return levels;
+        }
+
+        /// <summary>
+        /// 获取节点的完整显示名称（格式：节点名称(ID: xxx)）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点的完整显示名称，如果节点不存在则返回ID本身</returns>
+        private string GetNodeDisplayName(string nodeId)
+        {
+            var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
+            if (node != null)
+            {
+                return $"{node.Name}(ID: {nodeId})";
+            }
+            return nodeId;
+        }
+
+        /// <summary>
+        /// 格式化节点ID列表为显示名称列表
+        /// </summary>
+        /// <param name="nodeIds">节点ID列表</param>
+        /// <returns>格式化后的节点显示名称列表字符串</returns>
+        private string FormatNodeListDisplay(IEnumerable<string> nodeIds)
+        {
+            return string.Join(", ", nodeIds.Select(id => GetNodeDisplayName(id)));
+        }
     }
 
     /// <summary>
