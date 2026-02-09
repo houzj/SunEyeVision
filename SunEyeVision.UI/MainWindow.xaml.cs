@@ -196,11 +196,14 @@ namespace SunEyeVision.UI
                     UpdateZoomDisplay();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 
+                // 注释：以下代码已废弃，工具箱分隔器已删除（2026-02-10）
+                /*
                 // 同步工具箱分隔线箭头方向
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateToolboxSplitterArrow();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
+                */
 
                 // TODO: 加载工作流
             }
@@ -1472,12 +1475,16 @@ namespace SunEyeVision.UI
 
         #region SplitterWithToggle 事件处理
 
+        // 注释：以下代码已废弃，工具箱双模切换功能已完全由ToolboxControl内部按钮实现（2026-02-10）
+        /*
         private double _originalToolboxWidth = 260;
+        */
         private double _rightPanelWidth = 500;
 
         /// <summary>
-        /// 工具箱分割器的折叠/展开事件（实现双模切换：60px 紧凑模式 ↔ 260px 展开模式）
+        /// 工具箱分割器的折叠/展开事件（已废弃 - 切换功能已由ToolboxControl内部按钮实现）
         /// </summary>
+        /*
         private void ToolboxSplitter_ToggleClick(object? sender, EventArgs e)
         {
             var viewModel = DataContext as MainWindowViewModel;
@@ -1502,10 +1509,12 @@ namespace SunEyeVision.UI
             }
             UpdateToolboxSplitterArrow();
         }
+        */
 
         /// <summary>
-        /// 更新工具箱分割器箭头方向
+        /// 更新工具箱分割器箭头方向（已废弃 - 工具箱分隔器已删除）
         /// </summary>
+        /*
         private void UpdateToolboxSplitterArrow()
         {
             var newDirection = _viewModel.IsToolboxCollapsed
@@ -1513,6 +1522,7 @@ namespace SunEyeVision.UI
                 : ToggleDirectionType.Left;
             ToolboxSplitter.ToggleDirection = newDirection;
         }
+        */
 
         /// <summary>
         /// 右侧面板分割器的折叠/展开事件

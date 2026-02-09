@@ -304,7 +304,6 @@
         <Grid x:Name="MainContentGrid" Loaded="MainContentGrid_Loaded">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" x:Name="ToolboxColumn" MinWidth="60" MaxWidth="260"/>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*" x:Name="WorkflowColumn" MinWidth="400"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="500" x:Name="RightPanelColumn" MinWidth="40" MaxWidth="800"/>
@@ -320,15 +319,8 @@
             </Border>
 
 
-            <!-- 左侧分割器 - 工具箱和工作区之间 -->
-            <controls:SplitterWithToggle Grid.Column="1" Width="8" MinWidth="8"
-                                         ResizeDirection="Columns"
-                                         ToggleDirection="Left"
-                                         x:Name="ToolboxSplitter"
-                                         ToggleClicked="ToolboxSplitter_ToggleClick"/>
-
             <!-- ========== 中间工作区 - TabControl多流程编辑 ========== -->
-            <Border Grid.Column="2" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
+            <Border Grid.Column="1" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <TabControl x:Name="WorkflowTabControl"
                             Background="#F5F5F5"
                             BorderThickness="0"
@@ -739,14 +731,14 @@
             </Border>
 
             <!-- 右侧分割器 - 工作区和右侧面板之间 -->
-            <controls:SplitterWithToggle Grid.Column="3" Width="8" MinWidth="8"
+            <controls:SplitterWithToggle Grid.Column="2" Width="8" MinWidth="8"
                                          ResizeDirection="Columns"
                                          ToggleDirection="Right"
                                          x:Name="RightPanelSplitter"
                                          ToggleClicked="RightPanelSplitter_ToggleClick"/>
 
             <!-- ========== 右侧面板 ========== -->
-            <Border Grid.Column="4" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
+            <Border Grid.Column="3" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <Grid x:Name="RightPanelGrid">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="500" MinHeight="40" MaxHeight="1000"/>
@@ -803,7 +795,7 @@
             </Border>
 
             <!-- ========== 状态栏 (24px) ========== -->
-            <StatusBar Grid.ColumnSpan="5" Grid.Row="1" Height="24" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+            <StatusBar Grid.ColumnSpan="4" Grid.Row="1" Height="24" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
                 <StatusBarItem>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="●" Foreground="#00CC99" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>

@@ -104,16 +104,21 @@
 
     <!-- 主容器 - 浅色主题 -->
     <Border Background="#F5F5F5">
-        <DockPanel>
+        <Grid>
             <!-- ========== 紧凑模式 ========== -->
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource BoolToVisibilityConverter}}">
                 <!-- 左侧分类侧边栏 (60px宽) -->
                 <Border x:Name="CategorySidebar"
                         DockPanel.Dock="Left" Width="60" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"
                         MouseLeave="CategorySidebar_MouseLeave">
-                    <DockPanel LastChildFill="True">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>  <!-- 上部：分类图标列表 -->
+                            <RowDefinition Height="Auto"/>  <!-- 底部：切换按钮 -->
+                        </Grid.RowDefinitions>
+
                         <!-- 上部：分类图标列表 -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" DockPanel.Dock="Top">
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                             <ItemsControl x:Name="CategoryItemsControl" ItemsSource="{Binding Categories}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -136,20 +141,23 @@
 
                         <!-- 底部：切换按钮 -->
                         <Button x:Name="CompactModeToggleBtn"
-                                DockPanel.Dock="Bottom"
-                                Width="44" Height="44"
-                                Margin="0,8,0,16"
-                                HorizontalAlignment="Center"
+                                Grid.Row="1"
+                                Width="16" Height="16"
+                                Margin="0,8,8,16"
+                                HorizontalAlignment="Right"
                                 Click="ToggleModeButton_Click"
                                 ToolTip="{Binding DisplayModeTooltip}"
-                                Background="Transparent"
-                                BorderThickness="0">
+                                Background="#DDDDDD"
+                                BorderBrush="#CCCCCC"
+                                BorderThickness="1">
                             <TextBlock Text="{Binding DisplayModeIcon}"
-                                       FontSize="20"
+                                       FontSize="12"
                                        Foreground="#666666"
-                                       FontWeight="Bold"/>
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
                         </Button>
-                    </DockPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Popup 用于紧凑模式下显示工具 -->
@@ -297,20 +305,23 @@
                     <!-- 底部：切换按钮 -->
                     <Button x:Name="ExpandedModeToggleBtn"
                             Grid.Row="1"
-                            Width="44" Height="44"
+                            Width="16" Height="16"
                             Margin="0,8,0,16"
-                            HorizontalAlignment="Center"
+                            HorizontalAlignment="Right"
                             Click="ToggleModeButton_Click"
                             ToolTip="{Binding DisplayModeTooltip}"
-                            Background="Transparent"
-                            BorderThickness="0">
+                            Background="#DDDDDD"
+                            BorderBrush="#CCCCCC"
+                            BorderThickness="1">
                         <TextBlock Text="{Binding DisplayModeIcon}"
-                                   FontSize="20"
+                                   FontSize="12"
                                    Foreground="#666666"
-                                   FontWeight="Bold"/>
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
                     </Button>
                 </Grid>
             </DockPanel>
-        </DockPanel>
+        </Grid>
     </Border>
 </UserControl>

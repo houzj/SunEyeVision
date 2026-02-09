@@ -20,8 +20,21 @@ namespace SunEyeVision.UI.Controls
         public ToolboxControl()
         {
             InitializeComponent();
-            _viewModel = new ToolboxViewModel();
-            DataContext = _viewModel;
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // 获取MainWindow设置的ViewModel
+            _viewModel = DataContext as ToolboxViewModel;
+
+            if (_viewModel == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Toolbox] WARNING: DataContext is null or not ToolboxViewModel");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Toolbox] ViewModel loaded, IsCompactMode: {_viewModel.IsCompactMode}");
 
             // 设置Popup的DataContext（Popup不在Visual Tree中，需要手动设置）
             CompactModePopup.DataContext = _viewModel;
@@ -32,6 +45,9 @@ namespace SunEyeVision.UI.Controls
 
             CompactModePopup.Opened += OnPopupOpened;
             CompactModePopup.Closed += OnPopupClosed;
+
+            // 初始化宽度
+            AdjustParentWidth();
         }
 
         /// <summary>
@@ -253,10 +269,19 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void ToggleModeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.ToggleDisplayModeCommand.CanExecute(null))
+            System.Diagnostics.Debug.WriteLine($"[Toolbox] ========== ToggleModeButton_Click ==========");
+            System.Diagnostics.Debug.WriteLine($"[Toolbox] _viewModel is null: {_viewModel == null}");
+            if (_viewModel != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] IsCompactMode before: {_viewModel.IsCompactMode}");
+            }
+
+            if (_viewModel != null && _viewModel.ToggleDisplayModeCommand.CanExecute(null))
             {
                 _viewModel.ToggleDisplayModeCommand.Execute(null);
                 AdjustParentWidth();
+
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] IsCompactMode after: {_viewModel.IsCompactMode}");
             }
         }
 
