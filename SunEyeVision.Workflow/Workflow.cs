@@ -144,8 +144,9 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Add node
+        /// 添加节点到工作流
         /// </summary>
+        /// <param name="node">要添加的工作流节点</param>
         public void AddNode(WorkflowNode node)
         {
             Nodes.Add(node);
@@ -153,8 +154,16 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Remove node
+        /// 从工作流中移除节点
         /// </summary>
+        /// <param name="nodeId">要移除的节点ID</param>
+        /// <remarks>
+        /// 移除操作包括：
+        /// 1. 从节点列表中移除
+        /// 2. 移除该节点的所有输出连接
+        /// 3. 移除其他节点到该节点的输入连接
+        /// 4. 移除该节点的所有端口连接
+        /// </remarks>
         public void RemoveNode(string nodeId)
         {
             var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
@@ -163,7 +172,7 @@ namespace SunEyeVision.Workflow
                 Nodes.Remove(node);
                 Connections.Remove(nodeId);
 
-                // Remove connections from other nodes to this node
+                // 移除其他节点到该节点的连接
                 foreach (var kvp in Connections)
                 {
                     kvp.Value.Remove(nodeId);
@@ -177,8 +186,10 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Connect nodes
+        /// 连接两个节点（创建从源节点到目标节点的连接）
         /// </summary>
+        /// <param name="sourceNodeId">源节点ID</param>
+        /// <param name="targetNodeId">目标节点ID</param>
         public void ConnectNodes(string sourceNodeId, string targetNodeId)
         {
             if (!Connections.ContainsKey(sourceNodeId))
@@ -241,8 +252,17 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取节点的并行执行分组
+        /// 获取节点的并行执行分组（基于拓扑排序的分层）
         /// </summary>
+        /// <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
+        /// <remarks>
+        /// 算法说明：
+        /// 1. 初始化：所有节点未处理，已处理集合为空
+        /// 2. 迭代：在每轮中，找出所有依赖已满足的节点
+        /// 3. 分组：将满足条件的节点加入当前分组
+        /// 4. 更新：标记当前组为已处理，继续下一轮
+        /// 5. 终止：所有节点处理完毕或无法继续（循环依赖）
+        /// </remarks>
         public List<List<string>> GetParallelExecutionGroups()
         {
             var groups = new List<List<string>>();
@@ -253,21 +273,30 @@ namespace SunEyeVision.Workflow
             {
                 var currentGroup = new List<string>();
 
+                // 找出当前所有依赖已满足的节点
                 foreach (var nodeId in remaining.ToList())
                 {
-                    var dependencies = Connections.Where(kvp => kvp.Value.Contains(nodeId)).Select(kvp => kvp.Key).ToList();
+                    var dependencies = Connections
+                        .Where(kvp => kvp.Value.Contains(nodeId))
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
                     if (dependencies.All(dep => processed.Contains(dep)))
                     {
                         currentGroup.Add(nodeId);
                     }
                 }
 
+                // 如果无法找到可执行的节点，说明存在循环依赖
                 if (currentGroup.Count == 0)
                 {
+                    Logger?.LogWarning($"无法继续分组，可能存在循环依赖");
                     break;
                 }
 
                 groups.Add(currentGroup);
+
+                // 标记当前组为已处理
                 foreach (var nodeId in currentGroup)
                 {
                     processed.Add(nodeId);
@@ -279,28 +308,24 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取节点的执行顺序（真正的拓扑排序 - Kahn算法）
+        /// 获取节点的执行顺序（使用Kahn算法进行拓扑排序）
         /// </summary>
+        /// <returns>按拓扑排序的节点ID列表</returns>
+        /// <remarks>
+        /// 拓扑排序算法步骤：
+        /// 1. 计算每个节点的入度（指向该节点的连接数量）
+        /// 2. 将所有入度为0的节点加入队列
+        /// 3. 从队列中取出节点并加入结果列表
+        /// 4. 减少该节点所有后继节点的入度，如果入度变为0则加入队列
+        /// 5. 重复步骤3-4直到队列为空
+        /// 6. 如果处理的节点数不等于总节点数，说明存在循环依赖
+        /// </remarks>
         public List<string> GetExecutionOrder()
         {
             var order = new List<string>();
+            var inDegree = CalculateNodeInDegrees();
 
-            // 1. 计算每个节点的入度
-            var inDegree = new Dictionary<string, int>();
-            foreach (var node in Nodes)
-            {
-                inDegree[node.Id] = 0;
-            }
-
-            foreach (var connection in Connections)
-            {
-                foreach (var targetId in connection.Value)
-                {
-                    inDegree[targetId]++;
-                }
-            }
-
-            // 2. 将入度为0的节点加入队列
+            // 将入度为0的节点加入队列
             var queue = new Queue<string>();
             foreach (var node in Nodes)
             {
@@ -310,7 +335,7 @@ namespace SunEyeVision.Workflow
                 }
             }
 
-            // 3. 拓扑排序
+            // 拓扑排序处理
             var processedCount = 0;
             while (queue.Count > 0)
             {
@@ -318,21 +343,11 @@ namespace SunEyeVision.Workflow
                 order.Add(nodeId);
                 processedCount++;
 
-                // 4. 减少后继节点的入度
-                if (Connections.ContainsKey(nodeId))
-                {
-                    foreach (var dependentId in Connections[nodeId])
-                    {
-                        inDegree[dependentId]--;
-                        if (inDegree[dependentId] == 0)
-                        {
-                            queue.Enqueue(dependentId);
-                        }
-                    }
-                }
+                // 减少后继节点的入度
+                ProcessSuccessors(nodeId, inDegree, queue);
             }
 
-            // 5. 检测循环依赖
+            // 检测循环依赖
             if (processedCount != Nodes.Count)
             {
                 Logger?.LogWarning($"拓扑排序检测到循环依赖，已处理 {processedCount}/{Nodes.Count} 个节点");
@@ -343,47 +358,50 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// 处理指定节点的所有后继节点，减少它们的入度
+        /// </summary>
+        /// <param name="nodeId">源节点ID</param>
+        /// <param name="inDegree">节点入度字典</param>
+        /// <param name="queue">待处理节点队列</param>
+        private void ProcessSuccessors(string nodeId, Dictionary<string, int> inDegree, Queue<string> queue)
+        {
+            if (!Connections.ContainsKey(nodeId))
+            {
+                return;
+            }
+
+            foreach (var dependentId in Connections[nodeId])
+            {
+                inDegree[dependentId]--;
+                if (inDegree[dependentId] == 0)
+                {
+                    queue.Enqueue(dependentId);
+                }
+            }
+        }
+
+        /// <summary>
         /// 检测工作流中的循环依赖
         /// </summary>
+        /// <returns>检测到的循环依赖路径列表</returns>
+        /// <remarks>
+        /// 使用DFS深度优先搜索算法检测循环：
+        /// 1. 访问节点时加入已访问集合和递归栈
+        /// 2. 递归访问所有后继节点
+        /// 3. 如果在递归栈中再次遇到某个节点，说明存在循环
+        /// 4. 记录循环路径并返回
+        /// </remarks>
         public List<string> DetectCycles()
         {
             var cycles = new List<string>();
             var visited = new HashSet<string>();
             var recursionStack = new HashSet<string>();
 
-            bool DetectCycle(string nodeId, string path)
-            {
-                visited.Add(nodeId);
-                recursionStack.Add(nodeId);
-
-                if (Connections.ContainsKey(nodeId))
-                {
-                    foreach (var dependentId in Connections[nodeId])
-                    {
-                        if (!visited.Contains(dependentId))
-                        {
-                            if (DetectCycle(dependentId, path + " -> " + dependentId))
-                            {
-                                return true;
-                            }
-                        }
-                        else if (recursionStack.Contains(dependentId))
-                        {
-                            cycles.Add(path + " -> " + dependentId);
-                            return true;
-                        }
-                    }
-                }
-
-                recursionStack.Remove(nodeId);
-                return false;
-            }
-
             foreach (var node in Nodes)
             {
                 if (!visited.Contains(node.Id))
                 {
-                    DetectCycle(node.Id, node.Id);
+                    DetectCycleDFS(node.Id, node.Id, cycles, visited, recursionStack);
                 }
             }
 
@@ -391,40 +409,99 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取节点优先级
+        /// 使用深度优先搜索（DFS）检测循环依赖
         /// </summary>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <param name="path">当前路径</param>
+        /// <param name="cycles">循环列表（用于记录发现的循环）</param>
+        /// <param name="visited">已访问节点集合</param>
+        /// <param name="recursionStack">递归栈（用于检测回边）</param>
+        /// <returns>是否发现循环</returns>
+        private bool DetectCycleDFS(
+            string nodeId,
+            string path,
+            List<string> cycles,
+            HashSet<string> visited,
+            HashSet<string> recursionStack)
+        {
+            visited.Add(nodeId);
+            recursionStack.Add(nodeId);
+
+            if (Connections.ContainsKey(nodeId))
+            {
+                foreach (var dependentId in Connections[nodeId])
+                {
+                    if (!visited.Contains(dependentId))
+                    {
+                        if (DetectCycleDFS(dependentId, path + " -> " + dependentId, cycles, visited, recursionStack))
+                        {
+                            return true;
+                        }
+                    }
+                    else if (recursionStack.Contains(dependentId))
+                    {
+                        // 发现回边，记录循环路径
+                        cycles.Add(path + " -> " + dependentId);
+                        return true;
+                    }
+                }
+            }
+
+            recursionStack.Remove(nodeId);
+            return false;
+        }
+
+        /// <summary>
+        /// 获取节点优先级（基于从该节点出发的最长路径长度）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点优先级值（值越大表示该节点离出口越远）</returns>
+        /// <remarks>
+        /// 优先级计算说明：
+        /// 1. 出口节点（无后继节点）的优先级为0
+        /// 2. 其他节点的优先级 = 1 + max(所有后继节点的优先级)
+        /// 3. 优先级越高的节点应该越早执行
+        /// </remarks>
         public int GetNodePriority(string nodeId)
         {
             var visited = new HashSet<string>();
+            return CalculateNodePriority(nodeId, visited);
+        }
 
-            int CalculatePriority(string id)
+        /// <summary>
+        /// 递归计算节点优先级
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="visited">已访问节点集合（用于避免循环导致的无限递归）</param>
+        /// <returns>节点优先级</returns>
+        private int CalculateNodePriority(string nodeId, HashSet<string> visited)
+        {
+            // 避免循环导致的无限递归
+            if (visited.Contains(nodeId))
             {
-                if (visited.Contains(id))
-                {
-                    return 0;
-                }
-
-                visited.Add(id);
-
-                if (!Connections.ContainsKey(id))
-                {
-                    return 0;
-                }
-
-                var maxPriority = 0;
-                foreach (var dependentId in Connections[id])
-                {
-                    var priority = CalculatePriority(dependentId);
-                    if (priority > maxPriority)
-                    {
-                        maxPriority = priority;
-                    }
-                }
-
-                return maxPriority + 1;
+                return 0;
             }
 
-            return CalculatePriority(nodeId);
+            visited.Add(nodeId);
+
+            // 出口节点优先级为0
+            if (!Connections.ContainsKey(nodeId))
+            {
+                return 0;
+            }
+
+            // 计算所有后继节点的最大优先级
+            var maxPriority = 0;
+            foreach (var dependentId in Connections[nodeId])
+            {
+                var priority = CalculateNodePriority(dependentId, visited);
+                if (priority > maxPriority)
+                {
+                    maxPriority = priority;
+                }
+            }
+
+            return maxPriority + 1;
         }
 
         /// <summary>
@@ -440,8 +517,18 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Execute workflow
+        /// 执行工作流
         /// </summary>
+        /// <param name="inputImage">输入图像数据</param>
+        /// <returns>所有节点的执行结果列表</returns>
+        /// <remarks>
+        /// 执行流程：
+        /// 1. 创建执行计划（并行分组）
+        /// 2. 获取拓扑排序的执行顺序
+        /// 3. 按顺序依次执行每个节点
+        /// 4. 节点的输出作为后续节点的输入
+        /// 5. 记录所有节点的执行结果和执行时间
+        /// </remarks>
         public List<AlgorithmResult> Execute(Mat inputImage)
         {
             var results = new List<AlgorithmResult>();
@@ -454,7 +541,7 @@ namespace SunEyeVision.Workflow
             var executionPlan = CreateExecutionPlan();
             executionPlan.Start();
 
-            // 按执行顺序执行节点
+            // 获取拓扑排序的执行顺序
             var executionOrder = GetExecutionOrder();
             if (executionOrder.Count == 0)
             {
@@ -462,6 +549,7 @@ namespace SunEyeVision.Workflow
                 return results;
             }
 
+            // 按执行顺序执行节点
             foreach (var nodeId in executionOrder)
             {
                 var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
@@ -478,8 +566,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 创建执行计划
+        /// 创建执行计划（基于并行执行分组）
         /// </summary>
+        /// <returns>执行计划对象</returns>
+        /// <remarks>
+        /// 执行计划包含：
+        /// 1. 多个执行组，每个组包含可并行执行的节点
+        /// 2. 执行组的序号和状态
+        /// 3. 执行开始和结束时间
+        /// </remarks>
         public ExecutionPlan CreateExecutionPlan()
         {
             var plan = new ExecutionPlan();
@@ -498,39 +593,42 @@ namespace SunEyeVision.Workflow
             return plan;
         }
 
-        private void ExecuteNode(WorkflowNode node, Mat inputImage,
-            Dictionary<string, Mat> nodeResults, HashSet<string> executedNodes,
+        /// <summary>
+        /// 执行单个工作流节点
+        /// </summary>
+        /// <param name="node">要执行的节点</param>
+        /// <param name="inputImage">输入图像</param>
+        /// <param name="nodeResults">节点执行结果映射表（用于存储和获取中间结果）</param>
+        /// <param name="executedNodes">已执行节点集合（用于避免重复执行）</param>
+        /// <param name="results">算法结果列表（用于收集所有节点的执行结果）</param>
+        private void ExecuteNode(
+            WorkflowNode node,
+            Mat inputImage,
+            Dictionary<string, Mat> nodeResults,
+            HashSet<string> executedNodes,
             List<AlgorithmResult> results)
         {
+            // 跳过已执行或未启用的节点
             if (executedNodes.Contains(node.Id) || !node.IsEnabled)
             {
                 return;
             }
 
-            // Execute subsequent nodes
-            var input = inputImage;
-
-            if (Connections.Any(kvp => kvp.Value.Contains(node.Id)))
-            {
-                // Get input from parent nodes
-                var parentIds = Connections.Where(kvp => kvp.Value.Contains(node.Id)).Select(kvp => kvp.Key);
-                var parentResults = parentIds.Where(id => nodeResults.ContainsKey(id)).Select(id => nodeResults[id]).ToList();
-
-                if (parentResults.Any())
-                {
-                    input = parentResults.First();
-                }
-            }
+            // 准备输入数据
+            var input = PrepareNodeInput(node, inputImage, nodeResults);
 
             try
             {
                 Logger.LogInfo($"Executing node: {node.Name} (ID: {node.Id})");
 
+                // 创建算法实例并执行
                 var algorithm = node.CreateInstance();
                 var resultImage = algorithm.Process(input) as Mat;
 
+                // 保存节点执行结果
                 nodeResults[node.Id] = resultImage ?? input;
 
+                // 记录执行结果
                 var result = new AlgorithmResult
                 {
                     AlgorithmName = node.AlgorithmType,
@@ -557,8 +655,16 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Get workflow information
+        /// 获取工作流信息摘要
         /// </summary>
+        /// <returns>工作流信息的格式化字符串</returns>
+        /// <remarks>
+        /// 信息包含：
+        /// - 工作流名称和ID
+        /// - 工作流描述
+        /// - 节点总数
+        /// - 所有节点的详细列表（名称、ID、算法类型、启用状态）
+        /// </remarks>
         public string GetInfo()
         {
             var info = $"Workflow: {Name} (ID: {Id})\n";
@@ -568,7 +674,8 @@ namespace SunEyeVision.Workflow
 
             foreach (var node in Nodes)
             {
-                info += $"  - {node.Name} (ID: {node.Id}, {node.AlgorithmType}) - {(node.IsEnabled ? "Enabled" : "Disabled")}\n";
+                var status = node.IsEnabled ? "Enabled" : "Disabled";
+                info += $"  - {node.Name} (ID: {node.Id}, {node.AlgorithmType}) - {status}\n";
             }
 
             return info;
@@ -582,71 +689,34 @@ namespace SunEyeVision.Workflow
         {
             var chains = new List<ExecutionChain>();
             var allVisitedNodes = new HashSet<string>();
-            var chainIndex = 0;
+            var chainCounter = 0;
 
-            // ==================== 步骤1：计算每个节点的入度 ====================
-            var inDegree = new Dictionary<string, int>();
-            foreach (var node in Nodes)
-            {
-                inDegree[node.Id] = 0;  // 初始化入度为0
-            }
+            // 步骤1：计算每个节点的入度
+            var inDegree = CalculateNodeInDegrees();
 
-            // 遍历所有连接，计算每个目标节点的入度
-            foreach (var connection in Connections)
-            {
-                foreach (var targetId in connection.Value)
-                {
-                    inDegree[targetId]++;  // 每有一个输入连接，入度+1
-                }
-            }
-
-            // ==================== 步骤2：识别所有入口节点（入度=0且已启用） ====================
+            // 步骤2：识别所有入口节点（入度=0且已启用）
             var entryNodes = Nodes
                 .Where(n => inDegree[n.Id] == 0 && n.IsEnabled)
                 .ToList();
 
             Logger?.LogInfo($"[AutoDetect] 找到 {entryNodes.Count} 个入口节点");
 
-            // ==================== 步骤3：为每个入口节点构建独立的执行链 ====================
-            foreach (var entryNode in entryNodes)
+            // 步骤3：入口节点合并 - 将共享下游节点的入口节点合并到同一执行链
+            var entryGroups = GroupEntryNodesByDownstream(entryNodes);
+
+            // 步骤4：为每个入口组构建执行链
+            foreach (var entryGroup in entryGroups)
             {
-                var chain = new ExecutionChain
-                {
-                    ChainId = $"chain_{chainIndex}",
-                    StartNodeId = entryNode.Id,
-                    NodeIds = new List<string>(),
-                    Dependencies = new List<ChainDependency>()
-                };
-
-                // 递归收集该入口节点下游的所有节点
-                CollectExecutionChain(entryNode.Id, chain.NodeIds, allVisitedNodes);
-
-                // 分析跨链依赖关系
-                AnalyzeChainDependencies(chain, allVisitedNodes, chains);
-
+                var chain = CreateExecutionChain(entryGroup, chainCounter, allVisitedNodes, chains);
                 chains.Add(chain);
-                chainIndex++;
+                chainCounter++;
 
-                Logger?.LogInfo($"[AutoDetect] 创建执行链[{chainIndex}]: {entryNode.Name} (包含{chain.NodeIds.Count}个节点)");
+                var entryNames = string.Join(", ", entryGroup.Select(n => n.Name));
+                Logger?.LogInfo($"[AutoDetect] 创建执行链[{chainCounter}]: [{entryNames}] (包含{chain.NodeIds.Count}个节点)");
             }
 
-            // ==================== 步骤4：处理未访问的节点（孤岛节点） ====================
-            var unvisitedNodes = Nodes.Where(n => !allVisitedNodes.Contains(n.Id) && n.IsEnabled).ToList();
-            foreach (var isolatedNode in unvisitedNodes)
-            {
-                var chain = new ExecutionChain
-                {
-                    ChainId = $"chain_{chainIndex}",
-                    StartNodeId = isolatedNode.Id,
-                    NodeIds = new List<string> { isolatedNode.Id },
-                    Dependencies = new List<ChainDependency>()
-                };
-
-                chains.Add(chain);
-                chainIndex++;
-
-                Logger?.LogInfo($"[AutoDetect] 创建孤岛链[{chainIndex}]: {isolatedNode.Name}");
-            }
+            // 步骤5：处理未访问的节点（孤岛节点）
+            CreateIsolatedChains(allVisitedNodes, ref chainCounter, chains);
 
             Logger?.LogInfo($"[AutoDetect] 共识别 {chains.Count} 条执行链");
             return chains;
@@ -662,18 +732,29 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 收集执行链中的节点
+        /// 递归收集执行链中的所有节点（从指定节点开始）
         /// </summary>
+        /// <param name="nodeId">起始节点ID</param>
+        /// <param name="chainNodes">执行链节点列表（用于收集节点）</param>
+        /// <param name="allVisitedNodes">全局已访问节点集合（用于避免跨链重复访问）</param>
+        /// <remarks>
+        /// 算法说明：
+        /// 1. 检查节点是否已访问（避免重复和循环）
+        /// 2. 将节点加入执行链和全局访问集合
+        /// 3. 递归收集所有下游节点
+        /// </remarks>
         private void CollectExecutionChain(
             string nodeId,
             List<string> chainNodes,
             HashSet<string> allVisitedNodes)
         {
+            // 跳过已访问的节点
             if (allVisitedNodes.Contains(nodeId) || chainNodes.Contains(nodeId))
             {
                 return;
             }
 
+            // 添加节点到执行链和全局访问集合
             chainNodes.Add(nodeId);
             allVisitedNodes.Add(nodeId);
 
@@ -688,9 +769,21 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 分析跨链依赖关系
+        /// 分析并记录执行链的跨链依赖关系
         /// </summary>
-        private void AnalyzeChainDependencies(ExecutionChain chain, HashSet<string> allVisitedNodes, List<ExecutionChain> existingChains)
+        /// <param name="chain">目标执行链</param>
+        /// <param name="allVisitedNodes">全局已访问节点集合</param>
+        /// <param name="existingChains">已存在的执行链列表</param>
+        /// <remarks>
+        /// 跨链依赖定义：
+        /// - 当执行链中的某个节点依赖于其他执行链中的节点时
+        /// - 需要记录源链ID、源节点ID和目标节点ID
+        /// - 用于执行时的同步和顺序控制
+        /// </remarks>
+        private void AnalyzeChainDependencies(
+            ExecutionChain chain,
+            HashSet<string> allVisitedNodes,
+            List<ExecutionChain> existingChains)
         {
             foreach (var nodeId in chain.NodeIds)
             {
@@ -704,7 +797,7 @@ namespace SunEyeVision.Workflow
                     // 如果父节点不在本链中，则创建跨链依赖
                     if (!chain.NodeIds.Contains(parentId))
                     {
-                        // 查找源链
+                        // 查找父节点所在的源链
                         var sourceChain = existingChains.FirstOrDefault(c => c.NodeIds.Contains(parentId));
                         var sourceChainId = sourceChain?.ChainId ?? "unknown";
 
@@ -721,19 +814,29 @@ namespace SunEyeVision.Workflow
 
         /// <summary>
         /// 基于执行链的并行执行分组（改进版 - 使用层级分组最大化并行度）
-        /// 确保不同执行链的节点不会被错误地混合到同一组
-        /// 使用BFS层级感知分组，将同一层级的节点分到同一执行组
         /// </summary>
         /// <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
+        /// <remarks>
+        /// 算法特点：
+        /// 1. 识别所有执行链（独立的执行单元）
+        /// 2. 为每个执行链生成层级分组（BFS层级感知）
+        /// 3. 将不同执行链中同一层级的节点合并到同一执行组
+        /// 4. 确保不同执行链的节点不会被错误地混合到同一组
+        /// 
+        /// 优势：
+        /// - 最大化并行度：同一层级的所有节点可以并行执行
+        /// - 避免依赖冲突：通过层级分组保证执行顺序正确
+        /// - 支持跨链同步：不同执行链的同一层级节点可以同步执行
+        /// </remarks>
         public List<List<string>> GetParallelExecutionGroupsByChains()
         {
             var groups = new List<List<string>>();
 
-            // 1. 识别所有执行链
+            // 步骤1：识别所有执行链
             var chains = GetAutoDetectExecutionChains();
             Logger?.LogInfo($"[ParallelGroups] 识别到 {chains.Count} 条执行链");
 
-            // 2. 为每个执行链生成层级分组（而非线性排序）
+            // 步骤2：为每个执行链生成层级分组（而非线性排序）
             var chainExecutionLevels = new Dictionary<string, List<List<string>>>();
 
             foreach (var chain in chains)
@@ -749,7 +852,7 @@ namespace SunEyeVision.Workflow
                 }
             }
 
-            // 3. 跨链并行合并：将不同执行链中同一层级的节点合并
+            // 步骤3：跨链并行合并 - 将不同执行链中同一层级的节点合并
             int maxLevel = chainExecutionLevels.Values.Max(l => l.Count);
 
             for (int level = 0; level < maxLevel; level++)
@@ -778,33 +881,22 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取指定节点集合的执行顺序（拓扑排序）
+        /// 获取指定节点集合的执行顺序（使用Kahn算法进行拓扑排序）
         /// </summary>
         /// <param name="nodeIds">节点ID集合</param>
         /// <returns>按拓扑排序的节点ID列表</returns>
+        /// <remarks>
+        /// 与GetExecutionOrder的区别：
+        /// - 仅考虑指定集合内的节点和连接
+        /// - 忽略集合外节点的依赖关系
+        /// - 用于子图或部分节点的执行排序
+        /// </remarks>
         private List<string> GetExecutionOrderForNodes(HashSet<string> nodeIds)
         {
             var order = new List<string>();
-            var inDegree = new Dictionary<string, int>();
+            var inDegree = CalculateInDegreesForNodes(nodeIds);
 
-            // 1. 计算指定节点的入度
-            foreach (var nodeId in nodeIds)
-            {
-                inDegree[nodeId] = 0;
-            }
-
-            foreach (var connection in Connections)
-            {
-                foreach (var targetId in connection.Value)
-                {
-                    if (nodeIds.Contains(targetId) && nodeIds.Contains(connection.Key))
-                    {
-                        inDegree[targetId]++;
-                    }
-                }
-            }
-
-            // 2. 将入度为0的节点加入队列
+            // 将入度为0的节点加入队列
             var queue = new Queue<string>();
             foreach (var nodeId in nodeIds)
             {
@@ -814,7 +906,7 @@ namespace SunEyeVision.Workflow
                 }
             }
 
-            // 3. 拓扑排序
+            // 拓扑排序处理
             var processedCount = 0;
             while (queue.Count > 0)
             {
@@ -822,7 +914,7 @@ namespace SunEyeVision.Workflow
                 order.Add(nodeId);
                 processedCount++;
 
-                // 4. 减少后继节点的入度
+                // 减少后继节点的入度（仅考虑集合内的节点）
                 if (Connections.ContainsKey(nodeId))
                 {
                     foreach (var dependentId in Connections[nodeId])
@@ -849,34 +941,28 @@ namespace SunEyeVision.Workflow
 
         /// <summary>
         /// 获取指定节点集合的执行层级（BFS层级感知分组）
-        /// 将具有相同依赖深度的节点分到同一层级，以最大化并行度
         /// </summary>
         /// <param name="nodeIds">节点ID集合</param>
         /// <returns>层级列表，每个层级包含可并行执行的节点ID</returns>
+        /// <remarks>
+        /// 算法说明：
+        /// 1. 计算节点集合内的入度（仅考虑集合内的连接）
+        /// 2. BFS层级遍历，将同一层级的节点分组
+        /// 3. 每层包含入度为0且未处理的节点
+        /// 4. 处理后减少后继节点的入度，进入下一层
+        /// 
+        /// 优势：
+        /// - 最大化并行度：同一层级的所有节点可以并行执行
+        /// - 保证顺序正确：通过层级分组确保依赖关系
+        /// - 支持部分执行：仅处理指定集合内的节点
+        /// </remarks>
         private List<List<string>> GetExecutionLevelsForNodes(HashSet<string> nodeIds)
         {
             var levels = new List<List<string>>();
-            var inDegree = new Dictionary<string, int>();
+            var inDegree = CalculateInDegreesForNodes(nodeIds);
             var remaining = new HashSet<string>(nodeIds);
 
-            // 1. 计算指定节点的入度（仅考虑集合内的连接）
-            foreach (var nodeId in nodeIds)
-            {
-                inDegree[nodeId] = 0;
-            }
-
-            foreach (var connection in Connections)
-            {
-                foreach (var targetId in connection.Value)
-                {
-                    if (nodeIds.Contains(targetId) && nodeIds.Contains(connection.Key))
-                    {
-                        inDegree[targetId]++;
-                    }
-                }
-            }
-
-            // 2. BFS层级遍历，将同一层级的节点分组
+            // BFS层级遍历，将同一层级的节点分组
             while (remaining.Count > 0)
             {
                 var currentLevel = new List<string>();
@@ -890,9 +976,9 @@ namespace SunEyeVision.Workflow
                     }
                 }
 
+                // 没有可执行的节点，可能是循环依赖
                 if (currentLevel.Count == 0)
                 {
-                    // 没有可执行的节点，可能是循环依赖
                     Logger?.LogWarning($"无法处理剩余节点，可能存在循环依赖: [{FormatNodeListDisplay(remaining)}]");
                     break;
                 }
@@ -906,19 +992,7 @@ namespace SunEyeVision.Workflow
                 }
 
                 // 减少这些节点的后继节点的入度
-                foreach (var nodeId in currentLevel)
-                {
-                    if (Connections.ContainsKey(nodeId))
-                    {
-                        foreach (var dependentId in Connections[nodeId])
-                        {
-                            if (nodeIds.Contains(dependentId) && inDegree.ContainsKey(dependentId))
-                            {
-                                inDegree[dependentId]--;
-                            }
-                        }
-                    }
-                }
+                ProcessLevelSuccessors(currentLevel, nodeIds, inDegree);
             }
 
             Logger?.LogInfo($"层级分组完成，共{levels.Count}个层级");
@@ -928,6 +1002,62 @@ namespace SunEyeVision.Workflow
             }
 
             return levels;
+        }
+
+        /// <summary>
+        /// 计算指定节点集合中每个节点的入度
+        /// </summary>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>节点入度字典</returns>
+        private Dictionary<string, int> CalculateInDegreesForNodes(HashSet<string> nodeIds)
+        {
+            var inDegree = new Dictionary<string, int>();
+
+            // 初始化所有节点的入度为0
+            foreach (var nodeId in nodeIds)
+            {
+                inDegree[nodeId] = 0;
+            }
+
+            // 计算集合内连接的入度
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
+                {
+                    if (nodeIds.Contains(targetId) && nodeIds.Contains(connection.Key))
+                    {
+                        inDegree[targetId]++;
+                    }
+                }
+            }
+
+            return inDegree;
+        }
+
+        /// <summary>
+        /// 处理当前层级的后继节点，减少它们的入度
+        /// </summary>
+        /// <param name="currentLevel">当前层级的节点列表</param>
+        /// <param name="nodeIds">节点ID集合（用于过滤）</param>
+        /// <param name="inDegree">节点入度字典</param>
+        private void ProcessLevelSuccessors(
+            List<string> currentLevel,
+            HashSet<string> nodeIds,
+            Dictionary<string, int> inDegree)
+        {
+            foreach (var nodeId in currentLevel)
+            {
+                if (Connections.ContainsKey(nodeId))
+                {
+                    foreach (var dependentId in Connections[nodeId])
+                    {
+                        if (nodeIds.Contains(dependentId) && inDegree.ContainsKey(dependentId))
+                        {
+                            inDegree[dependentId]--;
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -946,6 +1076,42 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// 为节点准备输入数据
+        /// 如果节点有父节点，则使用父节点的输出作为输入；否则使用原始输入
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <param name="defaultInput">默认输入数据</param>
+        /// <param name="nodeResults">节点执行结果映射表</param>
+        /// <returns>节点的输入数据</returns>
+        private Mat PrepareNodeInput(
+            WorkflowNode node,
+            Mat defaultInput,
+            Dictionary<string, Mat> nodeResults)
+        {
+            var input = defaultInput;
+
+            if (Connections.Any(kvp => kvp.Value.Contains(node.Id)))
+            {
+                // 获取父节点的输出作为输入
+                var parentIds = Connections
+                    .Where(kvp => kvp.Value.Contains(node.Id))
+                    .Select(kvp => kvp.Key);
+
+                var parentResults = parentIds
+                    .Where(id => nodeResults.ContainsKey(id))
+                    .Select(id => nodeResults[id])
+                    .ToList();
+
+                if (parentResults.Any())
+                {
+                    input = parentResults.First();
+                }
+            }
+
+            return input;
+        }
+
+        /// <summary>
         /// 格式化节点ID列表为显示名称列表
         /// </summary>
         /// <param name="nodeIds">节点ID列表</param>
@@ -953,6 +1119,159 @@ namespace SunEyeVision.Workflow
         private string FormatNodeListDisplay(IEnumerable<string> nodeIds)
         {
             return string.Join(", ", nodeIds.Select(id => GetNodeDisplayName(id)));
+        }
+
+        /// <summary>
+        /// 计算所有节点的入度
+        /// </summary>
+        /// <returns>节点ID到入度的映射字典</returns>
+        private Dictionary<string, int> CalculateNodeInDegrees()
+        {
+            var inDegree = new Dictionary<string, int>();
+
+            // 初始化所有节点的入度为0
+            foreach (var node in Nodes)
+            {
+                inDegree[node.Id] = 0;
+            }
+
+            // 遍历所有连接，计算每个目标节点的入度
+            foreach (var connection in Connections)
+            {
+                foreach (var targetId in connection.Value)
+                {
+                    inDegree[targetId]++;
+                }
+            }
+
+            return inDegree;
+        }
+
+        /// <summary>
+        /// 计算指定节点组的所有下游节点
+        /// </summary>
+        /// <param name="nodes">节点列表</param>
+        /// <returns>下游节点ID集合</returns>
+        private HashSet<string> CalculateDownstreamNodes(List<WorkflowNode> nodes)
+        {
+            var downstream = new HashSet<string>();
+
+            foreach (var node in nodes)
+            {
+                if (Connections.ContainsKey(node.Id))
+                {
+                    downstream.UnionWith(Connections[node.Id]);
+                }
+            }
+
+            return downstream;
+        }
+
+        /// <summary>
+        /// 根据下游节点重叠情况对入口节点进行分组
+        /// 将共享下游节点的入口节点合并到同一组，以便构建单个执行链
+        /// </summary>
+        /// <param name="entryNodes">入口节点列表</param>
+        /// <returns>分组后的入口节点组列表</returns>
+        private List<List<WorkflowNode>> GroupEntryNodesByDownstream(List<WorkflowNode> entryNodes)
+        {
+            var entryGroups = new List<List<WorkflowNode>>();
+
+            foreach (var entryNode in entryNodes)
+            {
+                var merged = false;
+                var currentDownstream = CalculateDownstreamNodes(new List<WorkflowNode> { entryNode });
+
+                for (int groupIndex = 0; groupIndex < entryGroups.Count; groupIndex++)
+                {
+                    var group = entryGroups[groupIndex];
+                    var groupDownstream = CalculateDownstreamNodes(group);
+
+                    // 如果下游节点有交集，则合并到同一组
+                    if (groupDownstream.Overlaps(currentDownstream))
+                    {
+                        group.Add(entryNode);
+                        merged = true;
+                        Logger?.LogInfo($"[AutoDetect] 合并入口节点: {entryNode.Name} -> 组{groupIndex}");
+                        break;
+                    }
+                }
+
+                // 如果没有找到重叠的组，则创建新组
+                if (!merged)
+                {
+                    entryGroups.Add(new List<WorkflowNode> { entryNode });
+                }
+            }
+
+            Logger?.LogInfo($"[AutoDetect] 将 {entryNodes.Count} 个入口节点合并为 {entryGroups.Count} 组");
+            return entryGroups;
+        }
+
+        /// <summary>
+        /// 为指定的入口节点组创建执行链
+        /// </summary>
+        /// <param name="entryGroup">入口节点组</param>
+        /// <param name="chainIndex">执行链索引</param>
+        /// <param name="allVisitedNodes">已访问的节点集合（用于标记已处理的节点）</param>
+        /// <param name="existingChains">已存在的执行链列表（用于分析跨链依赖）</param>
+        /// <returns>创建的执行链</returns>
+        private ExecutionChain CreateExecutionChain(
+            List<WorkflowNode> entryGroup,
+            int chainIndex,
+            HashSet<string> allVisitedNodes,
+            List<ExecutionChain> existingChains)
+        {
+            var chain = new ExecutionChain
+            {
+                ChainId = $"chain_{chainIndex}",
+                StartNodeId = entryGroup.First().Id,
+                NodeIds = new List<string>(),
+                Dependencies = new List<ChainDependency>()
+            };
+
+            // 递归收集该组所有入口节点下游的所有节点
+            foreach (var entryNode in entryGroup)
+            {
+                CollectExecutionChain(entryNode.Id, chain.NodeIds, allVisitedNodes);
+            }
+
+            // 分析跨链依赖关系
+            AnalyzeChainDependencies(chain, allVisitedNodes, existingChains);
+
+            return chain;
+        }
+
+        /// <summary>
+        /// 为未访问的节点（孤岛节点）创建独立的执行链
+        /// </summary>
+        /// <param name="allVisitedNodes">已访问的节点集合</param>
+        /// <param name="chainCounter">执行链计数器（引用类型，用于递增索引）</param>
+        /// <param name="chains">执行链列表（用于添加新的孤岛链）</param>
+        private void CreateIsolatedChains(
+            HashSet<string> allVisitedNodes,
+            ref int chainCounter,
+            List<ExecutionChain> chains)
+        {
+            var unvisitedNodes = Nodes
+                .Where(n => !allVisitedNodes.Contains(n.Id) && n.IsEnabled)
+                .ToList();
+
+            foreach (var isolatedNode in unvisitedNodes)
+            {
+                var chain = new ExecutionChain
+                {
+                    ChainId = $"chain_{chainCounter}",
+                    StartNodeId = isolatedNode.Id,
+                    NodeIds = new List<string> { isolatedNode.Id },
+                    Dependencies = new List<ChainDependency>()
+                };
+
+                chains.Add(chain);
+                chainCounter++;
+
+                Logger?.LogInfo($"[AutoDetect] 创建孤岛链[{chainCounter}]: {isolatedNode.Name}");
+            }
         }
     }
 
