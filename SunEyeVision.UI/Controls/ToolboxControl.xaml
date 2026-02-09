@@ -109,10 +109,11 @@
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource BoolToVisibilityConverter}}">
                 <!-- 左侧分类侧边栏 (60px宽) -->
                 <Border x:Name="CategorySidebar"
-                        DockPanel.Dock="Left" Width="60" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
-                    <StackPanel>
-                        <!-- 分类图标列表 -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                        DockPanel.Dock="Left" Width="60" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"
+                        MouseLeave="CategorySidebar_MouseLeave">
+                    <DockPanel LastChildFill="True">
+                        <!-- 上部：分类图标列表 -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" DockPanel.Dock="Top">
                             <ItemsControl x:Name="CategoryItemsControl" ItemsSource="{Binding Categories}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -132,7 +133,23 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
-                    </StackPanel>
+
+                        <!-- 底部：切换按钮 -->
+                        <Button x:Name="CompactModeToggleBtn"
+                                DockPanel.Dock="Bottom"
+                                Width="44" Height="44"
+                                Margin="0,8,0,16"
+                                HorizontalAlignment="Center"
+                                Click="ToggleModeButton_Click"
+                                ToolTip="{Binding DisplayModeTooltip}"
+                                Background="Transparent"
+                                BorderThickness="0">
+                            <TextBlock Text="{Binding DisplayModeIcon}"
+                                       FontSize="20"
+                                       Foreground="#666666"
+                                       FontWeight="Bold"/>
+                        </Button>
+                    </DockPanel>
                 </Border>
 
                 <!-- Popup 用于紧凑模式下显示工具 -->
@@ -157,7 +174,6 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Grid.Column="0" Text="{Binding SelectedCategoryIcon}"
@@ -168,36 +184,6 @@
                                                FontSize="14" FontWeight="SemiBold"
                                                Foreground="#333333"
                                                VerticalAlignment="Center"/>
-
-                                    <Button Grid.Column="2"
-                                            Content="✕"
-                                            Padding="6,2"
-                                            FontSize="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Foreground="#999999"
-                                            Cursor="Hand"
-                                            Command="{Binding ClearSelectionCommand}">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}"
-                                                        Padding="{TemplateBinding Padding}"
-                                                        CornerRadius="4">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Foreground" Value="#333333"/>
-                                                        <Setter Property="Background" Value="#E0E0E0"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
                                 </Grid>
                             </Border>
 
@@ -231,75 +217,99 @@
             <!-- ========== 展开模式（传统工具箱样式，使用水平 WrapPanel）========== -->
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                 <!-- 分类和工具列表 -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Categories}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <!-- 分类标题 -->
-                                    <Border Style="{StaticResource ExpandedCategoryHeaderStyle}"
-                                            MouseLeftButtonUp="ExpandCategory_MouseLeftButtonUp"
-                                            Tag="{Binding}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                <Grid DockPanel.Dock="Top">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                                            <!-- 展开/折叠图标 -->
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding IsExpanded, Converter={StaticResource ExpandIconConverter}}"
-                                                       FontSize="12"
-                                                       Foreground="#666666"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
+                    <!-- 分类和工具滚动区域 -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="0">
+                        <ItemsControl ItemsSource="{Binding Categories}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <!-- 分类标题 -->
+                                        <Border Style="{StaticResource ExpandedCategoryHeaderStyle}"
+                                                MouseLeftButtonUp="ExpandCategory_MouseLeftButtonUp"
+                                                Tag="{Binding}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
 
-                                            <!-- 分类图标和名称 -->
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontSize="13"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="#333333"
+                                                <!-- 展开/折叠图标 -->
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding IsExpanded, Converter={StaticResource ExpandIconConverter}}"
+                                                           FontSize="12"
+                                                           Foreground="#666666"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"/>
+
+                                                <!-- 分类图标和名称 -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#333333"
+                                                               VerticalAlignment="Center"/>
+                                                </StackPanel>
+
+                                                <!-- 工具数量 -->
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding ToolCount, StringFormat='({0})'}"
+                                                           FontSize="12"
+                                                           Foreground="#999999"
                                                            VerticalAlignment="Center"/>
-                                            </StackPanel>
+                                            </Grid>
+                                        </Border>
 
-                                            <!-- 工具数量 -->
-                                            <TextBlock Grid.Column="2"
-                                                       Text="{Binding ToolCount, StringFormat='({0})'}"
-                                                       FontSize="12"
-                                                       Foreground="#999999"
-                                                       VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
+                                        <!-- 工具列表（仅当展开时显示，使用水平 WrapPanel） -->
+                                        <ItemsControl ItemsSource="{Binding Tools}"
+                                                      Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource CompactToolItemStyle}"
+                                                            Tag="{Binding}"
+                                                            PreviewMouseLeftButtonDown="ToolItem_PreviewMouseLeftButtonDown">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Icon}" Style="{StaticResource ToolIconStyle}"/>
+                                                            <TextBlock Text="{Binding Name}" Style="{StaticResource ToolNameStyle}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
 
-                                    <!-- 工具列表（仅当展开时显示，使用水平 WrapPanel） -->
-                                    <ItemsControl ItemsSource="{Binding Tools}"
-                                                  Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel Orientation="Horizontal"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Style="{StaticResource CompactToolItemStyle}"
-                                                        Tag="{Binding}"
-                                                        PreviewMouseLeftButtonDown="ToolItem_PreviewMouseLeftButtonDown">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Icon}" Style="{StaticResource ToolIconStyle}"/>
-                                                        <TextBlock Text="{Binding Name}" Style="{StaticResource ToolNameStyle}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                    <!-- 底部：切换按钮 -->
+                    <Button x:Name="ExpandedModeToggleBtn"
+                            Grid.Row="1"
+                            Width="44" Height="44"
+                            Margin="0,8,0,16"
+                            HorizontalAlignment="Center"
+                            Click="ToggleModeButton_Click"
+                            ToolTip="{Binding DisplayModeTooltip}"
+                            Background="Transparent"
+                            BorderThickness="0">
+                        <TextBlock Text="{Binding DisplayModeIcon}"
+                                   FontSize="20"
+                                   Foreground="#666666"
+                                   FontWeight="Bold"/>
+                    </Button>
+                </Grid>
             </DockPanel>
         </DockPanel>
     </Border>

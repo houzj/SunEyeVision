@@ -70,11 +70,11 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 显示模式图标
+        /// 显示模式图标（箭头）
         /// </summary>
         public string DisplayModeIcon
         {
-            get => IsCompactMode ? "☰" : "◀";
+            get => IsCompactMode ? "→" : "←";
         }
 
         /// <summary>

@@ -82,9 +82,9 @@ namespace SunEyeVision.UI.Controls
                 var controlPosition = this.PointToScreen(new Point(0, 0));
                 System.Diagnostics.Debug.WriteLine($"[Toolbox] Control screen position: {controlPosition.X}, {controlPosition.Y}");
 
-                // 3. 计算popup的屏幕坐标（在分类项右侧5px处）
+                // 3. 计算popup的屏幕坐标（紧贴侧边栏，边框重叠实现视觉无缝）
                 _popupPosition = new Point(
-                    controlPosition.X + categoryPosition.X + 60 + 5,  // 分类项右侧(60px是侧边栏宽度) + 5px偏移
+                    controlPosition.X + categoryPosition.X + 60 - 1,  // 分类项右侧(60px是侧边栏宽度) -1px让边框重叠
                     controlPosition.Y + categoryPosition.Y
                 );
                 System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup screen position: {_popupPosition.X}, {_popupPosition.Y}");
@@ -143,48 +143,97 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 鼠标离开Popup区域
+        /// 鼠标离开Popup区域 - 即时检测联合区域
         /// </summary>
         private void CompactModePopupBorder_MouseLeave(object sender, MouseEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("[Toolbox] Popup MouseLeave");
 
-            // 延迟关闭，给用户移动鼠标的时间
-            var closeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            closeTimer.Tick += (s, args) =>
+            // 即时检测鼠标是否在popup或侧边栏的联合区域内
+            try
             {
-                closeTimer.Stop();
+                var mousePos = Mouse.GetPosition(this);
 
-                // 检查鼠标是否真的离开了popup和侧边栏
-                try
+                bool isOverSidebar = IsPointInElement(mousePos, CategorySidebar);
+                bool isOverPopup = CompactModePopup.IsOpen && IsPointInElement(mousePos, CompactModePopupBorder);
+
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] isOverSidebar: {isOverSidebar}, isOverPopup: {isOverPopup}");
+
+                // 如果鼠标不在popup内也不在侧边栏内，关闭popup
+                if (!isOverPopup && !isOverSidebar)
                 {
-                    var currentPopupPos = Mouse.GetPosition(CompactModePopupBorder);
-                    var currentSidebarPos = Mouse.GetPosition(CategorySidebar);
-
-                    bool isOverPopup = currentPopupPos.X >= 0 && currentPopupPos.X <= CompactModePopupBorder.ActualWidth &&
-                                     currentPopupPos.Y >= 0 && currentPopupPos.Y <= CompactModePopupBorder.ActualHeight;
-
-                    bool isOverSidebar = currentSidebarPos.X >= 0 && currentSidebarPos.X <= CategorySidebar.ActualWidth &&
-                                       currentSidebarPos.Y >= 0 && currentSidebarPos.Y <= CategorySidebar.ActualHeight;
-
-                    if (!isOverPopup && !isOverSidebar)
-                    {
-                        // 关闭Popup
-                        CompactModePopup.IsOpen = false;
-                        _viewModel.SelectedCategory = null;
-                        System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed by MouseLeave (mouse really left)");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Toolbox] Mouse still over popup or sidebar, keeping open");
-                    }
+                    CompactModePopup.IsOpen = false;
+                    _viewModel.SelectedCategory = null;
+                    System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed by MouseLeave");
                 }
-                catch
+                else
                 {
-                    // 如果popup已经关闭，忽略错误
+                    System.Diagnostics.Debug.WriteLine("[Toolbox] Mouse still over popup or sidebar, keeping open");
                 }
-            };
-            closeTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                // 如果出错，安全关闭popup
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] Error in Popup MouseLeave: {ex.Message}");
+                CompactModePopup.IsOpen = false;
+                _viewModel.SelectedCategory = null;
+            }
+        }
+
+        /// <summary>
+        /// 鼠标离开侧边栏
+        /// </summary>
+        private void CategorySidebar_MouseLeave(object sender, MouseEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[Toolbox] Sidebar MouseLeave");
+
+            // 与Popup的MouseLeave逻辑相同
+            try
+            {
+                var mousePos = Mouse.GetPosition(this);
+
+                bool isOverSidebar = IsPointInElement(mousePos, CategorySidebar);
+                bool isOverPopup = CompactModePopup.IsOpen && IsPointInElement(mousePos, CompactModePopupBorder);
+
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] isOverSidebar: {isOverSidebar}, isOverPopup: {isOverPopup}");
+
+                // 如果鼠标不在popup内也不在侧边栏内，关闭popup
+                if (!isOverPopup && !isOverSidebar)
+                {
+                    CompactModePopup.IsOpen = false;
+                    _viewModel.SelectedCategory = null;
+                    System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed by Sidebar MouseLeave");
+                }
+            }
+            catch (Exception ex)
+            {
+                // 如果出错，安全关闭popup
+                System.Diagnostics.Debug.WriteLine($"[Toolbox] Error in Sidebar MouseLeave: {ex.Message}");
+                CompactModePopup.IsOpen = false;
+                _viewModel.SelectedCategory = null;
+            }
+        }
+
+        /// <summary>
+        /// 检测点是否在元素的范围内
+        /// </summary>
+        private bool IsPointInElement(Point point, FrameworkElement element)
+        {
+            if (element == null || !element.IsVisible)
+                return false;
+
+            try
+            {
+                var elementPos = element.TransformToAncestor(this).Transform(new Point(0, 0));
+                return point.X >= elementPos.X &&
+                       point.X <= elementPos.X + element.ActualWidth &&
+                       point.Y >= elementPos.Y &&
+                       point.Y <= elementPos.Y + element.ActualHeight;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -196,6 +245,31 @@ namespace SunEyeVision.UI.Controls
             {
                 // 切换展开/折叠状态
                 category.IsExpanded = !category.IsExpanded;
+            }
+        }
+
+        /// <summary>
+        /// 点击切换显示模式
+        /// </summary>
+        private void ToggleModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.ToggleDisplayModeCommand.CanExecute(null))
+            {
+                _viewModel.ToggleDisplayModeCommand.Execute(null);
+                AdjustParentWidth();
+            }
+        }
+
+        /// <summary>
+        /// 调整父容器宽度
+        /// </summary>
+        private void AdjustParentWidth()
+        {
+            var mainWindow = System.Windows.Window.GetWindow(this) as MainWindow;
+            if (mainWindow?.ToolboxColumn != null)
+            {
+                double newWidth = _viewModel.IsCompactMode ? 60 : 260;
+                mainWindow.ToolboxColumn.Width = new GridLength(newWidth);
             }
         }
     }
