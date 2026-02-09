@@ -5,55 +5,149 @@ using SunEyeVision.PluginSystem;
 using SunEyeVision.PluginSystem.Base.Interfaces;
 using SunEyeVision.PluginSystem.Base.Services;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services.Toolbox;
 
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 工具箱视图模型 - 支持动态插件加载
+    /// 工具箱视图模型 - 支持动态插件加载和双模显示（优化版）
     /// </summary>
     public class ToolboxViewModel : ViewModelBase
     {
-        private string _searchText = "";
-        private ObservableCollection<ToolItem> _filteredTools;
+        private string _selectedCategory;
+        private bool _isCompactMode = true;
+        private bool _isCompactModePopupOpen = false;
+        private double _popupVerticalOffset = 0;
+        private readonly ToolboxToolCacheManager _toolCacheManager;
 
         public ObservableCollection<ToolCategory> Categories { get; }
         public ObservableCollection<ToolItem> AllTools { get; }
+        public ObservableCollection<ToolItem> SelectedCategoryTools { get; }
 
-        public string SearchText
+        /// <summary>
+        /// 是否为紧凑模式（true: 紧凑侧边栏模式, false: 传统展开模式）
+        /// </summary>
+        public bool IsCompactMode
         {
-            get => _searchText;
+            get => _isCompactMode;
             set
             {
-                if (SetProperty(ref _searchText, value))
+                if (SetProperty(ref _isCompactMode, value))
                 {
-                    FilterTools();
+                    // 切换模式时清空选中分类并关闭 Popup
+                    SelectedCategory = null;
+                    IsCompactModePopupOpen = false;
+                    OnPropertyChanged(nameof(DisplayModeIcon));
+                    OnPropertyChanged(nameof(DisplayModeTooltip));
                 }
             }
         }
 
-        public ObservableCollection<ToolItem> FilteredTools
+        /// <summary>
+        /// 紧凑模式下的 Popup 是否打开
+        /// </summary>
+        public bool IsCompactModePopupOpen
         {
-            get => _filteredTools;
-            set => SetProperty(ref _filteredTools, value);
+            get => _isCompactModePopupOpen;
+            set => SetProperty(ref _isCompactModePopupOpen, value);
+        }
+
+        /// <summary>
+        /// Popup的垂直偏移量（相对于PlacementTarget）
+        /// </summary>
+        public double PopupVerticalOffset
+        {
+            get => _popupVerticalOffset;
+            set => SetProperty(ref _popupVerticalOffset, value);
+        }
+
+        /// <summary>
+        /// 设置Popup的垂直偏移量
+        /// </summary>
+        public void SetPopupVerticalOffset(double offset)
+        {
+            PopupVerticalOffset = offset;
+        }
+
+        /// <summary>
+        /// 显示模式图标
+        /// </summary>
+        public string DisplayModeIcon
+        {
+            get => IsCompactMode ? "☰" : "◀";
+        }
+
+        /// <summary>
+        /// 显示模式提示
+        /// </summary>
+        public string DisplayModeTooltip
+        {
+            get => IsCompactMode ? "切换到展开模式" : "切换到紧凑模式";
+        }
+
+        public string SelectedCategory
+        {
+            get => _selectedCategory;
+            set
+            {
+                if (SetProperty(ref _selectedCategory, value))
+                {
+                    UpdateSelectedCategoryTools();
+                    UpdateCategorySelection();
+                    OnPropertyChanged(nameof(SelectedCategoryIcon));
+
+                    // 紧凑模式：控制 Popup 打开/关闭
+                    if (IsCompactMode && !string.IsNullOrEmpty(value))
+                    {
+                        IsCompactModePopupOpen = true;
+                    }
+                    else
+                    {
+                        IsCompactModePopupOpen = false;
+                    }
+                }
+            }
+        }
+
+        public string SelectedCategoryIcon
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(SelectedCategory))
+                    return "";
+                var category = Categories.FirstOrDefault(c => c.Name == SelectedCategory);
+                return category?.Icon ?? "🔧";
+            }
         }
 
         public ICommand ToggleCategoryCommand { get; }
         public ICommand UseToolCommand { get; }
-        public ICommand ExpandAllCommand { get; }
-        public ICommand CollapseAllCommand { get; }
+        public ICommand ClearSelectionCommand { get; }
+        public ICommand ToggleDisplayModeCommand { get; }
 
         public ToolboxViewModel()
         {
             Categories = new ObservableCollection<ToolCategory>();
             AllTools = new ObservableCollection<ToolItem>();
-            FilteredTools = new ObservableCollection<ToolItem>();
+            SelectedCategoryTools = new ObservableCollection<ToolItem>();
+            _selectedCategory = null;
+            _toolCacheManager = new ToolboxToolCacheManager(AllTools);
 
             ToggleCategoryCommand = new RelayCommand<ToolCategory>(ExecuteToggleCategory);
             UseToolCommand = new RelayCommand<ToolItem>(ExecuteUseTool);
-            ExpandAllCommand = new RelayCommand(ExecuteExpandAll);
-            CollapseAllCommand = new RelayCommand(ExecuteCollapseAll);
+            ClearSelectionCommand = new RelayCommand(ExecuteClearSelection);
+            ToggleDisplayModeCommand = new RelayCommand(ExecuteToggleDisplayMode);
 
             InitializeFromPlugins();
+
+            // 监听分类工具变化，如果没有工具则关闭Popup
+            SelectedCategoryTools.CollectionChanged += (s, e) =>
+            {
+                if (IsCompactMode && SelectedCategoryTools.Count == 0)
+                {
+                    IsCompactModePopupOpen = false;
+                }
+            };
         }
 
         /// <summary>
@@ -76,9 +170,6 @@ namespace SunEyeVision.UI.ViewModels
 
             // 更新分类的工具数量
             UpdateCategoryToolCounts();
-
-            // 初始化过滤后的工具
-            FilteredTools = new ObservableCollection<ToolItem>(AllTools);
         }
 
         /// <summary>
@@ -176,31 +267,53 @@ namespace SunEyeVision.UI.ViewModels
             foreach (var category in Categories)
             {
                 category.ToolCount = AllTools.Count(t => t.Category == category.Name);
-                // 为每个分类过滤工具
-                var filtered = AllTools.Where(t => t.Category == category.Name).ToList();
-                category.FilteredToolsForCategory = new System.Collections.ObjectModel.ObservableCollection<ToolItem>(filtered);
+                // 为每个分类设置工具列表
+                var tools = AllTools.Where(t => t.Category == category.Name).ToList();
+                category.Tools = new System.Collections.ObjectModel.ObservableCollection<ToolItem>(tools);
             }
         }
 
-        private void FilterTools()
+        /// <summary>
+        /// 更新选中分类的工具列表（使用缓存优化）
+        /// </summary>
+        private void UpdateSelectedCategoryTools()
         {
-            if (string.IsNullOrWhiteSpace(SearchText))
+            SelectedCategoryTools.Clear();
+
+            if (string.IsNullOrWhiteSpace(SelectedCategory))
             {
-                FilteredTools = new ObservableCollection<ToolItem>(AllTools);
+                return;
             }
-            else
+
+            // 使用缓存管理器获取工具列表
+            var cachedTools = _toolCacheManager.GetToolsByCategory(SelectedCategory);
+            foreach (var tool in cachedTools)
             {
-                var filtered = AllTools.Where(t =>
-                    t.Name.Contains(SearchText) ||
-                    t.Description.Contains(SearchText)
-                ).ToList();
-                FilteredTools = new ObservableCollection<ToolItem>(filtered);
+                SelectedCategoryTools.Add(tool);
+            }
+        }
+
+        /// <summary>
+        /// 更新分类选中状态
+        /// </summary>
+        private void UpdateCategorySelection()
+        {
+            foreach (var category in Categories)
+            {
+                category.IsSelected = (category.Name == SelectedCategory);
             }
         }
 
         private void ExecuteToggleCategory(ToolCategory category)
         {
-            category.IsExpanded = !category.IsExpanded;
+            if (SelectedCategory == category.Name)
+            {
+                SelectedCategory = null; // 取消选择
+            }
+            else
+            {
+                SelectedCategory = category.Name; // 选择新分类
+            }
         }
 
         private void ExecuteUseTool(ToolItem tool)
@@ -208,20 +321,17 @@ namespace SunEyeVision.UI.ViewModels
             // TODO: 实现工具使用事件
         }
 
-        private void ExecuteExpandAll()
+        private void ExecuteClearSelection()
         {
-            foreach (var category in Categories)
-            {
-                category.IsExpanded = true;
-            }
+            SelectedCategory = null;
         }
 
-        private void ExecuteCollapseAll()
+        /// <summary>
+        /// 切换显示模式
+        /// </summary>
+        private void ExecuteToggleDisplayMode()
         {
-            foreach (var category in Categories)
-            {
-                category.IsExpanded = false;
-            }
+            IsCompactMode = !IsCompactMode;
         }
     }
 }

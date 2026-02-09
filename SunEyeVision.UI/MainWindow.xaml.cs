@@ -196,6 +196,12 @@ namespace SunEyeVision.UI
                     UpdateZoomDisplay();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 
+                // 同步工具箱分隔线箭头方向
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    UpdateToolboxSplitterArrow();
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+
                 // TODO: 加载工作流
             }
             catch (Exception ex)
@@ -1470,24 +1476,29 @@ namespace SunEyeVision.UI
         private double _rightPanelWidth = 500;
 
         /// <summary>
-        /// 工具箱分割器的折叠/展开事件
+        /// 工具箱分割器的折叠/展开事件（实现双模切换：60px 紧凑模式 ↔ 260px 展开模式）
         /// </summary>
         private void ToolboxSplitter_ToggleClick(object? sender, EventArgs e)
         {
-            if (_viewModel.IsToolboxCollapsed)
+            var viewModel = DataContext as MainWindowViewModel;
+            if (viewModel?.Toolbox == null)
+                return;
+
+            if (viewModel.IsToolboxCollapsed)
             {
-                // 展开
-                ToolboxColumn.Width = new GridLength(_originalToolboxWidth);
+                // 展开：切换到展开模式（260px）
+                ToolboxColumn.Width = new GridLength(260);
                 ToolboxContent.Visibility = Visibility.Visible;
-                _viewModel.IsToolboxCollapsed = false;
+                viewModel.IsToolboxCollapsed = false;
+                viewModel.Toolbox.IsCompactMode = false;
             }
             else
             {
-                // 折叠
-                _originalToolboxWidth = ToolboxColumn.ActualWidth;
-                ToolboxColumn.Width = new GridLength(40);
-                ToolboxContent.Visibility = Visibility.Collapsed;
-                _viewModel.IsToolboxCollapsed = true;
+                // 折叠：切换到紧凑模式（60px）
+                ToolboxColumn.Width = new GridLength(60);
+                ToolboxContent.Visibility = Visibility.Visible;
+                viewModel.IsToolboxCollapsed = true;
+                viewModel.Toolbox.IsCompactMode = true;
             }
             UpdateToolboxSplitterArrow();
         }

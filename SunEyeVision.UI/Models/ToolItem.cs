@@ -34,7 +34,8 @@ namespace SunEyeVision.UI.Models
     public class ToolCategory : INotifyPropertyChanged
     {
         private bool _isExpanded;
-        private System.Collections.ObjectModel.ObservableCollection<ToolItem>? _filteredToolsForCategory;
+        private bool _isSelected;
+        private System.Collections.ObjectModel.ObservableCollection<ToolItem>? _tools;
 
         public string Name { get; set; }
         public string Icon { get; set; }
@@ -54,13 +55,26 @@ namespace SunEyeVision.UI.Models
             }
         }
 
-        public System.Collections.ObjectModel.ObservableCollection<ToolItem>? FilteredToolsForCategory
+        public bool IsSelected
         {
-            get => _filteredToolsForCategory;
+            get => _isSelected;
             set
             {
-                _filteredToolsForCategory = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FilteredToolsForCategory)));
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
+        }
+
+        public System.Collections.ObjectModel.ObservableCollection<ToolItem>? Tools
+        {
+            get => _tools;
+            set
+            {
+                _tools = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Tools)));
             }
         }
 
@@ -71,6 +85,7 @@ namespace SunEyeVision.UI.Models
             Description = description;
             ToolCount = toolCount;
             IsExpanded = isExpanded;
+            IsSelected = false;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

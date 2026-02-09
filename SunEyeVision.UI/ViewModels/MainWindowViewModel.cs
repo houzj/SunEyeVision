@@ -43,7 +43,7 @@ namespace SunEyeVision.UI.ViewModels
         private string _logText = "[系统] 等待操作...\n";
 
         // 面板折叠状态
-        private bool _isToolboxCollapsed = false;
+        private bool _isToolboxCollapsed = true;
         private bool _isImageDisplayCollapsed = false;
         private bool _isPropertyPanelCollapsed = false;
         private double _toolboxWidth = 260;

@@ -22,6 +22,8 @@
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
             <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
+            <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <converters:ExpandIconConverter x:Key="ExpandIconConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -301,7 +303,7 @@
         <!-- ========== 主内容区域 ========== -->
         <Grid x:Name="MainContentGrid" Loaded="MainContentGrid_Loaded">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="260" x:Name="ToolboxColumn" MinWidth="40" MaxWidth="600"/>
+                <ColumnDefinition Width="Auto" x:Name="ToolboxColumn" MinWidth="60" MaxWidth="260"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*" x:Name="WorkflowColumn" MinWidth="400"/>
                 <ColumnDefinition Width="Auto"/>
@@ -312,26 +314,11 @@
                 <RowDefinition Height="24"/>
             </Grid.RowDefinitions>
 
-            <!-- ========== 左侧工具区 - 使用ToolboxControl ========== -->
-            <Border Grid.Column="0" Background="#F8F8F8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- 工具箱标题 -->
-                    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1" Padding="8,4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="📦" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="工具箱" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 工具箱内容 -->
-                    <controls:ToolboxControl Grid.Row="1" DataContext="{Binding Toolbox}" x:Name="ToolboxContent"/>
-                </Grid>
+            <!-- ========== 左侧工具区 - 使用双模ToolboxControl ========== -->
+            <Border Grid.Column="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+                <controls:ToolboxControl DataContext="{Binding Toolbox}" x:Name="ToolboxContent"/>
             </Border>
+
 
             <!-- 左侧分割器 - 工具箱和工作区之间 -->
             <controls:SplitterWithToggle Grid.Column="1" Width="8" MinWidth="8"
@@ -714,7 +701,7 @@
                     <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控件 -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
-                            <ContentControl Content="{Binding}" x:Shared="False">
+                            <ContentControl Content="{Binding}">
                                 <ContentControl.ContentTemplateSelector>
                                     <controls:CanvasTemplateSelector>
                                         <controls:CanvasTemplateSelector.WorkflowCanvasTemplate>

@@ -36,7 +36,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SunEyeVision.Core\SunEyeVision.Core.csproj" />
-    <ProjectReference Include="..\SunEyeVision.Algorithms\SunEyeVision.Algorithms.csproj" />
     <ProjectReference Include="..\SunEyeVision.Workflow\SunEyeVision.Workflow.csproj" />
     <ProjectReference Include="..\SunEyeVision.DeviceDriver\SunEyeVision.DeviceDriver.csproj" />
     <ProjectReference Include="..\SunEyeVision.PluginSystem.Base\SunEyeVision.PluginSystem.Base.csproj" />
