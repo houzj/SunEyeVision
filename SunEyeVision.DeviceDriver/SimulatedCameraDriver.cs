@@ -2,11 +2,12 @@ using System;
 using System.Threading;
 using SunEyeVision.Interfaces;
 using SunEyeVision.Models;
+using Events = SunEyeVision.Events;
 
 namespace SunEyeVision.DeviceDriver
 {
     /// <summary>
-    /// Simulated camera driver (for testing)
+    /// Simulated camera driver (for testing) with trigger support
     /// </summary>
     public class SimulatedCameraDriver : BaseDeviceDriver
     {
@@ -109,8 +110,9 @@ namespace SunEyeVision.DeviceDriver
 
             _isCapturing = true;
             _captureThread = new Thread(CaptureLoop);
+            _captureThread.IsBackground = true;
             _captureThread.Start();
-            Logger.LogInfo($"Starting continuous capture: {DeviceName}");
+            Logger.LogInfo($"Starting continuous capture: {DeviceName}, TriggerMode={TriggerMode}");
             return true;
         }
 
@@ -129,13 +131,49 @@ namespace SunEyeVision.DeviceDriver
 
         private void CaptureLoop()
         {
+            Logger.LogInfo($"Capture loop started: {DeviceName}");
+
             while (_isCapturing && IsConnected)
             {
                 try
                 {
-                    var image = CaptureImage();
-                    // In real application, image capture event would be triggered here
-                    // Simulate frame rate
+                    Mat image = null;
+                    bool shouldPublishEvent = false;
+
+                    // Based on trigger mode, decide whether to capture
+                    switch (TriggerMode)
+                    {
+                        case TriggerMode.None:
+                            // Continuous capture mode
+                            image = CaptureImage();
+                            shouldPublishEvent = true;
+                            break;
+
+                        case TriggerMode.Software:
+                            // Software trigger mode - wait for TriggerCapture() call
+                            Thread.Sleep(100);
+                            continue;
+
+                        case TriggerMode.Hardware:
+                            // Simulate hardware trigger - capture every 100ms
+                            image = CaptureImage();
+                            shouldPublishEvent = true;
+                            break;
+
+                        case TriggerMode.Timer:
+                            // Timer trigger mode - capture every 100ms
+                            image = CaptureImage();
+                            shouldPublishEvent = true;
+                            break;
+                    }
+
+                    if (image != null && shouldPublishEvent)
+                    {
+                        // Trigger image captured event
+                        OnImageCaptured(image);
+                    }
+
+                    // Simulate frame rate (~30 FPS)
                     Thread.Sleep(33);
                 }
                 catch (Exception ex)
@@ -144,6 +182,8 @@ namespace SunEyeVision.DeviceDriver
                     Logger.LogWarning($"Capture loop error: {ex.Message}");
                 }
             }
+
+            Logger.LogInfo($"Capture loop stopped: {DeviceName}");
         }
 
         public override DeviceInfo GetDeviceInfo()
