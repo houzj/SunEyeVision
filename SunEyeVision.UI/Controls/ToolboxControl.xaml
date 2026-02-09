@@ -159,68 +159,72 @@
                         </Button>
                     </Grid>
                 </Border>
-
-                <!-- Popup 用于紧凑模式下显示工具 -->
-                <Popup x:Name="CompactModePopup"
-                       Placement="Custom"
-                       PopupAnimation="Slide"
-                       AllowsTransparency="False"
-                       StaysOpen="True">
-                    <Border x:Name="CompactModePopupBorder"
-                            Background="#FFFFFF"
-                            BorderBrush="#E0E0E0"
-                            BorderThickness="1"
-                            CornerRadius="0"
-                            MinWidth="340"
-                            MaxWidth="500"
-                            Padding="0"
-                            MouseLeave="CompactModePopupBorder_MouseLeave">
-                        <StackPanel>
-                            <!-- 分类标题栏 -->
-                            <Border Padding="16,12" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <TextBlock Grid.Column="0" Text="{Binding SelectedCategoryIcon}"
-                                               FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding SelectedCategory}"
-                                               FontSize="14" FontWeight="SemiBold"
-                                               Foreground="#333333"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-
-                            <!-- 工具列表（每行3列） -->
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,0,12,12" MaxHeight="500">
-                                <ItemsControl ItemsSource="{Binding SelectedCategoryTools}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="3"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Style="{StaticResource CompactToolItemStyle}"
-                                                    Tag="{Binding}"
-                                                    PreviewMouseLeftButtonDown="ToolItem_PreviewMouseLeftButtonDown">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource ToolIconStyle}"/>
-                                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ToolNameStyle}"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </StackPanel>
-                    </Border>
-                </Popup>
             </DockPanel>
+
+            <!-- Popup 用于紧凑模式下显示工具（移到DockPanel外部，作为Grid的直接子元素） -->
+            <Popup x:Name="CompactModePopup"
+                   Placement="Right"
+                   PopupAnimation="Slide"
+                   AllowsTransparency="False"
+                   StaysOpen="True"
+                   Visibility="{Binding IsCompactMode, Converter={StaticResource BoolToVisibilityConverter}}"
+                   PlacementTarget="{Binding ElementName=CategorySidebar}">
+                <Border x:Name="CompactModePopupBorder"
+                        Background="#FFFFFF"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        MinWidth="340"
+                        MaxWidth="500"
+                        Padding="16"
+                        MouseEnter="CompactModePopupBorder_MouseEnter"
+                        MouseLeave="CompactModePopupBorder_MouseLeave">
+                    <StackPanel>
+                        <!-- 分类标题栏 -->
+                        <Border Padding="0,0,0,12" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Margin="-16,-16,-16,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="{Binding SelectedCategoryIcon}"
+                                           FontSize="20" Margin="0,0,12,0" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding SelectedCategory}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="#333333"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- 工具列表（每行3列） -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,12,0,0" MaxHeight="500">
+                            <ItemsControl ItemsSource="{Binding SelectedCategoryTools}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource CompactToolItemStyle}"
+                                                Tag="{Binding}"
+                                                PreviewMouseLeftButtonDown="ToolItem_PreviewMouseLeftButtonDown"
+                                                Margin="0,0,8,8">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Icon}" Style="{StaticResource ToolIconStyle}"/>
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource ToolNameStyle}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+            </Popup>
 
             <!-- ========== 展开模式（传统工具箱样式，使用水平 WrapPanel）========== -->
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
