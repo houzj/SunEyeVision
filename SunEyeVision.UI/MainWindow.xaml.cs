@@ -725,8 +725,8 @@ namespace SunEyeVision.UI
         /// </summary>
         private void OnWorkflowCanvas_NodeSelected(object sender, WorkflowNode node)
         {
+            // 通过属性访问，触发属性变更通知和后续逻辑
             _viewModel.SelectedNode = node;
-            _viewModel.LoadNodeProperties(node);
         }
 
         /// <summary>
@@ -1480,6 +1480,47 @@ namespace SunEyeVision.UI
         private double _originalToolboxWidth = 260;
         */
         private double _rightPanelWidth = 500;
+        private double _previousSplitterPosition;
+
+        /// <summary>
+        /// 图像-属性分隔条开始拖动
+        /// </summary>
+        private void ImagePropertySplitter_DragStarted(object sender, DragStartedEventArgs e)
+        {
+            // 记录拖动开始前的状态
+            _previousSplitterPosition = RightPanelGrid.RowDefinitions[0].ActualHeight;
+            System.Diagnostics.Debug.WriteLine($"[分隔条拖动] 开始拖动，当前位置: {_previousSplitterPosition}");
+        }
+
+        /// <summary>
+        /// 图像-属性分隔条拖动中 - 实时更新高度
+        /// </summary>
+        private void ImagePropertySplitter_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            // 获取当前图像显示区域的高度
+            double currentImageHeight = RightPanelGrid.RowDefinitions[0].ActualHeight;
+            
+            // 实时记录拖动过程中的位置变化（用于调试）
+            System.Diagnostics.Debug.WriteLine($"[分隔条拖动中] 当前位置: {currentImageHeight:F2}");
+            
+            // 注意：由于ShowsPreview="False"，GridSplitter会自动调整相邻Row的高度
+            // 不需要手动更新Height，只需要记录状态即可
+        }
+
+        /// <summary>
+        /// 图像-属性分隔条拖动完成
+        /// </summary>
+        private void ImagePropertySplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            // 保存新的分隔条位置到ViewModel
+            double newPosition = RightPanelGrid.RowDefinitions[0].ActualHeight;
+            System.Diagnostics.Debug.WriteLine($"[分隔条拖动] 完成拖动，新位置: {newPosition}");
+
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.SaveSplitterPosition(newPosition);
+            }
+        }
 
         /// <summary>
         /// 工具箱分割器的折叠/展开事件（已废弃 - 切换功能已由ToolboxControl内部按钮实现）

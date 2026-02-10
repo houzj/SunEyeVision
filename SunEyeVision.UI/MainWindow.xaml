@@ -24,6 +24,8 @@
             <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
             <converters:ExpandIconConverter x:Key="ExpandIconConverter"/>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <converters:ImageAreaHeightConverter x:Key="ImageAreaHeightConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -306,7 +308,7 @@
                 <ColumnDefinition Width="Auto" x:Name="ToolboxColumn" MinWidth="60" MaxWidth="260"/>
                 <ColumnDefinition Width="*" x:Name="WorkflowColumn" MinWidth="400"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="500" x:Name="RightPanelColumn" MinWidth="40" MaxWidth="800"/>
+                <ColumnDefinition Width="700" x:Name="RightPanelColumn" MinWidth="40" MaxWidth="900"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -741,42 +743,241 @@
             <Border Grid.Column="3" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <Grid x:Name="RightPanelGrid">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="500" MinHeight="40" MaxHeight="1000"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>
+                        <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>  <!-- Row 0: 图像显示区域（自适应） -->
+                        <RowDefinition Height="Auto" MinHeight="4" MaxHeight="4"/>  <!-- Row 1: 分隔条（可拖动） -->
+                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 属性面板（固定300px） -->
                     </Grid.RowDefinitions>
 
-                    <!-- 图像显示区域 - 使用ImageDisplayControl -->
-                    <Border Grid.Row="0" Background="#333333" BorderBrush="#333333" BorderThickness="0">
+                    <!-- 图像显示区域 - 包含图像显示模块和图像载入及预览模块 -->
+                    <Border Grid.Row="0" BorderThickness="0">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>  <!-- 图像显示模块 -->
+                                <RowDefinition Height="Auto"/>  <!-- 图像载入及预览模块 -->
                             </Grid.RowDefinitions>
 
-                            <!-- 图像区域标题 -->
-                            <Border Grid.Row="0" Background="#444444" BorderBrush="#555555" BorderThickness="0,0,0,0" Padding="8,4">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🖼️" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="图像显示" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Foreground="White"/>
-                                </StackPanel>
+                            <!-- 图像显示模块 - 使用TabControl -->
+                            <Border Grid.Row="0" BorderThickness="0">
+                                <TabControl x:Name="ImageDisplayTabControl"
+                                            Background="White"
+                                            BorderThickness="0">
+                                    <!-- 第一个TabItem: 图像结果 -->
+                                    <TabItem Header="图像结果" Padding="12,6">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 第一行：图像类型切换（左侧）+ 控制按钮（右侧） -->
+                                            <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- 左侧：图像类型下拉框 -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        
+                                                        <ComboBox Width="140" Height="30" VerticalAlignment="Center"
+                                                                 ItemsSource="{Binding ImageDisplayTypes}"
+                                                                 SelectedItem="{Binding SelectedImageType, Mode=TwoWay}"
+                                                                 DisplayMemberPath="DisplayName"
+                                                                 Style="{StaticResource StyledComboBox}"
+                                                                 ToolTip="选择要显示的图像类型"/>
+                                                    </StackPanel>
+
+                                                    <!-- 右侧：图像控制按钮 -->
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <Button ToolTip="放大 (Ctrl++)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ZoomInCommand}">
+                                                            <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="缩小 (Ctrl+-)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ZoomOutCommand}">
+                                                            <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="适应窗口 (Ctrl+0)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding FitToWindowCommand}">
+                                                            <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="重置视图 (R)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ResetViewCommand}">
+                                                            <TextBlock Text="⟲" FontSize="16" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="全屏显示 (F)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ToggleFullScreenCommand}">
+                                                            <TextBlock Text="⛶" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- 第二行：图像显示区域 -->
+                                            <Border Grid.Row="1" Background="#333333">
+                                                <Grid>
+                                                    <!-- 图像显示控件 -->
+                                                    <controls:ImageDisplayControl
+                                                        ImageSource="{Binding DisplayImage}"
+                                                        Scale="{Binding ImageScale}"
+                                                        x:Name="ImageDisplayContent"/>
+
+                                                    <!-- 缩放比例显示覆盖层 -->
+                                                    <Border Background="#B3000000" Padding="8,4" CornerRadius="4"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                            Margin="10" Visibility="Visible">
+                                                        <TextBlock Text="{Binding ImageScale, StringFormat='{}{0:P0}'}" 
+                                                                  FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </TabItem>
+
+                                    <!-- 第二个TabItem: 模块结果 -->
+                                    <TabItem Header="模块结果" Padding="12,6">
+                                        <Grid Background="White">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 标题栏 -->
+                                            <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" 
+                                                    BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                                <TextBlock Text="选中节点的计算结果" 
+                                                          FontSize="12" FontWeight="SemiBold" 
+                                                          Foreground="#333333"/>
+                                            </Border>
+
+                                            <!-- 计算结果列表 -->
+                                            <Grid Grid.Row="1">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding CalculationResults}"
+                                                                  Margin="8">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="#F8F9FA" Padding="8,6"
+                                                                        Margin="0,0,0,6" CornerRadius="4"
+                                                                        BorderBrush="#E0E0E0" BorderThickness="1">
+                                                                    <Grid>
+                                                                        <Grid.RowDefinitions>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                        </Grid.RowDefinitions>
+
+                                                                        <!-- 结果名称 -->
+                                                                        <TextBlock Grid.Row="0" Text="{Binding Name}"
+                                                                                  FontWeight="SemiBold" FontSize="12"
+                                                                                  Foreground="#333333" Margin="0,0,0,4"/>
+
+                                                                        <!-- 结果值 -->
+                                                                        <TextBlock Grid.Row="1" Text="{Binding Value}"
+                                                                                  FontSize="11" Foreground="#666666"
+                                                                                  TextWrapping="Wrap"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+
+                                                <!-- 空状态提示 -->
+                                                <TextBlock Text="📊"
+                                                          FontSize="32"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="#CCCCCC"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                                <TextBlock Text="暂无计算结果"
+                                                          FontSize="12"
+                                                          Foreground="#999999"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="0,40,0,0"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                                <TextBlock Text="请选中一个节点查看其计算结果"
+                                                          FontSize="10"
+                                                          Foreground="#CCCCCC"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="0,52,0,0"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                            </Grid>
+                                        </Grid>
+                                    </TabItem>
+                                </TabControl>
                             </Border>
 
-                            <!-- 图像内容 -->
-                            <controls:ImageDisplayControl Grid.Row="1"
-                                ImageSource="{Binding DisplayImage}"
-                                Scale="{Binding ImageScale}"
-                                x:Name="ImageDisplayContent"/>
+                            <!-- 图像载入及预览模块 - 添加展开/收起动画 -->
+                            <Border Grid.Row="1"
+                                    Background="#F8F9FA"
+                                    BorderBrush="#E0E0E0"
+                                    BorderThickness="0,1,0,0"
+                                    Padding="8"
+                                    Height="100"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Top"
+                                    Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- 标题 -->
+                                    <TextBlock Grid.Row="0" Text="图像载入及预览"
+                                              FontSize="11" FontWeight="SemiBold"
+                                              Foreground="#666666" Margin="0,0,0,8"/>
+
+                                    <!-- 操作按钮 -->
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                        <Button Content="浏览文件" Padding="8,4" Margin="0,0,6,0"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Command="{Binding BrowseImageCommand}"
+                                                FontSize="11"/>
+                                        <Button Content="载入图像" Padding="8,4" Margin="0,0,6,0"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Command="{Binding LoadImageCommand}"
+                                                FontSize="11"/>
+                                        <Button Content="清除" Padding="8,4"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Command="{Binding ClearImageCommand}"
+                                                FontSize="11"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 
-                    <!-- 右侧面板内部分割器 - 图像显示和属性面板之间 -->
-                    <GridSplitter Grid.Row="1" Height="8" Width="Auto" MinHeight="8"
+                    <!-- 右侧面板内部分隔器 - 支持拖动调整并保存 -->
+                    <GridSplitter Grid.Row="1" Height="4" Width="Auto"
                                  ResizeDirection="Rows"
                                  Background="#DDDDDD"
                                  ShowsPreview="False"
                                  ResizeBehavior="PreviousAndNext"
-                                 HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch"
+                                 DragStarted="ImagePropertySplitter_DragStarted"
+                                 DragCompleted="ImagePropertySplitter_DragCompleted"
+                                 DragDelta="ImagePropertySplitter_DragDelta"
+                                 Cursor="SizeNS">
+                        <GridSplitter.Style>
+                            <Style TargetType="GridSplitter">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#4CAF50"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </GridSplitter.Style>
+                    </GridSplitter>
 
                     <!-- 属性面板 - 使用PropertyPanelControl -->
                     <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -17,6 +19,35 @@ using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
+    /// 图像显示类型枚举
+    /// </summary>
+    public enum ImageDisplayType
+    {
+        Original,    // 原始图像
+        Processed,   // 处理后图像
+        Result       // 结果图像
+    }
+
+    /// <summary>
+    /// 图像显示类型项
+    /// </summary>
+    public class ImageDisplayTypeItem
+    {
+        public ImageDisplayType Type { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 计算结果项
+    /// </summary>
+    public class ResultItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// 主窗口视图模型
     /// </summary>
     public class MainWindowViewModel : ViewModelBase
@@ -30,6 +61,13 @@ namespace SunEyeVision.UI.ViewModels
         // 图像显示相关
         private BitmapSource? _displayImage;
         private double _imageScale = 1.0;
+
+        // 图像类型相关
+        private ImageDisplayTypeItem? _selectedImageType;
+        private bool _showImagePreview = false;
+        private BitmapSource? _originalImage;
+        private BitmapSource? _processedImage;
+        private BitmapSource? _resultImage;
 
         // 所有工作流运行状态
         private bool _isAllWorkflowsRunning = false;
@@ -49,6 +87,14 @@ namespace SunEyeVision.UI.ViewModels
         private double _toolboxWidth = 260;
         private double _rightPanelWidth = 500;
         private double _imageDisplayHeight = 500;
+
+        // 分隔条相关
+        private double _splitterPosition = 500; // 默认图像区域高度
+        private const double DefaultPropertyPanelHeight = 300;
+        private const double MinImageAreaHeight = 200;
+        private const double MaxImageAreaHeight = 800;
+
+        private double _propertyPanelActualHeight = DefaultPropertyPanelHeight;
 
         public string Title
         {
@@ -98,7 +144,41 @@ namespace SunEyeVision.UI.ViewModels
         // 所有节点和连接都应该通过 WorkflowTabViewModel.SelectedTab 访问
         // 这样确保每个工作流 Tab 都是独立的
 
-        public Models.WorkflowNode? SelectedNode { get; set; }
+        private Models.WorkflowNode? _selectedNode;
+        private bool _showPropertyPanel = false;
+
+        public Models.WorkflowNode? SelectedNode
+        {
+            get
+            {
+                // AddLog($"[调试] SelectedNode 读取: {(_selectedNode == null ? "null" : _selectedNode.Name)}");
+                return _selectedNode;
+            }
+            set
+            {
+                if (SetProperty(ref _selectedNode, value))
+                {
+                    AddLog($"[调试] SelectedNode 变更: {(value == null ? "null" : value.Name)}");
+
+                    // 更新属性面板可见性
+                    ShowPropertyPanel = value != null;
+
+                    // 节点选中状态变化时，更新图像预览显示
+                    UpdateImagePreviewVisibility(value);
+                    // 加载节点属性到属性面板
+                    LoadNodeProperties(value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 显示属性面板
+        /// </summary>
+        public bool ShowPropertyPanel
+        {
+            get => _showPropertyPanel;
+            set => SetProperty(ref _showPropertyPanel, value);
+        }
         public Models.WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
@@ -135,8 +215,64 @@ namespace SunEyeVision.UI.ViewModels
         public double ImageScale
         {
             get => _imageScale;
-            set => SetProperty(ref _imageScale, value);
+            set
+            {
+                if (SetProperty(ref _imageScale, value))
+                {
+                    OnPropertyChanged(nameof(DisplayImage));
+                }
+            }
         }
+
+        /// <summary>
+        /// 图像显示类型集合
+        /// </summary>
+        public ObservableCollection<ImageDisplayTypeItem> ImageDisplayTypes { get; }
+
+        /// <summary>
+        /// 当前选中的图像显示类型
+        /// </summary>
+        public ImageDisplayTypeItem? SelectedImageType
+        {
+            get => _selectedImageType;
+            set
+            {
+                if (SetProperty(ref _selectedImageType, value))
+                {
+                    UpdateDisplayImage();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 显示图像载入及预览模块（仅对ImageCaptureTool节点显示）
+        /// </summary>
+        public bool ShowImagePreview
+        {
+            get => _showImagePreview;
+            set
+            {
+                System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] Setter被调用: {_showImagePreview} -> {value}");
+                if (SetProperty(ref _showImagePreview, value))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] PropertyChanged已触发, 当前值: {_showImagePreview}");
+                    OnPropertyChanged(nameof(ImagePreviewHeight));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 图像预览区域高度（用于动态控制图像预览模块的空间）
+        /// </summary>
+        public GridLength ImagePreviewHeight
+        {
+            get => ShowImagePreview ? new GridLength(60) : new GridLength(0);
+        }
+
+        /// <summary>
+        /// 计算结果集合
+        /// </summary>
+        public ObservableCollection<ResultItem> CalculationResults { get; }
 
         // 属性面板属性
         public ObservableCollection<Models.PropertyGroup> PropertyGroups
@@ -189,6 +325,58 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 图像显示区域高度（分隔条上方区域）
+        /// </summary>
+        public double SplitterPosition
+        {
+            get => _splitterPosition;
+            private set
+            {
+                // 确保在合理范围内
+                value = Math.Max(MinImageAreaHeight, Math.Min(MaxImageAreaHeight, value));
+                if (Math.Abs(_splitterPosition - value) > 1) // 避免微小抖动
+                {
+                    _splitterPosition = value;
+                    OnPropertyChanged(nameof(SplitterPosition));
+
+                    // 更新属性面板实际高度
+                    double availableHeight = _splitterPosition;
+                    double propertyHeight = Math.Max(200, Math.Min(600, 900 - availableHeight));
+                    PropertyPanelActualHeight = propertyHeight;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 属性面板实际高度
+        /// </summary>
+        public double PropertyPanelActualHeight
+        {
+            get => _propertyPanelActualHeight;
+            private set
+            {
+                if (Math.Abs(_propertyPanelActualHeight - value) > 1)
+                {
+                    _propertyPanelActualHeight = value;
+                    OnPropertyChanged(nameof(PropertyPanelActualHeight));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 保存分隔条位置（从代码后台调用）
+        /// </summary>
+        public void SaveSplitterPosition(double position)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SaveSplitterPosition] 保存位置: {position}");
+            SplitterPosition = position;
+
+            // 可选：保存到用户设置文件
+            // Settings.Default.SplitterPosition = position;
+            // Settings.Default.Save();
+        }
+
+        /// <summary>
         /// 所有工作流是否正在运行
         /// </summary>
         public bool IsAllWorkflowsRunning
@@ -204,6 +392,51 @@ namespace SunEyeVision.UI.ViewModels
         {
             get => _allWorkflowsRunButtonText;
             set => SetProperty(ref _allWorkflowsRunButtonText, value);
+        }
+
+        /// <summary>
+        /// 原始图像
+        /// </summary>
+        public BitmapSource? OriginalImage
+        {
+            get => _originalImage;
+            set
+            {
+                if (SetProperty(ref _originalImage, value))
+                {
+                    UpdateDisplayImage();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 处理后图像
+        /// </summary>
+        public BitmapSource? ProcessedImage
+        {
+            get => _processedImage;
+            set
+            {
+                if (SetProperty(ref _processedImage, value))
+                {
+                    UpdateDisplayImage();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 结果图像
+        /// </summary>
+        public BitmapSource? ResultImage
+        {
+            get => _resultImage;
+            set
+            {
+                if (SetProperty(ref _resultImage, value))
+                {
+                    UpdateDisplayImage();
+                }
+            }
         }
 
         /// <summary>
@@ -245,6 +478,18 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand RunAllWorkflowsCommand { get; }
         public ICommand ToggleContinuousAllCommand { get; }
 
+        // 图像控制命令
+        public ICommand ZoomInCommand { get; }
+        public ICommand ZoomOutCommand { get; }
+        public ICommand FitToWindowCommand { get; }
+        public ICommand ResetViewCommand { get; }
+        public ICommand ToggleFullScreenCommand { get; }
+
+        // 图像载入命令
+        public ICommand BrowseImageCommand { get; }
+        public ICommand LoadImageCommand { get; }
+        public ICommand ClearImageCommand { get; }
+
         public MainWindowViewModel()
         {
             Workflows = new ObservableCollection<string>
@@ -261,6 +506,18 @@ namespace SunEyeVision.UI.ViewModels
 
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
+
+            // 初始化图像显示类型
+            ImageDisplayTypes = new ObservableCollection<ImageDisplayTypeItem>
+            {
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Original, DisplayName = "原始图像", Icon = "📷" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Processed, DisplayName = "处理后图像", Icon = "⚙️" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Result, DisplayName = "结果图像", Icon = "✓" }
+            };
+            SelectedImageType = ImageDisplayTypes.FirstOrDefault();
+
+            // 初始化计算结果集合
+            CalculationResults = new ObservableCollection<ResultItem>();
 
             // 初始化工作流执行管理器
             _executionManager = new Services.WorkflowExecutionManager(new Services.DefaultInputProvider());
@@ -305,10 +562,22 @@ namespace SunEyeVision.UI.ViewModels
             OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
             ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
-            
+
             // 所有工作流控制命令
             RunAllWorkflowsCommand = new RelayCommand(async () => await ExecuteRunAllWorkflows(), () => !IsAllWorkflowsRunning);
             ToggleContinuousAllCommand = new RelayCommand(ExecuteToggleContinuousAll, () => true);
+
+            // 图像控制命令
+            ZoomInCommand = new RelayCommand(ExecuteZoomIn);
+            ZoomOutCommand = new RelayCommand(ExecuteZoomOut);
+            FitToWindowCommand = new RelayCommand(ExecuteFitToWindow);
+            ResetViewCommand = new RelayCommand(ExecuteResetView);
+            ToggleFullScreenCommand = new RelayCommand(ExecuteToggleFullScreen);
+
+            // 图像载入命令
+            BrowseImageCommand = new RelayCommand(ExecuteBrowseImage);
+            LoadImageCommand = new RelayCommand(ExecuteLoadImage);
+            ClearImageCommand = new RelayCommand(ExecuteClearImage);
         }
 
         /// <summary>
@@ -1151,6 +1420,209 @@ namespace SunEyeVision.UI.ViewModels
 
             return null;
         }
+
+        #region 图像控制命令
+
+        /// <summary>
+        /// 放大图像
+        /// </summary>
+        private void ExecuteZoomIn()
+        {
+            ImageScale = Math.Min(ImageScale * 1.2, 5.0);
+            AddLog($"🔎 图像放大: {ImageScale:P0}");
+        }
+
+        /// <summary>
+        /// 缩小图像
+        /// </summary>
+        private void ExecuteZoomOut()
+        {
+            ImageScale = Math.Max(ImageScale / 1.2, 0.1);
+            AddLog($"🔎 图像缩小: {ImageScale:P0}");
+        }
+
+        /// <summary>
+        /// 适应窗口
+        /// </summary>
+        private void ExecuteFitToWindow()
+        {
+            // TODO: 根据窗口大小计算合适的缩放比例
+            ImageScale = 1.0;
+            AddLog($"📐 适应窗口: {ImageScale:P0}");
+        }
+
+        /// <summary>
+        /// 重置视图
+        /// </summary>
+        private void ExecuteResetView()
+        {
+            ImageScale = 1.0;
+            AddLog($"⟲ 重置视图: {ImageScale:P0}");
+        }
+
+        /// <summary>
+        /// 切换全屏显示
+        /// </summary>
+        private void ExecuteToggleFullScreen()
+        {
+            // TODO: 实现图像全屏显示功能
+            AddLog("⛶ 切换全屏显示");
+        }
+
+        #endregion
+
+        #region 图像载入命令
+
+        /// <summary>
+        /// 浏览图像文件
+        /// </summary>
+        private void ExecuteBrowseImage()
+        {
+            try
+            {
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|所有文件|*.*",
+                    Title = "选择图像文件"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var filePath = openFileDialog.FileName;
+                    AddLog($"📁 已选择文件: {filePath}");
+
+                    // TODO: 载入图像到OriginalImage
+                    // OriginalImage = LoadImageFromFile(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 浏览图像失败: {ex.Message}");
+                System.Windows.MessageBox.Show($"浏览图像失败: {ex.Message}", "错误",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 载入图像
+        /// </summary>
+        private void ExecuteLoadImage()
+        {
+            try
+            {
+                if (OriginalImage == null)
+                {
+                    AddLog("⚠️ 请先选择图像文件");
+                    return;
+                }
+
+                AddLog("✅ 图像载入成功");
+                // TODO: 处理图像并更新ProcessedImage和ResultImage
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 载入图像失败: {ex.Message}");
+                System.Windows.MessageBox.Show($"载入图像失败: {ex.Message}", "错误",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 清除图像
+        /// </summary>
+        private void ExecuteClearImage()
+        {
+            try
+            {
+                OriginalImage = null;
+                ProcessedImage = null;
+                ResultImage = null;
+                ImageScale = 1.0;
+                AddLog("🗑️ 已清除图像");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 清除图像失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region 辅助方法
+
+        /// <summary>
+        /// 更新显示图像
+        /// </summary>
+        private void UpdateDisplayImage()
+        {
+            if (SelectedImageType == null)
+                return;
+
+            switch (SelectedImageType.Type)
+            {
+                case ImageDisplayType.Original:
+                    DisplayImage = OriginalImage;
+                    break;
+                case ImageDisplayType.Processed:
+                    DisplayImage = ProcessedImage;
+                    break;
+                case ImageDisplayType.Result:
+                    DisplayImage = ResultImage;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 更新计算结果
+        /// </summary>
+        public void UpdateCalculationResults(Dictionary<string, object> results)
+        {
+            CalculationResults.Clear();
+
+            if (results == null || results.Count == 0)
+                return;
+
+            foreach (var kvp in results)
+            {
+                CalculationResults.Add(new ResultItem
+                {
+                    Name = kvp.Key,
+                    Value = kvp.Value?.ToString() ?? "null"
+                });
+            }
+
+            AddLog($"📊 更新计算结果: {results.Count} 项");
+        }
+
+        /// <summary>
+        /// 更新图像预览显示状态
+        /// </summary>
+        public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
+        {
+            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 开始执行, selectedNode={selectedNode?.Name ?? "null"}");
+            if (selectedNode == null)
+            {
+                ShowImagePreview = false;
+                AddLog("[调试] 图像预览: 隐藏 (没有选中节点)");
+                System.Diagnostics.Debug.WriteLine("[UpdateImagePreviewVisibility] 已设置ShowImagePreview=false");
+                return;
+            }
+
+            // 判断是否为图像采集节点
+            var algorithmType = selectedNode.AlgorithmType ?? "";
+            var shouldShow = algorithmType == "ImageCaptureTool" ||
+                           algorithmType == "image_capture" ||
+                           algorithmType == "ImageAcquisition";
+
+            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 算法类型={algorithmType}, shouldShow={shouldShow}");
+            AddLog($"[调试] 图像预览: {(shouldShow ? "显示" : "隐藏")} (节点类型: {algorithmType}, 节点名称: {selectedNode.Name})");
+            ShowImagePreview = shouldShow;
+            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 已设置ShowImagePreview={shouldShow}");
+            OnPropertyChanged(nameof(ShowImagePreview));  // 显式触发通知
+            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 已触发PropertyChanged事件");
+        }
+
+        #endregion
 
         /// <summary>
         /// 默认工具插件 - 用于兼容性
