@@ -31,11 +31,8 @@ namespace SunEyeVision.UI.Controls
 
             if (_viewModel == null)
             {
-                System.Diagnostics.Debug.WriteLine("[Toolbox] WARNING: DataContext is null or not ToolboxViewModel");
                 return;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] ViewModel loaded, IsCompactMode: {_viewModel.IsCompactMode}");
 
             // 设置Popup的DataContext（Popup不在Visual Tree中，需要手动设置）
             CompactModePopup.DataContext = _viewModel;
@@ -58,7 +55,6 @@ namespace SunEyeVision.UI.Controls
         private CustomPopupPlacement[] CustomPopupPlacementMethod(Size popupSize, Size targetSize, Point offset)
         {
             // 此方法已不再使用，保留仅为兼容性
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] WARNING: CustomPopupPlacementMethod called but should not be used!");
             return new CustomPopupPlacement[] { new CustomPopupPlacement(new Point(10, 0), PopupPrimaryAxis.Horizontal) };
         }
 
@@ -74,7 +70,6 @@ namespace SunEyeVision.UI.Controls
                 {
                     CompactModePopup.IsOpen = false;
                     _viewModel.SelectedCategory = null;
-                    System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed before drag start");
                 }
 
                 var data = new DataObject("ToolItem", tool);
@@ -89,34 +84,18 @@ namespace SunEyeVision.UI.Controls
         {
             if (sender is Border border && border.Tag is ToolCategory category)
             {
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] ========== MouseEnter category: {category.Name} ==========");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] IsCompactMode: {_viewModel.IsCompactMode}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] SelectedCategoryTools count: {_viewModel.SelectedCategoryTools.Count}");
-
                 // 计算分类图标相对于CategorySidebar的位置（纯相对坐标）
                 var categoryInSidebar = border.TransformToAncestor(CategorySidebar).Transform(new Point(0, 0));
                 _popupVerticalOffset = categoryInSidebar.Y;
-
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Category relative to sidebar: X={categoryInSidebar.X:F1}, Y={categoryInSidebar.Y:F1}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Category actual size: {border.ActualWidth:F1}x{border.ActualHeight:F1}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup VerticalOffset set to: {_popupVerticalOffset:F1}");
 
                 // 设置Popup的垂直偏移（纯相对坐标，不涉及屏幕坐标）
                 CompactModePopup.VerticalOffset = _popupVerticalOffset;
 
                 // 悬停时直接打开popup
                 _viewModel.SelectedCategory = category.Name;
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Setting SelectedCategory to: {category.Name}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] SelectedCategoryTools count after: {_viewModel.SelectedCategoryTools.Count}");
 
                 // 直接设置Popup.IsOpen
                 CompactModePopup.IsOpen = true;
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Set CompactModePopup.IsOpen to: true");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] CompactModePopup.IsOpen: {CompactModePopup.IsOpen}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup PlacementMode: {CompactModePopup.Placement}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup PlacementTarget: {CompactModePopup.PlacementTarget?.GetType().Name}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup HorizontalOffset: {CompactModePopup.HorizontalOffset:F1}");
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup VerticalOffset: {CompactModePopup.VerticalOffset:F1}");
             }
         }
 
@@ -125,12 +104,6 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnPopupOpened(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[Toolbox] ========== Popup Opened event fired ==========");
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] Popup DataContext: {CompactModePopup.DataContext?.GetType().Name}");
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] SelectedCategory: {_viewModel.SelectedCategory}");
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] SelectedCategoryTools count: {_viewModel.SelectedCategoryTools.Count}");
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] SelectedCategoryIcon: {_viewModel.SelectedCategoryIcon}");
-
             // 设计时不执行计算，避免设计器错误
             if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
             {
@@ -147,7 +120,6 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnPopupClosed(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[Toolbox] Popup Closed event fired");
         }
 
         /// <summary>
@@ -155,7 +127,6 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void CompactModePopupBorder_MouseEnter(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[Toolbox] MouseEnter popup border");
             // 什么都不做，只是接收事件，防止popup关闭
         }
 
@@ -164,8 +135,6 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void CompactModePopupBorder_MouseLeave(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[Toolbox] Popup MouseLeave");
-
             // 即时检测鼠标是否在popup或侧边栏的联合区域内
             try
             {
@@ -174,24 +143,16 @@ namespace SunEyeVision.UI.Controls
                 bool isOverSidebar = IsPointInElement(mousePos, CategorySidebar);
                 bool isOverPopup = CompactModePopup.IsOpen && IsPointInElement(mousePos, CompactModePopupBorder);
 
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] isOverSidebar: {isOverSidebar}, isOverPopup: {isOverPopup}");
-
                 // 如果鼠标不在popup内也不在侧边栏内，关闭popup
                 if (!isOverPopup && !isOverSidebar)
                 {
                     CompactModePopup.IsOpen = false;
                     _viewModel.SelectedCategory = null;
-                    System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed by MouseLeave");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[Toolbox] Mouse still over popup or sidebar, keeping open");
                 }
             }
             catch (Exception ex)
             {
                 // 如果出错，安全关闭popup
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Error in Popup MouseLeave: {ex.Message}");
                 CompactModePopup.IsOpen = false;
                 _viewModel.SelectedCategory = null;
             }
@@ -202,8 +163,6 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void CategorySidebar_MouseLeave(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[Toolbox] Sidebar MouseLeave");
-
             // 如果Popup没有打开，直接返回
             if (!CompactModePopup.IsOpen)
                 return;
@@ -215,12 +174,9 @@ namespace SunEyeVision.UI.Controls
                 bool isOverSidebar = IsPointInElement(mousePos, CategorySidebar);
                 bool isOverPopupBorder = IsPointInElement(mousePos, CompactModePopupBorder);
 
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] isOverSidebar: {isOverSidebar}, isOverPopupBorder: {isOverPopupBorder}");
-
                 // 如果鼠标在Popup内容区域内，不关闭popup
                 if (isOverPopupBorder)
                 {
-                    System.Diagnostics.Debug.WriteLine("[Toolbox] Mouse over popup area, keeping open");
                     return;
                 }
 
@@ -229,13 +185,11 @@ namespace SunEyeVision.UI.Controls
                 {
                     CompactModePopup.IsOpen = false;
                     _viewModel.SelectedCategory = null;
-                    System.Diagnostics.Debug.WriteLine("[Toolbox] Popup closed by Sidebar MouseLeave");
                 }
             }
             catch (Exception ex)
             {
                 // 如果出错，安全关闭popup
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] Error in Sidebar MouseLeave: {ex.Message}");
                 CompactModePopup.IsOpen = false;
                 _viewModel.SelectedCategory = null;
             }
@@ -279,8 +233,6 @@ namespace SunEyeVision.UI.Controls
                     // 获取popup元素的屏幕位置
                     var elementScreenPos = element.PointToScreen(new Point(0, 0));
 
-                    System.Diagnostics.Debug.WriteLine($"[Toolbox] IsPointInElement (Popup): mouseScreenPos={mouseScreenPos.X}, {mouseScreenPos.Y}, elementScreenPos={elementScreenPos.X}, {elementScreenPos.Y}, elementSize={element.ActualWidth}x{element.ActualHeight}");
-
                     // 使用屏幕坐标检测
                     return mouseScreenPos.X >= elementScreenPos.X &&
                            mouseScreenPos.X <= elementScreenPos.X + element.ActualWidth &&
@@ -289,7 +241,6 @@ namespace SunEyeVision.UI.Controls
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Toolbox] Error in IsPointInElement (Popup): {ex.Message}");
                     return false;
                 }
             }
@@ -337,19 +288,10 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void ToggleModeButton_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] ========== ToggleModeButton_Click ==========");
-            System.Diagnostics.Debug.WriteLine($"[Toolbox] _viewModel is null: {_viewModel == null}");
-            if (_viewModel != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] IsCompactMode before: {_viewModel.IsCompactMode}");
-            }
-
             if (_viewModel != null && _viewModel.ToggleDisplayModeCommand.CanExecute(null))
             {
                 _viewModel.ToggleDisplayModeCommand.Execute(null);
                 AdjustParentWidth();
-
-                System.Diagnostics.Debug.WriteLine($"[Toolbox] IsCompactMode after: {_viewModel.IsCompactMode}");
             }
         }
 
