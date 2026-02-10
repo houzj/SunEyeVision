@@ -920,7 +920,7 @@
                                     Background="#F8F9FA"
                                     BorderBrush="#E0E0E0"
                                     BorderThickness="0,1,0,0"
-                                    Padding="8"
+                                    Padding="2"
                                     Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <controls:ImagePreviewControl x:Name="ImagePreviewContent"
                                                              AutoSwitchEnabled="{Binding AutoSwitchEnabled}"

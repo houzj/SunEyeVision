@@ -64,7 +64,7 @@ namespace SunEyeVision.UI.Controls
     /// <summary>
     /// ImagePreviewControl.xaml 的交互逻辑
     /// </summary>
-    public partial class ImagePreviewControl : System.Windows.Controls.UserControl
+    public partial class ImagePreviewControl : System.Windows.Controls.UserControl, INotifyPropertyChanged
     {
         public static readonly DependencyProperty AutoSwitchEnabledProperty =
             DependencyProperty.Register("AutoSwitchEnabled", typeof(bool), typeof(ImagePreviewControl),
@@ -72,7 +72,7 @@ namespace SunEyeVision.UI.Controls
 
         public static readonly DependencyProperty CurrentImageIndexProperty =
             DependencyProperty.Register("CurrentImageIndex", typeof(int), typeof(ImagePreviewControl),
-                new PropertyMetadata(-1));
+                new PropertyMetadata(-1, OnCurrentImageIndexChanged));
 
         public static readonly DependencyProperty ImageCollectionProperty =
             DependencyProperty.Register("ImageCollection", typeof(ObservableCollection<ImageInfo>), typeof(ImagePreviewControl),
@@ -93,14 +93,7 @@ namespace SunEyeVision.UI.Controls
         public int CurrentImageIndex
         {
             get => (int)GetValue(CurrentImageIndexProperty);
-            set
-            {
-                if ((int)GetValue(CurrentImageIndexProperty) != value)
-                {
-                    SetValue(CurrentImageIndexProperty, value);
-                    UpdateImageSelection();
-                }
-            }
+            set => SetValue(CurrentImageIndexProperty, value);
         }
 
         /// <summary>
@@ -144,7 +137,7 @@ namespace SunEyeVision.UI.Controls
 
             ImageCollection.CollectionChanged += (s, e) =>
             {
-                UpdateDisplayIndices();
+                // UpdateDisplayIndices(); // 不再需要显示序号，移除此调用
                 OnPropertyChanged(nameof(ImageCountDisplay));
             };
         }
@@ -411,19 +404,30 @@ namespace SunEyeVision.UI.Controls
         #region 辅助方法
 
         /// <summary>
-        /// 图像集合更改回调
+        /// 当前图像索引更改回调
         /// </summary>
-        private static void OnImageCollectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+        private static void OnCurrentImageIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
         {
             var control = (ImagePreviewControl)d;
-            control.UpdateDisplayIndices();
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
         }
 
         /// <summary>
-        /// 更新图像显示索引
+        /// 图像集合更改回调
         /// </summary>
+        private static void OnImageCollectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+        {
+            var control = (ImagePreviewControl)d;
+            // control.UpdateDisplayIndices(); // 不再需要显示序号，移除此调用
+            control.UpdateImageSelection();
+            control.OnPropertyChanged(nameof(ImageCountDisplay));
+        }
+
+        /// <summary>
+        /// 更新图像显示索引（已废弃，不再使用）
+        /// </summary>
+        [System.Obsolete("此方法已废弃，不再需要显示缩略图序号")]
         private void UpdateDisplayIndices()
         {
             if (ImageCollection == null) return;
@@ -465,11 +469,9 @@ namespace SunEyeVision.UI.Controls
         /// <summary>
         /// 属性更改通知
         /// </summary>
-        private void OnPropertyChanged(string _)
+        private void OnPropertyChanged(string propertyName)
         {
-            // 实现属性更改通知逻辑
-            // 由于这是 UserControl，我们可以通过事件或其他方式通知
-            // 这里暂时不需要实现，因为使用了 DependencyProperty
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         /// <summary>
@@ -524,6 +526,11 @@ namespace SunEyeVision.UI.Controls
         /// 运行全部请求事件
         /// </summary>
         public event EventHandler? RunAllRequested;
+
+        /// <summary>
+        /// INotifyPropertyChanged接口实现
+        /// </summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         #endregion
     }

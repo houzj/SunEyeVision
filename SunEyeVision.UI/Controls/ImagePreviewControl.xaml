@@ -81,10 +81,51 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
         </Style>
+
+        <!-- 窄滚动条模板 -->
+        <ControlTemplate x:Key="ThinScrollViewerTemplate" TargetType="ScrollViewer">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <ScrollContentPresenter Grid.Column="0" Grid.Row="0"/>
+                <ScrollBar x:Name="PART_HorizontalScrollBar"
+                           Grid.Column="0" Grid.Row="1"
+                           Orientation="Horizontal"
+                           Height="3"
+                           Maximum="{TemplateBinding ScrollableWidth}"
+                           ViewportSize="{TemplateBinding ViewportWidth}"
+                           Value="{TemplateBinding HorizontalOffset}"
+                           Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
+                    <ScrollBar.Template>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Height="6" Background="#1A1A1A">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                    <Track.Thumb>
+                                        <Thumb>
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Border Background="#555555" CornerRadius="1.5"/>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </ScrollBar.Template>
+                </ScrollBar>
+            </Grid>
+        </ControlTemplate>
     </UserControl.Resources>
 
     <!-- 主容器 -->
-    <Border Background="#333333" BorderBrush="#444444" BorderThickness="1" CornerRadius="6" Padding="10">
+    <Border Background="#333333" BorderBrush="#444444" BorderThickness="1" CornerRadius="6" Padding="2">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -161,7 +202,8 @@
             <!-- 图像缩略图列表 -->
             <ScrollViewer Grid.Row="2"
                           HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Disabled">
+                          VerticalScrollBarVisibility="Disabled"
+                          Template="{StaticResource ThinScrollViewerTemplate}">
                 <ItemsControl ItemsSource="{Binding ImageCollection, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -173,29 +215,20 @@
                             <Border Style="{Binding IsSelected, Converter={StaticResource ThumbnailStyleConverter}}"
                                     MouseLeftButtonDown="OnThumbnailClick"
                                     Tag="{Binding}">
-                                <StackPanel>
-                                    <!-- 缩略图 -->
-                                    <Border Background="#1A1A1A"
-                                            CornerRadius="2"
-                                            Padding="2"
-                                            HorizontalAlignment="Center">
-                                        <Image Source="{Binding Thumbnail}"
-                                               Width="100"
-                                               Height="100"
-                                               Stretch="Uniform"
-                                               RenderOptions.BitmapScalingMode="HighQuality">
-                                            <Image.ToolTip>
-                                                <TextBlock Text="{Binding Name}" FontSize="11"/>
-                                            </Image.ToolTip>
-                                        </Image>
-                                    </Border>
-                                    <!-- 序号 -->
-                                    <TextBlock Text="{Binding DisplayIndex}"
-                                               FontSize="10"
-                                               Foreground="#999999"
-                                               HorizontalAlignment="Center"
-                                               Margin="0,4,0,0"/>
-                                </StackPanel>
+                                <Border Background="#1A1A1A"
+                                        CornerRadius="2"
+                                        Padding="2"
+                                        HorizontalAlignment="Center">
+                                    <Image Source="{Binding Thumbnail}"
+                                           Width="80"
+                                           Height="80"
+                                           Stretch="Uniform"
+                                           RenderOptions.BitmapScalingMode="HighQuality">
+                                        <Image.ToolTip>
+                                            <TextBlock Text="{Binding Name}" FontSize="11"/>
+                                        </Image.ToolTip>
+                                    </Image>
+                                </Border>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
