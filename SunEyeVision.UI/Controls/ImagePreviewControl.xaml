@@ -1,0 +1,206 @@
+<UserControl x:Class="SunEyeVision.UI.Controls.ImagePreviewControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:SunEyeVision.UI.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="140" d:DesignWidth="500">
+
+    <UserControl.Resources>
+        <!-- 样式转换器 -->
+        <local:ThumbnailStyleConverter x:Key="ThumbnailStyleConverter"/>
+
+        <!-- 图标按钮样式 -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="Transparent"
+                                BorderBrush="#555555"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="6"
+                                Width="36"
+                                Height="36">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#555555"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4CAF50"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+
+        <!-- 切换按钮样式 -->
+        <Style x:Key="IconToggleButton" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Border"
+                                Background="Transparent"
+                                BorderBrush="#555555"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="6"
+                                Width="36"
+                                Height="36">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#4CAF50"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#45A049"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#555555"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4CAF50"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- 主容器 -->
+    <Border Background="#333333" BorderBrush="#444444" BorderThickness="1" CornerRadius="6" Padding="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="120"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部工具栏 -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 标题 -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding ImageCountDisplay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="12"
+                           Foreground="#E0E0E0"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0"/>
+
+                <!-- 按钮组容器 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <!-- 添加图片 -->
+                    <Button Content="➕"
+                            Command="{Binding AddImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Style="{StaticResource IconButton}"
+                            ToolTip="添加图片"/>
+
+                    <!-- 添加文件夹 -->
+                    <Button Content="📁"
+                            Command="{Binding AddFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Style="{StaticResource IconButton}"
+                            Margin="6,0,0,0"
+                            ToolTip="添加文件夹"/>
+
+                    <!-- 删除选中 -->
+                    <Button Content="🗑️"
+                            Command="{Binding DeleteImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Style="{StaticResource IconButton}"
+                            Margin="6,0,0,0"
+                            ToolTip="删除选中"/>
+
+                    <!-- 清除全部 -->
+                    <Button Content="🧹"
+                            Command="{Binding ClearAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Style="{StaticResource IconButton}"
+                            Margin="6,0,0,0"
+                            ToolTip="清除全部"/>
+
+                    <!-- 分隔线 -->
+                    <Border Width="1"
+                            Background="#555555"
+                            Margin="12,6,12,6"
+                            VerticalAlignment="Stretch"/>
+
+                    <!-- 运行全部 -->
+                    <Button Content="▶️"
+                            Command="{Binding RunAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            Style="{StaticResource IconButton}"
+                            ToolTip="运行全部"/>
+
+                    <!-- 自动切换 -->
+                    <ToggleButton Content="🔄"
+                                   IsChecked="{Binding AutoSwitchEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   Style="{StaticResource IconToggleButton}"
+                                   Margin="6,0,0,0"
+                                   ToolTip="自动切换"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 图像缩略图列表 -->
+            <ScrollViewer Grid.Row="2"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding ImageCollection, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{Binding IsSelected, Converter={StaticResource ThumbnailStyleConverter}}"
+                                    MouseLeftButtonDown="OnThumbnailClick"
+                                    Tag="{Binding}">
+                                <StackPanel>
+                                    <!-- 缩略图 -->
+                                    <Border Background="#1A1A1A"
+                                            CornerRadius="2"
+                                            Padding="2"
+                                            HorizontalAlignment="Center">
+                                        <Image Source="{Binding Thumbnail}"
+                                               Width="100"
+                                               Height="100"
+                                               Stretch="Uniform"
+                                               RenderOptions.BitmapScalingMode="HighQuality">
+                                            <Image.ToolTip>
+                                                <TextBlock Text="{Binding Name}" FontSize="11"/>
+                                            </Image.ToolTip>
+                                        </Image>
+                                    </Border>
+                                    <!-- 序号 -->
+                                    <TextBlock Text="{Binding DisplayIndex}"
+                                               FontSize="10"
+                                               Foreground="#999999"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

@@ -915,44 +915,17 @@
                                 </TabControl>
                             </Border>
 
-                            <!-- 图像载入及预览模块 - 添加展开/收起动画 -->
+                            <!-- 图像载入及预览模块 - 使用现代化的 ImagePreviewControl -->
                             <Border Grid.Row="1"
                                     Background="#F8F9FA"
                                     BorderBrush="#E0E0E0"
                                     BorderThickness="0,1,0,0"
                                     Padding="8"
-                                    Height="100"
-                                    HorizontalAlignment="Stretch"
-                                    VerticalAlignment="Top"
                                     Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
-
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- 标题 -->
-                                    <TextBlock Grid.Row="0" Text="图像载入及预览"
-                                              FontSize="11" FontWeight="SemiBold"
-                                              Foreground="#666666" Margin="0,0,0,8"/>
-
-                                    <!-- 操作按钮 -->
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                        <Button Content="浏览文件" Padding="8,4" Margin="0,0,6,0"
-                                                Style="{StaticResource SecondaryButton}"
-                                                Command="{Binding BrowseImageCommand}"
-                                                FontSize="11"/>
-                                        <Button Content="载入图像" Padding="8,4" Margin="0,0,6,0"
-                                                Style="{StaticResource PrimaryButton}"
-                                                Command="{Binding LoadImageCommand}"
-                                                FontSize="11"/>
-                                        <Button Content="清除" Padding="8,4"
-                                                Style="{StaticResource SecondaryButton}"
-                                                Command="{Binding ClearImageCommand}"
-                                                FontSize="11"/>
-                                    </StackPanel>
-                                </Grid>
+                                <controls:ImagePreviewControl x:Name="ImagePreviewContent"
+                                                             AutoSwitchEnabled="{Binding AutoSwitchEnabled}"
+                                                             CurrentImageIndex="{Binding CurrentImageIndex}"
+                                                             ImageCollection="{Binding ImageCollection}"/>
                             </Border>
                         </Grid>
                     </Border>

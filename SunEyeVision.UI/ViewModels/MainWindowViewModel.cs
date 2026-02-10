@@ -69,6 +69,10 @@ namespace SunEyeVision.UI.ViewModels
         private BitmapSource? _processedImage;
         private BitmapSource? _resultImage;
 
+        // 图像预览相关
+        private bool _autoSwitchEnabled = false;
+        private int _currentImageIndex = -1;
+
         // 所有工作流运行状态
         private bool _isAllWorkflowsRunning = false;
         private string _allWorkflowsRunButtonText = "连续运行";
@@ -440,6 +444,35 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 图像集合
+        /// </summary>
+        public ObservableCollection<Controls.ImageInfo> ImageCollection { get; }
+
+        /// <summary>
+        /// 是否启用自动切换
+        /// </summary>
+        public bool AutoSwitchEnabled
+        {
+            get => _autoSwitchEnabled;
+            set => SetProperty(ref _autoSwitchEnabled, value);
+        }
+
+        /// <summary>
+        /// 当前显示的图像索引
+        /// </summary>
+        public int CurrentImageIndex
+        {
+            get => _currentImageIndex;
+            set
+            {
+                if (SetProperty(ref _currentImageIndex, value))
+                {
+                    UpdateCurrentImageDisplay();
+                }
+            }
+        }
+
+        /// <summary>
         /// 添加日志
         /// </summary>
         public void AddLog(string message)
@@ -518,6 +551,9 @@ namespace SunEyeVision.UI.ViewModels
 
             // 初始化计算结果集合
             CalculationResults = new ObservableCollection<ResultItem>();
+
+            // 初始化图像集合
+            ImageCollection = new ObservableCollection<Controls.ImageInfo>();
 
             // 初始化工作流执行管理器
             _executionManager = new Services.WorkflowExecutionManager(new Services.DefaultInputProvider());
@@ -1543,6 +1579,31 @@ namespace SunEyeVision.UI.ViewModels
             catch (Exception ex)
             {
                 AddLog($"❌ 清除图像失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region 图像预览命令
+
+        /// <summary>
+        /// 更新当前图像显示
+        /// </summary>
+        private void UpdateCurrentImageDisplay()
+        {
+            if (CurrentImageIndex < 0 || CurrentImageIndex >= ImageCollection.Count)
+            {
+                OriginalImage = null;
+                ProcessedImage = null;
+                ResultImage = null;
+                return;
+            }
+
+            var imageInfo = ImageCollection[CurrentImageIndex];
+            if (imageInfo.FullImage != null)
+            {
+                OriginalImage = imageInfo.FullImage;
+                AddLog($"📷 加载图像: {imageInfo.Name}");
             }
         }
 

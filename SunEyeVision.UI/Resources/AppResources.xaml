@@ -359,4 +359,27 @@
     <!-- ========== 动画缓动函数 ========== -->
     <ElasticEase x:Key="SmoothEase" Oscillations="1" Springiness="5"/>
 
+    <!-- ========== 图像缩略图卡片样式 ========== -->
+    <Style x:Key="ThumbnailCard" TargetType="Border">
+        <Setter Property="Background" Value="#2A2A2A"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Width" Value="120"/>
+        <Setter Property="Height" Value="120"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style x:Key="ThumbnailCardSelected" TargetType="Border" BasedOn="{StaticResource ThumbnailCard}">
+        <Setter Property="BorderBrush" Value="#4CAF50"/>
+        <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

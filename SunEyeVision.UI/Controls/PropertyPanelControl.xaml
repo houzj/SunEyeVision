@@ -34,11 +34,6 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Expander Header="{Binding Name}" IsExpanded="{Binding IsExpanded}" Margin="0,4" BorderBrush="#E0E0E0" BorderThickness="1">
-                                            <Expander.HeaderTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="Bold" Foreground="#333333"/>
-                                                </DataTemplate>
-                                            </Expander.HeaderTemplate>
                                             <ItemsControl ItemsSource="{Binding Parameters}" Margin="0,4">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
