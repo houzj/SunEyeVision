@@ -1,0 +1,9 @@
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.sln : Solution file error MSB5010: No file format header found.
+
+Build FAILED.
+
+d:\MyWork\SunEyeVision\SunEyeVision\SunEyeVision.sln : Solution file error MSB5010: No file format header found.
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:00.01

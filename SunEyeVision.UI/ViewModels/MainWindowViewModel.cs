@@ -1591,11 +1591,8 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void UpdateCurrentImageDisplay()
         {
-            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 开始执行, CurrentImageIndex={CurrentImageIndex}, ImageCollection.Count={ImageCollection.Count}");
-            
             if (CurrentImageIndex < 0 || CurrentImageIndex >= ImageCollection.Count)
             {
-                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 索引无效，清空图像");
                 OriginalImage = null;
                 ProcessedImage = null;
                 ResultImage = null;
@@ -1603,24 +1600,17 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             var imageInfo = ImageCollection[CurrentImageIndex];
-            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 图像信息: {imageInfo.Name}, FullImage加载状态: {imageInfo.IsFullImageLoaded}");
             
             // 主动触发FullImage加载
             var fullImage = imageInfo.FullImage;
-            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] FullImage获取结果: {fullImage != null}, PixelWidth={(fullImage?.PixelWidth ?? 0)}, PixelHeight={(fullImage?.PixelHeight ?? 0)}");
             
             if (fullImage != null)
             {
                 OriginalImage = fullImage;
                 AddLog($"📷 加载图像: {imageInfo.Name}");
-                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] OriginalImage已设置，调用UpdateDisplayImage");
                 
                 // 确保DisplayImage被更新
                 UpdateDisplayImage();
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 警告: FullImage为null，无法显示图像");
             }
         }
 
@@ -1633,11 +1623,8 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void UpdateDisplayImage()
         {
-            System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 开始执行, SelectedImageType={SelectedImageType?.DisplayName ?? "null"}");
-            
             if (SelectedImageType == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] SelectedImageType为null，跳过");
                 return;
             }
 
@@ -1645,15 +1632,12 @@ namespace SunEyeVision.UI.ViewModels
             {
                 case ImageDisplayType.Original:
                     DisplayImage = OriginalImage;
-                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = OriginalImage, OriginalImage={OriginalImage != null}, DisplayImage={DisplayImage != null}");
                     break;
                 case ImageDisplayType.Processed:
                     DisplayImage = ProcessedImage;
-                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = ProcessedImage, ProcessedImage={ProcessedImage != null}, DisplayImage={DisplayImage != null}");
                     break;
                 case ImageDisplayType.Result:
                     DisplayImage = ResultImage;
-                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = ResultImage, ResultImage={ResultImage != null}, DisplayImage={DisplayImage != null}");
                     break;
             }
         }
@@ -1685,12 +1669,10 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
-            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 开始执行, selectedNode={selectedNode?.Name ?? "null"}");
             if (selectedNode == null)
             {
                 ShowImagePreview = false;
                 AddLog("[调试] 图像预览: 隐藏 (没有选中节点)");
-                System.Diagnostics.Debug.WriteLine("[UpdateImagePreviewVisibility] 已设置ShowImagePreview=false");
                 return;
             }
 
@@ -1700,12 +1682,9 @@ namespace SunEyeVision.UI.ViewModels
                            algorithmType == "image_capture" ||
                            algorithmType == "ImageAcquisition";
 
-            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 算法类型={algorithmType}, shouldShow={shouldShow}");
             AddLog($"[调试] 图像预览: {(shouldShow ? "显示" : "隐藏")} (节点类型: {algorithmType}, 节点名称: {selectedNode.Name})");
             ShowImagePreview = shouldShow;
-            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 已设置ShowImagePreview={shouldShow}");
             OnPropertyChanged(nameof(ShowImagePreview));  // 显式触发通知
-            System.Diagnostics.Debug.WriteLine($"[UpdateImagePreviewVisibility] 已触发PropertyChanged事件");
         }
 
         #endregion

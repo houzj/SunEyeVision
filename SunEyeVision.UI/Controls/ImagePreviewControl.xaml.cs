@@ -128,16 +128,21 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public void ReleaseFullImage()
         {
+            // 只有当图像实际已加载时才触发属性变更事件
+            bool wasLoaded = (_fullImage != null);
             _fullImage = null;
             _isFullImageLoaded = false;
-            OnPropertyChanged(nameof(FullImage));
+            
+            if (wasLoaded)
+            {
+                OnPropertyChanged(nameof(FullImage));
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
         {
-            Debug.WriteLine($"[ImageInfo.OnPropertyChanged] 属性变更: {propertyName}");
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
@@ -437,18 +442,9 @@ namespace SunEyeVision.UI.Controls
                     if (scrollViewer != null)
                     {
                         scrollViewer.ScrollChanged += OnScrollChanged;
-                        Debug.WriteLine($"[OnControlLoaded] 滚动查看器已连接，图像集合计数: {ImageCollection?.Count}");
                         // 初始加载可见区域
                         UpdateLoadRange();
                     }
-                    else
-                    {
-                        Debug.WriteLine($"[OnControlLoaded] 警告：未找到ScrollViewer");
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"[OnControlLoaded] 警告：未找到ThumbnailListBox");
                 }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
@@ -551,81 +547,41 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 优化的缩略图加载（只设置宽度，保持宽高比）- 带性能日志
+        /// 优化的缩略图加载（只设置宽度，保持宽高比）
         /// </summary>
         private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = 80)
         {
-            var logger = new PerformanceLogger("LoadThumbnail");
-            var sw = Stopwatch.StartNew();
-
             try
             {
-                // 阶段1: 文件访问检查
-                sw.Restart();
-                Debug.WriteLine($"[LoadThumbnailOptimized] 开始加载缩略图: {filePath}, 目标大小: {size}px");
                 if (!File.Exists(filePath))
                 {
-                    logger.LogOperation("文件不存在", sw.Elapsed, filePath);
-                    Debug.WriteLine($"[LoadThumbnailOptimized] 文件不存在: {filePath}");
                     return null;
                 }
-                logger.LogOperation("文件存在检查", sw.Elapsed);
 
-                // 阶段2: BitmapImage创建
-                sw.Restart();
                 var bitmap = new BitmapImage();
-                Debug.WriteLine($"[LoadThumbnailOptimized] BitmapImage创建成功");
-                logger.LogOperation("BitmapImage创建", sw.Elapsed);
-
-                // 阶段3: 初始化配置
-                sw.Restart();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
                 bitmap.UriSource = new Uri(filePath);
                 bitmap.DecodePixelWidth = size;
                 bitmap.Rotation = Rotation.Rotate0;
-                Debug.WriteLine($"[LoadThumbnailOptimized] 初始化配置完成: DecodePixelWidth={size}, CacheOption=OnLoad");
-                logger.LogOperation("初始化配置", sw.Elapsed);
-
-                // 阶段4: 解码和加载
-                sw.Restart();
                 bitmap.EndInit();
-                Debug.WriteLine($"[LoadThumbnailOptimized] 解码和加载完成");
-                logger.LogOperation("解码和加载", sw.Elapsed, $"Size={size}px");
-
-                // 阶段5: Freeze
-                sw.Restart();
                 bitmap.Freeze();
-                Debug.WriteLine($"[LoadThumbnailOptimized] Freeze完成");
-                logger.LogOperation("Freeze", sw.Elapsed);
 
                 return bitmap;
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine($"[LoadThumbnailOptimized] 加载失败: {ex.Message}");
-                logger.LogOperation($"加载失败: {ex.Message}", sw.Elapsed, filePath);
                 return null;
             }
         }
 
         /// <summary>
-        /// 异步加载缩略图 - 带性能日志
+        /// 异步加载缩略图
         /// </summary>
         private static Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size = 80)
         {
-            var logger = new PerformanceLogger("LoadThumbnailAsync");
-            var sw = Stopwatch.StartNew();
-
-            return Task.Run(() =>
-            {
-                sw.Restart();
-                var result = LoadThumbnailOptimized(filePath, size);
-                sw.Stop();
-                logger.LogOperation("异步加载完成", sw.Elapsed, Path.GetFileName(filePath));
-                return result;
-            });
+            return Task.Run(() => LoadThumbnailOptimized(filePath, size));
         }
 
         /// <summary>
@@ -634,11 +590,21 @@ namespace SunEyeVision.UI.Controls
         private void PreloadAdjacentImages(int currentIndex)
         {
             if (ImageCollection == null || ImageCollection.Count == 0)
+            {
                 return;
+            }
+
+            // 检查特殊值，阻止预加载（用于优化图像加载过程）
+            if (currentIndex == -999 || _lastPreloadIndex == -999)
+            {
+                return;
+            }
 
             // 如果索引未变化，不重复预加载
             if (currentIndex == _lastPreloadIndex)
+            {
                 return;
+            }
 
             _lastPreloadIndex = currentIndex;
 
@@ -693,7 +659,7 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 滚动变化事件处理（带防抖机制和性能日志）
+        /// 滚动变化事件处理（带防抖机制）
         /// </summary>
         private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
         {
@@ -701,21 +667,6 @@ namespace SunEyeVision.UI.Controls
             var timeSinceLast = now - _lastScrollTime;
             _lastScrollTime = now;
             _scrollEventCount++;
-
-            // 诊断日志 - 每次滚动都输出详细信息
-            var scrollViewer = sender as ScrollViewer;
-            if (scrollViewer != null)
-            {
-                Debug.WriteLine($"[OnScrollChanged] 偏移变化:{e.HorizontalChange:F2}px 新偏移:{scrollViewer.HorizontalOffset:F2}px " +
-                             $"视口:{scrollViewer.ViewportWidth:F2}px 可滚动:{scrollViewer.ScrollableWidth:F2}px " +
-                             $"事件间隔:{timeSinceLast.TotalMilliseconds:F2}ms");
-            }
-
-            // 每50次滚动事件输出一次统计
-            if (_scrollEventCount % 50 == 0)
-            {
-                Debug.WriteLine($"[ScrollStats] 滚动事件:{_scrollEventCount} 间隔:{timeSinceLast.TotalMilliseconds:F2}ms");
-            }
 
             // 防抖：滚动停止200ms后才触发加载，避免频繁更新队列
             if (_updateRangeTimer == null)
@@ -740,7 +691,9 @@ namespace SunEyeVision.UI.Controls
         private void ReleaseDistantImages(int currentIndex)
         {
             if (ImageCollection == null || ImageCollection.Count == 0)
+            {
                 return;
+            }
 
             // 动态计算保留范围
             var (immediateDisplayCount, _, _) = CalculateDynamicLoadCounts();
@@ -828,100 +781,164 @@ namespace SunEyeVision.UI.Controls
             // 批次大小为显示数量的1/2（最少5张）
             int batchSize = Math.Max(5, immediateDisplayCount / 2);
 
-            Debug.WriteLine($"[CalculateDynamicLoadCounts] 视口:{viewportWidth:F2}px 单项宽:{itemWidth}px 容量:{viewportCapacity} " +
-                         $"立即显示:{immediateDisplayCount} 缩略图:{immediateThumbnailCount} 批次:{batchSize}");
-
             return (immediateDisplayCount, immediateThumbnailCount, batchSize);
         }
 
         /// <summary>
-        /// 优化的图像加载方法（即时显示优化：分批次流式加载）
+        /// 优化的图像加载方法（即时显示优化：分批次流式加载）- 四大优化策略版本
         /// </summary>
         private async Task LoadImagesOptimizedAsync(
             string[] fileNames,
             CancellationToken cancellationToken)
         {
+            var totalSw = Stopwatch.StartNew();
+            var logger = new PerformanceLogger("LoadImages");
+
+            // ===== 策略1：预计算图片总数 =====
+            logger.LogOperation("步骤1-预计算总数", totalSw.Elapsed, $"准备加载 {fileNames.Length} 张图片");
+
             // 动态计算基于可视区域的加载数量
             var (immediateDisplayCount, immediateThumbnailCount, _) = CalculateDynamicLoadCounts();
 
-            // 第一阶段：快速创建并显示前N张
-            var immediateImages = new List<ImageInfo>();
-
-            for (int i = 0; i < Math.Min(immediateDisplayCount, fileNames.Length); i++)
+            // 预创建所有ImageInfo对象（不添加到集合）
+            var allImages = new ImageInfo[fileNames.Length];
+            for (int i = 0; i < fileNames.Length; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                var imageInfo = new ImageInfo
+                allImages[i] = new ImageInfo
                 {
                     Name = Path.GetFileNameWithoutExtension(fileNames[i]),
                     FilePath = fileNames[i],
                     Thumbnail = null,
                     FullImage = null
                 };
-
-                immediateImages.Add(imageInfo);
-
-                // 立即开始加载前几张的缩略图
-                if (i < immediateThumbnailCount)
-                {
-                    // 使用变量存储任务以避免警告，这是有意不等待的后台任务
-                    var thumbnailTask = Task.Run(() => 
-                    {
-                        try
-                        {
-                            // 直接调用同步方法，不需要await
-                            var thumbnail = LoadThumbnailOptimized(imageInfo.FilePath);
-                            if (thumbnail != null && !cancellationToken.IsCancellationRequested)
-                            {
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    imageInfo.Thumbnail = thumbnail;
-                                }, System.Windows.Threading.DispatcherPriority.Background);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"[ImmediateThumbnailLoad] 加载缩略图失败: {ex.Message}");
-                        }
-                    }, cancellationToken);
-                    
-                    // 有意不等待，让缩略图在后台加载
-                }
             }
+            logger.LogOperation("步骤1-预创建ImageInfo", totalSw.Elapsed, $"创建了 {fileNames.Length} 个ImageInfo对象");
 
-            // 立即显示第一批图像
+            // 步骤2期间禁用FullImage预加载，避免影响缩略图显示性能
+            // 标记为正在加载缩略图，PreloadAdjacentImages会检查此标志
+            var originalLastPreloadIndex = _lastPreloadIndex;
+            _lastPreloadIndex = -999; // 设置一个特殊值，阻止所有PreloadAdjacentImages调用
+
+            // ===== 策略2：立即更新ListBox宽度及滚动条 =====
+            logger.LogOperation("步骤2-预计算布局", totalSw.Elapsed);
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
+                // 估算总宽度
+                const double itemWidth = 92.0; // 缩略图宽度90 + 边距2
+                var estimatedTotalWidth = fileNames.Length * itemWidth;
+
+                logger.LogOperation("步骤2-布局预留", TimeSpan.Zero, $"预估宽度:{estimatedTotalWidth:F2}px");
+
+                // 先创建所有ImageInfo占位（无缩略图）到集合中，确保滚动条正确显示
                 int startIndex = ImageCollection.Count;
-                
-                foreach (var imageInfo in immediateImages)
+                foreach (var imageInfo in allImages)
                 {
                     ImageCollection.Add(imageInfo);
-                    Debug.WriteLine($"[LoadImagesOptimizedAsync] 立即添加图像: {imageInfo.Name}");
                 }
 
                 if (ImageCollection.Count > 0)
                 {
                     CurrentImageIndex = startIndex;
-                    Debug.WriteLine($"[LoadImagesOptimizedAsync] 当前图像索引设为: {CurrentImageIndex}");
                 }
 
-                // 清除已加载缩略图的记录
-                _smartLoader.ClearLoadedIndices();
+                // 强制更新布局，确保滚动条显示
+                UpdateLayout();
+                if (_thumbnailListBox != null)
+                {
+                    _thumbnailListBox.UpdateLayout();
+                    var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
+                    if (scrollViewer != null)
+                    {
+                        scrollViewer.UpdateLayout();
+                    }
+                }
 
-                // 立即触发缩略图加载
-                UpdateLoadRange();
+                logger.LogOperation("步骤2-添加占位并更新布局", TimeSpan.Zero, $"当前集合数:{ImageCollection.Count}");
             }, System.Windows.Threading.DispatcherPriority.Normal);
 
-            // 第二阶段：流式处理剩余图像（如果还有更多）
-            if (fileNames.Length > immediateDisplayCount)
+            // ===== 策略3：零等待快速加载可见区域的预览图 =====
+            logger.LogOperation("步骤3-加载可见区域", totalSw.Elapsed);
+
+            // 计算当前可见区域
+            int firstVisible = 0;
+            int lastVisible = Math.Min(immediateThumbnailCount - 1, fileNames.Length - 1);
+
+            // 并行加载前3张缩略图，让第一张图片立即显示
+            var immediateThumbnailTasks = new List<Task<(int index, BitmapImage thumbnail)>>();
+            int immediateLoadCount = Math.Min(3, lastVisible - firstVisible + 1);
+            var loadImmediateSw = Stopwatch.StartNew();
+
+            for (int i = firstVisible; i < firstVisible + immediateLoadCount && i < fileNames.Length; i++)
             {
-                await ProcessRemainingImagesAsync(fileNames, immediateDisplayCount,
-                    fileNames.Length, cancellationToken);
+                int index = i;
+                var task = Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var thumbnail = LoadThumbnailOptimized(allImages[index].FilePath);
+                    return (index, thumbnail);
+                }, cancellationToken);
+                immediateThumbnailTasks.Add(task);
             }
 
+            // 等待第一张缩略图完成并立即显示
+            var firstThumbnailTask = await Task.WhenAny(immediateThumbnailTasks);
+            var (firstIndex, firstThumbnail) = await firstThumbnailTask;
+
+            if (firstThumbnail != null && firstIndex < ImageCollection.Count)
+            {
+                var updateFirstSw = Stopwatch.StartNew();
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    ImageCollection[firstIndex].Thumbnail = firstThumbnail;
+                }, System.Windows.Threading.DispatcherPriority.Render);
+                logger.LogOperation("步骤3-首张缩略图显示", updateFirstSw.Elapsed, $"索引:{firstIndex}");
+            }
+
+            // 等待所有立即加载的缩略图完成
+            var completedThumbnails = new List<(int index, BitmapImage thumbnail)>();
+            await Task.WhenAll(immediateThumbnailTasks);
+            foreach (var task in immediateThumbnailTasks)
+            {
+                var (index, thumbnail) = await task;
+                if (thumbnail != null)
+                {
+                    completedThumbnails.Add((index, thumbnail));
+                }
+            }
+
+            logger.LogOperation("步骤3-前3张缩略图加载", loadImmediateSw.Elapsed, $"加载了 {completedThumbnails.Count} 张");
+
+            // 批量更新UI（减少PropertyChanged触发次数）
+            var updateVisibleSw = Stopwatch.StartNew();
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                foreach (var (index, thumbnail) in completedThumbnails)
+                {
+                    if (index < ImageCollection.Count && index != firstIndex)
+                    {
+                        ImageCollection[index].Thumbnail = thumbnail;
+                    }
+                }
+            }, System.Windows.Threading.DispatcherPriority.Normal);
+
+            logger.LogOperation("步骤3-批量更新可见区域", updateVisibleSw.Elapsed);
+
+            // 清除已加载缩略图的记录
+            _smartLoader.ClearLoadedIndices();
+
+            // 立即触发缩略图加载（优先当前可见区域）
+            UpdateLoadRange();
+
+            logger.LogOperation("步骤3-触发智能加载", TimeSpan.Zero);
+
+            // ===== 策略4：把剩余未加载移交后台 =====
+            logger.LogOperation("步骤4-后台批量加载", totalSw.Elapsed);
+
+            // 剩余图片已经在SmartLoader的队列中，后台任务会自动处理
+            // 不需要额外的代码，SmartLoader会接管
+
             // 预加载前几张图像的全分辨率（后台任务）- 使用动态计算的数量
-            var (_, _, _) = CalculateDynamicLoadCounts();
             int preFullImageLoadCount = Math.Max(2, immediateDisplayCount / 10); // 预加载数量为显示数量的10%，最少2张
 
             _ = Task.Run(() =>
@@ -931,7 +948,7 @@ namespace SunEyeVision.UI.Controls
                     try
                     {
                         if (cancellationToken.IsCancellationRequested) break;
-                        
+
                         var fullImage = LoadImageOptimized(fileNames[i]);
                         if (fullImage != null && !cancellationToken.IsCancellationRequested)
                         {
@@ -947,57 +964,15 @@ namespace SunEyeVision.UI.Controls
                     catch { }
                 }
             }, cancellationToken);
+
+            // 步骤3和4完成后，恢复预加载功能
+            _lastPreloadIndex = originalLastPreloadIndex; // 恢复原值，允许PreloadAdjacentImages再次执行
+
+            totalSw.Stop();
+            logger.LogOperation("加载流程完成", totalSw.Elapsed, $"总图片数:{fileNames.Length} 立即加载:{immediateThumbnailCount}");
         }
 
-        /// <summary>
-        /// 流式处理剩余图像（分批添加避免UI卡顿）
-        /// </summary>
-        private async Task ProcessRemainingImagesAsync(
-            string[] fileNames,
-            int startIndex,
-            int totalCount,
-            CancellationToken cancellationToken)
-        {
-            // 动态计算批次大小
-            var (_, _, batchSize) = CalculateDynamicLoadCounts();
 
-            for (int i = startIndex; i < totalCount; i += batchSize)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                int batchEndIndex = Math.Min(i + batchSize, totalCount);
-                var batchImages = new List<ImageInfo>();
-
-                // 创建当前批次的图像信息
-                for (int j = i; j < batchEndIndex; j++)
-                {
-                    var imageInfo = new ImageInfo
-                    {
-                        Name = Path.GetFileNameWithoutExtension(fileNames[j]),
-                        FilePath = fileNames[j],
-                        Thumbnail = null,
-                        FullImage = null
-                    };
-                    batchImages.Add(imageInfo);
-                }
-
-                // 分批添加到UI集合
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    foreach (var imageInfo in batchImages)
-                    {
-                        ImageCollection.Add(imageInfo);
-                    }
-                    Debug.WriteLine($"[ProcessRemainingImagesAsync] 批次添加 {batchImages.Count} 张图像，总计: {ImageCollection.Count}");
-                }, System.Windows.Threading.DispatcherPriority.Background);
-
-                // 短暂延迟，避免UI过于频繁更新
-                if (i + batchSize < totalCount)
-                {
-                    await Task.Delay(20, cancellationToken);
-                }
-            }
-        }
 
         /// <summary>
         /// 添加文件夹
@@ -1133,8 +1108,6 @@ namespace SunEyeVision.UI.Controls
         private static void OnCurrentImageIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
         {
             var control = (ImagePreviewControl)d;
-            Debug.WriteLine($"[OnCurrentImageIndexChanged] 索引改变: 新值={control.CurrentImageIndex}, ImageCollection.Count={control.ImageCollection?.Count ?? 0}");
-            
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
 
@@ -1144,7 +1117,6 @@ namespace SunEyeVision.UI.Controls
             {
                 var selectedImage = control.ImageCollection[control.CurrentImageIndex];
                 control._thumbnailListBox.SelectedItem = selectedImage;
-                Debug.WriteLine($"[OnCurrentImageIndexChanged] 已设置ListBox.SelectedItem: {selectedImage.Name}");
             }
 
             // 智能预加载相邻图像
@@ -1232,11 +1204,9 @@ namespace SunEyeVision.UI.Controls
             if (e.AddedItems.Count > 0 && e.AddedItems[0] is ImageInfo selectedImage)
             {
                 int index = ImageCollection?.IndexOf(selectedImage) ?? -1;
-                Debug.WriteLine($"[OnThumbnailListBoxSelectionChanged] 选择索引: {index}, 图像集合计数: {ImageCollection?.Count}");
-                
+
                 if (index >= 0)
                 {
-                    Debug.WriteLine($"[OnThumbnailListBoxSelectionChanged] 选中图像: {selectedImage.Name}, 缩略图是否为空: {selectedImage.Thumbnail == null}");
                     CurrentImageIndex = index;
                 }
             }
@@ -1599,7 +1569,7 @@ namespace SunEyeVision.UI.Controls
             }
 
             /// <summary>
-            /// 加载单个缩略图（优化：避免重复加载）- 带性能日志
+            /// 加载单个缩略图（优化：避免重复加载）
             /// </summary>
             private async Task LoadSingleThumbnail(int index, CancellationToken cancellationToken, bool isBackground = false)
             {
@@ -1643,28 +1613,24 @@ namespace SunEyeVision.UI.Controls
 
                     if (thumbnail != null && !cancellationToken.IsCancellationRequested)
                     {
-// 阶段2: UI更新
-                    sw.Restart();
-                    await Application.Current?.Dispatcher.InvokeAsync(() =>
-                    {
-                        if (index < _imageCollection.Count && _imageCollection[index] == imageInfo)
+                        // 阶段2: UI更新
+                        sw.Restart();
+                        await Application.Current?.Dispatcher.InvokeAsync(() =>
                         {
-                            Debug.WriteLine($"[LoadSingleThumbnail] 设置缩略图[{index}]: {fileName}");
-                            Debug.WriteLine($"[LoadSingleThumbnail] 缩略图对象类型: {thumbnail?.GetType()?.Name}");
-                            imageInfo.Thumbnail = thumbnail;
-                    Debug.WriteLine($"[LoadSingleThumbnail] Thumbnail属性变更触发");
-                            Debug.WriteLine($"[LoadSingleThumbnail] Thumbnail属性设置后: {imageInfo.Thumbnail != null}");
-                            lock (_lockObj)
+                            if (index < _imageCollection.Count && _imageCollection[index] == imageInfo)
                             {
-                                _loadedIndices.Add(index);
-                                _totalLoaded++;
+                                imageInfo.Thumbnail = thumbnail;
+                                lock (_lockObj)
+                                {
+                                    _loadedIndices.Add(index);
+                                    _totalLoaded++;
+                                }
                             }
-                        }
-                    }, System.Windows.Threading.DispatcherPriority.Background)!;
-                    var updateSw = sw.Elapsed;
+                        }, System.Windows.Threading.DispatcherPriority.Background)!;
+                        var updateSw = sw.Elapsed;
 
-                    _logger.LogOperation($"加载缩略图[{index}]", checkSw + loadSw + updateSw,
-                        $"文件:{fileName} 检查:{checkSw.TotalMilliseconds:F2}ms 加载:{loadSw.TotalMilliseconds:F2}ms UI:{updateSw.TotalMilliseconds:F2}ms");
+                        _logger.LogOperation($"加载缩略图[{index}]", checkSw + loadSw + updateSw,
+                            $"文件:{fileName} 检查:{checkSw.TotalMilliseconds:F2}ms 加载:{loadSw.TotalMilliseconds:F2}ms UI:{updateSw.TotalMilliseconds:F2}ms");
                     }
                 }
                 catch (OperationCanceledException)
@@ -1680,7 +1646,7 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 更新加载范围（滚动时调用）- 带性能日志
+        /// 更新加载范围（滚动时调用）
         /// </summary>
         private void UpdateLoadRange()
         {
@@ -1688,16 +1654,12 @@ namespace SunEyeVision.UI.Controls
 
             if (_thumbnailListBox == null || ImageCollection == null || ImageCollection.Count == 0)
             {
-                sw.Stop();
-                Debug.WriteLine($"[UpdateLoadRange] 跳过 (ListBox:{_thumbnailListBox != null} Count:{ImageCollection?.Count ?? 0})");
                 return;
             }
 
             var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
             if (scrollViewer == null)
             {
-                sw.Stop();
-                Debug.WriteLine($"[UpdateLoadRange] 未找到ScrollViewer");
                 return;
             }
 
@@ -1705,30 +1667,10 @@ namespace SunEyeVision.UI.Controls
             _thumbnailListBox.UpdateLayout();
             scrollViewer.UpdateLayout();
 
-            // 阶段1: 计算可见区域
-            sw.Restart();
+            // 计算可见区域
             var viewportWidth = scrollViewer.ViewportWidth;
             var horizontalOffset = scrollViewer.HorizontalOffset;
-            var extentWidth = scrollViewer.ExtentWidth;
-            var scrollableWidth = scrollViewer.ScrollableWidth;
             var itemWidth = 92; // 缩略图宽度90 + 边距2
-            var estimatedContentWidth = ImageCollection.Count * itemWidth;
-
-            // 诊断日志 - 检查滚动状态和布局
-            var listBoxWidth = _thumbnailListBox.ActualWidth;
-            var listBoxHeight = _thumbnailListBox.ActualHeight;
-            var borderWidth = (this.Content as Border)?.ActualWidth ?? 0;
-            var gridWidth = (this.Content as Border)?.Child is Grid grid ? grid.ActualWidth : 0;
-            var controlWidth = this.ActualWidth;
-
-            Debug.WriteLine($"[ScrollViewer诊断] 视口:{viewportWidth:F2}px 内容:{extentWidth:F2}px 可滚动:{scrollableWidth:F2}px " +
-                         $"偏移:{horizontalOffset:F2}px 图片数:{ImageCollection.Count} 估算内容宽度:{estimatedContentWidth}px");
-            Debug.WriteLine($"[布局诊断] UserControl宽:{controlWidth:F2}px Border宽:{borderWidth:F2}px Grid宽:{gridWidth:F2}px ListBox宽:{listBoxWidth:F2}px 高:{listBoxHeight:F2}px");
-
-            if (scrollableWidth <= 0)
-            {
-                Debug.WriteLine($"[ScrollViewer警告] 可滚动宽度为0，内容未超出视口！横向滚动条不会出现！");
-            }
 
             var firstVisible = Math.Max(0, (int)(horizontalOffset / itemWidth));
             var lastVisible = Math.Min(ImageCollection.Count - 1,
@@ -1741,17 +1683,9 @@ namespace SunEyeVision.UI.Controls
             // 扩展预加载范围（前后各多加载bufferZone张）
             firstVisible = Math.Max(0, firstVisible - bufferZone);
             lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + bufferZone);
-            var calcSw = sw.Elapsed;
 
-            // 阶段2: 委托给智能加载器
-            sw.Restart();
+            // 委托给智能加载器
             _smartLoader.UpdateLoadRange(firstVisible, lastVisible, ImageCollection.Count, ImageCollection);
-            var updateSw = sw.Elapsed;
-
-            var totalSw = calcSw + updateSw;
-            Debug.WriteLine($"[UpdateLoadRange] 总耗时:{totalSw.TotalMilliseconds:F2}ms " +
-                         $"计算:{calcSw.TotalMilliseconds:F2}ms 更新:{updateSw.TotalMilliseconds:F2}ms " +
-                         $"可见:[{firstVisible}-{lastVisible}] 偏移:{horizontalOffset:F2}");
         }
 
         #endregion

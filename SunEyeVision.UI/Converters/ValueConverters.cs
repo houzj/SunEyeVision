@@ -38,14 +38,10 @@ namespace SunEyeVision.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            System.Diagnostics.Debug.WriteLine($"[BoolToVisibilityConverter] Convert被调用, value={value}");
             if (value is bool boolValue)
             {
-                var result = boolValue ? Visibility.Visible : Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine($"[BoolToVisibilityConverter] 返回: {result} (boolValue={boolValue})");
-                return result;
+                return boolValue ? Visibility.Visible : Visibility.Collapsed;
             }
-            System.Diagnostics.Debug.WriteLine($"[BoolToVisibilityConverter] value不是bool类型, 返回Collapsed");
             return Visibility.Collapsed;
         }
 
