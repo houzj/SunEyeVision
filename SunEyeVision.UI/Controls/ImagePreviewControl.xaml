@@ -104,13 +104,51 @@
                            Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
                     <ScrollBar.Template>
                         <ControlTemplate TargetType="ScrollBar">
-                            <Grid Height="6" Background="#1A1A1A">
+                            <!-- 外层透明命中区域（15px高） -->
+                            <Grid Height="15" Background="Transparent">
+                                <!-- 内层视觉滚动条（3px高，垂直居中） -->
+                                <Border Height="3"
+                                        VerticalAlignment="Center"
+                                        Background="#1A1A1A"
+                                        CornerRadius="1.5">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000"
+                                                          Opacity="0.3"
+                                                          BlurRadius="2"
+                                                          ShadowDepth="0"/>
+                                    </Border.Effect>
+                                </Border>
+                                <!-- Track层 - 扩大命中区域 -->
                                 <Track x:Name="PART_Track" IsDirectionReversed="False">
                                     <Track.Thumb>
                                         <Thumb>
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
-                                                    <Border Background="#555555" CornerRadius="1.5"/>
+                                                    <Grid Background="Transparent">
+                                                        <!-- 外层透明命中区域（15px） -->
+                                                        <Border Background="Transparent"
+                                                                Height="15"/>
+                                                        <!-- 内层视觉Thumb（3px，垂直居中） -->
+                                                        <Border x:Name="ThumbBorder"
+                                                                Background="#555555"
+                                                                Height="3"
+                                                                VerticalAlignment="Center"
+                                                                CornerRadius="1.5"
+                                                                Cursor="Hand">
+                                                            <Border.Effect>
+                                                                <DropShadowEffect Color="#FFFFFF"
+                                                                                  Opacity="0.2"
+                                                                                  BlurRadius="2"
+                                                                                  ShadowDepth="0"/>
+                                                            </Border.Effect>
+                                                        </Border>
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <!-- 鼠标悬停时高亮Thumb -->
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ThumbBorder" Property="Background" Value="#888888"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
                                                 </ControlTemplate>
                                             </Thumb.Template>
                                         </Thumb>
