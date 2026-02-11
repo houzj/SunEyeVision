@@ -4,12 +4,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:SunEyeVision.UI.Controls"
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
              d:DesignHeight="140" d:DesignWidth="500">
 
     <UserControl.Resources>
         <!-- 样式转换器 -->
         <local:ThumbnailStyleConverter x:Key="ThumbnailStyleConverter"/>
+        <local:ImageRunModeDisplayConverter x:Key="ImageRunModeDisplayConverter"/>
+        <local:BooleanToBrushConverter x:Key="BooleanToBrushConverter"/>
 
         <!-- 图标按钮样式 -->
         <Style x:Key="IconButton" TargetType="Button">
@@ -81,6 +84,122 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
         </Style>
+
+        <!-- 开关按钮样式 -->
+        <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="BackgroundBorder"
+                                Background="#555555"
+                                BorderBrush="#555555"
+                                BorderThickness="1"
+                                CornerRadius="1"
+                                Width="42"
+                                Height="22">
+                            <Rectangle x:Name="SwitchEllipse"
+                                             Width="20"
+                                             Height="22"
+                                             Fill="White"
+                                             HorizontalAlignment="Left"
+                                             VerticalAlignment="Center"/>
+                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="Orange"/>
+                                <Setter TargetName="BackgroundBorder" Property="BorderBrush" Value="Orange"/>
+                                <Setter TargetName="SwitchEllipse" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+
+
+        <!-- 运行模式选择按钮样式（自定义Button + Popup） -->
+        <Style x:Key="RunModeSelectButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <!-- 主按钮区域 -->
+                            <Border x:Name="Border"
+                                    Background="Transparent"
+                                    BorderBrush="#555555"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="8,0"
+                                    Width="100"
+                                    Height="36">
+                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Left"
+                                                  Margin="0,0,4,0"/>
+                            </Border>
+                                                <!-- 运行模式下拉Popup -->
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#555555"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4CAF50"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- 下拉列表项样式 -->
+        <Style x:Key="RunModeListBoxItem" TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Border"
+                                Background="Transparent"
+                                Padding="8,4"
+                                BorderThickness="0"
+                                CornerRadius="2">
+                            <ContentPresenter x:Name="ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#4CAF50"/>
+                                <Setter TargetName="ContentPresenter" Property="TextElement.Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+
+        <!-- 运行模式枚举值数组 -->
+        <x:Array x:Key="ImageRunModeValues" Type="{x:Type local:ImageRunMode}">
+            <local:ImageRunMode>运行全部</local:ImageRunMode>
+            <local:ImageRunMode>运行选择</local:ImageRunMode>
+        </x:Array>
+
+        <!-- 反向布尔转换器 -->
+        <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
         <!-- 窄滚动条模板 -->
         <ControlTemplate x:Key="ThinScrollViewerTemplate" TargetType="ScrollViewer">
@@ -189,6 +308,61 @@
 
                 <!-- 按钮组容器 -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
+
+                    <!-- 运行模式选择 -->
+                    <Button x:Name="RunModeButton"
+                            Content="{Binding ImageRunMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ImageRunModeDisplayConverter}}"
+                            Style="{StaticResource RunModeSelectButton}"
+                            ToolTip="选择运行模式"
+                            Click="OnRunModeButtonClick"/>
+                    <Popup x:Name="RunModePopup"
+                           Placement="Bottom"
+                           PlacementTarget="{Binding ElementName=RunModeButton}"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           PopupAnimation="Slide"
+                           StaysOpen="False">
+                        <Border Background="#2D2D2D"
+                                BorderBrush="#555555"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="4"
+                                MaxHeight="150"
+                                MinWidth="100">
+                            <ListBox x:Name="RunModeListBox"
+                                     ItemsSource="{Binding Source={StaticResource ImageRunModeValues}}"
+                                     SelectedItem="{Binding ImageRunMode, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                                     ItemContainerStyle="{StaticResource RunModeListBoxItem}"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     PreviewMouseDown="OnRunModeListBoxPreviewMouseDown">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ., Converter={StaticResource ImageRunModeDisplayConverter}}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Popup>
+
+                    <!-- 自动切换标签 -->
+                    <TextBlock Text="自动切换"
+                               FontSize="11"
+                               Foreground="#E0E0E0"
+                               VerticalAlignment="Center"
+                               Margin="6,0,6,0"/>
+
+                    <!-- 自动切换开关 -->
+                    <ToggleButton x:Name="AutoSwitchToggle"
+                                   IsChecked="{Binding AutoSwitchEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   Style="{StaticResource SwitchToggleButton}"
+                                   Margin="0,0,0,0"
+                                   ToolTip="自动切换"/>
+                    <!-- 分隔线 -->
+                    <Border Width="1"
+                            Background="#555555"
+                            Margin="12,6,12,6"
+                            VerticalAlignment="Stretch"/>
                     <!-- 添加图片 -->
                     <Button Content="➕"
                             Command="{Binding AddImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -216,24 +390,8 @@
                             Margin="6,0,0,0"
                             ToolTip="清除全部"/>
 
-                    <!-- 分隔线 -->
-                    <Border Width="1"
-                            Background="#555555"
-                            Margin="12,6,12,6"
-                            VerticalAlignment="Stretch"/>
 
-                    <!-- 运行全部 -->
-                    <Button Content="▶️"
-                            Command="{Binding RunAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Style="{StaticResource IconButton}"
-                            ToolTip="运行全部"/>
 
-                    <!-- 自动切换 -->
-                    <ToggleButton Content="🔄"
-                                   IsChecked="{Binding AutoSwitchEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   Style="{StaticResource IconToggleButton}"
-                                   Margin="6,0,0,0"
-                                   ToolTip="自动切换"/>
                 </StackPanel>
             </Grid>
 

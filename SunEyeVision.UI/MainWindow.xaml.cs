@@ -170,12 +170,6 @@ namespace SunEyeVision.UI
 
         protected override void OnClosed(EventArgs e)
         {
-            // 取消订阅 ImagePreviewControl 事件
-            if (ImagePreviewContent != null)
-            {
-                ImagePreviewContent.RunAllRequested -= ImagePreviewControl_RunAllRequested;
-            }
-
             // TODO: 清理资源
             _viewModel?.StopWorkflowCommand.Execute(null);
             base.OnClosed(e);
@@ -202,12 +196,6 @@ namespace SunEyeVision.UI
                     UpdateZoomDisplay();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 
-                // 初始化 ImagePreviewControl 事件
-                if (ImagePreviewContent != null)
-                {
-                    ImagePreviewContent.RunAllRequested += ImagePreviewControl_RunAllRequested;
-                }
-
                 // 注释：以下代码已废弃，工具箱分隔器已删除（2026-02-10）
                 /*
                 // 同步工具箱分隔线箭头方向
@@ -232,35 +220,6 @@ namespace SunEyeVision.UI
         #endregion
 
         #region 初始化
-
-        /// <summary>
-        /// 图像预览控件 - 运行全部请求事件处理
-        /// </summary>
-        private void ImagePreviewControl_RunAllRequested(object? sender, EventArgs e)
-        {
-            try
-            {
-                if (_viewModel?.ImageCollection == null || _viewModel.ImageCollection.Count == 0)
-                {
-                    return;
-                }
-
-                _viewModel.AddLog($"🚀 开始处理 {_viewModel.ImageCollection.Count} 张图像");
-
-                // TODO: 实现批量图像处理逻辑
-                // 这里可以根据需要遍历 ImageCollection 并对每张图像执行工作流处理
-                // 示例:
-                // foreach (var imageInfo in _viewModel.ImageCollection)
-                // {
-                //     _viewModel.OriginalImage = imageInfo.FullImage;
-                //     await _viewModel.RunWorkflowCommand.Execute(null);
-                // }
-            }
-            catch (Exception ex)
-            {
-                _viewModel?.AddLog($"❌ 批量处理失败: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// 主内容区域加载完成

@@ -7,11 +7,21 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SunEyeVision.UI.ViewModels;
 
 namespace SunEyeVision.UI.Controls
 {
+    /// <summary>
+    /// 图像运行模式枚举
+    /// </summary>
+    public enum ImageRunMode
+    {
+        运行全部 = 0,
+        运行选择 = 1
+    }
+
     /// <summary>
     /// 图像信息项
     /// </summary>
@@ -78,6 +88,10 @@ namespace SunEyeVision.UI.Controls
             DependencyProperty.Register("ImageCollection", typeof(ObservableCollection<ImageInfo>), typeof(ImagePreviewControl),
                 new PropertyMetadata(null, OnImageCollectionChanged));
 
+        public static readonly DependencyProperty ImageRunModeProperty =
+            DependencyProperty.Register("ImageRunMode", typeof(ImageRunMode), typeof(ImagePreviewControl),
+                new PropertyMetadata(ImageRunMode.运行全部, OnImageRunModeChanged));
+
         /// <summary>
         /// 是否启用自动切换
         /// </summary>
@@ -106,6 +120,15 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
+        /// 图像运行模式
+        /// </summary>
+        public ImageRunMode ImageRunMode
+        {
+            get => (ImageRunMode)GetValue(ImageRunModeProperty);
+            set => SetValue(ImageRunModeProperty, value);
+        }
+
+        /// <summary>
         /// 图像计数显示文本
         /// </summary>
         public string ImageCountDisplay
@@ -122,7 +145,6 @@ namespace SunEyeVision.UI.Controls
         public ICommand AddFolderCommand { get; }
         public ICommand DeleteImageCommand { get; }
         public ICommand ClearAllCommand { get; }
-        public ICommand RunAllCommand { get; }
 
         public ImagePreviewControl()
         {
@@ -133,7 +155,6 @@ namespace SunEyeVision.UI.Controls
             AddFolderCommand = new RelayCommand(ExecuteAddFolder);
             DeleteImageCommand = new RelayCommand(ExecuteDeleteImage, CanExecuteDeleteImage);
             ClearAllCommand = new RelayCommand(ExecuteClearAll, CanExecuteClearAll);
-            RunAllCommand = new RelayCommand(ExecuteRunAll, CanExecuteRunAll);
 
             ImageCollection.CollectionChanged += (s, e) =>
             {
@@ -190,19 +211,19 @@ namespace SunEyeVision.UI.Controls
                             {
                                 dispatcher.Invoke(() =>
                                 {
+                                    int startIndex = ImageCollection.Count;
                                     foreach (var imageInfo in imageInfos)
                                     {
                                         ImageCollection.Add(imageInfo);
                                     }
+                                    // 将新添加的第一张图片设为当前图像
+                                    if (ImageCollection.Count > 0)
+                                    {
+                                        CurrentImageIndex = startIndex;
+                                    }
                                 }, System.Windows.Threading.DispatcherPriority.Normal);
                             }
                         });
-
-                        // 如果是第一张图像，设为当前图像
-                        if (CurrentImageIndex == -1 && ImageCollection.Count > 0)
-                        {
-                            CurrentImageIndex = 0;
-                        }
                     }
                     finally
                     {
@@ -287,19 +308,19 @@ namespace SunEyeVision.UI.Controls
                             {
                                 dispatcher.Invoke(() =>
                                 {
+                                    int startIndex = ImageCollection.Count;
                                     foreach (var imageInfo in imageInfos)
                                     {
                                         ImageCollection.Add(imageInfo);
                                     }
+                                    // 将新添加的第一张图片设为当前图像
+                                    if (ImageCollection.Count > 0)
+                                    {
+                                        CurrentImageIndex = startIndex;
+                                    }
                                 }, System.Windows.Threading.DispatcherPriority.Normal);
                             }
                         });
-
-                        // 如果是第一张图像，设为当前图像
-                        if (CurrentImageIndex == -1 && ImageCollection.Count > 0)
-                        {
-                            CurrentImageIndex = 0;
-                        }
                     }
                     finally
                     {
@@ -376,28 +397,7 @@ namespace SunEyeVision.UI.Controls
             return ImageCollection?.Count > 0;
         }
 
-        /// <summary>
-        /// 运行全部
-        /// </summary>
-        private void ExecuteRunAll()
-        {
-            if (ImageCollection.Count == 0)
-            {
-                MessageBox.Show("请先添加图像", "提示",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
 
-            // TODO: 触发运行全部图像处理流程的事件或命令
-            // 可以通过事件通知主窗口执行批量处理
-            var handler = RunAllRequested;
-            handler?.Invoke(this, EventArgs.Empty);
-        }
-
-        private bool CanExecuteRunAll()
-        {
-            return ImageCollection?.Count > 0;
-        }
 
         #endregion
 
@@ -423,6 +423,17 @@ namespace SunEyeVision.UI.Controls
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
         }
+
+        /// <summary>
+        /// 图像运行模式更改回调
+        /// </summary>
+        private static void OnImageRunModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+        {
+            var control = (ImagePreviewControl)d;
+            control.OnPropertyChanged(nameof(ImageRunMode));
+        }
+
+
 
         /// <summary>
         /// 更新图像显示索引（已废弃，不再使用）
@@ -465,6 +476,78 @@ namespace SunEyeVision.UI.Controls
                 }
             }
         }
+
+        /// <summary>
+        /// 运行模式按钮点击事件处理
+        /// </summary>
+        private void OnRunModeButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (RunModePopup != null)
+            {
+                RunModePopup.IsOpen = !RunModePopup.IsOpen;
+            }
+        }
+
+        /// <summary>
+        /// 运行模式下拉列表鼠标按下事件处理
+        /// 使用PreviewMouseDown确保在点击任意项时都能立即响应
+        /// </summary>
+        private void OnRunModeListBoxPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (RunModeListBox == null || RunModePopup == null)
+                return;
+
+            // 获取点击的源元素
+            var originalSource = e.OriginalSource as DependencyObject;
+            if (originalSource == null)
+                return;
+
+            // 查找对应的ListBoxItem
+            var listBoxItem = FindParent<ListBoxItem>(originalSource);
+            if (listBoxItem == null)
+                return;
+
+            // 获取选中项
+            ImageRunMode? selectedMode = null;
+            if (listBoxItem.Content is TextBlock textBlock && textBlock.DataContext is ImageRunMode mode1)
+            {
+                selectedMode = mode1;
+            }
+            else if (listBoxItem.DataContext is ImageRunMode mode2)
+            {
+                selectedMode = mode2;
+            }
+
+            // 更新运行模式
+            if (selectedMode.HasValue)
+            {
+                ImageRunMode = selectedMode.Value;
+            }
+
+            // 立即关闭Popup
+            RunModePopup.IsOpen = false;
+
+            // 标记事件已处理，防止冒泡导致其他问题
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 查找父元素
+        /// </summary>
+        private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            var parentObject = VisualTreeHelper.GetParent(child);
+
+            if (parentObject == null)
+                return null;
+
+            if (parentObject is T parent)
+                return parent;
+
+            return FindParent<T>(parentObject);
+        }
+
+
 
         /// <summary>
         /// 属性更改通知
@@ -523,11 +606,6 @@ namespace SunEyeVision.UI.Controls
         #region 事件
 
         /// <summary>
-        /// 运行全部请求事件
-        /// </summary>
-        public event EventHandler? RunAllRequested;
-
-        /// <summary>
         /// INotifyPropertyChanged接口实现
         /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -584,6 +662,90 @@ namespace SunEyeVision.UI.Controls
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// 图像运行模式显示转换器
+    /// </summary>
+    public class ImageRunModeDisplayConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null)
+                return "运行全部";
+
+            // 尝试直接转换为ImageRunMode
+            if (value is ImageRunMode runMode)
+            {
+                return runMode switch
+                {
+                    ImageRunMode.运行全部 => "运行全部",
+                    ImageRunMode.运行选择 => "运行选中",
+                    _ => "运行全部"
+                };
+            }
+
+
+            return "运行全部";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string str)
+            {
+                return str switch
+                {
+                    "运行全部" => ImageRunMode.运行全部,
+                    "运行选中" => ImageRunMode.运行选择,
+                    _ => ImageRunMode.运行全部
+                };
+            }
+            return ImageRunMode.运行全部;
+        }
+    }
+
+    /// <summary>
+    /// Boolean到Brush转换器（用于自动切换按钮）
+    /// </summary>
+    public class BooleanToBrushConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool isChecked)
+            {
+                return isChecked ? new SolidColorBrush(Colors.Orange) : new SolidColorBrush(Color.FromRgb(192, 192, 192));
+            }
+            return new SolidColorBrush(Color.FromRgb(192, 192, 192));
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// 反向布尔转换器
+    /// </summary>
+    public class InverseBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return !boolValue;
+            }
+            return true;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return !boolValue;
+            }
+            return false;
         }
     }
 }
