@@ -56,9 +56,11 @@ namespace SunEyeVision.UI.Controls
 
         private static void OnImageSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[ImageDisplayControl.OnImageSourceChanged] 图像源改变: 旧值={e.OldValue != null}, 新值={e.NewValue != null}");
             if (d is ImageDisplayControl control)
             {
                 control.MainImage.Source = e.NewValue as BitmapSource;
+                System.Diagnostics.Debug.WriteLine($"[ImageDisplayControl.OnImageSourceChanged] MainImage.Source已设置: {control.MainImage.Source != null}");
                 control.UpdatePlaceholderVisibility();
             }
         }

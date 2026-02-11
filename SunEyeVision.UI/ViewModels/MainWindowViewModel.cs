@@ -1591,8 +1591,11 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void UpdateCurrentImageDisplay()
         {
+            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 开始执行, CurrentImageIndex={CurrentImageIndex}, ImageCollection.Count={ImageCollection.Count}");
+            
             if (CurrentImageIndex < 0 || CurrentImageIndex >= ImageCollection.Count)
             {
+                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 索引无效，清空图像");
                 OriginalImage = null;
                 ProcessedImage = null;
                 ResultImage = null;
@@ -1600,10 +1603,24 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             var imageInfo = ImageCollection[CurrentImageIndex];
-            if (imageInfo.FullImage != null)
+            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 图像信息: {imageInfo.Name}, FullImage加载状态: {imageInfo.IsFullImageLoaded}");
+            
+            // 主动触发FullImage加载
+            var fullImage = imageInfo.FullImage;
+            System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] FullImage获取结果: {fullImage != null}, PixelWidth={(fullImage?.PixelWidth ?? 0)}, PixelHeight={(fullImage?.PixelHeight ?? 0)}");
+            
+            if (fullImage != null)
             {
-                OriginalImage = imageInfo.FullImage;
+                OriginalImage = fullImage;
                 AddLog($"📷 加载图像: {imageInfo.Name}");
+                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] OriginalImage已设置，调用UpdateDisplayImage");
+                
+                // 确保DisplayImage被更新
+                UpdateDisplayImage();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[UpdateCurrentImageDisplay] 警告: FullImage为null，无法显示图像");
             }
         }
 
@@ -1616,19 +1633,27 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void UpdateDisplayImage()
         {
+            System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 开始执行, SelectedImageType={SelectedImageType?.DisplayName ?? "null"}");
+            
             if (SelectedImageType == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] SelectedImageType为null，跳过");
                 return;
+            }
 
             switch (SelectedImageType.Type)
             {
                 case ImageDisplayType.Original:
                     DisplayImage = OriginalImage;
+                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = OriginalImage, OriginalImage={OriginalImage != null}, DisplayImage={DisplayImage != null}");
                     break;
                 case ImageDisplayType.Processed:
                     DisplayImage = ProcessedImage;
+                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = ProcessedImage, ProcessedImage={ProcessedImage != null}, DisplayImage={DisplayImage != null}");
                     break;
                 case ImageDisplayType.Result:
                     DisplayImage = ResultImage;
+                    System.Diagnostics.Debug.WriteLine($"[UpdateDisplayImage] 设置DisplayImage = ResultImage, ResultImage={ResultImage != null}, DisplayImage={DisplayImage != null}");
                     break;
             }
         }

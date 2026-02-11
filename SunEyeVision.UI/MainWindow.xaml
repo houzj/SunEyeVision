@@ -750,7 +750,7 @@
 
                     <!-- 图像显示区域 - 包含图像显示模块和图像载入及预览模块 -->
                     <Border Grid.Row="0" BorderThickness="0">
-                        <Grid>
+                        <Grid HorizontalAlignment="Stretch">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>  <!-- 图像显示模块 -->
                                 <RowDefinition Height="Auto"/>  <!-- 图像载入及预览模块 -->
@@ -924,7 +924,7 @@
                                     Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <controls:ImagePreviewControl x:Name="ImagePreviewContent"
                                                              AutoSwitchEnabled="{Binding AutoSwitchEnabled}"
-                                                             CurrentImageIndex="{Binding CurrentImageIndex}"
+                                                             CurrentImageIndex="{Binding CurrentImageIndex, Mode=TwoWay}"
                                                              ImageCollection="{Binding ImageCollection}"/>
                             </Border>
                         </Grid>
