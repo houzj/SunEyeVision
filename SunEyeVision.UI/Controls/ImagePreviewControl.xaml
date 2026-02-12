@@ -429,7 +429,7 @@
                                                Width="60"
                                                Height="60"
                                                Stretch="Uniform"
-                                               RenderOptions.BitmapScalingMode="LowQuality"/>
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
                                         <!-- 加载中提示（静态占位符，移除动画） -->
                                         <Border Background="#252525" CornerRadius="2"
                                                 Opacity="{Binding Thumbnail, Converter={StaticResource NullToOpacityConverter}}"
