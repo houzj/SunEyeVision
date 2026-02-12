@@ -606,54 +606,67 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void PreloadAdjacentImages(int currentIndex)
         {
+            Debug.WriteLine($"[ImagePreviewControl] ========== PreloadAdjacentImages 开始 ==========");
+            Debug.WriteLine($"[ImagePreviewControl] currentIndex:{currentIndex}, ImageCollection.Count:{ImageCollection?.Count ?? 0}");
+
             if (ImageCollection == null || ImageCollection.Count == 0)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ✗ ImageCollection 为空或Count=0，跳过预加载");
                 return;
             }
 
-            // 检查特殊值，阻止预加载（用于优化图像加载过程）
-            if (currentIndex == -999 || _lastPreloadIndex == -999)
+            // 检查是否正在加载缩略图（避免影响加载性能）
+            if (_lastPreloadIndex == -999)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ⚠ 正在加载缩略图模式（_lastPreloadIndex=-999），跳过预加载");
                 return;
             }
 
-            // 如果索引未变化，不重复预加载
-            if (currentIndex == _lastPreloadIndex)
+            // 避免重复预加载
+            if (_lastPreloadIndex == currentIndex)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ⚠ 重复预加载（_lastPreloadIndex={currentIndex}），跳过");
                 return;
             }
 
             _lastPreloadIndex = currentIndex;
+            Debug.WriteLine($"[ImagePreviewControl] ✓ 更新 _lastPreloadIndex = {currentIndex}");
 
-            // 取消之前的预加载任务
-            if (_preloadTask != null && !_preloadTask.IsCompleted)
-            {
-                return; // 等待前一个任务完成
-            }
-
-            // 动态计算预加载范围
             var (immediateDisplayCount, _, _) = CalculateDynamicLoadCounts();
-            int preloadRange = Math.Max(2, immediateDisplayCount / 10); // 预加载范围为显示数量的10%，最少2张
+            int preloadRange = Math.Max(3, immediateDisplayCount / 2);
+            Debug.WriteLine($"[ImagePreviewControl] 预加载范围: ±{preloadRange} (基于immediateDisplayCount={immediateDisplayCount})");
 
-            // 在UI线程上收集需要预加载的图像信息
             var imagesToPreload = new List<(int index, string filePath)>();
             var preloadOffsets = Enumerable.Range(-preloadRange, preloadRange * 2 + 1).Where(x => x != 0).ToArray();
+
+            Debug.WriteLine($"[ImagePreviewControl] 检查 {preloadOffsets.Length} 个偏移位置的图像加载状态...");
+
             foreach (var offset in preloadOffsets)
             {
                 var index = currentIndex + offset;
                 if (index >= 0 && index < ImageCollection.Count)
                 {
                     var imageInfo = ImageCollection[index];
-                    if (!imageInfo.IsFullImageLoaded)
+                    bool isLoaded = imageInfo.IsFullImageLoaded;
+                    bool hasThumbnail = imageInfo.Thumbnail != null;
+
+                    Debug.WriteLine($"[ImagePreviewControl]   索引{index} (偏移{offset}): FullImage={isLoaded}, Thumbnail={hasThumbnail}");
+
+                    if (!isLoaded)
                     {
                         imagesToPreload.Add((index, imageInfo.FilePath));
                     }
                 }
             }
 
+            Debug.WriteLine($"[ImagePreviewControl] 待预加载的图像数量: {imagesToPreload.Count}");
+
             // 启动新的预加载任务（在后台线程中加载图像）
             _preloadTask = Task.Run(() =>
             {
+                Debug.WriteLine($"[ImagePreviewControl] 后台预加载任务启动 - {imagesToPreload.Count} 张图像");
+                int loadedCount = 0;
+
                 foreach (var (index, filePath) in imagesToPreload)
                 {
                     try
@@ -666,13 +679,21 @@ namespace SunEyeVision.UI.Controls
                                 if (index < ImageCollection.Count)
                                 {
                                     ImageCollection[index].SetFullImage(fullImage);
+                                    loadedCount++;
+                                    Debug.WriteLine($"[ImagePreviewControl] ✓ 后台预加载完成: 索引{index}");
                                 }
                             }, System.Windows.Threading.DispatcherPriority.Background);
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[ImagePreviewControl] ✗ 后台预加载失败: 索引{index}, 错误:{ex.Message}");
+                    }
                 }
+
+                Debug.WriteLine($"[ImagePreviewControl] 后台预加载任务完成 - 成功:{loadedCount}/{imagesToPreload.Count}");
             });
+            Debug.WriteLine($"[ImagePreviewControl] ========== PreloadAdjacentImages 结束 ==========");
         }
 
         /// <summary>
@@ -707,23 +728,44 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void ReleaseDistantImages(int currentIndex)
         {
+            Debug.WriteLine($"[ImagePreviewControl] ========== ReleaseDistantImages 开始 ==========");
+            Debug.WriteLine($"[ImagePreviewControl] currentIndex:{currentIndex}, ImageCollection.Count:{ImageCollection?.Count ?? 0}");
+
             if (ImageCollection == null || ImageCollection.Count == 0)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ✗ ImageCollection 为空或Count=0，跳过释放");
                 return;
             }
 
             // 动态计算保留范围
             var (immediateDisplayCount, _, _) = CalculateDynamicLoadCounts();
             int keepRange = Math.Max(2, immediateDisplayCount / 10); // 保留范围为显示数量的10%，最少2张
+            Debug.WriteLine($"[ImagePreviewControl] 保留范围: ±{keepRange} (基于immediateDisplayCount={immediateDisplayCount})");
+
+            int releaseCount = 0;
 
             // 只保留当前和相邻图像的全分辨率（距离<=keepRange）
             for (int i = 0; i < ImageCollection.Count; i++)
             {
-                if (Math.Abs(i - currentIndex) > keepRange)
+                int distance = Math.Abs(i - currentIndex);
+                bool shouldRelease = distance > keepRange;
+
+                if (shouldRelease)
                 {
-                    ImageCollection[i].ReleaseFullImage();
+                    var imageInfo = ImageCollection[i];
+                    bool wasLoaded = imageInfo.IsFullImageLoaded;
+
+                    if (wasLoaded)
+                    {
+                        ImageCollection[i].ReleaseFullImage();
+                        releaseCount++;
+                        Debug.WriteLine($"[ImagePreviewControl] ✓ 释放FullImage: 索引{i}, 距离:{distance}");
+                    }
                 }
             }
+
+            Debug.WriteLine($"[ImagePreviewControl] 释放的图像数量: {releaseCount}");
+            Debug.WriteLine($"[ImagePreviewControl] ========== ReleaseDistantImages 结束 ==========");
         }
 
         #region 命令实现
@@ -1068,9 +1110,21 @@ namespace SunEyeVision.UI.Controls
             int index = ImageCollection.IndexOf(imageInfo);
             if (index >= 0)
             {
+                Debug.WriteLine($"[ImagePreviewControl] 准备删除索引 {index} 的图片 - {imageInfo.Name}");
+                Debug.WriteLine($"[ImagePreviewControl] 删除前 - ImageCollection.Count:{ImageCollection.Count}");
+
                 ImageCollection.RemoveAt(index);
 
+                Debug.WriteLine($"[ImagePreviewControl] 删除后 - ImageCollection.Count:{ImageCollection.Count}");
+
+                // 关键修复：删除图片后，所有后续图片的索引都发生了错位
+                // 必须清除SmartLoader的_loadedIndices缓存，否则会导致"假已加载"状态
+                Debug.WriteLine($"[ImagePreviewControl] 清除SmartLoader的_loadedIndices缓存（修复索引错位问题）...");
+                _smartLoader.ClearLoadedIndices();
+                Debug.WriteLine($"[ImagePreviewControl] ✓ SmartLoader缓存已清除");
+
                 // 调整当前索引
+                int oldIndex = CurrentImageIndex;
                 if (ImageCollection.Count == 0)
                 {
                     CurrentImageIndex = -1;
@@ -1084,6 +1138,11 @@ namespace SunEyeVision.UI.Controls
                     // 如果删除的是当前索引之前的图像，当前索引需要减1
                     CurrentImageIndex--;
                 }
+
+                Debug.WriteLine($"[ImagePreviewControl] 索引调整 - 旧索引:{oldIndex}, 新索引:{CurrentImageIndex}, 删除的索引:{index}");
+
+                // 无论索引是否变化，都强制刷新相关UI状态
+                RefreshImageDisplayState();
             }
         }
 
@@ -1164,6 +1223,67 @@ namespace SunEyeVision.UI.Controls
         }
 
 
+
+
+        /// <summary>
+        /// 刷新图像显示状态（修复删除图片后UI不更新和缩略图显示问题）
+        /// </summary>
+        private void RefreshImageDisplayState()
+        {
+            Debug.WriteLine($"[ImagePreviewControl] ========== RefreshImageDisplayState 开始 ==========");
+            Debug.WriteLine($"[ImagePreviewControl] 当前状态 - CurrentImageIndex:{CurrentImageIndex}, ImageCollection.Count:{ImageCollection?.Count ?? 0}");
+
+            // 强制刷新ImageCountDisplay（确保删除后总数正确更新）
+            OnPropertyChanged(nameof(ImageCountDisplay));
+            Debug.WriteLine($"[ImagePreviewControl] ✓ ImageCountDisplay 已刷新");
+
+            // 强制刷新缩略图选中状态
+            UpdateImageSelection();
+            Debug.WriteLine($"[ImagePreviewControl] ✓ UpdateImageSelection 已执行");
+
+            // 确保触发预加载和释放机制（修复缩略图只显示占位图问题）
+            if (CurrentImageIndex >= 0)
+            {
+                Debug.WriteLine($"[ImagePreviewControl] 触发预加载机制 - CurrentImageIndex:{CurrentImageIndex}");
+
+                PreloadAdjacentImages(CurrentImageIndex);
+                ReleaseDistantImages(CurrentImageIndex);
+
+                // 同步ListBox的SelectedItem
+                if (_thumbnailListBox != null && ImageCollection != null &&
+                    CurrentImageIndex >= 0 && CurrentImageIndex < ImageCollection.Count)
+                {
+                    var selectedImage = ImageCollection[CurrentImageIndex];
+                    _thumbnailListBox.SelectedItem = selectedImage;
+                    Debug.WriteLine($"[ImagePreviewControl] ✓ ListBox选中项已同步: {selectedImage.Name}, 缩略图状态: {(selectedImage.Thumbnail != null ? "已加载" : "未加载")}");
+
+                    // 检查当前选中图像的缩略图状态
+                    if (selectedImage.Thumbnail == null)
+                    {
+                        Debug.WriteLine($"[ImagePreviewControl] ⚠ 警告: 当前选中图像 {selectedImage.Name} 的缩略图为null");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"[ImagePreviewControl] ⚠ 无法同步ListBox选中项 - _thumbnailListBox:{_thumbnailListBox != null}, ImageCollection:{ImageCollection != null}, CurrentImageIndex有效:{CurrentImageIndex >= 0 && CurrentImageIndex < (ImageCollection?.Count ?? 0)}");
+                }
+
+                // 触发可视区域更新
+                Debug.WriteLine($"[ImagePreviewControl] 触发 UpdateLoadRange()");
+                UpdateLoadRange();
+            }
+            else
+            {
+                // 如果没有选中图像，清除ListBox选中项
+                if (_thumbnailListBox != null)
+                {
+                    _thumbnailListBox.SelectedItem = null;
+                    Debug.WriteLine($"[ImagePreviewControl] ✓ ListBox选中项已清除");
+                }
+            }
+
+            Debug.WriteLine($"[ImagePreviewControl] ========== RefreshImageDisplayState 结束 ==========");
+        }
 
         /// <summary>
         /// 更新图像选中状态
@@ -1375,14 +1495,18 @@ namespace SunEyeVision.UI.Controls
             /// </summary>
             public void UpdateLoadRange(int firstIndex, int lastIndex, int imageCount, ObservableCollection<ImageInfo> imageCollection)
             {
+                Debug.WriteLine($"[SmartLoader] ========== UpdateLoadRange 开始 ==========");
                 var sw = Stopwatch.StartNew();
                 _imageCollection = imageCollection;
+
+                Debug.WriteLine($"[SmartLoader] 输入参数 - firstIndex:{firstIndex}, lastIndex:{lastIndex}, imageCount:{imageCount}");
+                Debug.WriteLine($"[SmartLoader] 当前状态 - _loadedIndices.Count:{_loadedIndices.Count}, _loadQueue.Count:{_loadQueue.Count}");
 
                 // 优化：不再取消之前的任务，只添加新的索引到队列
                 // 这样已经加载的缩略图不会被浪费
 
                 int movedOutCount = 0;
-                // 检测哪些索引移出了视野，移交到后台加载
+                // 检测哪些索引移出了视野，移交到后台
                 if (_lastFirstVisible >= 0 && _lastLastVisible >= 0)
                 {
                     var movedOutIndices = new List<int>();
@@ -1395,6 +1519,8 @@ namespace SunEyeVision.UI.Controls
                         }
                     }
 
+                    Debug.WriteLine($"[SmartLoader] 检测移出视野的索引 - 旧范围:[{_lastFirstVisible}-{_lastLastVisible}], 移出数量:{movedOutIndices.Count}");
+
                     // 移交移出的任务到后台
                     foreach (var index in movedOutIndices)
                     {
@@ -1402,6 +1528,7 @@ namespace SunEyeVision.UI.Controls
                         {
                             TransferToBackground(index);
                             movedOutCount++;
+                            Debug.WriteLine($"[SmartLoader] ✓ 移交到后台加载 - 索引:{index}");
                         }
                     }
                 }
@@ -1421,9 +1548,21 @@ namespace SunEyeVision.UI.Controls
                             _loadQueue.Add(i);
                             addedCount++;
                             _totalAdded++;
+                            Debug.WriteLine($"[SmartLoader] ✓ 添加到加载队列 - 索引:{i}");
+                        }
+                        else if (i >= 0 && i < imageCount && _loadedIndices.Contains(i))
+                        {
+                            Debug.WriteLine($"[SmartLoader] ⚠ 索引{i}已加载，跳过");
+                        }
+                        else if (i >= 0 && i < imageCount && _loadQueue.Contains(i))
+                        {
+                            Debug.WriteLine($"[SmartLoader] ⚠ 索引{i}已在队列中，跳过");
                         }
                     }
                 }
+
+                Debug.WriteLine($"[SmartLoader] 添加到队列:{addedCount}个, 移交后台:{movedOutCount}个");
+                Debug.WriteLine($"[SmartLoader] 队列状态 - _loadQueue.Count:{_loadQueue.Count}, _loadedIndices.Count:{_loadedIndices.Count}, _totalAdded:{_totalAdded}");
 
                 _logger.LogOperation("UpdateLoadRange", sw.Elapsed,
                     $"范围:[{firstIndex}-{lastIndex}] 添加:{addedCount} 队列:{_loadQueue.Count} 已加载:{_loadedIndices.Count} 总添加:{_totalAdded} 移交后台:{movedOutCount}");
@@ -1431,6 +1570,7 @@ namespace SunEyeVision.UI.Controls
                 // 启动新的加载任务（如果还没启动或已完成）
                 if (_loadTask == null || _loadTask.IsCompleted)
                 {
+                    Debug.WriteLine($"[SmartLoader] 启动新的加载任务...");
                     // 创建新的取消令牌
                     if (_cancellationTokenSource != null)
                     {
@@ -1439,6 +1579,12 @@ namespace SunEyeVision.UI.Controls
                     _cancellationTokenSource = new CancellationTokenSource();
                     _loadTask = ProcessLoadQueue(_cancellationTokenSource.Token);
                 }
+                else
+                {
+                    Debug.WriteLine($"[SmartLoader] 加载任务已在运行中");
+                }
+
+                Debug.WriteLine($"[SmartLoader] ========== UpdateLoadRange 结束 - 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms ==========");
             }
 
             /// <summary>
@@ -1607,12 +1753,15 @@ namespace SunEyeVision.UI.Controls
             /// </summary>
             private async Task LoadSingleThumbnail(int index, CancellationToken cancellationToken, bool isBackground = false)
             {
+                Debug.WriteLine($"[SmartLoader] ========== LoadSingleThumbnail 开始 ==========");
+                Debug.WriteLine($"[SmartLoader] 参数 - index:{index}, isBackground:{isBackground}");
+
                 var sw = Stopwatch.StartNew();
                 string fileName = "";
 
                 if (_imageCollection == null || index < 0 || index >= _imageCollection.Count)
                 {
-                    _logger.LogOperation($"索引{index}超出范围", sw.Elapsed);
+                    Debug.WriteLine($"[SmartLoader] ✗ 索引{index}超出范围 - _imageCollection:{_imageCollection != null}, index范围:{index < 0 || index >= (_imageCollection?.Count ?? 0)}");
                     return;
                 }
 
@@ -1622,7 +1771,7 @@ namespace SunEyeVision.UI.Controls
                     // 再次检查，避免并发加载同一图片
                     if (_loadedIndices.Contains(index))
                     {
-                        _logger.LogOperation($"索引{index}已加载", sw.Elapsed, "跳过");
+                        Debug.WriteLine($"[SmartLoader] ⚠ 索引{index}已加载，跳过");
                         return;
                     }
 
@@ -1630,11 +1779,13 @@ namespace SunEyeVision.UI.Controls
                     if (imageInfo.Thumbnail != null)
                     {
                         _loadedIndices.Add(index);
-                        _logger.LogOperation($"索引{index}已有缩略图", sw.Elapsed, "跳过");
+                        Debug.WriteLine($"[SmartLoader] ⚠ 索引{index}已有缩略图，跳过");
                         return; // 已加载
                     }
                     fileName = Path.GetFileName(imageInfo.FilePath);
                 }
+
+                Debug.WriteLine($"[SmartLoader] 准备加载 - 文件:{fileName}");
 
                 var checkSw = sw.Elapsed;
 
@@ -1642,13 +1793,17 @@ namespace SunEyeVision.UI.Controls
                 {
                     // 阶段1: 实际加载（使用Task.Run包装同步操作）
                     sw.Restart();
+                    Debug.WriteLine($"[SmartLoader] 阶段1 - 开始从文件加载缩略图...");
                     var thumbnail = await Task.Run(() => LoadThumbnailOptimized(imageInfo.FilePath));
                     var loadSw = sw.Elapsed;
+
+                    Debug.WriteLine($"[SmartLoader] 阶段1完成 - 耗时:{loadSw.TotalMilliseconds:F2}ms, 结果:{(thumbnail != null ? "成功" : "失败")}");
 
                     if (thumbnail != null && !cancellationToken.IsCancellationRequested)
                     {
                         // 阶段2: UI更新
                         sw.Restart();
+                        Debug.WriteLine($"[SmartLoader] 阶段2 - 开始更新UI...");
                         await Application.Current?.Dispatcher.InvokeAsync(() =>
                         {
                             if (index < _imageCollection.Count && _imageCollection[index] == imageInfo)
@@ -1659,20 +1814,34 @@ namespace SunEyeVision.UI.Controls
                                     _loadedIndices.Add(index);
                                     _totalLoaded++;
                                 }
+                                Debug.WriteLine($"[SmartLoader] ✓ 缩略图已设置到ImageInfo - 索引:{index}");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"[SmartLoader] ⚠ 索引已失效或ImageInfo已变更 - index:{index}, collection.Count:{_imageCollection?.Count}");
                             }
                         }, System.Windows.Threading.DispatcherPriority.Background)!;
                         var updateSw = sw.Elapsed;
 
+                        Debug.WriteLine($"[SmartLoader] 阶段2完成 - 耗时:{updateSw.TotalMilliseconds:F2}ms");
+
                         _logger.LogOperation($"加载缩略图[{index}]", checkSw + loadSw + updateSw,
                             $"文件:{fileName} 检查:{checkSw.TotalMilliseconds:F2}ms 加载:{loadSw.TotalMilliseconds:F2}ms UI:{updateSw.TotalMilliseconds:F2}ms");
+                        Debug.WriteLine($"[SmartLoader] ========== LoadSingleThumbnail 完成 (总耗时:{(checkSw + loadSw + updateSw).TotalMilliseconds:F2}ms) ==========");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[SmartLoader] ✗ 缩略图加载失败或已取消 - thumbnail:{thumbnail != null}, cancelled:{cancellationToken.IsCancellationRequested}");
                     }
                 }
                 catch (OperationCanceledException)
                 {
+                    Debug.WriteLine($"[SmartLoader] ✗ 索引{index}加载被取消 - 文件:{fileName}");
                     _logger.LogOperation($"索引{index}被取消", sw.Elapsed, fileName);
                 }
                 catch (Exception ex)
                 {
+                    Debug.WriteLine($"[SmartLoader] ✗ 索引{index}加载异常 - 文件:{fileName}, 错误:{ex.Message}");
                     _logger.LogOperation($"索引{index}加载失败", sw.Elapsed, $"{fileName} 错误:{ex.Message}");
                 }
 
@@ -1684,16 +1853,19 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void UpdateLoadRange()
         {
+            Debug.WriteLine($"[ImagePreviewControl] ========== UpdateLoadRange 开始 ==========");
             var sw = Stopwatch.StartNew();
 
             if (_thumbnailListBox == null || ImageCollection == null || ImageCollection.Count == 0)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ✗ 跳过更新 - _thumbnailListBox:{_thumbnailListBox != null}, ImageCollection:{ImageCollection != null}, Count:{ImageCollection?.Count ?? 0}");
                 return;
             }
 
             var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
             if (scrollViewer == null)
             {
+                Debug.WriteLine($"[ImagePreviewControl] ✗ ScrollViewer 为 null，跳过更新");
                 return;
             }
 
@@ -1718,8 +1890,15 @@ namespace SunEyeVision.UI.Controls
             firstVisible = Math.Max(0, firstVisible - bufferZone);
             lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + bufferZone);
 
+            Debug.WriteLine($"[ImagePreviewControl] ScrollViewer状态 - ViewportWidth:{viewportWidth:F2}, HorizontalOffset:{horizontalOffset:F2}");
+            Debug.WriteLine($"[ImagePreviewControl] 可见范围 - 原始:[{(int)(horizontalOffset / itemWidth)}-{(int)((horizontalOffset + viewportWidth) / itemWidth)}], 扩展后:[{firstVisible}-{lastVisible}]");
+            Debug.WriteLine($"[ImagePreviewControl] 加载参数 - viewportCapacity:{viewportCapacity}, bufferZone:{bufferZone}");
+
             // 委托给智能加载器
             _smartLoader.UpdateLoadRange(firstVisible, lastVisible, ImageCollection.Count, ImageCollection);
+
+            sw.Stop();
+            Debug.WriteLine($"[ImagePreviewControl] ========== UpdateLoadRange 结束 - 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms ==========");
         }
 
         #endregion
