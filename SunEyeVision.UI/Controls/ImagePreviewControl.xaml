@@ -288,8 +288,8 @@
         <Grid HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="8"/>
-                <RowDefinition Height="120"/>
+                <RowDefinition Height="2"/>
+                <RowDefinition Height="90"/>
             </Grid.RowDefinitions>
 
             <!-- 顶部工具栏 -->
@@ -412,9 +412,10 @@
                         <Border Style="{Binding IsSelected, Converter={StaticResource ThumbnailStyleConverter}}"
                                 MouseLeftButtonDown="OnThumbnailClick"
                                 Tag="{Binding}"
-                                Width="90"
-                                Height="90"
-                                Margin="1">
+                                Width="70"
+                                Height="70"
+                                Margin="1"
+                                ToolTip="{Binding Name}">
                             <!-- 添加 Grid 用于层叠布局 -->
                             <Grid>
                                 <Border Background="#1A1A1A"
@@ -425,15 +426,14 @@
                                     <!-- 缩略图占位符（未加载时显示） -->
                                     <Grid>
                                         <Image Source="{Binding Thumbnail}"
-                                               Width="80"
-                                               Height="80"
+                                               Width="60"
+                                               Height="60"
                                                Stretch="Uniform"
-                                               RenderOptions.BitmapScalingMode="HighQuality"
-                                               ToolTip="{Binding Name}"/>
+                                               RenderOptions.BitmapScalingMode="LowQuality"/>
                                         <!-- 加载中提示（静态占位符，移除动画） -->
                                         <Border Background="#252525" CornerRadius="2"
                                                 Opacity="{Binding Thumbnail, Converter={StaticResource NullToOpacityConverter}}"
-                                                Width="80" Height="80"
+                                                Width="60" Height="60"
                                                 HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <TextBlock Text="..."
                                                        FontSize="16"

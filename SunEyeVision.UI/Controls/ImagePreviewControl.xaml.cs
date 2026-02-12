@@ -325,6 +325,25 @@ namespace SunEyeVision.UI.Controls
     /// </summary>
     public partial class ImagePreviewControl : System.Windows.Controls.UserControl, INotifyPropertyChanged
     {
+        // UI尺寸配置（集中管理，避免硬编码）
+        private static class ThumbnailSizes
+        {
+            // XAML中定义的尺寸（必须与XAML完全一致）
+            public const double BorderWidth = 70;          // Border的Width="70"
+            public const double BorderHeight = 70;         // Border的Height="70"
+            public const double ImageWidth = 60;           // Image的Width="60"
+            public const double ImageHeight = 60;          // Image的Height="60"
+            public const double PlaceholderWidth = 60;     // 占位符的Width
+            public const double PlaceholderHeight = 60;    // 占位符的Height（匹配Image）
+
+            // 布局间距（从XAML Margin="1"计算得出）
+            public const double HorizontalMargin = 2;      // 左右各Margin 1
+
+            // 计算属性（供算法使用）
+            public static double ItemWidth => BorderWidth + HorizontalMargin;  // 72.0
+            public static int ThumbnailLoadSize => (int)ImageWidth;             // 60
+        }
+
         // 图像缓存（LRU）
         private static readonly ImageCache s_fullImageCache = new ImageCache(maxCacheSize: 30);
 
@@ -566,8 +585,14 @@ namespace SunEyeVision.UI.Controls
         /// <summary>
         /// 优化的缩略图加载（只设置宽度，保持宽高比）
         /// </summary>
-        private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = 80)
+        private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = -1)
         {
+            // 如果size为-1，使用配置的缩略图尺寸
+            if (size < 0)
+            {
+                size = ThumbnailSizes.ThumbnailLoadSize;
+            }
+
             try
             {
                 if (!File.Exists(filePath))
@@ -828,7 +853,7 @@ namespace SunEyeVision.UI.Controls
             }
 
             var viewportWidth = scrollViewer.ViewportWidth;
-            var itemWidth = 92.0; // 缩略图宽度90 + 边距2
+            var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度70 + 边距2 = 72.0
 
             // 计算视口能容纳的图片数量（+4作为缓冲区）
             int viewportCapacity = (int)(viewportWidth / itemWidth) + 4;
@@ -884,7 +909,7 @@ namespace SunEyeVision.UI.Controls
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 // 估算总宽度
-                const double itemWidth = 92.0; // 缩略图宽度90 + 边距2
+                var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度70 + 边距2 = 72.0
                 var estimatedTotalWidth = fileNames.Length * itemWidth;
 
                 logger.LogOperation("步骤2-布局预留", TimeSpan.Zero, $"预估宽度:{estimatedTotalWidth:F2}px");
@@ -1876,7 +1901,7 @@ namespace SunEyeVision.UI.Controls
             // 计算可见区域
             var viewportWidth = scrollViewer.ViewportWidth;
             var horizontalOffset = scrollViewer.HorizontalOffset;
-            var itemWidth = 92; // 缩略图宽度90 + 边距2
+            var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度70 + 边距2 = 72.0
 
             var firstVisible = Math.Max(0, (int)(horizontalOffset / itemWidth));
             var lastVisible = Math.Min(ImageCollection.Count - 1,
