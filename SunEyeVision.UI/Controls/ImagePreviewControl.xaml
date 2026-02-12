@@ -378,13 +378,6 @@
                             Margin="6,0,0,0"
                             ToolTip="添加文件夹"/>
 
-                    <!-- 删除选中 -->
-                    <Button Content="🗑️"
-                            Command="{Binding DeleteImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Style="{StaticResource IconButton}"
-                            Margin="6,0,0,0"
-                            ToolTip="删除选中"/>
-
                     <!-- 清除全部 -->
                     <Button Content="🧹"
                             Command="{Binding ClearAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -422,32 +415,123 @@
                                 Width="90"
                                 Height="90"
                                 Margin="1">
-                            <Border Background="#1A1A1A"
-                                    CornerRadius="2"
-                                    Padding="2"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                <!-- 缩略图占位符（未加载时显示） -->
-                                <Grid>
-<Image Source="{Binding Thumbnail}"
-       Width="80"
-       Height="80"
-       Stretch="Uniform"
-       RenderOptions.BitmapScalingMode="HighQuality"
-       ToolTip="{Binding Thumbnail, Converter={StaticResource NullToOpacityConverter}, ConverterParameter='缩略图状态: '}"/>
-                                    <!-- 加载中提示（静态占位符，移除动画） -->
-                                    <Border Background="#252525" CornerRadius="2"
-                                            Opacity="{Binding Thumbnail, Converter={StaticResource NullToOpacityConverter}}"
-                                            Width="80" Height="80"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock Text="..."
-                                                   FontSize="16"
-                                                   Foreground="#666666"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                    </Border>
-                                </Grid>
-                            </Border>
+                            <!-- 添加 Grid 用于层叠布局 -->
+                            <Grid>
+                                <Border Background="#1A1A1A"
+                                        CornerRadius="2"
+                                        Padding="2"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <!-- 缩略图占位符（未加载时显示） -->
+                                    <Grid>
+                                        <Image Source="{Binding Thumbnail}"
+                                               Width="80"
+                                               Height="80"
+                                               Stretch="Uniform"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               ToolTip="{Binding Name}"/>
+                                        <!-- 加载中提示（静态占位符，移除动画） -->
+                                        <Border Background="#252525" CornerRadius="2"
+                                                Opacity="{Binding Thumbnail, Converter={StaticResource NullToOpacityConverter}}"
+                                                Width="80" Height="80"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="..."
+                                                       FontSize="16"
+                                                       Foreground="#666666"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 右上角删除按钮 -->
+                                <Button Command="{Binding DeleteSingleImageCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Width="20"
+                                        Height="20"
+                                        Padding="0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Margin="0,2,2,0"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        ToolTip="删除此图像"
+                                        PreviewMouseLeftButtonDown="OnDeleteButtonPreview">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="ButtonBorder"
+                                                    Background="#CC0000"
+                                                    CornerRadius="10"
+                                                    Width="20"
+                                                    Height="20">
+                                                <TextBlock Text="✕"
+                                                           FontSize="12"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#FF0000"/>
+                                                    <Setter TargetName="ButtonBorder" Property="Effect">
+                                                        <Setter.Value>
+                                                            <DropShadowEffect Color="#FF0000" BlurRadius="4" ShadowDepth="0" Opacity="0.6"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <!-- 只在鼠标悬停时显示 -->
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                            Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <!-- 左上角选择框（仅在"运行选择"模式且IsForRun为true时显示） -->
+                                <Border BorderBrush="#4CAF50"
+                                        BorderThickness="2"
+                                        CornerRadius="2"
+                                        Background="#334CAF50"
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        Margin="2,2,0,0"
+                                        Cursor="Hand">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <!-- 运行模式为"运行选择"且IsForRun为true时显示 -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ImageRunMode, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                  Value="运行选择"/>
+                                                        <Condition Binding="{Binding IsForRun}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="✓"
+                                               FontSize="10"
+                                               Foreground="#4CAF50"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

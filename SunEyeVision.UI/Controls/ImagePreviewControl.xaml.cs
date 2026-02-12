@@ -35,6 +35,7 @@ namespace SunEyeVision.UI.Controls
     {
         private int _displayIndex;
         private bool _isSelected;
+        private bool _isForRun = false;
         private BitmapSource? _fullImage;
         private bool _isFullImageLoaded;
 
@@ -109,6 +110,22 @@ namespace SunEyeVision.UI.Controls
                 {
                     _isSelected = value;
                     OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 是否被选中用于运行（运行选择模式时使用）
+        /// </summary>
+        public bool IsForRun
+        {
+            get => _isForRun;
+            set
+            {
+                if (_isForRun != value)
+                {
+                    _isForRun = value;
+                    OnPropertyChanged(nameof(IsForRun));
                 }
             }
         }
@@ -398,7 +415,7 @@ namespace SunEyeVision.UI.Controls
 
         public ICommand AddImageCommand { get; }
         public ICommand AddFolderCommand { get; }
-        public ICommand DeleteImageCommand { get; }
+        public ICommand DeleteSingleImageCommand { get; }
         public ICommand ClearAllCommand { get; }
 
         public ImagePreviewControl()
@@ -408,7 +425,7 @@ namespace SunEyeVision.UI.Controls
 
             AddImageCommand = new RelayCommand(ExecuteAddImage);
             AddFolderCommand = new RelayCommand(ExecuteAddFolder);
-            DeleteImageCommand = new RelayCommand(ExecuteDeleteImage, CanExecuteDeleteImage);
+            DeleteSingleImageCommand = new RelayCommand<ImageInfo>(ExecuteDeleteSingleImage);
             ClearAllCommand = new RelayCommand(ExecuteClearAll, CanExecuteClearAll);
 
             ImageCollection.CollectionChanged += (s, e) =>
@@ -1036,22 +1053,22 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 删除图像
+        /// 删除单个图像（通过缩略图上的删除按钮）
         /// </summary>
-        private void ExecuteDeleteImage()
+        private void ExecuteDeleteSingleImage(ImageInfo? imageInfo)
         {
-            if (CurrentImageIndex < 0 || CurrentImageIndex >= ImageCollection.Count)
-                return;
+            Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage 被调用 - imageInfo: {imageInfo?.Name ?? "null"}");
 
-            var result = MessageBox.Show(
-                $"确定要删除当前图像吗?",
-                "确认删除",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
+            if (imageInfo == null)
             {
-                ImageCollection.RemoveAt(CurrentImageIndex);
+                Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage - imageInfo 为 null，返回");
+                return;
+            }
+
+            int index = ImageCollection.IndexOf(imageInfo);
+            if (index >= 0)
+            {
+                ImageCollection.RemoveAt(index);
 
                 // 调整当前索引
                 if (ImageCollection.Count == 0)
@@ -1062,12 +1079,12 @@ namespace SunEyeVision.UI.Controls
                 {
                     CurrentImageIndex = ImageCollection.Count - 1;
                 }
+                else if (CurrentImageIndex > index)
+                {
+                    // 如果删除的是当前索引之前的图像，当前索引需要减1
+                    CurrentImageIndex--;
+                }
             }
-        }
-
-        private bool CanExecuteDeleteImage()
-        {
-            return ImageCollection != null && CurrentImageIndex >= 0 && CurrentImageIndex < ImageCollection.Count;
         }
 
         /// <summary>
@@ -1149,20 +1166,6 @@ namespace SunEyeVision.UI.Controls
 
 
         /// <summary>
-        /// 更新图像显示索引（已废弃，不再使用）
-        /// </summary>
-        [System.Obsolete("此方法已废弃，不再需要显示缩略图序号")]
-        private void UpdateDisplayIndices()
-        {
-            if (ImageCollection == null) return;
-
-            for (int i = 0; i < ImageCollection.Count; i++)
-            {
-                ImageCollection[i].DisplayIndex = i + 1;
-            }
-        }
-
-        /// <summary>
         /// 更新图像选中状态
         /// </summary>
         private void UpdateImageSelection()
@@ -1180,20 +1183,59 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnThumbnailClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick 触发 - e.Handled: {e.Handled}, OriginalSource: {e.OriginalSource?.GetType().Name}");
+
+            // 如果点击的是删除按钮或其子元素，跳过处理
+            DependencyObject? current = e.OriginalSource as DependencyObject;
+            while (current != null)
+            {
+                if (current is Button)
+                {
+                    Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 点击的是删除按钮，跳过处理");
+                    return;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+
             if (sender is Border border && border.Tag is ImageInfo imageInfo)
             {
                 int index = ImageCollection.IndexOf(imageInfo);
+                Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 图像索引: {index}, 文件名: {imageInfo.Name}");
+
                 if (index >= 0)
                 {
-                    CurrentImageIndex = index;
-
-                    // 点击后立即加载该图像的缩略图（如果尚未加载）
-                    if (imageInfo.Thumbnail == null)
+                    // 如果是"运行选择"模式，切换选择状态
+                    if (ImageRunMode == ImageRunMode.运行选择)
                     {
-                        _smartLoader.UpdateLoadRange(index, index, ImageCollection.Count, ImageCollection);
+                        imageInfo.IsForRun = !imageInfo.IsForRun;
+                        Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 运行选择模式: 切换 IsForRun 为 {imageInfo.IsForRun}");
+                    }
+                    else
+                    {
+                        // 否则，切换当前显示的图像
+                        CurrentImageIndex = index;
+                        Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 切换当前图像索引为: {CurrentImageIndex}");
+
+                        // 点击后立即加载该图像的缩略图（如果尚未加载）
+                        if (imageInfo.Thumbnail == null)
+                        {
+                            Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 缩略图为空，触发加载");
+                            _smartLoader.UpdateLoadRange(index, index, ImageCollection.Count, ImageCollection);
+                        }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 删除按钮预点击事件处理 - 用于日志记录，不阻止事件传递
+        /// </summary>
+        private void OnDeleteButtonPreview(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Debug.WriteLine($"[ImagePreviewControl] OnDeleteButtonPreview 触发 - Sender: {sender?.GetType().Name}, OriginalSource: {e.OriginalSource?.GetType().Name}");
+
+            // 不设置 e.Handled = true，让事件继续传递到按钮的 Click 事件
+            // PreviewMouseLeftButtonDown 会先于 Click 事件触发
         }
 
         /// <summary>
@@ -1301,14 +1343,6 @@ namespace SunEyeVision.UI.Controls
             return LoadImageOptimized(filePath);
         }
 
-        /// <summary>
-        /// 加载缩略图（已废弃，请使用LoadThumbnailOptimized）
-        /// </summary>
-        [System.Obsolete("请使用LoadThumbnailOptimized代替")]
-        private BitmapImage? LoadThumbnail(string filePath, int maxWidth = 120, int maxHeight = 120)
-        {
-            return LoadThumbnailOptimized(filePath, maxWidth);
-        }
 
         /// <summary>
         /// 智能缩略图加载器 - 支持渐进式顺序加载（优化版：不取消已加载任务）- 带性能日志
