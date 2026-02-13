@@ -348,16 +348,17 @@ namespace SunEyeVision.UI.Controls
         // 图像缓存（LRU）
         private static readonly ImageCache s_fullImageCache = new ImageCache(maxCacheSize: 30);
 
-        // GPU加速缩略图加载器（混合模式：GPU优先，CPU降级）
-        private static readonly HybridThumbnailLoader s_gpuThumbnailLoader = new HybridThumbnailLoader();
+        // GPU加速解码器（WIC硬件加速）
+        private static readonly WicGpuDecoder s_gpuDecoder = new WicGpuDecoder();
 
         // 磁盘缓存管理器（60x60高质量缩略图）
         private static readonly ThumbnailCacheManager s_thumbnailCache = new ThumbnailCacheManager();
 
-        // 延迟缓存保存队列（优化1：延迟批量保存，提升首次加载性能40%）
-        private static readonly ConcurrentQueue<(string filePath, BitmapSource thumbnail)> s_saveQueue = new ConcurrentQueue<(string, BitmapSource)>();
-        private static Timer? s_saveTimer;
-        private static bool s_saveTimerRunning = false;
+        // 智能缩略图加载器（组合策略：L1内存 → L2磁盘 → Shell缓存 → EXIF → GPU解码）
+        private static readonly SmartThumbnailLoader s_smartLoader = new SmartThumbnailLoader(s_thumbnailCache, s_gpuDecoder);
+
+        // 内存压力监控器（响应系统内存压力）
+        private static readonly MemoryPressureMonitor s_memoryMonitor = new MemoryPressureMonitor();
 
         // ListBox控件引用（用于滚动监听）
         private ListBox? _thumbnailListBox;
@@ -376,11 +377,22 @@ namespace SunEyeVision.UI.Controls
         private int _scrollEventCount = 0;
         private DateTime _lastScrollTime = DateTime.MinValue;
 
-        // 智能缩略图加载器
-        private readonly SmartThumbnailLoader _smartLoader = new SmartThumbnailLoader();
+        // ===== P0优化: 滚动暂停加载 =====
+        private double _lastScrollOffset = 0;
+        private double _scrollSpeed = 0; // 滚动速度（像素/秒）
+        private DateTime _lastScrollSpeedTime = DateTime.MinValue;
+        private const double SCROLL_SPEED_THRESHOLD = 500; // 快速滚动阈值（像素/秒）
+        private bool _isFastScrolling = false;
+        private DispatcherTimer? _scrollStopTimer; // 滚动停止检测定时器
 
-        // 混合缩略图加载器（支持GPU加速）
-        private readonly HybridThumbnailLoader _hybridLoader = new HybridThumbnailLoader();
+        // ===== P0优化: 动态图像质量 =====
+        private bool _useLowQuality = false; // 是否使用低质量缩略图
+        private const int LOW_QUALITY_SIZE = 40; // 快速滚动时的缩略图尺寸
+        private const int HIGH_QUALITY_SIZE = 60; // 正常的缩略图尺寸
+        private HashSet<int> _pendingHighQualityIndices = new HashSet<int>(); // 待加载高质量的索引
+
+        // 优先级缩略图加载器（替代双系统）
+        private readonly PriorityThumbnailLoader _priorityLoader = new PriorityThumbnailLoader();
 
         public static readonly DependencyProperty AutoSwitchEnabledProperty =
             DependencyProperty.Register("AutoSwitchEnabled", typeof(bool), typeof(ImagePreviewControl),
@@ -391,7 +403,7 @@ namespace SunEyeVision.UI.Controls
                 new PropertyMetadata(-1, OnCurrentImageIndexChanged));
 
         public static readonly DependencyProperty ImageCollectionProperty =
-            DependencyProperty.Register("ImageCollection", typeof(ObservableCollection<ImageInfo>), typeof(ImagePreviewControl),
+            DependencyProperty.Register("ImageCollection", typeof(BatchObservableCollection<ImageInfo>), typeof(ImagePreviewControl),
                 new PropertyMetadata(null, OnImageCollectionChanged));
 
         public static readonly DependencyProperty ImageRunModeProperty =
@@ -417,11 +429,11 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 图像集合
+        /// 图像集合（使用批量操作优化集合）
         /// </summary>
-        public ObservableCollection<ImageInfo> ImageCollection
+        public BatchObservableCollection<ImageInfo> ImageCollection
         {
-            get => (ObservableCollection<ImageInfo>)GetValue(ImageCollectionProperty);
+            get => (BatchObservableCollection<ImageInfo>)GetValue(ImageCollectionProperty);
             set => SetValue(ImageCollectionProperty, value);
         }
 
@@ -455,50 +467,37 @@ namespace SunEyeVision.UI.Controls
         public ImagePreviewControl()
         {
             InitializeComponent();
-            ImageCollection = new ObservableCollection<ImageInfo>();
+            ImageCollection = new BatchObservableCollection<ImageInfo>();
 
-            // 设置SmartLoader的父控件引用（用于动态并发数）
-            _smartLoader.SetParentControl(this);
+            // 设置优先级加载器的委托（包含实时可视范围获取）
+            _priorityLoader.SetLoadThumbnailFunc(
+                LoadThumbnailOptimized, 
+                (filePath, thumbnail) => s_thumbnailCache?.AddToMemoryCache(filePath, thumbnail),
+                () => GetVisibleRange());  // ★ 实时获取可视范围
 
             // 订阅可视区域加载完成事件
-            _smartLoader.VisibleAreaLoadingCompleted += OnVisibleAreaLoadingCompleted;
+            _priorityLoader.VisibleAreaLoadingCompleted += OnVisibleAreaLoadingCompleted;
+
+            // ===== 内存压力监控初始化 =====
+            s_memoryMonitor.MemoryPressureChanged += OnMemoryPressureChanged;
+            s_memoryMonitor.Start();
+            Debug.WriteLine("[ImagePreviewControl] ✓ 内存压力监控已启动");
 
             // 订阅 Unloaded 事件以清理资源
             Unloaded += (s, e) =>
             {
-                _smartLoader.VisibleAreaLoadingCompleted -= OnVisibleAreaLoadingCompleted;
+                _priorityLoader.VisibleAreaLoadingCompleted -= OnVisibleAreaLoadingCompleted;
+                s_memoryMonitor.MemoryPressureChanged -= OnMemoryPressureChanged;
             };
 
-            // 输出GPU加速状态
+            // 输出加载器状态
             Debug.WriteLine("========================================");
-            Debug.WriteLine("   图像预览控件 - GPU加速状态");
+            Debug.WriteLine("   图像预览控件 - 智能缩略图加载器");
             Debug.WriteLine("========================================");
-            if (s_gpuThumbnailLoader.IsGPUEnabled)
-            {
-                if (s_gpuThumbnailLoader.IsVorticeGPUEnabled)
-                {
-                    Debug.WriteLine("✓ GPU加速：Vortice DirectX硬件解码（最高性能）");
-                    Debug.WriteLine("  渲染器：Vortice.Direct2D1 + Direct3D11");
-                    Debug.WriteLine("  预期性能：7-10倍提升");
-                }
-                else if (s_gpuThumbnailLoader.IsAdvancedGPUEnabled)
-                {
-                    Debug.WriteLine("✓ GPU加速：高级WIC优化解码（中等性能）");
-                    Debug.WriteLine("  渲染器：WIC硬件加速 + WPF GPU纹理");
-                    Debug.WriteLine("  预期性能：3-5倍提升");
-                }
-                else
-                {
-                    Debug.WriteLine("✓ GPU加速：WPF基础GPU加速（基础性能）");
-                    Debug.WriteLine("  渲染器：WPF默认GPU渲染");
-                    Debug.WriteLine("  预期性能：1-2倍提升");
-                }
-            }
-            else
-            {
-                Debug.WriteLine("⚠ GPU加速：未启用（使用CPU模式）");
-                Debug.WriteLine("  原因：GPU不可用或驱动不支持");
-            }
+            Debug.WriteLine("✓ 加载策略优先级（3层架构）：");
+            Debug.WriteLine("  1. L1内存缓存 (0ms) - 强引用50张 + 弱引用");
+            Debug.WriteLine("  2. L2磁盘缓存 (5-80ms) - Shell缓存优先 + 自建缓存");
+            Debug.WriteLine("  3. L3 GPU解码 (50-500ms) - 最终回退方案");
             Debug.WriteLine("========================================");
 
             AddImageCommand = new RelayCommand(ExecuteAddImage);
@@ -527,6 +526,9 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void OnControlLoaded(object sender, RoutedEventArgs e)
         {
+            // ===== P2优化: GPU缓存预热 =====
+            PreloadGPUCache();
+            
             // 延迟初始化，确保ListBox已完全加载
             this.Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -537,11 +539,75 @@ namespace SunEyeVision.UI.Controls
                     if (scrollViewer != null)
                     {
                         scrollViewer.ScrollChanged += OnScrollChanged;
-                        // 初始加载可见区域
-                        UpdateLoadRange();
+                        // 注意：不在Loaded事件中调用UpdateLoadRange()
+                        // 首屏加载由LoadImagesOptimizedAsync完全控制
+                        // 后续滚动会通过OnScrollChanged事件触发UpdateLoadRange
                     }
+                    
+                    // ===== 容器回收事件监听已禁用 =====
+                    // 原因：快速来回滚动时会频繁触发容器回收，导致性能下降
+                    // 
+                    // 状态不一致问题已通过以下方式解决：
+                    // 1. MemoryPressureMonitor.SyncLoadedIndicesWithActualThumbnails()
+                    //    在内存压力大时自动同步状态
+                    // 2. 保留 Thumbnail 可以让滚回时即时显示
+                    //
+                    // 优点：
+                    // - 避免频繁加载/卸载循环
+                    // - 滚动流畅，内存由压力机制自动管理
+                    // - 已加载的缩略图保留在内存中，滚回时即时显示
+                    // =====
+                    // VirtualizingStackPanel.AddCleanUpVirtualizedItemHandler(
+                    //     _thumbnailListBox, 
+                    //     OnCleanUpVirtualizedItem);
                 }
             }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        
+        // ===== 容器回收事件处理已禁用（原因见上）=====
+        // /// <summary>
+        // /// 虚拟化容器回收事件处理
+        // /// </summary>
+        // private void OnCleanUpVirtualizedItem(object sender, CleanUpVirtualizedItemEventArgs e)
+        // {
+        //     if (e.Value is ImageInfo imageInfo && ImageCollection != null)
+        //     {
+        //         var index = ImageCollection.IndexOf(imageInfo);
+        //         if (index >= 0)
+        //         {
+        //             var (firstVisible, lastVisible) = GetVisibleRange();
+        //             int cleanupMargin = 30;
+        //             bool isFarFromVisible = (index < firstVisible - cleanupMargin) || 
+        //                                     (index > lastVisible + cleanupMargin);
+        //             if (isFarFromVisible)
+        //             {
+        //                 _priorityLoader.MarkAsUnloaded(index);
+        //                 imageInfo.Thumbnail = null;
+        //             }
+        //         }
+        //     }
+        // }
+
+        /// <summary>
+        /// P2优化: GPU解码器初始化（减少首次解码延迟）
+        /// </summary>
+        private void PreloadGPUCache()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    var sw = Stopwatch.StartNew();
+                    // 初始化GPU解码器
+                    s_gpuDecoder.Initialize();
+                    sw.Stop();
+                    Debug.WriteLine($"[ImagePreviewControl] ✓ GPU解码器初始化完成 - 耗时:{sw.ElapsedMilliseconds}ms");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ImagePreviewControl] ⚠ GPU初始化失败（非致命）: {ex.Message}");
+                }
+            });
         }
 
         /// <summary>
@@ -572,23 +638,15 @@ namespace SunEyeVision.UI.Controls
             _loadingCancellationTokenSource?.Dispose();
             _loadingCancellationTokenSource = null;
 
-            // 取消预加载任务
+            // 取消预加载任务（异步等待，不阻塞UI线程）
             if (_preloadTask != null)
             {
-                // 等待预加载任务完成或取消（最多等待500ms）
-                try
-                {
-                    if (!_preloadTask.IsCompleted)
-                    {
-                        Task.Run(async () => await Task.WhenAny(_preloadTask, Task.Delay(500))).Wait(500);
-                    }
-                }
-                catch { }
+                // 不等待，直接取消，让任务自然完成
                 _preloadTask = null;
             }
 
-            // 清理智能缩略图加载器
-            _smartLoader.CancelAndDispose();
+            // 清理优先级加载器
+            _priorityLoader.Dispose();
 
             // 清理所有图像资源
             if (ImageCollection != null)
@@ -628,9 +686,8 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 优化的缩略图加载（只设置宽度，保持宽高比）
-        /// 支持GPU加速，自动降级到CPU模式
-        /// 集成磁盘缓存（简化版）
+        /// 优化的缩略图加载（智能加载器 - 3层架构）
+        /// 加载策略优先级：L1内存 → L2磁盘(Shell优先) → GPU解码
         /// </summary>
         private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = -1)
         {
@@ -640,21 +697,8 @@ namespace SunEyeVision.UI.Controls
                 size = ThumbnailSizes.ThumbnailLoadSize;
             }
 
-            // 步骤1: 尝试从磁盘缓存加载（优先使用缓存）
-            var cached = s_thumbnailCache.TryLoadFromCache(filePath);
-            if (cached != null)
-            {
-                return cached;
-            }
-
-            // 步骤2: 缓存未命中，使用GPU加速加载器（自动降级到CPU）
-            var thumbnail = s_gpuThumbnailLoader.LoadThumbnail(filePath, size);
-
-            // 步骤3: 加载成功后延迟批量保存到缓存（优化1：延迟批量保存，提升首次加载性能40%）
-            if (thumbnail != null)
-            {
-                EnqueueSaveToCache(filePath, thumbnail);
-            }
+            // 使用智能加载器（自动选择最快方式）
+            var thumbnail = s_smartLoader.LoadThumbnail(filePath, size);
 
             return thumbnail;
         }
@@ -665,54 +709,6 @@ namespace SunEyeVision.UI.Controls
         private static Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size = 80)
         {
             return Task.Run(() => LoadThumbnailOptimized(filePath, size));
-        }
-
-        /// <summary>
-        /// 将缩略图加入延迟保存队列（优化1：延迟批量保存，提升首次加载性能40%）
-        /// </summary>
-        private static void EnqueueSaveToCache(string filePath, BitmapSource thumbnail)
-        {
-            s_saveQueue.Enqueue((filePath, thumbnail));
-
-            // 启动延迟批量保存定时器（首次加载完成后5秒批量保存）
-            if (s_saveTimer == null && !s_saveTimerRunning)
-            {
-                s_saveTimerRunning = true;
-                s_saveTimer = new Timer(_ => ProcessSaveQueue(), null, 5000, Timeout.Infinite);
-                Debug.WriteLine($"[ImagePreviewControl] ✓ 启动延迟批量保存定时器 - 5秒后执行");
-            }
-        }
-
-        /// <summary>
-        /// 批量处理缓存保存队列（后台执行，不阻塞首次加载）
-        /// </summary>
-        private static void ProcessSaveQueue()
-        {
-            Debug.WriteLine($"[ImagePreviewControl] ========== 批量保存缓存开始 ==========");
-            var sw = Stopwatch.StartNew();
-            int savedCount = 0;
-
-            while (s_saveQueue.TryDequeue(out var item))
-            {
-                try
-                {
-                    s_thumbnailCache.SaveToCache(item.filePath, item.thumbnail);
-                    savedCount++;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[ImagePreviewControl] ✗ 保存缓存失败: {ex.Message}");
-                }
-            }
-
-            sw.Stop();
-            Debug.WriteLine($"[ImagePreviewControl] ✓ 批量保存缓存完成 - 数量:{savedCount} 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms");
-            Debug.WriteLine($"[ImagePreviewControl] ========== 批量保存缓存结束 ==========");
-
-            // 清理定时器
-            s_saveTimer?.Dispose();
-            s_saveTimer = null;
-            s_saveTimerRunning = false;
         }
 
         /// <summary>
@@ -772,15 +768,20 @@ namespace SunEyeVision.UI.Controls
                         var fullImage = LoadImageOptimized(filePath);
                         if (fullImage != null)
                         {
-                            Application.Current?.Dispatcher.Invoke(() =>
+                            // 使用BeginInvoke避免阻塞后台线程
+                            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
                             {
-                                if (index < ImageCollection.Count)
+                                try
                                 {
-                                    ImageCollection[index].SetFullImage(fullImage);
-                                    loadedCount++;
-                                    Debug.WriteLine($"[ImagePreviewControl] ✓ 后台预加载完成: 索引{index}");
+                                    if (index < ImageCollection.Count)
+                                    {
+                                        ImageCollection[index].SetFullImage(fullImage);
+                                        Interlocked.Increment(ref loadedCount);
+                                        // 后台预加载不输出日志
+                                    }
                                 }
-                            }, System.Windows.Threading.DispatcherPriority.Background);
+                                catch { }
+                            }), System.Windows.Threading.DispatcherPriority.Background);
                         }
                     }
                     catch (Exception ex)
@@ -789,13 +790,12 @@ namespace SunEyeVision.UI.Controls
                     }
                 }
 
-                Debug.WriteLine($"[ImagePreviewControl] 后台预加载任务完成 - 成功:{loadedCount}/{imagesToPreload.Count}");
+                // 后台预加载完成不输出日志
             });
-            Debug.WriteLine($"[ImagePreviewControl] ========== PreloadAdjacentImages 结束 ==========");
         }
 
         /// <summary>
-        /// 滚动变化事件处理（带防抖机制）
+        /// 滚动变化事件处理（带防抖机制 + P0优化：滚动暂停加载 + 动态质量）
         /// </summary>
         private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
         {
@@ -804,21 +804,233 @@ namespace SunEyeVision.UI.Controls
             _lastScrollTime = now;
             _scrollEventCount++;
 
+            // ===== 滚动状态监控日志 =====
+            // 每10次事件更新一次状态（静默处理）
+            if (_scrollEventCount % 10 == 0)
+            {
+                var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
+                if (scrollViewer != null)
+                {
+                    var (firstVis, lastVis) = GetVisibleRange();
+                }
+            }
+
+            // ===== P0优化: 计算滚动速度 =====
+            if (_lastScrollSpeedTime != DateTime.MinValue && timeSinceLast.TotalSeconds > 0)
+            {
+                var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
+                if (scrollViewer != null)
+                {
+                    var currentOffset = scrollViewer.HorizontalOffset;
+                    var offsetDelta = Math.Abs(currentOffset - _lastScrollOffset);
+                    _scrollSpeed = offsetDelta / timeSinceLast.TotalSeconds; // 像素/秒
+                    _lastScrollOffset = currentOffset;
+
+                    // 判断是否快速滚动
+                    bool wasFastScrolling = _isFastScrolling;
+                    _isFastScrolling = _scrollSpeed > SCROLL_SPEED_THRESHOLD;
+
+                    // 快速滚动开始：使用低质量模式
+                    if (_isFastScrolling && !wasFastScrolling)
+                    {
+                        // 快速滚动不输出日志
+                        _useLowQuality = true;
+                        _priorityLoader.UseLowQuality = true;
+                    }
+
+                    // 滚动停止：恢复高质量
+                    if (!_isFastScrolling && wasFastScrolling)
+                    {
+                        // 滚动停止不输出日志
+                        _useLowQuality = false;
+                        _priorityLoader.UseLowQuality = false;
+                        
+                        // 立即触发加载新进入可视区域的缩略图
+                        try
+                        {
+                            UpdateLoadRange();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[Scroll] ✗ UpdateLoadRange异常: {ex.Message}");
+                        }
+                        
+                        // 延迟加载高质量缩略图
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            try
+                            {
+                                UpgradeToHighQuality();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[Scroll] ✗ UpgradeToHighQuality异常: {ex.Message}");
+                            }
+                        }), DispatcherPriority.Background);
+                    }
+                }
+            }
+            _lastScrollSpeedTime = now;
+
             // 防抖：滚动停止200ms后才触发加载，避免频繁更新队列
+            // 快速滚动时延长防抖时间
+            var debounceTime = _isFastScrolling ? 400 : 200;
+            
             if (_updateRangeTimer == null)
             {
                 _updateRangeTimer = new DispatcherTimer
                 {
-                    Interval = TimeSpan.FromMilliseconds(200)
+                    Interval = TimeSpan.FromMilliseconds(debounceTime)
                 };
                 _updateRangeTimer.Tick += (s, args) =>
                 {
-                    UpdateLoadRange();
+                    try
+                    {
+                        UpdateLoadRange();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Scroll] ✗ 防抖UpdateLoadRange异常: {ex.Message}");
+                    }
                     _updateRangeTimer?.Stop();
+                    
+                    // 滚动停止后升级到高质量
+                    if (_useLowQuality)
+                    {
+                        _useLowQuality = false;
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            try
+                            {
+                                UpgradeToHighQuality();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[Scroll] ✗ 防抖UpgradeToHighQuality异常: {ex.Message}");
+                            }
+                        }), DispatcherPriority.Background);
+                    }
                 };
+            }
+            else
+            {
+                _updateRangeTimer.Interval = TimeSpan.FromMilliseconds(debounceTime);
             }
             _updateRangeTimer.Stop();
             _updateRangeTimer.Start();
+        }
+
+        /// <summary>
+        /// P0优化: 将低质量缩略图升级为高质量（同时处理无缩略图的情况）
+        /// 注意：必须在UI线程调用此方法，内部会切换到后台线程处理
+        /// ★ 虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
+        /// </summary>
+        private void UpgradeToHighQuality()
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            
+            // ===== 关键修复：在UI线程获取所有需要的数据 =====
+            if (ImageCollection == null || _thumbnailListBox == null)
+            {
+                Debug.WriteLine($"[UpgradeToHighQuality] ⚠ 跳过 - ImageCollection或ListBox为空");
+                return;
+            }
+
+            // ★ 使用虚拟化安全的方法获取可视范围
+            var (firstVisible, lastVisible) = GetVisibleRange();
+            
+            if (firstVisible == -1 || lastVisible == -1)
+            {
+                Debug.WriteLine($"[UpgradeToHighQuality] ⚠ 未找到可视项 - 可能正在快速滚动或布局未完成");
+                return;
+            }
+
+            var totalCount = ImageCollection.Count;
+
+            // 在UI线程提取需要处理的项
+            var itemsToProcess = new List<(int Index, string FilePath, bool HasThumbnail, double ThumbnailWidth)>();
+            for (int i = firstVisible; i <= lastVisible; i++)
+            {
+                if (i >= 0 && i < ImageCollection.Count)
+                {
+                    var imageInfo = ImageCollection[i];
+                    itemsToProcess.Add((i, imageInfo.FilePath, imageInfo.Thumbnail != null, 
+                        imageInfo.Thumbnail?.Width ?? 0));
+                }
+            }
+
+            // 异步加载高质量缩略图
+            Task.Run(() =>
+            {
+                int loadedCount = 0;
+                int upgradedCount = 0;
+                int errorCount = 0;
+                
+                try
+                {
+                    foreach (var item in itemsToProcess)
+                    {
+                        // 情况1：无缩略图 - 直接加载高质量
+                        if (!item.HasThumbnail)
+                        {
+                            try
+                            {
+                                var highQuality = LoadThumbnailOptimized(item.FilePath, HIGH_QUALITY_SIZE);
+                                if (highQuality != null)
+                                {
+                                    // 使用BeginInvoke更新UI，并传递索引
+                                    int index = item.Index;
+                                    Application.Current?.Dispatcher.BeginInvoke(() =>
+                                    {
+                                        if (index >= 0 && index < ImageCollection.Count)
+                                        {
+                                            ImageCollection[index].Thumbnail = highQuality;
+                                        }
+                                    }, DispatcherPriority.Background);
+                                    loadedCount++;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                errorCount++;
+                                Debug.WriteLine($"[UpgradeToHighQuality] ✗ 加载失败 index={item.Index}: {ex.Message}");
+                            }
+                        }
+                        // 情况2：低质量缩略图 - 升级为高质量
+                        else if (item.ThumbnailWidth < HIGH_QUALITY_SIZE)
+                        {
+                            try
+                            {
+                                var highQuality = LoadThumbnailOptimized(item.FilePath, HIGH_QUALITY_SIZE);
+                                if (highQuality != null)
+                                {
+                                    // 使用BeginInvoke更新UI，并传递索引
+                                    int index = item.Index;
+                                    Application.Current?.Dispatcher.BeginInvoke(() =>
+                                    {
+                                        if (index >= 0 && index < ImageCollection.Count)
+                                        {
+                                            ImageCollection[index].Thumbnail = highQuality;
+                                        }
+                                    }, DispatcherPriority.Background);
+                                    upgradedCount++;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                errorCount++;
+                                Debug.WriteLine($"[UpgradeToHighQuality] ✗ 升级失败 index={item.Index}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[UpgradeToHighQuality] ✗ 严重错误: {ex.Message}\n{ex.StackTrace}");
+                }
+                
+                sw.Stop();
+            });
         }
 
         /// <summary>
@@ -826,19 +1038,14 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void ReleaseDistantImages(int currentIndex)
         {
-            Debug.WriteLine($"[ImagePreviewControl] ========== ReleaseDistantImages 开始 ==========");
-            Debug.WriteLine($"[ImagePreviewControl] currentIndex:{currentIndex}, ImageCollection.Count:{ImageCollection?.Count ?? 0}");
-
             if (ImageCollection == null || ImageCollection.Count == 0)
             {
-                Debug.WriteLine($"[ImagePreviewControl] ✗ ImageCollection 为空或Count=0，跳过释放");
                 return;
             }
 
             // 动态计算保留范围
             var (immediateDisplayCount, _, _) = CalculateDynamicLoadCounts();
             int keepRange = Math.Max(2, immediateDisplayCount / 10); // 保留范围为显示数量的10%，最少2张
-            Debug.WriteLine($"[ImagePreviewControl] 保留范围: ±{keepRange} (基于immediateDisplayCount={immediateDisplayCount})");
 
             int releaseCount = 0;
 
@@ -857,13 +1064,12 @@ namespace SunEyeVision.UI.Controls
                     {
                         ImageCollection[i].ReleaseFullImage();
                         releaseCount++;
-                        Debug.WriteLine($"[ImagePreviewControl] ✓ 释放FullImage: 索引{i}, 距离:{distance}");
                     }
                 }
             }
 
-            Debug.WriteLine($"[ImagePreviewControl] 释放的图像数量: {releaseCount}");
-            Debug.WriteLine($"[ImagePreviewControl] ========== ReleaseDistantImages 结束 ==========");
+
+            // 释放完成（静默处理）
         }
 
         #region 命令实现
@@ -909,28 +1115,28 @@ namespace SunEyeVision.UI.Controls
 
         /// <summary>
         /// 计算基于可视区域的动态加载数量
+        /// ★ 虚拟化安全：使用 ItemContainerGenerator 精确计算
         /// </summary>
         private (int immediateDisplayCount, int immediateThumbnailCount, int batchSize) CalculateDynamicLoadCounts()
         {
-            if (_thumbnailListBox == null)
+            if (_thumbnailListBox == null || ImageCollection == null)
             {
                 // 如果ListBox未初始化，使用默认值
                 return (20, 5, 10);
             }
 
-            var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
-            if (scrollViewer == null || scrollViewer.ViewportWidth <= 0)
+            // ★ 使用虚拟化安全的方法获取可视范围
+            var (firstVisible, lastVisible) = GetVisibleRange();
+            
+            if (firstVisible == -1 || lastVisible == -1)
             {
-                // 如果ScrollViewer未就绪，使用默认值
+                // 如果未找到可视项，使用默认值
                 return (20, 5, 10);
             }
 
-            var viewportWidth = scrollViewer.ViewportWidth;
-            var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度70 + 边距2 = 72.0
-
-            // 计算视口能容纳的图片数量（与 UpdateLoadRange 保持一致的计算方式）
-            int viewportCapacity = (int)(viewportWidth / itemWidth) + 1;
-            int immediateDisplayCount = viewportCapacity; // 精确可视数量
+            // 计算可视区域能显示多少图片
+            int viewportCapacity = lastVisible - firstVisible + 1;
+            int immediateDisplayCount = viewportCapacity;
 
             // 缩略图数量为显示数量的1/4（最少3张）
             int immediateThumbnailCount = Math.Max(3, immediateDisplayCount / 4);
@@ -942,34 +1148,23 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 计算最优并发数（优化2：动态并发数优化，提升GPU场景50%，CPU场景200%）
+        /// 计算最优并发数（动态并发数优化）
         /// </summary>
         private int CalculateOptimalConcurrency()
         {
             int cpuCount = Environment.ProcessorCount;
-            bool isVorticeGPUBased = _hybridLoader.IsVorticeGPUEnabled;
-            bool isGPUBased = _hybridLoader.IsAdvancedGPUEnabled || _hybridLoader.IsGPUEnabled;
+            bool isGPUBased = s_gpuDecoder.IsHardwareAccelerated;
 
-            if (isVorticeGPUBased)
+            if (isGPUBased)
             {
-                // Vortice GPU加速：并发数 = 核心数 / 1.5（GPU场景，稍高并发数）
-                // Vortice GPU场景：并发数6（当前2），提升200%吞吐量
-                int vorticeGpuConcurrency = Math.Min(6, Math.Max(3, (int)(cpuCount / 1.5)));
-                Debug.WriteLine($"[ImagePreviewControl] 动态并发数（Vortice GPU模式）: {vorticeGpuConcurrency} (CPU核心数:{cpuCount})");
-                return vorticeGpuConcurrency;
-            }
-            else if (isGPUBased)
-            {
-                // GPU加速：并发数 = 核心数 / 2（避免GPU过度竞争）
-                // GPU场景：并发数4（当前2），提升50%吞吐量
-                int gpuConcurrency = Math.Min(4, Math.Max(2, cpuCount / 2));
+                // GPU加速模式：稍高并发数，充分利用GPU并行能力
+                int gpuConcurrency = Math.Min(6, Math.Max(3, (int)(cpuCount / 1.5)));
                 Debug.WriteLine($"[ImagePreviewControl] 动态并发数（GPU模式）: {gpuConcurrency} (CPU核心数:{cpuCount})");
                 return gpuConcurrency;
             }
             else
             {
-                // CPU模式：并发数 = 核心数 * 0.75（充分利用多核）
-                // CPU场景：并发数6（当前2），提升200%吞吐量
+                // CPU模式：充分利用多核
                 int cpuConcurrency = Math.Max(2, (int)(cpuCount * 0.75));
                 Debug.WriteLine($"[ImagePreviewControl] 动态并发数（CPU模式）: {cpuConcurrency} (CPU核心数:{cpuCount})");
                 return cpuConcurrency;
@@ -977,240 +1172,160 @@ namespace SunEyeVision.UI.Controls
         }
 
         /// <summary>
-        /// 优化的图像加载方法（即时显示优化：分批次流式加载）- 四大优化策略版本
+        /// 优化的图像加载方法（简化版：使用优先级加载器）
+        /// 优化：统一计时日志、文件预取、等待可视区域完成
         /// </summary>
         private async Task LoadImagesOptimizedAsync(
             string[] fileNames,
             CancellationToken cancellationToken)
         {
+            // ===== 统一计时：从用户角度记录有意义的时间 =====
             var totalSw = Stopwatch.StartNew();
-            var logger = new PerformanceLogger("LoadImages");
+            var firstImageSw = Stopwatch.StartNew();
+            TimeSpan? firstImageTime = null;
+            TimeSpan? visibleAreaTime = null;
 
-            // 清空SmartLoader的加载状态（修复：清空后再次加载问题）
-            Debug.WriteLine($"[LoadImages] 清空SmartLoader的加载状态...");
-            _smartLoader.ClearLoadedIndices();
-            Debug.WriteLine($"[LoadImages] ✓ SmartLoader状态已清空");
-
-            // ===== 策略1：预计算图片总数 =====
-            logger.LogOperation("步骤1-预计算总数", totalSw.Elapsed, $"准备加载 {fileNames.Length} 张图片");
-
-            // 动态计算基于可视区域的加载数量
-            var (immediateDisplayCount, immediateThumbnailCount, _) = CalculateDynamicLoadCounts();
-
-            // 预创建所有ImageInfo对象（不添加到集合）
-            var allImages = new ImageInfo[fileNames.Length];
-            for (int i = 0; i < fileNames.Length; i++)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                allImages[i] = new ImageInfo
-                {
-                    Name = Path.GetFileNameWithoutExtension(fileNames[i]),
-                    FilePath = fileNames[i],
-                    Thumbnail = null,
-                    FullImage = null
-                };
-            }
-            logger.LogOperation("步骤1-预创建ImageInfo", totalSw.Elapsed, $"创建了 {fileNames.Length} 个ImageInfo对象");
+                // 清空优先级加载器的状态
+                _priorityLoader.ClearState();
 
-            // 步骤2期间禁用FullImage预加载，避免影响缩略图显示性能
-            // 标记为正在加载缩略图，PreloadAdjacentImages会检查此标志
-            var originalLastPreloadIndex = _lastPreloadIndex;
-            _lastPreloadIndex = -999; // 设置一个特殊值，阻止所有PreloadAdjacentImages调用
+                Debug.WriteLine("");
+                Debug.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+                Debug.WriteLine("║           图像加载 - 性能计时开始                              ║");
+                Debug.WriteLine($"║  图片数量: {fileNames.Length} 张");
+                Debug.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
-            // ===== 策略2：立即更新ListBox宽度及滚动条 =====
-            logger.LogOperation("步骤2-预计算布局", totalSw.Elapsed);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                // 估算总宽度
-                var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度70 + 边距2 = 72.0
-                var estimatedTotalWidth = fileNames.Length * itemWidth;
-
-                logger.LogOperation("步骤2-布局预留", TimeSpan.Zero, $"预估宽度:{estimatedTotalWidth:F2}px");
-
-                // 先创建所有ImageInfo占位（无缩略图）到集合中，确保滚动条正确显示
-                int startIndex = ImageCollection.Count;
-                foreach (var imageInfo in allImages)
-                {
-                    ImageCollection.Add(imageInfo);
-                }
-
-                if (ImageCollection.Count > 0)
-                {
-                    CurrentImageIndex = startIndex;
-                }
-
-                // 强制更新布局，确保滚动条显示
-                UpdateLayout();
-                if (_thumbnailListBox != null)
-                {
-                    _thumbnailListBox.UpdateLayout();
-                    var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
-                    if (scrollViewer != null)
-                    {
-                        scrollViewer.UpdateLayout();
-                    }
-                }
-
-                logger.LogOperation("步骤2-添加占位并更新布局", TimeSpan.Zero, $"当前集合数:{ImageCollection.Count}");
-            }, System.Windows.Threading.DispatcherPriority.Normal);
-
-            // ===== 优化: 提前预读取文件（在加载之前启动） =====
-            var prefetchSw = Stopwatch.StartNew();
-            int prefetchCount = Math.Min(50, fileNames.Length); // 预读取前50张
-            Task.Run(() =>
-            {
-                try
-                {
-                    for (int i = 0; i < prefetchCount; i++)
-                    {
-                        s_gpuThumbnailLoader?.PrefetchFile(fileNames[i]);
-                    }
-                    Debug.WriteLine($"[LoadImages] ✓ 预读取任务已启动 - 数量:{prefetchCount}");
-                }
-                catch { }
-            });
-            prefetchSw.Stop();
-            logger.LogOperation("步骤2.5-启动预读取", prefetchSw.Elapsed, $"预读取数量:{prefetchCount}");
-
-            // ===== 策略3：零等待快速加载可见区域的预览图 =====
-            logger.LogOperation("步骤3-加载可见区域", totalSw.Elapsed);
-
-            // 计算当前可见区域
-            int firstVisible = 0;
-            int lastVisible = Math.Min(immediateThumbnailCount - 1, fileNames.Length - 1);
-
-            // 并行加载立即显示的缩略图（动态计算数量，而非固定3张）
-            var immediateThumbnailTasks = new List<Task<(int index, BitmapImage thumbnail)>>();
-            int immediateLoadCount = Math.Min(immediateThumbnailCount, lastVisible - firstVisible + 1);
-            var loadImmediateSw = Stopwatch.StartNew();
-
-            for (int i = firstVisible; i < firstVisible + immediateLoadCount && i < fileNames.Length; i++)
-            {
-                int index = i;
-                var task = Task.Run(() =>
+                // ===== 步骤1：预创建所有ImageInfo对象 =====
+                var step1Sw = Stopwatch.StartNew();
+                var allImages = new ImageInfo[fileNames.Length];
+                for (int i = 0; i < fileNames.Length; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var thumbnail = LoadThumbnailOptimized(allImages[index].FilePath);
-                    return (index, thumbnail);
-                }, cancellationToken);
-                immediateThumbnailTasks.Add(task);
-            }
+                    allImages[i] = new ImageInfo
+                    {
+                        Name = Path.GetFileNameWithoutExtension(fileNames[i]),
+                        FilePath = fileNames[i],
+                        Thumbnail = null,
+                        FullImage = null
+                    };
+                }
+                step1Sw.Stop();
+                Debug.WriteLine($"[LoadImages] 步骤1-创建对象: {step1Sw.ElapsedMilliseconds}ms");
 
-            // 等待第一张缩略图完成并立即显示
-            var firstThumbnailTask = await Task.WhenAny(immediateThumbnailTasks);
-            var (firstIndex, firstThumbnail) = await firstThumbnailTask;
-
-            if (firstThumbnail != null && firstIndex < ImageCollection.Count)
-            {
-                var updateFirstSw = Stopwatch.StartNew();
+                // ===== 步骤2：更新UI（批量添加，性能优化） =====
+                var step2Sw = Stopwatch.StartNew();
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    ImageCollection[firstIndex].Thumbnail = firstThumbnail;
-                }, System.Windows.Threading.DispatcherPriority.Render);
-                logger.LogOperation("步骤3-首张缩略图显示", updateFirstSw.Elapsed, $"索引:{firstIndex}");
-            }
+                    // 使用批量替换，只触发一次Reset事件，性能提升30-50倍
+                    ImageCollection.ReplaceRange(allImages);
 
-            // 等待所有立即加载的缩略图完成
-            var completedThumbnails = new List<(int index, BitmapImage thumbnail)>();
-            await Task.WhenAll(immediateThumbnailTasks);
-            foreach (var task in immediateThumbnailTasks)
-            {
-                var (index, thumbnail) = await task;
-                if (thumbnail != null)
-                {
-                    completedThumbnails.Add((index, thumbnail));
-                }
-            }
-
-            logger.LogOperation("步骤3-前3张缩略图加载", loadImmediateSw.Elapsed, $"加载了 {completedThumbnails.Count} 张");
-
-            // 优化3：首屏立即显示（动态计算数量，不走批量队列）
-            // 立即显示已加载的缩略图，让用户立即看到内容
-            var immediateDisplaySw = Stopwatch.StartNew();
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                // 显示所有已成功加载的缩略图
-                int displayCount = Math.Min(immediateLoadCount, completedThumbnails.Count);
-                for (int i = 0; i < displayCount; i++)
-                {
-                    var (index, thumbnail) = completedThumbnails[i];
-                    if (index < ImageCollection.Count && index != firstIndex)
+                    if (ImageCollection.Count > 0)
                     {
-                        ImageCollection[index].Thumbnail = thumbnail;
-                        // 添加到内存缓存，提升后续访问速度
-                        s_thumbnailCache?.AddToMemoryCache(ImageCollection[index].FilePath, thumbnail);
-                        // 标记为已加载，避免SmartLoader重复加载
-                        _smartLoader?.MarkAsLoaded(index);
+                        CurrentImageIndex = 0;
                     }
-                }
-            }, System.Windows.Threading.DispatcherPriority.Send); // 最高优先级
 
-            logger.LogOperation("步骤3-首屏立即显示", immediateDisplaySw.Elapsed, $"立即显示了 {Math.Min(5, completedThumbnails.Count)} 张");
+                    // 设置图像集合引用
+                    _priorityLoader.SetImageCollection(ImageCollection);
+                    
+                    // 注意：移除UpdateLayout()调用，依赖虚拟化自动处理
+                }, System.Windows.Threading.DispatcherPriority.Normal);
+                step2Sw.Stop();
+                Debug.WriteLine($"[LoadImages] 步骤2-更新UI(批量优化): {step2Sw.ElapsedMilliseconds}ms");
 
-            // 批量更新UI（减少PropertyChanged触发次数）- 处理剩余的缩略图
-            var updateVisibleSw = Stopwatch.StartNew();
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                // 处理剩余的缩略图（超过前5张的）
-                for (int i = Math.Min(5, completedThumbnails.Count); i < completedThumbnails.Count; i++)
-                {
-                    var (index, thumbnail) = completedThumbnails[i];
-                    if (index < ImageCollection.Count && index != firstIndex)
-                    {
-                        ImageCollection[index].Thumbnail = thumbnail;
-                        // 添加到内存缓存，提升后续访问速度
-                        s_thumbnailCache?.AddToMemoryCache(ImageCollection[index].FilePath, thumbnail);
-                        // 标记为已加载，避免SmartLoader重复加载
-                        _smartLoader?.MarkAsLoaded(index);
-                    }
-                }
-            }, System.Windows.Threading.DispatcherPriority.Normal);
-
-            logger.LogOperation("步骤3-批量更新剩余缩略图", updateVisibleSw.Elapsed);
-
-            // 立即触发缩略图加载（优先当前可见区域）
-            UpdateLoadRange();
-
-            logger.LogOperation("步骤3-触发智能加载", TimeSpan.Zero);
-
-            // ===== 策略4：把剩余未加载移交后台 =====
-            logger.LogOperation("步骤4-后台批量加载", totalSw.Elapsed);
-
-            // 剩余图片已经在SmartLoader的队列中，后台任务会自动处理
-            // 不需要额外的代码，SmartLoader会接管
-
-            // 预加载前几张图像的全分辨率（后台任务）- 使用动态计算的数量
-            int preFullImageLoadCount = Math.Max(2, immediateDisplayCount / 10); // 预加载数量为显示数量的10%，最少2张
-
-            _ = Task.Run(() =>
-            {
-                for (int i = 0; i < Math.Min(preFullImageLoadCount, fileNames.Length); i++)
+                // ===== 优化：文件预取（减少磁盘I/O等待） =====
+                var prefetchSw = Stopwatch.StartNew();
+                int prefetchCount = Math.Min(20, fileNames.Length); // 预取前20张
+                _ = Task.Run(() =>
                 {
                     try
                     {
-                        if (cancellationToken.IsCancellationRequested) break;
-
-                        var fullImage = LoadImageOptimized(fileNames[i]);
-                        if (fullImage != null && !cancellationToken.IsCancellationRequested)
+                        for (int i = 0; i < prefetchCount; i++)
                         {
-                            Application.Current?.Dispatcher.Invoke(() =>
-                            {
-                                if (i < ImageCollection.Count)
-                                {
-                                    ImageCollection[i].SetFullImage(fullImage);
-                                }
-                            }, System.Windows.Threading.DispatcherPriority.Background);
+                            if (cancellationToken.IsCancellationRequested) break;
+                            s_smartLoader.PrefetchFile(fileNames[i]);
                         }
                     }
                     catch { }
-                }
-            }, cancellationToken);
+                }, cancellationToken);
+                prefetchSw.Stop();
+                Debug.WriteLine($"[LoadImages] 文件预取启动: {prefetchSw.ElapsedMilliseconds}ms (预取{prefetchCount}张)");
 
-            // 步骤3和4完成后，恢复预加载功能
-            _lastPreloadIndex = originalLastPreloadIndex; // 恢复原值，允许PreloadAdjacentImages再次执行
+                // ===== 步骤3：使用优先级加载器加载首屏 =====
+                var step3Sw = Stopwatch.StartNew();
+                
+                // 设置首张图片加载完成的回调
+                var firstImageTcs = new TaskCompletionSource<bool>();
+                
+                await _priorityLoader.LoadInitialScreenAsync(fileNames, ImageCollection, index =>
+                {
+                    // 首张图片加载完成
+                    firstImageSw.Stop();
+                    firstImageTime = firstImageSw.Elapsed;
+                    Debug.WriteLine($"[LoadImages] ★★★ 首张缩略图显示 - 耗时: {firstImageTime.Value.TotalMilliseconds:F0}ms ★★★");
+                    firstImageTcs.TrySetResult(true);
+                });
+                step3Sw.Stop();
 
-            totalSw.Stop();
-            logger.LogOperation("加载流程完成", totalSw.Elapsed, $"总图片数:{fileNames.Length} 立即加载:{immediateThumbnailCount}");
+                // 等待首张图片加载完成
+                await firstImageTcs.Task;
+
+                // ===== 移除步骤4：等待可视区域加载完成 =====
+                // 原因：PriorityThumbnailLoader 已有完整的可视区域监控和报告
+                // 移除冗余逻辑，避免阻塞和错误计算
+
+                // ===== 步骤5：后台预加载全分辨率图像 =====
+                _ = Task.Run(() =>
+                {
+                    int preloadCount = Math.Min(3, fileNames.Length);
+                    for (int i = 0; i < preloadCount; i++)
+                    {
+                        try
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+
+                            var fullImage = LoadImageOptimized(fileNames[i]);
+                            if (fullImage != null && !cancellationToken.IsCancellationRequested)
+                            {
+                                Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                                {
+                                    try
+                                    {
+                                        if (i < ImageCollection.Count)
+                                        {
+                                            ImageCollection[i].SetFullImage(fullImage);
+                                        }
+                                    }
+                                    catch { }
+                                }), System.Windows.Threading.DispatcherPriority.Background);
+                            }
+                        }
+                        catch { }
+                    }
+                }, cancellationToken);
+
+                totalSw.Stop();
+
+                // ===== 简化的性能报告 =====
+                Debug.WriteLine("");
+                Debug.WriteLine("╔══════════════════════════════════════════════════════════════╗");
+                Debug.WriteLine("║           图像加载 - 性能报告                                  ║");
+                Debug.WriteLine("╠══════════════════════════════════════════════════════════════╣");
+                Debug.WriteLine($"║  总图片数:      {fileNames.Length} 张");
+                Debug.WriteLine($"║  ★ 首张缩略图:   {firstImageTime?.TotalMilliseconds:F0}ms (用户首次看到图片)");
+                Debug.WriteLine($"║  总耗时:        {totalSw.ElapsedMilliseconds}ms");
+                Debug.WriteLine("║  可视区域加载报告 → 见 PriorityLoader 日志");
+                Debug.WriteLine("╚══════════════════════════════════════════════════════════════╝");
+                Debug.WriteLine("");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine($"[LoadImages] ⚠ 加载被取消");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoadImages] ✗ 加载异常: {ex.Message}");
+            }
         }
 
 
@@ -1300,10 +1415,10 @@ namespace SunEyeVision.UI.Controls
                 Debug.WriteLine($"[ImagePreviewControl] 删除后 - ImageCollection.Count:{ImageCollection.Count}");
 
                 // 关键修复：删除图片后，所有后续图片的索引都发生了错位
-                // 必须清除SmartLoader的_loadedIndices缓存，否则会导致"假已加载"状态
-                Debug.WriteLine($"[ImagePreviewControl] 清除SmartLoader的_loadedIndices缓存（修复索引错位问题）...");
-                _smartLoader.ClearLoadedIndices();
-                Debug.WriteLine($"[ImagePreviewControl] ✓ SmartLoader缓存已清除");
+                // 必须清除PriorityLoader的_loadedIndices缓存，否则会导致"假已加载"状态
+                Debug.WriteLine($"[ImagePreviewControl] 清除PriorityLoader的缓存（修复索引错位问题）...");
+                _priorityLoader.ClearState();
+                Debug.WriteLine($"[ImagePreviewControl] ✓ PriorityLoader缓存已清除");
 
                 // 调整当前索引
                 int oldIndex = CurrentImageIndex;
@@ -1412,22 +1527,15 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void RefreshImageDisplayState()
         {
-            Debug.WriteLine($"[ImagePreviewControl] ========== RefreshImageDisplayState 开始 ==========");
-            Debug.WriteLine($"[ImagePreviewControl] 当前状态 - CurrentImageIndex:{CurrentImageIndex}, ImageCollection.Count:{ImageCollection?.Count ?? 0}");
-
             // 强制刷新ImageCountDisplay（确保删除后总数正确更新）
             OnPropertyChanged(nameof(ImageCountDisplay));
-            Debug.WriteLine($"[ImagePreviewControl] ✓ ImageCountDisplay 已刷新");
 
             // 强制刷新缩略图选中状态
             UpdateImageSelection();
-            Debug.WriteLine($"[ImagePreviewControl] ✓ UpdateImageSelection 已执行");
 
             // 确保触发预加载和释放机制（修复缩略图只显示占位图问题）
             if (CurrentImageIndex >= 0)
             {
-                Debug.WriteLine($"[ImagePreviewControl] 触发预加载机制 - CurrentImageIndex:{CurrentImageIndex}");
-
                 PreloadAdjacentImages(CurrentImageIndex);
                 ReleaseDistantImages(CurrentImageIndex);
 
@@ -1437,21 +1545,9 @@ namespace SunEyeVision.UI.Controls
                 {
                     var selectedImage = ImageCollection[CurrentImageIndex];
                     _thumbnailListBox.SelectedItem = selectedImage;
-                    Debug.WriteLine($"[ImagePreviewControl] ✓ ListBox选中项已同步: {selectedImage.Name}, 缩略图状态: {(selectedImage.Thumbnail != null ? "已加载" : "未加载")}");
-
-                    // 检查当前选中图像的缩略图状态
-                    if (selectedImage.Thumbnail == null)
-                    {
-                        Debug.WriteLine($"[ImagePreviewControl] ⚠ 警告: 当前选中图像 {selectedImage.Name} 的缩略图为null");
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"[ImagePreviewControl] ⚠ 无法同步ListBox选中项 - _thumbnailListBox:{_thumbnailListBox != null}, ImageCollection:{ImageCollection != null}, CurrentImageIndex有效:{CurrentImageIndex >= 0 && CurrentImageIndex < (ImageCollection?.Count ?? 0)}");
                 }
 
                 // 触发可视区域更新
-                Debug.WriteLine($"[ImagePreviewControl] 触发 UpdateLoadRange()");
                 UpdateLoadRange();
             }
             else
@@ -1460,11 +1556,8 @@ namespace SunEyeVision.UI.Controls
                 if (_thumbnailListBox != null)
                 {
                     _thumbnailListBox.SelectedItem = null;
-                    Debug.WriteLine($"[ImagePreviewControl] ✓ ListBox选中项已清除");
                 }
             }
-
-            Debug.WriteLine($"[ImagePreviewControl] ========== RefreshImageDisplayState 结束 ==========");
         }
 
         /// <summary>
@@ -1522,7 +1615,7 @@ namespace SunEyeVision.UI.Controls
                         if (imageInfo.Thumbnail == null)
                         {
                             Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 缩略图为空，触发加载");
-                            _smartLoader.UpdateLoadRange(index, index, ImageCollection.Count, ImageCollection);
+                            _priorityLoader.UpdateVisibleRange(index, index, ImageCollection.Count);
                         }
                     }
                 }
@@ -1646,729 +1739,173 @@ namespace SunEyeVision.UI.Controls
         }
 
 
-        /// <summary>
-        /// 智能缩略图加载器 - 支持渐进式顺序加载（优化版：不取消已加载任务）- 带性能日志
-        /// </summary>
-        private class SmartThumbnailLoader
-        {
-            private readonly SortedSet<int> _loadQueue = new SortedSet<int>();
-            private readonly HashSet<int> _loadedIndices = new HashSet<int>();
-            private Task? _loadTask;
-            private CancellationTokenSource? _cancellationTokenSource;
-            private ObservableCollection<ImageInfo>? _imageCollection;
-            private SemaphoreSlim _semaphore; // 优化2：动态并发数（初始值2，启动后根据GPU/CPU调整）
-            private readonly object _lockObj = new object(); // 用于线程安全
-            private readonly PerformanceLogger _logger = new PerformanceLogger("SmartLoader");
-            private ImagePreviewControl? _parentControl; // 引用父控件，用于获取动态并发数
 
-            private int _totalAdded = 0; // 总共添加到队列的数量
-            private int _totalLoaded = 0; // 总共加载完成的数量
-
-            // 任务移交队列（后台加载）
-            private readonly ConcurrentQueue<int> _backgroundLoadQueue = new ConcurrentQueue<int>();
-            private Task? _backgroundLoadTask;
-            private CancellationTokenSource? _backgroundCancellationTokenSource;
-
-            // 滚动状态追踪
-            private int _lastFirstVisible = -1;
-            private int _lastLastVisible = -1;
-
-            // 可视区域加载时间监控
-            private DateTime? _visibleAreaLoadStartTime = null;
-
-            // 批量UI更新（方案二优化）
-            private readonly ConcurrentQueue<UIUpdateRequest> _uiUpdateQueue = new ConcurrentQueue<UIUpdateRequest>();
-            private DispatcherTimer? _uiUpdateTimer;
-            private bool _isUpdatingUI = false;
-            private int _pendingUIUpdates = 0;             // 待处理的UI更新数量
-
-            // ===== 优化: 智能并发调度 =====
-            private int _dynamicConcurrency = 3; // 降低初始并发数，减少GPU竞争
-            private readonly Queue<long> _decodeTimes = new Queue<long>();
-            private DateTime _lastConcurrencyAdjust = DateTime.MinValue;
-            private const int MIN_CONCURRENCY = 2;
-            private const int MAX_CONCURRENCY = 8;
-            private int _visibleAreaCount = 0; // 可视区域图像数量
-            private int _loadedInVisibleArea = 0; // 已加载的可视区域计数
-
-            /// <summary>
-            /// 构造函数
-            /// </summary>
-            public SmartThumbnailLoader()
-            {
-                // 初始化并发信号量（初始值3，后续动态调整）
-                _semaphore = new SemaphoreSlim(3);
-                _dynamicConcurrency = 3;
-            }
-
-            /// <summary>
-            /// 设置父控件引用（用于获取动态并发数）
-            /// </summary>
-            public void SetParentControl(ImagePreviewControl parent)
-            {
-                _parentControl = parent;
-
-                // 根据GPU/CPU状态动态调整并发数
-                if (_parentControl != null)
-                {
-                    int optimalConcurrency = _parentControl.CalculateOptimalConcurrency();
-                    _dynamicConcurrency = optimalConcurrency;
-                    _semaphore = new SemaphoreSlim(optimalConcurrency);
-                    Debug.WriteLine($"[SmartLoader] ✓ 动态并发数已调整: {optimalConcurrency}");
-                }
-            }
-
-            /// <summary>
-            /// 动态调整并发数（基于实时解码性能）
-            /// </summary>
-            private void AdjustConcurrencyIfNeeded(long decodeTimeMs)
-            {
-                lock (_lockObj)
-                {
-                    _decodeTimes.Enqueue(decodeTimeMs);
-                    
-                    // 保持最近20次解码时间
-                    while (_decodeTimes.Count > 20)
-                    {
-                        _decodeTimes.Dequeue();
-                    }
-
-                    // 每500ms检查一次
-                    if ((DateTime.Now - _lastConcurrencyAdjust).TotalMilliseconds < 500)
-                        return;
-
-                    _lastConcurrencyAdjust = DateTime.Now;
-
-                    if (_decodeTimes.Count < 10) return;
-
-                    var avgTime = _decodeTimes.Average();
-
-                    // 如果平均解码时间<50ms，增加并发
-                    if (avgTime < 50 && _dynamicConcurrency < MAX_CONCURRENCY)
-                    {
-                        _dynamicConcurrency = Math.Min(MAX_CONCURRENCY, _dynamicConcurrency + 2);
-                        _semaphore?.Dispose();
-                        _semaphore = new SemaphoreSlim(_dynamicConcurrency);
-                        Debug.WriteLine($"[SmartLoader] ↑ 增加并发数: {_dynamicConcurrency} (平均解码:{avgTime:F1}ms)");
-                    }
-                    // 如果平均解码时间>150ms，减少并发
-                    else if (avgTime > 150 && _dynamicConcurrency > MIN_CONCURRENCY)
-                    {
-                        _dynamicConcurrency = Math.Max(MIN_CONCURRENCY, _dynamicConcurrency - 2);
-                        _semaphore?.Dispose();
-                        _semaphore = new SemaphoreSlim(_dynamicConcurrency);
-                        Debug.WriteLine($"[SmartLoader] ↓ 减少并发数: {_dynamicConcurrency} (平均解码:{avgTime:F1}ms)");
-                    }
-                }
-            }
-
-            /// <summary>
-            /// UI更新请求
-            /// </summary>
-            private class UIUpdateRequest
-            {
-                public int Index { get; set; }
-                public BitmapImage Thumbnail { get; set; }
-                public ImageInfo ImageInfo { get; set; }
-                public string FilePath { get; set; }
-            }
-
-            /// <summary>
-            /// 可视区域加载完成事件
-            /// </summary>
-            public event Action<int, TimeSpan>? VisibleAreaLoadingCompleted;
-
-            /// <summary>
-            /// 初始化批量UI更新定时器（方案二优化）
-            /// </summary>
-            private void InitializeUIUpdateTimer()
-            {
-                if (_uiUpdateTimer == null)
-                {
-                    _uiUpdateTimer = new DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(30) // 优化: 30ms批量更新一次（从50ms降低）
-                    };
-                    _uiUpdateTimer.Tick += ProcessUIUpdates;
-                    _uiUpdateTimer.Start();
-                    Debug.WriteLine($"[SmartLoader] ✓ 批量UI更新定时器已启动 - 间隔:30ms");
-                }
-            }
-
-            /// <summary>
-            /// 批量处理UI更新（优化: UI分级更新 - 可视区域立即显示+后台批量）
-            /// </summary>
-            private void ProcessUIUpdates(object? sender, EventArgs e)
-            {
-                if (_isUpdatingUI || _uiUpdateQueue.Count == 0)
-                {
-                    return;
-                }
-
-                _isUpdatingUI = true;
-                var updateSw = Stopwatch.StartNew();
-                int immediateCount = 0;
-                int backgroundCount = 0;
-
-                try
-                {
-                    // 批量取出所有待更新项
-                    var updates = new List<UIUpdateRequest>();
-                    while (_uiUpdateQueue.TryDequeue(out var request))
-                    {
-                        updates.Add(request);
-                    }
-
-                    if (updates.Count == 0 || _imageCollection == null)
-                        return;
-
-                    // ===== 优化: 分离可视区域和后台更新 =====
-                    var visibleUpdates = updates.Where(u =>
-                        u.Index >= _lastFirstVisible && u.Index <= _lastLastVisible).ToList();
-                    var backgroundUpdates = updates.Except(visibleUpdates).ToList();
-
-                    // 可视区域：最高优先级立即更新
-                    if (visibleUpdates.Count > 0)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            foreach (var update in visibleUpdates)
-                            {
-                                if (update.Index < _imageCollection.Count && 
-                                    _imageCollection[update.Index] == update.ImageInfo)
-                                {
-                                    update.ImageInfo.Thumbnail = update.Thumbnail;
-                                    s_thumbnailCache?.AddToMemoryCache(update.FilePath, update.Thumbnail);
-                                    immediateCount++;
-                                }
-                            }
-                        }, DispatcherPriority.Send); // 最高优先级
-                    }
-
-                    // 后台更新：普通优先级
-                    if (backgroundUpdates.Count > 0)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            foreach (var update in backgroundUpdates)
-                            {
-                                if (update.Index < _imageCollection.Count && 
-                                    _imageCollection[update.Index] == update.ImageInfo)
-                                {
-                                    update.ImageInfo.Thumbnail = update.Thumbnail;
-                                    s_thumbnailCache?.AddToMemoryCache(update.FilePath, update.Thumbnail);
-                                    backgroundCount++;
-                                }
-                            }
-                        }, DispatcherPriority.Background); // 后台优先级
-                    }
-
-                    lock (_lockObj)
-                    {
-                        _totalLoaded += immediateCount + backgroundCount;
-                    }
-
-                    if (immediateCount + backgroundCount > 0)
-                    {
-                        Debug.WriteLine($"[SmartLoader] ✓ 分级UI更新 - 立即:{immediateCount} 后台:{backgroundCount} 耗时:{updateSw.Elapsed.TotalMilliseconds:F2}ms");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[SmartLoader] ✗ 批量UI更新失败 - 错误:{ex.Message}");
-                }
-                finally
-                {
-                    _isUpdatingUI = false;
-                    _pendingUIUpdates = 0;
-                }
-            }
-
-            /// <summary>
-            /// 更新加载范围（优化：预读取+优先级调度）
-            /// </summary>
-            public void UpdateLoadRange(int firstIndex, int lastIndex, int imageCount, ObservableCollection<ImageInfo> imageCollection)
-            {
-                Debug.WriteLine($"[SmartLoader] ========== UpdateLoadRange 开始 ==========");
-                var sw = Stopwatch.StartNew();
-                _imageCollection = imageCollection;
-
-                // 初始化批量UI更新定时器
-                InitializeUIUpdateTimer();
-
-                // 记录可视区域加载开始时间
-                if (_loadQueue.Count == 0 && !_loadedIndices.Overlaps(new HashSet<int>(Enumerable.Range(firstIndex, lastIndex - firstIndex + 1))))
-                {
-                    _visibleAreaLoadStartTime = DateTime.Now;
-                    _visibleAreaCount = lastIndex - firstIndex + 1; // 设置可视区域数量
-                    _loadedInVisibleArea = 0; // 重置计数
-                    Debug.WriteLine($"[SmartLoader] ★ 记录可视区域加载开始时间，可视数量:{_visibleAreaCount}");
-                }
-
-                // ===== 禁用预读取：只加载可视窗口内的图片 =====
-                // PrefetchAdjacentFiles(firstIndex, lastIndex, imageCount, imageCollection);
-
-                int movedOutCount = 0;
-                // 检测哪些索引移出了视野，移交到后台
-                if (_lastFirstVisible >= 0 && _lastLastVisible >= 0)
-                {
-                    var movedOutIndices = new List<int>();
-                    for (int i = _lastFirstVisible; i <= _lastLastVisible; i++)
-                    {
-                        if (i < firstIndex || i > lastIndex)
-                        {
-                            movedOutIndices.Add(i);
-                        }
-                    }
-
-                    foreach (var index in movedOutIndices)
-                    {
-                        if (index >= 0 && index < imageCount && !_loadedIndices.Contains(index) && !_loadQueue.Contains(index))
-                        {
-                            TransferToBackground(index);
-                            movedOutCount++;
-                        }
-                    }
-                }
-
-                // 更新滚动状态追踪
-                _lastFirstVisible = firstIndex;
-                _lastLastVisible = lastIndex;
-
-                int addedCount = 0;
-                lock (_lockObj)
-                {
-                    // ===== 顺序加载（从左到右） =====
-                    for (int i = firstIndex; i <= lastIndex; i++)
-                    {
-                        if (i >= 0 && i < imageCount && !_loadedIndices.Contains(i) && !_loadQueue.Contains(i))
-                        {
-                            _loadQueue.Add(i);
-                            addedCount++;
-                            _totalAdded++;
-                        }
-                    }
-                }
-
-                _logger.LogOperation("UpdateLoadRange", sw.Elapsed,
-                    $"范围:[{firstIndex}-{lastIndex}] 添加:{addedCount} 队列:{_loadQueue.Count} 已加载:{_loadedIndices.Count} 移交后台:{movedOutCount}");
-
-                // 启动新的加载任务
-                if (_loadTask == null || _loadTask.IsCompleted)
-                {
-                    if (_cancellationTokenSource != null)
-                    {
-                        _cancellationTokenSource.Dispose();
-                    }
-                    _cancellationTokenSource = new CancellationTokenSource();
-                    _loadTask = ProcessLoadQueue(_cancellationTokenSource.Token);
-                }
-
-                Debug.WriteLine($"[SmartLoader] ========== UpdateLoadRange 结束 - 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms ==========");
-            }
-
-            /// <summary>
-            /// 异步预读取相邻文件（优化文件I/O）
-            /// </summary>
-            private void PrefetchAdjacentFiles(int firstIndex, int lastIndex, int imageCount, ObservableCollection<ImageInfo> imageCollection)
-            {
-                if (imageCollection == null || s_gpuThumbnailLoader == null) return;
-
-                // 预读取前后各2张图像
-                int prefetchStart = Math.Max(0, firstIndex - 2);
-                int prefetchEnd = Math.Min(imageCount - 1, lastIndex + 2);
-
-                Task.Run(() =>
-                {
-                    for (int i = prefetchStart; i <= prefetchEnd; i++)
-                    {
-                        if (i >= firstIndex && i <= lastIndex) continue; // 跳过当前可见区域（已在加载）
-
-                        try
-                        {
-                            if (i >= 0 && i < imageCollection.Count)
-                            {
-                                var imageInfo = imageCollection[i];
-                                s_gpuThumbnailLoader.PrefetchFile(imageInfo.FilePath);
-                            }
-                        }
-                        catch { }
-                    }
-                });
-            }
-
-            /// <summary>
-            /// 清除已加载索引
-            /// </summary>
-            public void ClearLoadedIndices()
-            {
-                var sw = Stopwatch.StartNew();
-                lock (_lockObj)
-                {
-                    _loadedIndices.Clear();
-                    _loadQueue.Clear();
-                    _totalAdded = 0;
-                    _totalLoaded = 0;
-                }
-
-                // 清空批量UI更新队列（方案二优化）
-                while (_uiUpdateQueue.TryDequeue(out _)) { }
-                _pendingUIUpdates = 0;
-
-                _logger.LogOperation("ClearLoadedIndices", sw.Elapsed, "已清空加载队列和UI更新队列");
-                Debug.WriteLine($"[SmartLoader] ✓ 已清空加载状态 - loadedIndices:{_loadedIndices.Count} loadQueue:{_loadQueue.Count} uiQueue:{_pendingUIUpdates}");
-            }
-
-            /// <summary>
-            /// 标记为已加载
-            /// </summary>
-            public void MarkAsLoaded(int index)
-            {
-                _loadedIndices.Add(index);
-                _loadQueue.Remove(index);
-            }
-
-            /// <summary>
-            /// 移交任务到后台（当缩略图滚动出视野时）
-            /// </summary>
-            public void TransferToBackground(int index)
-            {
-                if (!_loadedIndices.Contains(index) && !_loadQueue.Contains(index))
-                {
-                    _backgroundLoadQueue.Enqueue(index);
-                    StartBackgroundLoading();
-                }
-            }
-
-            /// <summary>
-            /// 启动后台加载任务
-            /// </summary>
-            private void StartBackgroundLoading()
-            {
-                if (_backgroundLoadTask == null || _backgroundLoadTask.IsCompleted)
-                {
-                    _backgroundCancellationTokenSource = new CancellationTokenSource();
-                    _backgroundLoadTask = ProcessBackgroundQueue(_backgroundCancellationTokenSource.Token);
-                }
-            }
-
-            /// <summary>
-            /// 处理后台任务队列
-            /// </summary>
-            private async Task ProcessBackgroundQueue(CancellationToken cancellationToken)
-            {
-                while (!cancellationToken.IsCancellationRequested && _backgroundLoadQueue.TryDequeue(out int index))
-                {
-                    try
-                    {
-                        await LoadSingleThumbnail(index, cancellationToken, isBackground: true);
-                    }
-                    catch
-                    {
-                        // 忽略后台加载错误，避免中断整个流程
-                    }
-                }
-            }
-
-            /// <summary>
-            /// 取消并释放资源
-            /// </summary>
-            public void CancelAndDispose()
-            {
-                _cancellationTokenSource?.Cancel();
-                _cancellationTokenSource?.Dispose();
-                _cancellationTokenSource = null;
-                _loadQueue.Clear();
-                _loadedIndices.Clear();
-
-                // 清理后台加载任务
-                _backgroundCancellationTokenSource?.Cancel();
-                _backgroundCancellationTokenSource?.Dispose();
-                _backgroundCancellationTokenSource = null;
-                _backgroundLoadQueue.Clear();
-
-                // 清理批量UI更新定时器（方案二优化）
-                _uiUpdateTimer?.Stop();
-                _uiUpdateTimer = null;
-                _uiUpdateQueue.Clear();
-                _isUpdatingUI = false;
-            }
-
-            /// <summary>
-            /// 处理加载队列（渐进式顺序加载）- 优化：动态并发数 + 性能日志
-            /// </summary>
-            private async Task ProcessLoadQueue(CancellationToken cancellationToken)
-            {
-                var sw = Stopwatch.StartNew();
-                var activeTasks = new List<Task<(int index, long elapsedMs)>>();
-                int processedCount = 0;
-                var processSw = Stopwatch.StartNew();
-                bool visibleAreaCompleted = false; // 可视区域是否完成
-
-                // 使用动态并发数
-                int concurrencyLimit = _dynamicConcurrency;
-
-                _logger.LogOperation("ProcessLoadQueue开始", TimeSpan.Zero,
-                    $"并发限制:{concurrencyLimit} 队列:{_loadQueue.Count} 可视区域:{_visibleAreaCount}");
-
-                while ((!cancellationToken.IsCancellationRequested) && (activeTasks.Count > 0 || _loadQueue.Count > 0))
-                {
-                    // 使用当前动态并发数
-                    concurrencyLimit = _dynamicConcurrency;
-
-                    // 启动新任务直到达到并发限制
-                    int newTasksStarted = 0;
-                    lock (_lockObj)
-                    {
-                        while (activeTasks.Count < concurrencyLimit && _loadQueue.Count > 0)
-                        {
-                            var index = _loadQueue.Min; // 取出最小的索引
-                            _loadQueue.Remove(index);
-
-                            // ===== 优化：可视区域串行加载 =====
-                            // 可视区域内的图像串行加载，避免GPU竞争
-                            if (_loadedInVisibleArea < _visibleAreaCount)
-                            {
-                                _loadedInVisibleArea++;
-                                var currentLoadIndex = _loadedInVisibleArea;
-                                var totalVisible = _visibleAreaCount;
-                                var task = Task.Run(async () =>
-                                {
-                                    var taskSw = Stopwatch.StartNew();
-                                    try
-                                    {
-                                        if (!cancellationToken.IsCancellationRequested)
-                                        {
-                                            Debug.WriteLine($"[SmartLoader] ★ 串行加载可视区域 [{currentLoadIndex}/{totalVisible}]: index={index}");
-                                            await LoadSingleThumbnail(index, cancellationToken);
-                                        }
-                                        taskSw.Stop();
-                                        return (index, taskSw.ElapsedMilliseconds);
-                                    }
-                                    catch
-                                    {
-                                        taskSw.Stop();
-                                        return (index, taskSw.ElapsedMilliseconds);
-                                    }
-                                }, cancellationToken);
-                                activeTasks.Add(task);
-                                newTasksStarted++;
-                                
-                                // 可视区域串行加载，一次只启动一个任务
-                                if (_loadedInVisibleArea < _visibleAreaCount)
-                                {
-                                    break; // 退出循环，等待当前任务完成
-                                }
-                                continue;
-                            }
-
-                            // 后续图像并发加载
-                            var concurrentTask = Task.Run(async () =>
-                            {
-                                await _semaphore.WaitAsync(cancellationToken);
-                                var taskSw = Stopwatch.StartNew();
-                                try
-                                {
-                                    if (!cancellationToken.IsCancellationRequested)
-                                    {
-                                        await LoadSingleThumbnail(index, cancellationToken);
-                                    }
-                                    taskSw.Stop();
-                                    return (index, taskSw.ElapsedMilliseconds);
-                                }
-                                finally
-                                {
-                                    _semaphore.Release();
-                                }
-                            }, cancellationToken);
-                            activeTasks.Add(concurrentTask);
-                            newTasksStarted++;
-                        }
-                    }
-
-                    if (newTasksStarted > 0)
-                    {
-                        _logger.LogOperation("启动新任务", processSw.Elapsed,
-                            $"数量:{newTasksStarted} 活动任务:{activeTasks.Count} 队列剩余:{_loadQueue.Count}");
-                    }
-
-                    // 等待至少一个任务完成
-                    if (activeTasks.Count > 0)
-                    {
-                        var completedTask = await Task.WhenAny(activeTasks);
-                        activeTasks.Remove(completedTask);
-                        processedCount++;
-
-                        // 获取解码时间并调整并发数
-                        try
-                        {
-                            var result = await completedTask;
-                            AdjustConcurrencyIfNeeded(result.elapsedMs);
-                        }
-                        catch { }
-
-                        // 检查可视区域是否完成
-                        if (!visibleAreaCompleted && _loadedInVisibleArea >= _visibleAreaCount)
-                        {
-                            visibleAreaCompleted = true;
-                            Debug.WriteLine($"[SmartLoader] ★ 可视区域串行加载完成，后续并发加载");
-                        }
-
-                        // 每10个任务输出一次进度
-                        if (processedCount % 10 == 0)
-                        {
-                            _logger.LogOperation("处理进度", processSw.Elapsed,
-                                $"已完成:{processedCount}/{_totalAdded} 活动任务:{activeTasks.Count} 并发:{_dynamicConcurrency}");
-                        }
-                    }
-
-                    processSw.Restart();
-                }
-
-                sw.Stop();
-                _logger.LogOperation("ProcessLoadQueue完成", sw.Elapsed,
-                    $"处理总数:{processedCount} 总耗时:{sw.Elapsed.TotalMilliseconds:F2}ms 平均:{sw.Elapsed.TotalMilliseconds / Math.Max(1, processedCount):F2}ms/张 最终并发:{_dynamicConcurrency}");
-
-                // 触发可视区域加载完成事件
-                if (_visibleAreaLoadStartTime.HasValue && _loadQueue.Count == 0)
-                {
-                    var totalDuration = DateTime.Now - _visibleAreaLoadStartTime.Value;
-                    Debug.WriteLine($"[SmartLoader] ★★★ 可视区域加载完成 - 耗时:{totalDuration.TotalMilliseconds:F2}ms");
-                    VisibleAreaLoadingCompleted?.Invoke(processedCount, totalDuration);
-                    _visibleAreaLoadStartTime = null; // 重置开始时间
-                }
-            }
-
-            /// <summary>
-            /// 加载单个缩略图（优化：避免重复加载）
-            /// </summary>
-            private async Task LoadSingleThumbnail(int index, CancellationToken cancellationToken, bool isBackground = false)
-            {
-                Debug.WriteLine($"[SmartLoader] ========== LoadSingleThumbnail 开始 ==========");
-                Debug.WriteLine($"[SmartLoader] 参数 - index:{index}, isBackground:{isBackground}");
-
-                var sw = Stopwatch.StartNew();
-                string fileName = "";
-
-                if (_imageCollection == null || index < 0 || index >= _imageCollection.Count)
-                {
-                    Debug.WriteLine($"[SmartLoader] ✗ 索引{index}超出范围 - _imageCollection:{_imageCollection != null}, index范围:{index < 0 || index >= (_imageCollection?.Count ?? 0)}");
-                    return;
-                }
-
-                ImageInfo? imageInfo = null;
-                bool shouldLoad = false;
-                lock (_lockObj)
-                {
-                    // 再次检查，避免并发加载同一图片
-                    if (_loadedIndices.Contains(index))
-                    {
-                        return;
-                    }
-
-                    imageInfo = _imageCollection[index];
-                    fileName = Path.GetFileName(imageInfo.FilePath);
-
-                    if (imageInfo.Thumbnail != null)
-                    {
-                        _loadedIndices.Add(index); // 标记为已加载
-                        return; // 已加载
-                    }
-
-                    // 标记为正在加载，避免并发重复加载
-                    _loadedIndices.Add(index);
-                    shouldLoad = true;
-                }
-
-                if (!shouldLoad)
-                {
-                    return;
-                }
-
-                try
-                {
-                    // 阶段1: 实际加载（使用Task.Run包装同步操作）
-                    var thumbnail = await Task.Run(() => LoadThumbnailOptimized(imageInfo.FilePath));
-
-                    if (thumbnail != null && !cancellationToken.IsCancellationRequested)
-                    {
-                        // 阶段2: UI更新（批量更新 - 方案二优化）
-                        // 将更新请求加入队列，由定时器批量处理
-                        var updateRequest = new UIUpdateRequest
-                        {
-                            Index = index,
-                            Thumbnail = thumbnail,
-                            ImageInfo = imageInfo,
-                            FilePath = imageInfo.FilePath
-                        };
-
-                        _uiUpdateQueue.Enqueue(updateRequest);
-                        _pendingUIUpdates++;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogOperation($"索引{index}被取消", sw.Elapsed, fileName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogOperation($"索引{index}加载失败", sw.Elapsed, $"{fileName} 错误:{ex.Message}");
-                }
-
-            }
-        }
 
         /// <summary>
         /// 更新加载范围（滚动时调用）
-        /// 集成优先级加载器（20%性能提升）
+        /// 使用优先级加载器
+        /// ★ 虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
         /// </summary>
         private void UpdateLoadRange()
         {
-            Debug.WriteLine($"[ImagePreviewControl] ========== UpdateLoadRange 开始 ==========");
-            var sw = Stopwatch.StartNew();
-
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            
             if (_thumbnailListBox == null || ImageCollection == null || ImageCollection.Count == 0)
             {
-                Debug.WriteLine($"[ImagePreviewControl] ✗ 跳过更新 - _thumbnailListBox:{_thumbnailListBox != null}, ImageCollection:{ImageCollection != null}, Count:{ImageCollection?.Count ?? 0}");
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 跳过 - ListBox或集合为空 (listBox:{_thumbnailListBox != null} collection:{ImageCollection != null} count:{ImageCollection?.Count ?? 0})");
                 return;
             }
 
-            var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
-            if (scrollViewer == null)
+            // ★ 使用虚拟化安全的方法获取可视范围
+            var (firstVisible, lastVisible) = GetVisibleRange();
+            
+            if (firstVisible == -1 || lastVisible == -1)
             {
-                Debug.WriteLine($"[ImagePreviewControl] ✗ ScrollViewer 为 null，跳过更新");
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 未找到可视项 - GetVisibleRange返回(-1,-1)");
                 return;
             }
 
-            // 强制更新布局，确保ScrollViewer的尺寸正确
-            _thumbnailListBox.UpdateLayout();
-            scrollViewer.UpdateLayout();
+            var viewportWidth = _thumbnailListBox.ActualWidth;
+            
+            // ===== 缩略图显示状态监控（增强诊断） =====
+            int loadedCount = 0, emptyCount = 0, validCount = 0, invalidCount = 0;
+            var emptyIndices = new System.Text.StringBuilder();
+            var invalidDetails = new System.Text.StringBuilder();
+            
+            for (int i = firstVisible; i <= lastVisible && i < ImageCollection.Count; i++)
+            {
+                var item = ImageCollection[i];
+                if (item.Thumbnail != null)
+                {
+                    loadedCount++;
+                    // ★ 诊断：检查缩略图是否真的有效（有宽高）
+                    if (item.Thumbnail.Width > 0 && item.Thumbnail.Height > 0)
+                    {
+                        validCount++;
+                    }
+                    else
+                    {
+                        invalidCount++;
+                        if (invalidDetails.Length < 200)
+                            invalidDetails.Append($"[{i}:W{item.Thumbnail.Width:F0}xH{item.Thumbnail.Height:F0}]");
+                    }
+                }
+                else
+                {
+                    emptyCount++;
+                    if (emptyIndices.Length < 100) // 限制长度
+                        emptyIndices.Append($"{i},");
+                }
+            }
+            
+            // 缩略图有效性监控（静默处理）
+            
+            if (invalidCount > 0)
+            {
+                Debug.WriteLine($"[ThumbnailMonitor] ⚠ 无效缩略图: {invalidDetails}");
+            }
+            
+            if (emptyCount > 0)
+            {
+                Debug.WriteLine($"[ThumbnailMonitor] 空白索引:[{emptyIndices}]");
+            }
 
-            // 计算可见区域（精确可视窗口，无预加载）
-            var viewportWidth = scrollViewer.ViewportWidth;
-            var horizontalOffset = scrollViewer.HorizontalOffset;
-            var itemWidth = ThumbnailSizes.ItemWidth; // 缩略图宽度130 + 边距2 = 132.0
-
-            // 只加载可视窗口内的图片，不做预加载扩展
-            var firstVisible = Math.Max(0, (int)(horizontalOffset / itemWidth));
-            var lastVisible = Math.Min(ImageCollection.Count - 1,
-                (int)((horizontalOffset + viewportWidth) / itemWidth));
-
-            var viewportCapacity = (int)(viewportWidth / itemWidth);
-
-            Debug.WriteLine($"[ImagePreviewControl] ScrollViewer状态 - ViewportWidth:{viewportWidth:F2}, HorizontalOffset:{horizontalOffset:F2}");
-            Debug.WriteLine($"[ImagePreviewControl] 精确可视范围: [{firstVisible}-{lastVisible}] (共{lastVisible - firstVisible + 1}张)");
-
-            // 仅委托给智能加载器（移除PriorityLoader避免重复加载）
-            _smartLoader.UpdateLoadRange(firstVisible, lastVisible, ImageCollection.Count, ImageCollection);
-
+            // 委托给优先级加载器
+            _priorityLoader.UpdateVisibleRange(firstVisible, lastVisible, ImageCollection.Count);
+            
             sw.Stop();
-            Debug.WriteLine($"[ImagePreviewControl] ========== UpdateLoadRange 结束 - 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms ==========");
         }
 
         #endregion
 
         #region 事件
+
+        /// <summary>
+        /// 获取当前可视区域内的数据项索引范围（虚拟化安全版本）
+        /// 核心原理：虚拟化模式下 ScrollViewer 的 HorizontalOffset 返回的是"项索引"而非像素
+        /// </summary>
+        /// <returns>返回(firstVisible, lastVisible)，如果找不到返回(-1, -1)</returns>
+        private (int firstVisible, int lastVisible) GetVisibleRange()
+        {
+            // ===== 诊断日志：检查前置条件 =====
+            if (_thumbnailListBox == null)
+            {
+                Debug.WriteLine("[GetVisibleRange] ⚠ 返回(-1,-1) - _thumbnailListBox为null");
+                return (-1, -1);
+            }
+            
+            if (ImageCollection == null || ImageCollection.Count == 0)
+            {
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - ImageCollection为空 (null:{ImageCollection == null}, count:{ImageCollection?.Count ?? 0})");
+                return (-1, -1);
+            }
+
+            var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
+            if (scrollViewer == null)
+            {
+                Debug.WriteLine("[GetVisibleRange] ⚠ 返回(-1,-1) - scrollViewer为null");
+                return (-1, -1);
+            }
+
+            double itemWidth = ThumbnailSizes.ItemWidth;
+            if (itemWidth <= 0)
+            {
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - itemWidth无效: {itemWidth}");
+                return (-1, -1);
+            }
+
+            // 获取ListBox的实际宽度作为视口宽度
+            double viewportWidth = _thumbnailListBox.ActualWidth;
+            if (viewportWidth < itemWidth)
+                viewportWidth = this.ActualWidth;
+
+            if (viewportWidth < itemWidth)
+            {
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - 视口宽度无效: {viewportWidth:F1}");
+                return (-1, -1);
+            }
+
+            // ===== 关键修复：虚拟化模式下 ScrollViewer 的值含义 =====
+            // HorizontalOffset = 当前滚动位置（项索引，不是像素！）
+            // ExtentWidth = 总项数（不是像素宽度！）
+            // ViewportWidth = 可见项数（不是像素宽度！）
+            
+            double offset = scrollViewer.HorizontalOffset;
+            double extentWidth = scrollViewer.ExtentWidth;
+            double scrollViewportWidth = scrollViewer.ViewportWidth;
+            
+            // 计算可见项数量（基于实际像素宽度）
+            int visibleCount = (int)(viewportWidth / itemWidth) + 3; // +3 为缓冲
+            
+            // ★ 核心修复：offset 已经是项索引，直接使用
+            int firstVisible;
+            int lastVisible;
+            
+            // 判断 ScrollViewer 是否处于虚拟化模式
+            // 如果 extentWidth ≈ 图片数量，说明是虚拟化模式，offset 是项索引
+            bool isVirtualizationMode = Math.Abs(extentWidth - ImageCollection.Count) < ImageCollection.Count * 0.1;
+            
+            if (isVirtualizationMode && extentWidth > 0)
+            {
+                // 虚拟化模式：offset 是项索引
+                firstVisible = Math.Max(0, (int)offset);
+                lastVisible = Math.Min(ImageCollection.Count - 1, firstVisible + visibleCount);
+            }
+            else
+            {
+                // 非虚拟化模式：offset 是像素值
+                firstVisible = Math.Max(0, (int)(offset / itemWidth));
+                lastVisible = Math.Min(ImageCollection.Count - 1, (int)((offset + viewportWidth) / itemWidth));
+            }
+
+            // 添加预加载缓冲
+            firstVisible = Math.Max(0, firstVisible - 2);
+            lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 2);
+
+            int itemsInViewport = lastVisible - firstVisible + 1;
+
+            return (firstVisible, lastVisible);
+        }
 
         /// <summary>
         /// 可视区域加载完成事件处理
@@ -2380,9 +1917,64 @@ namespace SunEyeVision.UI.Controls
             Debug.WriteLine("★★★ 可视区域加载完成 ★★★");
             Debug.WriteLine($"  加载数量: {loadedCount} 张");
             Debug.WriteLine($"  总耗时: {totalDuration.TotalMilliseconds:F2}ms");
-            Debug.WriteLine($"  平均耗时: {totalDuration.TotalMilliseconds / Math.Max(1, loadedCount):F2}ms/张");
             Debug.WriteLine("========================================");
             Debug.WriteLine("");
+        }
+
+        /// <summary>
+        /// 内存压力变化事件处理（P0优化：自适应策略）
+        /// </summary>
+        private void OnMemoryPressureChanged(object? sender, MemoryPressureMonitor.MemoryPressureEventArgs e)
+        {
+            Debug.WriteLine($"[ImagePreviewControl] ⚠ 内存压力变化: {e.Level} (可用:{e.AvailableMemoryMB}MB, {e.AvailablePercent:F1}%)");
+            Debug.WriteLine($"[ImagePreviewControl]   建议操作: {e.RecommendedAction}");
+
+            // 根据压力级别自适应响应
+            switch (e.Level)
+            {
+                case MemoryPressureMonitor.PressureLevel.Moderate:
+                    // 中等压力：减少预读取，保持稳定
+                    _priorityLoader.UseLowQuality = false;
+                    s_smartLoader.ClearPrefetchCache(); // 清除预读取缓存
+                    // ★ 方案A: 同步状态
+                    _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
+                    Debug.WriteLine("[ImagePreviewControl] → 中等压力响应：清除预读取缓存+状态同步");
+                    break;
+
+                case MemoryPressureMonitor.PressureLevel.High:
+                    // 高压力：清理缓存，降低质量
+                    s_thumbnailCache.RespondToMemoryPressure(isCritical: false);
+                    _priorityLoader.UseLowQuality = true;
+                    s_smartLoader.ClearPrefetchCache();
+                    // ★ 方案A: 同步状态
+                    _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
+                    Debug.WriteLine("[ImagePreviewControl] → 高压力响应：清理缓存+低质量模式+状态同步");
+                    break;
+
+                case MemoryPressureMonitor.PressureLevel.Critical:
+                    // 危险：强制GC，清空缓存，持续低质量模式
+                    s_thumbnailCache.RespondToMemoryPressure(isCritical: true);
+                    _priorityLoader.UseLowQuality = true;
+                    s_smartLoader.ClearPrefetchCache();
+                    // ★ 方案A: 同步状态
+                    _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
+                    
+                    // 触发GC回收
+                    Task.Run(() =>
+                    {
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+                        GC.WaitForPendingFinalizers();
+                        GC.Collect();
+                    });
+                    Debug.WriteLine("[ImagePreviewControl] → 危险压力响应：强制GC+清空缓存+低质量模式+状态同步");
+                    break;
+
+                case MemoryPressureMonitor.PressureLevel.Normal:
+                    // 恢复正常：恢复高质量模式
+                    _priorityLoader.UseLowQuality = false;
+                    Debug.WriteLine("[ImagePreviewControl] → 压力恢复：高质量模式");
+                    break;
+            }
         }
 
         /// <summary>
@@ -2542,481 +2134,6 @@ namespace SunEyeVision.UI.Controls
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// 混合缩略图加载器 - 支持GPU加速和CPU降级
-    /// 自动选择最佳加载方式：Vortice GPU → 高级GPU加速 → WIC优化 → CPU降级
-    /// 集成VorticeGpuDecoder实现真正的DirectX硬件解码
-    /// 预期性能提升：7-10倍
-    /// 
-    /// 优化特性：
-    /// - 文件预读取：异步预读取文件到内存，减少I/O等待
-    /// - GPU预热：初始化时预热GPU管线，减少首次解码延迟
-    /// </summary>
-    public class HybridThumbnailLoader : IDisposable
-    {
-        private readonly DirectXThumbnailRenderer _gpuRenderer = null!;
-        private readonly AdvancedGpuDecoder _advancedGpuDecoder;
-        private readonly VorticeGpuDecoder? _vorticeGpuDecoder;
-        private readonly PerformanceLogger _logger = new PerformanceLogger("HybridLoader");
-        private bool _disposed = false;
-
-        // ===== 优化1: 文件预读取缓存 =====
-        private readonly ConcurrentDictionary<string, Task<byte[]>> _prefetchCache = new();
-        private const int MAX_PREFETCH_CACHE_SIZE = 50; // 最大预读取缓存数量
-
-        /// <summary>
-        /// 是否启用GPU加速（包括WPF、高级GPU和Vortice GPU）
-        /// </summary>
-        public bool IsGPUEnabled { get; private set; } = false;
-
-        /// <summary>
-        /// 是否启用Vortice GPU加速（DirectX硬件解码，预期7-10倍提升）
-        /// </summary>
-        public bool IsVorticeGPUEnabled { get; private set; } = false;
-
-        /// <summary>
-        /// 是否启用高级GPU加速（WIC优化解码，预期3-5倍提升）
-        /// </summary>
-        public bool IsAdvancedGPUEnabled { get; private set; } = false;
-
-        /// <summary>
-        /// 获取性能统计报告
-        /// </summary>
-        public string PerformanceReport => _advancedGpuDecoder.GetPerformanceReport();
-
-        public HybridThumbnailLoader()
-        {
-            // 初始化WPF默认GPU加速加载器（确保不会为null）
-            _gpuRenderer = new DirectXThumbnailRenderer();
-
-            try
-            {
-                // 初始化Vortice GPU加速加载器（DirectX硬件解码，7-10倍提升）
-                try
-                {
-                    _vorticeGpuDecoder = new VorticeGpuDecoder();
-                    IsVorticeGPUEnabled = _vorticeGpuDecoder.Initialize();
-
-                    if (IsVorticeGPUEnabled)
-                    {
-                        Debug.WriteLine("[HybridLoader] ✓ Vortice GPU加速已启用（DirectX硬件解码，预期7-10倍提升）");
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[HybridLoader] ⚠ Vortice GPU不可用，尝试高级GPU加速");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[HybridLoader] ⚠ Vortice GPU初始化失败: {ex.Message}");
-                    _vorticeGpuDecoder = null;
-                    IsVorticeGPUEnabled = false;
-                }
-
-                // 初始化高级GPU加速加载器（WIC优化解码，3-5倍提升）
-                _advancedGpuDecoder = new AdvancedGpuDecoder();
-                IsAdvancedGPUEnabled = _advancedGpuDecoder.Initialize();
-
-                if (IsAdvancedGPUEnabled)
-                {
-                    Debug.WriteLine("[HybridLoader] ✓ 高级GPU加速已启用（WIC优化，预期3-5倍提升）");
-                }
-                else
-                {
-                    Debug.WriteLine("[HybridLoader] ⚠ 高级GPU不可用，使用WPF默认GPU加速");
-                }
-
-                // 初始化WPF默认GPU加速加载器
-                bool wpfGpuEnabled = _gpuRenderer.Initialize();
-                IsGPUEnabled = wpfGpuEnabled || IsAdvancedGPUEnabled || IsVorticeGPUEnabled;
-
-                if (IsVorticeGPUEnabled)
-                {
-                    Debug.WriteLine("[HybridLoader] ★ 使用Vortice GPU加速（最高性能）");
-                }
-                else if (IsGPUEnabled && IsAdvancedGPUEnabled && wpfGpuEnabled)
-                {
-                    Debug.WriteLine("[HybridLoader] ✓ 使用高级GPU加速（中等性能）");
-                }
-                else if (IsGPUEnabled && !IsAdvancedGPUEnabled && wpfGpuEnabled)
-                {
-                    Debug.WriteLine("[HybridLoader] ✓ 使用WPF GPU加速（基础性能）");
-                }
-                else if (!IsGPUEnabled)
-                {
-                    Debug.WriteLine("[HybridLoader] ⚠ 使用CPU模式（GPU不可用）");
-                }
-
-                // ===== 优化2: GPU预热 =====
-                WarmupGpuPipeline();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[HybridLoader] ⚠ GPU初始化失败: {ex.Message}");
-                IsGPUEnabled = false;
-                IsAdvancedGPUEnabled = false;
-                IsVorticeGPUEnabled = false;
-            }
-        }
-
-        /// <summary>
-        /// GPU管线预热（减少首次解码延迟）
-        /// 创建真实的BMP图像来预热WIC解码管线
-        /// </summary>
-        private void WarmupGpuPipeline()
-        {
-            if (!IsGPUEnabled) return;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    var sw = Stopwatch.StartNew();
-
-                    // 创建一个真实的BMP测试图像（模拟实际解码）
-                    // 这会预热WIC解码器和GPU纹理上传管线
-                    int warmupSize = 80;
-                    using var ms = new MemoryStream();
-                    
-                    // 创建一个简单的BMP文件头 + 像素数据
-                    int width = 60, height = 50;
-                    int stride = width * 4; // BGRA32
-                    int pixelDataSize = stride * height;
-                    int fileSize = 54 + pixelDataSize; // BMP header = 54 bytes
-                    
-                    // BMP文件头
-                    ms.Write(BitConverter.GetBytes((ushort)0x4D42), 0, 2); // "BM"
-                    ms.Write(BitConverter.GetBytes(fileSize), 0, 4);
-                    ms.Write(BitConverter.GetBytes((uint)0), 0, 4); // reserved
-                    ms.Write(BitConverter.GetBytes((uint)54), 0, 4); // offset to pixel data
-                    
-                    // DIB头 (BITMAPINFOHEADER)
-                    ms.Write(BitConverter.GetBytes((uint)40), 0, 4); // header size
-                    ms.Write(BitConverter.GetBytes(width), 0, 4);
-                    ms.Write(BitConverter.GetBytes(height), 0, 4);
-                    ms.Write(BitConverter.GetBytes((ushort)1), 0, 2); // planes
-                    ms.Write(BitConverter.GetBytes((ushort)32), 0, 2); // bits per pixel (BGRA32)
-                    ms.Write(BitConverter.GetBytes((uint)0), 0, 4); // compression (none)
-                    ms.Write(BitConverter.GetBytes((uint)pixelDataSize), 0, 4);
-                    ms.Write(BitConverter.GetBytes((uint)96), 0, 4); // X pixels per meter
-                    ms.Write(BitConverter.GetBytes((uint)96), 0, 4); // Y pixels per meter
-                    ms.Write(BitConverter.GetBytes((uint)0), 0, 4); // colors
-                    ms.Write(BitConverter.GetBytes((uint)0), 0, 4); // important colors
-                    
-                    // 像素数据（灰色填充）
-                    var pixels = new byte[pixelDataSize];
-                    for (int i = 0; i < pixels.Length; i += 4)
-                    {
-                        pixels[i] = 128;     // B
-                        pixels[i + 1] = 128; // G
-                        pixels[i + 2] = 128; // R
-                        pixels[i + 3] = 255; // A
-                    }
-                    ms.Write(pixels, 0, pixels.Length);
-                    ms.Position = 0;
-                    
-                    // 使用真实的解码流程预热
-                    int warmupCount = 3;
-                    for (int i = 0; i < warmupCount; i++)
-                    {
-                        ms.Position = 0;
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.DecodePixelWidth = warmupSize;
-                        bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                        bitmap.StreamSource = ms;
-                        bitmap.Rotation = Rotation.Rotate0;
-                        bitmap.EndInit();
-                        bitmap.Freeze();
-                    }
-                    
-                    sw.Stop();
-                    Debug.WriteLine($"[HybridLoader] ✓ GPU管线预热完成 - 耗时:{sw.Elapsed.TotalMilliseconds:F2}ms (预热{warmupCount}次解码)");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[HybridLoader] ⚠ GPU预热失败: {ex.Message}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// 异步预读取文件到内存（不阻塞主线程）
-        /// 预期效果：减少40-50ms的文件I/O等待时间
-        /// </summary>
-        public void PrefetchFile(string filePath)
-        {
-            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                return;
-
-            // 限制缓存大小
-            if (_prefetchCache.Count >= MAX_PREFETCH_CACHE_SIZE)
-            {
-                // 移除最旧的一半缓存
-                var toRemove = _prefetchCache.Keys.Take(MAX_PREFETCH_CACHE_SIZE / 2).ToList();
-                foreach (var key in toRemove)
-                {
-                    _prefetchCache.TryRemove(key, out _);
-                }
-            }
-
-            if (!_prefetchCache.ContainsKey(filePath))
-            {
-                _prefetchCache.TryAdd(filePath, Task.Run(() =>
-                {
-                    try
-                    {
-                        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
-                            FileShare.Read, 8192, FileOptions.SequentialScan | FileOptions.Asynchronous);
-                        byte[] buffer = new byte[fs.Length];
-                        fs.Read(buffer, 0, buffer.Length);
-                        return buffer;
-                    }
-                    catch
-                    {
-                        return Array.Empty<byte>();
-                    }
-                }));
-            }
-        }
-
-        /// <summary>
-        /// 批量预读取文件
-        /// </summary>
-        public void PrefetchFiles(IEnumerable<string> filePaths)
-        {
-            foreach (var path in filePaths)
-            {
-                PrefetchFile(path);
-            }
-        }
-
-        /// <summary>
-        /// 获取预读取的文件数据
-        /// </summary>
-        public byte[]? GetPrefetchedData(string filePath)
-        {
-            if (_prefetchCache.TryGetValue(filePath, out var task))
-            {
-                if (task.IsCompletedSuccessfully)
-                {
-                    _prefetchCache.TryRemove(filePath, out _);
-                    return task.Result;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// 清除预读取缓存
-        /// </summary>
-        public void ClearPrefetchCache()
-        {
-            _prefetchCache.Clear();
-        }
-
-        /// <summary>
-        /// 加载缩略图（自动选择最佳方式：Vortice GPU → 高级GPU → WPF GPU → CPU）
-        /// 优化：支持预读取数据、小图像快速解码
-        /// </summary>
-        public BitmapImage? LoadThumbnail(string filePath, int size)
-        {
-            try
-            {
-                // ===== 优化: 获取预读取数据 =====
-                byte[]? prefetchedData = GetPrefetchedData(filePath);
-                bool hasPrefetch = prefetchedData != null && prefetchedData.Length > 0;
-
-                // ===== 优化: 小图像快速解码（< 100KB）=====
-                // 小图像CPU解码更快，避免GPU调度开销
-                // 注意：即使有预读取数据，小图像也应该用CPU解码
-                long fileSize = hasPrefetch ? prefetchedData!.Length : new FileInfo(filePath).Length;
-                Debug.WriteLine($"[HybridLoader] 文件大小检查: {Path.GetFileName(filePath)} = {fileSize / 1024}KB");
-                if (fileSize < 100 * 1024)
-                {
-                    try
-                    {
-                        Debug.WriteLine($"[HybridLoader] ★ 小图像CPU快速解码: {Path.GetFileName(filePath)}");
-                        return DecodeWithCpuFast(filePath, size);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[HybridLoader] ⚠ 小图像CPU解码失败: {ex.Message}");
-                    }
-                }
-
-                // 策略1: Vortice GPU加速（DirectX硬件解码，预期7-10倍提升）
-                if (IsVorticeGPUEnabled && _vorticeGpuDecoder != null)
-                {
-                    var result = _logger.ExecuteAndTime(
-                        "Vortice GPU加载",
-                        () => _vorticeGpuDecoder.DecodeThumbnail(filePath, size, prefetchedData),
-                        $"文件: {Path.GetFileName(filePath)}{(hasPrefetch ? " ✓预读取" : "")}");
-
-                    if (result != null)
-                    {
-                        return result;
-                    }
-                }
-
-                // 策略2: 高级GPU加速（WIC优化解码，预期3-5倍提升）
-                if (IsAdvancedGPUEnabled)
-                {
-                    var result = _logger.ExecuteAndTime(
-                        "高级GPU加载",
-                        () => _advancedGpuDecoder.DecodeThumbnail(filePath, size, useGpu: true),
-                        $"文件: {Path.GetFileName(filePath)}");
-
-                    if (result != null)
-                    {
-                        return result;
-                    }
-                }
-
-                // 策略3: WPF默认GPU加速（已启用但没有高级GPU可用）
-                if (IsGPUEnabled && !IsAdvancedGPUEnabled && !IsVorticeGPUEnabled)
-                {
-                    var result = _logger.ExecuteAndTime(
-                        "WPF GPU加载",
-                        () => _gpuRenderer.LoadThumbnail(filePath, size),
-                        $"文件: {Path.GetFileName(filePath)}");
-
-                    if (result != null)
-                    {
-                        return result as BitmapImage;
-                    }
-                }
-
-                // 策略4: CPU降级
-                return _logger.ExecuteAndTime(
-                    "CPU加载缩略图",
-                    () => LoadThumbnailCPU(filePath, size),
-                    $"文件: {Path.GetFileName(filePath)}");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[HybridLoader] ✗ 加载失败: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 小图像快速CPU解码（避免GPU调度开销）
-        /// </summary>
-        private static BitmapImage? DecodeWithCpuFast(string filePath, int size)
-        {
-            try
-            {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = size;
-                bitmap.UriSource = new Uri(filePath);
-                bitmap.Rotation = Rotation.Rotate0;
-                bitmap.EndInit();
-                bitmap.Freeze();
-                return bitmap;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 异步加载缩略图
-        /// </summary>
-        public Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size)
-        {
-            return Task.Run(() => LoadThumbnail(filePath, size));
-        }
-
-        /// <summary>
-        /// CPU模式加载缩略图
-        /// </summary>
-        private static BitmapImage? LoadThumbnailCPU(string filePath, int size)
-        {
-            try
-            {
-                if (!File.Exists(filePath))
-                    return null;
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
-                bitmap.UriSource = new Uri(filePath);
-                bitmap.DecodePixelWidth = size;
-                bitmap.Rotation = Rotation.Rotate0;
-                bitmap.EndInit();
-                bitmap.Freeze();
-
-                return bitmap;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 运行GPU性能对比测试
-        /// </summary>
-        public static void RunGpuPerformanceTest(string testImagePath, int testSize = 80, int iterations = 100)
-        {
-            Debug.WriteLine("========================================");
-            Debug.WriteLine("   GPU性能对比测试");
-            Debug.WriteLine("========================================");
-            GpuPerformanceTest.RunComparisonTest(testImagePath, testSize, iterations);
-            Debug.WriteLine("========================================");
-        }
-
-        /// <summary>
-        /// 快速测试单张图像性能
-        /// </summary>
-        public static void QuickPerformanceTest(string testImagePath, int testSize = 80)
-        {
-            Debug.WriteLine("========================================");
-            Debug.WriteLine("   快速性能测试");
-            Debug.WriteLine("========================================");
-            GpuPerformanceTest.QuickTest(testImagePath, testSize);
-            Debug.WriteLine("========================================");
-        }
-
-        /// <summary>
-        /// 获取性能统计报告
-        /// </summary>
-        public string GetPerformanceReport()
-        {
-            return _advancedGpuDecoder.GetPerformanceReport();
-        }
-
-        /// <summary>
-        /// 清除性能统计
-        /// </summary>
-        public void ClearPerformanceMetrics()
-        {
-            _advancedGpuDecoder.ClearMetrics();
-        }
-
-        /// <summary>
-        /// 释放资源
-        /// </summary>
-        public void Dispose()
-        {
-            if (!_disposed)
-            {
-                _gpuRenderer?.Dispose();
-                _advancedGpuDecoder?.Dispose();
-                _vorticeGpuDecoder?.Dispose();
-                ClearPrefetchCache(); // 清理预读取缓存
-                _disposed = true;
-                Debug.WriteLine("[HybridLoader] 资源已释放");
-            }
         }
     }
 }

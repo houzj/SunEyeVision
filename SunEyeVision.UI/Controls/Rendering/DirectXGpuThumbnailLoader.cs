@@ -130,7 +130,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 bitmap.Freeze();
 
                 sw.Stop();
-                Debug.WriteLine($"[DirectXGpuLoader] GPU加载完成: {sw.Elapsed.TotalMilliseconds:F2}ms ({size}px)");
+                // GPU加载完成不输出日志（高频操作）
 
                 return bitmap;
             }

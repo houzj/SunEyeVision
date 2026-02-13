@@ -391,6 +391,8 @@
             </Grid>
 
             <!-- 图像缩略图列表 -->
+            <!-- 性能优化: 使用VirtualizingStackPanel实现真正的UI虚拟化 -->
+            <!-- CanContentScroll=True 启用虚拟化，只渲染可见区域 -->
             <ListBox x:Name="ThumbnailListBox"
                      Grid.Row="2"
                      ItemsSource="{Binding ImageCollection, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -400,11 +402,13 @@
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                     ScrollViewer.CanContentScroll="False"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.CanContentScroll="True"
                      SelectionChanged="OnThumbnailListBoxSelectionChanged">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal"/>
+                        <VirtualizingStackPanel Orientation="Horizontal"/>
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>

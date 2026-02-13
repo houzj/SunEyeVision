@@ -71,13 +71,12 @@ namespace SunEyeVision.UI.Controls.Rendering
         public BitmapImage? GetOrLoadThumbnail(string filePath, int size, Func<string, int, BitmapImage?> loader)
         {
             var cacheKey = GetCacheKey(filePath, size);
-            Debug.WriteLine($"[GPUCache] GetOrLoadThumbnail - 文件:{Path.GetFileName(filePath)}, 缓存键:{cacheKey.Substring(0, 8)}...");
+            // 高频操作不输出日志
 
             // L1: 内存缓存
             var cached = GetFromMemoryCache(cacheKey);
             if (cached != null)
             {
-                Debug.WriteLine($"[GPUCache] ✓ 内存缓存命中");
                 return cached;
             }
 
@@ -85,14 +84,12 @@ namespace SunEyeVision.UI.Controls.Rendering
             cached = GetFromDiskCache(cacheKey);
             if (cached != null)
             {
-                Debug.WriteLine($"[GPUCache] ✓ 磁盘缓存命中");
                 // 加入内存缓存
                 AddToMemoryCache(cacheKey, cached);
                 return cached;
             }
 
             // L3: 从文件加载
-            Debug.WriteLine($"[GPUCache] 缓存未命中，开始加载...");
             var bitmap = loader(filePath, size);
             if (bitmap != null)
             {
@@ -101,12 +98,6 @@ namespace SunEyeVision.UI.Controls.Rendering
 
                 // 异步保存到磁盘缓存
                 _ = Task.Run(() => SaveToDiskCache(cacheKey, bitmap));
-
-                Debug.WriteLine($"[GPUCache] ✓ 加载完成并已缓存");
-            }
-            else
-            {
-                Debug.WriteLine($"[GPUCache] ✗ 加载失败");
             }
 
             return bitmap;

@@ -202,8 +202,6 @@ namespace SunEyeVision.UI.Controls.Rendering
                 bool isFast = sw.ElapsedMilliseconds < 50; // 如果小于50ms，可能是GPU加速
                 string decodeType = isFast ? "GPU加速" : "优化CPU";
 
-                Debug.WriteLine($"[AdvancedGpuDecoder] ✓ {decodeType}解码完成: {sw.Elapsed.TotalMilliseconds:F2}ms ({bitmap.PixelWidth}×{bitmap.PixelHeight})");
-
                 return bitmap;
             }
             catch (Exception ex)
@@ -237,8 +235,6 @@ namespace SunEyeVision.UI.Controls.Rendering
 
                 // 记录性能指标
                 RecordMetric(filePath, size, sw.ElapsedMilliseconds, "CPU");
-
-                Debug.WriteLine($"[AdvancedGpuDecoder] ✓ CPU解码完成: {sw.Elapsed.TotalMilliseconds:F2}ms ({bitmap.PixelWidth}×{bitmap.PixelHeight})");
 
                 return bitmap;
             }

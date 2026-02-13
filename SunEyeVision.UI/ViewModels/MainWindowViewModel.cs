@@ -13,6 +13,7 @@ using SunEyeVision.PluginSystem.Base.Models;
 using SunEyeVision.PluginSystem.Base.Services;
 using SunEyeVision.UI;
 using SunEyeVision.Workflow;
+using SunEyeVision.UI.Controls.Rendering;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
@@ -444,9 +445,9 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 图像集合
+        /// 图像集合（使用批量操作优化集合）
         /// </summary>
-        public ObservableCollection<Controls.ImageInfo> ImageCollection { get; }
+        public BatchObservableCollection<Controls.ImageInfo> ImageCollection { get; }
 
         /// <summary>
         /// 是否启用自动切换
@@ -552,8 +553,8 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化计算结果集合
             CalculationResults = new ObservableCollection<ResultItem>();
 
-            // 初始化图像集合
-            ImageCollection = new ObservableCollection<Controls.ImageInfo>();
+            // 初始化图像集合（批量操作优化）
+            ImageCollection = new BatchObservableCollection<Controls.ImageInfo>();
 
             // 初始化工作流执行管理器
             _executionManager = new Services.WorkflowExecutionManager(new Services.DefaultInputProvider());
