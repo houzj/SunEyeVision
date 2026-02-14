@@ -6,6 +6,8 @@ using SunEyeVision.Core.Services;
 using System.Diagnostics;
 using System.Windows.Threading;
 using System.Windows.Data;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SunEyeVision.UI;
 
@@ -24,6 +26,9 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // ★ P0优化：预热线程池，消除首次加载延迟
+        PrewarmThreadPool();
+        
         base.OnStartup(e);
 
         // 添加全局异常处理
@@ -112,6 +117,37 @@ public partial class App : Application
         e.Handled = true; // 防止应用程序崩溃
         MessageBox.Show($"UI 线程发生异常:\n{e.Exception.Message}",
             "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    /// <summary>
+    /// ★ P0优化：预热线程池 - 消除首次Task.Run的冷启动延迟
+    /// 预期效果：首张缩略图加载从 1783ms → ~50ms
+    /// </summary>
+    private void PrewarmThreadPool()
+    {
+        try
+        {
+            // 设置最小线程数，确保线程池立即可用
+            ThreadPool.GetMinThreads(out int minWorker, out int minIO);
+            ThreadPool.SetMinThreads(
+                Math.Max(minWorker, 8),  // 至少8个工作线程
+                Math.Max(minIO, 4)       // 至少4个IO线程
+            );
+
+            // 预热：启动几个空任务，强制线程池创建线程
+            var warmupTasks = new Task[4];
+            for (int i = 0; i < 4; i++)
+            {
+                warmupTasks[i] = Task.Run(() => Thread.Sleep(10));
+            }
+            Task.WaitAll(warmupTasks);
+
+            Debug.WriteLine("[App] ✓ 线程池预热完成 - 工作线程:8, IO线程:4");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] ⚠ 线程池预热失败: {ex.Message}");
+        }
     }
 }
 

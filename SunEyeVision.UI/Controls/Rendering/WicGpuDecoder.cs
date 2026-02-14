@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows.Media.Imaging;
 
 namespace SunEyeVision.UI.Controls.Rendering
@@ -11,9 +12,29 @@ namespace SunEyeVision.UI.Controls.Rendering
     /// 预期性能提升：3-5倍（相比默认CPU解码）
     /// 
     /// 替代原VorticeGpuDecoder，提供更清晰的命名和API
+    /// ★ 优化：添加分辨率诊断 + BMP大文件警告
+    /// ★ 优化：GPU解码并发限制，避免资源竞争
     /// </summary>
     public class WicGpuDecoder : IDisposable
     {
+        /// <summary>
+        /// ★ GPU解码并发限制信号量
+        /// 限制同时最多3个线程调用GPU解码，避免资源竞争导致性能下降
+        /// 实测：无限制时解码时间从48ms递增到535ms（11张图片）
+        ///       限制后预期稳定在50-80ms
+        /// </summary>
+        private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(3, 3);
+        
+        /// <summary>
+        /// 统计当前等待中的解码任务数
+        /// </summary>
+        private static int _waitingCount = 0;
+        
+        /// <summary>
+        /// 统计当前正在解码的任务数
+        /// </summary>
+        private static int _decodingCount = 0;
+        
         private bool _isInitialized;
 
         /// <summary>
@@ -25,6 +46,18 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// 是否启用硬件加速
         /// </summary>
         public bool IsHardwareAccelerated { get; private set; }
+        
+        /// <summary>
+        /// ★ 新增：大图警告阈值（像素数）
+        /// 超过此阈值的图片会输出警告
+        /// </summary>
+        private const int LARGE_IMAGE_THRESHOLD = 4000 * 3000; // 1200万像素
+        
+        /// <summary>
+        /// ★ 新增：超大图警告阈值（像素数）
+        /// 超过此阈值的图片解码会很慢
+        /// </summary>
+        private const int HUGE_IMAGE_THRESHOLD = 8000 * 6000; // 4800万像素
 
         /// <summary>
         /// 初始化GPU解码器
@@ -69,8 +102,11 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// 使用GPU硬件解码缩略图
+        /// ★ 优化：添加原始分辨率诊断，对大图输出警告
+        /// ★ 优化：GPU解码并发限制，避免资源竞争
+        /// ★ 优化：优先级感知 - High任务短等待+CPU降级
         /// </summary>
-        public BitmapImage? DecodeThumbnail(string filePath, int size, byte[]? prefetchedData = null)
+        public BitmapImage? DecodeThumbnail(string filePath, int size, byte[]? prefetchedData = null, bool verboseLog = false, bool isHighPriority = false)
         {
             if (!_isInitialized)
             {
@@ -87,64 +123,226 @@ namespace SunEyeVision.UI.Controls.Rendering
                     return null;
                 }
 
-                // 阶段1: 文件读取（优先使用预读取数据）
-                var readSw = Stopwatch.StartNew();
+                // ★ GPU解码并发限制：等待获取解码槽位
+                // ★ 优先级感知：High任务使用短等待，超时后降级CPU解码
+                var waitSw = Stopwatch.StartNew();
+                int currentWaiting = Interlocked.Increment(ref _waitingCount);
+                
+                int waitTimeout = isHighPriority ? 50 : 5000; // High: 50ms, Normal: 5s
+                bool gotSlot = _gpuDecodeSemaphore.Wait(waitTimeout);
+                waitSw.Stop();
+                Interlocked.Decrement(ref _waitingCount);
+                
+                if (!gotSlot)
+                {
+                    // ★ High任务GPU等待超时，降级到CPU解码
+                    if (isHighPriority)
+                    {
+                        Debug.WriteLine($"[WicGpuDecoder] ⚡ GPU繁忙→CPU降级 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms | file={Path.GetFileName(filePath)}");
+                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
+                    }
+                    Debug.WriteLine($"[WicGpuDecoder] ⚠ 等待GPU槽位超时(5s) file={Path.GetFileName(filePath)}");
+                    return null;
+                }
+                
+                int currentDecoding = Interlocked.Increment(ref _decodingCount);
+                
+                // 输出队列状态（诊断用）
+                if (verboseLog || currentWaiting > 1)
+                {
+                    Debug.WriteLine($"[WicGpuDecoder] 排队等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms | 队列:等待{currentWaiting}个+解码{currentDecoding}个 | file={Path.GetFileName(filePath)}");
+                }
+
+                try
+                {
+                    // 阶段1: 文件读取（优先使用预读取数据）
+                    var readSw = Stopwatch.StartNew();
+                    byte[] imageBytes;
+                    if (prefetchedData != null && prefetchedData.Length > 0)
+                    {
+                        imageBytes = prefetchedData;
+                        readSw.Stop();
+                    }
+                    else
+                    {
+                        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan);
+                        imageBytes = new byte[fs.Length];
+                        int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
+                        if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                        {
+                            Array.Resize(ref imageBytes, bytesRead);
+                        }
+                        readSw.Stop();
+                    }
+                    
+                    // ★ 新增：获取文件大小信息
+                    long fileSizeKB = imageBytes.Length / 1024;
+                    string fileSizeMB = fileSizeKB > 1024 ? $"{fileSizeKB / 1024.0:F1}MB" : $"{fileSizeKB}KB";
+                    
+                    // ★ 新增：快速获取原始分辨率（不解码整个图片）
+                    var infoSw = Stopwatch.StartNew();
+                    int originalWidth = 0, originalHeight = 0;
+                    string formatInfo = "";
+                    try
+                    {
+                        using var memStream = new MemoryStream(imageBytes);
+                        var decoder = BitmapDecoder.Create(memStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                        if (decoder.Frames.Count > 0)
+                        {
+                            var frame = decoder.Frames[0];
+                            originalWidth = frame.PixelWidth;
+                            originalHeight = frame.PixelHeight;
+                            formatInfo = $"格式:{decoder.CodecInfo.FriendlyName}";
+                        }
+                    }
+                    catch { }
+                    infoSw.Stop();
+                    
+                    long totalPixels = (long)originalWidth * originalHeight;
+                    string resolutionInfo = originalWidth > 0 
+                        ? $"原始:{originalWidth}x{originalHeight}({totalPixels / 1000000.0:F1}MP)" 
+                        : "原始:未知";
+
+                    // 阶段2: GPU解码
+                    var decodeSw = Stopwatch.StartNew();
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+
+                    // 关键优化配置：
+                    // 1. OnLoad模式 - 立即加载，启用GPU纹理缓存
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+
+                    // 2. 解码时缩放 - 比解码后缩放快3-5倍
+                    // ★ BMP优化：对于超大图，强制使用更小的缩放尺寸
+                    int decodeSize = size;
+                    if (totalPixels > HUGE_IMAGE_THRESHOLD)
+                    {
+                        decodeSize = Math.Min(size, 48); // 超大图用更小的尺寸
+                        if (verboseLog)
+                        {
+                            Debug.WriteLine($"[WicGpuDecoder] ⚠ 超大图优化 - 解码尺寸降低: {size}→{decodeSize}");
+                        }
+                    }
+                    bitmap.DecodePixelWidth = decodeSize;
+
+                    // 3. 忽略颜色配置文件 - 减少处理开销
+                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+
+                    // 4. 使用StreamSource - 更好的内存控制
+                    // ★ 修复：MemoryStream需要显式释放，避免内存泄漏导致GPU性能退化
+                    MemoryStream? decodeStream = null;
+                    try
+                    {
+                        decodeStream = new MemoryStream(imageBytes);
+                        bitmap.StreamSource = decodeStream;
+
+                        // 5. 禁用旋转 - 减少处理开销
+                        bitmap.Rotation = Rotation.Rotate0;
+
+                        bitmap.EndInit();
+                    }
+                    finally
+                    {
+                        // OnLoad模式下EndInit后立即释放流，BitmapImage已完成数据拷贝
+                        decodeStream?.Dispose();
+                    }
+                    decodeSw.Stop();
+
+                    // 6. 冻结 - 启用跨线程共享和GPU纹理缓存
+                    var freezeSw = Stopwatch.StartNew();
+                    bitmap.Freeze();
+                    freezeSw.Stop();
+
+                    totalSw.Stop();
+
+                    // ★ 日志优化：条件输出详细日志（仅首张图片或大图）
+                    if (verboseLog || totalPixels > LARGE_IMAGE_THRESHOLD)
+                    {
+                        string diagnosticInfo = $"{resolutionInfo} 文件:{fileSizeMB} {formatInfo}";
+                        Debug.WriteLine($"[诊断] WicGpuDecoder详情: 等待={waitSw.Elapsed.TotalMilliseconds:F0}ms 读取={readSw.Elapsed.TotalMilliseconds:F0}ms 分辨率={infoSw.Elapsed.TotalMilliseconds:F0}ms 解码={decodeSw.Elapsed.TotalMilliseconds:F0}ms Freeze={freezeSw.Elapsed.TotalMilliseconds:F0}ms 总计={totalSw.Elapsed.TotalMilliseconds:F0}ms | {diagnosticInfo} | file={Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[WicGpuDecoder] ✓ GPU解码 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms 读取:{readSw.Elapsed.TotalMilliseconds:F0}ms 解码:{decodeSw.Elapsed.TotalMilliseconds:F0}ms 总计:{totalSw.Elapsed.TotalMilliseconds:F0}ms | {diagnosticInfo} | file={Path.GetFileName(filePath)}");
+                    }
+                    
+                    // ★ 大图警告（始终输出）
+                    if (totalPixels > HUGE_IMAGE_THRESHOLD)
+                    {
+                        double loadTime = totalSw.Elapsed.TotalMilliseconds;
+                        Debug.WriteLine($"[WicGpuDecoder] ⚠ 超大图警告 - {originalWidth}x{originalHeight}({totalPixels / 1000000.0:F1}MP) 耗时:{loadTime:F0}ms file={Path.GetFileName(filePath)}");
+                    }
+
+                    // 检查解码结果有效性
+                    if (bitmap.Width <= 0 || bitmap.Height <= 0)
+                    {
+                        Debug.WriteLine($"[WicGpuDecoder] ⚠ 解码结果无效 size={bitmap.Width}x{bitmap.Height} file={Path.GetFileName(filePath)}");
+                        return null;
+                    }
+
+                    return bitmap;
+                }
+                finally
+                {
+                    // ★ 释放GPU解码槽位
+                    _gpuDecodeSemaphore.Release();
+                    Interlocked.Decrement(ref _decodingCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                totalSw.Stop();
+                Debug.WriteLine($"[WicGpuDecoder] ✗ 解码异常: {ex.Message} (耗时:{totalSw.Elapsed.TotalMilliseconds:F2}ms) file={Path.GetFileName(filePath)}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ★ CPU解码降级方案 - GPU繁忙时的后备方案
+        /// </summary>
+        private BitmapImage? DecodeWithCpu(string filePath, int size, byte[]? prefetchedData, Stopwatch totalSw)
+        {
+            try
+            {
                 byte[] imageBytes;
                 if (prefetchedData != null && prefetchedData.Length > 0)
                 {
                     imageBytes = prefetchedData;
-                    readSw.Stop();
                 }
                 else
                 {
                     using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan);
                     imageBytes = new byte[fs.Length];
                     fs.Read(imageBytes, 0, imageBytes.Length);
-                    readSw.Stop();
                 }
 
-                // 阶段2: GPU解码
-                var decodeSw = Stopwatch.StartNew();
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
-
-                // 关键优化配置：
-                // 1. OnLoad模式 - 立即加载，启用GPU纹理缓存
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-
-                // 2. 解码时缩放 - 比解码后缩放快3-5倍
                 bitmap.DecodePixelWidth = size;
-
-                // 3. 忽略颜色配置文件 - 减少处理开销
                 bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-
-                // 4. 使用StreamSource - 更好的内存控制
-                bitmap.StreamSource = new MemoryStream(imageBytes);
-
-                // 5. 禁用旋转 - 减少处理开销
-                bitmap.Rotation = Rotation.Rotate0;
-
-                bitmap.EndInit();
-                decodeSw.Stop();
-
-                // 6. 冻结 - 启用跨线程共享和GPU纹理缓存
-                bitmap.Freeze();
-
-                totalSw.Stop();
-
-                // 检查解码结果有效性
-                if (bitmap.Width <= 0 || bitmap.Height <= 0)
+                
+                MemoryStream? decodeStream = null;
+                try
                 {
-                    Debug.WriteLine($"[WicGpuDecoder] ⚠ 解码结果无效 size={bitmap.Width}x{bitmap.Height} file={Path.GetFileName(filePath)}");
-                    return null;
+                    decodeStream = new MemoryStream(imageBytes);
+                    bitmap.StreamSource = decodeStream;
+                    bitmap.Rotation = Rotation.Rotate0;
+                    bitmap.EndInit();
                 }
-
+                finally
+                {
+                    decodeStream?.Dispose();
+                }
+                
+                bitmap.Freeze();
+                totalSw.Stop();
+                
+                Debug.WriteLine($"[WicGpuDecoder] ✓ CPU降级解码完成 | 耗时:{totalSw.Elapsed.TotalMilliseconds:F0}ms | file={Path.GetFileName(filePath)}");
+                
                 return bitmap;
             }
             catch (Exception ex)
             {
                 totalSw.Stop();
-                Debug.WriteLine($"[WicGpuDecoder] ✗ 解码异常: {ex.Message} (耗时:{totalSw.Elapsed.TotalMilliseconds:F2}ms) file={Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[WicGpuDecoder] ✗ CPU降级解码失败: {ex.Message} | file={Path.GetFileName(filePath)}");
                 return null;
             }
         }

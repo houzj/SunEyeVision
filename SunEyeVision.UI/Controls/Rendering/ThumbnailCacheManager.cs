@@ -40,6 +40,9 @@ namespace SunEyeVision.UI.Controls.Rendering
         private readonly WindowsShellThumbnailProvider _shellProvider;
         
         private readonly object _indexLock = new object(); // 索引文件访问锁
+        
+        // 文件锁字典，防止并发写入同一文件
+        private readonly ConcurrentDictionary<string, object> _fileLocks = new ConcurrentDictionary<string, object>();
         private Timer? _indexSaveTimer; // 延迟保存索引的定时器
         private bool _indexDirty = false; // 索引是否需要保存
         private bool _disposed = false;
@@ -454,14 +457,21 @@ namespace SunEyeVision.UI.Controls.Rendering
             try
             {
                 var cacheFilePath = GetCacheFilePath(filePath);
+                
+                // ★ 获取文件专用锁，防止并发写入冲突
+                var fileLock = _fileLocks.GetOrAdd(cacheFilePath, _ => new object());
+                
+                lock (fileLock)
+                {
+                    // JPEG编码并写入文件
+                    var encoder = new JpegBitmapEncoder();
+                    encoder.QualityLevel = _jpegQuality;
+                    encoder.Frames.Add(BitmapFrame.Create(thumbnail));
 
-                // JPEG编码并写入文件
-                var encoder = new JpegBitmapEncoder();
-                encoder.QualityLevel = _jpegQuality;
-                encoder.Frames.Add(BitmapFrame.Create(thumbnail));
-
-                using var stream = new FileStream(cacheFilePath, FileMode.Create);
-                encoder.Save(stream);
+                    // ★ 使用 FileShare.None 确保独占访问
+                    using var stream = new FileStream(cacheFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                    encoder.Save(stream);
+                }
 
                 // 更新索引（延迟保存）
                 _cacheIndex.TryAdd(filePath, cacheFilePath);
@@ -689,23 +699,108 @@ namespace SunEyeVision.UI.Controls.Rendering
         {
             if (isCritical)
             {
-                // 危险级别：清空L1缓存
+                // 危险级别：立即清空L1，渐进清理L2
                 _memoryCache.Clear();
-                // 内存压力清空缓存不输出日志
+                // ★ P1优化：渐进式清理磁盘缓存
+                ProgressiveCleanup(100); // 目标释放100MB
             }
             else
             {
-                // 高压力：清理一半L1缓存
-                var keysToRemove = _memoryCache.Keys.Take(_memoryCache.Count / 2).ToList();
-                foreach (var key in keysToRemove)
+                // 高压力：渐进清理L1和L2
+                ProgressiveCleanup(50, (deleted, total) =>
                 {
-                    if (_memoryCache.TryRemove(key, out var bitmap))
+                    // 同时清理L1内存缓存
+                    if (deleted % 5 == 0 && _memoryCache.Count > 25)
                     {
-                        _weakCache.Add(key, bitmap); // 移到L2
+                        var key = _memoryCache.Keys.FirstOrDefault();
+                        if (key != null && _memoryCache.TryRemove(key, out var bitmap))
+                        {
+                            _weakCache.Add(key, bitmap);
+                        }
                     }
-                }
-                // 内存压力清理不输出日志
+                });
             }
+        }
+
+        /// <summary>
+        /// ★ P1优化：渐进式内存清理
+        /// 分批次清理缓存，避免一次性大量清理导致卡顿
+        /// </summary>
+        /// <param name="targetFreeMB">目标释放空间(MB)</param>
+        /// <param name="progressCallback">进度回调(已删除数量, 总数量)</param>
+        public void ProgressiveCleanup(int targetFreeMB, Action<int, int>? progressCallback = null)
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    var sw = Stopwatch.StartNew();
+                    var files = Directory.GetFiles(_cacheDirectory)
+                        .Where(f => Path.GetFileName(f) != "cache_index.txt")
+                        .OrderBy(f => new FileInfo(f).LastWriteTime) // 最旧的先清理
+                        .ToList();
+
+                    long targetFreeBytes = targetFreeMB * 1024L * 1024L;
+                    long currentFreeBytes = 0;
+                    int deletedCount = 0;
+                    int totalFiles = files.Count;
+                    int batchCount = 0;
+
+                    foreach (var file in files)
+                    {
+                        // ★ 分批次清理，每批10个文件
+                        if (deletedCount % 10 == 0 && deletedCount > 0)
+                        {
+                            // 检查是否达到目标
+                            if (currentFreeBytes >= targetFreeBytes)
+                                break;
+
+                            // ★ 每批后休息10ms，避免卡顿
+                            Thread.Sleep(10);
+                            batchCount++;
+                        }
+
+                        // ★ 修复：删除前检查文件是否存在，避免并发删除导致的错误
+                        if (!File.Exists(file))
+                            continue;
+                        
+                        try
+                        {
+                            var size = new FileInfo(file).Length;
+                            File.Delete(file);
+                            currentFreeBytes += size;
+                            deletedCount++;
+
+                            // 从索引中移除
+                            var key = _cacheIndex.FirstOrDefault(kvp => kvp.Value == file).Key;
+                            if (!string.IsNullOrEmpty(key))
+                            {
+                                _cacheIndex.TryRemove(key, out _);
+                            }
+
+                            // ★ 进度回调
+                            progressCallback?.Invoke(deletedCount, totalFiles);
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            // 文件已被其他线程删除，静默忽略
+                        }
+                        catch (IOException ex)
+                        {
+                            // 文件被占用，静默忽略（下次清理时再处理）
+                            Debug.WriteLine($"[ThumbnailCache] ⚠ 文件被占用，跳过: {Path.GetFileName(file)}");
+                        }
+                    }
+
+                    ScheduleIndexSave();
+                    sw.Stop();
+                    Debug.WriteLine($"[ThumbnailCache] ✓ 渐进清理完成 - 删除{deletedCount}个文件({currentFreeBytes / 1024 / 1024:F1}MB) 耗时:{sw.ElapsedMilliseconds}ms 批次:{batchCount}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ThumbnailCache] ✗ 渐进清理失败: {ex.Message}");
+                }
+            });
         }
     }
 }

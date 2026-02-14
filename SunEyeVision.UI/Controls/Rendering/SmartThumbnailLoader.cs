@@ -9,16 +9,18 @@ using System.Windows.Media.Imaging;
 namespace SunEyeVision.UI.Controls.Rendering
 {
     /// <summary>
-    /// 智能缩略图加载器 - 简化版3层架构
+    /// 智能缩略图加载器 - 简化版4层架构
     /// 
     /// 加载策略优先级：
     /// 1. L1内存缓存（0ms） - 强引用50张 + 弱引用
     /// 2. L2磁盘缓存（5-80ms） - Shell缓存优先 + 自建缓存补充
-    /// 3. L3 GPU解码（50-500ms） - 最终回退方案
+    /// 3. L3 GPU解码（50-500ms） - GPU硬件加速
+    /// 4. L4原图解码（100-800ms） - 最终回退方案
     /// 
     /// 优化说明：
     /// - 移除重复的Shell缓存调用（ThumbnailCacheManager内部已处理）
     /// - 统一缓存命中统计
+    /// - ★ P1优化：添加L4原图加载回退
     /// </summary>
     public class SmartThumbnailLoader : IDisposable
     {
@@ -30,19 +32,32 @@ namespace SunEyeVision.UI.Controls.Rendering
         // 统计信息
         private int _cacheHits;
         private int _gpuHits;
+        private int _originalHits; // ★ P1优化：新增原图加载统计
         private int _misses;
         private long _totalLoadTimeMs;
+        
+        // ★ 日志优化：首张图片追踪（用于诊断日志）
+        private static int _loadCounter = 0;
+        private const int FIRST_IMAGE_LOG_COUNT = 3; // 前3张图片输出详细日志
 
         /// <summary>
         /// 获取统计信息
         /// </summary>
         public string GetStatistics()
         {
-            var total = _cacheHits + _gpuHits + _misses;
+            var total = _cacheHits + _gpuHits + _originalHits + _misses;
             if (total == 0) return "无加载记录";
 
             var avgTime = total > 0 ? (double)_totalLoadTimeMs / total : 0;
-            return $"缓存:{_cacheHits} GPU:{_gpuHits} 未命中:{_misses} 平均:{avgTime:F1}ms";
+            return $"缓存:{_cacheHits} GPU:{_gpuHits} 原图:{_originalHits} 未命中:{_misses} 平均:{avgTime:F1}ms";
+        }
+
+        /// <summary>
+        /// ★ 日志优化：重置加载计数器（新文件夹加载时调用）
+        /// </summary>
+        public static void ResetLoadCounter()
+        {
+            Interlocked.Exchange(ref _loadCounter, 0);
         }
 
         /// <summary>
@@ -111,7 +126,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// <summary>
         /// 智能加载缩略图（自动选择最快方式）
         /// </summary>
-        public BitmapImage? LoadThumbnail(string filePath, int size)
+        public BitmapImage? LoadThumbnail(string filePath, int size, bool isHighPriority = false)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -125,15 +140,29 @@ namespace SunEyeVision.UI.Controls.Rendering
                 return null;
             }
 
-            var sw = Stopwatch.StartNew();
+            // ★ 日志优化：判断是否是前几张图片（输出详细日志）
+            int currentCount = Interlocked.Increment(ref _loadCounter);
+            bool isFirstFewImages = currentCount <= FIRST_IMAGE_LOG_COUNT;
+
+            var totalSw = Stopwatch.StartNew();
+            var stepSw = new Stopwatch();
             string method = "";
             BitmapImage? result = null;
+            
+            // ★ 诊断计时变量
+            long cacheQueryMs = 0;
+            long gpuDecodeMs = 0;
+            long originalDecodeMs = 0;
 
             try
             {
                 // ===== L1 + L2: 缓存查询（统一在ThumbnailCacheManager中处理）=====
                 // 内部流程：L1a强引用 → L1b弱引用 → L2a Shell缓存 → L2b 自建磁盘缓存
+                stepSw.Restart();
                 var cached = _cacheManager.TryLoadFromCache(filePath);
+                stepSw.Stop();
+                cacheQueryMs = stepSw.ElapsedMilliseconds;
+                
                 if (cached != null)
                 {
                     // ★ 关键诊断：检查缓存缩略图有效性
@@ -141,9 +170,15 @@ namespace SunEyeVision.UI.Controls.Rendering
                     {
                         method = "缓存命中";
                         Interlocked.Increment(ref _cacheHits);
-                        sw.Stop();
-                        Interlocked.Add(ref _totalLoadTimeMs, sw.ElapsedMilliseconds);
-                        // 缓存命中不输出日志（太多）
+                        totalSw.Stop();
+                        Interlocked.Add(ref _totalLoadTimeMs, totalSw.ElapsedMilliseconds);
+                        
+                        // ★ 日志优化：前几张图片输出日志
+                        if (isFirstFewImages)
+                        {
+                            Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, Result=缓存命中 | file={Path.GetFileName(filePath)}");
+                            Debug.WriteLine($"[SmartLoader] ✓ 缓存命中 | {totalSw.ElapsedMilliseconds}ms | file={Path.GetFileName(filePath)}");
+                        }
                         return cached;
                     }
                     else
@@ -152,8 +187,12 @@ namespace SunEyeVision.UI.Controls.Rendering
                     }
                 }
 
-                // ===== L3: GPU解码（最终回退方案）=====
-                result = TryLoadFromGpu(filePath, size);
+                // ===== L3: GPU解码 =====
+                stepSw.Restart();
+                result = TryLoadFromGpu(filePath, size, isFirstFewImages, isHighPriority);
+                stepSw.Stop();
+                gpuDecodeMs = stepSw.ElapsedMilliseconds;
+                
                 if (result != null)
                 {
                     // 检查GPU解码结果有效性
@@ -161,6 +200,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                     {
                         method = "GPU解码";
                         Interlocked.Increment(ref _gpuHits);
+                        Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, Result=GPU解码 | file={Path.GetFileName(filePath)}");
                         goto SUCCESS;
                     }
                     else
@@ -170,9 +210,37 @@ namespace SunEyeVision.UI.Controls.Rendering
                     }
                 }
 
+                // ===== L4: 原图解码回退（★ P1优化）=====
+                stepSw.Restart();
+                result = TryLoadFromOriginal(filePath, size);
+                stepSw.Stop();
+                originalDecodeMs = stepSw.ElapsedMilliseconds;
+                
+                if (result != null)
+                {
+                    // 检查原图解码结果有效性
+                    if (result.Width > 0 && result.Height > 0)
+                    {
+                        method = "原图解码";
+                        Interlocked.Increment(ref _originalHits);
+                        Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, OriginalDecode={originalDecodeMs}ms, Result=原图解码 | file={Path.GetFileName(filePath)}");
+                        if (isFirstFewImages)
+                        {
+                            Debug.WriteLine($"[SmartLoader] ✓ L4原图解码 | {totalSw.ElapsedMilliseconds}ms | file={Path.GetFileName(filePath)}");
+                        }
+                        goto SUCCESS;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[SmartLoader] ⚠ 原图解码结果无效 size={result.Width}x{result.Height} file={Path.GetFileName(filePath)}");
+                        result = null;
+                    }
+                }
+
                 // 所有策略都失败
                 Interlocked.Increment(ref _misses);
-                sw.Stop();
+                totalSw.Stop();
+                Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, OriginalDecode={originalDecodeMs}ms, Result=失败 | file={Path.GetFileName(filePath)}");
                 Debug.WriteLine($"[SmartLoader] ✗ 所有策略失败 file={Path.GetFileName(filePath)}");
                 return null;
 
@@ -183,14 +251,14 @@ namespace SunEyeVision.UI.Controls.Rendering
                     _cacheManager.AddToMemoryCache(filePath, result);
                 }
 
-                sw.Stop();
-                Interlocked.Add(ref _totalLoadTimeMs, sw.ElapsedMilliseconds);
+                totalSw.Stop();
+                Interlocked.Add(ref _totalLoadTimeMs, totalSw.ElapsedMilliseconds);
 
                 return result;
             }
             catch (Exception ex)
             {
-                sw.Stop();
+                totalSw.Stop();
                 Debug.WriteLine($"[SmartLoader] ✗ 加载异常: {ex.Message} file={Path.GetFileName(filePath)}");
                 Interlocked.Increment(ref _misses);
                 return null;
@@ -200,22 +268,22 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// <summary>
         /// 异步加载缩略图
         /// </summary>
-        public async Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size, CancellationToken cancellationToken = default)
+        public async Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size, CancellationToken cancellationToken = default, bool isHighPriority = false)
         {
-            return await Task.Run(() => LoadThumbnail(filePath, size), cancellationToken);
+            return await Task.Run(() => LoadThumbnail(filePath, size, isHighPriority), cancellationToken);
         }
 
         /// <summary>
-        /// 尝试GPU解码（L3最终策略）
+        /// 尝试GPU解码（L3策略）
         /// </summary>
-        private BitmapImage? TryLoadFromGpu(string filePath, int size)
+        private BitmapImage? TryLoadFromGpu(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
         {
             try
             {
                 byte[]? prefetchedData = null;
                 _prefetchCache.TryRemove(filePath, out prefetchedData);
 
-                var result = _gpuDecoder.DecodeThumbnail(filePath, size, prefetchedData);
+                var result = _gpuDecoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
                 
                 // 解码成功后异步保存到缓存（不阻塞显示）
                 if (result != null)
@@ -227,6 +295,44 @@ namespace SunEyeVision.UI.Controls.Rendering
             }
             catch
             {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ★ P1优化：尝试从原图加载（L4最终回退方案）
+        /// 使用WPF内置解码，带缩放优化
+        /// </summary>
+        private BitmapImage? TryLoadFromOriginal(string filePath, int size)
+        {
+            try
+            {
+                var sw = Stopwatch.StartNew();
+                
+                // 使用WPF内置解码，带缩放优化
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
+                bitmap.DecodePixelWidth = size; // ★ 解码时缩放，节省内存
+                bitmap.UriSource = new Uri(filePath);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                
+                sw.Stop();
+                Debug.WriteLine($"[SmartLoader] L4原图解码耗时:{sw.ElapsedMilliseconds}ms file={Path.GetFileName(filePath)}");
+                
+                // 异步保存到缓存（L4解码较慢，值得缓存）
+                if (bitmap.Width > 0 && bitmap.Height > 0)
+                {
+                    _cacheManager.SaveToCacheNonBlocking(filePath, bitmap);
+                }
+                
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SmartLoader] ✗ L4原图解码失败: {ex.Message} file={Path.GetFileName(filePath)}");
                 return null;
             }
         }
@@ -285,6 +391,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         {
             _cacheHits = 0;
             _gpuHits = 0;
+            _originalHits = 0;
             _misses = 0;
             _totalLoadTimeMs = 0;
         }

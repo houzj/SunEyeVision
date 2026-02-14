@@ -471,7 +471,7 @@ namespace SunEyeVision.UI.Controls
 
             // 设置优先级加载器的委托（包含实时可视范围获取）
             _priorityLoader.SetLoadThumbnailFunc(
-                LoadThumbnailOptimized, 
+                (filePath, size, isHighPriority) => LoadThumbnailOptimized(filePath, size, isHighPriority), 
                 (filePath, thumbnail) => s_thumbnailCache?.AddToMemoryCache(filePath, thumbnail),
                 () => GetVisibleRange());  // ★ 实时获取可视范围
 
@@ -689,7 +689,7 @@ namespace SunEyeVision.UI.Controls
         /// 优化的缩略图加载（智能加载器 - 3层架构）
         /// 加载策略优先级：L1内存 → L2磁盘(Shell优先) → GPU解码
         /// </summary>
-        private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = -1)
+        private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = -1, bool isHighPriority = false)
         {
             // 如果size为-1，使用配置的缩略图尺寸
             if (size < 0)
@@ -698,7 +698,7 @@ namespace SunEyeVision.UI.Controls
             }
 
             // 使用智能加载器（自动选择最快方式）
-            var thumbnail = s_smartLoader.LoadThumbnail(filePath, size);
+            var thumbnail = s_smartLoader.LoadThumbnail(filePath, size, isHighPriority);
 
             return thumbnail;
         }
@@ -872,7 +872,21 @@ namespace SunEyeVision.UI.Controls
             }
             _lastScrollSpeedTime = now;
 
-            // 防抖：滚动停止200ms后才触发加载，避免频繁更新队列
+            // ★ P0优化: 立即入队可视区域图片（不等防抖）
+            try
+            {
+                var (firstVis, lastVis) = GetVisibleRange();
+                if (firstVis >= 0 && lastVis >= 0)
+                {
+                    _priorityLoader.UpdateVisibleRangeImmediate(firstVis, lastVis, ImageCollection.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Scroll] ✗ UpdateVisibleRangeImmediate异常: {ex.Message}");
+            }
+
+            // 防抖：滚动停止200ms后才触发清理和预加载范围调整
             // 快速滚动时延长防抖时间
             var debounceTime = _isFastScrolling ? 400 : 200;
             
@@ -886,7 +900,12 @@ namespace SunEyeVision.UI.Controls
                 {
                     try
                     {
-                        UpdateLoadRange();
+                        // 防抖后执行：清理远离可视区域的缩略图
+                        var (first, last) = GetVisibleRange();
+                        if (first >= 0)
+                        {
+                            _priorityLoader.UpdateVisibleRange(first, last, ImageCollection.Count);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -1189,6 +1208,9 @@ namespace SunEyeVision.UI.Controls
             {
                 // 清空优先级加载器的状态
                 _priorityLoader.ClearState();
+                
+                // ★ 日志优化：重置首张图片追踪计数器
+                SmartThumbnailLoader.ResetLoadCounter();
 
                 Debug.WriteLine("");
                 Debug.WriteLine("╔══════════════════════════════════════════════════════════════╗");
@@ -1233,24 +1255,6 @@ namespace SunEyeVision.UI.Controls
                 step2Sw.Stop();
                 Debug.WriteLine($"[LoadImages] 步骤2-更新UI(批量优化): {step2Sw.ElapsedMilliseconds}ms");
 
-                // ===== 优化：文件预取（减少磁盘I/O等待） =====
-                var prefetchSw = Stopwatch.StartNew();
-                int prefetchCount = Math.Min(20, fileNames.Length); // 预取前20张
-                _ = Task.Run(() =>
-                {
-                    try
-                    {
-                        for (int i = 0; i < prefetchCount; i++)
-                        {
-                            if (cancellationToken.IsCancellationRequested) break;
-                            s_smartLoader.PrefetchFile(fileNames[i]);
-                        }
-                    }
-                    catch { }
-                }, cancellationToken);
-                prefetchSw.Stop();
-                Debug.WriteLine($"[LoadImages] 文件预取启动: {prefetchSw.ElapsedMilliseconds}ms (预取{prefetchCount}张)");
-
                 // ===== 步骤3：使用优先级加载器加载首屏 =====
                 var step3Sw = Stopwatch.StartNew();
                 
@@ -1269,6 +1273,24 @@ namespace SunEyeVision.UI.Controls
 
                 // 等待首张图片加载完成
                 await firstImageTcs.Task;
+
+                // ===== 步骤4：文件预取（在首张显示后启动，避免I/O竞争） =====
+                var prefetchSw = Stopwatch.StartNew();
+                int prefetchCount = Math.Min(20, fileNames.Length);
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        for (int i = 0; i < prefetchCount; i++)
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+                            s_smartLoader.PrefetchFile(fileNames[i]);
+                        }
+                    }
+                    catch { }
+                }, cancellationToken);
+                prefetchSw.Stop();
+                Debug.WriteLine($"[LoadImages] 文件预取启动: {prefetchSw.ElapsedMilliseconds}ms (预取{prefetchCount}张)");
 
                 // ===== 移除步骤4：等待可视区域加载完成 =====
                 // 原因：PriorityThumbnailLoader 已有完整的可视区域监控和报告
@@ -1854,17 +1876,6 @@ namespace SunEyeVision.UI.Controls
                 return (-1, -1);
             }
 
-            // 获取ListBox的实际宽度作为视口宽度
-            double viewportWidth = _thumbnailListBox.ActualWidth;
-            if (viewportWidth < itemWidth)
-                viewportWidth = this.ActualWidth;
-
-            if (viewportWidth < itemWidth)
-            {
-                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - 视口宽度无效: {viewportWidth:F1}");
-                return (-1, -1);
-            }
-
             // ===== 关键修复：虚拟化模式下 ScrollViewer 的值含义 =====
             // HorizontalOffset = 当前滚动位置（项索引，不是像素！）
             // ExtentWidth = 总项数（不是像素宽度！）
@@ -1874,33 +1885,48 @@ namespace SunEyeVision.UI.Controls
             double extentWidth = scrollViewer.ExtentWidth;
             double scrollViewportWidth = scrollViewer.ViewportWidth;
             
-            // 计算可见项数量（基于实际像素宽度）
-            int visibleCount = (int)(viewportWidth / itemWidth) + 3; // +3 为缓冲
-            
-            // ★ 核心修复：offset 已经是项索引，直接使用
-            int firstVisible;
-            int lastVisible;
-            
             // 判断 ScrollViewer 是否处于虚拟化模式
             // 如果 extentWidth ≈ 图片数量，说明是虚拟化模式，offset 是项索引
-            bool isVirtualizationMode = Math.Abs(extentWidth - ImageCollection.Count) < ImageCollection.Count * 0.1;
+            bool isVirtualizationMode = ImageCollection.Count > 0 && 
+                                         Math.Abs(extentWidth - ImageCollection.Count) < ImageCollection.Count * 0.1;
             
-            if (isVirtualizationMode && extentWidth > 0)
+            int firstVisible;
+            int lastVisible;
+            int visibleCount;
+            
+            if (isVirtualizationMode && extentWidth > 0 && scrollViewportWidth > 0)
             {
-                // 虚拟化模式：offset 是项索引
+                // 虚拟化模式：直接使用 ScrollViewer 的值（已经是项索引）
+                // ViewportWidth 已经是精确的可见项数
+                visibleCount = (int)Math.Ceiling(scrollViewportWidth);
                 firstVisible = Math.Max(0, (int)offset);
-                lastVisible = Math.Min(ImageCollection.Count - 1, firstVisible + visibleCount);
+                lastVisible = Math.Min(ImageCollection.Count - 1, firstVisible + visibleCount - 1);
+                
+                // ★ 仅添加1张缓冲（防止滚动时边缘白屏）
+                firstVisible = Math.Max(0, firstVisible - 1);
+                lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 1);
             }
             else
             {
-                // 非虚拟化模式：offset 是像素值
+                // 非虚拟化模式或回退：基于像素宽度计算
+                double viewportWidth = scrollViewportWidth > itemWidth ? scrollViewportWidth : 
+                                       _thumbnailListBox.ActualWidth > itemWidth ? _thumbnailListBox.ActualWidth : 
+                                       this.ActualWidth;
+                
+                if (viewportWidth < itemWidth)
+                {
+                    Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - 视口宽度无效: {viewportWidth:F1}");
+                    return (-1, -1);
+                }
+                
+                visibleCount = (int)(viewportWidth / itemWidth) + 1; // 只加1作为舍入补偿
                 firstVisible = Math.Max(0, (int)(offset / itemWidth));
                 lastVisible = Math.Min(ImageCollection.Count - 1, (int)((offset + viewportWidth) / itemWidth));
+                
+                // ★ 仅添加1张缓冲
+                firstVisible = Math.Max(0, firstVisible - 1);
+                lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 1);
             }
-
-            // 添加预加载缓冲
-            firstVisible = Math.Max(0, firstVisible - 2);
-            lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 2);
 
             int itemsInViewport = lastVisible - firstVisible + 1;
 
@@ -1929,12 +1955,14 @@ namespace SunEyeVision.UI.Controls
             Debug.WriteLine($"[ImagePreviewControl] ⚠ 内存压力变化: {e.Level} (可用:{e.AvailableMemoryMB}MB, {e.AvailablePercent:F1}%)");
             Debug.WriteLine($"[ImagePreviewControl]   建议操作: {e.RecommendedAction}");
 
+            // ★ P1优化：通知加载器调整并发度
+            _priorityLoader.SetMemoryPressure(e.Level);
+
             // 根据压力级别自适应响应
             switch (e.Level)
             {
                 case MemoryPressureMonitor.PressureLevel.Moderate:
                     // 中等压力：减少预读取，保持稳定
-                    _priorityLoader.UseLowQuality = false;
                     s_smartLoader.ClearPrefetchCache(); // 清除预读取缓存
                     // ★ 方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
@@ -1944,7 +1972,6 @@ namespace SunEyeVision.UI.Controls
                 case MemoryPressureMonitor.PressureLevel.High:
                     // 高压力：清理缓存，降低质量
                     s_thumbnailCache.RespondToMemoryPressure(isCritical: false);
-                    _priorityLoader.UseLowQuality = true;
                     s_smartLoader.ClearPrefetchCache();
                     // ★ 方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
@@ -1954,7 +1981,6 @@ namespace SunEyeVision.UI.Controls
                 case MemoryPressureMonitor.PressureLevel.Critical:
                     // 危险：强制GC，清空缓存，持续低质量模式
                     s_thumbnailCache.RespondToMemoryPressure(isCritical: true);
-                    _priorityLoader.UseLowQuality = true;
                     s_smartLoader.ClearPrefetchCache();
                     // ★ 方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
@@ -1971,7 +1997,6 @@ namespace SunEyeVision.UI.Controls
 
                 case MemoryPressureMonitor.PressureLevel.Normal:
                     // 恢复正常：恢复高质量模式
-                    _priorityLoader.UseLowQuality = false;
                     Debug.WriteLine("[ImagePreviewControl] → 压力恢复：高质量模式");
                     break;
             }
