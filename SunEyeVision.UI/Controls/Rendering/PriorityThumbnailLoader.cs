@@ -69,10 +69,12 @@ namespace SunEyeVision.UI.Controls.Rendering
         public int ActualVisibleSize { get; private set; } = 10; // 默认值，首屏加载前会被更新
         
         /// <summary>缓冲区域倍数（可视区域 × 此值）</summary>
-        public double BufferMultiplier { get; set; } = 1.0;
+        /// <remarks>★ 方案B优化：从1.0降到0.5，减少首屏入队数量</remarks>
+        public double BufferMultiplier { get; set; } = 0.5;
         
         /// <summary>预测区域倍数（可视区域 × 此值）</summary>
-        public double PrefetchMultiplier { get; set; } = 3.0;
+        /// <remarks>★ 方案B优化：从3.0降到1.0，大幅减少首屏入队数量</remarks>
+        public double PrefetchMultiplier { get; set; } = 1.0;
         
         /// <summary>快速滚动阈值（项/秒）</summary>
         public double FastScrollThreshold { get; set; } = 5.0;
@@ -209,7 +211,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         // ★ P0优化：分离的高优先级线程池
         private readonly SemaphoreSlim _highPrioritySemaphore;
         private readonly SemaphoreSlim _normalPrioritySemaphore;
-        private const int HIGH_PRIORITY_THREADS = 6; // ★ P2优化：提高到6个线程加速可视区域加载
+        private const int HIGH_PRIORITY_THREADS = 4; // ★ 协调GPU解码能力：与WicGpuDecoder并发限制(4)匹配，避免队列积压
 
         // 集合引用（支持批量操作集合）
         private BatchObservableCollection<ImageInfo>? _imageCollection;
@@ -1117,9 +1119,14 @@ namespace SunEyeVision.UI.Controls.Rendering
                 }
             }
 
-            _lastScrollTime = now;
-            _lastFirstVisible = firstVisible;
-            _lastLastVisible = lastVisible;
+            // ★ 首屏加载保护：不在首屏加载期间更新计数范围
+            // 防止ScrollViewer布局事件导致_lastLastVisible被扩大，从而产生计数溢出
+            if (!_visibleAreaLoadStartTime.HasValue)
+            {
+                _lastScrollTime = now;
+                _lastFirstVisible = firstVisible;
+                _lastLastVisible = lastVisible;
+            }
 
             // 计算缓冲区域
             CalculateBufferZones(firstVisible, lastVisible, totalCount);
@@ -1520,13 +1527,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                     DecodeSuccess = true  // ★ 标记解码成功
                 });
 
-                // 更新可视区域加载计数
-                if (task.Index >= _lastFirstVisible && task.Index <= _lastLastVisible)
-                {
-                    Interlocked.Increment(ref _loadedInVisibleArea);
-                }
-
-                // 可视区域内的高优先级加载完成（静默处理）
+                // ★ 方案B优化：移除提前计数，改为在 ProcessUIUpdates 中实际设置成功后计数
             }
             catch (Exception ex)
             {
@@ -1752,6 +1753,9 @@ namespace SunEyeVision.UI.Controls.Rendering
                             _decodingIndices.Remove(update.Index);
                             _loadedIndices.Add(update.Index);
                         }
+                        
+                        // ★ 方案B优化：实际设置成功后才计数
+                        Interlocked.Increment(ref _loadedInVisibleArea);
                     }
                     else
                     {
@@ -1795,13 +1799,31 @@ namespace SunEyeVision.UI.Controls.Rendering
                 }
             }
 
-            // 检查可视区域是否加载完成
-            if (_visibleAreaLoadStartTime.HasValue && _loadedInVisibleArea >= _visibleAreaCount)
+            // ★ 方案B优化：使用实时可视范围判断完成
+            // 检查可视区域是否加载完成（基于实时范围，而非预期数量）
+            if (_visibleAreaLoadStartTime.HasValue)
             {
-                var duration = DateTime.Now - _visibleAreaLoadStartTime.Value;
-                VisibleAreaLoadingCompleted?.Invoke(_loadedInVisibleArea, duration);
-                _visibleAreaLoadStartTime = null;
-                _loadedInVisibleArea = 0;
+                // 获取当前可视范围内的实际已加载数量
+                int actualVisibleCount = 0;
+                int actualLoadedCount = 0;
+                
+                for (int i = firstVis; i <= lastVis && i < _imageCollection.Count; i++)
+                {
+                    actualVisibleCount++;
+                    if (_imageCollection[i].Thumbnail != null)
+                    {
+                        actualLoadedCount++;
+                    }
+                }
+                
+                // 当实际已加载数量等于可视范围数量时，报告完成
+                if (actualLoadedCount >= actualVisibleCount)
+                {
+                    var duration = DateTime.Now - _visibleAreaLoadStartTime.Value;
+                    VisibleAreaLoadingCompleted?.Invoke(actualLoadedCount, duration);
+                    _visibleAreaLoadStartTime = null;
+                    _loadedInVisibleArea = 0;
+                }
             }
         }
 

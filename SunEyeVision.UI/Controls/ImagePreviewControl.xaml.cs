@@ -348,14 +348,18 @@ namespace SunEyeVision.UI.Controls
         // 图像缓存（LRU）
         private static readonly ImageCache s_fullImageCache = new ImageCache(maxCacheSize: 30);
 
-        // GPU加速解码器（WIC硬件加速）
+        // ★ 方案二：双解码器架构
+        // GPU解码器 - 高优先级任务专用（Critical/High优先级）
         private static readonly WicGpuDecoder s_gpuDecoder = new WicGpuDecoder();
+        // CPU解码器 - 普通任务专用（Medium/Low/Idle优先级）
+        private static readonly ImageSharpDecoder s_cpuDecoder = new ImageSharpDecoder();
 
         // 磁盘缓存管理器（60x60高质量缩略图）
         private static readonly ThumbnailCacheManager s_thumbnailCache = new ThumbnailCacheManager();
 
-        // 智能缩略图加载器（组合策略：L1内存 → L2磁盘 → Shell缓存 → EXIF → GPU解码）
-        private static readonly SmartThumbnailLoader s_smartLoader = new SmartThumbnailLoader(s_thumbnailCache, s_gpuDecoder);
+        // 智能缩略图加载器（组合策略：L1内存 → L2磁盘 → Shell缓存 → EXIF → GPU/CPU解码）
+        // ★ 方案二：传入双解码器，根据优先级自动选择
+        private static readonly SmartThumbnailLoader s_smartLoader = new SmartThumbnailLoader(s_thumbnailCache, s_gpuDecoder, s_cpuDecoder);
 
         // 内存压力监控器（响应系统内存压力）
         private static readonly MemoryPressureMonitor s_memoryMonitor = new MemoryPressureMonitor();
@@ -588,8 +592,10 @@ namespace SunEyeVision.UI.Controls
         //     }
         // }
 
+
         /// <summary>
-        /// P2优化: GPU解码器初始化（减少首次解码延迟）
+        /// P2优化: 解码器初始化（减少首次解码延迟）
+        /// ★ 方案二：同时初始化GPU和CPU解码器
         /// </summary>
         private void PreloadGPUCache()
         {
@@ -598,14 +604,17 @@ namespace SunEyeVision.UI.Controls
                 try
                 {
                     var sw = Stopwatch.StartNew();
-                    // 初始化GPU解码器
+                    // 初始化两个解码器
                     s_gpuDecoder.Initialize();
+                    s_cpuDecoder.Initialize();
                     sw.Stop();
-                    Debug.WriteLine($"[ImagePreviewControl] ✓ GPU解码器初始化完成 - 耗时:{sw.ElapsedMilliseconds}ms");
+                    Debug.WriteLine($"[ImagePreviewControl] ✓ 双解码器初始化完成 - 耗时:{sw.ElapsedMilliseconds}ms");
+                    Debug.WriteLine($"  GPU解码器: {s_gpuDecoder.GetType().Name} (硬件加速:{s_gpuDecoder.IsHardwareAccelerated})");
+                    Debug.WriteLine($"  CPU解码器: {s_cpuDecoder.GetType().Name} (硬件加速:{s_cpuDecoder.IsHardwareAccelerated})");
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[ImagePreviewControl] ⚠ GPU初始化失败（非致命）: {ex.Message}");
+                    Debug.WriteLine($"[ImagePreviewControl] ⚠ 解码器初始化失败（非致命）: {ex.Message}");
                 }
             });
         }
@@ -1172,14 +1181,15 @@ namespace SunEyeVision.UI.Controls
         private int CalculateOptimalConcurrency()
         {
             int cpuCount = Environment.ProcessorCount;
-            bool isGPUBased = s_gpuDecoder.IsHardwareAccelerated;
+            bool isGpuInitialized = s_gpuDecoder.IsInitialized;
+            bool isCpuInitialized = s_cpuDecoder.IsInitialized;
 
-            if (isGPUBased)
+            if (isGpuInitialized || isCpuInitialized)
             {
-                // GPU加速模式：稍高并发数，充分利用GPU并行能力
-                int gpuConcurrency = Math.Min(6, Math.Max(3, (int)(cpuCount / 1.5)));
-                Debug.WriteLine($"[ImagePreviewControl] 动态并发数（GPU模式）: {gpuConcurrency} (CPU核心数:{cpuCount})");
-                return gpuConcurrency;
+                // 双解码器模式：适中并发数，充分利用并行能力
+                int concurrency = Math.Min(6, Math.Max(3, (int)(cpuCount / 1.5)));
+                Debug.WriteLine($"[ImagePreviewControl] 动态并发数: {concurrency} (CPU核心数:{cpuCount})");
+                return concurrency;
             }
             else
             {

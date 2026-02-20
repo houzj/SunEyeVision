@@ -39,6 +39,7 @@
     <PackageReference Include="Msagl" Version="1.2.1" />
     <PackageReference Include="Msagl.Drawing" Version="1.2.1" />
     <PackageReference Include="Msagl.WpfGraphControl" Version="1.2.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
   </ItemGroup>
 
   <ItemGroup>

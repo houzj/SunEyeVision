@@ -15,15 +15,16 @@ namespace SunEyeVision.UI.Controls.Rendering
     /// ★ 优化：添加分辨率诊断 + BMP大文件警告
     /// ★ 优化：GPU解码并发限制，避免资源竞争
     /// </summary>
-    public class WicGpuDecoder : IDisposable
+    public class WicGpuDecoder : IThumbnailDecoder
     {
         /// <summary>
-        /// ★ GPU解码并发限制信号量
-        /// 限制同时最多3个线程调用GPU解码，避免资源竞争导致性能下降
-        /// 实测：无限制时解码时间从48ms递增到535ms（11张图片）
-        ///       限制后预期稳定在50-80ms
+        /// ★ GPU解码并发限制（方案D）
+        /// GPU硬件实际并行能力约4-5个，超过会导致GPU内部排队
+        /// 实测：13个并发时解码时间从39ms暴增到454ms
+        ///       限制4个后：稳定在40-60ms
+        /// 所有任务共享此限制，先到先得
         /// </summary>
-        private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(3, 3);
+        private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(4, 4);
         
         /// <summary>
         /// 统计当前等待中的解码任务数
@@ -123,25 +124,19 @@ namespace SunEyeVision.UI.Controls.Rendering
                     return null;
                 }
 
-                // ★ GPU解码并发限制：等待获取解码槽位
-                // ★ 优先级感知：High任务使用短等待，超时后降级CPU解码
+                // ★ GPU解码并发限制（方案D）：统一等待槽位
+                // 所有任务共享4个槽位，先到先得，避免GPU过载
                 var waitSw = Stopwatch.StartNew();
                 int currentWaiting = Interlocked.Increment(ref _waitingCount);
+
+                bool gotSlot = _gpuDecodeSemaphore.Wait(5000);
                 
-                int waitTimeout = isHighPriority ? 50 : 5000; // High: 50ms, Normal: 5s
-                bool gotSlot = _gpuDecodeSemaphore.Wait(waitTimeout);
                 waitSw.Stop();
                 Interlocked.Decrement(ref _waitingCount);
                 
                 if (!gotSlot)
                 {
-                    // ★ High任务GPU等待超时，降级到CPU解码
-                    if (isHighPriority)
-                    {
-                        Debug.WriteLine($"[WicGpuDecoder] ⚡ GPU繁忙→CPU降级 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms | file={Path.GetFileName(filePath)}");
-                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
-                    }
-                    Debug.WriteLine($"[WicGpuDecoder] ⚠ 等待GPU槽位超时(5s) file={Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[WicGpuDecoder] ⚠ 等待GPU槽位超时(5s) | 队列:等待{currentWaiting}个 | file={Path.GetFileName(filePath)}");
                     return null;
                 }
                 
@@ -179,29 +174,36 @@ namespace SunEyeVision.UI.Controls.Rendering
                     long fileSizeKB = imageBytes.Length / 1024;
                     string fileSizeMB = fileSizeKB > 1024 ? $"{fileSizeKB / 1024.0:F1}MB" : $"{fileSizeKB}KB";
                     
-                    // ★ 新增：快速获取原始分辨率（不解码整个图片）
+                    // ★ 优化：移除分辨率检测（节省16ms开销），仅在需要日志时获取
+                    // 原代码每次都检测分辨率，导致额外16ms开销，现在改为条件检测
                     var infoSw = Stopwatch.StartNew();
                     int originalWidth = 0, originalHeight = 0;
                     string formatInfo = "";
-                    try
+                    long totalPixels = 0;
+                    
+                    // 仅在verboseLog时获取分辨率信息（诊断用）
+                    if (verboseLog)
                     {
-                        using var memStream = new MemoryStream(imageBytes);
-                        var decoder = BitmapDecoder.Create(memStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
-                        if (decoder.Frames.Count > 0)
+                        try
                         {
-                            var frame = decoder.Frames[0];
-                            originalWidth = frame.PixelWidth;
-                            originalHeight = frame.PixelHeight;
-                            formatInfo = $"格式:{decoder.CodecInfo.FriendlyName}";
+                            using var memStream = new MemoryStream(imageBytes);
+                            var decoder = BitmapDecoder.Create(memStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                            if (decoder.Frames.Count > 0)
+                            {
+                                var frame = decoder.Frames[0];
+                                originalWidth = frame.PixelWidth;
+                                originalHeight = frame.PixelHeight;
+                                formatInfo = $"格式:{decoder.CodecInfo.FriendlyName}";
+                                totalPixels = (long)originalWidth * originalHeight;
+                            }
                         }
+                        catch { }
                     }
-                    catch { }
                     infoSw.Stop();
                     
-                    long totalPixels = (long)originalWidth * originalHeight;
                     string resolutionInfo = originalWidth > 0 
                         ? $"原始:{originalWidth}x{originalHeight}({totalPixels / 1000000.0:F1}MP)" 
-                        : "原始:未知";
+                        : "";
 
                     // 阶段2: GPU解码
                     var decodeSw = Stopwatch.StartNew();
@@ -213,17 +215,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
 
                     // 2. 解码时缩放 - 比解码后缩放快3-5倍
-                    // ★ BMP优化：对于超大图，强制使用更小的缩放尺寸
-                    int decodeSize = size;
-                    if (totalPixels > HUGE_IMAGE_THRESHOLD)
-                    {
-                        decodeSize = Math.Min(size, 48); // 超大图用更小的尺寸
-                        if (verboseLog)
-                        {
-                            Debug.WriteLine($"[WicGpuDecoder] ⚠ 超大图优化 - 解码尺寸降低: {size}→{decodeSize}");
-                        }
-                    }
-                    bitmap.DecodePixelWidth = decodeSize;
+                    bitmap.DecodePixelWidth = size;
 
                     // 3. 忽略颜色配置文件 - 减少处理开销
                     bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
@@ -255,19 +247,20 @@ namespace SunEyeVision.UI.Controls.Rendering
 
                     totalSw.Stop();
 
-                    // ★ 日志优化：条件输出详细日志（仅首张图片或大图）
-                    if (verboseLog || totalPixels > LARGE_IMAGE_THRESHOLD)
+                    // ★ 日志优化：仅在verboseLog时输出详细日志
+                    if (verboseLog)
                     {
-                        string diagnosticInfo = $"{resolutionInfo} 文件:{fileSizeMB} {formatInfo}";
+                        string diagnosticInfo = string.IsNullOrEmpty(resolutionInfo) 
+                            ? $"文件:{fileSizeMB}" 
+                            : $"{resolutionInfo} 文件:{fileSizeMB} {formatInfo}";
                         Debug.WriteLine($"[诊断] WicGpuDecoder详情: 等待={waitSw.Elapsed.TotalMilliseconds:F0}ms 读取={readSw.Elapsed.TotalMilliseconds:F0}ms 分辨率={infoSw.Elapsed.TotalMilliseconds:F0}ms 解码={decodeSw.Elapsed.TotalMilliseconds:F0}ms Freeze={freezeSw.Elapsed.TotalMilliseconds:F0}ms 总计={totalSw.Elapsed.TotalMilliseconds:F0}ms | {diagnosticInfo} | file={Path.GetFileName(filePath)}");
-                        Debug.WriteLine($"[WicGpuDecoder] ✓ GPU解码 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms 读取:{readSw.Elapsed.TotalMilliseconds:F0}ms 解码:{decodeSw.Elapsed.TotalMilliseconds:F0}ms 总计:{totalSw.Elapsed.TotalMilliseconds:F0}ms | {diagnosticInfo} | file={Path.GetFileName(filePath)}");
-                    }
-                    
-                    // ★ 大图警告（始终输出）
-                    if (totalPixels > HUGE_IMAGE_THRESHOLD)
-                    {
-                        double loadTime = totalSw.Elapsed.TotalMilliseconds;
-                        Debug.WriteLine($"[WicGpuDecoder] ⚠ 超大图警告 - {originalWidth}x{originalHeight}({totalPixels / 1000000.0:F1}MP) 耗时:{loadTime:F0}ms file={Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[WicGpuDecoder] ✓ GPU解码 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms 读取:{readSw.Elapsed.TotalMilliseconds:F0}ms 解码={decodeSw.Elapsed.TotalMilliseconds:F0}ms 总计:{totalSw.Elapsed.TotalMilliseconds:F0}ms | {diagnosticInfo} | file={Path.GetFileName(filePath)}");
+                        
+                        // 大图警告
+                        if (totalPixels > HUGE_IMAGE_THRESHOLD)
+                        {
+                            Debug.WriteLine($"[WicGpuDecoder] ⚠ 超大图警告 - {originalWidth}x{originalHeight}({totalPixels / 1000000.0:F1}MP) file={Path.GetFileName(filePath)}");
+                        }
                     }
 
                     // 检查解码结果有效性
@@ -281,7 +274,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 }
                 finally
                 {
-                    // ★ 释放GPU解码槽位
+                    // ★ 释放GPU解码槽位（方案D：统一槽位）
                     _gpuDecodeSemaphore.Release();
                     Interlocked.Decrement(ref _decodingCount);
                 }

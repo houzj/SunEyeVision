@@ -14,18 +14,20 @@ namespace SunEyeVision.UI.Controls.Rendering
     /// 加载策略优先级：
     /// 1. L1内存缓存（0ms） - 强引用50张 + 弱引用
     /// 2. L2磁盘缓存（5-80ms） - Shell缓存优先 + 自建缓存补充
-    /// 3. L3 GPU解码（50-500ms） - GPU硬件加速
+    /// 3. L3 解码器解码（30-150ms） - GPU或CPU解码
     /// 4. L4原图解码（100-800ms） - 最终回退方案
     /// 
     /// 优化说明：
     /// - 移除重复的Shell缓存调用（ThumbnailCacheManager内部已处理）
     /// - 统一缓存命中统计
-    /// - ★ P1优化：添加L4原图加载回退
+    /// - ★ 支持多种解码器（IThumbnailDecoder接口）
+    /// - ★ 方案二优化：高优先级任务使用GPU解码器，普通任务使用CPU解码器
     /// </summary>
     public class SmartThumbnailLoader : IDisposable
     {
         private readonly ThumbnailCacheManager _cacheManager;
-        private readonly WicGpuDecoder _gpuDecoder;
+        private readonly IThumbnailDecoder _gpuDecoder;  // ★ GPU解码器（高优先级任务）
+        private readonly IThumbnailDecoder _cpuDecoder;  // ★ CPU解码器（普通任务）
         private readonly ConcurrentDictionary<string, byte[]> _prefetchCache;
         private bool _disposed;
 
@@ -61,15 +63,32 @@ namespace SunEyeVision.UI.Controls.Rendering
         }
 
         /// <summary>
-        /// 构造函数
+        /// 构造函数 - 方案二：双解码器架构
+        /// 高优先级任务使用GPU解码器，普通任务使用CPU解码器
         /// </summary>
         public SmartThumbnailLoader(
             ThumbnailCacheManager cacheManager,
-            WicGpuDecoder gpuDecoder)
+            IThumbnailDecoder gpuDecoder,
+            IThumbnailDecoder cpuDecoder)
         {
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
             _gpuDecoder = gpuDecoder ?? throw new ArgumentNullException(nameof(gpuDecoder));
+            _cpuDecoder = cpuDecoder ?? throw new ArgumentNullException(nameof(cpuDecoder));
             _prefetchCache = new ConcurrentDictionary<string, byte[]>();
+            
+            Debug.WriteLine("[SmartThumbnailLoader] ✓ 双解码器初始化完成");
+            Debug.WriteLine($"  GPU解码器: {_gpuDecoder.GetType().Name}");
+            Debug.WriteLine($"  CPU解码器: {_cpuDecoder.GetType().Name}");
+        }
+        
+        /// <summary>
+        /// 兼容旧构造函数 - 单解码器（高优先级和普通任务共用同一解码器）
+        /// </summary>
+        [Obsolete("建议使用双解码器构造函数以提高性能")]
+        public SmartThumbnailLoader(
+            ThumbnailCacheManager cacheManager,
+            IThumbnailDecoder decoder) : this(cacheManager, decoder, decoder)
+        {
         }
 
         /// <summary>
@@ -187,25 +206,30 @@ namespace SunEyeVision.UI.Controls.Rendering
                     }
                 }
 
-                // ===== L3: GPU解码 =====
+                // ===== L3: 解码器解码 =====
+                // ★ 方案二：根据优先级选择解码器
+                // 高优先级任务使用GPU解码器（快速响应）
+                // 普通任务使用CPU解码器（避免阻塞GPU队列）
                 stepSw.Restart();
-                result = TryLoadFromGpu(filePath, size, isFirstFewImages, isHighPriority);
+                result = TryLoadFromDecoder(filePath, size, isFirstFewImages, isHighPriority);
                 stepSw.Stop();
                 gpuDecodeMs = stepSw.ElapsedMilliseconds;
                 
                 if (result != null)
                 {
-                    // 检查GPU解码结果有效性
+                    // 检查解码结果有效性
                     if (result.Width > 0 && result.Height > 0)
                     {
-                        method = "GPU解码";
+                        method = "解码器解码";
                         Interlocked.Increment(ref _gpuHits);
-                        Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, Result=GPU解码 | file={Path.GetFileName(filePath)}");
+                        // ★ 方案二日志：显示使用的解码器类型
+                        string decoderName = isHighPriority ? _gpuDecoder.GetType().Name : _cpuDecoder.GetType().Name;
+                        Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, Decode={gpuDecodeMs}ms, Decoder={decoderName}, Priority={isHighPriority} | file={Path.GetFileName(filePath)}");
                         goto SUCCESS;
                     }
                     else
                     {
-                        Debug.WriteLine($"[SmartLoader] ⚠ GPU解码结果无效 size={result.Width}x{result.Height} file={Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[SmartLoader] ⚠ 解码器结果无效 size={result.Width}x{result.Height} file={Path.GetFileName(filePath)}");
                         result = null;
                     }
                 }
@@ -274,16 +298,22 @@ namespace SunEyeVision.UI.Controls.Rendering
         }
 
         /// <summary>
-        /// 尝试GPU解码（L3策略）
+        /// 尝试解码器解码（L3策略）
+        /// ★ 方案二：根据优先级选择GPU或CPU解码器
         /// </summary>
-        private BitmapImage? TryLoadFromGpu(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
+        private BitmapImage? TryLoadFromDecoder(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
         {
             try
             {
                 byte[]? prefetchedData = null;
                 _prefetchCache.TryRemove(filePath, out prefetchedData);
 
-                var result = _gpuDecoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                // ★ 方案二核心：根据优先级选择解码器
+                // 高优先级任务 → GPU解码器（WicGpuDecoder，4槽位专用）
+                // 普通任务 → CPU解码器（ImageSharpDecoder，不占用GPU资源）
+                var decoder = isHighPriority ? _gpuDecoder : _cpuDecoder;
+                
+                var result = decoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
                 
                 // 解码成功后异步保存到缓存（不阻塞显示）
                 if (result != null)
