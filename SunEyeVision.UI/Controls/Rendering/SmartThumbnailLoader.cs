@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using SunEyeVision.Core.IO;
 
 namespace SunEyeVision.UI.Controls.Rendering
 {
@@ -22,12 +23,14 @@ namespace SunEyeVision.UI.Controls.Rendering
     /// - 统一缓存命中统计
     /// - ★ 支持多种解码器（IThumbnailDecoder接口）
     /// - ★ 方案二优化：高优先级任务使用GPU解码器，普通任务使用CPU解码器
+    /// - ★ 文件生命周期管理：通过 FileAccessManager 防止竞态条件
     /// </summary>
     public class SmartThumbnailLoader : IDisposable
     {
         private readonly ThumbnailCacheManager _cacheManager;
         private readonly IThumbnailDecoder _gpuDecoder;  // ★ GPU解码器（高优先级任务）
         private readonly IThumbnailDecoder _cpuDecoder;  // ★ CPU解码器（普通任务）
+        private readonly IFileAccessManager? _fileAccessManager; // ★ 文件访问管理器
         private readonly ConcurrentDictionary<string, byte[]> _prefetchCache;
         private bool _disposed;
 
@@ -69,16 +72,19 @@ namespace SunEyeVision.UI.Controls.Rendering
         public SmartThumbnailLoader(
             ThumbnailCacheManager cacheManager,
             IThumbnailDecoder gpuDecoder,
-            IThumbnailDecoder cpuDecoder)
+            IThumbnailDecoder cpuDecoder,
+            IFileAccessManager? fileAccessManager = null)
         {
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
             _gpuDecoder = gpuDecoder ?? throw new ArgumentNullException(nameof(gpuDecoder));
             _cpuDecoder = cpuDecoder ?? throw new ArgumentNullException(nameof(cpuDecoder));
+            _fileAccessManager = fileAccessManager;
             _prefetchCache = new ConcurrentDictionary<string, byte[]>();
             
             Debug.WriteLine("[SmartThumbnailLoader] ✓ 双解码器初始化完成");
             Debug.WriteLine($"  GPU解码器: {_gpuDecoder.GetType().Name}");
             Debug.WriteLine($"  CPU解码器: {_cpuDecoder.GetType().Name}");
+            Debug.WriteLine($"  文件访问管理器: {(_fileAccessManager != null ? "已启用" : "未启用")}");
         }
         
         /// <summary>
@@ -87,7 +93,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         [Obsolete("建议使用双解码器构造函数以提高性能")]
         public SmartThumbnailLoader(
             ThumbnailCacheManager cacheManager,
-            IThumbnailDecoder decoder) : this(cacheManager, decoder, decoder)
+            IThumbnailDecoder decoder) : this(cacheManager, decoder, decoder, null)
         {
         }
 
@@ -300,6 +306,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// <summary>
         /// 尝试解码器解码（L3策略）
         /// ★ 方案二：根据优先级选择GPU或CPU解码器
+        /// ★ 文件安全访问：通过 FileAccessManager 保护文件访问
         /// </summary>
         private BitmapImage? TryLoadFromDecoder(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
         {
@@ -313,7 +320,16 @@ namespace SunEyeVision.UI.Controls.Rendering
                 // 普通任务 → CPU解码器（ImageSharpDecoder，不占用GPU资源）
                 var decoder = isHighPriority ? _gpuDecoder : _cpuDecoder;
                 
-                var result = decoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                // ★ 使用安全解码方法（如果 FileAccessManager 可用）
+                BitmapImage? result;
+                if (_fileAccessManager != null)
+                {
+                    result = decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
+                }
+                else
+                {
+                    result = decoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                }
                 
                 // 解码成功后异步保存到缓存（不阻塞显示）
                 if (result != null)
@@ -332,8 +348,32 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// <summary>
         /// ★ P1优化：尝试从原图加载（L4最终回退方案）
         /// 使用WPF内置解码，带缩放优化
+        /// ★ 文件安全访问：通过 FileAccessManager 保护文件访问
         /// </summary>
         private BitmapImage? TryLoadFromOriginal(string filePath, int size)
+        {
+            // ★ 使用 FileAccessManager 保护文件访问（RAII模式）
+            if (_fileAccessManager != null)
+            {
+                using var scope = _fileAccessManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+                if (!scope.IsGranted)
+                {
+                    Debug.WriteLine($"[SmartLoader] ⚠ 文件访问被拒绝: {scope.ErrorMessage} file={Path.GetFileName(filePath)}");
+                    return null;
+                }
+                
+                return DecodeOriginalInternal(filePath, size);
+            }
+            else
+            {
+                return DecodeOriginalInternal(filePath, size);
+            }
+        }
+        
+        /// <summary>
+        /// 原图解码内部实现
+        /// </summary>
+        private BitmapImage? DecodeOriginalInternal(string filePath, int size)
         {
             try
             {

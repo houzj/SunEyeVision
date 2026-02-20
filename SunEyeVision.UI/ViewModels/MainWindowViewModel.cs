@@ -151,6 +151,17 @@ namespace SunEyeVision.UI.ViewModels
 
         private Models.WorkflowNode? _selectedNode;
         private bool _showPropertyPanel = false;
+        private Models.NodeImageData? _activeNodeImageData;
+
+        /// <summary>
+        /// 当前活动节点的图像数据（用于绑定到图像预览控件）
+        /// 每个采集节点维护独立的图像集合
+        /// </summary>
+        public Models.NodeImageData? ActiveNodeImageData
+        {
+            get => _activeNodeImageData;
+            private set => SetProperty(ref _activeNodeImageData, value);
+        }
 
         public Models.WorkflowNode? SelectedNode
         {
@@ -168,11 +179,38 @@ namespace SunEyeVision.UI.ViewModels
                     // 更新属性面板可见性
                     ShowPropertyPanel = value != null;
 
+                    // 更新活动节点的图像数据（核心：切换节点时切换图像集合）
+                    UpdateActiveNodeImageData(value);
+
                     // 节点选中状态变化时，更新图像预览显示
                     UpdateImagePreviewVisibility(value);
                     // 加载节点属性到属性面板
                     LoadNodeProperties(value);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 更新活动节点的图像数据
+        /// 实现不同采集节点拥有独立的图像预览器
+        /// </summary>
+        private void UpdateActiveNodeImageData(Models.WorkflowNode? node)
+        {
+            if (node?.IsImageCaptureNode == true)
+            {
+                // 确保节点有图像数据容器（延迟初始化）
+                node.ImageData ??= new Models.NodeImageData(node.Id);
+                
+                // ★ 延迟渲染优化：切换节点时，先清空缩略图显示占位符
+                // 这样可以避免切换节点时尝试渲染大量已有缩略图导致卡顿
+                int imageCount = node.ImageData.PrepareForDisplay();
+                
+                ActiveNodeImageData = node.ImageData;
+                AddLog($"[调试] 切换到节点 {node.Name} 的图像集合，共 {imageCount} 张图像（延迟加载模式）");
+            }
+            else
+            {
+                ActiveNodeImageData = null;
             }
         }
 

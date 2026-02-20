@@ -916,6 +916,7 @@
                             </Border>
 
                             <!-- 图像载入及预览模块 - 使用现代化的 ImagePreviewControl -->
+                            <!-- 绑定到 ActiveNodeImageData 实现每个采集节点独立的图像预览器 -->
                             <Border Grid.Row="1"
                                     Background="#F8F9FA"
                                     BorderBrush="#E0E0E0"
@@ -923,9 +924,10 @@
                                     Padding="2"
                                     Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <controls:ImagePreviewControl x:Name="ImagePreviewContent"
-                                                             AutoSwitchEnabled="{Binding AutoSwitchEnabled}"
-                                                             CurrentImageIndex="{Binding CurrentImageIndex, Mode=TwoWay}"
-                                                             ImageCollection="{Binding ImageCollection}"
+                                                             AutoSwitchEnabled="{Binding ActiveNodeImageData.AutoSwitchEnabled, Mode=TwoWay}"
+                                                             CurrentImageIndex="{Binding ActiveNodeImageData.CurrentImageIndex, Mode=TwoWay}"
+                                                             ImageCollection="{Binding ActiveNodeImageData.ImageCollection}"
+                                                             ImageRunMode="{Binding ActiveNodeImageData.ImageRunMode, Mode=TwoWay}"
                                                              WorkflowExecutionRequested="OnWorkflowExecutionRequested"/>
                             </Border>
                         </Grid>

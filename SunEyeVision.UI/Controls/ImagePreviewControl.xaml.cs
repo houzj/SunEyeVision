@@ -1547,13 +1547,117 @@ namespace SunEyeVision.UI.Controls
 
         /// <summary>
         /// 图像集合更改回调
+        /// 优化：延迟渲染 + 占位符策略，避免切换节点时卡顿
         /// </summary>
-        private static void OnImageCollectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+        private static void OnImageCollectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (ImagePreviewControl)d;
-            // control.UpdateDisplayIndices(); // 不再需要显示序号，移除此调用
+            var oldCollection = e.OldValue as BatchObservableCollection<ImageInfo>;
+            var newCollection = e.NewValue as BatchObservableCollection<ImageInfo>;
+
+            // 更新基本属性
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
+
+            // 如果新集合为空或无数据，无需处理
+            if (newCollection == null || newCollection.Count == 0)
+            {
+                return;
+            }
+
+            // 延迟渲染优化：异步加载可视区域缩略图
+            control.ScheduleDeferredThumbnailLoading(newCollection);
+        }
+
+        /// <summary>
+        /// 延迟缩略图加载计时器
+        /// </summary>
+        private DispatcherTimer? _deferredLoadingTimer;
+
+        /// <summary>
+        /// 安排延迟缩略图加载（避免切换节点时卡顿）
+        /// </summary>
+        private void ScheduleDeferredThumbnailLoading(BatchObservableCollection<ImageInfo> collection)
+        {
+            // 取消之前的延迟加载任务
+            _deferredLoadingTimer?.Stop();
+            _priorityLoader.ClearState();
+
+            // ★ 关键修复：无论是否有缩略图，都必须设置新的图像集合引用
+            // 否则 _priorityLoader 的 _imageCollection 仍指向旧节点，导致索引越界
+            _priorityLoader.SetImageCollection(collection);
+
+            // 如果集合中没有已加载的缩略图，直接触发正常加载流程
+            bool hasAnyThumbnail = collection.Any(img => img.Thumbnail != null);
+            if (!hasAnyThumbnail)
+            {
+                // 没有已加载的缩略图，直接使用正常加载流程
+                // 滚动事件或其他触发器会自动加载可视区域
+                return;
+            }
+
+            // 情况1：集合中已有缩略图（从其他节点切换过来）
+            // 策略：先清空显示占位符，再异步加载可视区域
+            var sw = Stopwatch.StartNew();
+
+            // 清空所有缩略图显示（保留文件路径数据）
+            foreach (var image in collection)
+            {
+                image.Thumbnail = null;
+            }
+            sw.Stop();
+            Debug.WriteLine($"[DeferredLoading] 清空缩略图显示: {collection.Count}张, 耗时:{sw.ElapsedMilliseconds}ms");
+
+            // 延迟一帧后开始加载可视区域（确保占位符已渲染）
+            _deferredLoadingTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(50) // 50ms 延迟，确保 UI 更新完成
+            };
+            _deferredLoadingTimer.Tick += (s, args) =>
+            {
+                _deferredLoadingTimer?.Stop();
+                LoadVisibleRangeThumbnails(collection);
+            };
+            _deferredLoadingTimer.Start();
+        }
+
+        /// <summary>
+        /// 异步加载可视区域的缩略图
+        /// </summary>
+        private void LoadVisibleRangeThumbnails(BatchObservableCollection<ImageInfo> collection)
+        {
+            if (collection == null || collection.Count == 0)
+                return;
+
+            var sw = Stopwatch.StartNew();
+            Debug.WriteLine($"[DeferredLoading] 开始异步加载可视区域缩略图...");
+
+            // 获取可视范围
+            var (firstVisible, lastVisible) = GetVisibleRange();
+
+            if (firstVisible == -1 || lastVisible == -1)
+            {
+                // 如果无法获取可视范围，使用默认值
+                firstVisible = 0;
+                lastVisible = Math.Min(collection.Count - 1, 15);
+            }
+
+            Debug.WriteLine($"[DeferredLoading] 可视范围: [{firstVisible}, {lastVisible}]");
+
+            // 设置当前图像索引
+            if (CurrentImageIndex < 0 && collection.Count > 0)
+            {
+                CurrentImageIndex = 0;
+            }
+
+            // 使用优先级加载器加载可视区域
+            var filePaths = collection.Select(img => img.FilePath).ToArray();
+            _ = _priorityLoader.LoadInitialScreenAsync(filePaths, collection, index =>
+            {
+                // 首张图片加载完成
+                sw.Stop();
+                Debug.WriteLine($"[DeferredLoading] ★ 首张缩略图加载完成 - 耗时: {sw.ElapsedMilliseconds}ms");
+            });
         }
 
         /// <summary>

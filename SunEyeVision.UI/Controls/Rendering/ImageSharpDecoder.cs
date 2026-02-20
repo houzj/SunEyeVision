@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SunEyeVision.Core.IO;
 
 namespace SunEyeVision.UI.Controls.Rendering
 {
@@ -285,6 +286,37 @@ namespace SunEyeVision.UI.Controls.Rendering
                 Debug.WriteLine($"[ImageSharpDecoder] ✗ 转换失败: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// ★ 安全解码缩略图（推荐使用）
+        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文件
+        /// </summary>
+        public BitmapImage? DecodeThumbnailSafe(
+            IFileAccessManager? fileManager,
+            string filePath,
+            int size,
+            byte[]? prefetchedData = null,
+            bool verboseLog = false,
+            bool isHighPriority = false)
+        {
+            // 如果没有 FileAccessManager，使用普通解码
+            if (fileManager == null)
+            {
+                return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+            }
+
+            // 使用 RAII 模式确保文件引用正确释放
+            using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+            
+            if (!scope.IsGranted)
+            {
+                Debug.WriteLine($"[ImageSharpDecoder] ⚠ 文件访问被拒绝: {scope.ErrorMessage} file={Path.GetFileName(filePath)}");
+                return null;
+            }
+
+            // 文件访问已授权，安全解码
+            return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
         }
 
         /// <summary>

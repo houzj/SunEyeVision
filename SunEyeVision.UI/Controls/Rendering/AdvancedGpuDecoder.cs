@@ -4,14 +4,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows.Media.Imaging;
+using SunEyeVision.Core.IO;
 
 namespace SunEyeVision.UI.Controls.Rendering
 {
     /// <summary>
     /// 高级GPU解码器 - 多策略优化
     /// 实现真正的GPU硬件解码，预期性能提升7-10倍
+    /// ★ 支持 IThumbnailDecoder 接口，包含安全解码方法
     /// </summary>
-    public class AdvancedGpuDecoder : IDisposable
+    public class AdvancedGpuDecoder : IThumbnailDecoder
     {
         private readonly WicGpuDecoder _wicDecoder;
         private bool _isInitialized;
@@ -40,6 +42,11 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// 是否使用硬件解码
         /// </summary>
         public bool UseHardwareDecoding => _useHardwareDecoding;
+
+        /// <summary>
+        /// 是否支持硬件加速（IThumbnailDecoder接口）
+        /// </summary>
+        public bool IsHardwareAccelerated => _useHardwareDecoding;
 
         /// <summary>
         /// 平均解码时间（毫秒）
@@ -131,6 +138,46 @@ namespace SunEyeVision.UI.Controls.Rendering
                 _isInitialized = true;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 解码缩略图（IThumbnailDecoder接口）
+        /// </summary>
+        public BitmapImage? DecodeThumbnail(string filePath, int size, byte[]? prefetchedData = null, bool verboseLog = false, bool isHighPriority = false)
+        {
+            // prefetchedData 参数在此实现中暂不使用
+            return DecodeThumbnail(filePath, size, useGpu: true);
+        }
+
+        /// <summary>
+        /// ★ 安全解码缩略图（推荐使用）
+        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文件
+        /// </summary>
+        public BitmapImage? DecodeThumbnailSafe(
+            IFileAccessManager? fileManager,
+            string filePath,
+            int size,
+            byte[]? prefetchedData = null,
+            bool verboseLog = false,
+            bool isHighPriority = false)
+        {
+            // 如果没有 FileAccessManager，使用普通解码
+            if (fileManager == null)
+            {
+                return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+            }
+
+            // 使用 RAII 模式确保文件引用正确释放
+            using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+            
+            if (!scope.IsGranted)
+            {
+                Debug.WriteLine($"[AdvancedGpuDecoder] ⚠ 文件访问被拒绝: {scope.ErrorMessage} file={Path.GetFileName(filePath)}");
+                return null;
+            }
+
+            // 文件访问已授权，安全解码
+            return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
         }
 
         /// <summary>

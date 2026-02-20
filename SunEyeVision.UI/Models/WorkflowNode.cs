@@ -287,6 +287,20 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public string LocalDisplayName => $"{_name} {_index}";
 
+        /// <summary>
+        /// 节点图像数据（仅图像采集类节点使用）
+        /// 每个采集节点维护独立的图像集合，实现独立的图像预览器
+        /// </summary>
+        public NodeImageData? ImageData { get; set; }
+
+        /// <summary>
+        /// 判断是否为图像采集类节点
+        /// </summary>
+        public bool IsImageCaptureNode =>
+            AlgorithmType == "ImageCaptureTool" ||
+            AlgorithmType == "image_capture" ||
+            AlgorithmType == "ImageAcquisition";
+
         public WorkflowNode(string id, string name, string algorithmType, int index = 0, int globalIndex = 0)
         {
             Id = id;
