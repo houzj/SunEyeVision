@@ -152,6 +152,7 @@ namespace SunEyeVision.UI.ViewModels
         private Models.WorkflowNode? _selectedNode;
         private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
+        private string? _currentDisplayNodeId = null;  // ★ 跟踪当前显示的采集节点ID，用于避免重复加载
 
         /// <summary>
         /// 当前活动节点的图像数据（用于绑定到图像预览控件）
@@ -193,25 +194,43 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 更新活动节点的图像数据
         /// 实现不同采集节点拥有独立的图像预览器
+        /// ★ 优化：避免重复加载相同节点的缩略图
         /// </summary>
         private void UpdateActiveNodeImageData(Models.WorkflowNode? node)
         {
+            // 情况1：切换到图像采集节点
             if (node?.IsImageCaptureNode == true)
             {
                 // 确保节点有图像数据容器（延迟初始化）
                 node.ImageData ??= new Models.NodeImageData(node.Id);
                 
-                // ★ 延迟渲染优化：切换节点时，先清空缩略图显示占位符
-                // 这样可以避免切换节点时尝试渲染大量已有缩略图导致卡顿
-                int imageCount = node.ImageData.PrepareForDisplay();
+                // ★ 关键优化：检查是否切换到相同的节点且当前已有数据
+                bool isSameNode = _currentDisplayNodeId == node.Id;
+                bool hasActiveData = ActiveNodeImageData != null;
+                
+                if (isSameNode && hasActiveData)
+                {
+                    // 相同节点且当前有数据
+                    // ★ 仍然需要更新 ActiveNodeImageData 以确保绑定触发更新
+                    // （因为可能从非采集节点切换回来，ActiveNodeImageData 曾被设为 null）
+                    ActiveNodeImageData = node.ImageData;
+                    AddLog($"[调试] 保持节点 {node.Name} 的图像集合（相同节点，跳过清空缩略图）");
+                    return;
+                }
+                
+                // ★ 不同节点或之前数据已清空：更新跟踪ID并清空缩略图
+                _currentDisplayNodeId = node.Id;
+                int imageCount = node.ImageData.PrepareForDisplay();  // 清空缩略图
                 
                 ActiveNodeImageData = node.ImageData;
                 AddLog($"[调试] 切换到节点 {node.Name} 的图像集合，共 {imageCount} 张图像（延迟加载模式）");
             }
-            else
-            {
-                ActiveNodeImageData = null;
-            }
+            // 情况2：切换到非图像采集节点
+            // ★ 不做任何操作，由 UpdateImagePreviewVisibility 统一处理
+            // 这样可以保持 _currentDisplayNodeId 和 ActiveNodeImageData 不变，
+            // 当切换到相同上游采集节点的非采集节点时，不会触发重新加载
+            // 原问题：之前这里会清空 _currentDisplayNodeId，导致 UpdateImagePreviewVisibility
+            // 中的 isSameNode 判断失效，每次切换都会重新加载
         }
 
         /// <summary>
@@ -1703,30 +1722,152 @@ namespace SunEyeVision.UI.ViewModels
             AddLog($"📊 更新计算结果: {results.Count} 项");
         }
 
+        #region 图像预览器智能显示
+
         /// <summary>
-        /// 更新图像预览显示状态
+        /// 更新图像预览显示状态（基于连接关系智能切换）
         /// </summary>
+        /// <remarks>
+        /// 规则：
+        /// 1. 选中图像采集节点 → 显示该节点的图像（如有）
+        /// 2. 选中其他节点 → BFS追溯上游采集节点，找到则显示其图像
+        ///    ★ 优化：如果上游采集节点与当前显示的相同，不重新加载
+        /// 3. 无上游采集节点或无图像 → 隐藏图像预览器
+        /// </remarks>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
+            // 情况1：没有选中节点 → 隐藏
             if (selectedNode == null)
             {
                 ShowImagePreview = false;
+                ActiveNodeImageData = null;
+                _currentDisplayNodeId = null;  // ★ 清除跟踪ID
                 AddLog("[调试] 图像预览: 隐藏 (没有选中节点)");
                 return;
             }
 
-            // 判断是否为图像采集节点
-            var algorithmType = selectedNode.AlgorithmType ?? "";
-            var shouldShow = algorithmType == "ImageCaptureTool" ||
-                           algorithmType == "image_capture" ||
-                           algorithmType == "ImageAcquisition";
+            // 情况2：选中的是图像采集节点 → 始终显示图像预览器（即使暂时没有图像）
+            if (selectedNode.IsImageCaptureNode)
+            {
+                UpdateActiveNodeImageData(selectedNode);
+                ShowImagePreview = true;
+                AddLog($"[调试] 图像预览: 显示 (选中采集节点: {selectedNode.Name}, 图像数: {selectedNode.ImageData?.ImageCount ?? 0})");
+                OnPropertyChanged(nameof(ShowImagePreview));
+                return;
+            }
 
-            AddLog($"[调试] 图像预览: {(shouldShow ? "显示" : "隐藏")} (节点类型: {algorithmType}, 节点名称: {selectedNode.Name})");
-            ShowImagePreview = shouldShow;
-            OnPropertyChanged(nameof(ShowImagePreview));  // 显式触发通知
+            // 情况3：选中的不是图像采集节点 → BFS追溯上游采集节点
+            var sourceCaptureNode = FindUpstreamImageCaptureNode(selectedNode);
+
+            if (sourceCaptureNode != null)
+            {
+                bool hasImages = sourceCaptureNode.ImageData != null && sourceCaptureNode.ImageData.ImageCount > 0;
+                
+                // ★ 优化：检查上游采集节点是否与当前显示的相同
+                bool isSameNode = _currentDisplayNodeId == sourceCaptureNode.Id;
+                bool hasActiveData = ActiveNodeImageData != null;
+                
+                if (hasImages)
+                {
+                    if (isSameNode && hasActiveData)
+                    {
+                        // ★ 相同节点且当前有数据，不需要更新 ActiveNodeImageData
+                        // 避免触发不必要的缩略图重新加载
+                        ShowImagePreview = true;
+                        AddLog($"[调试] 图像预览: 保持显示 (上游采集节点: {sourceCaptureNode.Name}, 当前节点: {selectedNode.Name}, 相同节点跳过更新)");
+                    }
+                    else
+                    {
+                        // 不同节点或之前数据已清空，需要更新显示
+                        _currentDisplayNodeId = sourceCaptureNode.Id;
+                        ActiveNodeImageData = sourceCaptureNode.ImageData;
+                        ShowImagePreview = true;
+                        AddLog($"[调试] 图像预览: 显示 (上游采集节点: {sourceCaptureNode.Name}, 当前节点: {selectedNode.Name})");
+                    }
+                }
+                else
+                {
+                    // 上游采集节点无图像 → 隐藏
+                    ShowImagePreview = false;
+                    ActiveNodeImageData = null;
+                    _currentDisplayNodeId = null;  // ★ 清除跟踪ID
+                    AddLog($"[调试] 图像预览: 隐藏 (上游采集节点 {sourceCaptureNode.Name} 无图像)");
+                }
+            }
+            else
+            {
+                // 无上游采集节点 → 隐藏
+                ShowImagePreview = false;
+                ActiveNodeImageData = null;
+                _currentDisplayNodeId = null;  // ★ 清除跟踪ID
+                AddLog($"[调试] 图像预览: 隐藏 (当前节点: {selectedNode.Name}, 无上游采集节点)");
+            }
+
+            OnPropertyChanged(nameof(ShowImagePreview));
+        }
+
+        /// <summary>
+        /// 查找选中节点的上游图像采集节点（BFS广度优先搜索）
+        /// </summary>
+        /// <remarks>
+        /// 当存在多个上游采集节点时，返回第一个找到的采集节点：
+        /// 1. BFS保证连接路径最短
+        /// 2. 按节点ID排序保证确定性选择
+        /// </remarks>
+        /// <param name="node">起始节点</param>
+        /// <returns>第一个找到的上游图像采集节点，未找到返回null</returns>
+        private Models.WorkflowNode? FindUpstreamImageCaptureNode(Models.WorkflowNode node)
+        {
+            var selectedTab = WorkflowTabViewModel?.SelectedTab;
+            if (selectedTab == null || selectedTab.WorkflowConnections == null || selectedTab.WorkflowNodes == null)
+            {
+                return null;
+            }
+
+            var visited = new HashSet<string>();
+            var queue = new Queue<Models.WorkflowNode>();
+            queue.Enqueue(node);
+            visited.Add(node.Id);
+
+            while (queue.Count > 0)
+            {
+                var currentNode = queue.Dequeue();
+
+                // 获取上游节点ID（按连接在集合中的顺序，再按节点ID排序保证确定性）
+                var upstreamNodeIds = selectedTab.WorkflowConnections
+                    .Where(conn => conn.TargetNodeId == currentNode.Id)
+                    .Select(conn => conn.SourceNodeId)
+                    .Distinct()
+                    .OrderBy(id => id) // 按节点ID排序，保证确定性
+                    .ToList();
+
+                foreach (var upstreamNodeId in upstreamNodeIds)
+                {
+                    if (visited.Contains(upstreamNodeId))
+                        continue;
+
+                    var upstreamNode = selectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == upstreamNodeId);
+                    if (upstreamNode == null)
+                        continue;
+
+                    // 找到图像采集节点，立即返回（第一个找到的）
+                    if (upstreamNode.IsImageCaptureNode)
+                    {
+                        return upstreamNode;
+                    }
+
+                    // 非采集节点，继续向上追溯
+                    visited.Add(upstreamNodeId);
+                    queue.Enqueue(upstreamNode);
+                }
+            }
+
+            return null;
         }
 
         #endregion
+
+        #endregion // 辅助方法
 
         /// <summary>
         /// 默认工具插件 - 用于兼容性

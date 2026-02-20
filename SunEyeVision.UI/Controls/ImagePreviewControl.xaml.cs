@@ -688,8 +688,20 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         public static BitmapImage? LoadImageOptimized(string filePath)
         {
+            // ★ 修复：加载前检查文件是否存在，避免抛出 FileNotFoundException
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            {
+                return null;
+            }
+            
             return s_fullImageCache.GetOrAdd(filePath, fp =>
             {
+                // 再次检查（缓存内部可能访问不同的路径）
+                if (string.IsNullOrEmpty(fp) || !File.Exists(fp))
+                {
+                    return null;
+                }
+                
                 try
                 {
                     var bitmap = new BitmapImage();
@@ -1555,6 +1567,14 @@ namespace SunEyeVision.UI.Controls
             var oldCollection = e.OldValue as BatchObservableCollection<ImageInfo>;
             var newCollection = e.NewValue as BatchObservableCollection<ImageInfo>;
 
+            // ★ 优化：如果新旧集合引用相同，跳过处理
+            // 这避免了从非采集节点切回采集节点时不必要的缩略图清空
+            if (oldCollection == newCollection && newCollection != null)
+            {
+                Debug.WriteLine($"[OnImageCollectionChanged] 相同集合引用，跳过处理");
+                return;
+            }
+
             // 更新基本属性
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
@@ -1587,16 +1607,29 @@ namespace SunEyeVision.UI.Controls
             // 否则 _priorityLoader 的 _imageCollection 仍指向旧节点，导致索引越界
             _priorityLoader.SetImageCollection(collection);
 
-            // 如果集合中没有已加载的缩略图，直接触发正常加载流程
+            // 如果集合中没有已加载的缩略图，需要主动触发加载
             bool hasAnyThumbnail = collection.Any(img => img.Thumbnail != null);
+            
+            // ★ 修复：无论是否有缩略图，都需要触发可视区域加载
+            // 原问题：当没有缩略图时直接返回，依赖滚动事件触发，但切换节点后可能没有滚动事件
             if (!hasAnyThumbnail)
             {
-                // 没有已加载的缩略图，直接使用正常加载流程
-                // 滚动事件或其他触发器会自动加载可视区域
+                // 没有已加载的缩略图，延迟后触发可视区域加载
+                // 使用更长的延迟确保UI布局完成
+                _deferredLoadingTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100) // 100ms 延迟，确保布局完成
+                };
+                _deferredLoadingTimer.Tick += (s, args) =>
+                {
+                    _deferredLoadingTimer?.Stop();
+                    LoadVisibleRangeThumbnails(collection);
+                };
+                _deferredLoadingTimer.Start();
                 return;
             }
 
-            // 情况1：集合中已有缩略图（从其他节点切换过来）
+            // 情况2：集合中已有缩略图（从其他节点切换过来）
             // 策略：先清空显示占位符，再异步加载可视区域
             var sw = Stopwatch.StartNew();
 
@@ -1623,6 +1656,7 @@ namespace SunEyeVision.UI.Controls
 
         /// <summary>
         /// 异步加载可视区域的缩略图
+        /// ★ 增强重试机制：当可视范围获取失败时自动重试
         /// </summary>
         private void LoadVisibleRangeThumbnails(BatchObservableCollection<ImageInfo> collection)
         {
@@ -1635,15 +1669,50 @@ namespace SunEyeVision.UI.Controls
             // 获取可视范围
             var (firstVisible, lastVisible) = GetVisibleRange();
 
+            // ★ 增强重试：如果可视范围无效，延迟重试
             if (firstVisible == -1 || lastVisible == -1)
             {
-                // 如果无法获取可视范围，使用默认值
-                firstVisible = 0;
-                lastVisible = Math.Min(collection.Count - 1, 15);
+                Debug.WriteLine($"[DeferredLoading] ⚠ 可视范围无效，延迟重试...");
+                
+                // 延迟重试（最多重试2次）
+                _deferredLoadingTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+                int retryCount = 0;
+                _deferredLoadingTimer.Tick += (s, args) =>
+                {
+                    retryCount++;
+                    var (retryFirst, retryLast) = GetVisibleRange();
+                    
+                    if (retryFirst >= 0 && retryLast >= 0)
+                    {
+                        _deferredLoadingTimer?.Stop();
+                        Debug.WriteLine($"[DeferredLoading] ✓ 重试成功，可视范围: [{retryFirst}, {retryLast}]");
+                        ExecuteLoadVisibleRange(collection, retryFirst, retryLast, sw);
+                    }
+                    else if (retryCount >= 2)
+                    {
+                        // 重试失败，使用默认值强制加载
+                        _deferredLoadingTimer?.Stop();
+                        int defaultLast = Math.Min(collection.Count - 1, 15);
+                        Debug.WriteLine($"[DeferredLoading] ⚠ 重试失败，使用默认范围: [0, {defaultLast}]");
+                        ExecuteLoadVisibleRange(collection, 0, defaultLast, sw);
+                    }
+                };
+                _deferredLoadingTimer.Start();
+                return;
             }
 
             Debug.WriteLine($"[DeferredLoading] 可视范围: [{firstVisible}, {lastVisible}]");
+            ExecuteLoadVisibleRange(collection, firstVisible, lastVisible, sw);
+        }
 
+        /// <summary>
+        /// 执行可视区域加载
+        /// </summary>
+        private void ExecuteLoadVisibleRange(BatchObservableCollection<ImageInfo> collection, int firstVisible, int lastVisible, Stopwatch sw)
+        {
             // 设置当前图像索引
             if (CurrentImageIndex < 0 && collection.Count > 0)
             {
