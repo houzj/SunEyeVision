@@ -188,17 +188,46 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// 从文件解码
+        /// ★ 竞态条件修复：等待解码槽位后再次检查文件是否存在
         /// </summary>
         private BitmapImage? DecodeFromFile(string filePath, int size)
         {
+            string fileName = Path.GetFileName(filePath);
+            
+            // ★ 关键日志：开始读取文件（等待解码槽位后）
+            Debug.WriteLine($"[ImgSharp] 📖 StartRead | {fileName}");
+            
+            // ★ 核心修复：再次检查文件是否存在（等待解码槽位期间可能被删除）
+            if (!File.Exists(filePath))
+            {
+                Debug.WriteLine($"[ImgSharp] ✗ FileDeletedDuringWait | {fileName}");
+                return null;
+            }
+            
             try
             {
                 using var image = Image.Load(filePath);
+                
+                // ★ 关键日志：读取成功
+                Debug.WriteLine($"[ImgSharp] ✓ ReadOK | {fileName}");
+                
                 return ConvertToBitmapImage(image, size);
+            }
+            catch (FileNotFoundException)
+            {
+                // ★ 关键日志：文件未找到（竞态条件）
+                Debug.WriteLine($"[ImgSharp] ✗ FileNotFound | {fileName}");
+                return null;
+            }
+            catch (IOException ioEx)
+            {
+                // ★ 关键日志：IO异常（文件被锁定或删除）
+                Debug.WriteLine($"[ImgSharp] ✗ IOError: {ioEx.Message} | {fileName}");
+                return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ImageSharpDecoder] ✗ 文件解码失败: {ex.Message} | file={Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[ImgSharp] ✗ ReadError {ex.Message} | {fileName}");
                 return null;
             }
         }
@@ -290,7 +319,7 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// ★ 安全解码缩略图（推荐使用）
-        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文件
+        /// 通过 FileAccessManager 和 CleanupScheduler 双重保护文件访问，防止清理器删除正在使用的文件
         /// </summary>
         public BitmapImage? DecodeThumbnailSafe(
             IFileAccessManager? fileManager,
@@ -300,23 +329,52 @@ namespace SunEyeVision.UI.Controls.Rendering
             bool verboseLog = false,
             bool isHighPriority = false)
         {
-            // 如果没有 FileAccessManager，使用普通解码
-            if (fileManager == null)
-            {
-                return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
-            }
-
-            // 使用 RAII 模式确保文件引用正确释放
-            using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+            string fileName = Path.GetFileName(filePath);
             
-            if (!scope.IsGranted)
+            // ★ 关键日志：开始保护
+            Debug.WriteLine($"[ImgSharp] 🔐 SafeStart | {fileName}");
+            CleanupScheduler.MarkFileInUse(filePath);
+            
+            try
             {
-                Debug.WriteLine($"[ImageSharpDecoder] ⚠ 文件访问被拒绝: {scope.ErrorMessage} file={Path.GetFileName(filePath)}");
-                return null;
-            }
+                // 如果有 FileAccessManager，额外使用它保护
+                if (fileManager != null)
+                {
+                    using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+                    
+                    if (!scope.IsGranted)
+                    {
+                        Debug.WriteLine($"[ImgSharp] ⚠ AccessDenied: {scope.ErrorMessage} | {fileName}");
+                        return null;
+                    }
 
-            // 文件访问已授权，安全解码
-            return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    var result = DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    
+                    // ★ 关键日志：解码完成
+                    Debug.WriteLine($"[ImgSharp] ✓ SafeEnd OK={(result != null)} | {fileName}");
+                    return result;
+                }
+                else
+                {
+                    var result = DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    
+                    // ★ 关键日志：解码完成
+                    Debug.WriteLine($"[ImgSharp] ✓ SafeEnd OK={(result != null)} | {fileName}");
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                // ★ 关键日志：解码异常
+                Debug.WriteLine($"[ImgSharp] ✗ SafeError {ex.GetType().Name} | {fileName}");
+                throw;
+            }
+            finally
+            {
+                // ★ 确保释放文件引用
+                CleanupScheduler.ReleaseFile(filePath);
+                Debug.WriteLine($"[ImgSharp] 🔓 SafeRelease | {fileName}");
+            }
         }
 
         /// <summary>

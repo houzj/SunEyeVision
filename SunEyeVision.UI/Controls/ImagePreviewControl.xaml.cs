@@ -685,6 +685,7 @@ namespace SunEyeVision.UI.Controls
 
         /// <summary>
         /// 优化的全分辨率图像加载（静态方法，可从ImageInfo调用）
+        /// ★ 优化：使用 CleanupScheduler 保护 + StreamSource 立即加载
         /// </summary>
         public static BitmapImage? LoadImageOptimized(string filePath)
         {
@@ -694,30 +695,53 @@ namespace SunEyeVision.UI.Controls
                 return null;
             }
             
-            return s_fullImageCache.GetOrAdd(filePath, fp =>
+            // ★ 核心修复：使用 CleanupScheduler 保护文件访问
+            CleanupScheduler.MarkFileInUse(filePath);
+            
+            try
             {
-                // 再次检查（缓存内部可能访问不同的路径）
-                if (string.IsNullOrEmpty(fp) || !File.Exists(fp))
+                return s_fullImageCache.GetOrAdd(filePath, fp =>
                 {
-                    return null;
-                }
-                
-                try
-                {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
-                    bitmap.UriSource = new Uri(fp);
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    return bitmap;
-                }
-                catch
-                {
-                    return null;
-                }
-            }) as BitmapImage;
+                    // 再次检查（缓存内部可能访问不同的路径）
+                    if (string.IsNullOrEmpty(fp) || !File.Exists(fp))
+                    {
+                        return null;
+                    }
+                    
+                    try
+                    {
+                        // ★ 优化：先读取文件到内存，避免 UriSource 延迟加载问题
+                        byte[] imageBytes;
+                        using (var fs = new FileStream(fp, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
+                        {
+                            imageBytes = new byte[fs.Length];
+                            int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
+                            if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                            {
+                                Array.Resize(ref imageBytes, bytesRead);
+                            }
+                        }
+                        
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                        bitmap.StreamSource = new MemoryStream(imageBytes);
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        return bitmap;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }) as BitmapImage;
+            }
+            finally
+            {
+                // ★ 确保释放文件引用
+                CleanupScheduler.ReleaseFile(filePath);
+            }
         }
 
         /// <summary>

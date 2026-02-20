@@ -158,17 +158,46 @@ namespace SunEyeVision.UI.Controls.Rendering
                     {
                         imageBytes = prefetchedData;
                         readSw.Stop();
+                        Debug.WriteLine($"[WicGpu] 📦 UsePrefetched | {Path.GetFileName(filePath)}");
                     }
                     else
                     {
-                        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan);
-                        imageBytes = new byte[fs.Length];
-                        int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
-                        if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                        // ★ 关键日志：开始读取文件（等待GPU槽位后）
+                        Debug.WriteLine($"[WicGpu] 📖 StartRead wait={waitSw.ElapsedMilliseconds}ms | {Path.GetFileName(filePath)}");
+                        
+                        // ★ 核心修复：再次检查文件是否存在（等待GPU槽位期间可能被删除）
+                        if (!File.Exists(filePath))
                         {
-                            Array.Resize(ref imageBytes, bytesRead);
+                            Debug.WriteLine($"[WicGpu] ✗ FileDeletedDuringGpuWait | {Path.GetFileName(filePath)}");
+                            return null;
                         }
-                        readSw.Stop();
+                        
+                        try
+                        {
+                            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan);
+                            imageBytes = new byte[fs.Length];
+                            int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
+                            if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                            {
+                                Array.Resize(ref imageBytes, bytesRead);
+                            }
+                            readSw.Stop();
+                            
+                            // ★ 关键日志：读取成功
+                            Debug.WriteLine($"[WicGpu] ✓ ReadOK {readSw.ElapsedMilliseconds}ms | {Path.GetFileName(filePath)}");
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            // ★ 关键日志：文件未找到（竞态条件）
+                            Debug.WriteLine($"[WicGpu] ✗ FileNotFound | {Path.GetFileName(filePath)}");
+                            return null;
+                        }
+                        catch (IOException ioEx)
+                        {
+                            // ★ 关键日志：IO异常（文件被锁定或删除）
+                            Debug.WriteLine($"[WicGpu] ✗ IOError: {ioEx.Message} | {Path.GetFileName(filePath)}");
+                            return null;
+                        }
                     }
                     
                     // ★ 新增：获取文件大小信息
@@ -343,7 +372,7 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// ★ 安全解码缩略图（推荐使用）
-        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文件
+        /// 通过 FileAccessManager 和 CleanupScheduler 双重保护文件访问，防止清理器删除正在使用的文件
         /// </summary>
         public BitmapImage? DecodeThumbnailSafe(
             IFileAccessManager? fileManager,
@@ -353,23 +382,52 @@ namespace SunEyeVision.UI.Controls.Rendering
             bool verboseLog = false,
             bool isHighPriority = false)
         {
-            // 如果没有 FileAccessManager，使用普通解码
-            if (fileManager == null)
-            {
-                return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
-            }
-
-            // 使用 RAII 模式确保文件引用正确释放
-            using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+            string fileName = Path.GetFileName(filePath);
             
-            if (!scope.IsGranted)
+            // ★ 关键日志：开始保护
+            Debug.WriteLine($"[WicGpu] 🔐 SafeStart | {fileName}");
+            CleanupScheduler.MarkFileInUse(filePath);
+            
+            try
             {
-                Debug.WriteLine($"[WicGpuDecoder] ⚠ 文件访问被拒绝: {scope.ErrorMessage} file={Path.GetFileName(filePath)}");
-                return null;
-            }
+                // 如果有 FileAccessManager，额外使用它保护
+                if (fileManager != null)
+                {
+                    using var scope = fileManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
+                    
+                    if (!scope.IsGranted)
+                    {
+                        Debug.WriteLine($"[WicGpu] ⚠ AccessDenied: {scope.ErrorMessage} | {fileName}");
+                        return null;
+                    }
 
-            // 文件访问已授权，安全解码
-            return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    var result = DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    
+                    // ★ 关键日志：解码完成
+                    Debug.WriteLine($"[WicGpu] ✓ SafeEnd OK={(result != null)} | {fileName}");
+                    return result;
+                }
+                else
+                {
+                    var result = DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
+                    
+                    // ★ 关键日志：解码完成
+                    Debug.WriteLine($"[WicGpu] ✓ SafeEnd OK={(result != null)} | {fileName}");
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                // ★ 关键日志：解码异常
+                Debug.WriteLine($"[WicGpu] ✗ SafeError {ex.GetType().Name} | {fileName}");
+                throw;
+            }
+            finally
+            {
+                // ★ 确保释放文件引用
+                CleanupScheduler.ReleaseFile(filePath);
+                Debug.WriteLine($"[WicGpu] 🔓 SafeRelease | {fileName}");
+            }
         }
 
         /// <summary>

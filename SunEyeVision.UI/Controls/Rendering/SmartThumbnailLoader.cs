@@ -99,6 +99,7 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// 预读取文件数据（用于并行优化）
+        /// ★ 优化：使用 CleanupScheduler 保护文件访问
         /// </summary>
         public void PrefetchFile(string filePath)
         {
@@ -112,6 +113,9 @@ namespace SunEyeVision.UI.Controls.Rendering
             {
                 Task.Run(() =>
                 {
+                    // ★ 核心修复：使用 CleanupScheduler 保护预读取操作
+                    CleanupScheduler.MarkFileInUse(filePath);
+                    
                     try
                     {
                         using var fs = new FileStream(
@@ -142,7 +146,10 @@ namespace SunEyeVision.UI.Controls.Rendering
 
                         _prefetchCache.TryAdd(filePath, buffer);
                     }
-                    catch { }
+                    finally
+                    {
+                        CleanupScheduler.ReleaseFile(filePath);
+                    }
                 });
             }
             catch { }
@@ -320,16 +327,10 @@ namespace SunEyeVision.UI.Controls.Rendering
                 // 普通任务 → CPU解码器（ImageSharpDecoder，不占用GPU资源）
                 var decoder = isHighPriority ? _gpuDecoder : _cpuDecoder;
                 
-                // ★ 使用安全解码方法（如果 FileAccessManager 可用）
-                BitmapImage? result;
-                if (_fileAccessManager != null)
-                {
-                    result = decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
-                }
-                else
-                {
-                    result = decoder.DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
-                }
+                // ★ 核心修复：始终使用安全解码方法
+                // DecodeThumbnailSafe 内部会使用 CleanupScheduler 保护文件
+                // 无论是否有 FileAccessManager，都会调用 MarkFileInUse/ReleaseFile
+                BitmapImage? result = decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
                 
                 // 解码成功后异步保存到缓存（不阻塞显示）
                 if (result != null)
@@ -372,20 +373,36 @@ namespace SunEyeVision.UI.Controls.Rendering
         
         /// <summary>
         /// 原图解码内部实现
+        /// ★ 优化：使用 CleanupScheduler 保护 + StreamSource 立即加载
         /// </summary>
         private BitmapImage? DecodeOriginalInternal(string filePath, int size)
         {
+            // ★ 核心修复：使用 CleanupScheduler 保护文件访问
+            CleanupScheduler.MarkFileInUse(filePath);
+            
             try
             {
                 var sw = Stopwatch.StartNew();
+                
+                // ★ 优化：先读取文件到内存，避免 UriSource 延迟加载问题
+                byte[] imageBytes;
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
+                {
+                    imageBytes = new byte[fs.Length];
+                    int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
+                    if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                    {
+                        Array.Resize(ref imageBytes, bytesRead);
+                    }
+                }
                 
                 // 使用WPF内置解码，带缩放优化
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
                 bitmap.DecodePixelWidth = size; // ★ 解码时缩放，节省内存
-                bitmap.UriSource = new Uri(filePath);
+                bitmap.StreamSource = new MemoryStream(imageBytes);
                 bitmap.EndInit();
                 bitmap.Freeze();
                 
@@ -404,6 +421,11 @@ namespace SunEyeVision.UI.Controls.Rendering
             {
                 Debug.WriteLine($"[SmartLoader] ✗ L4原图解码失败: {ex.Message} file={Path.GetFileName(filePath)}");
                 return null;
+            }
+            finally
+            {
+                // ★ 确保释放文件引用
+                CleanupScheduler.ReleaseFile(filePath);
             }
         }
 

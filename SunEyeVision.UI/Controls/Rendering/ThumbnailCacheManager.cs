@@ -216,19 +216,24 @@ namespace SunEyeVision.UI.Controls.Rendering
         public static bool SafeDeleteFile(string filePath, out long fileSize)
         {
             fileSize = 0;
+            string fileName = Path.GetFileName(filePath);
 
             // 检查是否已被删除
             lock (_globalLock)
             {
                 if (_deletedFiles.Contains(filePath))
+                {
+                    Debug.WriteLine($"[FileLife] ⊘ AlreadyDeleted | {fileName}");
                     return false;
+                }
             }
 
             // ★ 核心保护：检查文件是否正在使用
-            if (IsFileInUse(filePath))
+            bool inUse = IsFileInUse(filePath);
+            if (inUse)
             {
-                // 文件正在使用，跳过删除
-                Debug.WriteLine($"[CleanupScheduler] ⊘ 跳过正在使用的文件: {Path.GetFileName(filePath)}");
+                // ★ 关键日志：跳过正在使用的文件
+                Debug.WriteLine($"[FileLife] 🔒 SkipInUse | {fileName}");
                 return false;
             }
 
@@ -237,6 +242,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 // 再次检查文件是否存在
                 if (!File.Exists(filePath))
                 {
+                    Debug.WriteLine($"[FileLife] ⊘ NotExists | {fileName}");
                     lock (_globalLock)
                     {
                         _deletedFiles.Add(filePath);
@@ -244,10 +250,22 @@ namespace SunEyeVision.UI.Controls.Rendering
                     return false;
                 }
 
+                // ★ 二次检查锁：在删除前再次确认
+                lock (_globalLock)
+                {
+                    if (_fileUseCount.ContainsKey(filePath) && _fileUseCount[filePath] > 0)
+                    {
+                        Debug.WriteLine($"[FileLife] 🔒 DoubleCheckSkip | {fileName}");
+                        return false;
+                    }
+                }
+
                 var info = new FileInfo(filePath);
                 fileSize = info.Length;
 
-                // 删除文件
+                // ★ 关键日志：开始删除
+                Debug.WriteLine($"[FileLife] 🗑️ Deleting | {fileName}");
+
                 File.Delete(filePath);
 
                 // 标记为已删除
@@ -256,11 +274,14 @@ namespace SunEyeVision.UI.Controls.Rendering
                     _deletedFiles.Add(filePath);
                 }
 
+                // ★ 关键日志：删除成功
+                Debug.WriteLine($"[FileLife] ✓ Deleted | {fileName}");
                 return true;
             }
             catch (FileNotFoundException)
             {
-                // 文件已被其他进程删除，标记为已删除
+                // ★ 关键日志：文件已被其他进程删除
+                Debug.WriteLine($"[FileLife] ⚠ DeletedByOther | {fileName}");
                 lock (_globalLock)
                 {
                     _deletedFiles.Add(filePath);
@@ -269,13 +290,13 @@ namespace SunEyeVision.UI.Controls.Rendering
             }
             catch (IOException ex)
             {
-                // 文件被占用，跳过
-                Debug.WriteLine($"[CleanupScheduler] ⚠ 文件被占用，跳过: {Path.GetFileName(filePath)} - {ex.Message}");
+                // ★ 关键日志：文件被占用
+                Debug.WriteLine($"[FileLife] ⚠ Locked {ex.Message} | {fileName}");
                 return false;
             }
             catch (UnauthorizedAccessException)
             {
-                // 权限不足，跳过
+                Debug.WriteLine($"[FileLife] ⚠ NoAccess | {fileName}");
                 return false;
             }
         }
@@ -348,14 +369,20 @@ namespace SunEyeVision.UI.Controls.Rendering
             
             lock (_globalLock)
             {
+                int newCount;
                 if (_fileUseCount.ContainsKey(filePath))
                 {
                     _fileUseCount[filePath]++;
+                    newCount = _fileUseCount[filePath];
                 }
                 else
                 {
                     _fileUseCount[filePath] = 1;
+                    newCount = 1;
                 }
+                
+                // ★ 关键日志：记录文件被标记
+                Debug.WriteLine($"[FileLife] 📌 MarkInUse cnt={newCount} | {Path.GetFileName(filePath)}");
             }
         }
 
@@ -373,10 +400,24 @@ namespace SunEyeVision.UI.Controls.Rendering
                 if (_fileUseCount.ContainsKey(filePath))
                 {
                     _fileUseCount[filePath]--;
-                    if (_fileUseCount[filePath] <= 0)
+                    int remaining = _fileUseCount[filePath];
+                    
+                    if (remaining <= 0)
                     {
                         _fileUseCount.Remove(filePath);
+                        // ★ 关键日志：文件引用完全释放
+                        Debug.WriteLine($"[FileLife] 📤 ReleaseAll | {Path.GetFileName(filePath)}");
                     }
+                    else
+                    {
+                        // ★ 关键日志：文件引用减少
+                        Debug.WriteLine($"[FileLife] 📤 Release cnt={remaining} | {Path.GetFileName(filePath)}");
+                    }
+                }
+                else
+                {
+                    // ★ 异常情况：释放了未标记的文件
+                    Debug.WriteLine($"[FileLife] ⚠ ReleaseNotMarked | {Path.GetFileName(filePath)}");
                 }
             }
         }
@@ -733,17 +774,47 @@ namespace SunEyeVision.UI.Controls.Rendering
         
         /// <summary>
         /// 从缓存文件加载（内部实现）
+        /// ★ 关键修复：使用 StreamSource + 内存缓冲，避免 UriSource 延迟加载导致竞态条件
+        /// 
+        /// 问题根因：
+        /// - BitmapImage.UriSource 是延迟加载的，在 EndInit() 时才真正读取文件
+        /// - 清理器可能在 MarkFileInUse() 和 EndInit() 之间删除文件
+        /// - 导致 FileNotFoundException 异常
+        /// 
+        /// 解决方案：
+        /// - 先同步读取文件到内存缓冲
+        /// - 再用 MemoryStream 加载，完全避免文件竞态
         /// </summary>
         private BitmapImage? LoadCacheFileInternal(string filePath, string cacheFilePath)
         {
             try
             {
-                var sw = Stopwatch.StartNew();
+                // 再次检查文件存在（双重保险）
+                if (!File.Exists(cacheFilePath))
+                {
+                    _cacheIndex.TryRemove(filePath, out _);
+                    return null;
+                }
+
+                // ★ 核心修复：先同步读取文件到内存，避免 UriSource 延迟加载
+                byte[] imageBytes;
+                using (var fs = new FileStream(cacheFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
+                {
+                    imageBytes = new byte[fs.Length];
+                    int bytesRead = fs.Read(imageBytes, 0, imageBytes.Length);
+                    // 处理读取不完整的情况
+                    if (bytesRead != imageBytes.Length && imageBytes.Length > 0)
+                    {
+                        Array.Resize(ref imageBytes, bytesRead);
+                    }
+                }
+
+                // 从内存流加载图像
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
-                bitmap.UriSource = new Uri(cacheFilePath);
+                bitmap.StreamSource = new MemoryStream(imageBytes);  // 使用内存流
                 bitmap.EndInit();
                 bitmap.Freeze();
 
@@ -755,6 +826,13 @@ namespace SunEyeVision.UI.Controls.Rendering
                 // 磁盘缓存命中不输出日志（高频操作）
 
                 return bitmap;
+            }
+            catch (FileNotFoundException)
+            {
+                // 文件已被其他进程删除
+                Debug.WriteLine($"[ThumbnailCache] ⚠ 缓存文件已删除: {Path.GetFileName(cacheFilePath)}");
+                _cacheIndex.TryRemove(filePath, out _);
+                return null;
             }
             catch (Exception ex)
             {
