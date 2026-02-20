@@ -30,6 +30,15 @@ namespace SunEyeVision.UI.Controls
     }
 
     /// <summary>
+    /// 工作流执行请求事件参数
+    /// </summary>
+    public class WorkflowExecutionRequestEventArgs : EventArgs
+    {
+        public ImageInfo ImageInfo { get; set; } = null!;
+        public int Index { get; set; }
+    }
+
+    /// <summary>
     /// 图像信息项
     /// </summary>
     public class ImageInfo : INotifyPropertyChanged
@@ -441,18 +450,23 @@ namespace SunEyeVision.UI.Controls
             set => SetValue(ImageCollectionProperty, value);
         }
 
-        /// <summary>
-        /// 图像运行模式
-        /// </summary>
-        public ImageRunMode ImageRunMode
-        {
-            get => (ImageRunMode)GetValue(ImageRunModeProperty);
-            set => SetValue(ImageRunModeProperty, value);
-        }
+/// <summary>
+    /// 图像运行模式
+    /// </summary>
+    public ImageRunMode ImageRunMode
+    {
+        get => (ImageRunMode)GetValue(ImageRunModeProperty);
+        set => SetValue(ImageRunModeProperty, value);
+    }
 
-        /// <summary>
-        /// 图像计数显示文本
-        /// </summary>
+    /// <summary>
+    /// 工作流执行请求事件 - 当用户点击图片请求执行工作流时触发
+    /// </summary>
+    public event EventHandler<WorkflowExecutionRequestEventArgs>? WorkflowExecutionRequested;
+
+    /// <summary>
+    /// 图像计数显示文本
+    /// </summary>
         public string ImageCountDisplay
         {
             get
@@ -1549,6 +1563,9 @@ namespace SunEyeVision.UI.Controls
         {
             var control = (ImagePreviewControl)d;
             control.OnPropertyChanged(nameof(ImageRunMode));
+            
+            // 刷新命令状态
+            CommandManager.InvalidateRequerySuggested();
         }
 
 
@@ -1612,13 +1629,13 @@ namespace SunEyeVision.UI.Controls
         {
             Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick 触发 - e.Handled: {e.Handled}, OriginalSource: {e.OriginalSource?.GetType().Name}");
 
-            // 如果点击的是删除按钮或其子元素，跳过处理
+            // 如果点击的是删除按钮或CheckBox，跳过处理
             DependencyObject? current = e.OriginalSource as DependencyObject;
             while (current != null)
             {
-                if (current is Button)
+                if (current is Button || current is CheckBox)
                 {
-                    Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 点击的是删除按钮，跳过处理");
+                    Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 点击的是按钮或CheckBox，跳过处理");
                     return;
                 }
                 current = VisualTreeHelper.GetParent(current);
@@ -1631,27 +1648,43 @@ namespace SunEyeVision.UI.Controls
 
                 if (index >= 0)
                 {
-                    // 如果是"运行选择"模式，切换选择状态
                     if (ImageRunMode == ImageRunMode.运行选择)
                     {
-                        imageInfo.IsForRun = !imageInfo.IsForRun;
-                        Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 运行选择模式: 切换 IsForRun 为 {imageInfo.IsForRun}");
+                        // ★ 运行选择模式：只有已勾选的图片才执行工作流
+                        if (imageInfo.IsForRun)
+                        {
+                            Debug.WriteLine($"[ImagePreviewControl] ★ 执行工作流 - 模式:运行选择, 图像:{imageInfo.Name}, 索引:{index}");
+                            RequestWorkflowExecution(imageInfo, index);
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"[ImagePreviewControl] 图片未勾选 - 图像:{imageInfo.Name}，不执行工作流");
+                        }
                     }
                     else
                     {
-                        // 否则，切换当前显示的图像
-                        CurrentImageIndex = index;
-                        Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 切换当前图像索引为: {CurrentImageIndex}");
-
-                        // 点击后立即加载该图像的缩略图（如果尚未加载）
-                        if (imageInfo.Thumbnail == null)
-                        {
-                            Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 缩略图为空，触发加载");
-                            _priorityLoader.UpdateVisibleRange(index, index, ImageCollection.Count);
-                        }
+                        // ★ 运行全部模式：点击任意图片执行工作流
+                        Debug.WriteLine($"[ImagePreviewControl] ★ 执行工作流 - 模式:运行全部, 图像:{imageInfo.Name}, 索引:{index}");
+                        RequestWorkflowExecution(imageInfo, index);
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 请求执行工作流
+        /// </summary>
+        private void RequestWorkflowExecution(ImageInfo imageInfo, int index)
+        {
+            // 切换当前显示的图像
+            CurrentImageIndex = index;
+            
+            // 触发工作流执行请求事件
+            WorkflowExecutionRequested?.Invoke(this, new WorkflowExecutionRequestEventArgs
+            {
+                ImageInfo = imageInfo,
+                Index = index
+            });
         }
 
         /// <summary>
@@ -2164,6 +2197,26 @@ namespace SunEyeVision.UI.Controls
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value == null ? 1.0 : 0.0;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// 运行模式到可见性转换器（运行选择模式时显示）
+    /// </summary>
+    public class RunModeToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is ImageRunMode mode && mode == ImageRunMode.运行选择)
+            {
+                return Visibility.Visible;
+            }
+            return Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

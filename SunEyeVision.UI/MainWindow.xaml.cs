@@ -708,6 +708,30 @@ namespace SunEyeVision.UI
             }
         }
 
+        /// <summary>
+        /// 工作流执行请求事件处理
+        /// </summary>
+        private void OnWorkflowExecutionRequested(object sender, Controls.WorkflowExecutionRequestEventArgs e)
+        {
+            if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
+            {
+                _viewModel?.AddLog("⚠ 没有选中的工作流，无法执行");
+                return;
+            }
+
+            var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
+            _viewModel.AddLog($"▶ 执行工作流 - 图像: {e.ImageInfo.Name}");
+
+            // 设置当前图像索引
+            _viewModel.CurrentImageIndex = e.Index;
+
+            // 触发工作流执行
+            _viewModel.RunWorkflowCommand.Execute(null);
+
+            _viewModel.StatusText = $"运行工作流: {workflow.Name} - {e.ImageInfo.Name}";
+        }
+
+
         #endregion
 
         #region WorkflowCanvasControl 事件处理

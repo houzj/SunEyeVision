@@ -925,7 +925,8 @@
                                 <controls:ImagePreviewControl x:Name="ImagePreviewContent"
                                                              AutoSwitchEnabled="{Binding AutoSwitchEnabled}"
                                                              CurrentImageIndex="{Binding CurrentImageIndex, Mode=TwoWay}"
-                                                             ImageCollection="{Binding ImageCollection}"/>
+                                                             ImageCollection="{Binding ImageCollection}"
+                                                             WorkflowExecutionRequested="OnWorkflowExecutionRequested"/>
                             </Border>
                         </Grid>
                     </Border>
