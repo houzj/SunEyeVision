@@ -1,0 +1,1227 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Plugin.Infrastructure</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ObservableObject">
+            <summary>
+            可观察对象基类
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem">
+            <summary>
+            参数项ViewModel，用于UI绑定的参数展示
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Name">
+            <summary>
+            参数名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.DisplayName">
+            <summary>
+            显示名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Description">
+            <summary>
+            参数描述
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Value">
+            <summary>
+            参数值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.DisplayValue">
+            <summary>
+            用于UI显示的字符串值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.DefaultValue">
+            <summary>
+            默认值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.DataType">
+            <summary>
+            数据类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.IsReadOnly">
+            <summary>
+            是否只读
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.ValidationError">
+            <summary>
+            验证错误消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.HasError">
+            <summary>
+            是否有验证错误
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.IsVisible">
+            <summary>
+            是否可见
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.MinValue">
+            <summary>
+            最小值（用于数值类型）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.MaxValue">
+            <summary>
+            最大值（用于数值类型）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Options">
+            <summary>
+            可选值列表（用于枚举、下拉框等）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Validate">
+            <summary>
+            验证参数值
+            </summary>
+            <returns>验证是否通过</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Reset">
+            <summary>
+            重置为默认值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.TryParseValue(System.String,System.Object@)">
+            <summary>
+            尝试解析字符串值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterItem.Clone">
+            <summary>
+            创建参数项的克隆
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ParameterOption">
+            <summary>
+            参数选项（用于枚举、下拉框等）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterOption.Value">
+            <summary>
+            选项值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterOption.DisplayText">
+            <summary>
+            显示文本
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ParameterOption.Description">
+            <summary>
+            描述
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase">
+            <summary>
+            自动化工具ViewModel基类 - 增强版，包含完整的MVVM命令支持
+            支持参数管理、验证、异步执行、进度报告等完整功能
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.RunCommand">
+            <summary>
+            运行命令（异步）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ResetCommand">
+            <summary>
+            重置命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.SaveCommand">
+            <summary>
+            保存配置命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.LoadCommand">
+            <summary>
+            加载配置命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ValidateCommand">
+            <summary>
+            验证参数命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.CreateSnapshotCommand">
+            <summary>
+            创建快照命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.RestoreSnapshotCommand">
+            <summary>
+            恢复快照命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.CancelCommand">
+            <summary>
+            取消执行命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ParameterItems">
+            <summary>
+            参数项集合（用于UI绑定）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ValidationError">
+            <summary>
+            验证错误消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.IsBusy">
+            <summary>
+            是否正在执行
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.Progress">
+            <summary>
+            执行进度（0-100）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ProgressMessage">
+            <summary>
+            进度消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.Snapshots">
+            <summary>
+            快照列表
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.Validator">
+            <summary>
+            参数验证器
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.Repository">
+            <summary>
+            参数存储库
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.LoadParameters(SunEyeVision.Plugin.Abstractions.ToolMetadata)">
+            <summary>
+            自动加载参数 - 通过属性名匹配ToolMetadata中的参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.SaveParameters">
+            <summary>
+            自动保存参数 - 收集所有标记的属性
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.GetParamValue``1(System.String,``0)">
+            <summary>
+            获取当前参数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.SetParamValue(System.String,System.Object)">
+            <summary>
+            设置参数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.SetParamValues(System.ValueTuple{System.String,System.Object}[])">
+            <summary>
+            批量设置参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.AddParameterItem(SunEyeVision.Plugin.Infrastructure.Base.ParameterItem)">
+            <summary>
+            添加参数项
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.RemoveParameterItem(System.String)">
+            <summary>
+            移除参数项
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.GetParameterItem(System.String)">
+            <summary>
+            获取参数项
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.BuildParameterDictionary">
+            <summary>
+            从参数项构建参数字典
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.CreateSnapshot">
+            <summary>
+            创建参数快照
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.RestoreSnapshot(SunEyeVision.Plugin.Infrastructure.Base.ParameterSnapshot)">
+            <summary>
+            恢复参数快照
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ValidateAllParameters">
+            <summary>
+            验证所有参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ValidateParameters">
+            <summary>
+            验证参数并返回错误列表
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.RunToolAsync(System.Threading.CancellationToken)">
+            <summary>
+            异步运行工具（子类实现）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ExecuteToolCoreAsync(System.Threading.CancellationToken)">
+            <summary>
+            工具核心执行逻辑（子类重写）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.CancelExecution">
+            <summary>
+            取消执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ReportProgress(System.Double,System.String)">
+            <summary>
+            报告进度
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ReportProgressIncrement(System.Double,System.String)">
+            <summary>
+            报告进度增量
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.SaveParametersAsync(System.String)">
+            <summary>
+            异步保存参数到文件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.LoadParametersAsync(System.String)">
+            <summary>
+            异步从文件加载参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.GetDefaultConfigPath">
+            <summary>
+            获取默认配置文件路径
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.OnExecutionError(System.Exception)">
+            <summary>
+            执行错误处理
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase.ResetParameters">
+            <summary>
+            重置参数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ParameterRepository">
+            <summary>
+            参数仓库 - 占位实现
+            TODO: 根据实际需求完善实现
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterRepository.LoadItemsFromFile(System.String,System.Collections.ObjectModel.ObservableCollection{SunEyeVision.Plugin.Infrastructure.Base.ParameterItem})">
+            <summary>
+            从文件加载参数到ParameterItem集合
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ParameterSnapshot">
+            <summary>
+            参数快照 - 占位实现
+            TODO: 根据实际需求完善实现
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ParameterValidator">
+            <summary>
+            参数验证器 - 占位实现
+            TODO: 根据实际需求完善实现
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ParameterValidator.ValidateItems(System.Collections.ObjectModel.ObservableCollection{SunEyeVision.Plugin.Infrastructure.Base.ParameterItem})">
+            <summary>
+            验证ParameterItem集合
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase">
+            <summary>
+            工具调试ViewModel基类 - 为工具调试界面提供通用功能
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.ToolName">
+            <summary>
+            工具名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.ToolId">
+            <summary>
+            工具ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.ToolStatus">
+            <summary>
+            工具状态
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.StatusMessage">
+            <summary>
+            状态消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.ExecutionTime">
+            <summary>
+            执行时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.FPS">
+            <summary>
+            FPS
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.Initialize(System.String,SunEyeVision.Plugin.Abstractions.IToolPlugin,SunEyeVision.Plugin.Abstractions.ToolMetadata)">
+            <summary>
+            初始化调试界面 - 加载工具信息和参数
+            </summary>
+            <param name="toolId">工具ID</param>
+            <param name="toolPlugin">工具插件</param>
+            <param name="toolMetadata">工具元数据</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.LoadParameters(SunEyeVision.Plugin.Abstractions.ToolMetadata)">
+            <summary>
+            加载参数 - 从工具元数据加载参数到界面
+            </summary>
+            <param name="toolMetadata">工具元数据</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.SaveParameters">
+            <summary>
+            保存参数 - 从界面保存参数到字典
+            </summary>
+            <returns>参数值字典</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.ResetParameters">
+            <summary>
+            重置参数 - 恢复默认值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolDebugViewModelBase.RunTool">
+            <summary>
+            运行工具 - 执行工具逻辑
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Base.ToolUIHelpers">
+            <summary>
+            工具UI辅助类 - 提供通用方法减少重复代码
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolUIHelpers.GetParameterValue``1(SunEyeVision.Plugin.Abstractions.ToolMetadata,System.String,``0)">
+            <summary>
+            从ToolMetadata提取参数到ViewModel
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolUIHelpers.CreateParameterDictionary(System.ValueTuple{System.String,System.Object}[])">
+            <summary>
+            保存参数到字典
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolUIHelpers.UpdateParameters(System.Collections.Generic.Dictionary{System.String,System.Object},System.ValueTuple{System.String,System.Object}[])">
+            <summary>
+            批量更新参数到字典
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Base.ToolUIHelpers.GetValue``1(System.Collections.Generic.Dictionary{System.String,System.Object},System.String,``0)">
+            <summary>
+            获取参数值，支持类型转换
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand">
+            <summary>
+            异步命令实现，支持异步操作且不阻塞UI线程
+            自动管理执行状态，防止重复执行
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.IsExecuting">
+            <summary>
+            当前是否正在执行
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.CancellationToken">
+            <summary>
+            取消令牌，用于取消异步操作
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.#ctor(System.Func{System.Object,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Func{System.Object,System.Boolean},System.Action{System.Exception})">
+            <summary>
+            构造函数
+            </summary>
+            <param name="execute">异步执行委托</param>
+            <param name="canExecute">可执行条件委托（可选）</param>
+            <param name="onError">错误处理委托（可选）</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.#ctor(System.Func{System.Object,System.Threading.Tasks.Task},System.Func{System.Object,System.Boolean},System.Action{System.Exception})">
+            <summary>
+            简化构造函数，不需要CancellationToken
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.#ctor(System.Func{System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Func{System.Boolean},System.Action{System.Exception})">
+            <summary>
+            无参数的简化构造函数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.Execute(System.Object)">
+            <summary>
+            执行异步命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.Cancel">
+            <summary>
+            取消当前正在执行的异步操作
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1">
+            <summary>
+            泛型版本的异步命令，提供类型安全的命令参数
+            </summary>
+            <typeparam name="T">命令参数类型</typeparam>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.IsExecuting">
+            <summary>
+            当前是否正在执行
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.CancellationToken">
+            <summary>
+            取消令牌
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.#ctor(System.Func{`0,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Predicate{`0},System.Action{System.Exception})">
+            <summary>
+            构造函数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.#ctor(System.Func{`0,System.Threading.Tasks.Task},System.Predicate{`0},System.Action{System.Exception})">
+            <summary>
+            简化构造函数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.Execute(System.Object)">
+            <summary>
+            执行异步命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.Cancel">
+            <summary>
+            取消当前正在执行的异步操作
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand`1.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand">
+            <summary>
+            复合命令，将多个命令组合成一个命令
+            当执行复合命令时，所有子命令都会被执行
+            只有当所有子命令都可执行时，复合命令才可执行
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.Commands">
+            <summary>
+            子命令集合
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.#ctor(System.Boolean)">
+            <summary>
+            构造函数
+            </summary>
+            <param name="executeAllCommands">是否执行所有子命令，否则只执行第一个可执行的命令</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.#ctor(System.Func{System.Boolean},System.Boolean)">
+            <summary>
+            构造函数，带自定义的可执行条件
+            </summary>
+            <param name="customCanExecute">自定义的可执行条件</param>
+            <param name="executeAllCommands">是否执行所有子命令</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.RegisterCommand(System.Windows.Input.ICommand)">
+            <summary>
+            添加子命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.UnregisterCommand(System.Windows.Input.ICommand)">
+            <summary>
+            移除子命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.Execute(System.Object)">
+            <summary>
+            执行命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.CompositeCommand.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand">
+            <summary>
+            异步复合命令，支持异步操作的复合命令
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.AsyncCommands">
+            <summary>
+            子命令集合
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.#ctor(System.Boolean)">
+            <summary>
+            构造函数
+            </summary>
+            <param name="executeAllCommands">是否执行所有子命令</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.RegisterCommand(SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand)">
+            <summary>
+            添加子命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.UnregisterCommand(SunEyeVision.Plugin.Infrastructure.Commands.AsyncRelayCommand)">
+            <summary>
+            移除子命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.Execute(System.Object)">
+            <summary>
+            重写执行方法，执行所有子命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.AsyncCompositeCommand.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand">
+            <summary>
+            参数变更命令，用于处理参数值变化时的业务逻辑
+            支持参数验证、自动计算、依赖更新等场景
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand.#ctor(System.Action{System.Object,System.String,System.Object},System.Func{System.Object,System.String,System.Object,System.Boolean},System.Action{System.Exception},System.Boolean)">
+            <summary>
+            构造函数
+            </summary>
+            <param name="execute">参数变更执行委托</param>
+            <param name="canExecute">可执行条件委托（可选）</param>
+            <param name="onError">错误处理委托（可选）</param>
+            <param name="alwaysCanExecute">是否总是可执行</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand.Execute(System.Object)">
+            <summary>
+            执行命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs">
+            <summary>
+            参数变更事件参数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs.ParameterOwner">
+            <summary>
+            参数所属对象
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs.ParameterName">
+            <summary>
+            参数名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs.NewValue">
+            <summary>
+            新值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs.OldValue">
+            <summary>
+            旧值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs.#ctor(System.Object,System.String,System.Object,System.Object)">
+            <summary>
+            构造函数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2">
+            <summary>
+            泛型版本的参数变更命令
+            </summary>
+            <typeparam name="TOwner">参数所属类型</typeparam>
+            <typeparam name="TValue">参数值类型</typeparam>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2.#ctor(System.Action{`0,System.String,`1},System.Func{`0,System.String,`1,System.Boolean},System.Action{System.Exception})">
+            <summary>
+            构造函数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2.Execute(System.Object)">
+            <summary>
+            执行命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedCommand`2.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs`1">
+            <summary>
+            泛型版本的参数变更事件参数
+            </summary>
+            <typeparam name="TValue">参数值类型</typeparam>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs`1.NewValue">
+            <summary>
+            强类型的新值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs`1.OldValue">
+            <summary>
+            强类型的旧值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.ParameterChangedEventArgs`1.#ctor(System.Object,System.String,`0,`0)">
+            <summary>
+            构造函数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand">
+            <summary>
+            通用的同步RelayCommand实现，用于MVVM模式中的命令绑定
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.#ctor(System.Action{System.Object},System.Predicate{System.Object})">
+            <summary>
+            构造函数
+            </summary>
+            <param name="execute">命令执行委托</param>
+            <param name="canExecute">命令可执行条件委托（可选）</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.#ctor(System.Action,System.Func{System.Boolean})">
+            <summary>
+            简化构造函数，无参数的命令
+            </summary>
+            <param name="execute">命令执行委托</param>
+            <param name="canExecute">命令可执行条件委托（可选）</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.Execute(System.Object)">
+            <summary>
+            执行命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1">
+            <summary>
+            泛型版本的RelayCommand，提供类型安全的命令参数
+            </summary>
+            <typeparam name="T">命令参数类型</typeparam>
+        </member>
+        <member name="E:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1.CanExecuteChanged">
+            <summary>
+            命令可执行状态改变事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1.#ctor(System.Action{`0},System.Predicate{`0})">
+            <summary>
+            构造函数
+            </summary>
+            <param name="execute">命令执行委托</param>
+            <param name="canExecute">命令可执行条件委托（可选）</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1.CanExecute(System.Object)">
+            <summary>
+            判断命令是否可执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1.Execute(System.Object)">
+            <summary>
+            执行命令
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Commands.RelayCommand`1.RaiseCanExecuteChanged">
+            <summary>
+            触发CanExecuteChanged事件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator">
+            <summary>
+            缓存工具插件装饰器 - 为工具添加缓存功能
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.CacheEntry">
+            <summary>
+            缓存条目
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.GetToolMetadata">
+            <summary>
+            获取工具元数据列表
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.CreateToolInstance(System.String)">
+            <summary>
+            创建工具实例(带缓存)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.GetDefaultParameters(System.String)">
+            <summary>
+            获取工具的默认参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.ValidateParameters(System.String,SunEyeVision.Core.Models.AlgorithmParameters)">
+            <summary>
+            验证参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.ClearCache">
+            <summary>
+            清空缓存
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.GetCacheStatistics">
+            <summary>
+            获取缓存统计信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.CachingImageProcessor">
+            <summary>
+            带缓存的图像处理器
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.CachingToolPluginDecorator.CachingImageProcessor.ComputeCacheKey(System.Object)">
+            <summary>
+            计算缓存键
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator">
+            <summary>
+            重试工具插件装饰器 - 为工具添加重试功能
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator.GetToolMetadata">
+            <summary>
+            获取工具元数据列表
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator.CreateToolInstance(System.String)">
+            <summary>
+            创建工具实例(带重试)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator.GetDefaultParameters(System.String)">
+            <summary>
+            获取工具的默认参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator.ValidateParameters(System.String,SunEyeVision.Core.Models.AlgorithmParameters)">
+            <summary>
+            验证参数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Decorators.RetryToolPluginDecorator.RetryImageProcessor">
+            <summary>
+            带重试的图像处理器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.StringToVisibilityConverter">
+            <summary>
+            字符串到可见性转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.BoolToVisibilityConverter">
+            <summary>
+            布尔值到可见性转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.InvertBoolConverter">
+            <summary>
+            布尔值反转转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.ProgressToStringConverter">
+            <summary>
+            进度值到百分比字符串转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.NullToVisibilityConverter">
+            <summary>
+            空值到可见性转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.MultiBooleanAndConverter">
+            <summary>
+            多值转换器 - 所有条件为真时返回True
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.MultiBooleanOrConverter">
+            <summary>
+            多值转换器 - 任意条件为真时返回True
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.TypeToVisibilityConverter">
+            <summary>
+            对象类型到可见性转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Converters.NumericRangeToVisibilityConverter">
+            <summary>
+            数值范围到可见性转换器
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Windows.BaseToolDebugWindow">
+            <summary>
+            BaseToolDebugWindow.xaml 的交互逻辑 - 工具调试窗口基类
+            </summary>
+            <summary>
+            BaseToolDebugWindow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.BaseToolDebugWindow.#ctor">
+            <summary>
+            无参构造函数（供XAML编译器使用）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.BaseToolDebugWindow.CreateViewModel">
+            <summary>
+            创建ViewModel实例 - 由子类实现
+            </summary>
+            <returns>ViewModel实例</returns>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.UI.Windows.BaseToolDebugWindow.CustomContent">
+            <summary>
+            自定义内容 - 由子类XAML填充
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.BaseToolDebugWindow.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow">
+            <summary>
+            增强版工具调试窗口 - 支持完整的MVVM架构
+            提供动态参数控件、命令绑定、进度显示等功能
+            </summary>
+            <summary>
+            EnhancedToolDebugWindow
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.HasCustomContent">
+            <summary>
+            是否有自定义内容
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.#ctor">
+            <summary>
+            构造函数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.Initialize(SunEyeVision.Plugin.Infrastructure.Base.AutoToolDebugViewModelBase)">
+            <summary>
+            使用ViewModel初始化窗口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.SetCustomContent(System.Object)">
+            <summary>
+            设置自定义内容区域
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.SetResultContent(System.Object)">
+            <summary>
+            设置结果内容区域
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.OnSourceInitialized(System.EventArgs)">
+            <summary>
+            窗口加载事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.UI.Windows.EnhancedToolDebugWindow.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.IPluginManager">
+            <summary>
+            插件管理器接口 - 提供插件加载和管理功能
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.LoadPlugins">
+            <summary>
+            加载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.UnloadPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.GetPlugins``1">
+            <summary>
+            获取所有插件
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>插件列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.RegisterPlugin(System.Object)">
+            <summary>
+            注册插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.UnregisterPlugin(System.Object)">
+            <summary>
+            注销插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.IPluginManager.IsPluginLoaded``1">
+            <summary>
+            检查插件是否已加载
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>是否已加载</returns>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.PluginLoader">
+            <summary>
+            插件加载器 - 从目录加载插件程序集
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.LoadPluginsFromDirectory(System.String)">
+            <summary>
+            从目录加载所有插件
+            </summary>
+            <param name="pluginDirectory">插件目录</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.LoadPlugin(System.String)">
+            <summary>
+            加载单个插件
+            </summary>
+            <param name="pluginPath">插件DLL路径</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.UnloadPlugin(System.String)">
+            <summary>
+            卸载插件
+            </summary>
+            <param name="pluginId">插件ID</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.GetPlugin(System.String)">
+            <summary>
+            获取已加载的插件
+            </summary>
+            <param name="pluginId">插件ID</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.GetAllPlugins">
+            <summary>
+            获取所有已加载的插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginLoader.UnloadAllPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.PluginManager">
+            <summary>
+            插件管理器实现
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.LoadPlugins">
+            <summary>
+            加载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.UnloadPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.GetPlugins``1">
+            <summary>
+            获取所有插件
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>插件列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.RegisterPlugin(System.Object)">
+            <summary>
+            注册插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.UnregisterPlugin(System.Object)">
+            <summary>
+            注销插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.PluginManager.IsPluginLoaded``1">
+            <summary>
+            检查插件是否已加载
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>是否已加载</returns>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.ToolRegistry">
+            <summary>
+            工具注册表 - 管理所有已注册的工具插件（静态类）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.RegisterTool(SunEyeVision.Plugin.Abstractions.IToolPlugin)">
+            <summary>
+            注册工具插件
+            </summary>
+            <param name="toolPlugin">工具插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetToolPlugin(System.String)">
+            <summary>
+            获取工具插件
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具插件实例，如果不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetToolMetadata(System.String)">
+            <summary>
+            获取工具元数据
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具元数据，如果不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetAllToolMetadata">
+            <summary>
+            获取所有工具元数据
+            </summary>
+            <returns>所有工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetToolsByCategory(System.String)">
+            <summary>
+            按分类获取工具元数据
+            </summary>
+            <param name="category">分类名称</param>
+            <returns>该分类下的工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.ToolExists(System.String)">
+            <summary>
+            检查工具是否存在
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否存在</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.UnregisterTool(System.String)">
+            <summary>
+            注销工具
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否成功</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.ClearAll">
+            <summary>
+            清空所有注册的工具
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetToolCount">
+            <summary>
+            获取已注册的工具数量
+            </summary>
+            <returns>工具数量</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.ToolRegistry.GetAllCategories">
+            <summary>
+            获取所有分类
+            </summary>
+            <returns>分类列表</returns>
+        </member>
+    </members>
+</doc>

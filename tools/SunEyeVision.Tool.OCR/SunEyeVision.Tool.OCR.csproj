@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SunEyeVision.Tool.OCR</RootNamespace>
+    <AssemblyName>SunEyeVision.Tool.OCR</AssemblyName>
+    <!-- 输出到统一插件目录 -->
+    <OutDir>$(SolutionDir)output\plugins\</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Core\SunEyeVision.Core.csproj" />
+  </ItemGroup>
+</Project>

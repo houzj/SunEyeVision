@@ -14,8 +14,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunEyeVision.Plugin.Abstrac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunEyeVision.Plugin.Infrastructure", "src\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj", "{F2B3C4D5-E6F7-8901-BCDE-F123456789012}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunEyeVision.Tools", "src\Tools\SunEyeVision.Tools.csproj", "{AED16F88-D4FB-B11E-E53E-999EC487310A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunEyeVision.Core.Tests", "tests\SunEyeVision.Core.Tests\SunEyeVision.Core.Tests.csproj", "{C1D2E3F4-A5B6-7890-CDEF-123456789012}"
 EndProject
 Global
@@ -100,18 +98,6 @@ Global
 		{F2B3C4D5-E6F7-8901-BCDE-F123456789012}.Release|x64.Build.0 = Release|Any CPU
 		{F2B3C4D5-E6F7-8901-BCDE-F123456789012}.Release|x86.ActiveCfg = Release|Any CPU
 		{F2B3C4D5-E6F7-8901-BCDE-F123456789012}.Release|x86.Build.0 = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|x64.Build.0 = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Debug|x86.Build.0 = Debug|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|x64.ActiveCfg = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|x64.Build.0 = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|x86.ActiveCfg = Release|Any CPU
-		{AED16F88-D4FB-B11E-E53E-999EC487310A}.Release|x86.Build.0 = Release|Any CPU
 		{C1D2E3F4-A5B6-7890-CDEF-123456789012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1D2E3F4-A5B6-7890-CDEF-123456789012}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1D2E3F4-A5B6-7890-CDEF-123456789012}.Debug|x64.ActiveCfg = Debug|Any CPU

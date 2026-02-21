@@ -1,0 +1,41 @@
+<Window x:Class="SunEyeVision.Tool.EdgeDetection.Views.EdgeDetectionToolDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="边缘检测工具调试" Height="500" Width="450">
+    
+    <StackPanel Margin="16">
+            <!-- 算法选择 -->
+            <TextBlock Text="算法类型:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <ComboBox ItemsSource="{Binding Algorithms}" SelectedItem="{Binding Algorithm}"
+                     Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1" Margin="0,0,0,12"/>
+
+            <!-- 阈值1 -->
+            <TextBlock Text="阈值1 (低阈值):" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding Threshold1, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding Threshold1}" Minimum="0" Maximum="255" 
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding Threshold1}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 阈值2 -->
+            <TextBlock Text="阈值2 (高阈值):" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding Threshold2, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding Threshold2}" Minimum="0" Maximum="255" 
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding Threshold2}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 孔径大小 -->
+            <TextBlock Text="孔径大小:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox Width="100" Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1">
+                    <ComboBoxItem Content="3" Tag="3" IsSelected="{Binding ApertureSize, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}"/>
+                    <ComboBoxItem Content="5" Tag="5" IsSelected="{Binding ApertureSize, Converter={StaticResource IntToBoolConverter}, ConverterParameter=5}"/>
+                    <ComboBoxItem Content="7" Tag="7" IsSelected="{Binding ApertureSize, Converter={StaticResource IntToBoolConverter}, ConverterParameter=7}"/>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel></Window>
