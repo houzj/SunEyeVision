@@ -1,6 +1,8 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services.Path;
 
 namespace SunEyeVision.UI.Services.PathCalculators
 {

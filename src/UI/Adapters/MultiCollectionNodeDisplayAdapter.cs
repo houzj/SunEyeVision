@@ -1,5 +1,6 @@
 using System.Windows.Media;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Adapters;
 
 namespace SunEyeVision.UI.Adapters
 {

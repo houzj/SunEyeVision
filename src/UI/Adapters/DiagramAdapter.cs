@@ -5,6 +5,7 @@ using System.Windows;
 using AIStudio.Wpf.DiagramDesigner.ViewModels;
 using AIStudio.Wpf.DiagramDesigner;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Adapters;
 
 namespace SunEyeVision.UI.Adapters
 {

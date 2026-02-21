@@ -5,10 +5,12 @@ using System.Windows.Media;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Commands;
-using SunEyeVision.UI.Interfaces;
+using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services;
-using SunEyeVision.UI.Controls;
+using SunEyeVision.UI.Views.Controls.Canvas;
+using SunEyeVision.UI.Services.Interaction;
+using SunEyeVision.UI.Services.Workflow;
 
 namespace SunEyeVision.UI.ViewModels
 {

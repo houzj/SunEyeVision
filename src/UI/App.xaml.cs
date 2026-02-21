@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using System.Windows.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using SunEyeVision.UI.Views.Windows;
 
 namespace SunEyeVision.UI;
 

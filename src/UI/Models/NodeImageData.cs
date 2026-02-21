@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using SunEyeVision.UI.Controls;
-using SunEyeVision.UI.Controls.Rendering;
+using SunEyeVision.UI.Views.Controls.Panels;
+using SunEyeVision.UI.Services.Thumbnail;
 
 namespace SunEyeVision.UI.Models
 {

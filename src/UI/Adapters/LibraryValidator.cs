@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using SunEyeVision.UI.Adapters;
 
 namespace SunEyeVision.UI.Adapters
 {

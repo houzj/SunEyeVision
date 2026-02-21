@@ -52,4 +52,12 @@
     </Content>
   </ItemGroup>
 
+  <!-- 构建后复制插件到输出目录 -->
+  <Target Name="CopyPluginsToOutput" AfterTargets="Build">
+    <ItemGroup>
+      <PluginFiles Include="..\..\output\plugins\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(OutputPath)plugins\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

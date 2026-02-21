@@ -1,0 +1,1022 @@
+<Window x:Class="SunEyeVision.UI.Views.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SunEyeVision.UI"
+        xmlns:vm="clr-namespace:SunEyeVision.UI.ViewModels"
+        xmlns:converters="clr-namespace:SunEyeVision.UI.Converters"
+        xmlns:convertersUI="clr-namespace:SunEyeVision.UI.Converters.UI"
+        xmlns:convertersWorkflow="clr-namespace:SunEyeVision.UI.Converters.Workflow"
+        xmlns:convertersPath="clr-namespace:SunEyeVision.UI.Converters.Path"
+        xmlns:convertersNode="clr-namespace:SunEyeVision.UI.Converters.Node"
+        xmlns:convertersVisibility="clr-namespace:SunEyeVision.UI.Converters.Visibility"
+        xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls"
+        xmlns:canvas="clr-namespace:SunEyeVision.UI.Views.Controls.Canvas"
+        xmlns:toolbox="clr-namespace:SunEyeVision.UI.Views.Controls.Toolbox"
+        xmlns:panels="clr-namespace:SunEyeVision.UI.Views.Controls.Panels"
+        xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
+        mc:Ignorable="d"
+        Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#FFFFFF"
+        Loaded="MainWindow_Loaded">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/AppResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <convertersUI:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <convertersPath:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
+            <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
+            <convertersVisibility:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <converters:ExpandIconConverter x:Key="ExpandIconConverter"/>
+            <convertersVisibility:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <convertersNode:ImageAreaHeightConverter x:Key="ImageAreaHeightConverter"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- ========== 顶部菜单栏 (28px) ========== -->
+        <Menu DockPanel.Dock="Top" Height="28" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <MenuItem Header="文件(_F)">
+                <MenuItem Header="新建方案(_N)" Command="{Binding NewWorkflowCommand}" InputGestureText="Ctrl+N"/>
+                <MenuItem Header="打开方案(_O)" Command="{Binding OpenWorkflowCommand}" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="保存方案(_S)" Command="{Binding SaveWorkflowCommand}" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="另存为(_A)" Command="{Binding SaveAsWorkflowCommand}" InputGestureText="Ctrl+Shift+S"/>
+                <Separator/>
+                <MenuItem Header="导入(_I)" InputGestureText="Ctrl+I"/>
+                <MenuItem Header="导出(_E)" InputGestureText="Ctrl+E"/>
+                <Separator/>
+                <MenuItem Header="最近文件"/>
+                <Separator/>
+                <MenuItem Header="退出(_X)" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="编辑(_E)">
+                <MenuItem Header="撤销(_U)" InputGestureText="Ctrl+Z"/>
+                <MenuItem Header="重做(_R)" InputGestureText="Ctrl+Y"/>
+                <Separator/>
+                <MenuItem Header="复制(_C)" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="粘贴(_V)" InputGestureText="Ctrl+V"/>
+                <MenuItem Header="删除(_D)" InputGestureText="Del"/>
+                <Separator/>
+                <MenuItem Header="全选(_A)" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="查找(_F)" InputGestureText="Ctrl+F"/>
+                <MenuItem Header="替换(_H)" InputGestureText="Ctrl+H"/>
+            </MenuItem>
+            <MenuItem Header="视图(_V)">
+                <MenuItem Header="方案树(_S)"/>
+                <MenuItem Header="工具箱(_T)"/>
+                <MenuItem Header="设备管理(_D)"/>
+                <MenuItem Header="属性面板(_P)"/>
+                <MenuItem Header="日志窗口(_L)"/>
+                <MenuItem Header="结果预览(_R)"/>
+                <MenuItem Header="系统信息(_I)"/>
+                <Separator/>
+                <MenuItem Header="显示最大外接矩形(_B)" InputGestureText="Ctrl+B" Command="{Binding ToggleBoundingRectangleCommand}"/>
+                <MenuItem Header="显示路径拐点(_P)" InputGestureText="Ctrl+P" Command="{Binding TogglePathPointsCommand}"/>
+                <Separator/>
+                <MenuItem Header="全屏(_F)" InputGestureText="F11"/>
+                <MenuItem Header="重置布局(_R)"/>
+            </MenuItem>
+            <MenuItem Header="运行(_R)">
+                <MenuItem Header="运行(_R)" Command="{Binding RunWorkflowCommand}" InputGestureText="F5"/>
+                <MenuItem Header="停止(_S)" Command="{Binding StopWorkflowCommand}" InputGestureText="Shift+F5"/>
+                <MenuItem Header="暂停(_P)" InputGestureText="Ctrl+Break"/>
+                <Separator/>
+                <MenuItem Header="调试模式(_D)" InputGestureText="Ctrl+Shift+D"/>
+                <MenuItem Header="单步执行(_S)" InputGestureText="F10"/>
+                <MenuItem Header="断点(_B)" InputGestureText="F9"/>
+            </MenuItem>
+            <MenuItem Header="工具(_T)">
+                <MenuItem Header="相机配置(_C)"/>
+                <MenuItem Header="参数管理(_P)"/>
+                <MenuItem Header="插件管理(_L)"/>
+                <MenuItem Header="系统设置(_S)"/>
+                <MenuItem Header="快捷键设置(_K)"/>
+            </MenuItem>
+            <MenuItem Header="插件(_P)">
+                <MenuItem Header="插件市场(_M)"/>
+                <MenuItem Header="安装插件(_I)"/>
+                <MenuItem Header="启用/禁用(_D)"/>
+                <MenuItem Header="插件更新(_U)"/>
+            </MenuItem>
+            <MenuItem Header="帮助(_H)">
+                <MenuItem Header="用户手册(_M)" InputGestureText="F1" Command="{Binding ShowHelpCommand}"/>
+                <MenuItem Header="API文档(_D)"/>
+                <MenuItem Header="快捷键(_K)" Command="{Binding ShowShortcutsCommand}"/>
+                <MenuItem Header="关于(_A)" Command="{Binding ShowAboutCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- ========== 工具栏 (40px) ========== -->
+        <ToolBar DockPanel.Dock="Top" Height="40" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <!-- 文件操作组 -->
+            <Button ToolTip="新建 (Ctrl+N)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding NewWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📄" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="新建" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="打开 (Ctrl+O)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding OpenWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📂" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="打开" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="保存 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveWorkflowCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="保存" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <!-- 执行控制组 - 所有工作流控制 -->
+            <Button ToolTip="单次运行全部工作流 (Shift+F5)"
+                    Width="36"
+                    Height="36"
+                    Margin="2"
+                    Padding="0"
+                    BorderThickness="0"
+                    Command="{Binding RunAllWorkflowsCommand}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#4CAF50" Offset="0"/>
+                        <GradientStop Color="#45A049" Offset="1"/>
+                    </LinearGradientBrush>
+                </Button.Background>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="6">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <Path Data="M8,6 L20,12 L8,18 Z"
+                      Fill="White"
+                      Stretch="Uniform"
+                      Width="20" Height="20"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+            </Button>
+
+            <Button ToolTip="连续运行全部工作流 (Ctrl+Shift+F5)"
+                    Width="36"
+                    Height="36"
+                    Margin="2"
+                    Padding="0"
+                    BorderThickness="0"
+                    Command="{Binding ToggleContinuousAllCommand}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#4CAF50" Offset="0"/>
+                        <GradientStop Color="#45A049" Offset="1"/>
+                    </LinearGradientBrush>
+                </Button.Background>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="6">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAllWorkflowsRunning}" Value="True">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#F44336" Offset="0"/>
+                                            <GradientStop Color="#D32F2F" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#F44336" BlurRadius="8" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <Path Data="{Binding IsAllWorkflowsRunning, Converter={StaticResource ContinuousRunIconTriangleInLoopConverter}}"
+                      Fill="White"
+                      Stretch="Uniform"
+                      Width="20" Height="20"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+            </Button>
+
+            <Separator/>
+
+            <!-- 工作流管理组 -->
+            <ComboBox Width="150" Height="32" Margin="8,0,4,0" VerticalAlignment="Center"
+                     ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
+                     SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     DisplayMemberPath="Name"
+                     IsSynchronizedWithCurrentItem="True"
+                     ToolTip="快速切换工作流"
+                     Style="{StaticResource StyledComboBox}"/>
+
+            <Separator/>
+
+            <!-- 调试工具组 -->
+            <Button ToolTip="单步执行 (F10)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔍" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="调试" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <!-- 编辑操作组 -->
+            <Button ToolTip="撤销 (Ctrl+Z)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="↩️" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="重做 (Ctrl+Y)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
+                <TextBlock Text="↪️" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+
+            <Separator/>
+
+            <!-- 视图控制组 -->
+            <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomIn_Click">
+                <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomOut_Click">
+                <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomFit_Click">
+                <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomReset_Click">
+                <TextBlock Text="1:1" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
+            </Button>
+
+            <Separator/>
+
+            <!-- 画布切换组 - 已禁用，默认使用 WorkflowCanvasControl + BezierPathCalculator -->
+            <!--
+            <Button ToolTip="切换到正交折线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToWorkflowCanvas_Click">
+                <TextBlock Text="📐" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            <Button ToolTip="切换到贝塞尔曲线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToNativeDiagram_Click">
+                <TextBlock Text="〰️" FontSize="14" VerticalAlignment="Center"/>
+            </Button>
+            -->
+
+            <Separator/>
+
+            <TextBlock x:Name="ZoomTextBlock" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
+        </ToolBar>
+
+
+        <!-- ========== 主内容区域 ========== -->
+        <Grid x:Name="MainContentGrid" Loaded="MainContentGrid_Loaded">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" x:Name="ToolboxColumn" MinWidth="60" MaxWidth="260"/>
+                <ColumnDefinition Width="*" x:Name="WorkflowColumn" MinWidth="400"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="700" x:Name="RightPanelColumn" MinWidth="40" MaxWidth="900"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="24"/>
+            </Grid.RowDefinitions>
+
+            <!-- ========== 左侧工具区 - 使用双模ToolboxControl ========== -->
+            <Border Grid.Column="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+                <toolbox:ToolboxControl DataContext="{Binding Toolbox}" x:Name="ToolboxContent"/>
+            </Border>
+
+
+            <!-- ========== 中间工作区 - TabControl多流程编辑 ========== -->
+            <Border Grid.Column="1" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
+                <TabControl x:Name="WorkflowTabControl"
+                            Background="#F5F5F5"
+                            BorderThickness="0"
+                            ItemsSource="{Binding WorkflowTabViewModel.Tabs}"
+                            SelectedItem="{Binding WorkflowTabViewModel.SelectedTab, Mode=TwoWay}"
+                            IsSynchronizedWithCurrentItem="True"
+                            SelectionChanged="WorkflowTabControl_SelectionChanged"
+                            PreviewMouseLeftButtonDown="WorkflowTabControl_PreviewMouseLeftButtonDown"
+                            Loaded="WorkflowTabControl_Loaded">
+                    <TabControl.Resources>
+                        <convertersWorkflow:WorkflowStateToColorConverter x:Key="WorkflowStateToColorConverter"/>
+                        <convertersWorkflow:WorkflowStateToTextConverter x:Key="WorkflowStateToTextConverter"/>
+                        <convertersWorkflow:ContinuousRunButtonTextConverter x:Key="ContinuousRunButtonTextConverter"/>
+                        <convertersWorkflow:ContinuousRunBackgroundConverter x:Key="ContinuousRunBackgroundConverter"/>
+                        <convertersWorkflow:ContinuousRunBorderConverter x:Key="ContinuousRunBorderConverter"/>
+                        <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
+                        <converters:ContinuousRunIconColorConverter x:Key="ContinuousRunIconColorConverter"/>
+                    </TabControl.Resources>
+
+                    <!-- 自定义TabControl模板,将添加按钮放在TabPanel中 -->
+                    <TabControl.Template>
+                        <ControlTemplate TargetType="TabControl">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- TabPanel区域,分为两列:左侧TabItems可滚动,右侧添加按钮固定 -->
+                                <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0"
+                                        ClipToBounds="True">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>  <!-- 左侧:TabItems区域 -->
+                                            <ColumnDefinition Width="Auto"/> <!-- 右侧:添加按钮区域 -->
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- 左侧:ScrollViewer包裹TabPanel和可滚动添加按钮 -->
+                                        <ScrollViewer Grid.Column="0"
+                                                      x:Name="TabPanelScrollViewer"
+                                                      HorizontalScrollBarVisibility="Hidden"
+                                                      VerticalScrollBarVisibility="Disabled"
+                                                      Focusable="False"
+                                                      ClipToBounds="True">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TabPanel x:Name="HeaderPanel"
+                                                          IsItemsHost="True"/>
+                                                
+                                                <!-- 可滚动位置的添加按钮 - 当TabItems多时隐藏 -->
+                                                <Border x:Name="ScrollableAddButtonBorder"
+                                                        Visibility="Collapsed"
+                                                        Background="#F5F5F5" Padding="2,2,8,0"
+                                                        Margin="4,2,0,0">
+                                                    <Button Width="40" Height="40"
+                                                            Padding="0"
+                                                            BorderThickness="1"
+                                                            BorderBrush="#4CAF50"
+                                                            Background="#F1F8E9"
+                                                            Cursor="Hand"
+                                                            Click="AddWorkflow_Click">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="ButtonBorder"
+                                                                        Background="{TemplateBinding Background}"
+                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                        CornerRadius="6"
+                                                                        Width="{TemplateBinding Width}"
+                                                                        Height="{TemplateBinding Height}">
+                                                                    <Path x:Name="ButtonIcon"
+                                                                          Data="M12,6 L12,18 M6,12 L18,12"
+                                                                          Stroke="#4CAF50"
+                                                                          StrokeThickness="2.5"
+                                                                          Fill="Transparent"
+                                                                          Stretch="Uniform"
+                                                                          Width="20" Height="20"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#4CAF50"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#388E3C"/>
+                                                                        <Setter TargetName="ButtonIcon" Property="Stroke" Value="White"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </Border>
+                                            </StackPanel>
+                                        </ScrollViewer>
+
+                                        <!-- 右侧:固定的添加工作流按钮 - 当TabItems多时显示 -->
+                                        <Border Grid.Column="1" 
+                                                x:Name="FixedAddButtonBorder"
+                                                Visibility="Collapsed"
+                                                Background="#F5F5F5" Padding="2,2,8,0">
+                                            <Button Width="40" Height="40"
+                                                    Padding="0"
+                                                    BorderThickness="1"
+                                                    BorderBrush="#4CAF50"
+                                                    Background="#F1F8E9"
+                                                    Cursor="Hand"
+                                                    Click="AddWorkflow_Click">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ButtonBorder"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="6"
+                                                                Width="{TemplateBinding Width}"
+                                                                Height="{TemplateBinding Height}">
+                                                            <Path x:Name="ButtonIcon"
+                                                                  Data="M12,6 L12,18 M6,12 L18,12"
+                                                                  Stroke="#4CAF50"
+                                                                  StrokeThickness="2.5"
+                                                                  Fill="Transparent"
+                                                                  Stretch="Uniform"
+                                                                  Width="20" Height="20"
+                                                                  HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#4CAF50"/>
+                                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#388E3C"/>
+                                                                <Setter TargetName="ButtonIcon" Property="Stroke" Value="White"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- TabContent内容区域 -->
+                                <ContentPresenter x:Name="PART_SelectedContentHost"
+                                                  Grid.Row="1"
+                                                  Margin="0"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </TabControl.Template>
+
+                    <!-- 自定义TabItem容器样式 -->
+                    <TabControl.ItemContainerStyle>
+                        <Style TargetType="TabItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="4,2,0,0"/>
+                            <Setter Property="Height" Value="40"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Grid>
+                                            <Border x:Name="TabBorder"
+                                                    Background="#FFFFFF"
+                                                    BorderBrush="#E0E0E0"
+                                                    BorderThickness="1,1,1,0"
+                                                    CornerRadius="6,6,0,0"
+                                                    Padding="0"
+                                                    Margin="0,0,0,0">
+                                                <Grid Margin="8,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- 工作流名称 -->
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Name}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#333333"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,12,0"/>
+
+                                                    <!-- 单次运行按钮 - 仅在选中时显示 -->
+                                                    <Button x:Name="SingleRunBtn"
+                                                            Grid.Column="1"
+                                                            Content="▶"
+                                                            Padding="6,4"
+                                                            Margin="0"
+                                                            BorderThickness="0"
+                                                            FontSize="12"
+                                                            Foreground="White"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_SingleRun_Click"
+                                                            Cursor="Hand"
+                                                            Width="32" Height="32"
+                                                            Visibility="Collapsed">
+                                                        <Button.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#4CAF50" Offset="0"/>
+                                                                <GradientStop Color="#45A049" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Button.Background>
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    CornerRadius="6"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                                  HorizontalAlignment="Center"
+                                                                                                  VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.9"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+
+                                                    <!-- 连续运行/停止按钮 - 仅在选中时显示 -->
+                                                    <Button x:Name="ContinuousRunBtn"
+                                                            Grid.Column="2"
+                                                            Padding="6,4"
+                                                            Margin="6,0,0,0"
+                                                            BorderThickness="0"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_ContinuousRun_Click"
+                                                            Cursor="Hand"
+                                                            Width="32" Height="32"
+                                                            Visibility="Collapsed">
+                                                        <Button.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}" Offset="0"/>
+                                                                <GradientStop Color="{Binding IsRunning, Converter={StaticResource ContinuousRunBackgroundConverter}}" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Button.Background>
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    CornerRadius="6"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <Path Data="{Binding IsRunning, Converter={StaticResource ContinuousRunIconTriangleInLoopConverter}}"
+                                                                                      Fill="{Binding IsRunning, Converter={StaticResource ContinuousRunIconColorConverter}}"
+                                                                                      Stretch="Uniform"
+                                                                                      Width="20" Height="20"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.9"/>
+                                                                        <Setter Property="Effect">
+                                                                            <Setter.Value>
+                                                                                <DropShadowEffect BlurRadius="8" ShadowDepth="0"/>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+
+                                                    <!-- 状态指示器 - 仅在选中时显示 -->
+                                                    <Ellipse x:Name="StateIndicator"
+                                                             Grid.Column="3"
+                                                             Width="12" Height="12"
+                                                             Fill="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
+                                                             VerticalAlignment="Center"
+                                                             Margin="12,0,8,0"
+                                                             Visibility="Collapsed">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect Color="{Binding State, Converter={StaticResource WorkflowStateToColorConverter}}"
+                                                                              BlurRadius="6" ShadowDepth="0"/>
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+
+                                                    <!-- 删除按钮 - 仅在选中时显示 -->
+                                                    <Button x:Name="DeleteBtn"
+                                                            Grid.Column="4"
+                                                            Content="✕"
+                                                            Padding="0"
+                                                            Margin="0"
+                                                            Background="Transparent"
+                                                            BorderThickness="1"
+                                                            BorderBrush="Transparent"
+                                                            FontSize="16"
+                                                            Foreground="#999999"
+                                                            Tag="{Binding}"
+                                                            Click="TabItem_Delete_Click"
+                                                            Cursor="Hand"
+                                                            Width="24" Height="24"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="Collapsed">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}"
+                                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                    CornerRadius="4"
+                                                                                    Width="{TemplateBinding Width}"
+                                                                                    Height="{TemplateBinding Height}">
+                                                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                                                  HorizontalAlignment="Center"
+                                                                                                  VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#FFF5F5"/>
+                                                                        <Setter Property="BorderBrush" Value="#FF4444"/>
+                                                                        <Setter Property="Foreground" Value="#FF4444"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="TabBorder" Property="Background" Value="#FFFFFF"/>
+                                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#667EEA"/>
+                                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="2,2,2,0"/>
+                                                <Setter TargetName="TabBorder" Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#667EEA" BlurRadius="12" ShadowDepth="0"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Setter TargetName="SingleRunBtn" Property="Visibility" Value="Visible"/>
+                                                <Setter TargetName="ContinuousRunBtn" Property="Visibility" Value="Visible"/>
+                                                <Setter TargetName="StateIndicator" Property="Visibility" Value="Visible"/>
+                                                <Setter TargetName="DeleteBtn" Property="Visibility" Value="Visible"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="TabBorder" Property="Background" Value="#F8F9FA"/>
+                                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#667EEA"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.ItemContainerStyle>
+
+                    <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控件 -->
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <ContentControl Content="{Binding}">
+                                <ContentControl.ContentTemplateSelector>
+                                    <canvas:CanvasTemplateSelector>
+                                        <canvas:CanvasTemplateSelector.WorkflowCanvasTemplate>
+                                            <DataTemplate>
+                                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                                             PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
+                                                             Background="#F5F8FC">
+                                                    <Grid Width="5000" Height="5000" Background="#FFFFFF">
+                                                        <canvas:WorkflowCanvasControl
+                                                            Width="10000" Height="10000"
+                                                            DataContext="{Binding}"
+                                                            Loaded="WorkflowCanvasControl_Loaded"/>
+                                                    </Grid>
+                                                </ScrollViewer>
+                                            </DataTemplate>
+                                        </canvas:CanvasTemplateSelector.WorkflowCanvasTemplate>
+
+                                        <canvas:CanvasTemplateSelector.NativeDiagramTemplate>
+                                            <DataTemplate>
+                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                             VerticalScrollBarVisibility="Auto"
+                                                             Background="#F5F8FC">
+                                                    <canvas:NativeDiagramControl
+                                                        DataContext="{Binding}"
+                                                        Loaded="NativeDiagramControl_Loaded"/>
+                                                </ScrollViewer>
+                                            </DataTemplate>
+                                        </canvas:CanvasTemplateSelector.NativeDiagramTemplate>
+                                    </canvas:CanvasTemplateSelector>
+                                </ContentControl.ContentTemplateSelector>
+                            </ContentControl>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+            </Border>
+
+            <!-- 右侧分割器 - 工作区和右侧面板之间 -->
+            <common:SplitterWithToggle Grid.Column="2" Width="8" MinWidth="8"
+                                         ResizeDirection="Columns"
+                                         ToggleDirection="Right"
+                                         x:Name="RightPanelSplitter"
+                                         ToggleClicked="RightPanelSplitter_ToggleClick"/>
+
+            <!-- ========== 右侧面板 ========== -->
+            <Border Grid.Column="3" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
+                <Grid x:Name="RightPanelGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>  <!-- Row 0: 图像显示区域（自适应） -->
+                        <RowDefinition Height="Auto" MinHeight="4" MaxHeight="4"/>  <!-- Row 1: 分隔条（可拖动） -->
+                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 属性面板（固定300px） -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 图像显示区域 - 包含图像显示模块和图像载入及预览模块 -->
+                    <Border Grid.Row="0" BorderThickness="0">
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>  <!-- 图像显示模块 -->
+                                <RowDefinition Height="Auto"/>  <!-- 图像载入及预览模块 -->
+                            </Grid.RowDefinitions>
+
+                            <!-- 图像显示模块 - 使用TabControl -->
+                            <Border Grid.Row="0" BorderThickness="0">
+                                <TabControl x:Name="ImageDisplayTabControl"
+                                            Background="White"
+                                            BorderThickness="0">
+                                    <!-- 第一个TabItem: 图像结果 -->
+                                    <TabItem Header="图像结果" Padding="12,6">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 第一行：图像类型切换（左侧）+ 控制按钮（右侧） -->
+                                            <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- 左侧：图像类型下拉框 -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        
+                                                        <ComboBox Width="140" Height="30" VerticalAlignment="Center"
+                                                                 ItemsSource="{Binding ImageDisplayTypes}"
+                                                                 SelectedItem="{Binding SelectedImageType, Mode=TwoWay}"
+                                                                 DisplayMemberPath="DisplayName"
+                                                                 Style="{StaticResource StyledComboBox}"
+                                                                 ToolTip="选择要显示的图像类型"/>
+                                                    </StackPanel>
+
+                                                    <!-- 右侧：图像控制按钮 -->
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <Button ToolTip="放大 (Ctrl++)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ZoomInCommand}">
+                                                            <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="缩小 (Ctrl+-)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ZoomOutCommand}">
+                                                            <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="适应窗口 (Ctrl+0)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding FitToWindowCommand}">
+                                                            <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="重置视图 (R)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ResetViewCommand}">
+                                                            <TextBlock Text="⟲" FontSize="16" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                        <Button ToolTip="全屏显示 (F)" Padding="8,4" Margin="2" 
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Command="{Binding ToggleFullScreenCommand}">
+                                                            <TextBlock Text="⛶" FontSize="14" VerticalAlignment="Center"/>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- 第二行：图像显示区域 -->
+                                            <Border Grid.Row="1" Background="#333333">
+                                                <Grid>
+                                                    <!-- 图像显示控件 -->
+                                                    <panels:ImageDisplayControl
+                                                        ImageSource="{Binding DisplayImage}"
+                                                        Scale="{Binding ImageScale}"
+                                                        x:Name="ImageDisplayContent"/>
+
+                                                    <!-- 缩放比例显示覆盖层 -->
+                                                    <Border Background="#B3000000" Padding="8,4" CornerRadius="4"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                            Margin="10" Visibility="Visible">
+                                                        <TextBlock Text="{Binding ImageScale, StringFormat='{}{0:P0}'}" 
+                                                                  FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </TabItem>
+
+                                    <!-- 第二个TabItem: 模块结果 -->
+                                    <TabItem Header="模块结果" Padding="12,6">
+                                        <Grid Background="White">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 标题栏 -->
+                                            <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" 
+                                                    BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                                <TextBlock Text="选中节点的计算结果" 
+                                                          FontSize="12" FontWeight="SemiBold" 
+                                                          Foreground="#333333"/>
+                                            </Border>
+
+                                            <!-- 计算结果列表 -->
+                                            <Grid Grid.Row="1">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding CalculationResults}"
+                                                                  Margin="8">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="#F8F9FA" Padding="8,6"
+                                                                        Margin="0,0,0,6" CornerRadius="4"
+                                                                        BorderBrush="#E0E0E0" BorderThickness="1">
+                                                                    <Grid>
+                                                                        <Grid.RowDefinitions>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                        </Grid.RowDefinitions>
+
+                                                                        <!-- 结果名称 -->
+                                                                        <TextBlock Grid.Row="0" Text="{Binding Name}"
+                                                                                  FontWeight="SemiBold" FontSize="12"
+                                                                                  Foreground="#333333" Margin="0,0,0,4"/>
+
+                                                                        <!-- 结果值 -->
+                                                                        <TextBlock Grid.Row="1" Text="{Binding Value}"
+                                                                                  FontSize="11" Foreground="#666666"
+                                                                                  TextWrapping="Wrap"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+
+                                                <!-- 空状态提示 -->
+                                                <TextBlock Text="📊"
+                                                          FontSize="32"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="#CCCCCC"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                                <TextBlock Text="暂无计算结果"
+                                                          FontSize="12"
+                                                          Foreground="#999999"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="0,40,0,0"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                                <TextBlock Text="请选中一个节点查看其计算结果"
+                                                          FontSize="10"
+                                                          Foreground="#CCCCCC"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Margin="0,52,0,0"
+                                                          Visibility="{Binding CalculationResults.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                            </Grid>
+                                        </Grid>
+                                    </TabItem>
+                                </TabControl>
+                            </Border>
+
+                            <!-- 图像载入及预览模块 - 使用现代化的 ImagePreviewControl -->
+                            <!-- 绑定到 ActiveNodeImageData 实现每个采集节点独立的图像预览器 -->
+                            <Border Grid.Row="1"
+                                    Background="#F8F9FA"
+                                    BorderBrush="#E0E0E0"
+                                    BorderThickness="0,1,0,0"
+                                    Padding="2"
+                                    Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <panels:ImagePreviewControl x:Name="ImagePreviewContent"
+                                                             AutoSwitchEnabled="{Binding ActiveNodeImageData.AutoSwitchEnabled, Mode=TwoWay}"
+                                                             CurrentImageIndex="{Binding ActiveNodeImageData.CurrentImageIndex, Mode=TwoWay}"
+                                                             ImageCollection="{Binding ActiveNodeImageData.ImageCollection}"
+                                                             ImageRunMode="{Binding ActiveNodeImageData.ImageRunMode, Mode=TwoWay}"
+                                                             WorkflowExecutionRequested="OnWorkflowExecutionRequested"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- 右侧面板内部分隔器 - 支持拖动调整并保存 -->
+                    <GridSplitter Grid.Row="1" Height="4" Width="Auto"
+                                 ResizeDirection="Rows"
+                                 Background="#DDDDDD"
+                                 ShowsPreview="False"
+                                 ResizeBehavior="PreviousAndNext"
+                                 HorizontalAlignment="Stretch"
+                                 DragStarted="ImagePropertySplitter_DragStarted"
+                                 DragCompleted="ImagePropertySplitter_DragCompleted"
+                                 DragDelta="ImagePropertySplitter_DragDelta"
+                                 Cursor="SizeNS">
+                        <GridSplitter.Style>
+                            <Style TargetType="GridSplitter">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#4CAF50"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </GridSplitter.Style>
+                    </GridSplitter>
+
+                    <!-- 属性面板 - 使用PropertyPanelControl -->
+                    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"
+                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                            <!-- 属性内容 -->
+                            <panels:PropertyPanelControl
+                                PropertyGroups="{Binding PropertyGroups}"
+                                LogText="{Binding LogText}"
+                                VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                x:Name="PropertyPanelContent"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ========== 状态栏 (24px) ========== -->
+            <StatusBar Grid.ColumnSpan="4" Grid.Row="1" Height="24" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="●" Foreground="#00CC99" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📷 相机:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding CameraStatus}" FontSize="11" Foreground="#00CC99" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="流程1:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding IsRunning}" FontSize="11" Foreground="#0066CC" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="CPU:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="45%" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+                <Separator/>
+                <StatusBarItem HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="FPS:" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="62.5" FontSize="11" FontWeight="Bold" Foreground="#00CC99" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+            </StatusBar>
+        </Grid>
+    </DockPanel>
+</Window>
