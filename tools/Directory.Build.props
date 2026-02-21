@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- 输出到UI应用程序运行目录的plugins子目录 -->
+    <!-- 这样插件会输出到 src/UI/bin/$(Configuration)/net9.0-windows/plugins/ -->
+    <OutDir>$(MSBuildThisFileDirectory)..\src\UI\bin\$(Configuration)\net9.0-windows\plugins\</OutDir>
+    
+    <!-- 确保输出目录存在 -->
+    <EnsureOutputDirExists>true</EnsureOutputDirExists>
+  </PropertyGroup>
+</Project>

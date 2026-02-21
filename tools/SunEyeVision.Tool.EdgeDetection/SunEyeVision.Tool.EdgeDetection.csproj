@@ -7,8 +7,6 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.EdgeDetection</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.EdgeDetection</AssemblyName>
-    <!-- 输出到统一插件目录 -->
-    <OutDir>$(SolutionDir)output\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>

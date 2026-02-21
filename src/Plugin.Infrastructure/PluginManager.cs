@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Plugin.Abstractions;
 
@@ -20,6 +22,14 @@ namespace SunEyeVision.Plugin.Infrastructure
         }
 
         /// <summary>
+        /// 无参构造函数 - 使用空日志器
+        /// </summary>
+        public PluginManager()
+        {
+            _logger = new NullLogger();
+        }
+
+        /// <summary>
         /// 加载所有插件
         /// </summary>
         public void LoadPlugins()
@@ -30,12 +40,76 @@ namespace SunEyeVision.Plugin.Infrastructure
         }
 
         /// <summary>
+        /// 从指定目录加载所有插件
+        /// </summary>
+        /// <param name="pluginDirectory">插件目录路径</param>
+        public void LoadPlugins(string pluginDirectory)
+        {
+            _logger.LogInfo($"开始从目录加载插件: {pluginDirectory}");
+            
+            if (!Directory.Exists(pluginDirectory))
+            {
+                _logger.LogInfo($"插件目录不存在: {pluginDirectory}");
+                return;
+            }
+
+            var dllFiles = Directory.GetFiles(pluginDirectory, "*.dll", SearchOption.AllDirectories);
+            _logger.LogInfo($"找到 {dllFiles.Length} 个DLL文件");
+
+            foreach (var dllFile in dllFiles)
+            {
+                LoadPlugin(dllFile);
+            }
+
+            _logger.LogInfo($"插件加载完成，共加载 {ToolRegistry.GetToolCount()} 个工具");
+        }
+
+        /// <summary>
+        /// 加载单个插件DLL
+        /// </summary>
+        private void LoadPlugin(string dllPath)
+        {
+            try
+            {
+                var assembly = Assembly.LoadFrom(dllPath);
+                
+                // 加载 IToolPlugin 类型插件并注册到 ToolRegistry
+                var toolPluginTypes = assembly.GetTypes()
+                    .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+
+                foreach (var toolPluginType in toolPluginTypes)
+                {
+                    try
+                    {
+                        var toolPlugin = (IToolPlugin?)Activator.CreateInstance(toolPluginType);
+                        if (toolPlugin != null)
+                        {
+                            toolPlugin.Initialize();
+                            ToolRegistry.RegisterTool(toolPlugin);
+                            RegisterPlugin(toolPlugin);
+                            _logger.LogInfo($"已加载工具插件: {toolPlugin.Name}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"加载工具插件失败: {toolPluginType.Name} - {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"加载插件DLL失败: {dllPath} - {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// 卸载所有插件
         /// </summary>
         public void UnloadPlugins()
         {
             _logger.LogInfo("开始卸载插件...");
             _plugins.Clear();
+            ToolRegistry.ClearAll();
             _logger.LogInfo("插件卸载完成");
         }
 
@@ -114,5 +188,16 @@ namespace SunEyeVision.Plugin.Infrastructure
             var pluginType = typeof(T);
             return _plugins.ContainsKey(pluginType) && _plugins[pluginType].Count > 0;
         }
+    }
+
+    /// <summary>
+    /// 空日志器 - 不输出任何日志
+    /// </summary>
+    internal class NullLogger : ILogger
+    {
+        public void LogDebug(string message) { }
+        public void LogInfo(string message) { }
+        public void LogWarning(string message) { }
+        public void LogError(string message, Exception? exception = null) { }
     }
 }

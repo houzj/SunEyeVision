@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.IO;
 using SunEyeVision.UI.Adapters;
-using SunEyeVision.Core.Services;
+using SunEyeVision.Plugin.Infrastructure;
 using System.Diagnostics;
 using System.Windows.Threading;
 using System.Windows.Data;
@@ -28,7 +28,7 @@ public partial class App : Application
     {
         // ★ P0优化：预热线程池，消除首次加载延迟
         PrewarmThreadPool();
-        
+
         base.OnStartup(e);
 
         // 添加全局异常处理
@@ -42,8 +42,9 @@ public partial class App : Application
 
         // 初始化插件管理器
         // Debug.WriteLine("[App] 正在初始化插件管理器...");
-        var pluginManager = new PluginManager();
-        string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+        var pluginManager = new PluginManager(); // 使用 Plugin.Infrastructure.PluginManager
+        // 工具插件目录：plugins/（相对于应用程序运行目录）
+        string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         // Debug.WriteLine($"[App] 插件路径: {pluginsPath}");
         pluginManager.LoadPlugins(pluginsPath);
         // Debug.WriteLine("[App] ✅ 插件管理器初始化完成");

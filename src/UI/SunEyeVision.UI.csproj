@@ -43,7 +43,6 @@
     <ProjectReference Include="..\DeviceDriver\SunEyeVision.DeviceDriver.csproj" />
     <ProjectReference Include="..\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
     <ProjectReference Include="..\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
-    <ProjectReference Include="..\Tools\SunEyeVision.Tools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

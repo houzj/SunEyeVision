@@ -14,6 +14,12 @@ namespace SunEyeVision.Plugin.Infrastructure
         void LoadPlugins();
 
         /// <summary>
+        /// 从指定目录加载所有插件
+        /// </summary>
+        /// <param name="pluginDirectory">插件目录路径</param>
+        void LoadPlugins(string pluginDirectory);
+
+        /// <summary>
         /// 卸载所有插件
         /// </summary>
         void UnloadPlugins();

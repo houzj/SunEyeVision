@@ -7,8 +7,6 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.TemplateMatching</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.TemplateMatching</AssemblyName>
-    <!-- 输出到统一插件目录 -->
-    <OutDir>$(SolutionDir)output\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>

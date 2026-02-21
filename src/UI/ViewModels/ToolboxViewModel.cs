@@ -158,53 +158,12 @@ namespace SunEyeVision.UI.ViewModels
             Categories.Clear();
             AllTools.Clear();
 
-            // 清空ToolRegistry
-            ToolRegistry.ClearAll();
-
-            // 从Tools目录加载实际工具插件
-            LoadToolsFromAssembly();
-
-            // 从ToolRegistry加载工具
+            // 注意：插件已在 App.OnStartup 中由 PluginManager 加载并注册到 ToolRegistry
+            // 这里只需要从 ToolRegistry 加载工具即可
             LoadToolsFromRegistry();
 
             // 更新分类的工具数量
             UpdateCategoryToolCounts();
-        }
-
-        /// <summary>
-        /// 从程序集加载工具插件
-        /// </summary>
-        private void LoadToolsFromAssembly()
-        {
-            // 动态加载SunEyeVision.Tools程序集
-            var toolsAssemblyName = System.Reflection.AssemblyName.GetAssemblyName(
-                System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SunEyeVision.Tools.dll"));
-            var pluginAssembly = System.Reflection.Assembly.Load(toolsAssemblyName);
-
-            var toolTypes = pluginAssembly.GetTypes()
-                .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsAbstract);
-
-            foreach (var type in toolTypes)
-            {
-                try
-                {
-                    var plugin = (IToolPlugin)Activator.CreateInstance(type);
-                    RegisterPlugin(plugin);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"加载工具插件失败: {type.Name} - {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 注册工具插件
-        /// </summary>
-        private void RegisterPlugin(IToolPlugin plugin)
-        {
-            plugin.Initialize();
-            ToolRegistry.RegisterTool(plugin);
         }
 
         /// <summary>
