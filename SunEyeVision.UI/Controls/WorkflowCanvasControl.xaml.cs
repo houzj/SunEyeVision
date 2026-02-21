@@ -858,17 +858,24 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
+            System.Diagnostics.Debug.WriteLine("[Port_MouseLeftButtonDown] ▶ 触发");
+
             var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
 
             if (sender is not Ellipse ellipse || ellipse.Tag is not string portName)
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✗ 提前返回: sender类型={sender?.GetType().Name ?? "null"}, Tag类型={(sender is Ellipse el ? el.Tag?.GetType().Name ?? "null" : "N/A")}");
                 return;
             }
 
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✓ Ellipse: Name={ellipse.Name}, Tag={portName}, Visibility={ellipse.Visibility}");
 
             // 保护：如果已经在拖拽状态，直接返回，不启动新的拖拽
             if (_isDraggingConnection)
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ⚠ 已在拖拽状态，跳过");
                 e.Handled = true;
                 return;
             }
@@ -891,8 +898,11 @@ namespace SunEyeVision.UI.Controls
 
             if (border == null || node == null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✗ 未找到父节点: border={border != null}, node={node?.Name ?? "null"}");
                 return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✓ 找到父节点: {node.Name} (Id={node.Id})");
 
             // 设置连接拖拽状态
             _isDraggingConnection = true;
@@ -900,6 +910,7 @@ namespace SunEyeVision.UI.Controls
             _dragConnectionSourceBorder = border; // 保存源节点的Border
             _dragConnectionSourcePort = portName;
 
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✓✓✓ 拖拽状态已设置: _isDraggingConnection=True, 源节点={node.Name}, 源端口={portName}");
 
             // 保持源节点的端口可见
             SetPortsVisibility(border, true);
@@ -909,24 +920,28 @@ namespace SunEyeVision.UI.Controls
             _dragConnectionStartPoint = portPosition;
             _dragConnectionEndPoint = portPosition;
 
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] 端口位置: ({portPosition.X:F1}, {portPosition.Y:F1})");
 
             // 显示临时连接线
             if (_tempConnectionLine != null && _tempConnectionGeometry != null)
             {
-                var oldVisibility = _tempConnectionLine.Visibility;
                 _tempConnectionLine.Visibility = Visibility.Visible;
                 UpdateTempConnectionPath(portPosition, portPosition);
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✓ 临时连接线已显示");
             }
             else
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ⚠ 临时连接线未初始化: _tempConnectionLine={_tempConnectionLine != null}, _tempConnectionGeometry={_tempConnectionGeometry != null}");
             }
 
             // 捕获鼠标
             ellipse.CaptureMouse();
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✓ 鼠标已捕获");
 
             // 阻止事件冒泡到Border的Node_MouseLeftButtonDown
             // 这样可以避免在拖拽连接时错误地触发节点移动
             e.Handled = true;
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
         }
 
         /// <summary>
@@ -956,9 +971,11 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void Port_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ▶ 触发, _isDraggingConnection={_isDraggingConnection}");
 
             if (!_isDraggingConnection || _dragConnectionSourceNode == null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✗ 提前返回: _isDraggingConnection={_isDraggingConnection}, _dragConnectionSourceNode={(_dragConnectionSourceNode?.Name ?? "null")}");
                 return;
             }
 
@@ -970,41 +987,68 @@ namespace SunEyeVision.UI.Controls
 
             // 执行命中测试目标端口
             var mousePos = e.GetPosition(WorkflowCanvas);
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
 
             var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePos);
 
             if (hitTestResult?.VisualHit is not null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 命中测试: VisualHit类型={hitTestResult.VisualHit.GetType().Name}");
             }
             else
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ⚠ 命中测试: 未命中任何视觉元素");
             }
 
             if (hitTestResult?.VisualHit is Ellipse targetEllipse &&
                 targetEllipse.Tag is string targetPortName &&
                 targetEllipse.Name.Contains("PortEllipse"))
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✓ 目标Ellipse: Name={targetEllipse.Name}, Tag={targetPortName}");
 
-                // 获取目标节点
-                var targetBorder = VisualTreeHelper.GetParent(targetEllipse) as Border;
+                // 获取目标节点 - 向上遍历视觉树找到 Border (Ellipse → Grid → Border)
+                Border? targetBorder = null;
+                DependencyObject? parent = VisualTreeHelper.GetParent(targetEllipse);
+                while (parent != null)
+                {
+                    if (parent is Border border)
+                    {
+                        targetBorder = border;
+                        break;
+                    }
+                    parent = VisualTreeHelper.GetParent(parent);
+                }
+
                 if (targetBorder?.Tag is WorkflowNode targetNode &&
                     targetNode != _dragConnectionSourceNode)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✓ 目标节点: {targetNode.Name} (Id={targetNode.Id})");
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 源节点: {_dragConnectionSourceNode.Name}, 源端口: {_dragConnectionSourcePort ?? "RightPort"}, 目标端口: {targetPortName}");
 
                     // 创建连接
-                    CreateConnectionBetweenPorts(
+                    var connectionCreated = CreateConnectionBetweenPorts(
                         _dragConnectionSourceNode,
                         _dragConnectionSourcePort ?? "RightPort",
                         targetNode,
                         targetPortName
                     );
+
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 连接创建结果: {connectionCreated}");
+
+                    // 连接创建成功后，阻止事件冒泡，避免触发节点选择导致图像预览器被隐藏
+                    if (connectionCreated)
+                    {
+                        e.Handled = true;
+                    }
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✗ 目标Border/Node无效: targetBorder={targetBorder != null}, targetNode={(targetBorder?.Tag as WorkflowNode)?.Name ?? "null"}");
                 }
             }
             else
             {
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✗ 未命中有效的端口Ellipse: hitTestResult={hitTestResult != null}, isEllipse={hitTestResult?.VisualHit is Ellipse}, Name={(hitTestResult?.VisualHit as Ellipse)?.Name ?? "null"}");
             }
 
             // 重置连接拖拽状态
@@ -1044,9 +1088,8 @@ namespace SunEyeVision.UI.Controls
                 _highlightedTargetNodeBorder = null;
             }
 
-            // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
-            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
-            // 从而导致临时连接线无法隐藏
+            // 注意：在连接创建成功时已设置 e.Handled = true 阻止事件冒泡
+            // 如果没有成功创建连接，事件会继续冒泡，允许其他处理器响应
         }
 
         /// <summary>
@@ -1129,19 +1172,33 @@ namespace SunEyeVision.UI.Controls
         /// <summary>
         /// 在两个端口之间创建连接
         /// </summary>
-        private void CreateConnectionBetweenPorts(WorkflowNode sourceNode, string sourcePort, 
+        /// <returns>是否成功创建连接</returns>
+        private bool CreateConnectionBetweenPorts(WorkflowNode sourceNode, string sourcePort, 
             WorkflowNode targetNode, string targetPort)
         {
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ▶ 开始创建连接");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - 源节点: {sourceNode?.Name ?? "null"}, 源端口: {sourcePort}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - 目标节点: {targetNode?.Name ?? "null"}, 目标端口: {targetPort}");
+            
             var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
             if (selectedTab == null)
-                return;
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ✗ selectedTab 为 null, _viewModel={(_viewModel != null ? "已设置" : "null")}");
+                return false;
+            }
 
-            // 检查是否已存在相同连接
+            // 检查是否已存在相同连接（同时检查节点和端口）
             var existingConnection = selectedTab.WorkflowConnections?.FirstOrDefault(
-                c => c.SourceNodeId == sourceNode.Id && c.TargetNodeId == targetNode.Id);
+                c => c.SourceNodeId == sourceNode.Id && 
+                     c.TargetNodeId == targetNode.Id &&
+                     c.SourcePort == sourcePort && 
+                     c.TargetPort == targetPort);
             
             if (existingConnection != null)
-                return;
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ✗ 连接已存在: {existingConnection.Id} (源端口={sourcePort}, 目标端口={targetPort})");
+                return false;
+            }
 
             // 创建新连接
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
@@ -1158,6 +1215,28 @@ namespace SunEyeVision.UI.Controls
                 _connectionPathCache.MarkNodeDirty(sourceNode.Id);
                 _connectionPathCache.MarkNodeDirty(targetNode.Id);
             }
+
+
+            // 连接创建后，选中目标节点，让图像预览器自动显示上游图像采集节点的图像
+            // UpdateImagePreviewVisibility 会自动通过 BFS 追溯上游来决定是否显示图像预览器
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 连接创建完成: {sourceNode.Name} → {targetNode.Name}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 目标节点信息: IsImageCaptureNode={targetNode.IsImageCaptureNode}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] _viewModel={(_viewModel == null ? "null" : "已设置")}");
+            
+            if (_viewModel != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 当前 SelectedNode={_viewModel.SelectedNode?.Name ?? "null"}");
+                _viewModel.SelectedNode = targetNode;
+                // ★ 强制刷新图像预览器，确保即使 SelectedNode 值相同也会重新计算
+                _viewModel.ForceRefreshImagePreview();
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 设置 SelectedNode={targetNode.Name} 后, ShowImagePreview={_viewModel.ShowImagePreview}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 警告: _viewModel 为 null，无法设置 SelectedNode");
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -1224,9 +1303,12 @@ namespace SunEyeVision.UI.Controls
                     return;
                 }
 
-                // 检查连接是否已存在
+                // 检查连接是否已存在（节点点击模式使用硬编码的 RightPort）
                 var existingConnection = selectedTab.WorkflowConnections.FirstOrDefault(c =>
-                    c.SourceNodeId == _connectionSourceNode!.Id && c.TargetNodeId == targetNode.Id);
+                    c.SourceNodeId == _connectionSourceNode!.Id && 
+                    c.TargetNodeId == targetNode.Id &&
+                    c.SourcePort == "RightPort" && 
+                    c.TargetPort == "LeftPort");
 
                 if (existingConnection != null)
                 {
@@ -1819,7 +1901,34 @@ namespace SunEyeVision.UI.Controls
                     }
                 }
 
-                // 检查是否找到目标节点
+                // 首先检查是否命中了有效端口（非源节点的端口）
+                // 如果命中了有效端口，让 Port_MouseLeftButtonUp 处理连接创建
+                // 这样避免Preview事件和Normal事件重复创建连接
+                if (hitPorts.Count > 0)
+                {
+                    var hasValidPort = hitPorts.Any(p =>
+                    {
+                        DependencyObject? parent = p.port;
+                        while (parent != null)
+                        {
+                            if (parent is Border border && border.Tag is WorkflowNode node)
+                            {
+                                return node != _dragConnectionSourceNode;
+                            }
+                            parent = VisualTreeHelper.GetParent(parent);
+                        }
+                        return false;
+                    });
+
+                    if (hasValidPort)
+                    {
+                        // 命中了有效端口，让 Port_MouseLeftButtonUp 处理
+                        // 不重置状态，直接返回
+                        return;
+                    }
+                }
+
+                // 检查是否找到目标节点（拖拽到节点主体，而非端口）
                 if (targetNode != null && targetNode != _dragConnectionSourceNode)
                 {
                     // 确定源端口和目标端口
@@ -1847,22 +1956,14 @@ namespace SunEyeVision.UI.Controls
                                 _connectionCreator?.CreateConnection(_dragConnectionSourceNode, targetNode, _dragConnectionSourcePort ?? "RightPort", CurrentWorkflowTab);
                             }
                         }
-                        else
-                        {
-                        }
                     }
                 }
-                else if (targetNode != null && targetNode == _dragConnectionSourceNode)
-                {
-                }
-                else
-                {
-                }
 
-                // 重置拖拽状态
+                // 没有命中有效端口，重置拖拽状态
                 WorkflowCanvas.ReleaseMouseCapture();
                 IsDraggingConnection = false;
                 _dragConnectionSourceNode = null;
+                _dragConnectionSourcePort = null;
 
                 // 清理源节点的端口可见性
                 if (_dragConnectionSourceBorder != null)

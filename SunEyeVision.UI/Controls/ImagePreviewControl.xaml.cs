@@ -867,10 +867,15 @@ namespace SunEyeVision.UI.Controls
             // 每10次事件更新一次状态（静默处理）
             if (_scrollEventCount % 10 == 0)
             {
-                var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
-                if (scrollViewer != null)
+                // ★ 关键修复：先检查集合是否有效，避免竞态条件
+                var collection = ImageCollection;
+                if (collection != null && collection.Count > 0)
                 {
-                    var (firstVis, lastVis) = GetVisibleRange();
+                    var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
+                    if (scrollViewer != null)
+                    {
+                        var (firstVis, lastVis) = GetVisibleRange();
+                    }
                 }
             }
 
@@ -904,28 +909,38 @@ namespace SunEyeVision.UI.Controls
                         _useLowQuality = false;
                         _priorityLoader.UseLowQuality = false;
                         
-                        // 立即触发加载新进入可视区域的缩略图
-                        try
+                        // ★ 关键修复：先检查集合是否有效
+                        var collection = ImageCollection;
+                        if (collection != null && collection.Count > 0)
                         {
-                            UpdateLoadRange();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"[Scroll] ✗ UpdateLoadRange异常: {ex.Message}");
-                        }
-                        
-                        // 延迟加载高质量缩略图
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
+                            // 立即触发加载新进入可视区域的缩略图
                             try
                             {
-                                UpgradeToHighQuality();
+                                UpdateLoadRange();
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"[Scroll] ✗ UpgradeToHighQuality异常: {ex.Message}");
+                                Debug.WriteLine($"[Scroll] ✗ UpdateLoadRange异常: {ex.Message}");
                             }
-                        }), DispatcherPriority.Background);
+                            
+                            // 延迟加载高质量缩略图
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                try
+                                {
+                                    // ★ 延迟回调中再次检查，因为集合可能在等待期间被清空
+                                    var innerCollection = ImageCollection;
+                                    if (innerCollection != null && innerCollection.Count > 0)
+                                    {
+                                        UpgradeToHighQuality();
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"[Scroll] ✗ UpgradeToHighQuality延迟调用异常: {ex.Message}");
+                                }
+                            }), DispatcherPriority.Background);
+                        }
                     }
                 }
             }
@@ -934,10 +949,18 @@ namespace SunEyeVision.UI.Controls
             // ★ P0优化: 立即入队可视区域图片（不等防抖）
             try
             {
+                // ★ 关键修复：先检查集合是否有效，避免竞态条件
+                var collection = ImageCollection;
+                if (collection == null || collection.Count == 0)
+                {
+                    Debug.WriteLine("[Scroll] ⚠ 跳过UpdateVisibleRangeImmediate - ImageCollection为空");
+                    return;
+                }
+                
                 var (firstVis, lastVis) = GetVisibleRange();
                 if (firstVis >= 0 && lastVis >= 0)
                 {
-                    _priorityLoader.UpdateVisibleRangeImmediate(firstVis, lastVis, ImageCollection.Count);
+                    _priorityLoader.UpdateVisibleRangeImmediate(firstVis, lastVis, collection.Count);
                 }
             }
             catch (Exception ex)
@@ -959,11 +982,19 @@ namespace SunEyeVision.UI.Controls
                 {
                     try
                     {
+                        // ★ 关键修复：先检查集合是否有效
+                        var collection = ImageCollection;
+                        if (collection == null || collection.Count == 0)
+                        {
+                            Debug.WriteLine("[Scroll] ⚠ 跳过防抖UpdateLoadRange - ImageCollection为空");
+                            return;
+                        }
+                        
                         // 防抖后执行：清理远离可视区域的缩略图
                         var (first, last) = GetVisibleRange();
                         if (first >= 0)
                         {
-                            _priorityLoader.UpdateVisibleRange(first, last, ImageCollection.Count);
+                            _priorityLoader.UpdateVisibleRange(first, last, collection.Count);
                         }
                     }
                     catch (Exception ex)
@@ -980,7 +1011,12 @@ namespace SunEyeVision.UI.Controls
                         {
                             try
                             {
-                                UpgradeToHighQuality();
+                                // ★ 关键修复：延迟回调中检查集合有效性
+                                var collection = ImageCollection;
+                                if (collection != null && collection.Count > 0)
+                                {
+                                    UpgradeToHighQuality();
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -1574,11 +1610,16 @@ namespace SunEyeVision.UI.Controls
                 control._thumbnailListBox.SelectedItem = selectedImage;
             }
 
-            // 智能预加载相邻图像
-            control.PreloadAdjacentImages(control.CurrentImageIndex);
+            // ★ 关键修复：先检查集合是否有效
+            var collection = control.ImageCollection;
+            if (collection != null && collection.Count > 0 && control.CurrentImageIndex >= 0)
+            {
+                // 智能预加载相邻图像
+                control.PreloadAdjacentImages(control.CurrentImageIndex);
 
-            // 释放远离当前索引的图像
-            control.ReleaseDistantImages(control.CurrentImageIndex);
+                // 释放远离当前索引的图像
+                control.ReleaseDistantImages(control.CurrentImageIndex);
+            }
         }
 
         /// <summary>
@@ -1603,9 +1644,13 @@ namespace SunEyeVision.UI.Controls
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
 
-            // 如果新集合为空或无数据，无需处理
+            // ★ 关键修复：当集合变为空或 null 时，必须清理加载器状态
+            // 否则 _priorityLoader 仍持有旧集合引用，导致异步任务操作旧数据产生 NullReferenceException
             if (newCollection == null || newCollection.Count == 0)
             {
+                control._priorityLoader.ClearState();
+                control._priorityLoader.SetImageCollection(null);
+                Debug.WriteLine($"[OnImageCollectionChanged] 集合变为空，已清理加载器状态");
                 return;
             }
 
@@ -1623,6 +1668,8 @@ namespace SunEyeVision.UI.Controls
         /// </summary>
         private void ScheduleDeferredThumbnailLoading(BatchObservableCollection<ImageInfo> collection)
         {
+            Debug.WriteLine($"[ScheduleDeferred] 开始安排延迟加载, collection.Count={collection?.Count ?? -1}");
+            
             // 取消之前的延迟加载任务
             _deferredLoadingTimer?.Stop();
             _priorityLoader.ClearState();
@@ -1633,6 +1680,7 @@ namespace SunEyeVision.UI.Controls
 
             // 如果集合中没有已加载的缩略图，需要主动触发加载
             bool hasAnyThumbnail = collection.Any(img => img.Thumbnail != null);
+            Debug.WriteLine($"[ScheduleDeferred] hasAnyThumbnail={hasAnyThumbnail}");
             
             // ★ 修复：无论是否有缩略图，都需要触发可视区域加载
             // 原问题：当没有缩略图时直接返回，依赖滚动事件触发，但切换节点后可能没有滚动事件
@@ -1647,7 +1695,15 @@ namespace SunEyeVision.UI.Controls
                 _deferredLoadingTimer.Tick += (s, args) =>
                 {
                     _deferredLoadingTimer?.Stop();
-                    LoadVisibleRangeThumbnails(collection);
+                    // ★ 关键修复：重新验证集合是否仍然有效
+                    var currentCollection = ImageCollection;
+                    if (currentCollection == null || currentCollection.Count == 0)
+                    {
+                        Debug.WriteLine($"[DeferredLoading] ⚠ 定时器触发时集合已失效，跳过加载");
+                        return;
+                    }
+                    Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区域");
+                    LoadVisibleRangeThumbnails(currentCollection);
                 };
                 _deferredLoadingTimer.Start();
                 return;
@@ -1673,7 +1729,15 @@ namespace SunEyeVision.UI.Controls
             _deferredLoadingTimer.Tick += (s, args) =>
             {
                 _deferredLoadingTimer?.Stop();
-                LoadVisibleRangeThumbnails(collection);
+                // ★ 关键修复：重新验证集合是否仍然有效
+                var currentCollection = ImageCollection;
+                if (currentCollection == null || currentCollection.Count == 0)
+                {
+                    Debug.WriteLine($"[DeferredLoading] ⚠ 定时器触发时集合已失效，跳过加载");
+                    return;
+                }
+                Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区域");
+                LoadVisibleRangeThumbnails(currentCollection);
             };
             _deferredLoadingTimer.Start();
         }
@@ -2072,8 +2136,16 @@ namespace SunEyeVision.UI.Controls
                 Debug.WriteLine($"[ThumbnailMonitor] 空白索引:[{emptyIndices}]");
             }
 
-            // 委托给优先级加载器
-            _priorityLoader.UpdateVisibleRange(firstVisible, lastVisible, ImageCollection.Count);
+            // 委托给优先级加载器（★ 关键修复：先检查集合是否有效）
+            var collection = ImageCollection;
+            if (collection != null && collection.Count > 0)
+            {
+                _priorityLoader.UpdateVisibleRange(firstVisible, lastVisible, collection.Count);
+            }
+            else
+            {
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 跳过委托调用 - 集合已变为空");
+            }
             
             sw.Stop();
         }
@@ -2090,29 +2162,32 @@ namespace SunEyeVision.UI.Controls
         private (int firstVisible, int lastVisible) GetVisibleRange()
         {
             // ===== 诊断日志：检查前置条件 =====
+            var callStack = new System.Diagnostics.StackTrace();
+            var caller = callStack.GetFrame(1)?.GetMethod()?.Name ?? "unknown";
+            
             if (_thumbnailListBox == null)
             {
-                Debug.WriteLine("[GetVisibleRange] ⚠ 返回(-1,-1) - _thumbnailListBox为null");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - _thumbnailListBox为null, caller={caller}");
                 return (-1, -1);
             }
             
             if (ImageCollection == null || ImageCollection.Count == 0)
             {
-                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - ImageCollection为空 (null:{ImageCollection == null}, count:{ImageCollection?.Count ?? 0})");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - ImageCollection为空 (null:{ImageCollection == null}, count:{ImageCollection?.Count ?? 0}), caller={caller}");
                 return (-1, -1);
             }
 
             var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
             if (scrollViewer == null)
             {
-                Debug.WriteLine("[GetVisibleRange] ⚠ 返回(-1,-1) - scrollViewer为null");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - scrollViewer为null, caller={caller}");
                 return (-1, -1);
             }
 
             double itemWidth = ThumbnailSizes.ItemWidth;
             if (itemWidth <= 0)
             {
-                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - itemWidth无效: {itemWidth}");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - itemWidth无效: {itemWidth}, caller={caller}");
                 return (-1, -1);
             }
 

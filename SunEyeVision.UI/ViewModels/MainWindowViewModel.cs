@@ -173,7 +173,10 @@ namespace SunEyeVision.UI.ViewModels
             }
             set
             {
-                if (SetProperty(ref _selectedNode, value))
+                bool changed = SetProperty(ref _selectedNode, value);
+                AddLog($"[调试] SelectedNode 设置: value={value?.Name ?? "null"}, changed={changed}");
+                
+                if (changed)
                 {
                     AddLog($"[调试] SelectedNode 变更: {(value == null ? "null" : value.Name)}");
 
@@ -1736,9 +1739,12 @@ namespace SunEyeVision.UI.ViewModels
         /// </remarks>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
+            AddLog($"[UpdateImagePreviewVisibility] ▶ 开始处理, selectedNode={selectedNode?.Name ?? "null"}");
+            
             // 情况1：没有选中节点 → 隐藏
             if (selectedNode == null)
             {
+                AddLog($"[UpdateImagePreviewVisibility] 情况1: 没有选中节点");
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
                 _currentDisplayNodeId = null;  // ★ 清除跟踪ID
@@ -1749,6 +1755,7 @@ namespace SunEyeVision.UI.ViewModels
             // 情况2：选中的是图像采集节点 → 始终显示图像预览器（即使暂时没有图像）
             if (selectedNode.IsImageCaptureNode)
             {
+                AddLog($"[UpdateImagePreviewVisibility] 情况2: 选中图像采集节点 {selectedNode.Name}");
                 UpdateActiveNodeImageData(selectedNode);
                 ShowImagePreview = true;
                 AddLog($"[调试] 图像预览: 显示 (选中采集节点: {selectedNode.Name}, 图像数: {selectedNode.ImageData?.ImageCount ?? 0})");
@@ -1757,11 +1764,27 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             // 情况3：选中的不是图像采集节点 → BFS追溯上游采集节点
+            // ★ 快速检查：如果没有连接，不可能有上游节点，直接隐藏
+            var connections = WorkflowTabViewModel?.SelectedTab?.WorkflowConnections;
+            if (connections == null || connections.Count == 0)
+            {
+                AddLog($"[UpdateImagePreviewVisibility] 情况3-快速返回: 无连接，无需BFS搜索");
+                ShowImagePreview = false;
+                ActiveNodeImageData = null;
+                _currentDisplayNodeId = null;
+                AddLog($"[调试] 图像预览: 隐藏 (当前节点: {selectedNode.Name}, 无连接)");
+                OnPropertyChanged(nameof(ShowImagePreview));
+                return;
+            }
+            
+            AddLog($"[UpdateImagePreviewVisibility] 情况3: 非图像采集节点 {selectedNode.Name}, 连接数={connections.Count}, 开始BFS查找上游");
             var sourceCaptureNode = FindUpstreamImageCaptureNode(selectedNode);
+            AddLog($"[UpdateImagePreviewVisibility] BFS结果: sourceCaptureNode={sourceCaptureNode?.Name ?? "null"}");
 
             if (sourceCaptureNode != null)
             {
                 bool hasImages = sourceCaptureNode.ImageData != null && sourceCaptureNode.ImageData.ImageCount > 0;
+                AddLog($"[UpdateImagePreviewVisibility] 上游节点图像状态: hasImages={hasImages}, ImageCount={sourceCaptureNode.ImageData?.ImageCount ?? 0}");
                 
                 // ★ 优化：检查上游采集节点是否与当前显示的相同
                 bool isSameNode = _currentDisplayNodeId == sourceCaptureNode.Id;
@@ -1788,6 +1811,7 @@ namespace SunEyeVision.UI.ViewModels
                 else
                 {
                     // 上游采集节点无图像 → 隐藏
+                    AddLog($"[UpdateImagePreviewVisibility] 上游节点无图像，准备隐藏");
                     ShowImagePreview = false;
                     ActiveNodeImageData = null;
                     _currentDisplayNodeId = null;  // ★ 清除跟踪ID
@@ -1797,6 +1821,7 @@ namespace SunEyeVision.UI.ViewModels
             else
             {
                 // 无上游采集节点 → 隐藏
+                AddLog($"[UpdateImagePreviewVisibility] 无上游采集节点，准备隐藏并清空ActiveNodeImageData");
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
                 _currentDisplayNodeId = null;  // ★ 清除跟踪ID
@@ -1804,6 +1829,17 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             OnPropertyChanged(nameof(ShowImagePreview));
+            AddLog($"[UpdateImagePreviewVisibility] ✓ 处理完成, ShowImagePreview={ShowImagePreview}");
+        }
+
+        /// <summary>
+        /// 强制刷新图像预览器（用于连接创建后等场景）
+        /// 即使当前 SelectedNode 未改变，也会重新计算是否显示图像预览器
+        /// </summary>
+        public void ForceRefreshImagePreview()
+        {
+            AddLog($"[ForceRefreshImagePreview] 强制刷新图像预览器, SelectedNode={_selectedNode?.Name ?? "null"}");
+            UpdateImagePreviewVisibility(_selectedNode);
         }
 
         /// <summary>
@@ -1818,20 +1854,28 @@ namespace SunEyeVision.UI.ViewModels
         /// <returns>第一个找到的上游图像采集节点，未找到返回null</returns>
         private Models.WorkflowNode? FindUpstreamImageCaptureNode(Models.WorkflowNode node)
         {
+            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ▶ 开始BFS搜索, 起始节点={node.Name} (Id={node.Id})");
+            
             var selectedTab = WorkflowTabViewModel?.SelectedTab;
             if (selectedTab == null || selectedTab.WorkflowConnections == null || selectedTab.WorkflowNodes == null)
             {
+                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ✗ 提前返回: selectedTab={selectedTab != null}, Connections={selectedTab?.WorkflowConnections?.Count ?? 0}, Nodes={selectedTab?.WorkflowNodes?.Count ?? 0}");
                 return null;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] 当前工作流: {selectedTab.WorkflowNodes.Count} 个节点, {selectedTab.WorkflowConnections.Count} 条连接");
 
             var visited = new HashSet<string>();
             var queue = new Queue<Models.WorkflowNode>();
             queue.Enqueue(node);
             visited.Add(node.Id);
+            int iterationCount = 0;
 
             while (queue.Count > 0)
             {
+                iterationCount++;
                 var currentNode = queue.Dequeue();
+                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}] 处理节点: {currentNode.Name} (Id={currentNode.Id})");
 
                 // 获取上游节点ID（按连接在集合中的顺序，再按节点ID排序保证确定性）
                 var upstreamNodeIds = selectedTab.WorkflowConnections
@@ -1841,27 +1885,40 @@ namespace SunEyeVision.UI.ViewModels
                     .OrderBy(id => id) // 按节点ID排序，保证确定性
                     .ToList();
 
+                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}] 找到 {upstreamNodeIds.Count} 个上游节点ID: [{string.Join(", ", upstreamNodeIds)}]");
+
                 foreach (var upstreamNodeId in upstreamNodeIds)
                 {
                     if (visited.Contains(upstreamNodeId))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}]   跳过已访问节点: {upstreamNodeId}");
                         continue;
+                    }
 
                     var upstreamNode = selectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == upstreamNodeId);
                     if (upstreamNode == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}]   ⚠ 节点未找到: {upstreamNodeId}");
                         continue;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}]   检查上游节点: {upstreamNode.Name}, IsImageCaptureNode={upstreamNode.IsImageCaptureNode}");
 
                     // 找到图像采集节点，立即返回（第一个找到的）
                     if (upstreamNode.IsImageCaptureNode)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ✓✓✓ 找到图像采集节点: {upstreamNode.Name} (Id={upstreamNode.Id})");
                         return upstreamNode;
                     }
 
                     // 非采集节点，继续向上追溯
                     visited.Add(upstreamNodeId);
                     queue.Enqueue(upstreamNode);
+                    System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [迭代{iterationCount}]   加入队列继续追溯: {upstreamNode.Name}");
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ✗ BFS遍历完成，未找到图像采集节点，共 {iterationCount} 次迭代");
             return null;
         }
 

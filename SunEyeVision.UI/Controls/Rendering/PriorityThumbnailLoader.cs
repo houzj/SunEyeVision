@@ -732,15 +732,17 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// </summary>
         private int SyncVisibleAreaState(int firstVisible, int lastVisible)
         {
-            if (_imageCollection == null) return 0;
+            // ★ 修复竞态条件：捕获集合引用
+            var imageCollection = _imageCollection;
+            if (imageCollection == null) return 0;
 
             int fixedCount = 0;
             lock (_queueLock)
             {
-                for (int i = firstVisible; i <= lastVisible && i < _imageCollection.Count; i++)
+                for (int i = firstVisible; i <= lastVisible && i < imageCollection.Count; i++)
                 {
                     // 检查：_loadedIndices 标记已加载，但 Thumbnail 实际为 null
-                    if (_loadedIndices.Contains(i) && _imageCollection[i].Thumbnail == null)
+                    if (_loadedIndices.Contains(i) && imageCollection[i].Thumbnail == null)
                     {
                         _loadedIndices.Remove(i);
                         _queuedIndices.Remove(i);
@@ -749,7 +751,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                     }
                     
                     // ★ 新增：检查解码超时（超过5秒仍在解码中，可能卡住）
-                    if (_decodingIndices.Contains(i) && _imageCollection[i].Thumbnail == null)
+                    if (_decodingIndices.Contains(i) && imageCollection[i].Thumbnail == null)
                     {
                         // 如果已经在解码中但 Thumbnail 为空，检查是否需要重新加载
                         // 这里不做处理，让自然超时机制处理
@@ -805,18 +807,20 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// </summary>
         public void SyncLoadedIndicesWithActualThumbnails()
         {
-            if (_imageCollection == null) return;
+            // ★ 修复竞态条件：捕获集合引用
+            var imageCollection = _imageCollection;
+            if (imageCollection == null) return;
 
             var toRemove = new List<int>();
             lock (_queueLock)
             {
                 foreach (var index in _loadedIndices)
                 {
-                    if (index < 0 || index >= _imageCollection.Count)
+                    if (index < 0 || index >= imageCollection.Count)
                     {
                         toRemove.Add(index);
                     }
-                    else if (_imageCollection[index].Thumbnail == null)
+                    else if (imageCollection[index].Thumbnail == null)
                     {
                         // Thumbnail已被GC清理，但索引还在已加载集合中
                         toRemove.Add(index);
@@ -843,6 +847,14 @@ namespace SunEyeVision.UI.Controls.Rendering
         public void SetImageCollection(BatchObservableCollection<ImageInfo> collection)
         {
             _imageCollection = collection;
+            
+            // ★ 关键修复：当集合被清空时，同时清除委托引用
+            // 防止后台任务通过委托访问已清空的集合
+            if (collection == null)
+            {
+                _getVisibleRangeFunc = null;
+                Debug.WriteLine("[SetImageCollection] ⚠ 集合已清空，同时清除_getVisibleRangeFunc委托");
+            }
         }
 
         /// <summary>
@@ -1386,9 +1398,11 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// </summary>
         private async Task LoadSingleThumbnailAsync(LoadTask task, CancellationToken cancellationToken)
         {
-            if (_imageCollection == null || task.Index < 0 || task.Index >= _imageCollection.Count)
+            // ★ 修复竞态条件：在方法开始时捕获集合引用，避免在异步执行过程中集合被其他线程置空
+            var imageCollection = _imageCollection;
+            if (imageCollection == null || task.Index < 0 || task.Index >= imageCollection.Count)
             {
-                Debug.WriteLine($"[PriorityLoader] ⚠ 跳过加载 - 无效参数 index={task.Index} collection={_imageCollection != null} count={_imageCollection?.Count ?? 0}");
+                Debug.WriteLine($"[PriorityLoader] ⚠ 跳过加载 - 无效参数 index={task.Index} collection={imageCollection != null} count={imageCollection?.Count ?? 0}");
                 return;
             }
 
@@ -1423,7 +1437,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 return;
             }
 
-            var imageInfo = _imageCollection[task.Index];
+            var imageInfo = imageCollection[task.Index];
 
             // ★ 优化：检查是否真正需要加载（Thumbnail 是否已存在）
             lock (_queueLock)
@@ -1704,8 +1718,17 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// </summary>
         private void ProcessUIUpdates(object? sender, EventArgs e)
         {
-            if (_uiUpdateQueue.Count == 0 || _imageCollection == null)
+            // ★ 关键修复：捕获集合引用，防止委托调用后集合变为null
+            var imageCollection = _imageCollection;
+            
+            if (_uiUpdateQueue.Count == 0 || imageCollection == null)
+            {
+                if (imageCollection == null && _uiUpdateQueue.Count > 0)
+                {
+                    Debug.WriteLine($"[ProcessUIUpdates] ⚠ 跳过更新 - _imageCollection已为null，队列中还有{_uiUpdateQueue.Count}项");
+                }
                 return;
+            }
 
             var updates = new List<UIUpdateRequest>();
             while (_uiUpdateQueue.TryDequeue(out var request))
@@ -1720,12 +1743,34 @@ namespace SunEyeVision.UI.Controls.Rendering
             int lastVis = _lastLastVisible;
             if (_getVisibleRangeFunc != null)
             {
-                var (f, l) = _getVisibleRangeFunc();
-                if (f >= 0 && l >= 0)
+                try
                 {
-                    firstVis = f;
-                    lastVis = l;
+                    var (f, l) = _getVisibleRangeFunc();
+                    Debug.WriteLine($"[ProcessUIUpdates] GetVisibleRange返回: ({f}, {l}), imageCollection.Count={imageCollection?.Count ?? -1}");
+                    if (f >= 0 && l >= 0)
+                    {
+                        firstVis = f;
+                        lastVis = l;
+                    }
+                    else
+                    {
+                        // ★ 新增：如果可视范围无效，跳过本次更新
+                        Debug.WriteLine($"[ProcessUIUpdates] ⚠ 可视范围无效({f}, {l})，跳过UI更新");
+                        return;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ProcessUIUpdates] ⚠ GetVisibleRange委托异常: {ex.Message}");
+                    return;
+                }
+            }
+
+            // ★ 二次检查：委托调用后集合可能已变化
+            if (imageCollection == null || imageCollection.Count == 0)
+            {
+                Debug.WriteLine($"[ProcessUIUpdates] ⚠ 委托调用后集合已为空，跳过UI更新");
+                return;
             }
 
             // 分离可视区域和后台更新
@@ -1737,8 +1782,8 @@ namespace SunEyeVision.UI.Controls.Rendering
             int skippedCount = 0;
             foreach (var update in visibleUpdates)
             {
-                if (update.Index < _imageCollection.Count &&
-                    _imageCollection[update.Index] == update.ImageInfo)
+                if (update.Index < imageCollection.Count &&
+                    imageCollection[update.Index] == update.ImageInfo)
                 {
                     // 验证缩略图有效性
                     if (update.Thumbnail != null && update.Thumbnail.Width > 0 && update.Thumbnail.Height > 0)
@@ -1783,10 +1828,10 @@ namespace SunEyeVision.UI.Controls.Rendering
             int bgUpdatedCount = 0;
             foreach (var update in backgroundUpdates)
             {
-                if (update.Index < _imageCollection.Count &&
-                    _imageCollection[update.Index] == update.ImageInfo)
+                if (update.Index < imageCollection.Count &&
+                    imageCollection[update.Index] == update.ImageInfo)
                 {
-                    _imageCollection[update.Index].Thumbnail = update.Thumbnail;
+                    imageCollection[update.Index].Thumbnail = update.Thumbnail;
                     _addToCacheAction?.Invoke(update.FilePath, update.Thumbnail);
                     bgUpdatedCount++;
                     
@@ -1807,10 +1852,10 @@ namespace SunEyeVision.UI.Controls.Rendering
                 int actualVisibleCount = 0;
                 int actualLoadedCount = 0;
                 
-                for (int i = firstVis; i <= lastVis && i < _imageCollection.Count; i++)
+                for (int i = firstVis; i <= lastVis && i < imageCollection.Count; i++)
                 {
                     actualVisibleCount++;
-                    if (_imageCollection[i].Thumbnail != null)
+                    if (imageCollection[i].Thumbnail != null)
                     {
                         actualLoadedCount++;
                     }
