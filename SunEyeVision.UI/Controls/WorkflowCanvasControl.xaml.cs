@@ -1901,31 +1901,14 @@ namespace SunEyeVision.UI.Controls
                     }
                 }
 
-                // 首先检查是否命中了有效端口（非源节点的端口）
-                // 如果命中了有效端口，让 Port_MouseLeftButtonUp 处理连接创建
-                // 这样避免Preview事件和Normal事件重复创建连接
+                // 首先检查是否命中了任何端口
+                // 如果命中了端口（无论是源端口自己还是其他节点端口），让 Port_MouseLeftButtonUp 处理
+                // 这样避免Preview事件提前重置拖拽状态
                 if (hitPorts.Count > 0)
                 {
-                    var hasValidPort = hitPorts.Any(p =>
-                    {
-                        DependencyObject? parent = p.port;
-                        while (parent != null)
-                        {
-                            if (parent is Border border && border.Tag is WorkflowNode node)
-                            {
-                                return node != _dragConnectionSourceNode;
-                            }
-                            parent = VisualTreeHelper.GetParent(parent);
-                        }
-                        return false;
-                    });
-
-                    if (hasValidPort)
-                    {
-                        // 命中了有效端口，让 Port_MouseLeftButtonUp 处理
-                        // 不重置状态，直接返回
-                        return;
-                    }
+                    // 命中了端口，让 Port_MouseLeftButtonUp 处理连接创建或状态清理
+                    // 包括：拖到其他端口创建连接，或拖回自己端口取消连接
+                    return;
                 }
 
                 // 检查是否找到目标节点（拖拽到节点主体，而非端口）
