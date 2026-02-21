@@ -1,0 +1,33 @@
+﻿<Window x:Class="SunEyeVision.Tools.GaussianBlurTool.Views.GaussianBlurToolDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="高斯模糊工具调试"
+        Height="500" Width="450">
+    
+    <StackPanel Margin="16">
+            <!-- 核大小 -->
+            <TextBlock Text="核大小（奇数）:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding KernelSize, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding KernelSize}" Minimum="3" Maximum="99" IsSnapToTickEnabled="True" TickFrequency="2"
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding KernelSize}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 标准差 -->
+            <TextBlock Text="标准差（Sigma）:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding Sigma, StringFormat={}{0:F2}}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding Sigma}" Minimum="0.1" Maximum="10.0" TickFrequency="0.1"
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding Sigma, StringFormat={}{0:F2}}" FontSize="12" FontWeight="Bold" 
+                           Margin="8,0,0,0" Width="50"/>
+            </StackPanel>
+
+            <!-- 边界类型 -->
+            <TextBlock Text="边界类型:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <ComboBox ItemsSource="{Binding BorderTypes}" SelectedItem="{Binding BorderType}"
+                     Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1" Margin="0,0,0,12"/>
+        </StackPanel></Window>

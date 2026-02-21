@@ -1,0 +1,54 @@
+﻿<Window x:Class="SunEyeVision.Tools.ThresholdTool.Views.ThresholdToolDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="图像阈值化工具调试" Height="600" Width="450">
+    
+    <StackPanel Margin="16">
+            <!-- 阈值类型 -->
+            <TextBlock Text="阈值类型:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <ComboBox ItemsSource="{Binding ThresholdTypes}" SelectedItem="{Binding ThresholdType}"
+                     Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1" Margin="0,0,0,12"/>
+
+            <!-- 阈值 -->
+            <TextBlock Text="阈值:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding Threshold, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding Threshold}" Minimum="0" Maximum="255" 
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding Threshold}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 最大值 -->
+            <TextBlock Text="最大值:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding MaxValue, UpdateSourceTrigger=PropertyChanged}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding MaxValue}" Minimum="0" Maximum="255" 
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding MaxValue}" FontSize="12" FontWeight="Bold" Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 自适应块大小 -->
+            <TextBlock Text="自适应块大小（奇数）:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Text="{Binding AdaptiveBlockSize, StringFormat={}{0:F0}}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding AdaptiveBlockSize}" Minimum="3" Maximum="99" 
+                        IsSnapToTickEnabled="True" TickFrequency="2"
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding AdaptiveBlockSize, StringFormat={}{0:F0}}" FontSize="12" FontWeight="Bold" 
+                           Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+
+            <!-- 自适应常数C -->
+            <TextBlock Text="自适应常数C:" FontSize="12" Foreground="#666666" Margin="0,0,0,4"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBox Text="{Binding AdaptiveC, StringFormat={}{0:F0}}" Width="80" 
+                         Padding="6" FontSize="12" BorderBrush="#DDDDDD" BorderThickness="1"/>
+                <Slider Value="{Binding AdaptiveC}" Minimum="-50" Maximum="50" 
+                        Width="150" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding AdaptiveC, StringFormat={}{0:F0}}" FontSize="12" FontWeight="Bold" 
+                           Margin="8,0,0,0" Width="40"/>
+            </StackPanel>
+        </StackPanel></Window>

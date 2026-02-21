@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Xml;
 using System.Xml.XPath;
@@ -30,7 +30,7 @@ namespace ApiDocGenerator
                 Path.Combine(solutionDir, "tools/SunEyeVision.Core.xml"),
                 Path.Combine(solutionDir, "tools/SunEyeVision.Algorithms.xml"),
                 Path.Combine(solutionDir, "tools/SunEyeVision.Workflow.xml"),
-                Path.Combine(solutionDir, "tools/SunEyeVision.PluginSystem.xml"),
+                Path.Combine(solutionDir, "tools/SunEyeVision.Plugin.xml"),
                 Path.Combine(solutionDir, "tools/SunEyeVision.UI.xml")
             };
 

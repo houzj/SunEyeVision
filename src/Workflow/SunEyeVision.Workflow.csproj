@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SunEyeVision.Workflow</RootNamespace>
+    <AssemblyName>SunEyeVision.Workflow</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Workflow.xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCVSharp" Version="2.4.0.1" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260211" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\SunEyeVision.Core.csproj" />
+    <ProjectReference Include="..\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
+    <ProjectReference Include="..\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

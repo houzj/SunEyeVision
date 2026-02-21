@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SunEyeVision.Tools</RootNamespace>
+    <AssemblyName>SunEyeVision.Tools</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\SunEyeVision.Core.csproj" />
+    <ProjectReference Include="..\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
