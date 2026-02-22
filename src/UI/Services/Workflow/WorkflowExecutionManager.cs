@@ -459,7 +459,7 @@ namespace SunEyeVision.UI.Services.Workflow
     /// <summary>
     /// 测试用图像处理器
     /// </summary>
-    public class TestImageProcessor : SunEyeVision.Core.Interfaces.IImageProcessor
+    public class TestImageProcessor : SunEyeVision.Plugin.Abstractions.Core.IImageProcessor
     {
         private readonly string _algorithmType;
 

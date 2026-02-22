@@ -9,9 +9,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Plugin.Abstractions.xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- SDK标识 - 可独立打包分发 -->
+    <PackageId>SunEyeVision.Plugin.SDK</PackageId>
+    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层</Description>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Core\SunEyeVision.Core.csproj" />
-  </ItemGroup>
+  <!-- 无任何项目依赖 - 纯契约层 -->
 </Project>

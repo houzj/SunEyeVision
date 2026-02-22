@@ -1,9 +1,6 @@
 using SunEyeVision.Plugin.Abstractions;
 using System.Windows;
-using SunEyeVision.Plugin.Infrastructure.Base;
-using SunEyeVision.Plugin.Infrastructure.UI.Windows;
-
-
+using SunEyeVision.Plugin.Abstractions.ViewModels;
 namespace SunEyeVision.Tool.GaussianBlur.Views
 {
     public partial class GaussianBlurToolDebugWindow : Window

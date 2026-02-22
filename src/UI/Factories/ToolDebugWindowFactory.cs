@@ -33,11 +33,8 @@ namespace SunEyeVision.UI.Factories
 
                 try
                 {
-                    var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output", "plugins");
-                    if (!Directory.Exists(pluginsPath))
-                    {
-                        pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
-                    }
+                    // 插件目录在应用程序目录下的 plugins 子目录
+                    var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
 
                     if (Directory.Exists(pluginsPath))
                     {
@@ -208,17 +205,17 @@ namespace SunEyeVision.UI.Factories
 
         public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
 
-        public SunEyeVision.Core.Interfaces.IImageProcessor CreateToolInstance(string toolId)
+        public SunEyeVision.Plugin.Abstractions.Core.IImageProcessor CreateToolInstance(string toolId)
         {
             throw new NotImplementedException();
         }
 
-        public SunEyeVision.Core.Models.AlgorithmParameters GetDefaultParameters(string toolId)
+        public SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters GetDefaultParameters(string toolId)
         {
-            return new SunEyeVision.Core.Models.AlgorithmParameters();
+            return new SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters();
         }
 
-        public ValidationResult ValidateParameters(string toolId, SunEyeVision.Core.Models.AlgorithmParameters parameters)
+        public ValidationResult ValidateParameters(string toolId, SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters parameters)
         {
             return ValidationResult.Success();
         }

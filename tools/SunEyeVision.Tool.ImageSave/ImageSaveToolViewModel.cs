@@ -1,8 +1,5 @@
 using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Infrastructure;
-using SunEyeVision.Plugin.Infrastructure.Base;
-using SunEyeVision.Plugin.Infrastructure.UI.Windows;
-
+using SunEyeVision.Plugin.Abstractions.ViewModels;
 namespace SunEyeVision.Tool.ImageSave
 {
     /// <summary>

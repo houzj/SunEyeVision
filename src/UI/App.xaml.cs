@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.IO;
 using SunEyeVision.UI.Adapters;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Infrastructure.Managers.Plugin;
 using System.Diagnostics;
 using System.Windows.Threading;
 using System.Windows.Data;

@@ -2,21 +2,22 @@ using System;
 using System.Reflection;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Core.Models;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 算法节点
+    /// 绠楁硶鑺傜偣
     /// </summary>
     public class AlgorithmNode : WorkflowNode
     {
         /// <summary>
-        /// 图像处理�?
+        /// 鍥惧儚澶勭悊鍣?
         /// </summary>
         public IImageProcessor Processor { get; set; }
 
         /// <summary>
-        /// 上次执行结果
+        /// 涓婃鎵ц缁撴灉
         /// </summary>
         public AlgorithmResult LastResult { get; private set; }
 
@@ -27,7 +28,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 执行节点
+        /// 鎵ц鑺傜偣
         /// </summary>
         public AlgorithmResult Execute(Mat inputImage)
         {
@@ -40,7 +41,7 @@ namespace SunEyeVision.Workflow
 
             try
             {
-                // 尝试使用反射调用 Execute 方法（如果存在）
+                // 灏濊瘯浣跨敤鍙嶅皠璋冪敤 Execute 鏂规硶锛堝鏋滃瓨鍦級
                 var executeMethod = Processor.GetType().GetMethod("Execute", new[] { typeof(Mat), typeof(AlgorithmParameters) });
                 if (executeMethod != null)
                 {
@@ -48,7 +49,7 @@ namespace SunEyeVision.Workflow
                 }
                 else
                 {
-                    // 否则使用 Process 方法
+                    // 鍚﹀垯浣跨敤 Process 鏂规硶
                     var resultImage = Processor.Process(inputImage);
                     LastResult = AlgorithmResult.CreateSuccess(resultImage as Mat ?? inputImage, 0);
                 }
@@ -57,7 +58,7 @@ namespace SunEyeVision.Workflow
             }
             catch (Exception ex)
             {
-                var result = AlgorithmResult.CreateError($"节点 {Name} 执行失败: {ex.Message}");
+                var result = AlgorithmResult.CreateError($"鑺傜偣 {Name} 鎵ц澶辫触: {ex.Message}");
                 OnAfterExecute(result);
                 return result;
             }

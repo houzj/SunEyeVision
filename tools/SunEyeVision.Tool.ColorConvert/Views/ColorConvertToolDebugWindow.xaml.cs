@@ -1,7 +1,5 @@
 using System.Windows;
 using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Infrastructure.UI.Windows;
-
 namespace SunEyeVision.Tool.ColorConvert.Views
 {
     /// <summary>

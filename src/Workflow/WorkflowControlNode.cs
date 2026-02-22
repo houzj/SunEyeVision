@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Infrastructure;
 using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Workflow
 {

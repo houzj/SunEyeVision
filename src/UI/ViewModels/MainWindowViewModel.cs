@@ -7,7 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.Abstractions;
 using SunEyeVision.UI;
 using SunEyeVision.Workflow;
@@ -1913,17 +1913,17 @@ namespace SunEyeVision.UI.ViewModels
 
             public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
 
-            public SunEyeVision.Core.Interfaces.IImageProcessor CreateToolInstance(string toolId)
+            public SunEyeVision.Plugin.Abstractions.Core.IImageProcessor CreateToolInstance(string toolId)
             {
                 throw new NotImplementedException();
             }
 
-            public SunEyeVision.Core.Models.AlgorithmParameters GetDefaultParameters(string toolId)
+            public SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters GetDefaultParameters(string toolId)
             {
-                return new SunEyeVision.Core.Models.AlgorithmParameters();
+                return new SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters();
             }
 
-            public ValidationResult ValidateParameters(string toolId, SunEyeVision.Core.Models.AlgorithmParameters parameters)
+            public ValidationResult ValidateParameters(string toolId, SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters parameters)
             {
                 return ValidationResult.Success();
             }

@@ -7,11 +7,12 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.ColorConvert</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.ColorConvert</AssemblyName>
+    <!-- 输出到应用程序目录下的plugins子目录，便于发布 -->
+    <OutDir>$(SolutionDir)src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- 只依赖 Plugin.Abstractions（纯契约层，零依赖） -->
     <ProjectReference Include="..\..\src\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Core\SunEyeVision.Core.csproj" />
   </ItemGroup>
 </Project>

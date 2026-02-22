@@ -1,141 +1,140 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Plugin.Abstractions
 {
     /// <summary>
-    /// ¹¤¾ß²å¼ş½Ó¿Ú - ²å¼ş¿ª·¢µÄÎ¨Ò»Èë¿Ú
+    /// å·¥å…·æ’ä»¶æ¥å£ - æ’ä»¶å¼€å‘çš„å”¯ä¸€å…¥å£
     /// </summary>
     /// <remarks>
-    /// ´Ë½Ó¿Ú¶¨ÒåÁË²å¼şÓë¿ò¼Ü½»»¥µÄÍêÕûÆõÔ¼¡£
-    /// ²å¼ş¿ª·¢ÕßÖ»ĞèÊµÏÖ´Ë½Ó¿Ú¼´¿É´´½¨¿ÉÈÈ¼ÓÔØµÄ¹¤¾ß²å¼ş¡£
+    /// æ­¤æ¥å£å®šä¹‰äº†æ’ä»¶ä¸æ¡†æ¶äº¤äº’çš„å®Œæ•´å¥‘çº¦ã€‚
+    /// æ’ä»¶å¼€å‘è€…åªéœ€å®ç°æ­¤æ¥å£å³å¯åˆ›å»ºå¯çƒ­åŠ è½½çš„å·¥å…·æ’ä»¶ã€‚
     /// </remarks>
     public interface IToolPlugin
     {
-        #region ²å¼ş»ù±¾ĞÅÏ¢
+        #region æ’ä»¶åŸºæœ¬ä¿¡æ¯
 
         /// <summary>
-        /// ²å¼şÃû³Æ
+        /// æ’ä»¶åç§°
         /// </summary>
         string Name { get; }
 
         /// <summary>
-        /// ²å¼ş°æ±¾
+        /// æ’ä»¶ç‰ˆæœ¬
         /// </summary>
         string Version { get; }
 
         /// <summary>
-        /// ²å¼şÎ¨Ò»±êÊ¶·û
+        /// æ’ä»¶å”¯ä¸€æ ‡è¯†ç¬¦
         /// </summary>
         string PluginId { get; }
 
         /// <summary>
-        /// ²å¼şÃèÊö
+        /// æ’ä»¶æè¿°
         /// </summary>
         string Description { get; }
 
         /// <summary>
-        /// ²å¼şÍ¼±ê (Emoji»òÍ¼±êÂ·¾¶)
+        /// æ’ä»¶å›¾æ ‡ (Emojiæˆ–å›¾æ ‡è·¯å¾„)
         /// </summary>
         string Icon { get; }
 
         /// <summary>
-        /// ²å¼ş×÷Õß
+        /// æ’ä»¶ä½œè€…
         /// </summary>
         string Author { get; }
 
         /// <summary>
-        /// ²å¼şÒÀÀµÁĞ±í
+        /// æ’ä»¶ä¾èµ–åˆ—è¡¨
         /// </summary>
         List<string> Dependencies { get; }
 
         /// <summary>
-        /// ²å¼şÊÇ·ñÒÑ¼ÓÔØ
+        /// æ’ä»¶æ˜¯å¦å·²åŠ è½½
         /// </summary>
         bool IsLoaded { get; }
 
         #endregion
 
-        #region ÉúÃüÖÜÆÚ¹ÜÀí
+        #region ç”Ÿå‘½å‘¨æœŸç®¡ç†
 
         /// <summary>
-        /// ³õÊ¼»¯²å¼ş
+        /// åˆå§‹åŒ–æ’ä»¶
         /// </summary>
         void Initialize();
 
         /// <summary>
-        /// Ğ¶ÔØ²å¼ş
+        /// å¸è½½æ’ä»¶
         /// </summary>
         void Unload();
 
         #endregion
 
-        #region ¹¤¾ß¹ÜÀí
+        #region å·¥å…·ç®¡ç†
 
         /// <summary>
-        /// »ñÈ¡²å¼şÌá¹©µÄËùÓĞ¹¤¾ßÔªÊı¾İ
+        /// è·å–æ’ä»¶æä¾›çš„æ‰€æœ‰å·¥å…·å…ƒæ•°æ®
         /// </summary>
-        /// <returns>¹¤¾ßÔªÊı¾İÁĞ±í</returns>
+        /// <returns>å·¥å…·å…ƒæ•°æ®åˆ—è¡¨</returns>
         List<ToolMetadata> GetToolMetadata();
 
         /// <summary>
-        /// »ñÈ¡Ëã·¨½ÚµãÀàĞÍÁĞ±í
+        /// è·å–ç®—æ³•èŠ‚ç‚¹ç±»å‹åˆ—è¡¨
         /// </summary>
-        /// <returns>Ëã·¨½ÚµãÀàĞÍÁĞ±í</returns>
+        /// <returns>ç®—æ³•èŠ‚ç‚¹ç±»å‹åˆ—è¡¨</returns>
         List<Type> GetAlgorithmNodes();
 
         /// <summary>
-        /// ´´½¨¹¤¾ßÊµÀı
+        /// åˆ›å»ºå·¥å…·å®ä¾‹
         /// </summary>
-        /// <param name="toolId">¹¤¾ßID</param>
-        /// <returns>Í¼Ïñ´¦ÀíÆ÷ÊµÀı</returns>
+        /// <param name="toolId">å·¥å…·ID</param>
+        /// <returns>å›¾åƒå¤„ç†å™¨å®ä¾‹</returns>
         IImageProcessor CreateToolInstance(string toolId);
 
         /// <summary>
-        /// »ñÈ¡¹¤¾ßµÄÄ¬ÈÏ²ÎÊı
+        /// è·å–å·¥å…·çš„é»˜è®¤å‚æ•°
         /// </summary>
-        /// <param name="toolId">¹¤¾ßID</param>
-        /// <returns>Ä¬ÈÏËã·¨²ÎÊı</returns>
+        /// <param name="toolId">å·¥å…·ID</param>
+        /// <returns>é»˜è®¤ç®—æ³•å‚æ•°</returns>
         AlgorithmParameters GetDefaultParameters(string toolId);
 
         /// <summary>
-        /// ÑéÖ¤²ÎÊıÓĞĞ§ĞÔ
+        /// éªŒè¯å‚æ•°æœ‰æ•ˆæ€§
         /// </summary>
-        /// <param name="toolId">¹¤¾ßID</param>
-        /// <param name="parameters">Ëã·¨²ÎÊı</param>
-        /// <returns>ÑéÖ¤½á¹û</returns>
+        /// <param name="toolId">å·¥å…·ID</param>
+        /// <param name="parameters">ç®—æ³•å‚æ•°</param>
+        /// <returns>éªŒè¯ç»“æœ</returns>
         ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters);
 
         #endregion
     }
 
     /// <summary>
-    /// ¹¤¾ß²å¼şÌØĞÔ - ÓÃÓÚ±ê¼Ç¹¤¾ß²å¼şÀà
+    /// å·¥å…·æ’ä»¶ç‰¹æ€§ - ç”¨äºæ ‡è®°å·¥å…·æ’ä»¶ç±»
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class ToolPluginAttribute : Attribute
     {
         /// <summary>
-        /// ¹¤¾ßID
+        /// å·¥å…·ID
         /// </summary>
         public string ToolId { get; }
 
         /// <summary>
-        /// ¹¤¾ßÃû³Æ
+        /// å·¥å…·åç§°
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// ¹¤¾ß°æ±¾
+        /// å·¥å…·ç‰ˆæœ¬
         /// </summary>
         public string Version { get; set; } = "1.0.0";
 
         /// <summary>
-        /// ¹¤¾ß·ÖÀà
+        /// å·¥å…·åˆ†ç±»
         /// </summary>
-        public string Category { get; set; } = "Î´·ÖÀà";
+        public string Category { get; set; } = "æœªåˆ†ç±»";
 
         public ToolPluginAttribute(string toolId, string name)
         {

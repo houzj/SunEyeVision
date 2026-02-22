@@ -5,7 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.Infrastructure.Infrastructure;
 using SunEyeVision.Plugin.Abstractions;
 using Events = SunEyeVision.Core.Events;
 

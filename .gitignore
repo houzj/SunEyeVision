@@ -161,5 +161,9 @@ restore_log.txt
 temp_*.txt
 *_temp.*
 
+# 插件输出目录（由 Directory.Build.props 控制输出位置）
+/output/
+tools/*/output/
+
 # Example files (SunEyeVision specific)
 UsageExample.cs

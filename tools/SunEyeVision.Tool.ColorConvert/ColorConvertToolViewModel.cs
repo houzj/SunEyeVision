@@ -1,6 +1,6 @@
 using System;
 using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Infrastructure.Base;
+using SunEyeVision.Plugin.Abstractions.ViewModels;
 
 namespace SunEyeVision.Tool.ColorConvert
 {

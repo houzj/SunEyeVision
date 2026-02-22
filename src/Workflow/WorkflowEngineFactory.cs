@@ -1,6 +1,8 @@
 ﻿using System;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.Infrastructure.Infrastructure;
+using SunEyeVision.Plugin.Infrastructure.Managers.Plugin;
 using SunEyeVision.Plugin.Abstractions;
 
 namespace SunEyeVision.Workflow

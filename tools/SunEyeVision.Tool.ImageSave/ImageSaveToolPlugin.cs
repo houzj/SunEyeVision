@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Tool.ImageSave
 {

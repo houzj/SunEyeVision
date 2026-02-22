@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Core.Models;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Workflow
 {

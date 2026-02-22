@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using SunEyeVision.Plugin.Infrastructure;
 using SunEyeVision.Plugin.Abstractions;
 
 namespace SunEyeVision.Workflow

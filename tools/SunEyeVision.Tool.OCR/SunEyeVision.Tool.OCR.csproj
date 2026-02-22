@@ -7,11 +7,10 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.OCR</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.OCR</AssemblyName>
+    <OutDir>$(SolutionDir)src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Core\SunEyeVision.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 ﻿using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Workflow
 {

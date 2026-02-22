@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using SunEyeVision.Core.Events;
 using SunEyeVision.Core.Models;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Workflow
 {

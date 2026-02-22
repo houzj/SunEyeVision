@@ -9,16 +9,25 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Plugin.Infrastructure.xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="OpenCVSharp" Version="2.4.0.1" />
-    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260211" />
-    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260211" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260222" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260222" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 保持对 Core 的引用（需要 ILogger） -->
     <ProjectReference Include="..\Core\SunEyeVision.Core.csproj" />
     <ProjectReference Include="..\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Infrastructure\IPluginManager.cs" />
+    <Compile Include="Managers\Plugin\PluginLoader.cs" />
+    <Compile Include="Managers\Plugin\PluginManager.cs" />
+    <Compile Include="Managers\Tool\ToolRegistry.cs" />
   </ItemGroup>
 </Project>

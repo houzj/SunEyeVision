@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Infrastructure.Decorators;
 
 namespace SunEyeVision.Workflow
 {
@@ -27,7 +25,7 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
-            SunEyeVision.Core.Models.AlgorithmParameters? parameters = null,
+            AlgorithmParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
         {
@@ -48,7 +46,7 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
-            SunEyeVision.Core.Models.AlgorithmParameters? parameters = null,
+            AlgorithmParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
         {
@@ -70,20 +68,8 @@ namespace SunEyeVision.Workflow
                     return null;
                 }
 
-                // 应用装饰器
-                IToolPlugin decoratedPlugin = toolPlugin;
-
-                // 应用缓存装饰器
-                if (enableCaching && metadata.SupportCaching)
-                {
-                    decoratedPlugin = new CachingToolPluginDecorator(decoratedPlugin, metadata);
-                }
-
-                // 应用重试装饰器
-                if (enableRetry && metadata.MaxRetryCount > 0)
-                {
-                    decoratedPlugin = new RetryToolPluginDecorator(decoratedPlugin, metadata);
-                }
+                // 使用原始工具插件
+                var decoratedPlugin = toolPlugin;
 
                 // 创建处理器实例
                 var processor = decoratedPlugin.CreateToolInstance(toolId);
@@ -148,7 +134,7 @@ namespace SunEyeVision.Workflow
         public static SubroutineNode CreateSubroutineNode(
             string nodeId,
             string nodeName,
-            SunEyeVision.Core.Models.AlgorithmParameters? parameters = null)
+            AlgorithmParameters? parameters = null)
         {
             var node = new SubroutineNode(nodeId, nodeName);
             if (parameters != null)
@@ -165,7 +151,7 @@ namespace SunEyeVision.Workflow
             string nodeId,
             string nodeName,
             string conditionExpression,
-            SunEyeVision.Core.Models.AlgorithmParameters? parameters = null)
+            AlgorithmParameters? parameters = null)
         {
             var node = new ConditionNode(nodeId, nodeName);
             node.SetExpressionCondition(conditionExpression);
@@ -218,7 +204,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 算法参数
         /// </summary>
-        public SunEyeVision.Core.Models.AlgorithmParameters? Parameters { get; set; }
+        public AlgorithmParameters? Parameters { get; set; }
 
         /// <summary>
         /// 是否启用缓存

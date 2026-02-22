@@ -13,7 +13,7 @@ using SunEyeVision.UI.Views.Controls.Common;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.ViewModels;
-using SunEyeVision.Plugin.Infrastructure;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using AIStudio.Wpf.DiagramDesigner;
 using AIStudio.Wpf.DiagramDesigner.ViewModels;
 using SunEyeVision.UI.Services.Canvas;
