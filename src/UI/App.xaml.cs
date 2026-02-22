@@ -27,6 +27,9 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 设置控制台编码为UTF-8，解决中文乱码问题
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
         // ★ P0优化：预热线程池，消除首次加载延迟
         PrewarmThreadPool();
 

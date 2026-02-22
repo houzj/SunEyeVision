@@ -54,13 +54,8 @@ namespace SunEyeVision.UI.Factories
 
                                 foreach (var windowType in windowTypes)
                                 {
-                                    // 从类型名称提取工具名称
-                                    var toolName = windowType.Name.Replace("DebugWindow", "");
-                                    var toolIdLower = ConvertToSnakeCase(toolName);
-
-                                    _debugWindowTypes[toolName] = windowType;
-                                    _debugWindowTypes[toolIdLower] = windowType;
-                                    _debugWindowTypes[toolName + "Tool"] = windowType;
+                                    // ★ 修复：正确提取工具名称并生成多种匹配键
+                                    RegisterDebugWindowType(windowType);
                                 }
                             }
                             catch (Exception ex)
@@ -77,6 +72,42 @@ namespace SunEyeVision.UI.Factories
 
                 _isInitialized = true;
             }
+        }
+
+        /// <summary>
+        /// 注册调试窗口类型 - 生成多种匹配键以支持不同的命名风格
+        /// </summary>
+        private static void RegisterDebugWindowType(Type windowType)
+        {
+            // 从类型名称提取工具名称，如 "TemplateMatchingToolDebugWindow" -> "TemplateMatchingTool"
+            var toolName = windowType.Name.Replace("DebugWindow", "");
+            
+            // ★ 关键修复：移除 "Tool" 后缀（如果存在）
+            // "TemplateMatchingTool" -> "TemplateMatching"
+            var toolNameWithoutToolSuffix = toolName;
+            if (toolName.EndsWith("Tool"))
+            {
+                toolNameWithoutToolSuffix = toolName.Substring(0, toolName.Length - 4);
+            }
+
+            // 生成蛇形命名
+            // "TemplateMatchingTool" -> "template_matching_tool"
+            // "TemplateMatching" -> "template_matching"
+            var toolIdWithToolSuffix = ConvertToSnakeCase(toolName);
+            var toolIdWithoutToolSuffix = ConvertToSnakeCase(toolNameWithoutToolSuffix);
+
+            // 注册多种匹配键
+            _debugWindowTypes[toolName] = windowType;                          // "TemplateMatchingTool"
+            _debugWindowTypes[toolNameWithoutToolSuffix] = windowType;          // "TemplateMatching"
+            _debugWindowTypes[toolIdWithToolSuffix] = windowType;               // "template_matching_tool"
+            _debugWindowTypes[toolIdWithoutToolSuffix] = windowType;            // "template_matching" ★ 这是工具的真实ID
+            
+            // 也注册带 "Tool" 后缀的版本，以支持各种命名风格
+            _debugWindowTypes[toolName + "Tool"] = windowType;                  // "TemplateMatchingToolTool"
+            _debugWindowTypes[toolIdWithoutToolSuffix + "_tool"] = windowType;  // "template_matching_tool"
+
+            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 注册调试窗口: {windowType.Name}");
+            System.Diagnostics.Debug.WriteLine($"  - 匹配键: {toolName}, {toolNameWithoutToolSuffix}, {toolIdWithToolSuffix}, {toolIdWithoutToolSuffix}");
         }
 
         /// <summary>

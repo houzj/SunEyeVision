@@ -270,22 +270,14 @@ namespace SunEyeVision.UI.ViewModels
         /// <returns>新创建的节点</returns>
         public Models.WorkflowNode CreateNode(string algorithmType, string? name = null)
         {
-            System.Diagnostics.Debug.WriteLine($"[CreateNode] ▶ 开始创建节点");
-            System.Diagnostics.Debug.WriteLine($"[CreateNode]   - algorithmType: {algorithmType}");
-            System.Diagnostics.Debug.WriteLine($"[CreateNode]   - name: {name ?? "(null)"}");
-            System.Diagnostics.Debug.WriteLine($"[CreateNode]   - workflowId: {Id}");
-            System.Diagnostics.Debug.WriteLine($"[CreateNode]   - _nodeFactory: {(_nodeFactory != null ? "存在" : "null")}");
-
             if (_nodeFactory == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[CreateNode] ✗ _nodeFactory 为 null!");
                 throw new InvalidOperationException("NodeFactory is not initialized");
             }
 
             // 使用工厂创建节点，自动处理序号分配
             var node = _nodeFactory.CreateNode(algorithmType, name, Id);
 
-            System.Diagnostics.Debug.WriteLine($"[CreateNode] ✓ 节点创建成功: Id={node.Id}, Name={node.Name}");
             return node;
         }
 

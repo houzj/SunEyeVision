@@ -5,47 +5,47 @@ using SunEyeVision.Core.Models;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 宸ヤ綔娴佽妭鐐?
+    /// 工作流节点
     /// </summary>
     public class WorkflowNode
     {
         /// <summary>
-        /// 鑺傜偣ID
+        /// 节点ID
         /// </summary>
         public string Id { get; set; }
 
         /// <summary>
-        /// 鑺傜偣鍚嶇О
+        /// 节点名称
         /// </summary>
         public string Name { get; set; }
 
         /// <summary>
-        /// 鑺傜偣绫诲瀷
+        /// 节点类型
         /// </summary>
         public NodeType Type { get; set; }
 
         /// <summary>
-        /// 绠楁硶绫诲瀷鍚嶇О
+        /// 算法类型名称
         /// </summary>
         public string AlgorithmType { get; set; }
 
         /// <summary>
-        /// 鑺傜偣鍙傛暟
+        /// 节点参数
         /// </summary>
         public AlgorithmParameters Parameters { get; set; }
 
         /// <summary>
-        /// 鏄惁鍚敤
+        /// 是否启用
         /// </summary>
         public bool IsEnabled { get; set; } = true;
 
         /// <summary>
-        /// 鎵ц鍓嶄簨浠?
+        /// 执行前事件
         /// </summary>
         public event Action<WorkflowNode> BeforeExecute;
 
         /// <summary>
-        /// 鎵ц鍚庝簨浠?
+        /// 执行后事件
         /// </summary>
         public event Action<WorkflowNode, AlgorithmResult> AfterExecute;
 
@@ -59,7 +59,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 瑙﹀彂鎵ц鍓嶄簨浠?
+        /// 触发执行前事件
         /// </summary>
         protected virtual void OnBeforeExecute()
         {
@@ -67,7 +67,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 瑙﹀彂鎵ц鍚庝簨浠?
+        /// 触发执行后事件
         /// </summary>
         protected virtual void OnAfterExecute(AlgorithmResult result)
         {
@@ -75,11 +75,11 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鍒涘缓绠楁硶瀹炰緥锛堢殑鍒濇澶勭悊鏂规硶锛?
+        /// 创建算法实例（的初始化处理方法）
         /// </summary>
         public virtual IImageProcessor CreateInstance()
         {
-            // 婧虹珛鍙锋拴瀹炵幇锛岀敓瀹熷簨鏀硅起鏉ュ唴鐨勫姞杞借瘎娉?
+            // 抛出异常，由子类重写来实现具体的加载逻辑
             throw new NotImplementedException($"Algorithm type '{AlgorithmType}' is not implemented.");
         }
     }

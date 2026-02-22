@@ -26,17 +26,17 @@ using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// Í¼ÏñÏÔÊ¾ÀàĞÍÃ¶¾Ù
+    /// å›¾åƒæ˜¾ç¤ºç±»å‹æšä¸¾
     /// </summary>
     public enum ImageDisplayType
     {
-        Original,    // Ô­Ê¼Í¼Ïñ
-        Processed,   // ´¦ÀíºóÍ¼Ïñ
-        Result       // ½á¹ûÍ¼Ïñ
+        Original,    // åŸå§‹å›¾åƒ
+        Processed,   // å¤„ç†åå›¾åƒ
+        Result       // ç»“æœå›¾åƒ
     }
 
     /// <summary>
-    /// Í¼ÏñÏÔÊ¾ÀàĞÍÏî
+    /// å›¾åƒæ˜¾ç¤ºç±»å‹é¡¹
     /// </summary>
     public class ImageDisplayTypeItem
     {
@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// ¼ÆËã½á¹ûÏî
+    /// è®¡ç®—ç»“æœé¡¹
     /// </summary>
     public class ResultItem
     {
@@ -55,43 +55,43 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// Ö÷´°¿ÚÊÓÍ¼Ä£ĞÍ
+    /// ä¸»çª—å£è§†å›¾æ¨¡å‹
     /// </summary>
     public class MainWindowViewModel : ViewModelBase
     {
-        private string _title = "Ì«ÑôÑÛÊÓ¾õ";
+        private string _title = "å¤ªé˜³çœ¼è§†è§‰";
         private bool _isRunning = false;
-        private string _status = "¾ÍĞ÷";
-        private string _selectedWorkflowName = "Ä¬ÈÏ¹¤×÷Á÷";
-        private string _currentCanvasTypeText = "Ô­Éú Diagram (±´Èû¶ûÇúÏß)";
+        private string _status = "å°±ç»ª";
+        private string _selectedWorkflowName = "é»˜è®¤å·¥ä½œæµ";
+        private string _currentCanvasTypeText = "åŸç”Ÿ Diagram (è´å¡å°”æ›²çº¿)";
 
-        // Í¼ÏñÏÔÊ¾Ïà¹Ø
+        // å›¾åƒæ˜¾ç¤ºç›¸å…³
         private BitmapSource? _displayImage;
         private double _imageScale = 1.0;
 
-        // Í¼ÏñÀàĞÍÏà¹Ø
+        // å›¾åƒç±»å‹ç›¸å…³
         private ImageDisplayTypeItem? _selectedImageType;
         private bool _showImagePreview = false;
         private BitmapSource? _originalImage;
         private BitmapSource? _processedImage;
         private BitmapSource? _resultImage;
 
-        // Í¼ÏñÔ¤ÀÀÏà¹Ø
+        // å›¾åƒé¢„è§ˆç›¸å…³
         private bool _autoSwitchEnabled = false;
         private int _currentImageIndex = -1;
 
-        // ËùÓĞ¹¤×÷Á÷ÔËĞĞ×´Ì¬
+        // æ‰€æœ‰å·¥ä½œæµè¿è¡ŒçŠ¶æ€
         private bool _isAllWorkflowsRunning = false;
-        private string _allWorkflowsRunButtonText = "Á¬ĞøÔËĞĞ";
+        private string _allWorkflowsRunButtonText = "è¿ç»­è¿è¡Œ";
 
-        // ¹¤×÷Á÷Ö´ĞĞ¹ÜÀíÆ÷
+        // å·¥ä½œæµæ‰§è¡Œç®¡ç†å™¨
         private readonly WorkflowExecutionManager _executionManager;
 
-        // ÊôĞÔÃæ°åÏà¹Ø
+        // å±æ€§é¢æ¿ç›¸å…³
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
-        private string _logText = "[ÏµÍ³] µÈ´ı²Ù×÷...\n";
+        private string _logText = "[ç³»ç»Ÿ] ç­‰å¾…æ“ä½œ...\n";
 
-        // Ãæ°åÕÛµş×´Ì¬
+        // é¢æ¿æŠ˜å çŠ¶æ€
         private bool _isToolboxCollapsed = true;
         private bool _isImageDisplayCollapsed = false;
         private bool _isPropertyPanelCollapsed = false;
@@ -99,8 +99,8 @@ namespace SunEyeVision.UI.ViewModels
         private double _rightPanelWidth = 500;
         private double _imageDisplayHeight = 500;
 
-        // ·Ö¸ôÌõÏà¹Ø
-        private double _splitterPosition = 500; // Ä¬ÈÏÍ¼ÏñÇøÓò¸ß¶È
+        // åˆ†éš”æ¡ç›¸å…³
+        private double _splitterPosition = 500; // é»˜è®¤å›¾åƒåŒºåŸŸé«˜åº¦
         private const double DefaultPropertyPanelHeight = 300;
         private const double MinImageAreaHeight = 200;
         private const double MaxImageAreaHeight = 800;
@@ -120,7 +120,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (SetProperty(ref _isRunning, value))
                 {
-                    Status = _isRunning ? "ÔËĞĞÖĞ" : "ÒÑÍ£Ö¹";
+                    Status = _isRunning ? "è¿è¡Œä¸­" : "å·²åœæ­¢";
                 }
             }
         }
@@ -132,7 +132,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// µ±Ç°»­²¼ÀàĞÍÏÔÊ¾ÎÄ±¾
+        /// å½“å‰ç”»å¸ƒç±»å‹æ˜¾ç¤ºæ–‡æœ¬
         /// </summary>
         public string CurrentCanvasTypeText
         {
@@ -151,18 +151,18 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<Models.ToolItem> Tools { get; }
         public ToolboxViewModel Toolbox { get; }
 
-        // ×¢Òâ£ºÉ¾³ıÁËÈ«¾ÖµÄ WorkflowNodes ºÍ WorkflowConnections ÊôĞÔ
-        // ËùÓĞ½ÚµãºÍÁ¬½Ó¶¼Ó¦¸ÃÍ¨¹ı WorkflowTabViewModel.SelectedTab ·ÃÎÊ
-        // ÕâÑùÈ·±£Ã¿¸ö¹¤×÷Á÷ Tab ¶¼ÊÇ¶ÀÁ¢µÄ
+        // æ³¨æ„ï¼šåˆ é™¤äº†å…¨å±€çš„ WorkflowNodes å’Œ WorkflowConnections å±æ€§
+        // æ‰€æœ‰èŠ‚ç‚¹å’Œè¿æ¥éƒ½åº”è¯¥é€šè¿‡ WorkflowTabViewModel.SelectedTab è®¿é—®
+        // è¿™æ ·ç¡®ä¿æ¯ä¸ªå·¥ä½œæµ Tab éƒ½æ˜¯ç‹¬ç«‹çš„
 
         private Models.WorkflowNode? _selectedNode;
         private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
-        private string? _currentDisplayNodeId = null;  // ¡ï ¸ú×Ùµ±Ç°ÏÔÊ¾µÄ²É¼¯½ÚµãID£¬ÓÃÓÚ±ÜÃâÖØ¸´¼ÓÔØ
+        private string? _currentDisplayNodeId = null;  // â˜… è·Ÿè¸ªå½“å‰æ˜¾ç¤ºçš„é‡‡é›†èŠ‚ç‚¹IDï¼Œç”¨äºé¿å…é‡å¤åŠ è½½
 
         /// <summary>
-        /// µ±Ç°»î¶¯½ÚµãµÄÍ¼ÏñÊı¾İ£¨ÓÃÓÚ°ó¶¨µ½Í¼ÏñÔ¤ÀÀ¿Ø¼ş£©
-        /// Ã¿¸ö²É¼¯½ÚµãÎ¬»¤¶ÀÁ¢µÄÍ¼Ïñ¼¯ºÏ
+        /// å½“å‰æ´»åŠ¨èŠ‚ç‚¹çš„å›¾åƒæ•°æ®ï¼ˆç”¨äºç»‘å®šåˆ°å›¾åƒé¢„è§ˆæ§ä»¶ï¼‰
+        /// æ¯ä¸ªé‡‡é›†èŠ‚ç‚¹ç»´æŠ¤ç‹¬ç«‹çš„å›¾åƒé›†åˆ
         /// </summary>
         public Models.NodeImageData? ActiveNodeImageData
         {
@@ -174,76 +174,70 @@ namespace SunEyeVision.UI.ViewModels
         {
             get
             {
-                // AddLog($"[µ÷ÊÔ] SelectedNode ¶ÁÈ¡: {(_selectedNode == null ? "null" : _selectedNode.Name)}");
                 return _selectedNode;
             }
             set
             {
                 bool changed = SetProperty(ref _selectedNode, value);
-                AddLog($"[µ÷ÊÔ] SelectedNode ÉèÖÃ: value={value?.Name ?? "null"}, changed={changed}");
                 
                 if (changed)
                 {
-                    AddLog($"[µ÷ÊÔ] SelectedNode ±ä¸ü: {(value == null ? "null" : value.Name)}");
-
-                    // ¸üĞÂÊôĞÔÃæ°å¿É¼ûĞÔ
+                    // æ›´æ–°å±æ€§é¢æ¿å¯è§æ€§
                     ShowPropertyPanel = value != null;
 
-                    // ¸üĞÂ»î¶¯½ÚµãµÄÍ¼ÏñÊı¾İ£¨ºËĞÄ£ºÇĞ»»½ÚµãÊ±ÇĞ»»Í¼Ïñ¼¯ºÏ£©
+                    // æ›´æ–°æ´»åŠ¨èŠ‚ç‚¹çš„å›¾åƒæ•°æ®ï¼ˆæ ¸å¿ƒï¼šåˆ‡æ¢èŠ‚ç‚¹æ—¶åˆ‡æ¢å›¾åƒé›†åˆï¼‰
                     UpdateActiveNodeImageData(value);
 
-                    // ½ÚµãÑ¡ÖĞ×´Ì¬±ä»¯Ê±£¬¸üĞÂÍ¼ÏñÔ¤ÀÀÏÔÊ¾
+                    // èŠ‚ç‚¹é€‰ä¸­çŠ¶æ€å˜åŒ–æ—¶ï¼Œæ›´æ–°å›¾åƒé¢„è§ˆæ˜¾ç¤º
                     UpdateImagePreviewVisibility(value);
-                    // ¼ÓÔØ½ÚµãÊôĞÔµ½ÊôĞÔÃæ°å
+                    // åŠ è½½èŠ‚ç‚¹å±æ€§åˆ°å±æ€§é¢æ¿
                     LoadNodeProperties(value);
                 }
             }
         }
 
         /// <summary>
-        /// ¸üĞÂ»î¶¯½ÚµãµÄÍ¼ÏñÊı¾İ
-        /// ÊµÏÖ²»Í¬²É¼¯½ÚµãÓµÓĞ¶ÀÁ¢µÄÍ¼ÏñÔ¤ÀÀÆ÷
-        /// ¡ï ÓÅ»¯£º±ÜÃâÖØ¸´¼ÓÔØÏàÍ¬½ÚµãµÄËõÂÔÍ¼
+        /// æ›´æ–°æ´»åŠ¨èŠ‚ç‚¹çš„å›¾åƒæ•°æ®
+        /// å®ç°ä¸åŒé‡‡é›†èŠ‚ç‚¹æ‹¥æœ‰ç‹¬ç«‹çš„å›¾åƒé¢„è§ˆå™¨
+        /// â˜… ä¼˜åŒ–ï¼šé¿å…é‡å¤åŠ è½½ç›¸åŒèŠ‚ç‚¹çš„ç¼©ç•¥å›¾
         /// </summary>
         private void UpdateActiveNodeImageData(Models.WorkflowNode? node)
         {
-            // Çé¿ö1£ºÇĞ»»µ½Í¼Ïñ²É¼¯½Úµã
+            // æƒ…å†µ1ï¼šåˆ‡æ¢åˆ°å›¾åƒé‡‡é›†èŠ‚ç‚¹
             if (node?.IsImageCaptureNode == true)
             {
-                // È·±£½ÚµãÓĞÍ¼ÏñÊı¾İÈİÆ÷£¨ÑÓ³Ù³õÊ¼»¯£©
+                // ç¡®ä¿èŠ‚ç‚¹æœ‰å›¾åƒæ•°æ®å®¹å™¨ï¼ˆå»¶è¿Ÿåˆå§‹åŒ–ï¼‰
                 node.ImageData ??= new Models.NodeImageData(node.Id);
                 
-                // ¡ï ¹Ø¼üÓÅ»¯£º¼ì²éÊÇ·ñÇĞ»»µ½ÏàÍ¬µÄ½ÚµãÇÒµ±Ç°ÒÑÓĞÊı¾İ
+                // â˜… å…³é”®ä¼˜åŒ–ï¼šæ£€æŸ¥æ˜¯å¦åˆ‡æ¢åˆ°ç›¸åŒçš„èŠ‚ç‚¹ä¸”å½“å‰å·²æœ‰æ•°æ®
                 bool isSameNode = _currentDisplayNodeId == node.Id;
                 bool hasActiveData = ActiveNodeImageData != null;
                 
                 if (isSameNode && hasActiveData)
                 {
-                    // ÏàÍ¬½ÚµãÇÒµ±Ç°ÓĞÊı¾İ
-                    // ¡ï ÈÔÈ»ĞèÒª¸üĞÂ ActiveNodeImageData ÒÔÈ·±£°ó¶¨´¥·¢¸üĞÂ
-                    // £¨ÒòÎª¿ÉÄÜ´Ó·Ç²É¼¯½ÚµãÇĞ»»»ØÀ´£¬ActiveNodeImageData Ôø±»ÉèÎª null£©
+                    // ç›¸åŒèŠ‚ç‚¹ä¸”å½“å‰æœ‰æ•°æ®
+                    // â˜… ä»ç„¶éœ€è¦æ›´æ–° ActiveNodeImageData ä»¥ç¡®ä¿ç»‘å®šè§¦å‘æ›´æ–°
+                    // ï¼ˆå› ä¸ºå¯èƒ½ä»éé‡‡é›†èŠ‚ç‚¹åˆ‡æ¢å›æ¥ï¼ŒActiveNodeImageData æ›¾è¢«è®¾ä¸º nullï¼‰
                     ActiveNodeImageData = node.ImageData;
-                    AddLog($"[µ÷ÊÔ] ±£³Ö½Úµã {node.Name} µÄÍ¼Ïñ¼¯ºÏ£¨ÏàÍ¬½Úµã£¬Ìø¹ıÇå¿ÕËõÂÔÍ¼£©");
                     return;
                 }
                 
-                // ¡ï ²»Í¬½Úµã»òÖ®Ç°Êı¾İÒÑÇå¿Õ£º¸üĞÂ¸ú×ÙID²¢Çå¿ÕËõÂÔÍ¼
+                // â˜… ä¸åŒèŠ‚ç‚¹æˆ–ä¹‹å‰æ•°æ®å·²æ¸…ç©ºï¼šæ›´æ–°è·Ÿè¸ªIDå¹¶æ¸…ç©ºç¼©ç•¥å›¾
                 _currentDisplayNodeId = node.Id;
-                int imageCount = node.ImageData.PrepareForDisplay();  // Çå¿ÕËõÂÔÍ¼
+                int imageCount = node.ImageData.PrepareForDisplay();  // æ¸…ç©ºç¼©ç•¥å›¾
                 
                 ActiveNodeImageData = node.ImageData;
-                AddLog($"[µ÷ÊÔ] ÇĞ»»µ½½Úµã {node.Name} µÄÍ¼Ïñ¼¯ºÏ£¬¹² {imageCount} ÕÅÍ¼Ïñ£¨ÑÓ³Ù¼ÓÔØÄ£Ê½£©");
             }
-            // Çé¿ö2£ºÇĞ»»µ½·ÇÍ¼Ïñ²É¼¯½Úµã
-            // ¡ï ²»×öÈÎºÎ²Ù×÷£¬ÓÉ UpdateImagePreviewVisibility Í³Ò»´¦Àí
-            // ÕâÑù¿ÉÒÔ±£³Ö _currentDisplayNodeId ºÍ ActiveNodeImageData ²»±ä£¬
-            // µ±ÇĞ»»µ½ÏàÍ¬ÉÏÓÎ²É¼¯½ÚµãµÄ·Ç²É¼¯½ÚµãÊ±£¬²»»á´¥·¢ÖØĞÂ¼ÓÔØ
-            // Ô­ÎÊÌâ£ºÖ®Ç°ÕâÀï»áÇå¿Õ _currentDisplayNodeId£¬µ¼ÖÂ UpdateImagePreviewVisibility
-            // ÖĞµÄ isSameNode ÅĞ¶ÏÊ§Ğ§£¬Ã¿´ÎÇĞ»»¶¼»áÖØĞÂ¼ÓÔØ
+            // æƒ…å†µ2ï¼šåˆ‡æ¢åˆ°éå›¾åƒé‡‡é›†èŠ‚ç‚¹
+            // â˜… ä¸åšä»»ä½•æ“ä½œï¼Œç”± UpdateImagePreviewVisibility ç»Ÿä¸€å¤„ç†
+            // è¿™æ ·å¯ä»¥ä¿æŒ _currentDisplayNodeId å’Œ ActiveNodeImageData ä¸å˜ï¼Œ
+            // å½“åˆ‡æ¢åˆ°ç›¸åŒä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹çš„éé‡‡é›†èŠ‚ç‚¹æ—¶ï¼Œä¸ä¼šè§¦å‘é‡æ–°åŠ è½½
+            // åŸé—®é¢˜ï¼šä¹‹å‰è¿™é‡Œä¼šæ¸…ç©º _currentDisplayNodeIdï¼Œå¯¼è‡´ UpdateImagePreviewVisibility
+            // ä¸­çš„ isSameNode åˆ¤æ–­å¤±æ•ˆï¼Œæ¯æ¬¡åˆ‡æ¢éƒ½ä¼šé‡æ–°åŠ è½½
         }
 
         /// <summary>
-        /// ÏÔÊ¾ÊôĞÔÃæ°å
+        /// æ˜¾ç¤ºå±æ€§é¢æ¿
         /// </summary>
         public bool ShowPropertyPanel
         {
@@ -253,19 +247,19 @@ namespace SunEyeVision.UI.ViewModels
         public Models.WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
-        // ¶àÁ÷³Ì¹ÜÀí
+        // å¤šæµç¨‹ç®¡ç†
         public WorkflowTabControlViewModel WorkflowTabViewModel { get; }
 
         /// <summary>
-        /// µ±Ç°Ñ¡ÖĞ»­²¼µÄÃüÁî¹ÜÀíÆ÷£¨ÓÃÓÚ³·Ïú/ÖØ×ö¹¦ÄÜ£©
-        /// Ã¿¸ö»­²¼¶¼ÓĞ¶ÀÁ¢µÄ³·Ïú/ÖØ×öÕ»
+        /// å½“å‰é€‰ä¸­ç”»å¸ƒçš„å‘½ä»¤ç®¡ç†å™¨ï¼ˆç”¨äºæ’¤é”€/é‡åšåŠŸèƒ½ï¼‰
+        /// æ¯ä¸ªç”»å¸ƒéƒ½æœ‰ç‹¬ç«‹çš„æ’¤é”€/é‡åšæ ˆ
         /// </summary>
         public AppCommands.CommandManager? CurrentCommandManager
         {
             get => WorkflowTabViewModel.SelectedTab?.CommandManager;
         }
 
-        // ÓÃÓÚ¸ú×Ùµ±Ç°¶©ÔÄµÄÃüÁî¹ÜÀíÆ÷£¬±ÜÃâÖØ¸´¶©ÔÄ
+        // ç”¨äºè·Ÿè¸ªå½“å‰è®¢é˜…çš„å‘½ä»¤ç®¡ç†å™¨ï¼Œé¿å…é‡å¤è®¢é˜…
         private AppCommands.CommandManager? _subscribedCommandManager;
 
         public string StatusText
@@ -274,9 +268,9 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _status, value);
         }
 
-        public string CameraStatus => "ÒÑÁ¬½Ó (2Ì¨)";
+        public string CameraStatus => "å·²è¿æ¥ (2å°)";
 
-        // Í¼ÏñÏÔÊ¾ÊôĞÔ
+        // å›¾åƒæ˜¾ç¤ºå±æ€§
         public BitmapSource? DisplayImage
         {
             get => _displayImage;
@@ -296,12 +290,12 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Í¼ÏñÏÔÊ¾ÀàĞÍ¼¯ºÏ
+        /// å›¾åƒæ˜¾ç¤ºç±»å‹é›†åˆ
         /// </summary>
         public ObservableCollection<ImageDisplayTypeItem> ImageDisplayTypes { get; }
 
         /// <summary>
-        /// µ±Ç°Ñ¡ÖĞµÄÍ¼ÏñÏÔÊ¾ÀàĞÍ
+        /// å½“å‰é€‰ä¸­çš„å›¾åƒæ˜¾ç¤ºç±»å‹
         /// </summary>
         public ImageDisplayTypeItem? SelectedImageType
         {
@@ -316,24 +310,24 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÏÔÊ¾Í¼ÏñÔØÈë¼°Ô¤ÀÀÄ£¿é£¨½ö¶ÔImageCaptureTool½ÚµãÏÔÊ¾£©
+        /// æ˜¾ç¤ºå›¾åƒè½½å…¥åŠé¢„è§ˆæ¨¡å—ï¼ˆä»…å¯¹ImageCaptureToolèŠ‚ç‚¹æ˜¾ç¤ºï¼‰
         /// </summary>
         public bool ShowImagePreview
         {
             get => _showImagePreview;
             set
             {
-                System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] Setter±»µ÷ÓÃ: {_showImagePreview} -> {value}");
+                System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] Setterè¢«è°ƒç”¨: {_showImagePreview} -> {value}");
                 if (SetProperty(ref _showImagePreview, value))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] PropertyChangedÒÑ´¥·¢, µ±Ç°Öµ: {_showImagePreview}");
+                    System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] PropertyChangedå·²è§¦å‘, å½“å‰å€¼: {_showImagePreview}");
                     OnPropertyChanged(nameof(ImagePreviewHeight));
                 }
             }
         }
 
         /// <summary>
-        /// Í¼ÏñÔ¤ÀÀÇøÓò¸ß¶È£¨ÓÃÓÚ¶¯Ì¬¿ØÖÆÍ¼ÏñÔ¤ÀÀÄ£¿éµÄ¿Õ¼ä£©
+        /// å›¾åƒé¢„è§ˆåŒºåŸŸé«˜åº¦ï¼ˆç”¨äºåŠ¨æ€æ§åˆ¶å›¾åƒé¢„è§ˆæ¨¡å—çš„ç©ºé—´ï¼‰
         /// </summary>
         public GridLength ImagePreviewHeight
         {
@@ -341,11 +335,11 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ¼ÆËã½á¹û¼¯ºÏ
+        /// è®¡ç®—ç»“æœé›†åˆ
         /// </summary>
         public ObservableCollection<ResultItem> CalculationResults { get; }
 
-        // ÊôĞÔÃæ°åÊôĞÔ
+        // å±æ€§é¢æ¿å±æ€§
         public ObservableCollection<Models.PropertyGroup> PropertyGroups
         {
             get => _propertyGroups;
@@ -358,7 +352,7 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _logText, value);
         }
 
-        // Ãæ°åÕÛµş×´Ì¬ÊôĞÔ
+        // é¢æ¿æŠ˜å çŠ¶æ€å±æ€§
         public bool IsToolboxCollapsed
         {
             get => _isToolboxCollapsed;
@@ -396,21 +390,21 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Í¼ÏñÏÔÊ¾ÇøÓò¸ß¶È£¨·Ö¸ôÌõÉÏ·½ÇøÓò£©
+        /// å›¾åƒæ˜¾ç¤ºåŒºåŸŸé«˜åº¦ï¼ˆåˆ†éš”æ¡ä¸Šæ–¹åŒºåŸŸï¼‰
         /// </summary>
         public double SplitterPosition
         {
             get => _splitterPosition;
             private set
             {
-                // È·±£ÔÚºÏÀí·¶Î§ÄÚ
+                // ç¡®ä¿åœ¨åˆç†èŒƒå›´å†…
                 value = Math.Max(MinImageAreaHeight, Math.Min(MaxImageAreaHeight, value));
-                if (Math.Abs(_splitterPosition - value) > 1) // ±ÜÃâÎ¢Ğ¡¶¶¶¯
+                if (Math.Abs(_splitterPosition - value) > 1) // é¿å…å¾®å°æŠ–åŠ¨
                 {
                     _splitterPosition = value;
                     OnPropertyChanged(nameof(SplitterPosition));
 
-                    // ¸üĞÂÊôĞÔÃæ°åÊµ¼Ê¸ß¶È
+                    // æ›´æ–°å±æ€§é¢æ¿å®é™…é«˜åº¦
                     double availableHeight = _splitterPosition;
                     double propertyHeight = Math.Max(200, Math.Min(600, 900 - availableHeight));
                     PropertyPanelActualHeight = propertyHeight;
@@ -419,7 +413,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÊôĞÔÃæ°åÊµ¼Ê¸ß¶È
+        /// å±æ€§é¢æ¿å®é™…é«˜åº¦
         /// </summary>
         public double PropertyPanelActualHeight
         {
@@ -435,20 +429,20 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ±£´æ·Ö¸ôÌõÎ»ÖÃ£¨´Ó´úÂëºóÌ¨µ÷ÓÃ£©
+        /// ä¿å­˜åˆ†éš”æ¡ä½ç½®ï¼ˆä»ä»£ç åå°è°ƒç”¨ï¼‰
         /// </summary>
         public void SaveSplitterPosition(double position)
         {
-            System.Diagnostics.Debug.WriteLine($"[SaveSplitterPosition] ±£´æÎ»ÖÃ: {position}");
+            System.Diagnostics.Debug.WriteLine($"[SaveSplitterPosition] ä¿å­˜ä½ç½®: {position}");
             SplitterPosition = position;
 
-            // ¿ÉÑ¡£º±£´æµ½ÓÃ»§ÉèÖÃÎÄ¼ş
+            // å¯é€‰ï¼šä¿å­˜åˆ°ç”¨æˆ·è®¾ç½®æ–‡ä»¶
             // Settings.Default.SplitterPosition = position;
             // Settings.Default.Save();
         }
 
         /// <summary>
-        /// ËùÓĞ¹¤×÷Á÷ÊÇ·ñÕıÔÚÔËĞĞ
+        /// æ‰€æœ‰å·¥ä½œæµæ˜¯å¦æ­£åœ¨è¿è¡Œ
         /// </summary>
         public bool IsAllWorkflowsRunning
         {
@@ -457,7 +451,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ËùÓĞ¹¤×÷Á÷ÔËĞĞ°´Å¥ÎÄ±¾
+        /// æ‰€æœ‰å·¥ä½œæµè¿è¡ŒæŒ‰é’®æ–‡æœ¬
         /// </summary>
         public string AllWorkflowsRunButtonText
         {
@@ -466,7 +460,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Ô­Ê¼Í¼Ïñ
+        /// åŸå§‹å›¾åƒ
         /// </summary>
         public BitmapSource? OriginalImage
         {
@@ -481,7 +475,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ´¦ÀíºóÍ¼Ïñ
+        /// å¤„ç†åå›¾åƒ
         /// </summary>
         public BitmapSource? ProcessedImage
         {
@@ -496,7 +490,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ½á¹ûÍ¼Ïñ
+        /// ç»“æœå›¾åƒ
         /// </summary>
         public BitmapSource? ResultImage
         {
@@ -511,12 +505,12 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Í¼Ïñ¼¯ºÏ£¨Ê¹ÓÃÅúÁ¿²Ù×÷ÓÅ»¯¼¯ºÏ£©
+        /// å›¾åƒé›†åˆï¼ˆä½¿ç”¨æ‰¹é‡æ“ä½œä¼˜åŒ–é›†åˆï¼‰
         /// </summary>
         public BatchObservableCollection<ImageInfo> ImageCollection { get; }
 
         /// <summary>
-        /// ÊÇ·ñÆôÓÃ×Ô¶¯ÇĞ»»
+        /// æ˜¯å¦å¯ç”¨è‡ªåŠ¨åˆ‡æ¢
         /// </summary>
         public bool AutoSwitchEnabled
         {
@@ -525,7 +519,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// µ±Ç°ÏÔÊ¾µÄÍ¼ÏñË÷Òı
+        /// å½“å‰æ˜¾ç¤ºçš„å›¾åƒç´¢å¼•
         /// </summary>
         public int CurrentImageIndex
         {
@@ -540,15 +534,15 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Ìí¼ÓÈÕÖ¾
+        /// æ·»åŠ æ—¥å¿—
         /// </summary>
         public void AddLog(string message)
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            // ĞÂÈÕÖ¾×·¼Óµ½Ä©Î²
+            // æ–°æ—¥å¿—è¿½åŠ åˆ°æœ«å°¾
             LogText += $"[{timestamp}] {message}\n";
 
-            // ÏŞÖÆÈÕÖ¾ÌõÄ¿ÊıÁ¿£¬×î¶à±£Áô100Ìõ
+            // é™åˆ¶æ—¥å¿—æ¡ç›®æ•°é‡ï¼Œæœ€å¤šä¿ç•™100æ¡
             var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length > 100)
             {
@@ -574,18 +568,18 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ToggleBoundingRectangleCommand { get; }
         public ICommand TogglePathPointsCommand { get; }
 
-        // ËùÓĞ¹¤×÷Á÷¿ØÖÆÃüÁî
+        // æ‰€æœ‰å·¥ä½œæµæ§åˆ¶å‘½ä»¤
         public ICommand RunAllWorkflowsCommand { get; }
         public ICommand ToggleContinuousAllCommand { get; }
 
-        // Í¼Ïñ¿ØÖÆÃüÁî
+        // å›¾åƒæ§åˆ¶å‘½ä»¤
         public ICommand ZoomInCommand { get; }
         public ICommand ZoomOutCommand { get; }
         public ICommand FitToWindowCommand { get; }
         public ICommand ResetViewCommand { get; }
         public ICommand ToggleFullScreenCommand { get; }
 
-        // Í¼ÏñÔØÈëÃüÁî
+        // å›¾åƒè½½å…¥å‘½ä»¤
         public ICommand BrowseImageCommand { get; }
         public ICommand LoadImageCommand { get; }
         public ICommand ClearImageCommand { get; }
@@ -594,58 +588,58 @@ namespace SunEyeVision.UI.ViewModels
         {
             Workflows = new ObservableCollection<string>
             {
-                "Ä¬ÈÏ¹¤×÷Á÷",
-                "±ßÔµ¼ì²â",
-                "Ä¿±ê¼ì²â",
-                "ÖÊÁ¿¼ì²â"
+                "é»˜è®¤å·¥ä½œæµ",
+                "è¾¹ç¼˜æ£€æµ‹",
+                "ç›®æ ‡æ£€æµ‹",
+                "è´¨é‡æ£€æµ‹"
             };
 
             Tools = new ObservableCollection<Models.ToolItem>();
             Toolbox = new ToolboxViewModel();
-            // É¾³ıÁËÈ«¾Ö WorkflowNodes ºÍ WorkflowConnections µÄ³õÊ¼»¯
+            // åˆ é™¤äº†å…¨å±€ WorkflowNodes å’Œ WorkflowConnections çš„åˆå§‹åŒ–
 
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
-            // ³õÊ¼»¯Í¼ÏñÏÔÊ¾ÀàĞÍ
+            // åˆå§‹åŒ–å›¾åƒæ˜¾ç¤ºç±»å‹
             ImageDisplayTypes = new ObservableCollection<ImageDisplayTypeItem>
             {
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Original, DisplayName = "Ô­Ê¼Í¼Ïñ", Icon = "??" },
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Processed, DisplayName = "´¦ÀíºóÍ¼Ïñ", Icon = "??" },
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Result, DisplayName = "½á¹ûÍ¼Ïñ", Icon = "?" }
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Original, DisplayName = "åŸå§‹å›¾åƒ", Icon = "??" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Processed, DisplayName = "å¤„ç†åå›¾åƒ", Icon = "??" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Result, DisplayName = "ç»“æœå›¾åƒ", Icon = "?" }
             };
             SelectedImageType = ImageDisplayTypes.FirstOrDefault();
 
-            // ³õÊ¼»¯¼ÆËã½á¹û¼¯ºÏ
+            // åˆå§‹åŒ–è®¡ç®—ç»“æœé›†åˆ
             CalculationResults = new ObservableCollection<ResultItem>();
 
-            // ³õÊ¼»¯Í¼Ïñ¼¯ºÏ£¨ÅúÁ¿²Ù×÷ÓÅ»¯£©
+            // åˆå§‹åŒ–å›¾åƒé›†åˆï¼ˆæ‰¹é‡æ“ä½œä¼˜åŒ–ï¼‰
             ImageCollection = new BatchObservableCollection<ImageInfo>();
 
-            // ³õÊ¼»¯¹¤×÷Á÷Ö´ĞĞ¹ÜÀíÆ÷
+            // åˆå§‹åŒ–å·¥ä½œæµæ‰§è¡Œç®¡ç†å™¨
             _executionManager = new Services.Workflow.WorkflowExecutionManager(new Infrastructure.DefaultInputProvider());
 
-            // ¶©ÔÄÖ´ĞĞ¹ÜÀíÆ÷µÄÊÂ¼ş
+            // è®¢é˜…æ‰§è¡Œç®¡ç†å™¨çš„äº‹ä»¶
             _executionManager.WorkflowExecutionStarted += OnWorkflowExecutionStarted;
             _executionManager.WorkflowExecutionCompleted += OnWorkflowExecutionCompleted;
             _executionManager.WorkflowExecutionStopped += OnWorkflowExecutionStopped;
             _executionManager.WorkflowExecutionError += OnWorkflowExecutionError;
             _executionManager.WorkflowExecutionProgress += OnWorkflowExecutionProgress;
 
-            // ³õÊ¼»¯µ±Ç°»­²¼ÀàĞÍ
+            // åˆå§‹åŒ–å½“å‰ç”»å¸ƒç±»å‹
             UpdateCurrentCanvasType();
 
-            // ¶©ÔÄÑ¡ÖĞ»­²¼±ä»¯ÊÂ¼ş£¬¸üĞÂ³·Ïú/ÖØ×ö°´Å¥×´Ì¬
+            // è®¢é˜…é€‰ä¸­ç”»å¸ƒå˜åŒ–äº‹ä»¶ï¼Œæ›´æ–°æ’¤é”€/é‡åšæŒ‰é’®çŠ¶æ€
             WorkflowTabViewModel.SelectionChanged += OnSelectedTabChanged;
 
-            // ¶©ÔÄ¹¤×÷Á÷×´Ì¬±ä»¯ÊÂ¼ş
+            // è®¢é˜…å·¥ä½œæµçŠ¶æ€å˜åŒ–äº‹ä»¶
             WorkflowTabViewModel.WorkflowStatusChanged += OnWorkflowStatusChanged;
 
-            // ¶©ÔÄ³õÊ¼»­²¼µÄÃüÁî¹ÜÀíÆ÷
+            // è®¢é˜…åˆå§‹ç”»å¸ƒçš„å‘½ä»¤ç®¡ç†å™¨
             SubscribeToCurrentCommandManager();
 
             InitializeTools();
-            // InitializeSampleNodes(); // ÒÑ½ûÓÃ£º³ÌĞòÆô¶¯Ê±²»¼ÓÔØ²âÊÔ½ÚµãºÍÁ¬Ïß
+            // InitializeSampleNodes(); // å·²ç¦ç”¨ï¼šç¨‹åºå¯åŠ¨æ—¶ä¸åŠ è½½æµ‹è¯•èŠ‚ç‚¹å’Œè¿çº¿
             InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
@@ -666,38 +660,38 @@ namespace SunEyeVision.UI.ViewModels
             ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
 
-            // ËùÓĞ¹¤×÷Á÷¿ØÖÆÃüÁî
+            // æ‰€æœ‰å·¥ä½œæµæ§åˆ¶å‘½ä»¤
             RunAllWorkflowsCommand = new RelayCommand(async () => await ExecuteRunAllWorkflows(), () => !IsAllWorkflowsRunning);
             ToggleContinuousAllCommand = new RelayCommand(ExecuteToggleContinuousAll, () => true);
 
-            // Í¼Ïñ¿ØÖÆÃüÁî
+            // å›¾åƒæ§åˆ¶å‘½ä»¤
             ZoomInCommand = new RelayCommand(ExecuteZoomIn);
             ZoomOutCommand = new RelayCommand(ExecuteZoomOut);
             FitToWindowCommand = new RelayCommand(ExecuteFitToWindow);
             ResetViewCommand = new RelayCommand(ExecuteResetView);
             ToggleFullScreenCommand = new RelayCommand(ExecuteToggleFullScreen);
 
-            // Í¼ÏñÔØÈëÃüÁî
+            // å›¾åƒè½½å…¥å‘½ä»¤
             BrowseImageCommand = new RelayCommand(ExecuteBrowseImage);
             LoadImageCommand = new RelayCommand(ExecuteLoadImage);
             ClearImageCommand = new RelayCommand(ExecuteClearImage);
         }
 
         /// <summary>
-        /// Ñ¡ÖĞ»­²¼±ä»¯´¦Àí
+        /// é€‰ä¸­ç”»å¸ƒå˜åŒ–å¤„ç†
         /// </summary>
         private void OnSelectedTabChanged(object? sender, EventArgs e)
         {
-            // ¶©ÔÄĞÂ»­²¼µÄÃüÁî¹ÜÀíÆ÷
+            // è®¢é˜…æ–°ç”»å¸ƒçš„å‘½ä»¤ç®¡ç†å™¨
             SubscribeToCurrentCommandManager();
 
-            // ¸üĞÂ³·Ïú/ÖØ×ö°´Å¥×´Ì¬
+            // æ›´æ–°æ’¤é”€/é‡åšæŒ‰é’®çŠ¶æ€
             UpdateUndoRedoCommands();
 
-            // ¸üĞÂµ±Ç°»­²¼ÀàĞÍÏÔÊ¾
+            // æ›´æ–°å½“å‰ç”»å¸ƒç±»å‹æ˜¾ç¤º
             UpdateCurrentCanvasType();
 
-            // ¸üĞÂ SmartPathConverter µÄ½ÚµãºÍÁ¬½Ó¼¯ºÏ
+            // æ›´æ–° SmartPathConverter çš„èŠ‚ç‚¹å’Œè¿æ¥é›†åˆ
             if (WorkflowTabViewModel?.SelectedTab != null)
             {
                 Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
@@ -706,21 +700,21 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷×´Ì¬±ä»¯´¦Àí
+        /// å·¥ä½œæµçŠ¶æ€å˜åŒ–å¤„ç†
         /// </summary>
         private void OnWorkflowStatusChanged(object? sender, EventArgs e)
         {
-            // ¸üĞÂËùÓĞ¹¤×÷Á÷ÔËĞĞ×´Ì¬
+            // æ›´æ–°æ‰€æœ‰å·¥ä½œæµè¿è¡ŒçŠ¶æ€
             IsAllWorkflowsRunning = WorkflowTabViewModel.IsAnyWorkflowRunning;
-            AllWorkflowsRunButtonText = IsAllWorkflowsRunning ? "Í£Ö¹ÔËĞĞ" : "Á¬ĞøÔËĞĞ";
+            AllWorkflowsRunButtonText = IsAllWorkflowsRunning ? "åœæ­¢è¿è¡Œ" : "è¿ç»­è¿è¡Œ";
 
-            // ¸üĞÂÃüÁîµÄCanExecute×´Ì¬
+            // æ›´æ–°å‘½ä»¤çš„CanExecuteçŠ¶æ€
             (RunAllWorkflowsCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleContinuousAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         /// <summary>
-        /// ¸üĞÂµ±Ç°»­²¼ÀàĞÍÏÔÊ¾
+        /// æ›´æ–°å½“å‰ç”»å¸ƒç±»å‹æ˜¾ç¤º
         /// </summary>
         public void UpdateCurrentCanvasType()
         {
@@ -729,29 +723,29 @@ namespace SunEyeVision.UI.ViewModels
                 var canvasType = WorkflowTabViewModel.SelectedTab.CanvasType;
             CurrentCanvasTypeText = canvasType switch
             {
-                Views.Controls.Canvas.CanvasType.WorkflowCanvas => "¹¤×÷Á÷»­²¼",
-                Views.Controls.Canvas.CanvasType.NativeDiagram => "Ô­Éú Diagram (±´Èû¶ûÇúÏß)",
-                _ => "Î´Öª»­²¼"
+                Views.Controls.Canvas.CanvasType.WorkflowCanvas => "å·¥ä½œæµç”»å¸ƒ",
+                Views.Controls.Canvas.CanvasType.NativeDiagram => "åŸç”Ÿ Diagram (è´å¡å°”æ›²çº¿)",
+                _ => "æœªçŸ¥ç”»å¸ƒ"
             };
             }
             else
             {
-                CurrentCanvasTypeText = "¹¤×÷Á÷»­²¼";
+                CurrentCanvasTypeText = "å·¥ä½œæµç”»å¸ƒ";
             }
         }
 
         /// <summary>
-        /// ¶©ÔÄµ±Ç°»­²¼µÄÃüÁî¹ÜÀíÆ÷×´Ì¬±ä»¯
+        /// è®¢é˜…å½“å‰ç”»å¸ƒçš„å‘½ä»¤ç®¡ç†å™¨çŠ¶æ€å˜åŒ–
         /// </summary>
         private void SubscribeToCurrentCommandManager()
         {
-            // È¡Ïû¶©ÔÄ¾ÉµÄÃüÁî¹ÜÀíÆ÷
+            // å–æ¶ˆè®¢é˜…æ—§çš„å‘½ä»¤ç®¡ç†å™¨
             if (_subscribedCommandManager != null)
             {
                 _subscribedCommandManager.CommandStateChanged -= OnCurrentCommandManagerStateChanged;
             }
 
-            // ¶©ÔÄĞÂµÄÃüÁî¹ÜÀíÆ÷
+            // è®¢é˜…æ–°çš„å‘½ä»¤ç®¡ç†å™¨
             if (CurrentCommandManager != null)
             {
                 CurrentCommandManager.CommandStateChanged += OnCurrentCommandManagerStateChanged;
@@ -764,7 +758,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ¸üĞÂ³·Ïú/ÖØ×öÃüÁîµÄCanExecute×´Ì¬
+        /// æ›´æ–°æ’¤é”€/é‡åšå‘½ä»¤çš„CanExecuteçŠ¶æ€
         /// </summary>
         private void UpdateUndoRedoCommands()
         {
@@ -775,13 +769,13 @@ namespace SunEyeVision.UI.ViewModels
                 undoCmd?.RaiseCanExecuteChanged();
                 redoCmd?.RaiseCanExecuteChanged();
 
-                // ¸üĞÂ×´Ì¬À¸ÏÔÊ¾
-                StatusText = CurrentCommandManager?.LastCommandDescription ?? "¾ÍĞ÷";
+                // æ›´æ–°çŠ¶æ€æ æ˜¾ç¤º
+                StatusText = CurrentCommandManager?.LastCommandDescription ?? "å°±ç»ª";
             });
         }
 
         /// <summary>
-        /// µ±Ç°»­²¼µÄÃüÁî¹ÜÀíÆ÷×´Ì¬±ä»¯´¦Àí
+        /// å½“å‰ç”»å¸ƒçš„å‘½ä»¤ç®¡ç†å™¨çŠ¶æ€å˜åŒ–å¤„ç†
         /// </summary>
         private void OnCurrentCommandManagerStateChanged(object? sender, EventArgs e)
         {
@@ -789,7 +783,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñ¿ÉÒÔ³·Ïú£¨»ùÓÚµ±Ç°Ñ¡ÖĞ»­²¼£©
+        /// åˆ¤æ–­æ˜¯å¦å¯ä»¥æ’¤é”€ï¼ˆåŸºäºå½“å‰é€‰ä¸­ç”»å¸ƒï¼‰
         /// </summary>
         private bool CanExecuteUndo()
         {
@@ -797,7 +791,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñ¿ÉÒÔÖØ×ö£¨»ùÓÚµ±Ç°Ñ¡ÖĞ»­²¼£©
+        /// åˆ¤æ–­æ˜¯å¦å¯ä»¥é‡åšï¼ˆåŸºäºå½“å‰é€‰ä¸­ç”»å¸ƒï¼‰
         /// </summary>
         private bool CanExecuteRedo()
         {
@@ -806,25 +800,25 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecutePause()
         {
-            // TODO: ÊµÏÖÔİÍ£¹¦ÄÜ
+            // TODO: å®ç°æš‚åœåŠŸèƒ½
         }
 
         private void ExecuteUndo()
         {
             if (CurrentCommandManager == null)
             {
-                AddLog("?? Ã»ÓĞÑ¡ÖĞµÄ»­²¼£¬ÎŞ·¨³·Ïú");
+                AddLog("?? æ²¡æœ‰é€‰ä¸­çš„ç”»å¸ƒï¼Œæ— æ³•æ’¤é”€");
                 return;
             }
 
             try
             {
                 CurrentCommandManager.Undo();
-                AddLog($"?? ³·Ïú: {CurrentCommandManager.LastCommandDescription}");
+                AddLog($"?? æ’¤é”€: {CurrentCommandManager.LastCommandDescription}");
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"³·ÏúÊ§°Ü: {ex.Message}", "´íÎó",
+                System.Windows.MessageBox.Show($"æ’¤é”€å¤±è´¥: {ex.Message}", "é”™è¯¯",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
@@ -833,58 +827,58 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (CurrentCommandManager == null)
             {
-                AddLog("?? Ã»ÓĞÑ¡ÖĞµÄ»­²¼£¬ÎŞ·¨ÖØ×ö");
+                AddLog("?? æ²¡æœ‰é€‰ä¸­çš„ç”»å¸ƒï¼Œæ— æ³•é‡åš");
                 return;
             }
 
             try
             {
                 CurrentCommandManager.Redo();
-                AddLog($"?? ÖØ×ö: {CurrentCommandManager.LastCommandDescription}");
+                AddLog($"?? é‡åš: {CurrentCommandManager.LastCommandDescription}");
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"ÖØ×öÊ§°Ü: {ex.Message}", "´íÎó",
+                System.Windows.MessageBox.Show($"é‡åšå¤±è´¥: {ex.Message}", "é”™è¯¯",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         private void InitializeTools()
         {
-            Tools.Add(new Models.ToolItem("Í¼Ïñ²É¼¯", "ImageAcquisition", "??", "´ÓÏà»ú»òÍ¼ÏñÎÄ¼ş»ñÈ¡Í¼ÏñÊı¾İ"));
-            Tools.Add(new Models.ToolItem("»Ò¶È»¯", "GrayScale", "??", "½«²ÊÉ«Í¼Ïñ×ª»»Îª»Ò¶ÈÍ¼Ïñ"));
-            Tools.Add(new Models.ToolItem("¸ßË¹Ä£ºı", "GaussianBlur", "??", "Ó¦ÓÃ¸ßË¹Ä£ºıÂË¾µ¼õÉÙÔëÉù"));
-            Tools.Add(new Models.ToolItem("¶şÖµ»¯", "Threshold", "?", "½«Í¼Ïñ×ª»»Îª¶şÖµÍ¼Ïñ"));
-            Tools.Add(new Models.ToolItem("±ßÔµ¼ì²â", "EdgeDetection", "??", "¼ì²âÍ¼ÏñÖĞµÄ±ßÔµ"));
-            Tools.Add(new Models.ToolItem("ĞÎÌ¬Ñ§²Ù×÷", "Morphology", "??", "¸¯Ê´¡¢ÅòÕÍµÈĞÎÌ¬Ñ§²Ù×÷"));
+            Tools.Add(new Models.ToolItem("å›¾åƒé‡‡é›†", "ImageAcquisition", "??", "ä»ç›¸æœºæˆ–å›¾åƒæ–‡ä»¶è·å–å›¾åƒæ•°æ®"));
+            Tools.Add(new Models.ToolItem("ç°åº¦åŒ–", "GrayScale", "??", "å°†å½©è‰²å›¾åƒè½¬æ¢ä¸ºç°åº¦å›¾åƒ"));
+            Tools.Add(new Models.ToolItem("é«˜æ–¯æ¨¡ç³Š", "GaussianBlur", "??", "åº”ç”¨é«˜æ–¯æ¨¡ç³Šæ»¤é•œå‡å°‘å™ªå£°"));
+            Tools.Add(new Models.ToolItem("äºŒå€¼åŒ–", "Threshold", "?", "å°†å›¾åƒè½¬æ¢ä¸ºäºŒå€¼å›¾åƒ"));
+            Tools.Add(new Models.ToolItem("è¾¹ç¼˜æ£€æµ‹", "EdgeDetection", "??", "æ£€æµ‹å›¾åƒä¸­çš„è¾¹ç¼˜"));
+            Tools.Add(new Models.ToolItem("å½¢æ€å­¦æ“ä½œ", "Morphology", "??", "è…èš€ã€è†¨èƒ€ç­‰å½¢æ€å­¦æ“ä½œ"));
         }
 
         private void InitializePropertyGroups()
         {
-            // ³õÊ¼»¯ÈÕÖ¾
-            AddLog("? [ÏµÍ³] ÏµÍ³Æô¶¯³É¹¦");
-            AddLog("? [Éè±¸] Ïà»ú1 Á¬½Ó³É¹¦");
-            AddLog("? [Éè±¸] Ïà»ú2 Á¬½Ó³É¹¦");
+            // åˆå§‹åŒ–æ—¥å¿—
+            AddLog("? [ç³»ç»Ÿ] ç³»ç»Ÿå¯åŠ¨æˆåŠŸ");
+            AddLog("? [è®¾å¤‡] ç›¸æœº1 è¿æ¥æˆåŠŸ");
+            AddLog("? [è®¾å¤‡] ç›¸æœº2 è¿æ¥æˆåŠŸ");
         }
 
         private void InitializeSampleNodes()
         {
             if (WorkflowTabViewModel.SelectedTab != null)
             {
-                // Ìí¼Ó½Úµãµ½µ±Ç°Ñ¡ÖĞµÄ±êÇ©Ò³
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "Í¼Ïñ²É¼¯_1", "image_capture")
+                // æ·»åŠ èŠ‚ç‚¹åˆ°å½“å‰é€‰ä¸­çš„æ ‡ç­¾é¡µ
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "å›¾åƒé‡‡é›†_1", "image_capture")
                 {
                     Position = new System.Windows.Point(100, 100),
                     IsSelected = false
                 });
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "¸ßË¹Ä£ºı", "gaussian_blur")
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "é«˜æ–¯æ¨¡ç³Š", "gaussian_blur")
                 {
                     Position = new System.Windows.Point(300, 100),
                     IsSelected = false
                 });
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "±ßÔµ¼ì²â", "edge_detection")
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "è¾¹ç¼˜æ£€æµ‹", "edge_detection")
                 {
                     Position = new System.Windows.Point(500, 100),
                     IsSelected = false
@@ -906,65 +900,65 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteNewWorkflow()
         {
-            // TODO: ´´½¨ĞÂ¹¤×÷Á÷
+            // TODO: åˆ›å»ºæ–°å·¥ä½œæµ
         }
 
         private void ExecuteOpenWorkflow()
         {
-            // TODO: ´ò¿ª¹¤×÷Á÷ÎÄ¼ş
+            // TODO: æ‰“å¼€å·¥ä½œæµæ–‡ä»¶
         }
 
         private void ExecuteSaveWorkflow()
         {
-            // TODO: ±£´æ¹¤×÷Á÷µ½ÎÄ¼ş
+            // TODO: ä¿å­˜å·¥ä½œæµåˆ°æ–‡ä»¶
         }
 
         private void ExecuteSaveAsWorkflow()
         {
-            // TODO: Áí´æÎª¹¤×÷Á÷ÎÄ¼ş
+            // TODO: å¦å­˜ä¸ºå·¥ä½œæµæ–‡ä»¶
         }
 
         private async System.Threading.Tasks.Task ExecuteRunWorkflow()
         {
-            AddLog("=== ¿ªÊ¼Ö´ĞĞ¹¤×÷Á÷ ===");
+            AddLog("=== å¼€å§‹æ‰§è¡Œå·¥ä½œæµ ===");
 
             if (WorkflowTabViewModel == null)
             {
-                AddLog("?? WorkflowTabViewModel Îª null");
+                AddLog("?? WorkflowTabViewModel ä¸º null");
                 return;
             }
 
             if (WorkflowTabViewModel.SelectedTab == null)
             {
-                AddLog("?? Ã»ÓĞÑ¡ÖĞµÄ¹¤×÷Á÷±êÇ©Ò³");
-                AddLog("?? ÇëÈ·±£ÖÁÉÙÓĞÒ»¸ö¹¤×÷Á÷±êÇ©Ò³±»Ñ¡ÖĞ");
+                AddLog("?? æ²¡æœ‰é€‰ä¸­çš„å·¥ä½œæµæ ‡ç­¾é¡µ");
+                AddLog("?? è¯·ç¡®ä¿è‡³å°‘æœ‰ä¸€ä¸ªå·¥ä½œæµæ ‡ç­¾é¡µè¢«é€‰ä¸­");
                 return;
             }
 
-            AddLog($"?? µ±Ç°¹¤×÷Á÷: {WorkflowTabViewModel.SelectedTab.Name}");
-            AddLog($"?? ½ÚµãÊıÁ¿: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}");
-            AddLog($"?? Á¬½ÓÊıÁ¿: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
+            AddLog($"?? å½“å‰å·¥ä½œæµ: {WorkflowTabViewModel.SelectedTab.Name}");
+            AddLog($"?? èŠ‚ç‚¹æ•°é‡: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}");
+            AddLog($"?? è¿æ¥æ•°é‡: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
 
             if (WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count == 0)
             {
-                AddLog("?? µ±Ç°¹¤×÷Á÷Ã»ÓĞ½Úµã");
-                AddLog("?? ÌáÊ¾£ºÇë´Ó×ó²à¹¤¾ßÏäÍÏ×§Ëã·¨½Úµãµ½»­²¼ÉÏ");
-                AddLog("?? ¿ÉÑ¡½Úµã£ºÍ¼Ïñ²É¼¯¡¢»Ò¶È»¯¡¢¸ßË¹Ä£ºı¡¢¶şÖµ»¯¡¢±ßÔµ¼ì²â¡¢ĞÎÌ¬Ñ§²Ù×÷");
+                AddLog("?? å½“å‰å·¥ä½œæµæ²¡æœ‰èŠ‚ç‚¹");
+                AddLog("?? æç¤ºï¼šè¯·ä»å·¦ä¾§å·¥å…·ç®±æ‹–æ‹½ç®—æ³•èŠ‚ç‚¹åˆ°ç”»å¸ƒä¸Š");
+                AddLog("?? å¯é€‰èŠ‚ç‚¹ï¼šå›¾åƒé‡‡é›†ã€ç°åº¦åŒ–ã€é«˜æ–¯æ¨¡ç³Šã€äºŒå€¼åŒ–ã€è¾¹ç¼˜æ£€æµ‹ã€å½¢æ€å­¦æ“ä½œ");
                 return;
             }
 
             IsRunning = true;
-            AddLog("?? µ÷ÓÃÖ´ĞĞÒıÇæ...");
+            AddLog("?? è°ƒç”¨æ‰§è¡Œå¼•æ“...");
 
             try
             {
                 await _executionManager.RunSingleAsync(WorkflowTabViewModel.SelectedTab);
-                AddLog("? ¹¤×÷Á÷Ö´ĞĞÍê³É");
+                AddLog("? å·¥ä½œæµæ‰§è¡Œå®Œæˆ");
             }
             catch (Exception ex)
             {
-                AddLog($"? ¹¤×÷Á÷Ö´ĞĞÊ§°Ü: {ex.Message}");
-                AddLog($"? Òì³£ÏêÇé: {ex.StackTrace}");
+                AddLog($"? å·¥ä½œæµæ‰§è¡Œå¤±è´¥: {ex.Message}");
+                AddLog($"? å¼‚å¸¸è¯¦æƒ…: {ex.StackTrace}");
             }
             finally
             {
@@ -976,18 +970,18 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (WorkflowTabViewModel?.SelectedTab == null)
             {
-                AddLog("?? Ã»ÓĞÑ¡ÖĞµÄ¹¤×÷Á÷±êÇ©Ò³");
+                AddLog("?? æ²¡æœ‰é€‰ä¸­çš„å·¥ä½œæµæ ‡ç­¾é¡µ");
                 return;
             }
 
             _executionManager.StopContinuousRun(WorkflowTabViewModel.SelectedTab);
             IsRunning = false;
-            AddLog("?? Í£Ö¹¹¤×÷Á÷Ö´ĞĞ");
+            AddLog("?? åœæ­¢å·¥ä½œæµæ‰§è¡Œ");
         }
 
         private void ExecuteShowSettings()
         {
-            // TODO: ÏÔÊ¾ÉèÖÃ¶Ô»°¿ò
+            // TODO: æ˜¾ç¤ºè®¾ç½®å¯¹è¯æ¡†
         }
 
         private void ExecuteShowAbout()
@@ -1006,11 +1000,11 @@ namespace SunEyeVision.UI.ViewModels
         {
             var helpWindow = new HelpWindow();
             helpWindow.ShowDialog();
-            // TODO: Ö±½ÓÌø×ªµ½¿ì½İ¼üÒ³Ãæ
+            // TODO: ç›´æ¥è·³è½¬åˆ°å¿«æ·é”®é¡µé¢
         }
 
         /// <summary>
-        /// ¼ÓÔØ½ÚµãÊôĞÔµ½ÊôĞÔÃæ°å
+        /// åŠ è½½èŠ‚ç‚¹å±æ€§åˆ°å±æ€§é¢æ¿
         /// </summary>
         public void LoadNodeProperties(Models.WorkflowNode? node)
         {
@@ -1022,24 +1016,24 @@ namespace SunEyeVision.UI.ViewModels
 
             PropertyGroups.Clear();
 
-            // »ù±¾ĞÅÏ¢
+            // åŸºæœ¬ä¿¡æ¯
             var basicGroup = new Models.PropertyGroup
             {
-                Name = "?? »ù±¾ĞÅÏ¢",
+                Name = "?? åŸºæœ¬ä¿¡æ¯",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new Models.PropertyItem { Label = "Ãû³Æ", Value = node.Name },
+                    new Models.PropertyItem { Label = "åç§°", Value = node.Name },
                     new Models.PropertyItem { Label = "ID", Value = node.Id },
-                    new Models.PropertyItem { Label = "ÀàĞÍ", Value = node.AlgorithmType ?? "Î´Öª" }
+                    new Models.PropertyItem { Label = "ç±»å‹", Value = node.AlgorithmType ?? "æœªçŸ¥" }
                 }
             };
             PropertyGroups.Add(basicGroup);
 
-            // ²ÎÊıÅäÖÃ
+            // å‚æ•°é…ç½®
             var paramGroup = new Models.PropertyGroup
             {
-                Name = "?? ²ÎÊıÅäÖÃ",
+                Name = "?? å‚æ•°é…ç½®",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>()
             };
@@ -1057,23 +1051,23 @@ namespace SunEyeVision.UI.ViewModels
             }
             PropertyGroups.Add(paramGroup);
 
-            // ĞÔÄÜÍ³¼Æ
+            // æ€§èƒ½ç»Ÿè®¡
             var perfGroup = new Models.PropertyGroup
             {
-                Name = "?? ĞÔÄÜÍ³¼Æ",
+                Name = "?? æ€§èƒ½ç»Ÿè®¡",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new Models.PropertyItem { Label = "Ö´ĞĞ´ÎÊı", Value = "0" },
-                    new Models.PropertyItem { Label = "Æ½¾ùÊ±¼ä", Value = "0 ms" },
-                    new Models.PropertyItem { Label = "³É¹¦ÂÊ", Value = "100%" }
+                    new Models.PropertyItem { Label = "æ‰§è¡Œæ¬¡æ•°", Value = "0" },
+                    new Models.PropertyItem { Label = "å¹³å‡æ—¶é—´", Value = "0 ms" },
+                    new Models.PropertyItem { Label = "æˆåŠŸç‡", Value = "100%" }
                 }
             };
             PropertyGroups.Add(perfGroup);
         }
 
         /// <summary>
-        /// Ìí¼Ó½Úµãµ½µ±Ç°¹¤×÷Á÷£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// æ·»åŠ èŠ‚ç‚¹åˆ°å½“å‰å·¥ä½œæµï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void AddNodeToWorkflow(UIWorkflowNode node)
         {
@@ -1085,7 +1079,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ´Óµ±Ç°¹¤×÷Á÷É¾³ı½Úµã£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// ä»å½“å‰å·¥ä½œæµåˆ é™¤èŠ‚ç‚¹ï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void DeleteNodeFromWorkflow(UIWorkflowNode node)
         {
@@ -1100,7 +1094,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÒÆ¶¯½Úµãµ½ĞÂÎ»ÖÃ£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// ç§»åŠ¨èŠ‚ç‚¹åˆ°æ–°ä½ç½®ï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void MoveNode(UIWorkflowNode node, Point newPosition)
         {
@@ -1112,7 +1106,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Ìí¼ÓÁ¬½Óµ½µ±Ç°¹¤×÷Á÷£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// æ·»åŠ è¿æ¥åˆ°å½“å‰å·¥ä½œæµï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void AddConnectionToWorkflow(WorkflowConnection connection)
         {
@@ -1124,7 +1118,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ´Óµ±Ç°¹¤×÷Á÷É¾³ıÁ¬½Ó£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// ä»å½“å‰å·¥ä½œæµåˆ é™¤è¿æ¥ï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void DeleteConnectionFromWorkflow(WorkflowConnection connection)
         {
@@ -1136,7 +1130,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÅúÁ¿É¾³ıÑ¡ÖĞµÄ½Úµã£¨Í¨¹ıÃüÁîÄ£Ê½£©
+        /// æ‰¹é‡åˆ é™¤é€‰ä¸­çš„èŠ‚ç‚¹ï¼ˆé€šè¿‡å‘½ä»¤æ¨¡å¼ï¼‰
         /// </summary>
         public void DeleteSelectedNodes()
         {
@@ -1150,13 +1144,13 @@ namespace SunEyeVision.UI.ViewModels
                 selectedNodes);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
 
-            // Çå³ıÑ¡ÖĞ×´Ì¬
+            // æ¸…é™¤é€‰ä¸­çŠ¶æ€
             SelectedNode = null;
             ClearNodeSelections();
         }
 
         /// <summary>
-        /// Çå³ıËùÓĞ½ÚµãµÄÑ¡ÖĞ×´Ì¬
+        /// æ¸…é™¤æ‰€æœ‰èŠ‚ç‚¹çš„é€‰ä¸­çŠ¶æ€
         /// </summary>
         private void ClearNodeSelections()
         {
@@ -1170,7 +1164,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñ¿ÉÒÔÉ¾³ıÑ¡ÖĞ½Úµã
+        /// åˆ¤æ–­æ˜¯å¦å¯ä»¥åˆ é™¤é€‰ä¸­èŠ‚ç‚¹
         /// </summary>
         private bool CanDeleteSelectedNodes()
         {
@@ -1181,7 +1175,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// Ö´ĞĞÉ¾³ıÑ¡ÖĞ½Úµã
+        /// æ‰§è¡Œåˆ é™¤é€‰ä¸­èŠ‚ç‚¹
         /// </summary>
         private void ExecuteDeleteSelectedNodes()
         {
@@ -1194,8 +1188,8 @@ namespace SunEyeVision.UI.ViewModels
                 return;
 
             var result = System.Windows.MessageBox.Show(
-                $"È·¶¨ÒªÉ¾³ıÑ¡ÖĞµÄ {selectedCount} ¸ö½ÚµãÂğ?",
-                "È·ÈÏÉ¾³ı",
+                $"ç¡®å®šè¦åˆ é™¤é€‰ä¸­çš„ {selectedCount} ä¸ªèŠ‚ç‚¹å—?",
+                "ç¡®è®¤åˆ é™¤",
                 System.Windows.MessageBoxButton.YesNo,
                 System.Windows.MessageBoxImage.Question);
 
@@ -1207,11 +1201,11 @@ namespace SunEyeVision.UI.ViewModels
                     selectedNodes);
                 WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
 
-                // Çå³ıÑ¡ÖĞ×´Ì¬
+                // æ¸…é™¤é€‰ä¸­çŠ¶æ€
                 SelectedNode = null;
                 ClearNodeSelections();
 
-                AddLog($"ÒÑÉ¾³ı {selectedCount} ¸ö½Úµã");
+                AddLog($"å·²åˆ é™¤ {selectedCount} ä¸ªèŠ‚ç‚¹");
             }
         }
 
@@ -1221,7 +1215,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 try
                 {
-                    // ´ÓToolRegistry»ñÈ¡¹¤¾ßĞÅÏ¢ºÍ²å¼ş
+                    // ä»ToolRegistryè·å–å·¥å…·ä¿¡æ¯å’Œæ’ä»¶
                     var toolId = node.AlgorithmType ?? node.Name;
                     var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
                     var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
@@ -1229,155 +1223,155 @@ namespace SunEyeVision.UI.ViewModels
                     if (toolMetadata == null)
                     {
                         System.Windows.MessageBox.Show(
-                            $"Î´ÕÒµ½¹¤¾ß '{toolId}' µÄÔªÊı¾İĞÅÏ¢",
-                            "¹¤¾ßÎ´ÕÒµ½",
+                            $"æœªæ‰¾åˆ°å·¥å…· '{toolId}' çš„å…ƒæ•°æ®ä¿¡æ¯",
+                            "å·¥å…·æœªæ‰¾åˆ°",
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
                         return;
                     }
 
-                    // Ê¹ÓÃNodeInterfaceFactory¾ö¶¨´ò¿ªÄÄ¸ö½çÃæ
+                    // ä½¿ç”¨NodeInterfaceFactoryå†³å®šæ‰“å¼€å“ªä¸ªç•Œé¢
                     var interfaceType = NodeInterfaceFactory.GetInterfaceType(node.ToWorkflowNode(), toolMetadata);
 
                     switch (interfaceType)
                     {
                         case NodeInterfaceType.DebugWindow:
-                            // Ê¹ÓÃ¹¤³§´´½¨µ÷ÊÔ´°¿Ú
+                            // ä½¿ç”¨å·¥å‚åˆ›å»ºè°ƒè¯•çª—å£
                             var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, toolPlugin, toolMetadata);
                             debugWindow.Owner = System.Windows.Application.Current.MainWindow;
                             debugWindow.ShowDialog();
-                            AddLog($"?? ´ò¿ªµ÷ÊÔ´°¿Ú: {node.Name}");
+                            AddLog($"?? æ‰“å¼€è°ƒè¯•çª—å£: {node.Name}");
                             break;
 
                         case NodeInterfaceType.NewWorkflowCanvas:
-                            // ´´½¨ĞÂµÄ¹¤×÷Á÷±êÇ©Ò³£¨×Ó³ÌĞò½Úµã£©
+                            // åˆ›å»ºæ–°çš„å·¥ä½œæµæ ‡ç­¾é¡µï¼ˆå­ç¨‹åºèŠ‚ç‚¹ï¼‰
                             CreateSubroutineWorkflowTab(node);
                             break;
 
                         case NodeInterfaceType.SubroutineEditor:
-                            // ×Ó³ÌĞò±à¼­Æ÷£¨Ìõ¼şÅäÖÃ½çÃæ£©
-                            AddLog($"?? ´ò¿ª×Ó³ÌĞò±à¼­Æ÷: {node.Name}");
-                            // TODO: ÊµÏÖ×Ó³ÌĞò±à¼­Æ÷
+                            // å­ç¨‹åºç¼–è¾‘å™¨ï¼ˆæ¡ä»¶é…ç½®ç•Œé¢ï¼‰
+                            AddLog($"?? æ‰“å¼€å­ç¨‹åºç¼–è¾‘å™¨: {node.Name}");
+                            // TODO: å®ç°å­ç¨‹åºç¼–è¾‘å™¨
                             System.Windows.MessageBox.Show(
-                                "×Ó³ÌĞò±à¼­Æ÷¹¦ÄÜ´ıÊµÏÖ",
-                                "¹¦ÄÜÌáÊ¾",
+                                "å­ç¨‹åºç¼–è¾‘å™¨åŠŸèƒ½å¾…å®ç°",
+                                "åŠŸèƒ½æç¤º",
                                 System.Windows.MessageBoxButton.OK,
                                 System.Windows.MessageBoxImage.Information);
                             break;
 
                         case NodeInterfaceType.None:
                         default:
-                            // ²»´ò¿ªÈÎºÎ½çÃæ
+                            // ä¸æ‰“å¼€ä»»ä½•ç•Œé¢
                             break;
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show(
-                        $"´ò¿ª½Úµã½çÃæÊ§°Ü: {ex.Message}",
-                        "´íÎó",
+                        $"æ‰“å¼€èŠ‚ç‚¹ç•Œé¢å¤±è´¥: {ex.Message}",
+                        "é”™è¯¯",
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Error);
-                    AddLog($"? ´ò¿ª½Úµã½çÃæÊ§°Ü: {ex.Message}");
+                    AddLog($"? æ‰“å¼€èŠ‚ç‚¹ç•Œé¢å¤±è´¥: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// Îª×Ó³ÌĞò½Úµã´´½¨ĞÂµÄ¹¤×÷Á÷±êÇ©Ò³
+        /// ä¸ºå­ç¨‹åºèŠ‚ç‚¹åˆ›å»ºæ–°çš„å·¥ä½œæµæ ‡ç­¾é¡µ
         /// </summary>
-        /// <param name="subroutineNode">×Ó³ÌĞò½Úµã</param>
+        /// <param name="subroutineNode">å­ç¨‹åºèŠ‚ç‚¹</param>
         private void CreateSubroutineWorkflowTab(Models.WorkflowNode subroutineNode)
         {
             try
             {
                 if (WorkflowTabViewModel == null)
                 {
-                    AddLog("?? WorkflowTabViewModel Îª null");
+                    AddLog("?? WorkflowTabViewModel ä¸º null");
                     return;
                 }
 
-                // Ê¹ÓÃ×Ó³ÌĞò½ÚµãÃû³Æ×÷Îª¹¤×÷Á÷Ãû³Æ
+                // ä½¿ç”¨å­ç¨‹åºèŠ‚ç‚¹åç§°ä½œä¸ºå·¥ä½œæµåç§°
                 string workflowName = subroutineNode.Name;
                 if (string.IsNullOrWhiteSpace(workflowName))
                 {
-                    workflowName = "×Ó³ÌĞò¹¤×÷Á÷";
+                    workflowName = "å­ç¨‹åºå·¥ä½œæµ";
                 }
 
-                AddLog($"?? ´´½¨×Ó³ÌĞò¹¤×÷Á÷±êÇ©Ò³: {workflowName}");
+                AddLog($"?? åˆ›å»ºå­ç¨‹åºå·¥ä½œæµæ ‡ç­¾é¡µ: {workflowName}");
 
-                // ´´½¨ĞÂµÄ¹¤×÷Á÷±êÇ©Ò³
+                // åˆ›å»ºæ–°çš„å·¥ä½œæµæ ‡ç­¾é¡µ
                 var newWorkflowTab = new WorkflowTabViewModel
                 {
                     Name = workflowName,
                     Id = Guid.NewGuid().ToString()
                 };
 
-                // Ìí¼Óµ½±êÇ©Ò³¼¯ºÏ
+                // æ·»åŠ åˆ°æ ‡ç­¾é¡µé›†åˆ
                 WorkflowTabViewModel.Tabs.Add(newWorkflowTab);
 
-                // Ñ¡ÖĞĞÂ´´½¨µÄ±êÇ©Ò³
+                // é€‰ä¸­æ–°åˆ›å»ºçš„æ ‡ç­¾é¡µ
                 WorkflowTabViewModel.SelectedTab = newWorkflowTab;
 
-                AddLog($"? ×Ó³ÌĞò¹¤×÷Á÷ '{workflowName}' ´´½¨³É¹¦");
-                AddLog($"?? ÌáÊ¾£ºÄúÏÖÔÚ¿ÉÒÔÔÚÕâ¸ö¹¤×÷Á÷ÖĞÌí¼Ó½ÚµãÀ´¶¨Òå×Ó³ÌĞòÂß¼­");
+                AddLog($"? å­ç¨‹åºå·¥ä½œæµ '{workflowName}' åˆ›å»ºæˆåŠŸ");
+                AddLog($"?? æç¤ºï¼šæ‚¨ç°åœ¨å¯ä»¥åœ¨è¿™ä¸ªå·¥ä½œæµä¸­æ·»åŠ èŠ‚ç‚¹æ¥å®šä¹‰å­ç¨‹åºé€»è¾‘");
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(
-                    $"´´½¨×Ó³ÌĞò¹¤×÷Á÷Ê§°Ü: {ex.Message}",
-                    "´íÎó",
+                    $"åˆ›å»ºå­ç¨‹åºå·¥ä½œæµå¤±è´¥: {ex.Message}",
+                    "é”™è¯¯",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
-                AddLog($"? ´´½¨×Ó³ÌĞò¹¤×÷Á÷Ê§°Ü: {ex.Message}");
+                AddLog($"? åˆ›å»ºå­ç¨‹åºå·¥ä½œæµå¤±è´¥: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// ÇĞ»»×î´óÍâ½Ó¾ØĞÎÏÔÊ¾
+        /// åˆ‡æ¢æœ€å¤§å¤–æ¥çŸ©å½¢æ˜¾ç¤º
         /// </summary>
         private void ExecuteToggleBoundingRectangle()
         {
-            AddLog("[ToggleBoundingRectangle] ========== ÇĞ»»×î´óÍâ½Ó¾ØĞÎÏÔÊ¾ ==========");
+            AddLog("[ToggleBoundingRectangle] ========== åˆ‡æ¢æœ€å¤§å¤–æ¥çŸ©å½¢æ˜¾ç¤º ==========");
 
             try
             {
                 var mainWindow = System.Windows.Application.Current.MainWindow as Views.Windows.MainWindow;
                 if (mainWindow == null)
                 {
-                    AddLog("[ToggleBoundingRectangle] ? MainWindowÎªnull");
+                    AddLog("[ToggleBoundingRectangle] ? MainWindowä¸ºnull");
                     return;
                 }
 
-                AddLog("[ToggleBoundingRectangle] ? MainWindowÒÑÕÒµ½");
+                AddLog("[ToggleBoundingRectangle] ? MainWindowå·²æ‰¾åˆ°");
 
-                // Ê¹ÓÃMainWindowÖĞ±£´æµÄWorkflowCanvasControlÒıÓÃ
+                // ä½¿ç”¨MainWindowä¸­ä¿å­˜çš„WorkflowCanvasControlå¼•ç”¨
                 var workflowCanvas = mainWindow.GetCurrentWorkflowCanvas();
                 if (workflowCanvas == null)
                 {
-                    AddLog("[ToggleBoundingRectangle] ? ÎŞ·¨»ñÈ¡WorkflowCanvasControl");
+                    AddLog("[ToggleBoundingRectangle] ? æ— æ³•è·å–WorkflowCanvasControl");
                     return;
                 }
 
-                AddLog("[ToggleBoundingRectangle] ? »ñÈ¡µ½WorkflowCanvasControl");
+                AddLog("[ToggleBoundingRectangle] ? è·å–åˆ°WorkflowCanvasControl");
 
                 ToggleBoundingRectangleOnCanvas(workflowCanvas);
             }
             catch (Exception ex)
             {
-                AddLog($"[ToggleBoundingRectangle] ? ´íÎó: {ex.Message}");
-                AddLog($"[ToggleBoundingRectangle] ¶ÑÕ»: {ex.StackTrace}");
+                AddLog($"[ToggleBoundingRectangle] ? é”™è¯¯: {ex.Message}");
+                AddLog($"[ToggleBoundingRectangle] å †æ ˆ: {ex.StackTrace}");
             }
         }
 
         /// <summary>
-        /// ÔÚÖ¸¶¨µÄWorkflowCanvasControlÉÏÇĞ»»¾ØĞÎÏÔÊ¾
+        /// åœ¨æŒ‡å®šçš„WorkflowCanvasControlä¸Šåˆ‡æ¢çŸ©å½¢æ˜¾ç¤º
         /// </summary>
         private void ToggleBoundingRectangleOnCanvas(WorkflowCanvasControl workflowCanvas)
         {
             workflowCanvas.ShowBoundingRectangle = !workflowCanvas.ShowBoundingRectangle;
 
-            // Èç¹û¿ªÆô¾ØĞÎÏÔÊ¾£¬Ê¹ÓÃµÚÒ»¸öÁ¬½Ó×÷ÎªÊ¾Àı
+            // å¦‚æœå¼€å¯çŸ©å½¢æ˜¾ç¤ºï¼Œä½¿ç”¨ç¬¬ä¸€ä¸ªè¿æ¥ä½œä¸ºç¤ºä¾‹
             if (workflowCanvas.ShowBoundingRectangle)
             {
                 var selectedTab = WorkflowTabViewModel?.SelectedTab;
@@ -1388,32 +1382,32 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         workflowCanvas.BoundingSourceNodeId = firstConnection.SourceNodeId;
                         workflowCanvas.BoundingTargetNodeId = firstConnection.TargetNodeId;
-                        AddLog($"[ToggleBoundingRectangle] ÏÔÊ¾Á¬½Ó {firstConnection.Id} µÄÍâ½Ó¾ØĞÎ");
-                        AddLog($"[ToggleBoundingRectangle]   Ô´½ÚµãID: {firstConnection.SourceNodeId}");
-                        AddLog($"[ToggleBoundingRectangle]   Ä¿±ê½ÚµãID: {firstConnection.TargetNodeId}");
+                        AddLog($"[ToggleBoundingRectangle] æ˜¾ç¤ºè¿æ¥ {firstConnection.Id} çš„å¤–æ¥çŸ©å½¢");
+                        AddLog($"[ToggleBoundingRectangle]   æºèŠ‚ç‚¹ID: {firstConnection.SourceNodeId}");
+                        AddLog($"[ToggleBoundingRectangle]   ç›®æ ‡èŠ‚ç‚¹ID: {firstConnection.TargetNodeId}");
                     }
                     else
                     {
-                        AddLog("[ToggleBoundingRectangle] ?? Î´ÕÒµ½Á¬½Ó");
+                        AddLog("[ToggleBoundingRectangle] ?? æœªæ‰¾åˆ°è¿æ¥");
                         workflowCanvas.ShowBoundingRectangle = false;
                     }
                 }
                 else
                 {
-                    AddLog("[ToggleBoundingRectangle] ?? µ±Ç°TabÃ»ÓĞÁ¬½Ó");
+                    AddLog("[ToggleBoundingRectangle] ?? å½“å‰Tabæ²¡æœ‰è¿æ¥");
                     workflowCanvas.ShowBoundingRectangle = false;
                 }
             }
 
-            AddLog($"[ToggleBoundingRectangle] ========== Íâ½Ó¾ØĞÎ: {(workflowCanvas.ShowBoundingRectangle ? "ÏÔÊ¾" : "Òş²Ø")} ==========");
+            AddLog($"[ToggleBoundingRectangle] ========== å¤–æ¥çŸ©å½¢: {(workflowCanvas.ShowBoundingRectangle ? "æ˜¾ç¤º" : "éšè—")} ==========");
         }
 
         /// <summary>
-        /// ÇĞ»»Â·¾¶¹ÕµãÏÔÊ¾
+        /// åˆ‡æ¢è·¯å¾„æ‹ç‚¹æ˜¾ç¤º
         /// </summary>
         private void ExecuteTogglePathPoints()
         {
-            AddLog("[TogglePathPoints] ÇĞ»»ËùÓĞÁ¬½ÓµÄÂ·¾¶¹ÕµãÏÔÊ¾");
+            AddLog("[TogglePathPoints] åˆ‡æ¢æ‰€æœ‰è¿æ¥çš„è·¯å¾„æ‹ç‚¹æ˜¾ç¤º");
 
             if (WorkflowTabViewModel?.SelectedTab?.WorkflowConnections != null)
             {
@@ -1424,71 +1418,71 @@ namespace SunEyeVision.UI.ViewModels
                     connection.ShowPathPoints = newState;
                 }
 
-                AddLog($"[TogglePathPoints] ËùÓĞÁ¬½ÓµÄÂ·¾¶¹Õµã: {(newState ? "ÏÔÊ¾" : "Òş²Ø")}");
+                AddLog($"[TogglePathPoints] æ‰€æœ‰è¿æ¥çš„è·¯å¾„æ‹ç‚¹: {(newState ? "æ˜¾ç¤º" : "éšè—")}");
             }
         }
 
         /// <summary>
-        /// Ö´ĞĞµ¥´ÎÔËĞĞËùÓĞ¹¤×÷Á÷
+        /// æ‰§è¡Œå•æ¬¡è¿è¡Œæ‰€æœ‰å·¥ä½œæµ
         /// </summary>
         private async System.Threading.Tasks.Task ExecuteRunAllWorkflows()
         {
-            AddLog("?? ¿ªÊ¼µ¥´ÎÔËĞĞËùÓĞ¹¤×÷Á÷...");
+            AddLog("?? å¼€å§‹å•æ¬¡è¿è¡Œæ‰€æœ‰å·¥ä½œæµ...");
             await WorkflowTabViewModel.RunAllWorkflowsAsync();
-            AddLog("? ËùÓĞ¹¤×÷Á÷µ¥´ÎÔËĞĞÍê³É");
+            AddLog("? æ‰€æœ‰å·¥ä½œæµå•æ¬¡è¿è¡Œå®Œæˆ");
         }
 
         /// <summary>
-        /// ÇĞ»»ËùÓĞ¹¤×÷Á÷µÄÁ¬ĞøÔËĞĞ/Í£Ö¹
+        /// åˆ‡æ¢æ‰€æœ‰å·¥ä½œæµçš„è¿ç»­è¿è¡Œ/åœæ­¢
         /// </summary>
         private void ExecuteToggleContinuousAll()
         {
             if (IsAllWorkflowsRunning)
             {
-                AddLog("?? Í£Ö¹ËùÓĞ¹¤×÷Á÷Á¬ĞøÔËĞĞ");
+                AddLog("?? åœæ­¢æ‰€æœ‰å·¥ä½œæµè¿ç»­è¿è¡Œ");
                 WorkflowTabViewModel.StopAllWorkflows();
             }
             else
             {
-                AddLog("?? ¿ªÊ¼ËùÓĞ¹¤×÷Á÷Á¬ĞøÔËĞĞ");
+                AddLog("?? å¼€å§‹æ‰€æœ‰å·¥ä½œæµè¿ç»­è¿è¡Œ");
                 WorkflowTabViewModel.StartAllWorkflows();
             }
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷Ö´ĞĞ¿ªÊ¼ÊÂ¼ş´¦Àí
+        /// å·¥ä½œæµæ‰§è¡Œå¼€å§‹äº‹ä»¶å¤„ç†
         /// </summary>
         private void OnWorkflowExecutionStarted(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"?? ¹¤×÷Á÷¿ªÊ¼Ö´ĞĞ: {e.WorkflowId}");
+            AddLog($"?? å·¥ä½œæµå¼€å§‹æ‰§è¡Œ: {e.WorkflowId}");
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷Ö´ĞĞÍê³ÉÊÂ¼ş´¦Àí
+        /// å·¥ä½œæµæ‰§è¡Œå®Œæˆäº‹ä»¶å¤„ç†
         /// </summary>
         private void OnWorkflowExecutionCompleted(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"? ¹¤×÷Á÷Ö´ĞĞÍê³É: {e.WorkflowId}");
+            AddLog($"? å·¥ä½œæµæ‰§è¡Œå®Œæˆ: {e.WorkflowId}");
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷Ö´ĞĞÍ£Ö¹ÊÂ¼ş´¦Àí
+        /// å·¥ä½œæµæ‰§è¡Œåœæ­¢äº‹ä»¶å¤„ç†
         /// </summary>
         private void OnWorkflowExecutionStopped(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"?? ¹¤×÷Á÷Ö´ĞĞÍ£Ö¹: {e.WorkflowId}");
+            AddLog($"?? å·¥ä½œæµæ‰§è¡Œåœæ­¢: {e.WorkflowId}");
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷Ö´ĞĞ´íÎóÊÂ¼ş´¦Àí
+        /// å·¥ä½œæµæ‰§è¡Œé”™è¯¯äº‹ä»¶å¤„ç†
         /// </summary>
         private void OnWorkflowExecutionError(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"? ¹¤×÷Á÷Ö´ĞĞ´íÎó: {e.WorkflowId} - {e.ErrorMessage}");
+            AddLog($"? å·¥ä½œæµæ‰§è¡Œé”™è¯¯: {e.WorkflowId} - {e.ErrorMessage}");
         }
 
         /// <summary>
-        /// ¹¤×÷Á÷Ö´ĞĞ½ø¶ÈÊÂ¼ş´¦Àí
+        /// å·¥ä½œæµæ‰§è¡Œè¿›åº¦äº‹ä»¶å¤„ç†
         /// </summary>
         private void OnWorkflowExecutionProgress(object? sender, WorkflowExecutionProgressEventArgs e)
         {
@@ -1498,13 +1492,13 @@ namespace SunEyeVision.UI.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[MainWindowViewModel] OnWorkflowExecutionProgressÒì³£: {ex.Message}");
-                AddLog($"?? ÈÕÖ¾´¦ÀíÒì³£: {ex.Message}");
+                Console.WriteLine($"[MainWindowViewModel] OnWorkflowExecutionProgresså¼‚å¸¸: {ex.Message}");
+                AddLog($"?? æ—¥å¿—å¤„ç†å¼‚å¸¸: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// ²éÕÒÖ¸¶¨ÀàĞÍµÄ×ÓÔªËØ
+        /// æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„å­å…ƒç´ 
         /// </summary>
         private static T? FindVisualChild<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject
         {
@@ -1524,60 +1518,60 @@ namespace SunEyeVision.UI.ViewModels
             return null;
         }
 
-        #region Í¼Ïñ¿ØÖÆÃüÁî
+        #region å›¾åƒæ§åˆ¶å‘½ä»¤
 
         /// <summary>
-        /// ·Å´óÍ¼Ïñ
+        /// æ”¾å¤§å›¾åƒ
         /// </summary>
         private void ExecuteZoomIn()
         {
             ImageScale = Math.Min(ImageScale * 1.2, 5.0);
-            AddLog($"?? Í¼Ïñ·Å´ó: {ImageScale:P0}");
+            AddLog($"?? å›¾åƒæ”¾å¤§: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// ËõĞ¡Í¼Ïñ
+        /// ç¼©å°å›¾åƒ
         /// </summary>
         private void ExecuteZoomOut()
         {
             ImageScale = Math.Max(ImageScale / 1.2, 0.1);
-            AddLog($"?? Í¼ÏñËõĞ¡: {ImageScale:P0}");
+            AddLog($"?? å›¾åƒç¼©å°: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// ÊÊÓ¦´°¿Ú
+        /// é€‚åº”çª—å£
         /// </summary>
         private void ExecuteFitToWindow()
         {
-            // TODO: ¸ù¾İ´°¿Ú´óĞ¡¼ÆËãºÏÊÊµÄËõ·Å±ÈÀı
+            // TODO: æ ¹æ®çª—å£å¤§å°è®¡ç®—åˆé€‚çš„ç¼©æ”¾æ¯”ä¾‹
             ImageScale = 1.0;
-            AddLog($"?? ÊÊÓ¦´°¿Ú: {ImageScale:P0}");
+            AddLog($"?? é€‚åº”çª—å£: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// ÖØÖÃÊÓÍ¼
+        /// é‡ç½®è§†å›¾
         /// </summary>
         private void ExecuteResetView()
         {
             ImageScale = 1.0;
-            AddLog($"? ÖØÖÃÊÓÍ¼: {ImageScale:P0}");
+            AddLog($"? é‡ç½®è§†å›¾: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// ÇĞ»»È«ÆÁÏÔÊ¾
+        /// åˆ‡æ¢å…¨å±æ˜¾ç¤º
         /// </summary>
         private void ExecuteToggleFullScreen()
         {
-            // TODO: ÊµÏÖÍ¼ÏñÈ«ÆÁÏÔÊ¾¹¦ÄÜ
-            AddLog("? ÇĞ»»È«ÆÁÏÔÊ¾");
+            // TODO: å®ç°å›¾åƒå…¨å±æ˜¾ç¤ºåŠŸèƒ½
+            AddLog("? åˆ‡æ¢å…¨å±æ˜¾ç¤º");
         }
 
         #endregion
 
-        #region Í¼ÏñÔØÈëÃüÁî
+        #region å›¾åƒè½½å…¥å‘½ä»¤
 
         /// <summary>
-        /// ä¯ÀÀÍ¼ÏñÎÄ¼ş
+        /// æµè§ˆå›¾åƒæ–‡ä»¶
         /// </summary>
         private void ExecuteBrowseImage()
         {
@@ -1585,29 +1579,29 @@ namespace SunEyeVision.UI.ViewModels
             {
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Filter = "Í¼ÏñÎÄ¼ş|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|ËùÓĞÎÄ¼ş|*.*",
-                    Title = "Ñ¡ÔñÍ¼ÏñÎÄ¼ş"
+                    Filter = "å›¾åƒæ–‡ä»¶|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|æ‰€æœ‰æ–‡ä»¶|*.*",
+                    Title = "é€‰æ‹©å›¾åƒæ–‡ä»¶"
                 };
 
                 if (openFileDialog.ShowDialog() == true)
                 {
                     var filePath = openFileDialog.FileName;
-                    AddLog($"?? ÒÑÑ¡ÔñÎÄ¼ş: {filePath}");
+                    AddLog($"?? å·²é€‰æ‹©æ–‡ä»¶: {filePath}");
 
-                    // TODO: ÔØÈëÍ¼Ïñµ½OriginalImage
+                    // TODO: è½½å…¥å›¾åƒåˆ°OriginalImage
                     // OriginalImage = LoadImageFromFile(filePath);
                 }
             }
             catch (Exception ex)
             {
-                AddLog($"? ä¯ÀÀÍ¼ÏñÊ§°Ü: {ex.Message}");
-                System.Windows.MessageBox.Show($"ä¯ÀÀÍ¼ÏñÊ§°Ü: {ex.Message}", "´íÎó",
+                AddLog($"? æµè§ˆå›¾åƒå¤±è´¥: {ex.Message}");
+                System.Windows.MessageBox.Show($"æµè§ˆå›¾åƒå¤±è´¥: {ex.Message}", "é”™è¯¯",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// ÔØÈëÍ¼Ïñ
+        /// è½½å…¥å›¾åƒ
         /// </summary>
         private void ExecuteLoadImage()
         {
@@ -1615,23 +1609,23 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (OriginalImage == null)
                 {
-                    AddLog("?? ÇëÏÈÑ¡ÔñÍ¼ÏñÎÄ¼ş");
+                    AddLog("?? è¯·å…ˆé€‰æ‹©å›¾åƒæ–‡ä»¶");
                     return;
                 }
 
-                AddLog("? Í¼ÏñÔØÈë³É¹¦");
-                // TODO: ´¦ÀíÍ¼Ïñ²¢¸üĞÂProcessedImageºÍResultImage
+                AddLog("? å›¾åƒè½½å…¥æˆåŠŸ");
+                // TODO: å¤„ç†å›¾åƒå¹¶æ›´æ–°ProcessedImageå’ŒResultImage
             }
             catch (Exception ex)
             {
-                AddLog($"? ÔØÈëÍ¼ÏñÊ§°Ü: {ex.Message}");
-                System.Windows.MessageBox.Show($"ÔØÈëÍ¼ÏñÊ§°Ü: {ex.Message}", "´íÎó",
+                AddLog($"? è½½å…¥å›¾åƒå¤±è´¥: {ex.Message}");
+                System.Windows.MessageBox.Show($"è½½å…¥å›¾åƒå¤±è´¥: {ex.Message}", "é”™è¯¯",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// Çå³ıÍ¼Ïñ
+        /// æ¸…é™¤å›¾åƒ
         /// </summary>
         private void ExecuteClearImage()
         {
@@ -1641,20 +1635,20 @@ namespace SunEyeVision.UI.ViewModels
                 ProcessedImage = null;
                 ResultImage = null;
                 ImageScale = 1.0;
-                AddLog("??? ÒÑÇå³ıÍ¼Ïñ");
+                AddLog("??? å·²æ¸…é™¤å›¾åƒ");
             }
             catch (Exception ex)
             {
-                AddLog($"? Çå³ıÍ¼ÏñÊ§°Ü: {ex.Message}");
+                AddLog($"? æ¸…é™¤å›¾åƒå¤±è´¥: {ex.Message}");
             }
         }
 
         #endregion
 
-        #region Í¼ÏñÔ¤ÀÀÃüÁî
+        #region å›¾åƒé¢„è§ˆå‘½ä»¤
 
         /// <summary>
-        /// ¸üĞÂµ±Ç°Í¼ÏñÏÔÊ¾
+        /// æ›´æ–°å½“å‰å›¾åƒæ˜¾ç¤º
         /// </summary>
         private void UpdateCurrentImageDisplay()
         {
@@ -1668,25 +1662,25 @@ namespace SunEyeVision.UI.ViewModels
 
             var imageInfo = ImageCollection[CurrentImageIndex];
             
-            // Ö÷¶¯´¥·¢FullImage¼ÓÔØ
+            // ä¸»åŠ¨è§¦å‘FullImageåŠ è½½
             var fullImage = imageInfo.FullImage;
             
             if (fullImage != null)
             {
                 OriginalImage = fullImage;
-                AddLog($"?? ¼ÓÔØÍ¼Ïñ: {imageInfo.Name}");
+                AddLog($"?? åŠ è½½å›¾åƒ: {imageInfo.Name}");
                 
-                // È·±£DisplayImage±»¸üĞÂ
+                // ç¡®ä¿DisplayImageè¢«æ›´æ–°
                 UpdateDisplayImage();
             }
         }
 
         #endregion
 
-        #region ¸¨Öú·½·¨
+        #region è¾…åŠ©æ–¹æ³•
 
         /// <summary>
-        /// ¸üĞÂÏÔÊ¾Í¼Ïñ
+        /// æ›´æ–°æ˜¾ç¤ºå›¾åƒ
         /// </summary>
         private void UpdateDisplayImage()
         {
@@ -1710,7 +1704,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ¸üĞÂ¼ÆËã½á¹û
+        /// æ›´æ–°è®¡ç®—ç»“æœ
         /// </summary>
         public void UpdateCalculationResults(Dictionary<string, object> results)
         {
@@ -1728,71 +1722,60 @@ namespace SunEyeVision.UI.ViewModels
                 });
             }
 
-            AddLog($"?? ¸üĞÂ¼ÆËã½á¹û: {results.Count} Ïî");
+            AddLog($"?? æ›´æ–°è®¡ç®—ç»“æœ: {results.Count} é¡¹");
         }
 
-        #region Í¼ÏñÔ¤ÀÀÆ÷ÖÇÄÜÏÔÊ¾
+        #region å›¾åƒé¢„è§ˆå™¨æ™ºèƒ½æ˜¾ç¤º
 
         /// <summary>
-        /// ¸üĞÂÍ¼ÏñÔ¤ÀÀÏÔÊ¾×´Ì¬£¨»ùÓÚÁ¬½Ó¹ØÏµÖÇÄÜÇĞ»»£©
+        /// æ›´æ–°å›¾åƒé¢„è§ˆæ˜¾ç¤ºçŠ¶æ€ï¼ˆåŸºäºè¿æ¥å…³ç³»æ™ºèƒ½åˆ‡æ¢ï¼‰
         /// </summary>
         /// <remarks>
-        /// ¹æÔò£º
-        /// 1. Ñ¡ÖĞÍ¼Ïñ²É¼¯½Úµã ¡ú ÏÔÊ¾¸Ã½ÚµãµÄÍ¼Ïñ£¨ÈçÓĞ£©
-        /// 2. Ñ¡ÖĞÆäËû½Úµã ¡ú BFS×·ËİÉÏÓÎ²É¼¯½Úµã£¬ÕÒµ½ÔòÏÔÊ¾ÆäÍ¼Ïñ
-        ///    ¡ï ÓÅ»¯£ºÈç¹ûÉÏÓÎ²É¼¯½ÚµãÓëµ±Ç°ÏÔÊ¾µÄÏàÍ¬£¬²»ÖØĞÂ¼ÓÔØ
-        /// 3. ÎŞÉÏÓÎ²É¼¯½Úµã»òÎŞÍ¼Ïñ ¡ú Òş²ØÍ¼ÏñÔ¤ÀÀÆ÷
+        /// è§„åˆ™ï¼š
+        /// 1. é€‰ä¸­å›¾åƒé‡‡é›†èŠ‚ç‚¹ â†’ æ˜¾ç¤ºè¯¥èŠ‚ç‚¹çš„å›¾åƒï¼ˆå¦‚æœ‰ï¼‰
+        /// 2. é€‰ä¸­å…¶ä»–èŠ‚ç‚¹ â†’ BFSè¿½æº¯ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹ï¼Œæ‰¾åˆ°åˆ™æ˜¾ç¤ºå…¶å›¾åƒ
+        ///    â˜… ä¼˜åŒ–ï¼šå¦‚æœä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹ä¸å½“å‰æ˜¾ç¤ºçš„ç›¸åŒï¼Œä¸é‡æ–°åŠ è½½
+        /// 3. æ— ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹æˆ–æ— å›¾åƒ â†’ éšè—å›¾åƒé¢„è§ˆå™¨
         /// </remarks>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
-            AddLog($"[UpdateImagePreviewVisibility] ? ¿ªÊ¼´¦Àí, selectedNode={selectedNode?.Name ?? "null"}");
-            
-            // Çé¿ö1£ºÃ»ÓĞÑ¡ÖĞ½Úµã ¡ú Òş²Ø
+            // æƒ…å†µ1ï¼šæ²¡æœ‰é€‰ä¸­èŠ‚ç‚¹ â†’ éšè—
             if (selectedNode == null)
             {
-                AddLog($"[UpdateImagePreviewVisibility] Çé¿ö1: Ã»ÓĞÑ¡ÖĞ½Úµã");
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
-                _currentDisplayNodeId = null;  // ¡ï Çå³ı¸ú×ÙID
-                AddLog("[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: Òş²Ø (Ã»ÓĞÑ¡ÖĞ½Úµã)");
+                _currentDisplayNodeId = null;  // â˜… æ¸…é™¤è·Ÿè¸ªID
                 return;
             }
 
-            // Çé¿ö2£ºÑ¡ÖĞµÄÊÇÍ¼Ïñ²É¼¯½Úµã ¡ú Ê¼ÖÕÏÔÊ¾Í¼ÏñÔ¤ÀÀÆ÷£¨¼´Ê¹ÔİÊ±Ã»ÓĞÍ¼Ïñ£©
+            // æƒ…å†µ2ï¼šé€‰ä¸­çš„æ˜¯å›¾åƒé‡‡é›†èŠ‚ç‚¹ â†’ å§‹ç»ˆæ˜¾ç¤ºå›¾åƒé¢„è§ˆå™¨ï¼ˆå³ä½¿æš‚æ—¶æ²¡æœ‰å›¾åƒï¼‰
             if (selectedNode.IsImageCaptureNode)
             {
-                AddLog($"[UpdateImagePreviewVisibility] Çé¿ö2: Ñ¡ÖĞÍ¼Ïñ²É¼¯½Úµã {selectedNode.Name}");
                 UpdateActiveNodeImageData(selectedNode);
                 ShowImagePreview = true;
-                AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: ÏÔÊ¾ (Ñ¡ÖĞ²É¼¯½Úµã: {selectedNode.Name}, Í¼ÏñÊı: {selectedNode.ImageData?.ImageCount ?? 0})");
                 OnPropertyChanged(nameof(ShowImagePreview));
                 return;
             }
 
-            // Çé¿ö3£ºÑ¡ÖĞµÄ²»ÊÇÍ¼Ïñ²É¼¯½Úµã ¡ú BFS×·ËİÉÏÓÎ²É¼¯½Úµã
-            // ¡ï ¿ìËÙ¼ì²é£ºÈç¹ûÃ»ÓĞÁ¬½Ó£¬²»¿ÉÄÜÓĞÉÏÓÎ½Úµã£¬Ö±½ÓÒş²Ø
+            // æƒ…å†µ3ï¼šé€‰ä¸­çš„ä¸æ˜¯å›¾åƒé‡‡é›†èŠ‚ç‚¹ â†’ BFSè¿½æº¯ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹
+            // â˜… å¿«é€Ÿæ£€æŸ¥ï¼šå¦‚æœæ²¡æœ‰è¿æ¥ï¼Œä¸å¯èƒ½æœ‰ä¸Šæ¸¸èŠ‚ç‚¹ï¼Œç›´æ¥éšè—
             var connections = WorkflowTabViewModel?.SelectedTab?.WorkflowConnections;
             if (connections == null || connections.Count == 0)
             {
-                AddLog($"[UpdateImagePreviewVisibility] Çé¿ö3-¿ìËÙ·µ»Ø: ÎŞÁ¬½Ó£¬ÎŞĞèBFSËÑË÷");
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
                 _currentDisplayNodeId = null;
-                AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: Òş²Ø (µ±Ç°½Úµã: {selectedNode.Name}, ÎŞÁ¬½Ó)");
                 OnPropertyChanged(nameof(ShowImagePreview));
                 return;
             }
             
-            AddLog($"[UpdateImagePreviewVisibility] Çé¿ö3: ·ÇÍ¼Ïñ²É¼¯½Úµã {selectedNode.Name}, Á¬½ÓÊı={connections.Count}, ¿ªÊ¼BFS²éÕÒÉÏÓÎ");
             var sourceCaptureNode = FindUpstreamImageCaptureNode(selectedNode);
-            AddLog($"[UpdateImagePreviewVisibility] BFS½á¹û: sourceCaptureNode={sourceCaptureNode?.Name ?? "null"}");
 
             if (sourceCaptureNode != null)
             {
                 bool hasImages = sourceCaptureNode.ImageData != null && sourceCaptureNode.ImageData.ImageCount > 0;
-                AddLog($"[UpdateImagePreviewVisibility] ÉÏÓÎ½ÚµãÍ¼Ïñ×´Ì¬: hasImages={hasImages}, ImageCount={sourceCaptureNode.ImageData?.ImageCount ?? 0}");
                 
-                // ¡ï ÓÅ»¯£º¼ì²éÉÏÓÎ²É¼¯½ÚµãÊÇ·ñÓëµ±Ç°ÏÔÊ¾µÄÏàÍ¬
+                // â˜… ä¼˜åŒ–ï¼šæ£€æŸ¥ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹æ˜¯å¦ä¸å½“å‰æ˜¾ç¤ºçš„ç›¸åŒ
                 bool isSameNode = _currentDisplayNodeId == sourceCaptureNode.Id;
                 bool hasActiveData = ActiveNodeImageData != null;
                 
@@ -1800,140 +1783,115 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     if (isSameNode && hasActiveData)
                     {
-                        // ¡ï ÏàÍ¬½ÚµãÇÒµ±Ç°ÓĞÊı¾İ£¬²»ĞèÒª¸üĞÂ ActiveNodeImageData
-                        // ±ÜÃâ´¥·¢²»±ØÒªµÄËõÂÔÍ¼ÖØĞÂ¼ÓÔØ
+                        // â˜… ç›¸åŒèŠ‚ç‚¹ä¸”å½“å‰æœ‰æ•°æ®ï¼Œä¸éœ€è¦æ›´æ–° ActiveNodeImageData
+                        // é¿å…è§¦å‘ä¸å¿…è¦çš„ç¼©ç•¥å›¾é‡æ–°åŠ è½½
                         ShowImagePreview = true;
-                        AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: ±£³ÖÏÔÊ¾ (ÉÏÓÎ²É¼¯½Úµã: {sourceCaptureNode.Name}, µ±Ç°½Úµã: {selectedNode.Name}, ÏàÍ¬½ÚµãÌø¹ı¸üĞÂ)");
                     }
                     else
                     {
-                        // ²»Í¬½Úµã»òÖ®Ç°Êı¾İÒÑÇå¿Õ£¬ĞèÒª¸üĞÂÏÔÊ¾
+                        // ä¸åŒèŠ‚ç‚¹æˆ–ä¹‹å‰æ•°æ®å·²æ¸…ç©ºï¼Œéœ€è¦æ›´æ–°æ˜¾ç¤º
                         _currentDisplayNodeId = sourceCaptureNode.Id;
                         ActiveNodeImageData = sourceCaptureNode.ImageData;
                         ShowImagePreview = true;
-                        AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: ÏÔÊ¾ (ÉÏÓÎ²É¼¯½Úµã: {sourceCaptureNode.Name}, µ±Ç°½Úµã: {selectedNode.Name})");
                     }
                 }
                 else
                 {
-                    // ÉÏÓÎ²É¼¯½ÚµãÎŞÍ¼Ïñ ¡ú Òş²Ø
-                    AddLog($"[UpdateImagePreviewVisibility] ÉÏÓÎ½ÚµãÎŞÍ¼Ïñ£¬×¼±¸Òş²Ø");
+                    // ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹æ— å›¾åƒ â†’ éšè—
                     ShowImagePreview = false;
                     ActiveNodeImageData = null;
-                    _currentDisplayNodeId = null;  // ¡ï Çå³ı¸ú×ÙID
-                    AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: Òş²Ø (ÉÏÓÎ²É¼¯½Úµã {sourceCaptureNode.Name} ÎŞÍ¼Ïñ)");
+                    _currentDisplayNodeId = null;  // â˜… æ¸…é™¤è·Ÿè¸ªID
                 }
             }
             else
             {
-                // ÎŞÉÏÓÎ²É¼¯½Úµã ¡ú Òş²Ø
-                AddLog($"[UpdateImagePreviewVisibility] ÎŞÉÏÓÎ²É¼¯½Úµã£¬×¼±¸Òş²Ø²¢Çå¿ÕActiveNodeImageData");
+                // æ— ä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹ â†’ éšè—
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
-                _currentDisplayNodeId = null;  // ¡ï Çå³ı¸ú×ÙID
-                AddLog($"[µ÷ÊÔ] Í¼ÏñÔ¤ÀÀ: Òş²Ø (µ±Ç°½Úµã: {selectedNode.Name}, ÎŞÉÏÓÎ²É¼¯½Úµã)");
+                _currentDisplayNodeId = null;  // â˜… æ¸…é™¤è·Ÿè¸ªID
             }
 
             OnPropertyChanged(nameof(ShowImagePreview));
-            AddLog($"[UpdateImagePreviewVisibility] ? ´¦ÀíÍê³É, ShowImagePreview={ShowImagePreview}");
         }
 
         /// <summary>
-        /// Ç¿ÖÆË¢ĞÂÍ¼ÏñÔ¤ÀÀÆ÷£¨ÓÃÓÚÁ¬½Ó´´½¨ºóµÈ³¡¾°£©
-        /// ¼´Ê¹µ±Ç° SelectedNode Î´¸Ä±ä£¬Ò²»áÖØĞÂ¼ÆËãÊÇ·ñÏÔÊ¾Í¼ÏñÔ¤ÀÀÆ÷
+        /// å¼ºåˆ¶åˆ·æ–°å›¾åƒé¢„è§ˆå™¨ï¼ˆç”¨äºè¿æ¥åˆ›å»ºåç­‰åœºæ™¯ï¼‰
+        /// å³ä½¿å½“å‰ SelectedNode æœªæ”¹å˜ï¼Œä¹Ÿä¼šé‡æ–°è®¡ç®—æ˜¯å¦æ˜¾ç¤ºå›¾åƒé¢„è§ˆå™¨
         /// </summary>
         public void ForceRefreshImagePreview()
         {
-            AddLog($"[ForceRefreshImagePreview] Ç¿ÖÆË¢ĞÂÍ¼ÏñÔ¤ÀÀÆ÷, SelectedNode={_selectedNode?.Name ?? "null"}");
             UpdateImagePreviewVisibility(_selectedNode);
         }
 
         /// <summary>
-        /// ²éÕÒÑ¡ÖĞ½ÚµãµÄÉÏÓÎÍ¼Ïñ²É¼¯½Úµã£¨BFS¹ã¶ÈÓÅÏÈËÑË÷£©
+        /// æŸ¥æ‰¾é€‰ä¸­èŠ‚ç‚¹çš„ä¸Šæ¸¸å›¾åƒé‡‡é›†èŠ‚ç‚¹ï¼ˆBFSå¹¿åº¦ä¼˜å…ˆæœç´¢ï¼‰
         /// </summary>
         /// <remarks>
-        /// µ±´æÔÚ¶à¸öÉÏÓÎ²É¼¯½ÚµãÊ±£¬·µ»ØµÚÒ»¸öÕÒµ½µÄ²É¼¯½Úµã£º
-        /// 1. BFS±£Ö¤Á¬½ÓÂ·¾¶×î¶Ì
-        /// 2. °´½ÚµãIDÅÅĞò±£Ö¤È·¶¨ĞÔÑ¡Ôñ
+        /// å½“å­˜åœ¨å¤šä¸ªä¸Šæ¸¸é‡‡é›†èŠ‚ç‚¹æ—¶ï¼Œè¿”å›ç¬¬ä¸€ä¸ªæ‰¾åˆ°çš„é‡‡é›†èŠ‚ç‚¹ï¼š
+        /// 1. BFSä¿è¯è¿æ¥è·¯å¾„æœ€çŸ­
+        /// 2. æŒ‰èŠ‚ç‚¹IDæ’åºä¿è¯ç¡®å®šæ€§é€‰æ‹©
         /// </remarks>
-        /// <param name="node">ÆğÊ¼½Úµã</param>
-        /// <returns>µÚÒ»¸öÕÒµ½µÄÉÏÓÎÍ¼Ïñ²É¼¯½Úµã£¬Î´ÕÒµ½·µ»Ønull</returns>
+        /// <param name="node">èµ·å§‹èŠ‚ç‚¹</param>
+        /// <returns>ç¬¬ä¸€ä¸ªæ‰¾åˆ°çš„ä¸Šæ¸¸å›¾åƒé‡‡é›†èŠ‚ç‚¹ï¼Œæœªæ‰¾åˆ°è¿”å›null</returns>
         private Models.WorkflowNode? FindUpstreamImageCaptureNode(Models.WorkflowNode node)
         {
-            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ? ¿ªÊ¼BFSËÑË÷, ÆğÊ¼½Úµã={node.Name} (Id={node.Id})");
-            
             var selectedTab = WorkflowTabViewModel?.SelectedTab;
             if (selectedTab == null || selectedTab.WorkflowConnections == null || selectedTab.WorkflowNodes == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ? ÌáÇ°·µ»Ø: selectedTab={selectedTab != null}, Connections={selectedTab?.WorkflowConnections?.Count ?? 0}, Nodes={selectedTab?.WorkflowNodes?.Count ?? 0}");
                 return null;
             }
-
-            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] µ±Ç°¹¤×÷Á÷: {selectedTab.WorkflowNodes.Count} ¸ö½Úµã, {selectedTab.WorkflowConnections.Count} ÌõÁ¬½Ó");
 
             var visited = new HashSet<string>();
             var queue = new Queue<Models.WorkflowNode>();
             queue.Enqueue(node);
             visited.Add(node.Id);
-            int iterationCount = 0;
 
             while (queue.Count > 0)
             {
-                iterationCount++;
                 var currentNode = queue.Dequeue();
-                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}] ´¦Àí½Úµã: {currentNode.Name} (Id={currentNode.Id})");
 
-                // »ñÈ¡ÉÏÓÎ½ÚµãID£¨°´Á¬½ÓÔÚ¼¯ºÏÖĞµÄË³Ğò£¬ÔÙ°´½ÚµãIDÅÅĞò±£Ö¤È·¶¨ĞÔ£©
+                // è·å–ä¸Šæ¸¸èŠ‚ç‚¹IDï¼ˆæŒ‰è¿æ¥åœ¨é›†åˆä¸­çš„é¡ºåºï¼Œå†æŒ‰èŠ‚ç‚¹IDæ’åºä¿è¯ç¡®å®šæ€§ï¼‰
                 var upstreamNodeIds = selectedTab.WorkflowConnections
                     .Where(conn => conn.TargetNodeId == currentNode.Id)
                     .Select(conn => conn.SourceNodeId)
                     .Distinct()
-                    .OrderBy(id => id) // °´½ÚµãIDÅÅĞò£¬±£Ö¤È·¶¨ĞÔ
+                    .OrderBy(id => id) // æŒ‰èŠ‚ç‚¹IDæ’åºï¼Œä¿è¯ç¡®å®šæ€§
                     .ToList();
-
-                System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}] ÕÒµ½ {upstreamNodeIds.Count} ¸öÉÏÓÎ½ÚµãID: [{string.Join(", ", upstreamNodeIds)}]");
 
                 foreach (var upstreamNodeId in upstreamNodeIds)
                 {
                     if (visited.Contains(upstreamNodeId))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}]   Ìø¹ıÒÑ·ÃÎÊ½Úµã: {upstreamNodeId}");
                         continue;
                     }
 
                     var upstreamNode = selectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == upstreamNodeId);
                     if (upstreamNode == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}]   ? ½ÚµãÎ´ÕÒµ½: {upstreamNodeId}");
                         continue;
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}]   ¼ì²éÉÏÓÎ½Úµã: {upstreamNode.Name}, IsImageCaptureNode={upstreamNode.IsImageCaptureNode}");
-
-                    // ÕÒµ½Í¼Ïñ²É¼¯½Úµã£¬Á¢¼´·µ»Ø£¨µÚÒ»¸öÕÒµ½µÄ£©
+                    // æ‰¾åˆ°å›¾åƒé‡‡é›†èŠ‚ç‚¹ï¼Œç«‹å³è¿”å›ï¼ˆç¬¬ä¸€ä¸ªæ‰¾åˆ°çš„ï¼‰
                     if (upstreamNode.IsImageCaptureNode)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ??? ÕÒµ½Í¼Ïñ²É¼¯½Úµã: {upstreamNode.Name} (Id={upstreamNode.Id})");
                         return upstreamNode;
                     }
 
-                    // ·Ç²É¼¯½Úµã£¬¼ÌĞøÏòÉÏ×·Ëİ
+                    // éé‡‡é›†èŠ‚ç‚¹ï¼Œç»§ç»­å‘ä¸Šè¿½æº¯
                     visited.Add(upstreamNodeId);
                     queue.Enqueue(upstreamNode);
-                    System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] [µü´ú{iterationCount}]   ¼ÓÈë¶ÓÁĞ¼ÌĞø×·Ëİ: {upstreamNode.Name}");
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[FindUpstreamImageCaptureNode] ? BFS±éÀúÍê³É£¬Î´ÕÒµ½Í¼Ïñ²É¼¯½Úµã£¬¹² {iterationCount} ´Îµü´ú");
             return null;
         }
 
         #endregion
 
-        #endregion // ¸¨Öú·½·¨
+        #endregion // è¾…åŠ©æ–¹æ³•
 
         /// <summary>
-        /// Ä¬ÈÏ¹¤¾ß²å¼ş - ÓÃÓÚ¼æÈİĞÔ
+        /// é»˜è®¤å·¥å…·æ’ä»¶ - ç”¨äºå…¼å®¹æ€§
         /// </summary>
         private class DefaultToolPlugin : IToolPlugin
         {
