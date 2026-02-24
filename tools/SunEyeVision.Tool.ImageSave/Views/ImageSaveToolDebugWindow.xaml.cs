@@ -1,6 +1,6 @@
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 using System.Windows;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.ImageSave.Views
 {
     public partial class ImageSaveToolDebugWindow

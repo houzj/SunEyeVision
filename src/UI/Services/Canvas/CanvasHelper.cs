@@ -9,14 +9,13 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services.Canvas
 {
     /// <summary>
-    /// 画布辅助类 - 提供画布相关的通用辅助方法
+    /// 画布辅助�?- 提供画布相关的通用辅助方法
     /// </summary>
     public static class CanvasHelper
     {
         /// <summary>
-        /// 判断点是否在端口内
-        /// </summary>
-        /// <param name="point">要检测的点</param>
+        /// 判断点是否在端口�?        /// </summary>
+        /// <param name="point">要检测的�?/param>
         /// <param name="portPosition">端口位置</param>
         /// <param name="hitDistance">命中距离</param>
         /// <returns>是否命中</returns>
@@ -37,7 +36,7 @@ namespace SunEyeVision.UI.Services.Canvas
         {
             if (sourceNode == null)
             {
-                return (false, "源节点不能为空");
+                return (false, "源节点不能为�?);
             }
 
             if (targetNode == null)
@@ -47,28 +46,27 @@ namespace SunEyeVision.UI.Services.Canvas
 
             if (sourceNode.Id == targetNode.Id)
             {
-                return (false, "不允许自连连接");
+                return (false, "不允许自连连�?);
             }
 
             if (existingConnections.Any(c => c.SourceNodeId == sourceNode.Id && c.TargetNodeId == targetNode.Id))
             {
-                return (false, "连接已存在");
+                return (false, "连接已存�?);
             }
 
             if (existingConnections.Any(c => c.TargetNodeId == sourceNode.Id && c.SourceNodeId == targetNode.Id))
             {
-                return (false, "反向连接已存在");
+                return (false, "反向连接已存�?);
             }
 
             return (true, string.Empty);
         }
 
         /// <summary>
-        /// 将点吸附到网格
-        /// </summary>
-        /// <param name="point">原始点</param>
+        /// 将点吸附到网�?        /// </summary>
+        /// <param name="point">原始�?/param>
         /// <param name="gridSize">网格大小</param>
-        /// <returns>吸附后的点</returns>
+        /// <returns>吸附后的�?/returns>
         public static Point SnapToGrid(Point point, double gridSize = 10)
         {
             double x = Math.Round(point.X / gridSize) * gridSize;
@@ -110,8 +108,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 计算吸附点
-        /// </summary>
+        /// 计算吸附�?        /// </summary>
         public static Point FindSnapPoint(
             Point point,
             IList<WorkflowNode> nodes,
@@ -146,8 +143,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 清除所有节点的选中状态
-        /// </summary>
+        /// 清除所有节点的选中状�?        /// </summary>
         public static void ClearSelection(IEnumerable<WorkflowNode> nodes)
         {
             if (nodes == null) return;
@@ -185,8 +181,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 获取节点所有端口位置
-        /// </summary>
+        /// 获取节点所有端口位�?        /// </summary>
         public static Dictionary<string, Point> GetAllPortPositions(WorkflowNode node)
         {
             if (node == null) return new Dictionary<string, Point>();
@@ -201,8 +196,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 计算两点之间的距离
-        /// </summary>
+        /// 计算两点之间的距�?        /// </summary>
         public static double GetDistance(Point p1, Point p2)
         {
             double dx = p1.X - p2.X;
@@ -211,8 +205,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 获取节点中心点
-        /// </summary>
+        /// 获取节点中心�?        /// </summary>
         public static Point GetNodeCenter(WorkflowNode node)
         {
             if (node == null) return new Point(0, 0);

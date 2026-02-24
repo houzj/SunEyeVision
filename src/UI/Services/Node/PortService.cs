@@ -40,7 +40,7 @@ namespace SunEyeVision.UI.Services.Node
     public interface IPortService
     {
         /// <summary>
-        /// 获取指定节点的端口元素
+        /// 获取指定节点的端口元�?
         /// </summary>
         Ellipse? GetPortElement(string nodeId, string portName);
 
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Services.Node
         WorkflowNode? GetNodeFromPort(Ellipse port);
 
         /// <summary>
-        /// 在指定位置查找端口
+        /// 在指定位置查找端�?
         /// </summary>
         Ellipse? FindPortAtPosition(Point position);
 
@@ -60,12 +60,12 @@ namespace SunEyeVision.UI.Services.Node
         void HighlightPort(Ellipse port, bool highlight);
 
         /// <summary>
-        /// 清除所有端口高亮
+        /// 清除所有端口高�?
         /// </summary>
         void ClearAllHighlights();
 
         /// <summary>
-        /// 确定最佳端口方向
+        /// 确定最佳端口方�?
         /// </summary>
         PortDirection DetermineBestPort(WorkflowNode source, WorkflowNode target);
 
@@ -100,7 +100,7 @@ namespace SunEyeVision.UI.Services.Node
         public int CacheHits { get; private set; }
 
         /// <summary>
-        /// 缓存未命中次数
+        /// 缓存未命中次�?
         /// </summary>
         public int CacheMisses { get; private set; }
 
@@ -150,7 +150,7 @@ namespace SunEyeVision.UI.Services.Node
                 return null;
             }
 
-            // 从端口元素获取节点信息
+            // 从端口元素获取节点信�?
             var nodeElement = FindVisualParent<Border>(port);
             if (nodeElement?.DataContext is WorkflowNode node)
             {
@@ -280,7 +280,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 从端口名称确定端口方向
+        /// 从端口名称确定端口方�?
         /// </summary>
         private PortDirection DeterminePortDirectionFromName(string portName)
         {
@@ -324,7 +324,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 查找所有指定类型的子元素
+        /// 查找所有指定类型的子元�?
         /// </summary>
         private List<T> FindAllVisualChildren<T>(DependencyObject parent) where T : DependencyObject
         {

@@ -1,12 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
-using SunEyeVision.Plugin.Abstractions;
+using OpenCvSharp;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
@@ -592,7 +592,7 @@ namespace SunEyeVision.Workflow
             {
                 return context.GetVariable<Mat>("InputImage");
             }
-            return new Mat(640, 480, 3);
+            return new Mat(480, 640, MatType.CV_8UC3, new Scalar(0));
         }
 
         #endregion

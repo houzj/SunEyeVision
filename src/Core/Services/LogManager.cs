@@ -5,7 +5,7 @@ using SunEyeVision.Core.Interfaces;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// 日志管理器 - 全局单例，统一管理日志
+    /// 日志管理�?- 全局单例，统一管理日志
     /// </summary>
     public static class LogManager
     {
@@ -41,12 +41,12 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 获取优化的日志实例
+        /// 获取优化的日志实�?
         /// </summary>
         public static OptimizedLogger? OptimizedInstance => Instance as OptimizedLogger;
 
         /// <summary>
-        /// 创建默认日志记录器
+        /// 创建默认日志记录�?
         /// </summary>
         private static ILogger CreateDefaultLogger()
         {
@@ -68,13 +68,13 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 设置采样率
+        /// 设置采样�?
         /// </summary>
         public static void SetSampleRate(int rate)
         {
             if (Instance is OptimizedLogger optimizedLogger)
             {
-                // 需要重新创建实例
+                // 需要重新创建实�?
                 Instance = new OptimizedLogger(
                     minLevel: optimizedLogger.CurrentLevel,
                     sampleRate: rate

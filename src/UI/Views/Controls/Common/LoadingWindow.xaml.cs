@@ -13,7 +13,7 @@ namespace SunEyeVision.UI.Views.Controls.Common
             set => MessageText.Text = value;
         }
 
-        public LoadingWindow(string message = "请稍候")
+        public LoadingWindow(string message = "请稍�?)
         {
             InitializeComponent();
             Message = message;

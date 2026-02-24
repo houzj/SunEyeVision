@@ -9,7 +9,7 @@ using SunEyeVision.UI.Services.Rendering;
 namespace SunEyeVision.UI.Services.Rendering
 {
     /// <summary>
-    /// 几何优化器 - 使用 StreamGeometry 和 Freezable 优化渲染性能
+    /// 几何优化�?- 使用 StreamGeometry �?Freezable 优化渲染性能
     /// </summary>
     public class GeometryOptimizer
     {
@@ -37,7 +37,7 @@ namespace SunEyeVision.UI.Services.Rendering
         }
 
         /// <summary>
-        /// 获取或创建连接线的 StreamGeometry
+        /// 获取或创建连接线�?StreamGeometry
         /// </summary>
         public StreamGeometry GetConnectionGeometry(WorkflowConnection connection, WorkflowNode sourceNode, WorkflowNode targetNode)
         {
@@ -264,7 +264,7 @@ namespace SunEyeVision.UI.Services.Rendering
     }
 
     /// <summary>
-    /// 几何优化器统计信息
+    /// 几何优化器统计信�?
     /// </summary>
     public class GeometryOptimizerStatistics
     {

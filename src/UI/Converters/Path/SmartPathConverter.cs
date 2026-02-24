@@ -14,7 +14,7 @@ using SunEyeVision.UI.Services.Node;
 namespace SunEyeVision.UI.Converters.Path
 {
     /// <summary>
-    /// 智能路径转换器 - 将 WorkflowConnection 转换为 Path Data
+    /// 智能路径转换�?- �?WorkflowConnection 转换�?Path Data
     /// </summary>
     public class SmartPathConverter : IValueConverter
     {
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Converters.Path
         public static ConnectionPathCache? PathCache { get; set; }
 
         /// <summary>
-        /// 控件偏移量
+        /// 控件偏移�?
         /// </summary>
         public double ControlOffset { get; set; } = 60;
 
@@ -65,7 +65,7 @@ namespace SunEyeVision.UI.Converters.Path
                     return string.Empty;
                 }
 
-                // 修复：优先使用PathCache获取路径数据（PathCache使用BezierPathCalculator）
+                // 修复：优先使用PathCache获取路径数据（PathCache使用BezierPathCalculator�?
                 if (PathCache != null)
                 {
                     var cachedPathData = PathCache.GetPathData(connection);
@@ -75,8 +75,8 @@ namespace SunEyeVision.UI.Converters.Path
                     }
                 }
 
-                // 降级方案：如果没有PathCache或缓存未命中，使用GeneratePathData生成简单路径
-                // 计算起点和终点（节点中心，假设节点大小为 180x80）
+                // 降级方案：如果没有PathCache或缓存未命中，使用GeneratePathData生成简单路�?
+                // 计算起点和终点（节点中心，假设节点大小为 180x80�?
                 const double NodeWidth = 180;
                 const double NodeHeight = 80;
                 Point startPoint = new Point(sourceNode.Position.X + NodeWidth / 2, sourceNode.Position.Y + NodeHeight / 2);
@@ -99,7 +99,7 @@ namespace SunEyeVision.UI.Converters.Path
         }
 
         /// <summary>
-        /// 生成路径数据（生成贝塞尔曲线）
+        /// 生成路径数据（生成贝塞尔曲线�?
         /// </summary>
         private string GeneratePathData(Point start, Point end, WorkflowNode sourceNode, WorkflowNode targetNode)
         {
@@ -120,7 +120,7 @@ namespace SunEyeVision.UI.Converters.Path
             const double MinOffset = 20.0;
             double controlOffset = Math.Max(distance * ControlPointOffsetRatio, MinOffset);
 
-            // 计算控制点1（靠近源点）
+            // 计算控制�?（靠近源点）
             Point controlPoint1 = sourceDirection switch
             {
                 PortDirection.Right => new Point(start.X + controlOffset, start.Y),
@@ -130,13 +130,13 @@ namespace SunEyeVision.UI.Converters.Path
                 _ => new Point(start.X + controlOffset, start.Y)
             };
 
-            // 简化：控制点2使用与控制点1对称的位置
+            // 简化：控制�?使用与控制点1对称的位�?
             Point controlPoint2 = new Point(
                 end.X - (controlPoint1.X - start.X),
                 end.Y - (controlPoint1.Y - start.Y)
             );
 
-            // 生成贝塞尔曲线路径数据
+            // 生成贝塞尔曲线路径数�?
             // 格式：M start C controlPoint1 controlPoint2 end
             return $"M {start.X:F1},{start.Y:F1} C {controlPoint1.X:F1},{controlPoint1.Y:F1} {controlPoint2.X:F1},{controlPoint2.Y:F1} {end.X:F1},{end.Y:F1}";
         }
@@ -160,7 +160,7 @@ namespace SunEyeVision.UI.Converters.Path
         }
 
         /// <summary>
-        /// 判断两个点是否过近
+        /// 判断两个点是否过�?
         /// </summary>
         private bool ArePointsClose(Point p1, Point p2, double threshold = 5)
         {

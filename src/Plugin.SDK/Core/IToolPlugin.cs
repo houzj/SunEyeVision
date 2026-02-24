@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 
-namespace SunEyeVision.Plugin.Abstractions
+namespace SunEyeVision.Plugin.SDK.Core
 {
     /// <summary>
     /// 工具插件接口 - 插件开发的唯一入口
@@ -10,6 +10,35 @@ namespace SunEyeVision.Plugin.Abstractions
     /// <remarks>
     /// 此接口定义了插件与框架交互的完整契约。
     /// 插件开发者只需实现此接口即可创建可热加载的工具插件。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// public class MyToolPlugin : IToolPlugin
+    /// {
+    ///     public string Name => "MyTool";
+    ///     public string PluginId => "my-company.my-tool";
+    ///     
+    ///     public void Initialize()
+    ///     {
+    ///         // 初始化插件
+    ///     }
+    ///     
+    ///     public List&lt;ToolMetadata&gt; GetToolMetadata()
+    ///     {
+    ///         return new List&lt;ToolMetadata&gt;
+    ///         {
+    ///             new ToolMetadata
+    ///             {
+    ///                 Id = "circle-find",
+    ///                 Name = "CircleFind",
+    ///                 DisplayName = "圆查找",
+    ///                 Description = "检测图像中的圆形",
+    ///                 Category = "几何检测"
+    ///             }
+    ///         };
+    ///     }
+    /// }
+    /// </code>
     /// </remarks>
     public interface IToolPlugin
     {
@@ -84,28 +113,6 @@ namespace SunEyeVision.Plugin.Abstractions
         /// </summary>
         /// <returns>算法节点类型列表</returns>
         List<Type> GetAlgorithmNodes();
-
-        /// <summary>
-        /// 创建工具实例
-        /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <returns>图像处理器实例</returns>
-        IImageProcessor CreateToolInstance(string toolId);
-
-        /// <summary>
-        /// 获取工具的默认参数
-        /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <returns>默认算法参数</returns>
-        AlgorithmParameters GetDefaultParameters(string toolId);
-
-        /// <summary>
-        /// 验证参数有效性
-        /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <param name="parameters">算法参数</param>
-        /// <returns>验证结果</returns>
-        ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters);
 
         #endregion
     }

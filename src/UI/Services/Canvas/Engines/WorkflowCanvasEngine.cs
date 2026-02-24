@@ -37,7 +37,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
 
         public void SetPathCalculator(string pathCalculatorType)
         {
-            // 调用控件的SetPathCalculator方法，实现实际的路径计算器切换
+            // 调用控件的SetPathCalculator方法，实现实际的路径计算器切�?
             _control.SetPathCalculator(pathCalculatorType);
         }
 

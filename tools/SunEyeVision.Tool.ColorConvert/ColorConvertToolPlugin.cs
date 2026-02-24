@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.ColorConvert
 {
@@ -52,7 +52,7 @@ namespace SunEyeVision.Tool.ColorConvert
                         {
                             Name = "targetColorSpace",
                             DisplayName = "目标颜色空间",
-                            Description = "要转换到的颜色空间",
+                            Description = "要转换到的颜色空�?,
                             Type = ParameterType.Enum,
                             DefaultValue = "GRAY",
                             Options = new object[] { "GRAY", "RGB", "HSV", "Lab", "XYZ", "YCrCb" },
@@ -62,7 +62,7 @@ namespace SunEyeVision.Tool.ColorConvert
                         new ParameterMetadata
                         {
                             Name = "sourceColorSpace",
-                            DisplayName = "源颜色空间",
+                            DisplayName = "源颜色空�?,
                             Description = "源图像的颜色空间",
                             Type = ParameterType.Enum,
                             DefaultValue = "BGR",
@@ -73,8 +73,8 @@ namespace SunEyeVision.Tool.ColorConvert
                         new ParameterMetadata
                         {
                             Name = "channels",
-                            DisplayName = "输出通道数",
-                            Description = "保留的通道数(仅对某些转换有效)",
+                            DisplayName = "输出通道�?,
+                            Description = "保留的通道�?仅对某些转换有效)",
                             Type = ParameterType.Int,
                             DefaultValue = 0,
                             MinValue = 0,
@@ -95,8 +95,8 @@ namespace SunEyeVision.Tool.ColorConvert
                         new ParameterMetadata
                         {
                             Name = "channelCount",
-                            DisplayName = "通道数",
-                            Description = "输出图像的通道数",
+                            DisplayName = "通道�?,
+                            Description = "输出图像的通道�?,
                             Type = ParameterType.Int
                         }
                     }
@@ -121,7 +121,7 @@ namespace SunEyeVision.Tool.ColorConvert
             var channels = parameters.Get<int>("channels");
             if (channels != null && channels > 4)
             {
-                result.AddError("通道数不能超过4");
+                result.AddError("通道数不能超�?");
             }
             result.IsValid = result.Errors.Count == 0;
             return result;
@@ -145,7 +145,7 @@ namespace SunEyeVision.Tool.ColorConvert
             var channels = GetParameter(parameters, "channels", 0);
 
             // TODO: 实际图像处理逻辑
-            // 这里应使用 OpenCV 或其他图像处理库进行实际处理
+            // 这里应使�?OpenCV 或其他图像处理库进行实际处理
             // 示例：Cv2.CvtColor(mat, output, GetColorConversionCode(sourceColorSpace, targetColorSpace))
 
             // 返回处理结果（简化示例）
@@ -164,7 +164,7 @@ namespace SunEyeVision.Tool.ColorConvert
             
             var channels = GetParameter<int?>(parameters, "channels", null);
             if (channels.HasValue && channels.Value > 4)
-                result.AddError("通道数不能超过4");
+                result.AddError("通道数不能超�?");
 
             return result;
         }

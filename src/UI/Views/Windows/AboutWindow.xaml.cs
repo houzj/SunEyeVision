@@ -5,7 +5,7 @@ using System.Windows;
 namespace SunEyeVision.UI.Views.Windows
 {
     /// <summary>
-    /// AboutWindow - 关于对话框
+    /// AboutWindow - 关于对话�?
     /// </summary>
     public partial class AboutWindow : Window
     {
@@ -21,8 +21,8 @@ namespace SunEyeVision.UI.Views.Windows
 
         private void CheckUpdate_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: 实现检查更新功能
-            MessageBox.Show("已是最新版本！", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+            // TODO: 实现检查更新功�?
+            MessageBox.Show("已是最新版本！", "检查更�?, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void HelpManual_Click(object sender, RoutedEventArgs e)

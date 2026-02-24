@@ -12,7 +12,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 工作流选择处理器
+    /// 工作流选择处理�?
     /// 负责框选、多选等选择功能
     /// </summary>
     public class WorkflowSelectionHandler
@@ -20,7 +20,7 @@ namespace SunEyeVision.UI.Services.Interaction
         private readonly WorkflowCanvasControl _canvasControl;
         private readonly MainWindowViewModel? _viewModel;
 
-        // 框选相关
+        // 框选相�?
         private bool _isSelecting;
         private System.Windows.Point _selectionStartPoint;
 
@@ -33,13 +33,13 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// Canvas 鼠标左键按下 - 开始框选
+        /// Canvas 鼠标左键按下 - 开始框�?
         /// </summary>
         public void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var mousePos = e.GetPosition(_canvasControl.WorkflowCanvas);
 
-            // 检查是否点击在节点上
+            // 检查是否点击在节点�?
             var hitResult = VisualTreeHelper.HitTest(_canvasControl.WorkflowCanvas, mousePos);
             if (hitResult?.VisualHit is DependencyObject obj)
             {
@@ -47,35 +47,35 @@ namespace SunEyeVision.UI.Services.Interaction
                 {
                     if (obj is Border border && border.Tag is WorkflowNode)
                     {
-                        // 点击在节点上，不触发框选
+                        // 点击在节点上，不触发框�?
                         return;
                     }
                     obj = VisualTreeHelper.GetParent(obj);
                 }
             }
 
-            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
+            // 检查是否按�?Shift �?Ctrl 键（多选模式）
             bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
-            // 如果不是多选模式，清除所有选中状态
+            // 如果不是多选模式，清除所有选中状�?
             if (!isMultiSelect)
             {
                 ClearAllSelections();
             }
 
-            // 开始框选
+            // 开始框�?
             _isSelecting = true;
             _selectionStartPoint = mousePos;
 
-            // 显示框选矩形
+            // 显示框选矩�?
             _canvasControl.SelectionBox.StartSelection(mousePos);
 
             e.Handled = true;
         }
 
         /// <summary>
-        /// Canvas 鼠标移动 - 更新框选矩形
+        /// Canvas 鼠标移动 - 更新框选矩�?
         /// </summary>
         public void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
@@ -85,14 +85,14 @@ namespace SunEyeVision.UI.Services.Interaction
             _isSelecting = false;
             _canvasControl.SelectionBox.EndSelection();
 
-            // 选中框选区域内的节点
+            // 选中框选区域内的节�?
             SelectNodesInSelectionRectangle();
 
             e.Handled = true;
         }
 
         /// <summary>
-        /// Canvas 鼠标移动 - 更新框选矩形
+        /// Canvas 鼠标移动 - 更新框选矩�?
         /// </summary>
         public void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
@@ -101,14 +101,14 @@ namespace SunEyeVision.UI.Services.Interaction
 
             var currentPos = e.GetPosition(_canvasControl.WorkflowCanvas);
 
-            // 更新框选矩形
+            // 更新框选矩�?
             _canvasControl.SelectionBox.UpdateSelection(currentPos);
 
             e.Handled = true;
         }
 
         /// <summary>
-        /// 选中框选区域内的节点
+        /// 选中框选区域内的节�?
         /// </summary>
         private void SelectNodesInSelectionRectangle()
         {
@@ -141,7 +141,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 清除所有节点的选中状态
+        /// 清除所有节点的选中状�?
         /// </summary>
         public void ClearAllSelections()
         {
@@ -155,7 +155,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 记录选中节点的初始位置
+        /// 记录选中节点的初始位�?
         /// </summary>
         public Dictionary<WorkflowNode, System.Windows.Point> RecordSelectedNodesPositions()
         {

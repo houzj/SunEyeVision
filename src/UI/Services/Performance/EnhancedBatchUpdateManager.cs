@@ -18,7 +18,7 @@ namespace SunEyeVision.UI.Services.Performance
         private readonly ConnectionPathCache _pathCache;
         private readonly DispatcherTimer _updateTimer;
 
-        // 待更新的节点和连接
+        // 待更新的节点和连�?
         private readonly HashSet<string> _pendingNodeUpdates = new();
         private readonly HashSet<string> _pendingConnectionUpdates = new();
 
@@ -55,7 +55,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 调度单个连接的更新
+        /// 调度单个连接的更�?
         /// </summary>
         public void ScheduleUpdate(WorkflowConnection connection)
         {
@@ -73,7 +73,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 调度节点相关的所有连接更新
+        /// 调度节点相关的所有连接更�?
         /// </summary>
         public void ScheduleUpdateForNode(string nodeId)
         {
@@ -91,7 +91,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 调度多个节点相关的所有连接更新
+        /// 调度多个节点相关的所有连接更�?
         /// </summary>
         public void ScheduleUpdateForNodes(IEnumerable<string> nodeIds)
         {
@@ -116,7 +116,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 立即执行所有待处理的更新
+        /// 立即执行所有待处理的更�?
         /// </summary>
         public void ForceUpdateAll()
         {
@@ -127,7 +127,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 清空所有待处理的更新
+        /// 清空所有待处理的更�?
         /// </summary>
         public void ClearPendingUpdates()
         {
@@ -148,7 +148,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 定时器触发 - 批量执行更新
+        /// 定时器触�?- 批量执行更新
         /// </summary>
         private void OnUpdateTimerTick(object? sender, EventArgs e)
         {
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.Services.Performance
 
             try
             {
-                // 获取需要更新的节点和连接列表
+                // 获取需要更新的节点和连接列�?
                 HashSet<string> nodesToUpdate;
                 HashSet<string> connectionsToUpdate;
 
@@ -173,7 +173,7 @@ namespace SunEyeVision.UI.Services.Performance
                     _pendingConnectionUpdates.Clear();
                 }
 
-                // 如果没有需要更新的，直接返回
+                // 如果没有需要更新的，直接返�?
                 if (nodesToUpdate.Count == 0 && connectionsToUpdate.Count == 0)
                 {
                     return;
@@ -220,8 +220,8 @@ namespace SunEyeVision.UI.Services.Performance
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            // === 优化点1: 批量标记缓存为脏 ===
-            // 一次性标记所有连接的缓存为脏，避免重复检查
+            // === 优化�?: 批量标记缓存为脏 ===
+            // 一次性标记所有连接的缓存为脏，避免重复检�?
             var connectionsToRecalculate = new List<WorkflowConnection>();
             foreach (var connectionId in allConnectionIds)
             {
@@ -233,14 +233,14 @@ namespace SunEyeVision.UI.Services.Performance
                 }
             }
 
-            // === 优化点2: 批量计算路径 ===
-            // 批量预热缓存，利用缓存的批处理能力
+            // === 优化�?: 批量计算路径 ===
+            // 批量预热缓存，利用缓存的批处理能�?
             if (connectionsToRecalculate.Count > 0)
             {
                 _pathCache.WarmUp(connectionsToRecalculate);
             }
 
-            // === 优化点3: 批量触发UI更新 ===
+            // === 优化�?: 批量触发UI更新 ===
             // 使用Dispatcher一次性触发所有UI更新
             Dispatcher.CurrentDispatcher.Invoke(() =>
             {
@@ -261,9 +261,9 @@ namespace SunEyeVision.UI.Services.Performance
             {
                 // System.Diagnostics.Debug.WriteLine(
                 //     $"[EnhancedBatchUpdateManager] 批量更新: " +
-                //     $"{connectionsToRecalculate.Count}条连线, " +
+                //     $"{connectionsToRecalculate.Count}条连�? " +
                 //     $"{stopwatch.ElapsedMilliseconds:F2}ms " +
-                //     $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/条)");
+                //     $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/�?");
             }
         }
 
@@ -309,7 +309,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 销毁管理器，释放资源
+        /// 销毁管理器，释放资�?
         /// </summary>
         public void Dispose()
         {
@@ -334,7 +334,7 @@ namespace SunEyeVision.UI.Services.Performance
         /// </summary>
         public void PrintStatistics()
         {
-            // 统计信息打印（已禁用）
+            // 统计信息打印（已禁用�?
         }
     }
 }

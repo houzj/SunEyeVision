@@ -50,9 +50,9 @@ namespace SunEyeVision.UI.Views.Controls.Common
             var arrow = ToggleDirection switch
             {
                 ToggleDirectionType.Left => "◀",
-                ToggleDirectionType.Right => "▶",
-                ToggleDirectionType.Up => "▲",
-                ToggleDirectionType.Down => "▼",
+                ToggleDirectionType.Right => "�?,
+                ToggleDirectionType.Up => "�?,
+                ToggleDirectionType.Down => "�?,
                 _ => ""
             };
 
@@ -63,7 +63,7 @@ namespace SunEyeVision.UI.Views.Controls.Common
     {
         base.OnApplyTemplate();
 
-        // 先移除旧按钮的事件
+        // 先移除旧按钮的事�?
         if (_toggleButton != null)
         {
             _toggleButton.Click -= OnToggleButtonClick;
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Views.Controls.Common
         {
             _toggleButton.Click += OnToggleButtonClick;
 
-            // 创建并设置箭头文本
+            // 创建并设置箭头文�?
             _arrowTextBlock = new TextBlock
             {
                 FontSize = 12,

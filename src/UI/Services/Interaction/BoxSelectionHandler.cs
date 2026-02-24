@@ -16,7 +16,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 框选处理器 - 负责处理矩形框选功能
+    /// 框选处理器 - 负责处理矩形框选功�?
     /// </summary>
     public class BoxSelectionHandler
     {
@@ -41,26 +41,26 @@ namespace SunEyeVision.UI.Services.Interaction
 
         #endregion
 
-        #region 属性
+        #region 属�?
 
         /// <summary>
-        /// 是否正在框选
+        /// 是否正在框�?
         /// </summary>
         public bool IsBoxSelecting => _isBoxSelecting;
 
         /// <summary>
-        /// 框选区域
+        /// 框选区�?
         /// </summary>
         public Rect SelectionRect { get; private set; }
 
         /// <summary>
-        /// 选中的节点数量
+        /// 选中的节点数�?
         /// </summary>
         public int SelectedCount { get; private set; }
 
         #endregion
 
-        #region 构造函数
+        #region 构造函�?
 
         public BoxSelectionHandler(
             System.Windows.Controls.Canvas canvas,
@@ -77,10 +77,10 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 公共方法
 
         /// <summary>
-        /// 开始框选
+        /// 开始框�?
         /// </summary>
         /// <param name="startPosition">起始位置</param>
-        /// <param name="isMultiSelectMode">是否多选模式</param>
+        /// <param name="isMultiSelectMode">是否多选模�?/param>
         public void StartSelection(Point startPosition, bool isMultiSelectMode = false)
         {
             _isBoxSelecting = true;
@@ -102,7 +102,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 更新框选区域
+        /// 更新框选区�?
         /// </summary>
         /// <param name="currentPosition">当前位置</param>
         public void UpdateSelection(Point currentPosition)
@@ -123,7 +123,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 结束框选
+        /// 结束框�?
         /// </summary>
         public void EndSelection()
         {
@@ -142,7 +142,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 取消框选
+        /// 取消框�?
         /// </summary>
         public void CancelSelection()
         {
@@ -175,7 +175,7 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 私有方法
 
         /// <summary>
-        /// 记录所有选中节点的初始位置
+        /// 记录所有选中节点的初始位�?
         /// </summary>
         private void RecordSelectedNodesPositions()
         {
@@ -212,7 +212,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 更新节点选择状态
+        /// 更新节点选择状�?
         /// </summary>
         private void UpdateNodeSelections(Rect selectionRect)
         {
@@ -240,7 +240,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发框选开始事件
+        /// 触发框选开始事�?
         /// </summary>
         private void OnSelectionStarted(BoxSelectionEventArgs e)
         {
@@ -248,7 +248,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发框选更新事件
+        /// 触发框选更新事�?
         /// </summary>
         private void OnSelectionUpdating(BoxSelectionEventArgs e)
         {
@@ -256,7 +256,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发框选结束事件
+        /// 触发框选结束事�?
         /// </summary>
         private void OnSelectionEnded(BoxSelectionEventArgs e)
         {
@@ -266,10 +266,10 @@ namespace SunEyeVision.UI.Services.Interaction
         #endregion
     }
 
-    #region 框选事件参数
+    #region 框选事件参�?
 
     /// <summary>
-    /// 框选事件参数
+    /// 框选事件参�?
     /// </summary>
     public class BoxSelectionEventArgs : EventArgs
     {
@@ -279,7 +279,7 @@ namespace SunEyeVision.UI.Services.Interaction
         public Point StartPosition { get; }
 
         /// <summary>
-        /// 框选区域
+        /// 框选区�?
         /// </summary>
         public Rect SelectionRect { get; }
 

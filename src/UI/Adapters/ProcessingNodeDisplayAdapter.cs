@@ -5,7 +5,7 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 处理节点显示适配器
+    /// 处理节点显示适配�?
     /// </summary>
     public class ProcessingNodeDisplayAdapter : INodeDisplayAdapter
     {
@@ -21,12 +21,12 @@ namespace SunEyeVision.UI.Adapters
 
         public Color GetBackgroundColor(WorkflowNode node)
         {
-            return Color.FromRgb(240, 255, 240); // 淡绿色背景
+            return Color.FromRgb(240, 255, 240); // 淡绿色背�?
         }
 
         public Color GetBorderColor(WorkflowNode node)
         {
-            return Color.FromRgb(34, 139, 34); // 森林绿
+            return Color.FromRgb(34, 139, 34); // 森林�?
         }
     }
 }

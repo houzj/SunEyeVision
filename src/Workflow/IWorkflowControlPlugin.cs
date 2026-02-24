@@ -1,57 +1,57 @@
-ï»¿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å·¥ä½œæµæ§åˆ¶æ’ä»¶æ¥å£
+    /// ¹¤×÷Á÷¿ØÖÆ²å¼ş½Ó¿Ú
     /// </summary>
     public interface IWorkflowControlPlugin
     {
         /// <summary>
-        /// è·å–æ’ä»¶å…ƒæ•°æ®
+        /// »ñÈ¡²å¼şÔªÊı¾İ
         /// </summary>
         ToolMetadata GetMetadata();
 
         /// <summary>
-        /// è·å–å·¥ä½œæµæ§åˆ¶èŠ‚ç‚¹åˆ—è¡¨
+        /// »ñÈ¡¹¤×÷Á÷¿ØÖÆ½ÚµãÁĞ±í
         /// </summary>
-        /// <returns>å·¥ä½œæµæ§åˆ¶èŠ‚ç‚¹åˆ—è¡¨</returns>
+        /// <returns>¹¤×÷Á÷¿ØÖÆ½ÚµãÁĞ±í</returns>
         List<WorkflowControlNode> GetWorkflowControlNodes();
 
         /// <summary>
-        /// åˆ›å»ºå­ç¨‹åºèŠ‚ç‚¹
+        /// ´´½¨×Ó³ÌĞò½Úµã
         /// </summary>
-        /// <param name="name">èŠ‚ç‚¹åç§°</param>
-        /// <param name="workflowId">å­ç¨‹åºå·¥ä½œæµID</param>
-        /// <returns>å­ç¨‹åºèŠ‚ç‚¹å®ä¾‹</returns>
+        /// <param name="name">½ÚµãÃû³Æ</param>
+        /// <param name="workflowId">×Ó³ÌĞò¹¤×÷Á÷ID</param>
+        /// <returns>×Ó³ÌĞò½ÚµãÊµÀı</returns>
         SubroutineNode CreateSubroutineNode(string name, string workflowId);
 
         /// <summary>
-        /// åˆ›å»ºæ¡ä»¶åˆ¤æ–­èŠ‚ç‚¹
+        /// ´´½¨Ìõ¼şÅĞ¶Ï½Úµã
         /// </summary>
-        /// <param name="name">èŠ‚ç‚¹åç§°</param>
-        /// <param name="conditionExpression">æ¡ä»¶è¡¨è¾¾å¼</param>
-        /// <returns>æ¡ä»¶åˆ¤æ–­èŠ‚ç‚¹å®ä¾‹</returns>
+        /// <param name="name">½ÚµãÃû³Æ</param>
+        /// <param name="conditionExpression">Ìõ¼ş±í´ïÊ½</param>
+        /// <returns>Ìõ¼şÅĞ¶Ï½ÚµãÊµÀı</returns>
         ConditionNode CreateConditionNode(string name, string conditionExpression);
 
         /// <summary>
-        /// æ‰§è¡Œå­ç¨‹åº
+        /// Ö´ĞĞ×Ó³ÌĞò
         /// </summary>
-        /// <param name="node">å­ç¨‹åºèŠ‚ç‚¹</param>
-        /// <param name="context">å·¥ä½œæµæ‰§è¡Œä¸Šä¸‹æ–‡</param>
-        /// <returns>æ‰§è¡Œç»“æœ</returns>
+        /// <param name="node">×Ó³ÌĞò½Úµã</param>
+        /// <param name="context">¹¤×÷Á÷Ö´ĞĞÉÏÏÂÎÄ</param>
+        /// <returns>Ö´ĞĞ½á¹û</returns>
         Task<ExecutionResult> ExecuteSubroutine(
             SubroutineNode node,
             WorkflowContext context);
 
         /// <summary>
-        /// è¯„ä¼°æ¡ä»¶è¡¨è¾¾å¼
+        /// ÆÀ¹ÀÌõ¼ş±í´ïÊ½
         /// </summary>
-        /// <param name="node">æ¡ä»¶åˆ¤æ–­èŠ‚ç‚¹</param>
-        /// <param name="context">å·¥ä½œæµæ‰§è¡Œä¸Šä¸‹æ–‡</param>
-        /// <returns>æ¡ä»¶æ˜¯å¦æˆç«‹</returns>
+        /// <param name="node">Ìõ¼şÅĞ¶Ï½Úµã</param>
+        /// <param name="context">¹¤×÷Á÷Ö´ĞĞÉÏÏÂÎÄ</param>
+        /// <returns>Ìõ¼şÊÇ·ñ³ÉÁ¢</returns>
         bool EvaluateCondition(
             ConditionNode node,
             WorkflowContext context);

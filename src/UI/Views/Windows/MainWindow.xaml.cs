@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -22,39 +22,39 @@ using SunEyeVision.UI.Converters.Path;
 namespace SunEyeVision.UI.Views.Windows
 {
     /// <summary>
-    /// MainWindow - å¤ªé˜³çœ¼è§†è§‰é£æ ¼çš„ä¸»ç•Œé¢çª—å£
-    /// å®ç°å®Œæ•´çš„æœºå™¨è§†è§‰å¹³å°ä¸»ç•Œé¢ï¼ŒåŒ…å«å·¥ä½œæµç”»å¸ƒã€å·¥å…·ç®±ã€å±æ€§é¢æ¿ç­‰
+    /// MainWindow - Ì«ÑôÑÛÊÓ¾õ·ç¸ñµÄÖ÷½çÃæ´°¿Ú
+    /// ÊµÏÖÍêÕûµÄ»úÆ÷ÊÓ¾õÆ½Ì¨Ö÷½çÃæ£¬°üº¬¹¤×÷Á÷»­²¼¡¢¹¤¾ßÏä¡¢ÊôĞÔÃæ°åµÈ
     /// </summary>
     public partial class MainWindow : Window
     {
         private readonly MainWindowViewModel _viewModel;
-        private bool _isTabItemClick = false;  // æ ‡è®°æ˜¯å¦æ˜¯é€šè¿‡ç‚¹å‡»TabItemè§¦å‘çš„åˆ‡æ¢
-        private WorkflowCanvasControl? _currentWorkflowCanvas = null;  // å½“å‰æ˜¾ç¤ºçš„WorkflowCanvasControl
-        private NativeDiagramControl? _currentNativeDiagram = null;  // å½“å‰æ˜¾ç¤ºçš„NativeDiagramControl
+        private bool _isTabItemClick = false;  // ±ê¼ÇÊÇ·ñÊÇÍ¨¹ıµã»÷TabItem´¥·¢µÄÇĞ»»
+        private WorkflowCanvasControl? _currentWorkflowCanvas = null;  // µ±Ç°ÏÔÊ¾µÄWorkflowCanvasControl
+        private NativeDiagramControl? _currentNativeDiagram = null;  // µ±Ç°ÏÔÊ¾µÄNativeDiagramControl
 
-        // ç”»å¸ƒå¼•æ“ç®¡ç†å™¨å®¹å™¨
+        // »­²¼ÒıÇæ¹ÜÀíÆ÷ÈİÆ÷
         public System.Windows.Controls.Decorator CanvasContainer { get; private set; } = new System.Windows.Controls.Decorator();
 
-        // ç¼©æ”¾ç›¸å…³
+        // Ëõ·ÅÏà¹Ø
         private const double MinScale = 0.25;  // 25%
         private const double MaxScale = 3.0;   // 300%
 
-        // ç”»å¸ƒè™šæ‹Ÿå¤§å°
+        // »­²¼ĞéÄâ´óĞ¡
         private const double CanvasVirtualWidth = 5000;
         private const double CanvasVirtualHeight = 5000;
 
 
         /// <summary>
-        /// å°†æ—¥å¿—æ·»åŠ åˆ°UIç•Œé¢
+        /// ½«ÈÕÖ¾Ìí¼Óµ½UI½çÃæ
         /// </summary>
         private void AddLogToUI(string message)
         {
             if (_viewModel != null)
             {
-                // å°†æ—¥å¿—æ·»åŠ åˆ° LogTextï¼ˆå¦‚æœå­˜åœ¨ï¼‰
+                // ½«ÈÕÖ¾Ìí¼Óµ½ LogText£¨Èç¹û´æÔÚ£©
                 var currentLog = _viewModel.LogText ?? "";
                 var newLog = $"{DateTime.Now:HH:mm:ss.fff} {message}\n";
-                // åªä¿ç•™æœ€å100è¡Œ
+                // Ö»±£Áô×îºó100ĞĞ
                 var lines = (currentLog + newLog).Split('\n');
                 if (lines.Length > 100)
                 {
@@ -73,72 +73,72 @@ namespace SunEyeVision.UI.Views.Windows
             _viewModel = new MainWindowViewModel();
             DataContext = _viewModel;
 
-            // åˆå§‹åŒ–ç”»å¸ƒå¼•æ“ç®¡ç†å™¨ - è®¾ç½®é»˜è®¤å¼•æ“
+            // ³õÊ¼»¯»­²¼ÒıÇæ¹ÜÀíÆ÷ - ÉèÖÃÄ¬ÈÏÒıÇæ
             CanvasEngineManager.SetDataContext(_viewModel.WorkflowTabViewModel?.SelectedTab);
 
             RegisterHotkeys();
 
-            // åå°åˆ‡æ¢åˆ°NativeDiagramControlï¼ˆä½¿ç”¨åŸç”ŸAIStudio.Wpf.DiagramDesigneråº“ï¼‰
+            // ºóÌ¨ÇĞ»»µ½NativeDiagramControl£¨Ê¹ÓÃÔ­ÉúAIStudio.Wpf.DiagramDesigner¿â£©
             SwitchToDefaultConfiguration();
         }
 
         /// <summary>
-        /// åˆ‡æ¢åˆ°é»˜è®¤é…ç½®ï¼šWorkflowCanvasControlç”»å¸ƒ + BezierPathCalculatorè·¯å¾„è®¡ç®—å™¨
+        /// ÇĞ»»µ½Ä¬ÈÏÅäÖÃ£ºWorkflowCanvasControl»­²¼ + BezierPathCalculatorÂ·¾¶¼ÆËãÆ÷
         /// </summary>
         private void SwitchToDefaultConfiguration()
         {
             try
             {
-                // åˆ‡æ¢ç”»å¸ƒåˆ°WorkflowCanvasControlï¼ˆè‡ªå®šä¹‰ç”»å¸ƒï¼‰
+                // ÇĞ»»»­²¼µ½WorkflowCanvasControl£¨×Ô¶¨Òå»­²¼£©
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
                     _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
                 }
 
-                // è®¾ç½®è·¯å¾„è®¡ç®—å™¨ä¸º Bezierï¼ˆè´å¡å°”æ›²çº¿ï¼‰
+                // ÉèÖÃÂ·¾¶¼ÆËãÆ÷Îª Bezier£¨±´Èû¶ûÇúÏß£©
                 CanvasEngineManager.SetPathCalculator("Bezier");
             }
             catch (Exception ex)
             {
-                // å¿½ç•¥å¼‚å¸¸
+                // ºöÂÔÒì³£
             }
         }
 
         /// <summary>
-        /// åˆ‡æ¢åˆ°WorkflowCanvasControlç”»å¸ƒï¼ˆä½¿ç”¨è´å¡å°”æ›²çº¿ï¼‰
+        /// ÇĞ»»µ½WorkflowCanvasControl»­²¼£¨Ê¹ÓÃ±´Èû¶ûÇúÏß£©
         /// </summary>
         private void SwitchToWorkflowCanvasConfiguration()
         {
             try
             {
-                // åˆ‡æ¢ç”»å¸ƒåˆ°WorkflowCanvasControlï¼ˆè‡ªå®šä¹‰ç”»å¸ƒï¼‰
+                // ÇĞ»»»­²¼µ½WorkflowCanvasControl£¨×Ô¶¨Òå»­²¼£©
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType = CanvasType.WorkflowCanvas;
                     _viewModel.WorkflowTabViewModel.SelectedTab.RefreshProperty("CanvasType");
 
-                    // ä½¿ç”¨ CanvasEngineManager è®¾ç½®è·¯å¾„è®¡ç®—å™¨ä¸ºè´å¡å°”æ›²çº¿
+                    // Ê¹ÓÃ CanvasEngineManager ÉèÖÃÂ·¾¶¼ÆËãÆ÷Îª±´Èû¶ûÇúÏß
                     CanvasEngineManager.SetPathCalculator("Bezier");
                 }
             }
             catch (Exception ex)
             {
-                // å¿½ç•¥å¼‚å¸¸
+                // ºöÂÔÒì³£
             }
         }
 
         /// <summary>
-        /// NativeDiagramControl Loadedäº‹ä»¶å¤„ç†
+        /// NativeDiagramControl LoadedÊÂ¼ş´¦Àí
         /// </summary>
         private void NativeDiagramControl_Loaded(object sender, RoutedEventArgs e)
         {
-            // ç¼“å­˜ NativeDiagramControl å¼•ç”¨
+            // »º´æ NativeDiagramControl ÒıÓÃ
             if (sender is NativeDiagramControl nativeDiagram)
             {
                 _currentNativeDiagram = nativeDiagram;
 
-                // å»¶è¿Ÿæ›´æ–°ç¼©æ”¾æ˜¾ç¤ºï¼Œç¡®ä¿DiagramViewModelå·²åˆå§‹åŒ–
+                // ÑÓ³Ù¸üĞÂËõ·ÅÏÔÊ¾£¬È·±£DiagramViewModelÒÑ³õÊ¼»¯
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
@@ -147,34 +147,34 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ³¨å†Œå¿«æ·é”®
+        /// ×¢²á¿ì½İ¼ü
         /// </summary>
         private void RegisterHotkeys()
         {
-            // æ–‡ä»¶æ“ä½œå¿«æ·é”®
+            // ÎÄ¼ş²Ù×÷¿ì½İ¼ü
             InputBindings.Add(new KeyBinding(_viewModel.NewWorkflowCommand, Key.N, ModifierKeys.Control));
             InputBindings.Add(new KeyBinding(_viewModel.OpenWorkflowCommand, Key.O, ModifierKeys.Control));
             InputBindings.Add(new KeyBinding(_viewModel.SaveWorkflowCommand, Key.S, ModifierKeys.Control));
 
-            // è¿è¡Œæ§åˆ¶å¿«æ·é”®
+            // ÔËĞĞ¿ØÖÆ¿ì½İ¼ü
             InputBindings.Add(new KeyBinding(_viewModel.RunWorkflowCommand, Key.F5, ModifierKeys.None));
             InputBindings.Add(new KeyBinding(_viewModel.StopWorkflowCommand, Key.F5, ModifierKeys.Shift));
 
-            // å¸®åŠ©å¿«æ·é”®
+            // °ïÖú¿ì½İ¼ü
             InputBindings.Add(new KeyBinding(_viewModel.ShowHelpCommand, Key.F1, ModifierKeys.None));
             InputBindings.Add(new KeyBinding(new PauseCommandWrapper(_viewModel.PauseCommand), Key.Pause, ModifierKeys.None));
 
-            // ç¼–è¾‘å¿«æ·é”®
+            // ±à¼­¿ì½İ¼ü
             InputBindings.Add(new KeyBinding(new UndoCommandWrapper(_viewModel.UndoCommand), Key.Z, ModifierKeys.Control));
             InputBindings.Add(new KeyBinding(new RedoCommandWrapper(_viewModel.RedoCommand), Key.Y, ModifierKeys.Control));
             InputBindings.Add(new KeyBinding(_viewModel.DeleteSelectedNodesCommand, Key.Delete, ModifierKeys.None));
         }
 
-        #region çª—å£äº‹ä»¶
+        #region ´°¿ÚÊÂ¼ş
 
         protected override void OnClosed(EventArgs e)
         {
-            // TODO: æ¸…ç†èµ„æº
+            // TODO: ÇåÀí×ÊÔ´
             _viewModel?.StopWorkflowCommand.Execute(null);
             base.OnClosed(e);
         }
@@ -183,39 +183,39 @@ namespace SunEyeVision.UI.Views.Windows
         {
             try
             {
-                // å·¥å…·æ’ä»¶ç°åœ¨é€šè¿‡ToolboxViewModelè‡ªåŠ¨åŠ è½½
+                // ¹¤¾ß²å¼şÏÖÔÚÍ¨¹ıToolboxViewModel×Ô¶¯¼ÓÔØ
                 var toolCount = ToolRegistry.GetToolCount();
-                _viewModel.StatusText = $"å·²åŠ è½½ {toolCount} ä¸ªå·¥å…·æ’ä»¶";
+                _viewModel.StatusText = $"ÒÑ¼ÓÔØ {toolCount} ¸ö¹¤¾ß²å¼ş";
 
-                // åˆå§‹åŒ–æ™ºèƒ½è·¯å¾„è½¬æ¢å™¨çš„èŠ‚ç‚¹é›†åˆï¼ˆä½¿ç”¨å½“å‰é€‰ä¸­çš„ Tab çš„èŠ‚ç‚¹é›†åˆï¼‰
+                // ³õÊ¼»¯ÖÇÄÜÂ·¾¶×ª»»Æ÷µÄ½Úµã¼¯ºÏ£¨Ê¹ÓÃµ±Ç°Ñ¡ÖĞµÄ Tab µÄ½Úµã¼¯ºÏ£©
                 if (_viewModel.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     SmartPathConverter.Nodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                     SmartPathConverter.Connections = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections;
                 }
 
-                // åˆå§‹åŒ–ç¼©æ”¾æ˜¾ç¤º
+                // ³õÊ¼»¯Ëõ·ÅÏÔÊ¾
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
 
-                // æ³¨é‡Šï¼šä»¥ä¸‹ä»£ç å·²åºŸå¼ƒï¼Œå·¥å…·ç®±åˆ†éš”å™¨å·²åˆ é™¤ï¼ˆ2026-02-10ï¼‰
+                // ×¢ÊÍ£ºÒÔÏÂ´úÂëÒÑ·ÏÆú£¬¹¤¾ßÏä·Ö¸ôÆ÷ÒÑÉ¾³ı£¨2026-02-10£©
                 /*
-                // åŒæ­¥å·¥å…·ç®±åˆ†éš”çº¿ç®­å¤´æ–¹å‘
+                // Í¬²½¹¤¾ßÏä·Ö¸ôÏß¼ıÍ··½Ïò
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateToolboxSplitterArrow();
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
                 */
 
-                // TODO: åŠ è½½å·¥ä½œæµ
+                // TODO: ¼ÓÔØ¹¤×÷Á÷
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(
-                    $"åŠ è½½å·¥å…·æ’ä»¶æ—¶å‡ºé”™: {ex.Message}",
-                    "åŠ è½½å¤±è´¥",
+                    $"¼ÓÔØ¹¤¾ß²å¼şÊ±³ö´í: {ex.Message}",
+                    "¼ÓÔØÊ§°Ü",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
             }
@@ -223,53 +223,53 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region åˆå§‹åŒ–
+        #region ³õÊ¼»¯
 
         /// <summary>
-        /// ä¸»å†…å®¹åŒºåŸŸåŠ è½½å®Œæˆ
+        /// Ö÷ÄÚÈİÇøÓò¼ÓÔØÍê³É
         /// </summary>
         private void MainContentGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            // åˆå§‹åŒ–ç¼©æ”¾æ˜¾ç¤º
+            // ³õÊ¼»¯Ëõ·ÅÏÔÊ¾
             UpdateZoomDisplay();
         }
 
         #endregion
 
-        #region TabControl å¤šæµç¨‹ç®¡ç†äº‹ä»¶å¤„ç†
+        #region TabControl ¶àÁ÷³Ì¹ÜÀíÊÂ¼ş´¦Àí
 
         /// <summary>
-        /// WorkflowCanvasControlåŠ è½½äº‹ä»¶ - ä¿å­˜å¼•ç”¨
+        /// WorkflowCanvasControl¼ÓÔØÊÂ¼ş - ±£´æÒıÓÃ
         /// </summary>
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            // æ¸…é™¤ NativeDiagram ç¼“å­˜ï¼ˆå½“å‰åŠ è½½çš„æ˜¯ WorkflowCanvasï¼‰
+            // Çå³ı NativeDiagram »º´æ£¨µ±Ç°¼ÓÔØµÄÊÇ WorkflowCanvas£©
             _currentNativeDiagram = null;
 
             if (sender is WorkflowCanvasControl workflowCanvas)
             {
                 _currentWorkflowCanvas = workflowCanvas;
 
-                // æ£€æŸ¥DataContext
+                // ¼ì²éDataContext
                 var dataContext = workflowCanvas.DataContext;
 
-                // å¦‚æœDataContextä¸ºnullï¼Œæ‰‹åŠ¨è®¾ç½®ä¸ºå½“å‰é€‰ä¸­çš„Tab
+                // Èç¹ûDataContextÎªnull£¬ÊÖ¶¯ÉèÖÃÎªµ±Ç°Ñ¡ÖĞµÄTab
                 if (dataContext == null && _viewModel?.WorkflowTabViewModel?.SelectedTab != null)
                 {
                     workflowCanvas.DataContext = _viewModel.WorkflowTabViewModel.SelectedTab;
                     dataContext = workflowCanvas.DataContext;
                 }
 
-                // è®¢é˜…DataContextChangedäº‹ä»¶ï¼Œä»¥ä¾¿åœ¨CanvasTypeå˜åŒ–æ—¶æ›´æ–°Visibility
+                // ¶©ÔÄDataContextChangedÊÂ¼ş£¬ÒÔ±ãÔÚCanvasType±ä»¯Ê±¸üĞÂVisibility
                 workflowCanvas.DataContextChanged += (s, args) =>
                 {
                     UpdateCanvasVisibility();
                 };
 
-                // ç«‹å³æ ¹æ®CanvasTypeæ›´æ–°Visibility
+                // Á¢¼´¸ù¾İCanvasType¸üĞÂVisibility
                 UpdateCanvasVisibility();
 
-                // å»¶è¿Ÿæ›´æ–°ç¼©æ”¾æ˜¾ç¤º
+                // ÑÓ³Ù¸üĞÂËõ·ÅÏÔÊ¾
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     UpdateZoomDisplay();
@@ -278,7 +278,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ ¹æ®CanvasTypeæ›´æ–°ç”»å¸ƒçš„Visibility
+        /// ¸ù¾İCanvasType¸üĞÂ»­²¼µÄVisibility
         /// </summary>
         private void UpdateCanvasVisibility()
         {
@@ -292,11 +292,11 @@ namespace SunEyeVision.UI.Views.Windows
                 var currentTab = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var canvasType = currentTab.CanvasType;
 
-                // æŸ¥æ‰¾ä¸¤ä¸ªç”»å¸ƒçš„ScrollViewer
+                // ²éÕÒÁ½¸ö»­²¼µÄScrollViewer
                 var tabItem = WorkflowTabControl.ItemContainerGenerator.ContainerFromIndex(WorkflowTabControl.SelectedIndex) as TabItem;
                 if (tabItem != null)
                 {
-                    // æŸ¥æ‰¾WorkflowCanvasControlçš„çˆ¶çº§ScrollViewer
+                    // ²éÕÒWorkflowCanvasControlµÄ¸¸¼¶ScrollViewer
                     if (_currentWorkflowCanvas != null)
                     {
                         var workflowScrollViewer = FindVisualParent<ScrollViewer>(_currentWorkflowCanvas);
@@ -310,35 +310,35 @@ namespace SunEyeVision.UI.Views.Windows
             }
             catch (Exception)
             {
-                // å¿½ç•¥å¼‚å¸¸
+                // ºöÂÔÒì³£
             }
         }
 
         /// <summary>
-        /// TabControl åŠ è½½å®Œæˆå,ç›‘æµ‹ScrollViewerçš„ScrollableWidthå˜åŒ–
+        /// TabControl ¼ÓÔØÍê³Éºó,¼à²âScrollViewerµÄScrollableWidth±ä»¯
         /// </summary>
         private void WorkflowTabControl_Loaded(object sender, RoutedEventArgs e)
         {
-            // æ‰¾åˆ°ScrollViewer
+            // ÕÒµ½ScrollViewer
             var scrollViewer = FindVisualChild<ScrollViewer>(WorkflowTabControl);
             if (scrollViewer != null)
             {
-                // ç›‘å¬ScrollViewerçš„SizeChangedäº‹ä»¶
+                // ¼àÌıScrollViewerµÄSizeChangedÊÂ¼ş
                 scrollViewer.SizeChanged += ScrollViewer_SizeChanged;
                 
-                // åˆå§‹æ£€æŸ¥ - éœ€è¦ä¼ å…¥TabControlçš„è§†è§‰æ ‘æ ¹å…ƒç´ æ¥æŸ¥æ‰¾ä¸¤ä¸ªæŒ‰é’®
+                // ³õÊ¼¼ì²é - ĞèÒª´«ÈëTabControlµÄÊÓ¾õÊ÷¸ùÔªËØÀ´²éÕÒÁ½¸ö°´Å¥
                 UpdateAddButtonPosition(WorkflowTabControl);
             }
         }
 
         /// <summary>
-        /// ScrollViewerå¤§å°å˜åŒ–äº‹ä»¶ - æ›´æ–°æ·»åŠ æŒ‰é’®ä½ç½®
+        /// ScrollViewer´óĞ¡±ä»¯ÊÂ¼ş - ¸üĞÂÌí¼Ó°´Å¥Î»ÖÃ
         /// </summary>
         private void ScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (sender is ScrollViewer scrollViewer)
             {
-                // ä»ScrollViewerå‘ä¸Šæ‰¾åˆ°TabControlï¼Œç„¶åæŸ¥æ‰¾ä¸¤ä¸ªæŒ‰é’®
+                // ´ÓScrollViewerÏòÉÏÕÒµ½TabControl£¬È»ºó²éÕÒÁ½¸ö°´Å¥
                 var tabControl = FindVisualParent<TabControl>(scrollViewer);
                 if (tabControl != null)
                 {
@@ -348,41 +348,41 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ ¹æ®ScrollableWidthåˆ¤æ–­TabItemsæ˜¯å¦è¶…å‡º,åŠ¨æ€è°ƒæ•´æ·»åŠ æŒ‰é’®ä½ç½®
+        /// ¸ù¾İScrollableWidthÅĞ¶ÏTabItemsÊÇ·ñ³¬³ö,¶¯Ì¬µ÷ÕûÌí¼Ó°´Å¥Î»ÖÃ
         /// </summary>
         private void UpdateAddButtonPosition(TabControl tabControl)
         {
-            // æ‰¾åˆ°ScrollViewer
+            // ÕÒµ½ScrollViewer
             var scrollViewer = FindVisualChild<ScrollViewer>(tabControl);
             if (scrollViewer == null)
                 return;
 
-            // æ‰¾åˆ°ä¸¤ä¸ªæŒ‰é’®çš„Borderå®¹å™¨ - åœ¨TabControlçš„è§†è§‰æ ‘ä¸­æŸ¥æ‰¾
+            // ÕÒµ½Á½¸ö°´Å¥µÄBorderÈİÆ÷ - ÔÚTabControlµÄÊÓ¾õÊ÷ÖĞ²éÕÒ
             var scrollableButton = FindChildByName<Border>(tabControl, "ScrollableAddButtonBorder");
             var fixedButton = FindChildByName<Border>(tabControl, "FixedAddButtonBorder");
             
             if (scrollableButton == null || fixedButton == null)
                 return;
             
-            // ScrollableWidth > 0 è¡¨ç¤ºæœ‰æ»šåŠ¨æ¡,å³TabItemsè¶…å‡ºäº†å¯è§†åŒºåŸŸ
+            // ScrollableWidth > 0 ±íÊ¾ÓĞ¹ö¶¯Ìõ,¼´TabItems³¬³öÁË¿ÉÊÓÇøÓò
             bool isOverflow = scrollViewer.ScrollableWidth > 0;
             
             if (isOverflow)
             {
-                // è¶…å‡ºæ—¶:æ˜¾ç¤ºå³ä¾§å›ºå®šæŒ‰é’®,éšè—æ»šåŠ¨åŒºåŸŸå†…çš„æŒ‰é’®
+                // ³¬³öÊ±:ÏÔÊ¾ÓÒ²à¹Ì¶¨°´Å¥,Òş²Ø¹ö¶¯ÇøÓòÄÚµÄ°´Å¥
                 scrollableButton.Visibility = Visibility.Collapsed;
                 fixedButton.Visibility = Visibility.Visible;
             }
             else
             {
-                // æœªè¶…å‡ºæ—¶:æ˜¾ç¤ºæ»šåŠ¨åŒºåŸŸå†…çš„æŒ‰é’®(è·ŸéšTabItems),éšè—å³ä¾§å›ºå®šæŒ‰é’®
+                // Î´³¬³öÊ±:ÏÔÊ¾¹ö¶¯ÇøÓòÄÚµÄ°´Å¥(¸úËæTabItems),Òş²ØÓÒ²à¹Ì¶¨°´Å¥
                 scrollableButton.Visibility = Visibility.Visible;
                 fixedButton.Visibility = Visibility.Collapsed;
             }
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­é€šè¿‡NameæŸ¥æ‰¾æŒ‡å®šç±»å‹çš„å­å…ƒç´ 
+        /// ÔÚÊÓ¾õÊ÷ÖĞÍ¨¹ıName²éÕÒÖ¸¶¨ÀàĞÍµÄ×ÓÔªËØ
         /// </summary>
         private T? FindChildByName<T>(DependencyObject parent, string name) where T : DependencyObject
         {
@@ -403,74 +403,74 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// TabControl é€‰æ‹©å˜åŒ–äº‹ä»¶ - æ ¹æ®åˆ‡æ¢æ–¹å¼å†³å®šæ˜¯å¦æ»šåŠ¨
+        /// TabControl Ñ¡Ôñ±ä»¯ÊÂ¼ş - ¸ù¾İÇĞ»»·½Ê½¾ö¶¨ÊÇ·ñ¹ö¶¯
         /// </summary>
         private void WorkflowTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            // è·å–é€‰ä¸­çš„Tab
+            // »ñÈ¡Ñ¡ÖĞµÄTab
             var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
             
-            // ä¼˜åŒ–ï¼šæ›´æ–°WorkflowCanvasControlçš„DataContextï¼ˆObservableCollectionä¼šè‡ªåŠ¨é€šçŸ¥UIæ›´æ–°ï¼‰
+            // ÓÅ»¯£º¸üĞÂWorkflowCanvasControlµÄDataContext£¨ObservableCollection»á×Ô¶¯Í¨ÖªUI¸üĞÂ£©
             if (selectedTab != null && _currentWorkflowCanvas != null)
             {
                 _currentWorkflowCanvas.DataContext = selectedTab;
             }
 
-            // ä¼˜åŒ–ï¼šåˆå¹¶Dispatcherè°ƒç”¨ï¼Œå‡å°‘UIé‡ç»˜æ¬¡æ•°
+            // ÓÅ»¯£ººÏ²¢Dispatcherµ÷ÓÃ£¬¼õÉÙUIÖØ»æ´ÎÊı
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                // åªæœ‰é€šè¿‡ä¸‹æ‹‰å™¨åˆ‡æ¢æ—¶æ‰æ»šåŠ¨åˆ°ä¸­é—´ï¼Œç‚¹å‡»TabItemæ—¶ä¸æ»šåŠ¨
+                // Ö»ÓĞÍ¨¹ıÏÂÀ­Æ÷ÇĞ»»Ê±²Å¹ö¶¯µ½ÖĞ¼ä£¬µã»÷TabItemÊ±²»¹ö¶¯
                 if (!_isTabItemClick)
                 {
                     ScrollToSelectedTabItem();
                 }
-                // æ›´æ–°æ·»åŠ æŒ‰é’®ä½ç½®
+                // ¸üĞÂÌí¼Ó°´Å¥Î»ÖÃ
                 UpdateAddButtonPosition(WorkflowTabControl);
-                // é‡ç½®æ ‡å¿—
+                // ÖØÖÃ±êÖ¾
                 _isTabItemClick = false;
                 
-                // åº”ç”¨ç¼©æ”¾
+                // Ó¦ÓÃËõ·Å
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 if (workflow != null)
                 {
                     ApplyZoom(workflow.CurrentScale, workflow.CurrentScale);
                 }
-                // æ›´æ–°ç¼©æ”¾æ˜¾ç¤º
+                // ¸üĞÂËõ·ÅÏÔÊ¾
                 UpdateZoomDisplay();
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         /// <summary>
-        /// TabControl é¢„è§ˆé¼ æ ‡å·¦é”®æŒ‰ä¸‹äº‹ä»¶ - æ£€æµ‹æ˜¯å¦ç‚¹å‡»äº†TabItem
+        /// TabControl Ô¤ÀÀÊó±ê×ó¼ü°´ÏÂÊÂ¼ş - ¼ì²âÊÇ·ñµã»÷ÁËTabItem
         /// </summary>
         private void WorkflowTabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // æ£€æŸ¥ç‚¹å‡»çš„æ˜¯å¦æ˜¯TabItem
+            // ¼ì²éµã»÷µÄÊÇ·ñÊÇTabItem
             var source = e.OriginalSource as DependencyObject;
             if (source != null)
             {
                 var tabItem = FindVisualParent<TabItem>(source);
                 if (tabItem != null)
                 {
-                    // æ ‡è®°ä¸ºTabItemç‚¹å‡»
+                    // ±ê¼ÇÎªTabItemµã»÷
                     _isTabItemClick = true;
                 }
             }
         }
 
         /// <summary>
-        /// æ·»åŠ å·¥ä½œæµç‚¹å‡»äº‹ä»¶
+        /// Ìí¼Ó¹¤×÷Á÷µã»÷ÊÂ¼ş
         /// </summary>
         private void AddWorkflow_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.WorkflowTabViewModel.AddWorkflow();
-            _viewModel.StatusText = "å·²æ·»åŠ æ–°å·¥ä½œæµ";
+            _viewModel.StatusText = "ÒÑÌí¼ÓĞÂ¹¤×÷Á÷";
 
-            // è‡ªåŠ¨æ»šåŠ¨åˆ°æ–°æ·»åŠ çš„TabItemï¼Œä½¿å…¶å±…ä¸­æ˜¾ç¤º
+            // ×Ô¶¯¹ö¶¯µ½ĞÂÌí¼ÓµÄTabItem£¬Ê¹Æä¾ÓÖĞÏÔÊ¾
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ScrollToSelectedTabItem();
-                // ç­‰å¾… Canvas åŠ è½½å®Œæˆååº”ç”¨åˆå§‹ç¼©æ”¾
+                // µÈ´ı Canvas ¼ÓÔØÍê³ÉºóÓ¦ÓÃ³õÊ¼Ëõ·Å
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
@@ -484,43 +484,43 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ»šåŠ¨åˆ°é€‰ä¸­çš„TabItemï¼Œä½¿å…¶æ˜¾ç¤ºåœ¨å¯è§èŒƒå›´çš„ä¸­é—´
+        /// ¹ö¶¯µ½Ñ¡ÖĞµÄTabItem£¬Ê¹ÆäÏÔÊ¾ÔÚ¿É¼û·¶Î§µÄÖĞ¼ä
         /// </summary>
         private void ScrollToSelectedTabItem()
         {
             var selectedTabItem = FindTabItem(_viewModel.WorkflowTabViewModel.SelectedTab);
             if (selectedTabItem != null)
             {
-                // æ‰¾åˆ°ScrollViewer
+                // ÕÒµ½ScrollViewer
                 var scrollViewer = FindVisualParent<ScrollViewer>(selectedTabItem);
                 if (scrollViewer != null)
                 {
-                    // è·å–TabPanelï¼ˆå†…å®¹å®¹å™¨ï¼‰
+                    // »ñÈ¡TabPanel£¨ÄÚÈİÈİÆ÷£©
                     var tabPanel = FindVisualChild<TabPanel>(scrollViewer);
                     if (tabPanel == null)
                         return;
 
-                    // è®¡ç®—TabItemç›¸å¯¹äºTabPanelçš„ä½ç½®ï¼ˆå†…å®¹åŒºåŸŸçš„ç»å¯¹ä½ç½®ï¼‰
+                    // ¼ÆËãTabItemÏà¶ÔÓÚTabPanelµÄÎ»ÖÃ£¨ÄÚÈİÇøÓòµÄ¾ø¶ÔÎ»ÖÃ£©
                     var transform = selectedTabItem.TransformToVisual(tabPanel);
                     var position = transform.Transform(new Point(0, 0));
 
-                    // è®¡ç®—ä½¿TabItemå±…ä¸­çš„æ»šåŠ¨ä½ç½®
-                    // TabItemä¸­å¿ƒä½ç½® = position.X + selectedTabItem.ActualWidth / 2
-                    // è§†å£ä¸­å¿ƒä½ç½® = scrollViewer.ViewportWidth / 2
-                    // ç›®æ ‡æ»šåŠ¨ä½ç½® = TabItemä¸­å¿ƒä½ç½® - è§†å£ä¸­å¿ƒä½ç½®
+                    // ¼ÆËãÊ¹TabItem¾ÓÖĞµÄ¹ö¶¯Î»ÖÃ
+                    // TabItemÖĞĞÄÎ»ÖÃ = position.X + selectedTabItem.ActualWidth / 2
+                    // ÊÓ¿ÚÖĞĞÄÎ»ÖÃ = scrollViewer.ViewportWidth / 2
+                    // Ä¿±ê¹ö¶¯Î»ÖÃ = TabItemÖĞĞÄÎ»ÖÃ - ÊÓ¿ÚÖĞĞÄÎ»ÖÃ
                     var targetOffset = position.X + (selectedTabItem.ActualWidth / 2) - (scrollViewer.ViewportWidth / 2);
 
-                    // ç¡®ä¿æ»šåŠ¨ä½ç½®åœ¨æœ‰æ•ˆèŒƒå›´å†…
+                    // È·±£¹ö¶¯Î»ÖÃÔÚÓĞĞ§·¶Î§ÄÚ
                     targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.ScrollableWidth));
 
-                    // æ»šåŠ¨åˆ°ç›®æ ‡ä½ç½®ï¼Œä½¿TabItemå±…ä¸­æ˜¾ç¤º
+                    // ¹ö¶¯µ½Ä¿±êÎ»ÖÃ£¬Ê¹TabItem¾ÓÖĞÏÔÊ¾
                     scrollViewer.ScrollToHorizontalOffset(targetOffset);
                 }
             }
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„ç¬¬ä¸€ä¸ªå­å…ƒç´ 
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨ÀàĞÍµÄµÚÒ»¸ö×ÓÔªËØ
         /// </summary>
         private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -541,7 +541,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// è·å–å½“å‰æ˜¾ç¤ºçš„WorkflowCanvasControl
+        /// »ñÈ¡µ±Ç°ÏÔÊ¾µÄWorkflowCanvasControl
         /// </summary>
         public WorkflowCanvasControl? GetCurrentWorkflowCanvas()
         {
@@ -549,19 +549,19 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šæ•°æ®å¯¹åº”çš„TabItem
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨Êı¾İ¶ÔÓ¦µÄTabItem
         /// </summary>
         private TabItem? FindTabItem(WorkflowTabViewModel? workflow)
         {
             if (workflow == null)
                 return null;
 
-            // åœ¨TabControlçš„Itemsä¸­æŸ¥æ‰¾TabItem
+            // ÔÚTabControlµÄItemsÖĞ²éÕÒTabItem
             var tabControl = WorkflowTabControl;
             if (tabControl == null)
                 return null;
 
-            // é€šè¿‡éå†TabControlçš„è§†è§‰æ ‘æ‰¾åˆ°æ‰€æœ‰TabItem
+            // Í¨¹ı±éÀúTabControlµÄÊÓ¾õÊ÷ÕÒµ½ËùÓĞTabItem
             var tabItems = new List<TabItem>();
             FindVisualChildren<TabItem>(tabControl, tabItems);
 
@@ -569,7 +569,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„æ‰€æœ‰å­å…ƒç´ 
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÓÔªËØ
         /// </summary>
         private void FindVisualChildren<T>(DependencyObject parent, List<T> results) where T : DependencyObject
         {
@@ -586,7 +586,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„æ‰€æœ‰å­å…ƒç´ ï¼ˆè¿”å›IEnumerableçš„ä¾¿æ·æ–¹æ³•ï¼‰
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÓÔªËØ£¨·µ»ØIEnumerableµÄ±ã½İ·½·¨£©
         /// </summary>
         private IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -596,7 +596,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„çˆ¶å…ƒç´ 
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨ÀàĞÍµÄ¸¸ÔªËØ
         /// </summary>
         private T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
         {
@@ -612,7 +612,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åœ¨è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„æ‰€æœ‰å­å…ƒç´ 
+        /// ÔÚÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨ÀàĞÍµÄËùÓĞ×ÓÔªËØ
         /// </summary>
         private List<T> FindAllVisualChildren<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -641,38 +641,38 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// TabItem å•æ¬¡è¿è¡Œç‚¹å‡»äº‹ä»¶
+        /// TabItem µ¥´ÎÔËĞĞµã»÷ÊÂ¼ş
         /// </summary>
         private async void TabItem_SingleRun_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
             {
-                // è®¾ç½®é€‰ä¸­çš„å·¥ä½œæµ
+                // ÉèÖÃÑ¡ÖĞµÄ¹¤×÷Á÷
                 _viewModel.WorkflowTabViewModel.SelectedTab = workflow;
                 
-                // è§¦å‘ RunWorkflowCommand çš„ Execute æ–¹æ³•
-                // RunWorkflowCommand æ˜¯å¼‚æ­¥å‘½ä»¤ï¼ŒExecute æ–¹æ³•ä¼šå¯åŠ¨å¼‚æ­¥ä»»åŠ¡
+                // ´¥·¢ RunWorkflowCommand µÄ Execute ·½·¨
+                // RunWorkflowCommand ÊÇÒì²½ÃüÁî£¬Execute ·½·¨»áÆô¶¯Òì²½ÈÎÎñ
                 _viewModel.RunWorkflowCommand.Execute(null);
                 
-                _viewModel.StatusText = $"å•æ¬¡è¿è¡Œ: {workflow.Name}";
+                _viewModel.StatusText = $"µ¥´ÎÔËĞĞ: {workflow.Name}";
             }
         }
 
         /// <summary>
-        /// TabItem è¿ç»­è¿è¡Œ/åœæ­¢ç‚¹å‡»äº‹ä»¶
+        /// TabItem Á¬ĞøÔËĞĞ/Í£Ö¹µã»÷ÊÂ¼ş
         /// </summary>
         private void TabItem_ContinuousRun_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is WorkflowTabViewModel workflow)
             {
                 _viewModel.WorkflowTabViewModel.ToggleContinuous(workflow);
-                var action = workflow.IsRunning ? "å¼€å§‹è¿ç»­è¿è¡Œ" : "åœæ­¢";
+                var action = workflow.IsRunning ? "¿ªÊ¼Á¬ĞøÔËĞĞ" : "Í£Ö¹";
                 _viewModel.StatusText = $"{action}: {workflow.Name}";
             }
         }
 
         /// <summary>
-        /// TabItem åˆ é™¤ç‚¹å‡»äº‹ä»¶
+        /// TabItem É¾³ıµã»÷ÊÂ¼ş
         /// </summary>
         private void TabItem_Delete_Click(object sender, RoutedEventArgs e)
         {
@@ -681,16 +681,16 @@ namespace SunEyeVision.UI.Views.Windows
                 if (workflow.IsRunning)
                 {
                     System.Windows.MessageBox.Show(
-                        "è¯·å…ˆåœæ­¢è¯¥å·¥ä½œæµ",
-                        "æç¤º",
+                        "ÇëÏÈÍ£Ö¹¸Ã¹¤×÷Á÷",
+                        "ÌáÊ¾",
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Warning);
                     return;
                 }
 
                 var result = System.Windows.MessageBox.Show(
-                    $"ç¡®å®šè¦åˆ é™¤å·¥ä½œæµ '{workflow.Name}' å—?",
-                    "ç¡®è®¤åˆ é™¤",
+                    $"È·¶¨ÒªÉ¾³ı¹¤×÷Á÷ '{workflow.Name}' Âğ?",
+                    "È·ÈÏÉ¾³ı",
                     System.Windows.MessageBoxButton.YesNo,
                     System.Windows.MessageBoxImage.Question);
 
@@ -698,13 +698,13 @@ namespace SunEyeVision.UI.Views.Windows
                 {
                     if (_viewModel.WorkflowTabViewModel.DeleteWorkflow(workflow))
                     {
-                        _viewModel.StatusText = $"å·²åˆ é™¤å·¥ä½œæµ: {workflow.Name}";
+                        _viewModel.StatusText = $"ÒÑÉ¾³ı¹¤×÷Á÷: {workflow.Name}";
                     }
                     else
                     {
                         System.Windows.MessageBox.Show(
-                            "è‡³å°‘éœ€è¦ä¿ç•™ä¸€ä¸ªå·¥ä½œæµ",
-                            "æç¤º",
+                            "ÖÁÉÙĞèÒª±£ÁôÒ»¸ö¹¤×÷Á÷",
+                            "ÌáÊ¾",
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
                     }
@@ -713,52 +713,52 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// å·¥ä½œæµæ‰§è¡Œè¯·æ±‚äº‹ä»¶å¤„ç†
+        /// ¹¤×÷Á÷Ö´ĞĞÇëÇóÊÂ¼ş´¦Àí
         /// </summary>
         private void OnWorkflowExecutionRequested(object sender, WorkflowExecutionRequestEventArgs e)
         {
             if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
             {
-                _viewModel?.AddLog("âš  æ²¡æœ‰é€‰ä¸­çš„å·¥ä½œæµï¼Œæ— æ³•æ‰§è¡Œ");
+                _viewModel?.AddLog("? Ã»ÓĞÑ¡ÖĞµÄ¹¤×÷Á÷£¬ÎŞ·¨Ö´ĞĞ");
                 return;
             }
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
-            _viewModel.AddLog($"â–¶ æ‰§è¡Œå·¥ä½œæµ - å›¾åƒ: {e.ImageInfo.Name}");
+            _viewModel.AddLog($"? Ö´ĞĞ¹¤×÷Á÷ - Í¼Ïñ: {e.ImageInfo.Name}");
 
-            // è®¾ç½®å½“å‰å›¾åƒç´¢å¼•
+            // ÉèÖÃµ±Ç°Í¼ÏñË÷Òı
             _viewModel.CurrentImageIndex = e.Index;
 
-            // è§¦å‘å·¥ä½œæµæ‰§è¡Œ
+            // ´¥·¢¹¤×÷Á÷Ö´ĞĞ
             _viewModel.RunWorkflowCommand.Execute(null);
 
-            _viewModel.StatusText = $"è¿è¡Œå·¥ä½œæµ: {workflow.Name} - {e.ImageInfo.Name}";
+            _viewModel.StatusText = $"ÔËĞĞ¹¤×÷Á÷: {workflow.Name} - {e.ImageInfo.Name}";
         }
 
 
         #endregion
 
-        #region WorkflowCanvasControl äº‹ä»¶å¤„ç†
+        #region WorkflowCanvasControl ÊÂ¼ş´¦Àí
 
         /// <summary>
-        /// èŠ‚ç‚¹æ·»åŠ äº‹ä»¶å¤„ç†
+        /// ½ÚµãÌí¼ÓÊÂ¼ş´¦Àí
         /// </summary>
         private void OnWorkflowCanvas_NodeAdded(object sender, WorkflowNode node)
         {
-            _viewModel.StatusText = $"æ·»åŠ èŠ‚ç‚¹: {node.Name}";
+            _viewModel.StatusText = $"Ìí¼Ó½Úµã: {node.Name}";
         }
 
         /// <summary>
-        /// èŠ‚ç‚¹é€‰ä¸­äº‹ä»¶å¤„ç†
+        /// ½ÚµãÑ¡ÖĞÊÂ¼ş´¦Àí
         /// </summary>
         private void OnWorkflowCanvas_NodeSelected(object sender, WorkflowNode node)
         {
-            // é€šè¿‡å±æ€§è®¿é—®ï¼Œè§¦å‘å±æ€§å˜æ›´é€šçŸ¥å’Œåç»­é€»è¾‘
+            // Í¨¹ıÊôĞÔ·ÃÎÊ£¬´¥·¢ÊôĞÔ±ä¸üÍ¨ÖªºÍºóĞøÂß¼­
             _viewModel.SelectedNode = node;
         }
 
         /// <summary>
-        /// èŠ‚ç‚¹åŒå‡»äº‹ä»¶å¤„ç†
+        /// ½ÚµãË«»÷ÊÂ¼ş´¦Àí
         /// </summary>
         private void OnWorkflowCanvas_NodeDoubleClicked(object sender, WorkflowNode node)
         {
@@ -767,7 +767,7 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region æ‹–æ”¾äº‹ä»¶
+        #region ÍÏ·ÅÊÂ¼ş
 
         private void ToolItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -804,7 +804,7 @@ namespace SunEyeVision.UI.Views.Windows
 
         private void WorkflowCanvas_DragLeave(object sender, DragEventArgs e)
         {
-            // å¯é€‰:æ·»åŠ ç¦»å¼€ç”»å¸ƒæ—¶çš„è§†è§‰æ•ˆæœ
+            // ¿ÉÑ¡:Ìí¼ÓÀë¿ª»­²¼Ê±µÄÊÓ¾õĞ§¹û
         }
 
         private void WorkflowCanvas_Drop(object sender, DragEventArgs e)
@@ -815,35 +815,35 @@ namespace SunEyeVision.UI.Views.Windows
                 {
                     var position = e.GetPosition(sender as Canvas);
 
-                    // åˆ›å»ºæ–°èŠ‚ç‚¹ï¼Œä½¿ç”¨ToolIdä½œä¸ºAlgorithmType
+                    // ´´½¨ĞÂ½Úµã£¬Ê¹ÓÃToolId×÷ÎªAlgorithmType
                     var node = new WorkflowNode(
                         Guid.NewGuid().ToString(),
                         tool.Name,
-                        tool.ToolId  // ä½¿ç”¨ToolIdè€Œä¸æ˜¯AlgorithmType
+                        tool.ToolId  // Ê¹ÓÃToolId¶ø²»ÊÇAlgorithmType
                     );
 
-                    // è®¾ç½®æ‹–æ”¾ä½ç½®(å±…ä¸­æ”¾ç½®,èŠ‚ç‚¹å¤§å°140x90)
+                    // ÉèÖÃÍÏ·ÅÎ»ÖÃ(¾ÓÖĞ·ÅÖÃ,½Úµã´óĞ¡140x90)
                     var x = Math.Max(0, position.X - 70);
                     var y = Math.Max(0, position.Y - 45);
                     node.Position = new System.Windows.Point(x, y);
 
-                    // ä½¿ç”¨å‘½ä»¤æ¨¡å¼æ·»åŠ èŠ‚ç‚¹
+                    // Ê¹ÓÃÃüÁîÄ£Ê½Ìí¼Ó½Úµã
                     _viewModel.AddNodeToWorkflow(node);
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"æ·»åŠ èŠ‚ç‚¹æ—¶å‡ºé”™: {ex.Message}", "é”™è¯¯",
+                System.Windows.MessageBox.Show($"Ìí¼Ó½ÚµãÊ±³ö´í: {ex.Message}", "´íÎó",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         #endregion
 
-        #region ç¼©æ”¾åŠŸèƒ½
+        #region Ëõ·Å¹¦ÄÜ
 
         /// <summary>
-        /// è·å–å½“å‰æ´»åŠ¨çš„NativeDiagramControl
+        /// »ñÈ¡µ±Ç°»î¶¯µÄNativeDiagramControl
         /// </summary>
         private NativeDiagramControl? GetCurrentNativeDiagramControl()
         {
@@ -855,13 +855,13 @@ namespace SunEyeVision.UI.Views.Windows
 
             var canvasType = _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType;
 
-            // åªæœ‰å½“å‰ç”»å¸ƒç±»å‹æ˜¯NativeDiagramæ—¶æ‰è¿”å›
+            // Ö»ÓĞµ±Ç°»­²¼ÀàĞÍÊÇNativeDiagramÊ±²Å·µ»Ø
             if (canvasType != CanvasType.NativeDiagram)
             {
                 return null;
             }
 
-            // ç›´æ¥è¿”å›ç¼“å­˜çš„å¼•ç”¨ï¼ˆé€šè¿‡ NativeDiagramControl_Loaded äº‹ä»¶ç¼“å­˜ï¼‰
+            // Ö±½Ó·µ»Ø»º´æµÄÒıÓÃ£¨Í¨¹ı NativeDiagramControl_Loaded ÊÂ¼ş»º´æ£©
             if (_currentNativeDiagram != null)
             {
                 return _currentNativeDiagram;
@@ -871,7 +871,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// è·å–NativeDiagramControlçš„DiagramViewModel
+        /// »ñÈ¡NativeDiagramControlµÄDiagramViewModel
         /// </summary>
         private DiagramViewModel? GetNativeDiagramViewModel()
         {
@@ -882,7 +882,7 @@ namespace SunEyeVision.UI.Views.Windows
                 return null;
             }
 
-            // ä½¿ç”¨å…¬å¼€çš„ GetDiagramViewModel æ–¹æ³•
+            // Ê¹ÓÃ¹«¿ªµÄ GetDiagramViewModel ·½·¨
             var diagramViewModel = nativeDiagram.GetDiagramViewModel();
 
             if (diagramViewModel != null)
@@ -897,7 +897,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// NativeDiagramControlçš„æ”¾å¤§
+        /// NativeDiagramControlµÄ·Å´ó
         /// </summary>
         private void NativeDiagramZoomIn()
         {
@@ -918,7 +918,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// NativeDiagramControlçš„ç¼©å°
+        /// NativeDiagramControlµÄËõĞ¡
         /// </summary>
         private void NativeDiagramZoomOut()
         {
@@ -939,7 +939,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// NativeDiagramControlçš„é‡ç½®
+        /// NativeDiagramControlµÄÖØÖÃ
         /// </summary>
         private void NativeDiagramZoomReset()
         {
@@ -959,7 +959,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// NativeDiagramControlçš„é€‚åº”çª—å£
+        /// NativeDiagramControlµÄÊÊÓ¦´°¿Ú
         /// </summary>
         private void NativeDiagramZoomFit()
         {
@@ -983,7 +983,7 @@ namespace SunEyeVision.UI.Views.Windows
                 var viewportHeight = scrollViewer.ViewportHeight;
                 
 
-                // ç”»å¸ƒæ˜¯10000x10000
+                // »­²¼ÊÇ10000x10000
                 var scaleX = (viewportWidth * 0.9) / 10000;
                 var scaleY = (viewportHeight * 0.9) / 10000;
                 var newScale = Math.Min(scaleX, scaleY);
@@ -1000,11 +1000,11 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// è¯Šæ–­æ–¹æ³•:æ‰“å°è§†è§‰æ ‘å±‚æ¬¡ç»“æ„
+        /// Õï¶Ï·½·¨:´òÓ¡ÊÓ¾õÊ÷²ã´Î½á¹¹
         /// </summary>
         private void PrintVisualTree(DependencyObject parent, int indent = 0)
         {
-            // æ³¨æ„ï¼šæ­¤æ–¹æ³•æœªä½¿ç”¨ï¼Œå¦‚æœéœ€è¦è¾“å‡ºæ—¥å¿—ï¼Œåº”ä½¿ç”¨ _viewModel?.AddLog
+            // ×¢Òâ£º´Ë·½·¨Î´Ê¹ÓÃ£¬Èç¹ûĞèÒªÊä³öÈÕÖ¾£¬Ó¦Ê¹ÓÃ _viewModel?.AddLog
             string prefix = new string(' ', indent * 2);
 
             int childCount = VisualTreeHelper.GetChildrenCount(parent);
@@ -1016,7 +1016,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ”¾å¤§ç”»å¸ƒ
+        /// ·Å´ó»­²¼
         /// </summary>
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
@@ -1030,7 +1030,7 @@ namespace SunEyeVision.UI.Views.Windows
             else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
 
-                // åŸæœ‰çš„WorkflowCanvasç¼©æ”¾é€»è¾‘
+                // Ô­ÓĞµÄWorkflowCanvasËõ·ÅÂß¼­
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
 
@@ -1064,7 +1064,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// ç¼©å°ç”»å¸ƒ
+        /// ËõĞ¡»­²¼
         /// </summary>
         private void ZoomOut_Click(object sender, RoutedEventArgs e)
         {
@@ -1076,7 +1076,7 @@ namespace SunEyeVision.UI.Views.Windows
             }
             else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                // åŸæœ‰çš„WorkflowCanvasç¼©æ”¾é€»è¾‘
+                // Ô­ÓĞµÄWorkflowCanvasËõ·ÅÂß¼­
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
 
@@ -1103,7 +1103,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// é€‚åº”çª—å£
+        /// ÊÊÓ¦´°¿Ú
         /// </summary>
         private void ZoomFit_Click(object sender, RoutedEventArgs e)
         {
@@ -1115,11 +1115,11 @@ namespace SunEyeVision.UI.Views.Windows
             }
             else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                // åŸæœ‰çš„WorkflowCanvasç¼©æ”¾é€»è¾‘
+                // Ô­ÓĞµÄWorkflowCanvasËõ·ÅÂß¼­
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
 
-                // å»¶è¿Ÿæ‰§è¡Œä»¥ç¡®ä¿ UI å·²æ›´æ–°
+                // ÑÓ³ÙÖ´ĞĞÒÔÈ·±£ UI ÒÑ¸üĞÂ
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     var currentCanvas = GetCurrentCanvas();
@@ -1130,12 +1130,12 @@ namespace SunEyeVision.UI.Views.Windows
                         var viewportWidth = scrollViewer.ViewportWidth;
                         var viewportHeight = scrollViewer.ViewportHeight;
 
-                        // è®¡ç®—é€‚åˆçš„ç¼©æ”¾æ¯”ä¾‹ï¼Œç•™å‡º10%è¾¹è·
+                        // ¼ÆËãÊÊºÏµÄËõ·Å±ÈÀı£¬Áô³ö10%±ß¾à
                         var scaleX = (viewportWidth * 0.9) / CanvasVirtualWidth;
                         var scaleY = (viewportHeight * 0.9) / CanvasVirtualHeight;
                         var newScale = Math.Min(scaleX, scaleY);
 
-                        // é™åˆ¶åœ¨èŒƒå›´å†…
+                        // ÏŞÖÆÔÚ·¶Î§ÄÚ
                         newScale = Math.Max(MinScale, Math.Min(MaxScale, newScale));
 
                         ApplyZoom(oldScale, newScale);
@@ -1145,7 +1145,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// é‡ç½®ç¼©æ”¾ä¸º100%
+        /// ÖØÖÃËõ·ÅÎª100%
         /// </summary>
         private void ZoomReset_Click(object sender, RoutedEventArgs e)
         {
@@ -1157,19 +1157,19 @@ namespace SunEyeVision.UI.Views.Windows
             }
             else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
-                // åŸæœ‰çš„WorkflowCanvasç¼©æ”¾é€»è¾‘
+                // Ô­ÓĞµÄWorkflowCanvasËõ·ÅÂß¼­
                 var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
                 var oldScale = workflow.CurrentScale;
                 var newScale = 1.0;
 
-                // å»¶è¿Ÿæ‰§è¡Œä»¥ç¡®ä¿ UI å·²æ›´æ–°
+                // ÑÓ³ÙÖ´ĞĞÒÔÈ·±£ UI ÒÑ¸üĞÂ
                 Dispatcher.BeginInvoke(new Action(() => ApplyZoom(oldScale, newScale)),
                     System.Windows.Threading.DispatcherPriority.Render);
             }
         }
 
         /// <summary>
-        /// åˆ‡æ¢åˆ°æ­£äº¤æŠ˜çº¿ç”»å¸ƒ (WorkflowCanvas)
+        /// ÇĞ»»µ½Õı½»ÕÛÏß»­²¼ (WorkflowCanvas)
         /// </summary>
         private void SwitchToWorkflowCanvas_Click(object sender, RoutedEventArgs e)
         {
@@ -1177,7 +1177,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åˆ‡æ¢åˆ°è´å¡å°”æ›²çº¿ç”»å¸ƒ (NativeDiagram)
+        /// ÇĞ»»µ½±´Èû¶ûÇúÏß»­²¼ (NativeDiagram)
         /// </summary>
         private void SwitchToNativeDiagram_Click(object sender, RoutedEventArgs e)
         {
@@ -1185,12 +1185,12 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// åº”ç”¨ç¼©æ”¾å˜æ¢ï¼ˆæ”¯æŒå›´ç»•æŒ‡å®šä½ç½®ç¼©æ”¾ï¼‰
+        /// Ó¦ÓÃËõ·Å±ä»»£¨Ö§³ÖÎ§ÈÆÖ¸¶¨Î»ÖÃËõ·Å£©
         /// </summary>
-        /// <param name="oldScale">ç¼©æ”¾å‰çš„ç¼©æ”¾å€¼</param>
-        /// <param name="newScale">ç¼©æ”¾åçš„ç¼©æ”¾å€¼</param>
-        /// <param name="centerPosition">ç¼©æ”¾ä¸­å¿ƒç›¸å¯¹äºScrollViewerçš„åæ ‡ï¼ˆå¯é€‰ï¼‰</param>
-        /// <param name="scrollViewer">å¯ç”¨çš„ScrollViewerå®ä¾‹ï¼ˆå¯é€‰ï¼Œå¦‚æœæä¾›åˆ™ä¸éœ€è¦é‡æ–°æŸ¥æ‰¾ï¼‰</param>
+        /// <param name="oldScale">Ëõ·ÅÇ°µÄËõ·ÅÖµ</param>
+        /// <param name="newScale">Ëõ·ÅºóµÄËõ·ÅÖµ</param>
+        /// <param name="centerPosition">Ëõ·ÅÖĞĞÄÏà¶ÔÓÚScrollViewerµÄ×ø±ê£¨¿ÉÑ¡£©</param>
+        /// <param name="scrollViewer">¿ÉÓÃµÄScrollViewerÊµÀı£¨¿ÉÑ¡£¬Èç¹ûÌá¹©Ôò²»ĞèÒªÖØĞÂ²éÕÒ£©</param>
         private void ApplyZoom(double oldScale, double newScale, Point? centerPosition = null, ScrollViewer? scrollViewer = null)
         {
             if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
@@ -1198,72 +1198,72 @@ namespace SunEyeVision.UI.Views.Windows
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
             
-            // æ›´æ–°CurrentScale
+            // ¸üĞÂCurrentScale
             workflow.CurrentScale = newScale;
 
-            // å¦‚æœæ²¡æœ‰æä¾›ScrollViewerï¼Œå°è¯•æŸ¥æ‰¾
+            // Èç¹ûÃ»ÓĞÌá¹©ScrollViewer£¬³¢ÊÔ²éÕÒ
             if (scrollViewer == null)
             {
                 scrollViewer = GetCurrentScrollViewer();
             }
 
-            // å¦‚æœæä¾›äº†ç¼©æ”¾ä¸­å¿ƒä¸”æœ‰ScrollViewerï¼Œè®¡ç®—å¹¶è°ƒæ•´æ»šåŠ¨åç§»
+            // Èç¹ûÌá¹©ÁËËõ·ÅÖĞĞÄÇÒÓĞScrollViewer£¬¼ÆËã²¢µ÷Õû¹ö¶¯Æ«ÒÆ
             if (centerPosition.HasValue && scrollViewer != null)
             {
-                // è®¡ç®—ç¼©æ”¾å‰åçš„æ¯”ä¾‹å˜åŒ–
+                // ¼ÆËãËõ·ÅÇ°ºóµÄ±ÈÀı±ä»¯
                 var scaleRatio = newScale / oldScale;
 
-                // å¦‚æœç¼©æ”¾å€¼æ²¡æœ‰å˜åŒ–ï¼Œç›´æ¥è¿”å›
+                // Èç¹ûËõ·ÅÖµÃ»ÓĞ±ä»¯£¬Ö±½Ó·µ»Ø
                 if (Math.Abs(scaleRatio - 1.0) < 0.0001)
                 {
                     return;
                 }
 
-                // è·å–å½“å‰æ»šåŠ¨åç§»
+                // »ñÈ¡µ±Ç°¹ö¶¯Æ«ÒÆ
                 var oldHorizontalOffset = scrollViewer.HorizontalOffset;
                 var oldVerticalOffset = scrollViewer.VerticalOffset;
 
-                // è®¡ç®—ç¼©æ”¾ä¸­å¿ƒåœ¨ç”»å¸ƒåæ ‡ç³»ä¸­çš„ä½ç½®ï¼ˆè€ƒè™‘å½“å‰ç¼©æ”¾ï¼‰
+                // ¼ÆËãËõ·ÅÖĞĞÄÔÚ»­²¼×ø±êÏµÖĞµÄÎ»ÖÃ£¨¿¼ÂÇµ±Ç°Ëõ·Å£©
                 var centerInCanvasX = (oldHorizontalOffset + centerPosition.Value.X) / oldScale;
                 var centerInCanvasY = (oldVerticalOffset + centerPosition.Value.Y) / oldScale;
 
-                // åº”ç”¨æ–°çš„ç¼©æ”¾å€¼ï¼ˆä¸ä½¿ç”¨CenterX/CenterYï¼Œå› ä¸ºæˆ‘ä»¬åœ¨è°ƒæ•´æ»šåŠ¨åç§»ï¼‰
+                // Ó¦ÓÃĞÂµÄËõ·ÅÖµ£¨²»Ê¹ÓÃCenterX/CenterY£¬ÒòÎªÎÒÃÇÔÚµ÷Õû¹ö¶¯Æ«ÒÆ£©
                 workflow.ScaleTransform.CenterX = 0;
                 workflow.ScaleTransform.CenterY = 0;
                 workflow.ScaleTransform.ScaleX = newScale;
                 workflow.ScaleTransform.ScaleY = newScale;
 
-                // è®¡ç®—æ–°çš„æ»šåŠ¨åç§»ï¼Œä¿æŒç¼©æ”¾ä¸­å¿ƒæŒ‡å‘çš„å†…å®¹ä½ç½®ä¸å˜
-                // æ–°çš„æ»šåŠ¨åç§» = ç¼©æ”¾ä¸­å¿ƒåœ¨ç”»å¸ƒåæ ‡ * æ–°ç¼©æ”¾æ¯”ä¾‹ - ç¼©æ”¾ä¸­å¿ƒåœ¨ScrollViewerä½ç½®
+                // ¼ÆËãĞÂµÄ¹ö¶¯Æ«ÒÆ£¬±£³ÖËõ·ÅÖĞĞÄÖ¸ÏòµÄÄÚÈİÎ»ÖÃ²»±ä
+                // ĞÂµÄ¹ö¶¯Æ«ÒÆ = Ëõ·ÅÖĞĞÄÔÚ»­²¼×ø±ê * ĞÂËõ·Å±ÈÀı - Ëõ·ÅÖĞĞÄÔÚScrollViewerÎ»ÖÃ
                 var newHorizontalOffset = centerInCanvasX * newScale - centerPosition.Value.X;
                 var newVerticalOffset = centerInCanvasY * newScale - centerPosition.Value.Y;
 
-                // åº”ç”¨æ–°çš„æ»šåŠ¨åç§»
+                // Ó¦ÓÃĞÂµÄ¹ö¶¯Æ«ÒÆ
                 scrollViewer.ScrollToHorizontalOffset(newHorizontalOffset);
                 scrollViewer.ScrollToVerticalOffset(newVerticalOffset);
             }
             else
             {
-                // æ²¡æœ‰ç¼©æ”¾ä¸­å¿ƒæˆ–æ²¡æœ‰ScrollVieweræ—¶ï¼Œç›´æ¥åº”ç”¨ç¼©æ”¾ï¼ˆç”¨äºåˆå§‹åŠ è½½æˆ–é‡ç½®ï¼‰
+                // Ã»ÓĞËõ·ÅÖĞĞÄ»òÃ»ÓĞScrollViewerÊ±£¬Ö±½ÓÓ¦ÓÃËõ·Å£¨ÓÃÓÚ³õÊ¼¼ÓÔØ»òÖØÖÃ£©
                 workflow.ScaleTransform.CenterX = 0;
                 workflow.ScaleTransform.CenterY = 0;
                 workflow.ScaleTransform.ScaleX = newScale;
                 workflow.ScaleTransform.ScaleY = newScale;
             }
 
-            // æ›´æ–°æ˜¾ç¤º
+            // ¸üĞÂÏÔÊ¾
             UpdateZoomDisplay();
             UpdateZoomIndicator();
 
-            _viewModel.StatusText = $"ç”»å¸ƒç¼©æ”¾: {Math.Round(workflow.CurrentScale * 100, 0)}%";
+            _viewModel.StatusText = $"»­²¼Ëõ·Å: {Math.Round(workflow.CurrentScale * 100, 0)}%";
         }
 
         /// <summary>
-        /// æ›´æ–°ç¼©æ”¾æŒ‡ç¤ºå™¨
+        /// ¸üĞÂËõ·ÅÖ¸Ê¾Æ÷
         /// </summary>
         private void UpdateZoomIndicator()
         {
-            // åœ¨å½“å‰Tabä¸­æŸ¥æ‰¾ç¼©æ”¾æŒ‡ç¤ºå™¨
+            // ÔÚµ±Ç°TabÖĞ²éÕÒËõ·ÅÖ¸Ê¾Æ÷
             if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
             {
                 var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
@@ -1275,7 +1275,7 @@ namespace SunEyeVision.UI.Views.Windows
                         var grid = FindVisualChild<Grid>(contentPresenter);
                         if (grid != null)
                         {
-                            // æŸ¥æ‰¾æ‰€æœ‰ TextBlock å…ƒç´ 
+                            // ²éÕÒËùÓĞ TextBlock ÔªËØ
                             var textBlocks = FindAllVisualChildren<TextBlock>(grid);
                             foreach (var textBlock in textBlocks)
                             {
@@ -1293,11 +1293,11 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ›´æ–°ç¼©æ”¾ç™¾åˆ†æ¯”æ˜¾ç¤º
+        /// ¸üĞÂËõ·Å°Ù·Ö±ÈÏÔÊ¾
         /// </summary>
         private void UpdateZoomDisplay()
         {
-            // ä½¿ç”¨ Dispatcher å»¶è¿Ÿæ‰§è¡Œï¼Œç¡®ä¿ TabItem å†…å®¹å·²å®Œå…¨åŠ è½½
+            // Ê¹ÓÃ Dispatcher ÑÓ³ÙÖ´ĞĞ£¬È·±£ TabItem ÄÚÈİÒÑÍêÈ«¼ÓÔØ
             Dispatcher.BeginInvoke(new Action(() =>
             {
 
@@ -1330,10 +1330,10 @@ namespace SunEyeVision.UI.Views.Windows
                 {
                 }
 
-                // ç›´æ¥ä½¿ç”¨å‘½åçš„ZoomTextBlockæ§ä»¶
+                // Ö±½ÓÊ¹ÓÃÃüÃûµÄZoomTextBlock¿Ø¼ş
                 if (ZoomTextBlock != null)
                 {
-                    ZoomTextBlock.Text = $"ç¼©æ”¾: {percentage}%";
+                    ZoomTextBlock.Text = $"Ëõ·Å: {percentage}%";
                 }
                 else
                 {
@@ -1343,7 +1343,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// é¼ æ ‡æ»šè½®ç¼©æ”¾äº‹ä»¶
+        /// Êó±ê¹öÂÖËõ·ÅÊÂ¼ş
         /// </summary>
         private void CanvasScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
@@ -1352,40 +1352,40 @@ namespace SunEyeVision.UI.Views.Windows
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
 
-            // ç›´æ¥ä½¿ç”¨æ»šè½®è¿›è¡Œç¼©æ”¾ï¼ˆä¸è¦æ±‚Ctrlé”®ï¼‰
+            // Ö±½ÓÊ¹ÓÃ¹öÂÖ½øĞĞËõ·Å£¨²»ÒªÇóCtrl¼ü£©
             e.Handled = true;
 
-            // sender å°±æ˜¯ ScrollViewer
+            // sender ¾ÍÊÇ ScrollViewer
             if (sender is not ScrollViewer scrollViewer)
                 return;
 
-            // è·å–é¼ æ ‡ä½ç½®
+            // »ñÈ¡Êó±êÎ»ÖÃ
             var mousePositionInScrollViewer = e.GetPosition(scrollViewer);
 
             if (e.Delta > 0)
             {
-                // å‘ä¸Šæ»šåŠ¨ï¼Œæ”¾å¤§
+                // ÏòÉÏ¹ö¶¯£¬·Å´ó
                 if (workflow.CurrentScale < MaxScale)
                 {
                     var oldScale = workflow.CurrentScale;
                     var newScale = Math.Min(oldScale * 1.1, MaxScale);
-                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // é¼ æ ‡ä½ç½®ä½œä¸ºç¼©æ”¾ä¸­å¿ƒ
+                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // Êó±êÎ»ÖÃ×÷ÎªËõ·ÅÖĞĞÄ
                 }
             }
             else
             {
-                // å‘ä¸‹æ»šåŠ¨ï¼Œç¼©å°
+                // ÏòÏÂ¹ö¶¯£¬ËõĞ¡
                 if (workflow.CurrentScale > MinScale)
                 {
                     var oldScale = workflow.CurrentScale;
                     var newScale = Math.Max(oldScale / 1.1, MinScale);
-                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // é¼ æ ‡ä½ç½®ä½œä¸ºç¼©æ”¾ä¸­å¿ƒ
+                    ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // Êó±êÎ»ÖÃ×÷ÎªËõ·ÅÖĞĞÄ
                 }
             }
         }
 
         /// <summary>
-        /// è·å–å½“å‰æ´»åŠ¨çš„Canvas
+        /// »ñÈ¡µ±Ç°»î¶¯µÄCanvas
         /// </summary>
         private Canvas GetCurrentCanvas()
         {
@@ -1397,19 +1397,19 @@ namespace SunEyeVision.UI.Views.Windows
                 var container = WorkflowTabControl.ItemContainerGenerator.ContainerFromItem(_viewModel.WorkflowTabViewModel.SelectedTab);
                 if (container is TabItem tabItem)
                 {
-                    // åœ¨æ•´ä¸ª TabItem ä¸­æŸ¥æ‰¾æ‰€æœ‰ Canvas
+                    // ÔÚÕû¸ö TabItem ÖĞ²éÕÒËùÓĞ Canvas
                     var allCanvases = FindAllVisualChildren<Canvas>(tabItem);
 
                     foreach (var canvas in allCanvases)
                     {
-                        // æ‰¾åˆ°åä¸º WorkflowCanvas çš„ Canvas
+                        // ÕÒµ½ÃûÎª WorkflowCanvas µÄ Canvas
                         if (canvas.Name == "WorkflowCanvas")
                         {
                             return canvas;
                         }
                     }
 
-                    // å¦‚æœæ²¡æœ‰æ‰¾åˆ°åä¸º WorkflowCanvas çš„,è¿”å›ç¬¬ä¸€ä¸ª Canvas
+                    // Èç¹ûÃ»ÓĞÕÒµ½ÃûÎª WorkflowCanvas µÄ,·µ»ØµÚÒ»¸ö Canvas
                     if (allCanvases.Count > 0)
                     {
                         return allCanvases[0];
@@ -1418,13 +1418,13 @@ namespace SunEyeVision.UI.Views.Windows
             }
             catch (Exception ex)
             {
-                // é™é»˜å¤„ç†å¼‚å¸¸
+                // ¾²Ä¬´¦ÀíÒì³£
             }
             return null!;
         }
 
         /// <summary>
-        /// è·å–å½“å‰æ´»åŠ¨çš„ScrollViewer
+        /// »ñÈ¡µ±Ç°»î¶¯µÄScrollViewer
         /// </summary>
         private ScrollViewer GetCurrentScrollViewer()
         {
@@ -1435,11 +1435,11 @@ namespace SunEyeVision.UI.Views.Windows
                     return null!;
                 }
 
-                // TabControlçš„å†…å®¹é€šè¿‡ContentPresenteræ˜¾ç¤ºåœ¨æ¨¡æ¿ä¸­,è€Œä¸æ˜¯åœ¨TabItemçš„è§†è§‰æ ‘ä¸­
-                // æ‰€ä»¥ç›´æ¥ä»WorkflowTabControlçš„è§†è§‰æ ‘ä¸­æŸ¥æ‰¾ScrollViewer
+                // TabControlµÄÄÚÈİÍ¨¹ıContentPresenterÏÔÊ¾ÔÚÄ£°åÖĞ,¶ø²»ÊÇÔÚTabItemµÄÊÓ¾õÊ÷ÖĞ
+                // ËùÒÔÖ±½Ó´ÓWorkflowTabControlµÄÊÓ¾õÊ÷ÖĞ²éÕÒScrollViewer
                 var allScrollViewers = FindAllVisualChildren<ScrollViewer>(WorkflowTabControl);
 
-                // æŸ¥æ‰¾åä¸º CanvasScrollViewer çš„
+                // ²éÕÒÃûÎª CanvasScrollViewer µÄ
                 foreach (var sv in allScrollViewers)
                 {
                     if (sv.Name == "CanvasScrollViewer")
@@ -1448,7 +1448,7 @@ namespace SunEyeVision.UI.Views.Windows
                     }
                 }
 
-                // å¦‚æœæ‰¾ä¸åˆ°æŒ‡å®šåç§°çš„,è¿”å›ç¬¬ä¸€ä¸ª
+                // Èç¹ûÕÒ²»µ½Ö¸¶¨Ãû³ÆµÄ,·µ»ØµÚÒ»¸ö
                 if (allScrollViewers.Count > 0)
                 {
                     return allScrollViewers[0];
@@ -1456,21 +1456,21 @@ namespace SunEyeVision.UI.Views.Windows
             }
             catch (Exception ex)
             {
-                // æ³¨æ„ï¼šæ­¤å¤„æ— æ³•è®¿é—® _viewModelï¼Œå› ä¸ºæ­¤æ–¹æ³•æ˜¯è¾…åŠ©æ–¹æ³•
-                // å¦‚éœ€è®°å½•é”™è¯¯æ—¥å¿—ï¼Œå¯ä»¥ä¼ å…¥ ViewModel å‚æ•°æˆ–ä½¿ç”¨å…¶ä»–æ—¥å¿—æœºåˆ¶
+                // ×¢Òâ£º´Ë´¦ÎŞ·¨·ÃÎÊ _viewModel£¬ÒòÎª´Ë·½·¨ÊÇ¸¨Öú·½·¨
+                // ÈçĞè¼ÇÂ¼´íÎóÈÕÖ¾£¬¿ÉÒÔ´«Èë ViewModel ²ÎÊı»òÊ¹ÓÃÆäËûÈÕÖ¾»úÖÆ
             }
             return null!;
         }
 
         /// <summary>
-        /// è·å–ç”»å¸ƒä¸­å¿ƒåœ¨Canvasä¸Šçš„åæ ‡
+        /// »ñÈ¡»­²¼ÖĞĞÄÔÚCanvasÉÏµÄ×ø±ê
         /// </summary>
         private Point GetCanvasCenterPosition(ScrollViewer scrollViewer)
         {
             if (scrollViewer == null)
                 return new Point(0, 0);
 
-            // è¿”å›è§†å£ä¸­å¿ƒç›¸å¯¹äºScrollViewerçš„åæ ‡ï¼ˆå³é¼ æ ‡åœ¨è§†å£ä¸­å¿ƒçš„ä½ç½®ï¼‰
+            // ·µ»ØÊÓ¿ÚÖĞĞÄÏà¶ÔÓÚScrollViewerµÄ×ø±ê£¨¼´Êó±êÔÚÊÓ¿ÚÖĞĞÄµÄÎ»ÖÃ£©
             return new Point(
                 scrollViewer.ViewportWidth / 2,
                 scrollViewer.ViewportHeight / 2
@@ -1479,10 +1479,10 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region è¾…åŠ©æ–¹æ³•
+        #region ¸¨Öú·½·¨
 
         /// <summary>
-        /// æŸ¥æ‰¾çˆ¶çº§Canvas
+        /// ²éÕÒ¸¸¼¶Canvas
         /// </summary>
         private Canvas FindParentCanvas(DependencyObject element)
         {
@@ -1501,9 +1501,9 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region SplitterWithToggle äº‹ä»¶å¤„ç†
+        #region SplitterWithToggle ÊÂ¼ş´¦Àí
 
-        // æ³¨é‡Šï¼šä»¥ä¸‹ä»£ç å·²åºŸå¼ƒï¼Œå·¥å…·ç®±åŒæ¨¡åˆ‡æ¢åŠŸèƒ½å·²å®Œå…¨ç”±ToolboxControlå†…éƒ¨æŒ‰é’®å®ç°ï¼ˆ2026-02-10ï¼‰
+        // ×¢ÊÍ£ºÒÔÏÂ´úÂëÒÑ·ÏÆú£¬¹¤¾ßÏäË«Ä£ÇĞ»»¹¦ÄÜÒÑÍêÈ«ÓÉToolboxControlÄÚ²¿°´Å¥ÊµÏÖ£¨2026-02-10£©
         /*
         private double _originalToolboxWidth = 260;
         */
@@ -1511,38 +1511,38 @@ namespace SunEyeVision.UI.Views.Windows
         private double _previousSplitterPosition;
 
         /// <summary>
-        /// å›¾åƒ-å±æ€§åˆ†éš”æ¡å¼€å§‹æ‹–åŠ¨
+        /// Í¼Ïñ-ÊôĞÔ·Ö¸ôÌõ¿ªÊ¼ÍÏ¶¯
         /// </summary>
         private void ImagePropertySplitter_DragStarted(object sender, DragStartedEventArgs e)
         {
-            // è®°å½•æ‹–åŠ¨å¼€å§‹å‰çš„çŠ¶æ€
+            // ¼ÇÂ¼ÍÏ¶¯¿ªÊ¼Ç°µÄ×´Ì¬
             _previousSplitterPosition = RightPanelGrid.RowDefinitions[0].ActualHeight;
-            System.Diagnostics.Debug.WriteLine($"[åˆ†éš”æ¡æ‹–åŠ¨] å¼€å§‹æ‹–åŠ¨ï¼Œå½“å‰ä½ç½®: {_previousSplitterPosition}");
+            System.Diagnostics.Debug.WriteLine($"[·Ö¸ôÌõÍÏ¶¯] ¿ªÊ¼ÍÏ¶¯£¬µ±Ç°Î»ÖÃ: {_previousSplitterPosition}");
         }
 
         /// <summary>
-        /// å›¾åƒ-å±æ€§åˆ†éš”æ¡æ‹–åŠ¨ä¸­ - å®æ—¶æ›´æ–°é«˜åº¦
+        /// Í¼Ïñ-ÊôĞÔ·Ö¸ôÌõÍÏ¶¯ÖĞ - ÊµÊ±¸üĞÂ¸ß¶È
         /// </summary>
         private void ImagePropertySplitter_DragDelta(object sender, DragDeltaEventArgs e)
         {
-            // è·å–å½“å‰å›¾åƒæ˜¾ç¤ºåŒºåŸŸçš„é«˜åº¦
+            // »ñÈ¡µ±Ç°Í¼ÏñÏÔÊ¾ÇøÓòµÄ¸ß¶È
             double currentImageHeight = RightPanelGrid.RowDefinitions[0].ActualHeight;
             
-            // å®æ—¶è®°å½•æ‹–åŠ¨è¿‡ç¨‹ä¸­çš„ä½ç½®å˜åŒ–ï¼ˆç”¨äºè°ƒè¯•ï¼‰
-            System.Diagnostics.Debug.WriteLine($"[åˆ†éš”æ¡æ‹–åŠ¨ä¸­] å½“å‰ä½ç½®: {currentImageHeight:F2}");
+            // ÊµÊ±¼ÇÂ¼ÍÏ¶¯¹ı³ÌÖĞµÄÎ»ÖÃ±ä»¯£¨ÓÃÓÚµ÷ÊÔ£©
+            System.Diagnostics.Debug.WriteLine($"[·Ö¸ôÌõÍÏ¶¯ÖĞ] µ±Ç°Î»ÖÃ: {currentImageHeight:F2}");
             
-            // æ³¨æ„ï¼šç”±äºShowsPreview="False"ï¼ŒGridSplitterä¼šè‡ªåŠ¨è°ƒæ•´ç›¸é‚»Rowçš„é«˜åº¦
-            // ä¸éœ€è¦æ‰‹åŠ¨æ›´æ–°Heightï¼Œåªéœ€è¦è®°å½•çŠ¶æ€å³å¯
+            // ×¢Òâ£ºÓÉÓÚShowsPreview="False"£¬GridSplitter»á×Ô¶¯µ÷ÕûÏàÁÚRowµÄ¸ß¶È
+            // ²»ĞèÒªÊÖ¶¯¸üĞÂHeight£¬Ö»ĞèÒª¼ÇÂ¼×´Ì¬¼´¿É
         }
 
         /// <summary>
-        /// å›¾åƒ-å±æ€§åˆ†éš”æ¡æ‹–åŠ¨å®Œæˆ
+        /// Í¼Ïñ-ÊôĞÔ·Ö¸ôÌõÍÏ¶¯Íê³É
         /// </summary>
         private void ImagePropertySplitter_DragCompleted(object sender, DragCompletedEventArgs e)
         {
-            // ä¿å­˜æ–°çš„åˆ†éš”æ¡ä½ç½®åˆ°ViewModel
+            // ±£´æĞÂµÄ·Ö¸ôÌõÎ»ÖÃµ½ViewModel
             double newPosition = RightPanelGrid.RowDefinitions[0].ActualHeight;
-            System.Diagnostics.Debug.WriteLine($"[åˆ†éš”æ¡æ‹–åŠ¨] å®Œæˆæ‹–åŠ¨ï¼Œæ–°ä½ç½®: {newPosition}");
+            System.Diagnostics.Debug.WriteLine($"[·Ö¸ôÌõÍÏ¶¯] Íê³ÉÍÏ¶¯£¬ĞÂÎ»ÖÃ: {newPosition}");
 
             if (DataContext is MainWindowViewModel viewModel)
             {
@@ -1551,7 +1551,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// å·¥å…·ç®±åˆ†å‰²å™¨çš„æŠ˜å /å±•å¼€äº‹ä»¶ï¼ˆå·²åºŸå¼ƒ - åˆ‡æ¢åŠŸèƒ½å·²ç”±ToolboxControlå†…éƒ¨æŒ‰é’®å®ç°ï¼‰
+        /// ¹¤¾ßÏä·Ö¸îÆ÷µÄÕÛµş/Õ¹¿ªÊÂ¼ş£¨ÒÑ·ÏÆú - ÇĞ»»¹¦ÄÜÒÑÓÉToolboxControlÄÚ²¿°´Å¥ÊµÏÖ£©
         /// </summary>
         /*
         private void ToolboxSplitter_ToggleClick(object? sender, EventArgs e)
@@ -1562,7 +1562,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             if (viewModel.IsToolboxCollapsed)
             {
-                // å±•å¼€ï¼šåˆ‡æ¢åˆ°å±•å¼€æ¨¡å¼ï¼ˆ260pxï¼‰
+                // Õ¹¿ª£ºÇĞ»»µ½Õ¹¿ªÄ£Ê½£¨260px£©
                 ToolboxColumn.Width = new GridLength(260);
                 ToolboxContent.Visibility = Visibility.Visible;
                 viewModel.IsToolboxCollapsed = false;
@@ -1570,7 +1570,7 @@ namespace SunEyeVision.UI.Views.Windows
             }
             else
             {
-                // æŠ˜å ï¼šåˆ‡æ¢åˆ°ç´§å‡‘æ¨¡å¼ï¼ˆ60pxï¼‰
+                // ÕÛµş£ºÇĞ»»µ½½ô´ÕÄ£Ê½£¨60px£©
                 ToolboxColumn.Width = new GridLength(60);
                 ToolboxContent.Visibility = Visibility.Visible;
                 viewModel.IsToolboxCollapsed = true;
@@ -1581,7 +1581,7 @@ namespace SunEyeVision.UI.Views.Windows
         */
 
         /// <summary>
-        /// æ›´æ–°å·¥å…·ç®±åˆ†å‰²å™¨ç®­å¤´æ–¹å‘ï¼ˆå·²åºŸå¼ƒ - å·¥å…·ç®±åˆ†éš”å™¨å·²åˆ é™¤ï¼‰
+        /// ¸üĞÂ¹¤¾ßÏä·Ö¸îÆ÷¼ıÍ··½Ïò£¨ÒÑ·ÏÆú - ¹¤¾ßÏä·Ö¸ôÆ÷ÒÑÉ¾³ı£©
         /// </summary>
         /*
         private void UpdateToolboxSplitterArrow()
@@ -1594,19 +1594,19 @@ namespace SunEyeVision.UI.Views.Windows
         */
 
         /// <summary>
-        /// å³ä¾§é¢æ¿åˆ†å‰²å™¨çš„æŠ˜å /å±•å¼€äº‹ä»¶
+        /// ÓÒ²àÃæ°å·Ö¸îÆ÷µÄÕÛµş/Õ¹¿ªÊÂ¼ş
         /// </summary>
         private void RightPanelSplitter_ToggleClick(object? sender, EventArgs e)
         {
             if (_viewModel.IsPropertyPanelCollapsed)
             {
-                // å±•å¼€æ•´ä¸ªå³ä¾§é¢æ¿
+                // Õ¹¿ªÕû¸öÓÒ²àÃæ°å
                 RightPanelColumn.Width = new GridLength(_rightPanelWidth);
                 _viewModel.IsPropertyPanelCollapsed = false;
             }
             else
             {
-                // æŠ˜å æ•´ä¸ªå³ä¾§é¢æ¿
+                // ÕÛµşÕû¸öÓÒ²àÃæ°å
                 _rightPanelWidth = RightPanelColumn.ActualWidth;
                 RightPanelColumn.Width = new GridLength(40);
                 _viewModel.IsPropertyPanelCollapsed = true;
@@ -1615,7 +1615,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// æ›´æ–°å³ä¾§é¢æ¿åˆ†å‰²å™¨ç®­å¤´æ–¹å‘
+        /// ¸üĞÂÓÒ²àÃæ°å·Ö¸îÆ÷¼ıÍ··½Ïò
         /// </summary>
         private void UpdateRightPanelSplitterArrow()
         {
@@ -1627,16 +1627,16 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region ç”»å¸ƒå¼•æ“ç®¡ç†å™¨æ”¯æŒ
+        #region »­²¼ÒıÇæ¹ÜÀíÆ÷Ö§³Ö
 
         /// <summary>
-        /// é€šè¿‡ä»£ç åˆ‡æ¢ç”»å¸ƒç±»å‹ï¼ˆç”¨äºå•å…ƒæµ‹è¯•å’Œç‰¹æ®Šåœºæ™¯ï¼‰
+        /// Í¨¹ı´úÂëÇĞ»»»­²¼ÀàĞÍ£¨ÓÃÓÚµ¥Ôª²âÊÔºÍÌØÊâ³¡¾°£©
         /// </summary>
         public void SwitchCanvasType(CanvasType canvasType)
         {
             if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
             {
-                throw new InvalidOperationException("è¯·å…ˆé€‰æ‹©ä¸€ä¸ªå·¥ä½œæµæ ‡ç­¾é¡µ");
+                throw new InvalidOperationException("ÇëÏÈÑ¡ÔñÒ»¸ö¹¤×÷Á÷±êÇ©Ò³");
             }
 
             var currentTab = _viewModel.WorkflowTabViewModel.SelectedTab;
@@ -1645,19 +1645,19 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// è®¾ç½®è·¯å¾„è®¡ç®—å™¨ç±»å‹ï¼ˆç”¨äºå•å…ƒæµ‹è¯•ï¼‰
+        /// ÉèÖÃÂ·¾¶¼ÆËãÆ÷ÀàĞÍ£¨ÓÃÓÚµ¥Ôª²âÊÔ£©
         /// </summary>
         public void SetPathCalculator(string pathCalculatorType)
         {
 
-            // è·å–å½“å‰ç”»å¸ƒç±»å‹
+            // »ñÈ¡µ±Ç°»­²¼ÀàĞÍ
             var canvasType = GetCurrentCanvasType();
 
-            // æ ¹æ®ç”»å¸ƒç±»å‹è°ƒç”¨å¯¹åº”çš„æ§ä»¶æ–¹æ³•
+            // ¸ù¾İ»­²¼ÀàĞÍµ÷ÓÃ¶ÔÓ¦µÄ¿Ø¼ş·½·¨
             switch (canvasType)
             {
                 case CanvasType.WorkflowCanvas:
-                    // æŸ¥æ‰¾å½“å‰æ˜¾ç¤ºçš„WorkflowCanvasControl
+                    // ²éÕÒµ±Ç°ÏÔÊ¾µÄWorkflowCanvasControl
                     var workflowCanvas = FindVisualChild<WorkflowCanvasControl>(this);
                     if (workflowCanvas != null)
                     {
@@ -1669,7 +1669,7 @@ namespace SunEyeVision.UI.Views.Windows
                     break;
 
                 case CanvasType.NativeDiagram:
-                    // æŸ¥æ‰¾å½“å‰æ˜¾ç¤ºçš„NativeDiagramControl
+                    // ²éÕÒµ±Ç°ÏÔÊ¾µÄNativeDiagramControl
                     var nativeDiagram = FindVisualChild<NativeDiagramControl>(this);
                     if (nativeDiagram != null)
                     {
@@ -1681,12 +1681,12 @@ namespace SunEyeVision.UI.Views.Windows
                     break;
             }
 
-            // åŒæ—¶è°ƒç”¨CanvasEngineManagerï¼Œä¿æŒå…¼å®¹æ€§
+            // Í¬Ê±µ÷ÓÃCanvasEngineManager£¬±£³Ö¼æÈİĞÔ
             CanvasEngineManager.SetPathCalculator(pathCalculatorType);
         }
 
         /// <summary>
-        /// è·å–å½“å‰ç”»å¸ƒç±»å‹
+        /// »ñÈ¡µ±Ç°»­²¼ÀàĞÍ
         /// </summary>
         public CanvasType GetCurrentCanvasType()
         {
@@ -1694,7 +1694,7 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// è·å–å½“å‰ç”»å¸ƒå¼•æ“
+        /// »ñÈ¡µ±Ç°»­²¼ÒıÇæ
         /// </summary>
         public ICanvasEngine? GetCurrentCanvasEngine()
         {
@@ -1703,7 +1703,7 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
-        #region å‘½ä»¤åŒ…è£…å™¨ç±»
+        #region ÃüÁî°ü×°Æ÷Àà
 
         private class PauseCommandWrapper : ICommand
         {

@@ -5,7 +5,7 @@ namespace SunEyeVision.UI.Services.Canvas
 {
     /// <summary>
     /// 画布引擎统一接口
-    /// 所有画布引擎都应实现此接口，提供统一的管理方式
+    /// 所有画布引擎都应实现此接口，提供统一的管理方�?
     /// </summary>
     public interface ICanvasEngine
     {
@@ -20,12 +20,12 @@ namespace SunEyeVision.UI.Services.Canvas
         FrameworkElement GetControl();
 
         /// <summary>
-        /// 设置数据上下文
+        /// 设置数据上下�?
         /// </summary>
         void SetDataContext(object dataContext);
 
         /// <summary>
-        /// 设置路径计算器
+        /// 设置路径计算�?
         /// </summary>
         void SetPathCalculator(string pathCalculatorType);
 

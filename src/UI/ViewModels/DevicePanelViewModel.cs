@@ -12,7 +12,7 @@ namespace SunEyeVision.UI.ViewModels
     public class DevicePanelViewModel : ViewModelBase
     {
         private DeviceItem? _selectedDevice;
-        private string _connectionStatus = "未连接设备";
+        private string _connectionStatus = "未连接设�?;
 
         public ObservableCollection<DeviceItem> Devices { get; }
 
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.ViewModels
             Devices.Add(new DeviceItem("CAM001", "相机1", "Camera"));
             Devices.Add(new DeviceItem("CAM002", "相机2", "Camera"));
             Devices.Add(new DeviceItem("IO001", "数字IO", "IO"));
-            Devices.Add(new DeviceItem("PLC001", "PLC控制器", "PLC"));
+            Devices.Add(new DeviceItem("PLC001", "PLC控制�?, "PLC"));
         }
 
         private bool CanConnectDevice(DeviceItem? device)
@@ -75,7 +75,7 @@ namespace SunEyeVision.UI.ViewModels
             await Task.Delay(500);
 
             device.IsConnected = true;
-            device.Status = "已连接";
+            device.Status = "已连�?;
             ConnectionStatus = $"{device.Name} 连接成功";
         }
 
@@ -84,7 +84,7 @@ namespace SunEyeVision.UI.ViewModels
             if (device == null) return;
 
             device.IsConnected = false;
-            device.Status = "未连接";
+            device.Status = "未连�?;
             ConnectionStatus = $"{device.Name} 已断开";
         }
 
@@ -95,7 +95,7 @@ namespace SunEyeVision.UI.ViewModels
             var connectedCount = Devices.Count(d => d.IsConnected);
             ConnectionStatus = connectedCount > 0
                 ? $"{connectedCount} 个设备已连接"
-                : "未连接设备";
+                : "未连接设�?;
         }
 
         private async void ExecuteCaptureImage(DeviceItem? device)
@@ -105,7 +105,7 @@ namespace SunEyeVision.UI.ViewModels
             await Task.Delay(200);
 
             ConnectionStatus = $"已从 {device.Name} 采集图像";
-            // TODO: 处理采集的图像
+            // TODO: 处理采集的图�?
         }
     }
 }

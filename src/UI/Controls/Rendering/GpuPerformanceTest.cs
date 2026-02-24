@@ -33,19 +33,19 @@ namespace SunEyeVision.UI.Controls.Rendering
         {
             if (!File.Exists(testImagePath))
             {
-                Debug.WriteLine($"[PerformanceTest] ✗ 测试文件不存在: {testImagePath}");
+                Debug.WriteLine($"[PerformanceTest] �?测试文件不存�? {testImagePath}");
                 return;
             }
 
             Debug.WriteLine("╔════════════════════════════════════════════════════════════╗");
-            Debug.WriteLine($"║   GPU vs CPU 性能对比测试 (测试{iterations}次)                    ║");
+            Debug.WriteLine($"�?  GPU vs CPU 性能对比测试 (测试{iterations}�?                    �?);
             Debug.WriteLine("╚════════════════════════════════════════════════════════════╝");
             Debug.WriteLine($"  测试图像: {Path.GetFileName(testImagePath)}");
-            Debug.WriteLine($"  缩略图尺寸: {testSize}px");
+            Debug.WriteLine($"  缩略图尺�? {testSize}px");
             Debug.WriteLine("");
 
             // 预热
-            Debug.WriteLine("=== 预热阶段 (各10次) ===");
+            Debug.WriteLine("=== 预热阶段 (�?0�? ===");
             TestPureCPU(testImagePath, testSize, 10, silent: true);
             TestWPFDefault(testImagePath, testSize, 10, silent: true);
             
@@ -59,41 +59,41 @@ namespace SunEyeVision.UI.Controls.Rendering
 
             // 正式测试
             Debug.WriteLine("╔════════════════════════════════════════════════════════════╗");
-            Debug.WriteLine("║   正式测试                                                 ║");
+            Debug.WriteLine("�?  正式测试                                                 �?);
             Debug.WriteLine("╚════════════════════════════════════════════════════════════╝");
 
             var results = new List<TestResult>();
 
-            // 测试1: 纯CPU（System.Drawing）
-            Debug.WriteLine("\n【测试1】纯CPU模式 (System.Drawing)");
-            Debug.WriteLine("  - 使用GDI+进行图像解码和缩放");
-            Debug.WriteLine("  - 完全在CPU上处理");
+            // 测试1: 纯CPU（System.Drawing�?
+            Debug.WriteLine("\n【测�?】纯CPU模式 (System.Drawing)");
+            Debug.WriteLine("  - 使用GDI+进行图像解码和缩�?);
+            Debug.WriteLine("  - 完全在CPU上处�?);
             var cpuResult = TestPureCPU(testImagePath, testSize, iterations, silent: false);
             results.Add(cpuResult);
 
             // 测试2: WPF默认（WPF的GPU加速）
-            Debug.WriteLine("\n【测试2】WPF默认模式");
+            Debug.WriteLine("\n【测�?】WPF默认模式");
             Debug.WriteLine("  - 使用WPF的BitmapImage");
-            Debug.WriteLine("  - 自动使用GPU硬件加速");
+            Debug.WriteLine("  - 自动使用GPU硬件加�?);
             var wpfResult = TestWPFDefault(testImagePath, testSize, iterations, silent: false);
             results.Add(wpfResult);
 
-            // 测试3: DirectX GPU加速
+            // 测试3: DirectX GPU加�?
             if (gpuLoader.IsGpuAvailable)
             {
-                Debug.WriteLine("\n【测试3】DirectX GPU加速模式");
-                Debug.WriteLine("  - 使用优化后的WPF GPU加速");
+                Debug.WriteLine("\n【测�?】DirectX GPU加速模�?);
+                Debug.WriteLine("  - 使用优化后的WPF GPU加�?);
                 Debug.WriteLine("  - DecodePixelWidth硬件解码");
                 var gpuResult = TestDirectXGPU(testImagePath, testSize, iterations, gpuLoader, silent: false);
                 results.Add(gpuResult);
             }
 
-            // 汇总结果
+            // 汇总结�?
             PrintSummary(results, iterations);
         }
 
         /// <summary>
-        /// 测试1: 纯CPU模式（System.Drawing）
+        /// 测试1: 纯CPU模式（System.Drawing�?
         /// </summary>
         private static TestResult TestPureCPU(string filePath, int size, int count, bool silent = false)
         {
@@ -107,7 +107,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             if (!silent)
             {
                 Debug.WriteLine($"  总耗时: {sw.ElapsedMilliseconds}ms");
-                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/张");
+                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/�?);
             }
 
             return new TestResult
@@ -166,7 +166,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             if (!silent)
             {
                 Debug.WriteLine($"  总耗时: {sw.ElapsedMilliseconds}ms");
-                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/张");
+                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/�?);
             }
 
             return new TestResult
@@ -194,7 +194,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         }
 
         /// <summary>
-        /// 测试3: DirectX GPU加速模式
+        /// 测试3: DirectX GPU加速模�?
         /// </summary>
         private static TestResult TestDirectXGPU(string filePath, int size, int count, DirectXGpuThumbnailLoader gpuLoader, bool silent = false)
         {
@@ -208,7 +208,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             if (!silent)
             {
                 Debug.WriteLine($"  总耗时: {sw.ElapsedMilliseconds}ms");
-                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/张");
+                Debug.WriteLine($"  平均: {sw.ElapsedMilliseconds / (double)count:F3}ms/�?);
             }
 
             return new TestResult
@@ -221,12 +221,12 @@ namespace SunEyeVision.UI.Controls.Rendering
         }
 
         /// <summary>
-        /// 打印测试结果汇总
+        /// 打印测试结果汇�?
         /// </summary>
         private static void PrintSummary(List<TestResult> results, int iterations)
         {
             Debug.WriteLine("\n╔════════════════════════════════════════════════════════════╗");
-            Debug.WriteLine("║   📊 性能测试汇总                                         ║");
+            Debug.WriteLine("�?  📊 性能测试汇�?                                        �?);
             Debug.WriteLine("╚════════════════════════════════════════════════════════════╝\n");
 
             // 找出最快的
@@ -245,19 +245,19 @@ namespace SunEyeVision.UI.Controls.Rendering
             }
 
             // 打印结果表格
-            Debug.WriteLine("┌────────────────────────────────┬──────────────┬──────────────┬──────────┐");
-            Debug.WriteLine("│ 测试模式                        │ 总耗时(ms)   │ 平均(ms/张)  │ 加速比   │");
-            Debug.WriteLine("├────────────────────────────────┼──────────────┼──────────────┼──────────┤");
+            Debug.WriteLine("┌────────────────────────────────┬──────────────┬──────────────┬──────────�?);
+            Debug.WriteLine("�?测试模式                        �?总耗时(ms)   �?平均(ms/�?  �?加速比   �?);
+            Debug.WriteLine("├────────────────────────────────┼──────────────┼──────────────┼──────────�?);
 
             foreach (var result in results)
             {
-                string mark = result.IsBest ? "★ 最快" : "";
+                string mark = result.IsBest ? "�?最�? : "";
                 string name = result.TestName.PadRight(30);
                 string total = result.TotalTimeMs.ToString().PadLeft(12);
                 string avg = result.AvgTimeMs.ToString("F3").PadLeft(12);
                 string speedup = result.IsBest ? "1.00x" : $"{result.Speedup:F2}x";
 
-                Debug.WriteLine($"│{name}│{total}│{avg}│{speedup,9}│ {mark}");
+                Debug.WriteLine($"│{name}│{total}│{avg}│{speedup,9}�?{mark}");
             }
 
             Debug.WriteLine("└────────────────────────────────┴──────────────┴──────────────┴──────────┘\n");
@@ -270,34 +270,34 @@ namespace SunEyeVision.UI.Controls.Rendering
                 if (cpuResult != null)
                 {
                     double gpuSpeedup = cpuResult.AvgTimeMs / fastest.AvgTimeMs;
-                    Debug.WriteLine($"  ✓ DirectX GPU加速比纯CPU快 {gpuSpeedup:F2}x");
+                    Debug.WriteLine($"  �?DirectX GPU加速比纯CPU�?{gpuSpeedup:F2}x");
                     
                     if (gpuSpeedup >= 5)
                     {
-                        Debug.WriteLine($"  🚀 这是真正的GPU加速！你能感受到明显的性能提升！");
+                        Debug.WriteLine($"  🚀 这是真正的GPU加速！你能感受到明显的性能提升�?);
                     }
                     else if (gpuSpeedup >= 2)
                     {
-                        Debug.WriteLine($"  ✓ 有明显的性能提升");
+                        Debug.WriteLine($"  �?有明显的性能提升");
                     }
                     else
                     {
-                        Debug.WriteLine($"  ⚠ 性能提升不明显，可能是小尺寸缩略图的原因");
+                        Debug.WriteLine($"  �?性能提升不明显，可能是小尺寸缩略图的原因");
                     }
                 }
             }
             else if (fastest.TestName.Contains("WPF"))
             {
-                Debug.WriteLine($"  ⚠ WPF默认模式最快，说明当前的DirectX实现还需要优化");
+                Debug.WriteLine($"  �?WPF默认模式最快，说明当前的DirectX实现还需要优�?);
                 Debug.WriteLine($"  💡 建议继续使用WPF默认模式（已经使用了GPU硬件加速）");
             }
 
             Debug.WriteLine($"\n💡 实际应用中，对于{iterations}张缩略图的加载：");
-            Debug.WriteLine($"  • 纯CPU模式: {results.Find(r => r.TestName.Contains("纯CPU"))?.AvgTimeMs * 100:F0}ms");
-            Debug.WriteLine($"  • WPF模式: {results.Find(r => r.TestName.Contains("WPF"))?.AvgTimeMs * 100:F0}ms");
+            Debug.WriteLine($"  �?纯CPU模式: {results.Find(r => r.TestName.Contains("纯CPU"))?.AvgTimeMs * 100:F0}ms");
+            Debug.WriteLine($"  �?WPF模式: {results.Find(r => r.TestName.Contains("WPF"))?.AvgTimeMs * 100:F0}ms");
             if (results.Exists(r => r.TestName.Contains("DirectX")))
             {
-                Debug.WriteLine($"  • DirectX GPU: {results.Find(r => r.TestName.Contains("DirectX"))?.AvgTimeMs * 100:F0}ms");
+                Debug.WriteLine($"  �?DirectX GPU: {results.Find(r => r.TestName.Contains("DirectX"))?.AvgTimeMs * 100:F0}ms");
             }
             Debug.WriteLine("");
         }
@@ -309,15 +309,15 @@ namespace SunEyeVision.UI.Controls.Rendering
         {
             if (!File.Exists(testImagePath))
             {
-                Debug.WriteLine($"[QuickTest] ✗ 测试文件不存在: {testImagePath}");
+                Debug.WriteLine($"[QuickTest] �?测试文件不存�? {testImagePath}");
                 return;
             }
 
             Debug.WriteLine($"╔════════════════════════════════════════════════════════════╗");
-            Debug.WriteLine($"║   快速性能测试 (单张图像)                                  ║");
+            Debug.WriteLine($"�?  快速性能测试 (单张图像)                                  �?);
             Debug.WriteLine($"╚════════════════════════════════════════════════════════════╝");
             Debug.WriteLine($"  测试图像: {Path.GetFileName(testImagePath)}");
-            Debug.WriteLine($"  缩略图尺寸: {testSize}px\n");
+            Debug.WriteLine($"  缩略图尺�? {testSize}px\n");
 
             // 纯CPU
             var sw = Stopwatch.StartNew();
@@ -343,7 +343,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             }
             else
             {
-                Debug.WriteLine($"【DirectX GPU】GPU不可用");
+                Debug.WriteLine($"【DirectX GPU】GPU不可�?);
             }
 
             Debug.WriteLine("");

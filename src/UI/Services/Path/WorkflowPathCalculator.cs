@@ -7,7 +7,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services.Path
 {
     /// <summary>
-    /// 工作流路径计算器 - 负责连接线路径的计算和生成
+    /// 工作流路径计算器 - 负责连接线路径的计算和生�?
     /// </summary>
     public class WorkflowPathCalculator
     {
@@ -38,7 +38,7 @@ namespace SunEyeVision.UI.Services.Path
 
             if (needsIntermediatePoint)
             {
-                // 根据源端口方向和相对位置选择中间点策略
+                // 根据源端口方向和相对位置选择中间点策�?
                 bool isVerticalSource = sourcePort == "TopPort" || sourcePort == "BottomPort";
                 
                 if (isVerticalSource)
@@ -46,13 +46,13 @@ namespace SunEyeVision.UI.Services.Path
                     // 源端口是垂直方向
                     if (Math.Abs(deltaX) > 2 * Math.Abs(deltaY))
                     {
-                        // 水平偏移远大于垂直偏移，使用水平主导的路径
+                        // 水平偏移远大于垂直偏移，使用水平主导的路�?
                         pathPoints.Add(new Point(source.X + deltaX / 2, source.Y));
                         pathPoints.Add(new Point(source.X + deltaX / 2, target.Y));
                     }
                     else
                     {
-                        // 垂直主导，使用垂直路径
+                        // 垂直主导，使用垂直路�?
                         pathPoints.Add(new Point(source.X, source.Y + deltaY / 2));
                         pathPoints.Add(new Point(target.X, source.Y + deltaY / 2));
                     }
@@ -62,13 +62,13 @@ namespace SunEyeVision.UI.Services.Path
                     // 源端口是水平方向
                     if (Math.Abs(deltaY) > 2 * Math.Abs(deltaX))
                     {
-                        // 垂直偏移远大于水平偏移，使用垂直主导的路径
+                        // 垂直偏移远大于水平偏移，使用垂直主导的路�?
                         pathPoints.Add(new Point(source.X, source.Y + deltaY / 2));
                         pathPoints.Add(new Point(target.X, source.Y + deltaY / 2));
                     }
                     else
                     {
-                        // 水平主导，使用水平路径
+                        // 水平主导，使用水平路�?
                         pathPoints.Add(new Point(source.X + deltaX / 2, source.Y));
                         pathPoints.Add(new Point(source.X + deltaX / 2, target.Y));
                     }
@@ -83,7 +83,7 @@ namespace SunEyeVision.UI.Services.Path
         }
 
         /// <summary>
-        /// 计算箭头的旋转角度
+        /// 计算箭头的旋转角�?
         /// </summary>
         public static double CalculateArrowAngle(Point source, Point target)
         {
@@ -93,14 +93,14 @@ namespace SunEyeVision.UI.Services.Path
             // 计算角度（弧度）
             double angleRadians = Math.Atan2(deltaY, deltaX);
             
-            // 转换为角度
+            // 转换为角�?
             double angleDegrees = angleRadians * 180 / Math.PI;
             
             return angleDegrees;
         }
 
         /// <summary>
-        /// 刷新所有连接路径
+        /// 刷新所有连接路�?
         /// </summary>
         public static void RefreshAllConnectionPaths(IEnumerable<WorkflowConnection> connections)
         {

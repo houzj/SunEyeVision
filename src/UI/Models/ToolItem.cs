@@ -29,7 +29,7 @@ namespace SunEyeVision.UI.Models
     }
 
     /// <summary>
-    /// 工具箱分类模型
+    /// 工具箱分类模�?
     /// </summary>
     public class ToolCategory : INotifyPropertyChanged
     {

@@ -14,12 +14,12 @@ namespace SunEyeVision.UI.Services.Connection
     public interface IConnectionPathService
     {
         /// <summary>
-        /// 计算两点之间的路径
+        /// 计算两点之间的路�?
         /// </summary>
         string CalculatePath(Point start, Point end);
 
         /// <summary>
-        /// 计算智能路径（带拐点）
+        /// 计算智能路径（带拐点�?
         /// </summary>
         string CalculateSmartPath(Point start, Point end);
 
@@ -29,7 +29,7 @@ namespace SunEyeVision.UI.Services.Connection
         void UpdateConnectionPath(WorkflowConnection connection);
 
         /// <summary>
-        /// 更新所有连接路径
+        /// 更新所有连接路�?
         /// </summary>
         void UpdateAllConnections(IEnumerable<WorkflowConnection> connections);
 
@@ -39,7 +39,7 @@ namespace SunEyeVision.UI.Services.Connection
         void MarkConnectionDirty(WorkflowConnection connection);
 
         /// <summary>
-        /// 标记节点相关的所有连接为脏
+        /// 标记节点相关的所有连接为�?
         /// </summary>
         void MarkNodeConnectionsDirty(string nodeId);
 
@@ -56,7 +56,7 @@ namespace SunEyeVision.UI.Services.Connection
 
 
     /// <summary>
-    /// 连接路径服务 - 管理连接线路径的计算和更新
+    /// 连接路径服务 - 管理连接线路径的计算和更�?
     /// </summary>
     public class ConnectionPathService : IConnectionPathService
     {
@@ -79,7 +79,7 @@ namespace SunEyeVision.UI.Services.Connection
             VerticalFirst,
 
             /// <summary>
-            /// 自适应（根据偏移量自动选择）
+            /// 自适应（根据偏移量自动选择�?
             /// </summary>
             Adaptive
         }
@@ -192,7 +192,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 更新箭头位置和角度
+        /// 更新箭头位置和角�?
         /// </summary>
         private void UpdateArrowPosition(WorkflowConnection connection)
         {
@@ -213,7 +213,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 更新连接点列表
+        /// 更新连接点列�?
         /// </summary>
         private void UpdateConnectionPoints(WorkflowConnection connection)
         {
@@ -256,7 +256,7 @@ namespace SunEyeVision.UI.Services.Connection
 
             try
             {
-                // 简单的路径解析（实际应该使用更完善的解析器）
+                // 简单的路径解析（实际应该使用更完善的解析器�?
                 var parts = pathData.Split(new[] { 'M', 'L' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var part in parts)
                 {

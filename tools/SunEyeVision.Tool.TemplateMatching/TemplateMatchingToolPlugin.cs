@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.TemplateMatching
 {
@@ -52,7 +52,7 @@ namespace SunEyeVision.Tool.TemplateMatching
                         {
                             Name = "templateImage",
                             DisplayName = "模板图像",
-                            Description = "用于匹配的模板图像",
+                            Description = "用于匹配的模板图�?,
                             Type = ParameterType.Image,
                             Required = true,
                             Category = "基本参数"
@@ -60,8 +60,8 @@ namespace SunEyeVision.Tool.TemplateMatching
                         new ParameterMetadata
                         {
                             Name = "threshold",
-                            DisplayName = "匹配阈值",
-                            Description = "匹配分数阈值(0-1)",
+                            DisplayName = "匹配阈�?,
+                            Description = "匹配分数阈�?0-1)",
                             Type = ParameterType.Double,
                             DefaultValue = 0.8,
                             MinValue = 0.0,
@@ -84,8 +84,8 @@ namespace SunEyeVision.Tool.TemplateMatching
                         new ParameterMetadata
                         {
                             Name = "minSize",
-                            DisplayName = "最小尺寸",
-                            Description = "目标最小尺寸",
+                            DisplayName = "最小尺�?,
+                            Description = "目标最小尺�?,
                             Type = ParameterType.Int,
                             DefaultValue = 10,
                             MinValue = 1,
@@ -100,14 +100,14 @@ namespace SunEyeVision.Tool.TemplateMatching
                         {
                             Name = "score",
                             DisplayName = "匹配分数",
-                            Description = "最佳匹配分数",
+                            Description = "最佳匹配分�?,
                             Type = ParameterType.Double
                         },
                         new ParameterMetadata
                         {
                             Name = "position",
                             DisplayName = "匹配位置",
-                            Description = "匹配到的中心点坐标",
+                            Description = "匹配到的中心点坐�?,
                             Type = ParameterType.Point
                         },
                         new ParameterMetadata

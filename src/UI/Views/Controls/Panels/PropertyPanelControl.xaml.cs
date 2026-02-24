@@ -128,7 +128,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 IsExpanded = true,
                 Parameters = new ObservableCollection<PropertyItem>
                 {
-                    new PropertyItem { Label = "状态:", Value = node.Status }
+                    new PropertyItem { Label = "状�?", Value = node.Status }
                 }
             };
 
@@ -157,11 +157,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 日志文本框加载事件
+        /// 日志文本框加载事�?
         /// </summary>
         private void LogTextBox_Loaded(object sender, RoutedEventArgs e)
         {
-            // 确保ScrollViewer滚动到底部（显示最新的日志）
+            // 确保ScrollViewer滚动到底部（显示最新的日志�?
             if (LogScrollViewer != null)
             {
                 LogScrollViewer.ScrollToEnd();
@@ -173,7 +173,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// </summary>
         private void LogTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // 如果是我们自己修改日志文本，不需要处理
+            // 如果是我们自己修改日志文本，不需要处�?
             if (_isUpdatingLogText) return;
 
             // 日志变化时自动滚动到底部（显示最新日志）
@@ -184,7 +184,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// TabControl 选中项变化事件
+        /// TabControl 选中项变化事�?
         /// </summary>
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

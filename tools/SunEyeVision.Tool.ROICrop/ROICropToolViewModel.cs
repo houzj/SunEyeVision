@@ -1,5 +1,5 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.ROICrop
 {
     public class ROICropToolViewModel : AutoToolDebugViewModelBase
@@ -71,8 +71,8 @@ namespace SunEyeVision.Tool.ROICrop
 
         public override void RunTool()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在裁剪ROI（{X},{Y},{Width}x{Height}）...";
+            ToolStatus = "运行�?;
+            StatusMessage = $"正在裁剪ROI（{X},{Y},{Width}x{Height}�?..";
             
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(50, 100));

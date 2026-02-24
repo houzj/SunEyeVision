@@ -12,7 +12,7 @@ using PortDirection = SunEyeVision.UI.Services.Path.PortDirection;
 namespace SunEyeVision.UI.Services.Connection
 {
     /// <summary>
-    /// 连接线路径缓存 - 避免重复计算连接线路径
+    /// 连接线路径缓�?- 避免重复计算连接线路�?
     /// </summary>
     public class ConnectionPathCache
     {
@@ -32,7 +32,7 @@ namespace SunEyeVision.UI.Services.Connection
         public int CacheHits { get; private set; }
 
         /// <summary>
-        /// 缓存未命中次数
+        /// 缓存未命中次�?
         /// </summary>
         public int CacheMisses { get; private set; }
 
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Services.Connection
         public int CacheSize => _pathCache.Count;
 
         /// <summary>
-        /// 缓存命中率
+        /// 缓存命中�?
         /// </summary>
         public double HitRate => CacheHits + CacheMisses > 0
             ? (double)CacheHits / (CacheHits + CacheMisses)
@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 获取连接线路径
+        /// 获取连接线路�?
         /// </summary>
         public PathGeometry? GetPath(WorkflowConnection connection)
         {
@@ -117,7 +117,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 标记所有连接为脏
+        /// 标记所有连接为�?
         /// </summary>
         public void MarkAllDirty()
         {
@@ -131,7 +131,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 标记节点相关的所有连接为脏
+        /// 标记节点相关的所有连接为�?
         /// </summary>
         public void MarkNodeDirty(string nodeId)
         {
@@ -148,14 +148,14 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 5C: 标记节点为脏（移除距离阈值，使用节流机制）
-        /// 路径更新的节流由ConnectionBatchUpdateManager控制（6ms延迟）
+        /// 5C: 标记节点为脏（移除距离阈值，使用节流机制�?
+        /// 路径更新的节流由ConnectionBatchUpdateManager控制�?ms延迟�?
         /// </summary>
         public void MarkNodeDirtySmart(string nodeId, Point newPosition)
         {
             lock (_lockObj)
             {
-                // 记录新位置
+                // 记录新位�?
                 _lastNodePositions[nodeId] = newPosition;
 
                 // 直接标记相关连接为脏
@@ -181,7 +181,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 4C: 智能清理缓存（基于使用频率和LRU策略）
+        /// 4C: 智能清理缓存（基于使用频率和LRU策略�?
         /// </summary>
         public void CleanupCache(int targetSize = 500)
         {
@@ -207,7 +207,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 移除连接的缓存
+        /// 移除连接的缓�?
         /// </summary>
         public void Remove(string connectionId)
         {
@@ -263,7 +263,7 @@ namespace SunEyeVision.UI.Services.Connection
             if (sourceNode == null || targetNode == null)
                 return new PathGeometry();
 
-            // 根据端口名称获取端口方向和位置
+            // 根据端口名称获取端口方向和位�?
             var sourceDirection = PortDirectionExtensions.FromPortName(connection.SourcePort);
             var targetDirection = PortDirectionExtensions.FromPortName(connection.TargetPort);
 
@@ -295,13 +295,13 @@ namespace SunEyeVision.UI.Services.Connection
 
 
 
-            // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检测
+            // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检�?
             var pathPoints = _pathCalculator.CalculateOrthogonalPath(
                 sourcePos,
                 arrowTailPos,  // 路径终点 = 箭头尾部
                 sourceDirection,
                 targetDirection,
-                sourceNodeRect,  // 源节点边界
+                sourceNodeRect,  // 源节点边�?
                 targetNodeRect,  // 目标节点边界
                 allNodeRects);   // 所有节点边界（用于碰撞检测）
 
@@ -311,7 +311,7 @@ namespace SunEyeVision.UI.Services.Connection
             // 更新连线路径点集合（用于调试和显示）
             UpdateConnectionPathPoints(connection, pathPoints);
 
-            // 计算箭头位置和角度
+            // 计算箭头位置和角�?
             var (arrowPosition, arrowAngle) = _pathCalculator.CalculateArrow(pathPoints, targetPos, targetDirection);
             connection.ArrowPosition = arrowPosition;
             connection.ArrowAngle = arrowAngle;
@@ -330,7 +330,7 @@ namespace SunEyeVision.UI.Services.Connection
                 "bottom" or "bottomport" => node.BottomPortPosition,
                 "left" or "leftport" => node.LeftPortPosition,
                 "right" or "rightport" => node.RightPortPosition,
-                _ => node.RightPortPosition // 默认为右侧端口
+                _ => node.RightPortPosition // 默认为右侧端�?
             };
         }
 
@@ -411,7 +411,7 @@ namespace SunEyeVision.UI.Services.Connection
     }
 
     /// <summary>
-    /// 缓存的路径
+    /// 缓存的路�?
     /// </summary>
     internal class CachedPath
     {
@@ -434,7 +434,7 @@ namespace SunEyeVision.UI.Services.Connection
 
         public override string ToString()
         {
-            return $"缓存大小: {CacheSize}, 命中: {CacheHits}, 未命中: {CacheMisses}, 命中率: {HitRate:P2}";
+            return $"缓存大小: {CacheSize}, 命中: {CacheHits}, 未命�? {CacheMisses}, 命中�? {HitRate:P2}";
         }
     }
 }

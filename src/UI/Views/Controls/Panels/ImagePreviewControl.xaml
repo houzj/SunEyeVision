@@ -9,7 +9,7 @@
              d:DesignHeight="140" d:DesignWidth="500">
 
     <UserControl.Resources>
-        <!-- 样式转换器 -->
+        <!-- 样式转换�?-->
         <local:ThumbnailStyleConverter x:Key="ThumbnailStyleConverter"/>
         <local:ImageRunModeDisplayConverter x:Key="ImageRunModeDisplayConverter"/>
         <local:BooleanToBrushConverter x:Key="BooleanToBrushConverter"/>
@@ -119,7 +119,7 @@
             <Setter Property="Foreground" Value="#E0E0E0"/>
         </Style>
 
-        <!-- 开关按钮样式 -->
+        <!-- 开关按钮样�?-->
         <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
             <Setter Property="Template">
                 <Setter.Value>
@@ -156,13 +156,13 @@
         </Style>
 
 
-        <!-- 运行模式选择按钮样式（自定义Button + Popup） -->
+        <!-- 运行模式选择按钮样式（自定义Button + Popup�?-->
         <Style x:Key="RunModeSelectButton" TargetType="Button">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <!-- 主按钮区域 -->
+                            <!-- 主按钮区�?-->
                             <Border x:Name="Border"
                                     Background="Transparent"
                                     BorderBrush="#555555"
@@ -196,7 +196,7 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <!-- 下拉列表项样式 -->
+        <!-- 下拉列表项样�?-->
         <Style x:Key="RunModeListBoxItem" TargetType="ListBoxItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -226,13 +226,13 @@
             <Setter Property="Foreground" Value="#E0E0E0"/>
         </Style>
 
-        <!-- 运行模式枚举值数组 -->
+        <!-- 运行模式枚举值数�?-->
         <x:Array x:Key="ImageRunModeValues" Type="{x:Type local:ImageRunMode}">
             <local:ImageRunMode>运行全部</local:ImageRunMode>
             <local:ImageRunMode>运行选择</local:ImageRunMode>
         </x:Array>
 
-        <!-- 反向布尔转换器 -->
+        <!-- 反向布尔转换�?-->
         <local:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
         <!-- 窄滚动条模板 -->
@@ -257,9 +257,9 @@
                            Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
                     <ScrollBar.Template>
                         <ControlTemplate TargetType="ScrollBar">
-                            <!-- 外层透明命中区域（15px高） -->
+                            <!-- 外层透明命中区域�?5px高） -->
                             <Grid Height="15" Background="Transparent">
-                                <!-- 内层视觉滚动条（3px高，垂直居中） -->
+                                <!-- 内层视觉滚动条（3px高，垂直居中�?-->
                                 <Border Height="3"
                                         VerticalAlignment="Center"
                                         Background="#1A1A1A"
@@ -271,17 +271,17 @@
                                                           ShadowDepth="0"/>
                                     </Border.Effect>
                                 </Border>
-                                <!-- Track层 - 扩大命中区域 -->
+                                <!-- Track�?- 扩大命中区域 -->
                                 <Track x:Name="PART_Track" IsDirectionReversed="False">
                                     <Track.Thumb>
                                         <Thumb>
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Grid Background="Transparent">
-                                                        <!-- 外层透明命中区域（15px） -->
+                                                        <!-- 外层透明命中区域�?5px�?-->
                                                         <Border Background="Transparent"
                                                                 Height="15"/>
-                                                        <!-- 内层视觉Thumb（3px，垂直居中） -->
+                                                        <!-- 内层视觉Thumb�?px，垂直居中） -->
                                                         <Border x:Name="ThumbBorder"
                                                                 Background="#555555"
                                                                 Height="3"
@@ -315,7 +315,7 @@
         </ControlTemplate>
     </UserControl.Resources>
 
-    <!-- 主容器 -->
+    <!-- 主容�?-->
     <Border Background="#333333" BorderBrush="#444444" BorderThickness="1" CornerRadius="6" Padding="2"
             HorizontalAlignment="Stretch">
         <Grid HorizontalAlignment="Stretch">
@@ -325,7 +325,7 @@
                 <RowDefinition Height="90"/>
             </Grid.RowDefinitions>
 
-            <!-- 顶部工具栏 -->
+            <!-- 顶部工具�?-->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -341,7 +341,7 @@
                            VerticalAlignment="Center"
                            Margin="0,0,12,0"/>
 
-                <!-- 按钮组容器 -->
+                <!-- 按钮组容�?-->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
 
                     <!-- 运行模式选择 -->
@@ -387,29 +387,29 @@
                                VerticalAlignment="Center"
                                Margin="6,0,6,0"/>
 
-                    <!-- 自动切换开关 -->
+                    <!-- 自动切换开�?-->
                     <ToggleButton x:Name="AutoSwitchToggle"
                                    IsChecked="{Binding AutoSwitchEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    Style="{StaticResource SwitchToggleButton}"
                                    Margin="0,0,0,0"
                                    ToolTip="自动切换"/>
-                    <!-- 分隔线 -->
+                    <!-- 分隔�?-->
                     <Border Width="1"
                             Background="#555555"
                             Margin="12,6,12,6"
                             VerticalAlignment="Stretch"/>
                     <!-- 添加图片 -->
-                    <Button Content="➕"
+                    <Button Content="�?
                             Command="{Binding AddImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Style="{StaticResource IconButton}"
                             ToolTip="添加图片"/>
 
-                    <!-- 添加文件夹 -->
+                    <!-- 添加文件�?-->
                     <Button Content="📁"
                             Command="{Binding AddFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Style="{StaticResource IconButton}"
                             Margin="6,0,0,0"
-                            ToolTip="添加文件夹"/>
+                            ToolTip="添加文件�?/>
 
                     <!-- 清除全部 -->
                     <Button Content="🧹"
@@ -423,7 +423,7 @@
                 </StackPanel>
             </Grid>
 
-            <!-- 图像缩略图列表 -->
+            <!-- 图像缩略图列�?-->
             <!-- P1优化: 启用UI虚拟化，减少内存占用和提升滚动性能 -->
             <!-- 注意：水平StackPanel需要CanContentScroll=False才能正确计算视口 -->
             <ListBox x:Name="ThumbnailListBox"
@@ -459,12 +459,12 @@
                                     <Setter Property="BorderThickness" Value="1"/>
                                     <Setter Property="CornerRadius" Value="4"/>
                                     <Style.Triggers>
-                                        <!-- 选中状态 -->
+                                        <!-- 选中状�?-->
                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                             <Setter Property="BorderBrush" Value="#4CAF50"/>
                                             <Setter Property="BorderThickness" Value="2"/>
                                         </DataTrigger>
-                                        <!-- 运行选择模式下已勾选状态 -->
+                                        <!-- 运行选择模式下已勾选状�?-->
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
                                                 <Condition Binding="{Binding IsForRun}" Value="True"/>
@@ -523,7 +523,7 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- 右上角删除按钮 -->
+                                <!-- 右上角删除按�?-->
                                 <Button Command="{Binding DeleteSingleImageCommand,
                                                 RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
@@ -536,7 +536,7 @@
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Cursor="Hand"
-                                        ToolTip="删除此图像"
+                                        ToolTip="删除此图�?
                                         PreviewMouseLeftButtonDown="OnDeleteButtonPreview">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
@@ -545,7 +545,7 @@
                                                     CornerRadius="10"
                                                     Width="20"
                                                     Height="20">
-                                                <TextBlock Text="✕"
+                                                <TextBlock Text="�?
                                                            FontSize="12"
                                                            Foreground="White"
                                                            HorizontalAlignment="Center"
@@ -563,7 +563,7 @@
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Button.Template>
-                                    <!-- 只在鼠标悬停时显示 -->
+                                    <!-- 只在鼠标悬停时显�?-->
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -599,7 +599,7 @@
                                                                 Width="16"
                                                                 Height="16">
                                                             <TextBlock x:Name="CheckMark"
-                                                                       Text="✓"
+                                                                       Text="�?
                                                                        FontSize="12"
                                                                        FontWeight="Bold"
                                                                        Foreground="#4CAF50"
@@ -608,7 +608,7 @@
                                                                        Visibility="Collapsed"/>
                                                         </Border>
                                                         <ControlTemplate.Triggers>
-                                                            <!-- 勾选状态 -->
+                                                            <!-- 勾选状�?-->
                                                             <Trigger Property="IsChecked" Value="True">
                                                                 <Setter TargetName="CheckBorder" Property="Background" Value="#334CAF50"/>
                                                                 <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#4CAF50"/>
@@ -623,7 +623,7 @@
                                                 </Setter.Value>
                                             </Setter>
                                             <Style.Triggers>
-                                                <!-- 运行模式为"运行选择"时显示 -->
+                                                <!-- 运行模式�?运行选择"时显�?-->
                                                 <DataTrigger Binding="{Binding ImageRunMode, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              Value="运行选择">
                                                     <Setter Property="Visibility" Value="Visible"/>

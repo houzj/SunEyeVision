@@ -21,7 +21,7 @@ namespace SunEyeVision.Core.IO
         /// <summary>是否标记删除</summary>
         public bool IsMarkedForDeletion { get; set; }
         
-        /// <summary>最后访问时间</summary>
+        /// <summary>最后访问时�?/summary>
         public DateTime LastAccessTime { get; set; }
         
         /// <summary>创建时间</summary>
@@ -29,17 +29,17 @@ namespace SunEyeVision.Core.IO
     }
 
     /// <summary>
-    /// 文件访问管理器 - 核心实现
+    /// 文件访问管理�?- 核心实现
     /// 
-    /// 核心功能：
-    /// 1. 引用计数跟踪正在使用的文件
+    /// 核心功能�?
+    /// 1. 引用计数跟踪正在使用的文�?
     /// 2. 延迟删除机制（文件使用中时标记为待删除）
-    /// 3. 线程安全的并发访问控制
+    /// 3. 线程安全的并发访问控�?
     /// 
-    /// 设计原则：
+    /// 设计原则�?
     /// - 统一的文件访问入口点
     /// - RAII模式确保正确释放
-    /// - 最小化锁持有时间
+    /// - 最小化锁持有时�?
     /// </summary>
     public class FileAccessManager : IFileAccessManager
     {
@@ -47,15 +47,15 @@ namespace SunEyeVision.Core.IO
         private readonly HashSet<string> _deletedFiles;
         private readonly object _deletedFilesLock = new object();
         
-        // 延迟删除队列：文件路径 -> 删除请求时间
+        // 延迟删除队列：文件路�?-> 删除请求时间
         private readonly ConcurrentDictionary<string, DateTime> _pendingDeletions;
         
-        // 延迟删除检查间隔
+        // 延迟删除检查间�?
         private readonly TimeSpan _deletionCheckInterval = TimeSpan.FromSeconds(30);
         private DateTime _lastDeletionCheck = DateTime.MinValue;
 
         /// <summary>
-        /// 创建文件访问管理器
+        /// 创建文件访问管理�?
         /// </summary>
         public FileAccessManager()
         {
@@ -63,7 +63,7 @@ namespace SunEyeVision.Core.IO
             _deletedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _pendingDeletions = new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
             
-            Debug.WriteLine("[FileAccessManager] ✓ 文件访问管理器已初始化");
+            Debug.WriteLine("[FileAccessManager] �?文件访问管理器已初始�?);
         }
 
         /// <inheritdoc/>
@@ -83,13 +83,13 @@ namespace SunEyeVision.Core.IO
                 return FileAccessResult.FileDeleted;
             }
 
-            // 对于删除意图，特殊处理
+            // 对于删除意图，特殊处�?
             if (intent == FileAccessIntent.Delete)
             {
                 return TryMarkForDeletion(filePath);
             }
 
-            // 检查文件是否存在（对于读取操作）
+            // 检查文件是否存在（对于读取操作�?
             if (intent == FileAccessIntent.Read && !File.Exists(filePath))
             {
                 return FileAccessResult.FileNotFound;
@@ -132,7 +132,7 @@ namespace SunEyeVision.Core.IO
                     
                     if (info.ReferenceCount <= 0)
                     {
-                        // 引用计数归零，移除跟踪
+                        // 引用计数归零，移除跟�?
                         _trackingInfo.TryRemove(filePath, out _);
                         
                         // 如果文件被标记删除，现在可以执行删除
@@ -153,8 +153,8 @@ namespace SunEyeVision.Core.IO
             string? errorMessage = result switch
             {
                 FileAccessResult.FileDeleted => "文件已被标记删除",
-                FileAccessResult.FileLocked => "文件被锁定",
-                FileAccessResult.FileNotFound => "文件不存在",
+                FileAccessResult.FileLocked => "文件被锁�?,
+                FileAccessResult.FileNotFound => "文件不存�?,
                 _ => null
             };
             
@@ -200,14 +200,14 @@ namespace SunEyeVision.Core.IO
                 return FileAccessResult.FileDeleted;
             }
 
-            // 如果文件正在使用，标记为待删除
+            // 如果文件正在使用，标记为待删�?
             if (IsFileInUse(filePath))
             {
                 if (_trackingInfo.TryGetValue(filePath, out var info))
                 {
                     info.IsMarkedForDeletion = true;
                     _pendingDeletions.TryAdd(filePath, DateTime.UtcNow);
-                    Debug.WriteLine($"[FileAccessManager] ⊘ 文件正在使用，标记待删除: {Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[FileAccessManager] �?文件正在使用，标记待删除: {Path.GetFileName(filePath)}");
                     return FileAccessResult.FileLocked; // 返回锁定状态，表示延迟删除
                 }
             }
@@ -234,7 +234,7 @@ namespace SunEyeVision.Core.IO
                 _deletedFiles.Clear();
             }
             
-            Debug.WriteLine("[FileAccessManager] ✓ 已清除删除记录");
+            Debug.WriteLine("[FileAccessManager] �?已清除删除记�?);
         }
 
         /// <summary>
@@ -245,7 +245,7 @@ namespace SunEyeVision.Core.IO
         {
             var now = DateTime.UtcNow;
             
-            // 限制检查频率
+            // 限制检查频�?
             if (now - _lastDeletionCheck < _deletionCheckInterval)
             {
                 return;
@@ -258,23 +258,23 @@ namespace SunEyeVision.Core.IO
             {
                 var filePath = kvp.Key;
                 
-                // 如果文件不再使用，执行删除
+                // 如果文件不再使用，执行删�?
                 if (!IsFileInUse(filePath))
                 {
                     ExecuteDelayedDeletion(filePath);
                 }
-                // 如果超过5分钟还没删除，强制标记为已删除（防止泄漏）
+                // 如果超过5分钟还没删除，强制标记为已删除（防止泄漏�?
                 else if (now - kvp.Value > TimeSpan.FromMinutes(5))
                 {
                     MarkAsDeleted(filePath);
                     _pendingDeletions.TryRemove(filePath, out _);
-                    Debug.WriteLine($"[FileAccessManager] ⚠ 强制标记删除（超时）: {Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[FileAccessManager] �?强制标记删除（超时）: {Path.GetFileName(filePath)}");
                 }
             }
         }
 
         /// <summary>
-        /// 尝试标记文件为删除状态
+        /// 尝试标记文件为删除状�?
         /// </summary>
         private FileAccessResult TryMarkForDeletion(string filePath)
         {
@@ -284,7 +284,7 @@ namespace SunEyeVision.Core.IO
                 return FileAccessResult.FileDeleted;
             }
 
-            // 如果文件正在使用，标记为待删除
+            // 如果文件正在使用，标记为待删�?
             if (IsFileInUse(filePath))
             {
                 if (_trackingInfo.TryGetValue(filePath, out var info))
@@ -315,7 +315,7 @@ namespace SunEyeVision.Core.IO
                 File.Delete(filePath);
                 MarkAsDeleted(filePath);
                 
-                Debug.WriteLine($"[FileAccessManager] ✓ 文件已删除: {Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[FileAccessManager] �?文件已删�? {Path.GetFileName(filePath)}");
                 return FileAccessResult.Granted;
             }
             catch (FileNotFoundException)
@@ -325,18 +325,18 @@ namespace SunEyeVision.Core.IO
             }
             catch (IOException ex)
             {
-                Debug.WriteLine($"[FileAccessManager] ⚠ 文件被占用: {Path.GetFileName(filePath)} - {ex.Message}");
+                Debug.WriteLine($"[FileAccessManager] �?文件被占�? {Path.GetFileName(filePath)} - {ex.Message}");
                 return FileAccessResult.FileLocked;
             }
             catch (UnauthorizedAccessException)
             {
-                Debug.WriteLine($"[FileAccessManager] ⚠ 无权限删除: {Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[FileAccessManager] �?无权限删�? {Path.GetFileName(filePath)}");
                 return FileAccessResult.FileLocked;
             }
         }
 
         /// <summary>
-        /// 执行延迟删除（引用计数归零时调用）
+        /// 执行延迟删除（引用计数归零时调用�?
         /// </summary>
         private void ExecuteDelayedDeletion(string filePath)
         {
@@ -347,11 +347,11 @@ namespace SunEyeVision.Core.IO
                 try
                 {
                     File.Delete(filePath);
-                    Debug.WriteLine($"[FileAccessManager] ✓ 延迟删除完成: {Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[FileAccessManager] �?延迟删除完成: {Path.GetFileName(filePath)}");
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[FileAccessManager] ⚠ 延迟删除失败: {Path.GetFileName(filePath)} - {ex.Message}");
+                    Debug.WriteLine($"[FileAccessManager] �?延迟删除失败: {Path.GetFileName(filePath)} - {ex.Message}");
                 }
             }
             
@@ -381,7 +381,7 @@ namespace SunEyeVision.Core.IO
                 deletedCount = _deletedFiles.Count;
             }
             
-            return $"正在使用:{inUseFiles.Count}个 已删除记录:{deletedCount}个 待删除:{_pendingDeletions.Count}个";
+            return $"正在使用:{inUseFiles.Count}�?已删除记�?{deletedCount}�?待删�?{_pendingDeletions.Count}�?;
         }
     }
 }

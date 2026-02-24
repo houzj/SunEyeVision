@@ -6,27 +6,27 @@ using System.Windows.Media.Imaging;
 namespace SunEyeVision.UI.Controls.Rendering
 {
     /// <summary>
-    /// EXIF嵌入式缩略图提取器
-    /// 从相机拍摄的照片中快速提取嵌入的缩略图
+    /// EXIF嵌入式缩略图提取�?
+    /// 从相机拍摄的照片中快速提取嵌入的缩略�?
     /// 
-    /// 性能特点：
-    /// - 有EXIF缩略图时：5-20ms（比完整解码快50-100倍）
-    /// - 无EXIF缩略图时：1-5ms（快速检测并返回）
+    /// 性能特点�?
+    /// - 有EXIF缩略图时�?-20ms（比完整解码�?0-100倍）
+    /// - 无EXIF缩略图时�?-5ms（快速检测并返回�?
     /// 
-    /// 适用场景：
+    /// 适用场景�?
     /// 1. 数码相机拍摄的照片（通常包含160x120或更大的缩略图）
-    /// 2. 智能手机拍摄的照片
+    /// 2. 智能手机拍摄的照�?
     /// 3. 经过后期的照片（可能保留原始缩略图）
     /// 
-    /// 注意事项：
-    /// - EXIF缩略图通常分辨率较低（160x120左右）
-    /// - 对于大尺寸预览需要回退到完整解码
+    /// 注意事项�?
+    /// - EXIF缩略图通常分辨率较低（160x120左右�?
+    /// - 对于大尺寸预览需要回退到完整解�?
     /// </summary>
     public static class ExifThumbnailExtractor
     {
         /// <summary>
         /// 最小可接受的缩略图尺寸比例
-        /// 如果EXIF缩略图小于目标尺寸的一半，则认为质量不足
+        /// 如果EXIF缩略图小于目标尺寸的一半，则认为质量不�?
         /// </summary>
         private const double MinSizeRatio = 0.5;
 
@@ -35,7 +35,7 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <param name="targetSize">目标尺寸</param>
-        /// <returns>BitmapSource或null（无缩略图或质量不足）</returns>
+        /// <returns>BitmapSource或null（无缩略图或质量不足�?/returns>
         public static BitmapSource? TryExtractThumbnail(string filePath, int targetSize)
         {
             if (!File.Exists(filePath))
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Controls.Rendering
 
             try
             {
-                // 使用FileStream而非File.Open，指定最优参数
+                // 使用FileStream而非File.Open，指定最优参�?
                 using var stream = new FileStream(
                     filePath,
                     FileMode.Open,
@@ -59,8 +59,8 @@ namespace SunEyeVision.UI.Controls.Rendering
                     bufferSize: 4096,
                     FileOptions.SequentialScan);
 
-                // 使用BitmapDecoder的Thumbnail属性
-                // 这会尝试读取EXIF中的缩略图，而不是解码整个图片
+                // 使用BitmapDecoder的Thumbnail属�?
+                // 这会尝试读取EXIF中的缩略图，而不是解码整个图�?
                 var decoder = BitmapDecoder.Create(
                     stream,
                     BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.DelayCreation,
@@ -80,7 +80,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 if (thumbnail.PixelWidth < targetSize * MinSizeRatio)
                 {
                     sw.Stop();
-                    Debug.WriteLine($"[EXIF] 缩略图太小 {thumbnail.PixelWidth}x{thumbnail.PixelHeight} < {targetSize}: {Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[EXIF] 缩略图太�?{thumbnail.PixelWidth}x{thumbnail.PixelHeight} < {targetSize}: {Path.GetFileName(filePath)}");
                     return null;
                 }
 
@@ -98,7 +98,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                     result = ResizeThumbnail(thumbnail, targetSize);
                 }
 
-                // 冻结以便跨线程使用
+                // 冻结以便跨线程使�?
                 if (result.CanFreeze)
                     result.Freeze();
 
@@ -140,7 +140,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 stream.Read(buffer, 0, buffer.Length);
 
                 // 检查JPEG SOI标记和EXIF标记
-                // JPEG文件以FF D8开头
+                // JPEG文件以FF D8开�?
                 if (buffer.Length < 4 || buffer[0] != 0xFF || buffer[1] != 0xD8)
                     return false;
 
@@ -163,11 +163,11 @@ namespace SunEyeVision.UI.Controls.Rendering
         }
 
         /// <summary>
-        /// 调整缩略图尺寸
+        /// 调整缩略图尺�?
         /// </summary>
         private static BitmapSource ResizeThumbnail(BitmapSource source, int targetSize)
         {
-            // 计算目标尺寸（保持宽高比）
+            // 计算目标尺寸（保持宽高比�?
             double ratio = Math.Min(
                 (double)targetSize / source.PixelWidth,
                 (double)targetSize / source.PixelHeight);
@@ -198,7 +198,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             var result = new BitmapImage();
             using var memory = new MemoryStream();
 
-            // 编码为PNG以保持质量
+            // 编码为PNG以保持质�?
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(thumbnail));
             encoder.Save(memory);

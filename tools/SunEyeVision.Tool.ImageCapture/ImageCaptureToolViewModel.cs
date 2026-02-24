@@ -1,5 +1,5 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.ImageCapture
 {
     public class ImageCaptureToolViewModel : AutoToolDebugViewModelBase
@@ -73,8 +73,8 @@ namespace SunEyeVision.Tool.ImageCapture
 
         public override void RunTool()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在从设备 {_deviceId} 采集图像 ({Width}x{Height})...";
+            ToolStatus = "运行�?;
+            StatusMessage = $"正在从设�?{_deviceId} 采集图像 ({Width}x{Height})...";
             
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(200, 500));

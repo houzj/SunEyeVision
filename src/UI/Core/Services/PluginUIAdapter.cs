@@ -3,8 +3,8 @@ using SunEyeVision.Core.Interfaces.Plugins;
 namespace SunEyeVision.UI.Core.Services
 {
     /// <summary>
-    /// 插件UI适配器
-    /// 智能选择UI展示方式：自动、混合或自定义
+    /// 插件UI适配�?
+    /// 智能选择UI展示方式：自动、混合或自定�?
     /// </summary>
     public class PluginUIAdapter
     {
@@ -18,7 +18,7 @@ namespace SunEyeVision.UI.Core.Services
         }
 
         /// <summary>
-        /// 获取主界面控件
+        /// 获取主界面控�?
         /// </summary>
         public object? GetMainControl()
         {
@@ -44,7 +44,7 @@ namespace SunEyeVision.UI.Core.Services
                 return _uiProvider.GetCustomPanel();
             }
 
-            // Auto模式：无自定义面板
+            // Auto模式：无自定义面�?
             return null;
         }
 
@@ -57,7 +57,7 @@ namespace SunEyeVision.UI.Core.Services
         }
 
         /// <summary>
-        /// 是否需要属性面板
+        /// 是否需要属性面�?
         /// </summary>
         public bool NeedsPropertyPanel()
         {

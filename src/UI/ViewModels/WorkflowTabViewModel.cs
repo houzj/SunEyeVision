@@ -31,12 +31,12 @@ namespace SunEyeVision.UI.ViewModels
         private CanvasType _canvasType;
 
         /// <summary>
-        /// 节点序号管理器
+        /// 节点序号管理�?
         /// </summary>
         private readonly INodeSequenceManager _sequenceManager;
 
         /// <summary>
-        /// 节点显示适配器
+        /// 节点显示适配�?
         /// </summary>
         private readonly INodeDisplayAdapter _displayAdapter;
 
@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.ViewModels
         private readonly IWorkflowNodeFactory _nodeFactory;
 
         /// <summary>
-        /// 每个画布独立的撤销/重做命令管理器
+        /// 每个画布独立的撤销/重做命令管理�?
         /// </summary>
         public AppCommands.CommandManager CommandManager { get; }
 
@@ -57,7 +57,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 带依赖注入的构造函数
+        /// 带依赖注入的构造函�?
         /// </summary>
         public WorkflowTabViewModel(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
         {
@@ -68,7 +68,7 @@ namespace SunEyeVision.UI.ViewModels
             _nodeFactory = new WorkflowNodeFactory(_sequenceManager, _displayAdapter);
 
             Id = Guid.NewGuid().ToString();
-            Name = "工作流1";
+            Name = "工作�?";
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
@@ -77,10 +77,10 @@ namespace SunEyeVision.UI.ViewModels
             ScaleTransform = new ScaleTransform(1.0, 1.0);
             CanvasType = CanvasType.WorkflowCanvas; // 默认使用 WorkflowCanvas，每个工作流独立
 
-            // 每个画布初始化独立的命令管理器
+            // 每个画布初始化独立的命令管理�?
             CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
 
-            // 订阅节点和连接集合变化事件
+            // 订阅节点和连接集合变化事�?
             WorkflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
             WorkflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
         }
@@ -95,7 +95,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流名称
+        /// 工作流名�?
         /// </summary>
         public string Name
         {
@@ -128,7 +128,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流状态
+        /// 工作流状�?
         /// </summary>
         public WorkflowState State
         {
@@ -137,7 +137,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流节点集合
+        /// 工作流节点集�?
         /// </summary>
         public ObservableCollection<Models.WorkflowNode> WorkflowNodes
         {
@@ -161,7 +161,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流连接集合
+        /// 工作流连接集�?
         /// </summary>
         public ObservableCollection<Models.WorkflowConnection> WorkflowConnections
         {
@@ -185,7 +185,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 缩放变换对象（每个工作流独立）
+        /// 缩放变换对象（每个工作流独立�?
         /// </summary>
         public ScaleTransform ScaleTransform
         {
@@ -194,7 +194,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 当前缩放比例（每个工作流独立，默认1.0即100%）
+        /// 当前缩放比例（每个工作流独立，默�?.0�?00%�?
         /// </summary>
         public double CurrentScale
         {
@@ -214,12 +214,12 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 单次运行按钮文本
         /// </summary>
-        public string SingleRunButtonText => "▶";
+        public string SingleRunButtonText => "�?;
 
         /// <summary>
         /// 连续运行按钮文本
         /// </summary>
-        public string ContinuousRunButtonText => IsRunning ? "⏹" : "▶▶";
+        public string ContinuousRunButtonText => IsRunning ? "�? : "▶▶";
 
         /// <summary>
         /// 是否可以删除
@@ -227,7 +227,7 @@ namespace SunEyeVision.UI.ViewModels
         public bool IsCloseable => true;
 
         /// <summary>
-        /// 获取状态显示文本
+        /// 获取状态显示文�?
         /// </summary>
         public string StateText
         {
@@ -235,17 +235,17 @@ namespace SunEyeVision.UI.ViewModels
             {
                 return State switch
                 {
-                    WorkflowState.Stopped => "●",
-                    WorkflowState.Running => "●",
-                    WorkflowState.Paused => "●",
-                    WorkflowState.Error => "●",
-                    _ => "●"
+                    WorkflowState.Stopped => "�?,
+                    WorkflowState.Running => "�?,
+                    WorkflowState.Paused => "�?,
+                    WorkflowState.Error => "�?,
+                    _ => "�?
                 };
             }
         }
 
         /// <summary>
-        /// 获取状态颜色
+        /// 获取状态颜�?
         /// </summary>
         public string StateColor
         {
@@ -266,7 +266,7 @@ namespace SunEyeVision.UI.ViewModels
         /// 创建新节点并自动分配序号
         /// </summary>
         /// <param name="algorithmType">算法类型</param>
-        /// <param name="name">节点名称（可选，默认使用算法类型）</param>
+        /// <param name="name">节点名称（可选，默认使用算法类型�?/param>
         /// <returns>新创建的节点</returns>
         public Models.WorkflowNode CreateNode(string algorithmType, string? name = null)
         {
@@ -275,14 +275,14 @@ namespace SunEyeVision.UI.ViewModels
                 throw new InvalidOperationException("NodeFactory is not initialized");
             }
 
-            // 使用工厂创建节点，自动处理序号分配
+            // 使用工厂创建节点，自动处理序号分�?
             var node = _nodeFactory.CreateNode(algorithmType, name, Id);
 
             return node;
         }
 
         /// <summary>
-        /// 重置工作流的所有序号
+        /// 重置工作流的所有序�?
         /// </summary>
         public void ResetNodeSequences()
         {
@@ -299,13 +299,13 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 工作流状态枚举
+    /// 工作流状态枚�?
     /// </summary>
     public enum WorkflowState
     {
-        Stopped,   // 已停止
-        Running,   // 运行中
-        Paused,    // 已暂停
+        Stopped,   // 已停�?
+        Running,   // 运行�?
+        Paused,    // 已暂�?
         Error      // 错误
     }
 }

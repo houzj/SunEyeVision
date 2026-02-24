@@ -1,29 +1,29 @@
 using System.Collections.Generic;
 
-namespace SunEyeVision.Plugin.Abstractions
+namespace SunEyeVision.Plugin.SDK.Validation
 {
     /// <summary>
-    /// ²ÎÊıÑéÖ¤½á¹û
+    /// å‚æ•°éªŒè¯ç»“æœ
     /// </summary>
     public class ValidationResult
     {
         /// <summary>
-        /// ÊÇ·ñÑéÖ¤Í¨¹ı
+        /// æ˜¯å¦éªŒè¯é€šè¿‡
         /// </summary>
         public bool IsValid { get; set; } = true;
 
         /// <summary>
-        /// ´íÎóĞÅÏ¢ÁĞ±í
+        /// é”™è¯¯ä¿¡æ¯åˆ—è¡¨
         /// </summary>
         public List<string> Errors { get; set; } = new List<string>();
 
         /// <summary>
-        /// ¾¯¸æĞÅÏ¢ÁĞ±í
+        /// è­¦å‘Šä¿¡æ¯åˆ—è¡¨
         /// </summary>
         public List<string> Warnings { get; set; } = new List<string>();
 
         /// <summary>
-        /// ´´½¨ÑéÖ¤³É¹¦µÄ½á¹û
+        /// åˆ›å»ºéªŒè¯æˆåŠŸçš„ç»“æœ
         /// </summary>
         public static ValidationResult Success()
         {
@@ -31,9 +31,9 @@ namespace SunEyeVision.Plugin.Abstractions
         }
 
         /// <summary>
-        /// ´´½¨ÑéÖ¤Ê§°ÜµÄ½á¹û
+        /// åˆ›å»ºéªŒè¯å¤±è´¥çš„ç»“æœ
         /// </summary>
-        /// <param name="error">´íÎóĞÅÏ¢</param>
+        /// <param name="error">é”™è¯¯ä¿¡æ¯</param>
         public static ValidationResult Failure(string error)
         {
             return new ValidationResult
@@ -44,9 +44,9 @@ namespace SunEyeVision.Plugin.Abstractions
         }
 
         /// <summary>
-        /// ´´½¨ÑéÖ¤Ê§°ÜµÄ½á¹û (¶à¸ö´íÎó)
+        /// åˆ›å»ºéªŒè¯å¤±è´¥çš„ç»“æœ(å¤šä¸ªé”™è¯¯)
         /// </summary>
-        /// <param name="errors">´íÎóĞÅÏ¢ÁĞ±í</param>
+        /// <param name="errors">é”™è¯¯ä¿¡æ¯åˆ—è¡¨</param>
         public static ValidationResult Failure(IEnumerable<string> errors)
         {
             return new ValidationResult
@@ -57,9 +57,9 @@ namespace SunEyeVision.Plugin.Abstractions
         }
 
         /// <summary>
-        /// Ìí¼Ó´íÎóĞÅÏ¢
+        /// æ·»åŠ é”™è¯¯ä¿¡æ¯
         /// </summary>
-        /// <param name="error">´íÎóĞÅÏ¢</param>
+        /// <param name="error">é”™è¯¯ä¿¡æ¯</param>
         public void AddError(string error)
         {
             IsValid = false;
@@ -67,19 +67,19 @@ namespace SunEyeVision.Plugin.Abstractions
         }
 
         /// <summary>
-        /// Ìí¼Ó¾¯¸æĞÅÏ¢
+        /// æ·»åŠ è­¦å‘Šä¿¡æ¯
         /// </summary>
-        /// <param name="warning">¾¯¸æĞÅÏ¢</param>
+        /// <param name="warning">è­¦å‘Šä¿¡æ¯</param>
         public void AddWarning(string warning)
         {
             Warnings.Add(warning);
         }
 
         /// <summary>
-        /// ºÏ²¢ÁíÒ»¸öÑéÖ¤½á¹û
+        /// åˆå¹¶å¦ä¸€ä¸ªéªŒè¯ç»“æœ
         /// </summary>
-        /// <param name="other">ÆäËûÑéÖ¤½á¹û</param>
-        public void Merge(ValidationResult other)
+        /// <param name="other">å…¶ä»–éªŒè¯ç»“æœ</param>
+        public void Merge(ValidationResult? other)
         {
             if (other == null) return;
 

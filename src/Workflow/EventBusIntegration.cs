@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using OpenCvSharp;
 using SunEyeVision.Core.Events;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
 {

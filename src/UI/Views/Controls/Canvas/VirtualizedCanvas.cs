@@ -10,7 +10,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// 虚拟化画布 - 只渲染可见区域内的节点和连线
+    /// 虚拟化画�?- 只渲染可见区域内的节点和连线
     /// 用于提升大规模节点场景下的渲染性能
     /// </summary>
     public class VirtualizedCanvas : System.Windows.Controls.Canvas
@@ -20,9 +20,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         private readonly HashSet<string> _visibleNodes = new HashSet<string>();
         private readonly HashSet<string> _visibleConnections = new HashSet<string>();
 
-        // 可见区域（带缓冲）
+        // 可见区域（带缓冲�?
         private Rect _viewPort = new Rect(0, 0, 1920, 1080);
-        private readonly double _bufferSize = 200.0; // 缓冲区大小（像素）
+        private readonly double _bufferSize = 200.0; // 缓冲区大小（像素�?
 
         // 性能统计
         public int TotalNodes => _allNodes.Count;
@@ -41,7 +41,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             _allNodes.CollectionChanged += (s, e) => UpdateVisibleNodes();
             _allConnections.CollectionChanged += (s, e) => UpdateVisibleConnections();
 
-            // 初始化可见元素
+            // 初始化可见元�?
             UpdateVisibleNodes();
             UpdateVisibleConnections();
         }
@@ -154,7 +154,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 检查连线是否在可见区域内
+        /// 检查连线是否在可见区域�?
         /// </summary>
         private bool IsConnectionInVisibleArea(WorkflowConnection connection, Rect visibleArea)
         {
@@ -192,7 +192,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 获取虚拟化统计信息
+        /// 获取虚拟化统计信�?
         /// </summary>
         public VirtualizationStatistics GetStatistics()
         {
@@ -212,7 +212,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 打印虚拟化统计信息
+        /// 打印虚拟化统计信�?
         /// </summary>
         public void PrintStatistics()
         {
@@ -225,7 +225,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
     }
 
     /// <summary>
-    /// 虚拟化统计信息
+    /// 虚拟化统计信�?
     /// </summary>
     public class VirtualizationStatistics
     {

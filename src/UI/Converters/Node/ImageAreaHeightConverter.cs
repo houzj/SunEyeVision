@@ -7,7 +7,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters.Node
 {
     /// <summary>
-    /// 图像显示区域高度转换器
+    /// 图像显示区域高度转换�?
     /// 根据图像预览是否显示，返回不同的高度
     /// </summary>
     public class ImageAreaHeightConverter : IValueConverter
@@ -24,7 +24,7 @@ namespace SunEyeVision.UI.Converters.Node
 
             // 默认高度
             var defaultHeight = new GridLength(500, GridUnitType.Pixel);
-            Debug.WriteLine($"[ImageAreaHeightConverter] value不是bool类型，返回默认高度={defaultHeight.Value}");
+            Debug.WriteLine($"[ImageAreaHeightConverter] value不是bool类型，返回默认高�?{defaultHeight.Value}");
             return defaultHeight;
         }
 

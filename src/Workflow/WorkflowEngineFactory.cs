@@ -1,19 +1,19 @@
-ï»¿using System;
+using System;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
 using SunEyeVision.Plugin.Infrastructure.Managers.Plugin;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å·¥ä½œæµå¼•æ“å·¥å‚ - ç”¨äºåˆ›å»ºå’Œåˆå§‹åŒ–å·¥ä½œæµç›¸å…³ç»„ä»¶
+    /// ¹¤×÷Á÷ÒıÇæ¹¤³§ - ÓÃÓÚ´´½¨ºÍ³õÊ¼»¯¹¤×÷Á÷Ïà¹Ø×é¼ş
     /// </summary>
     public static class WorkflowEngineFactory
     {
         /// <summary>
-        /// åˆ›å»ºå®Œæ•´çš„å·¥ä½œæµå¼•æ“å¥—ä»¶
+        /// ´´½¨ÍêÕûµÄ¹¤×÷Á÷ÒıÇæÌ×¼ş
         /// </summary>
         public static (WorkflowEngine, WorkflowExecutionEngine, IPluginManager) CreateEngineSuite(ILogger logger)
         {
@@ -22,23 +22,23 @@ namespace SunEyeVision.Workflow
                 throw new ArgumentNullException(nameof(logger));
             }
 
-            // 1. åˆ›å»ºæ’ä»¶ç®¡ç†å™¨ï¼ˆä¼ é€’loggerï¼‰
+            // 1. ´´½¨²å¼ş¹ÜÀíÆ÷£¨´«µİlogger£©
             var pluginManager = new PluginManager(logger);
 
-            // 2. åˆ›å»ºåŸºç¡€å·¥ä½œæµå¼•æ“
+            // 2. ´´½¨»ù´¡¹¤×÷Á÷ÒıÇæ
             var workflowEngine = new WorkflowEngine(logger);
 
-            // 3. åˆ›å»ºæ‰§è¡Œå¼•æ“
+            // 3. ´´½¨Ö´ĞĞÒıÇæ
             var executionEngine = new WorkflowExecutionEngine(workflowEngine, pluginManager, logger);
 
-            // 4. åŠ è½½å¹¶æ³¨å†Œå·¥ä½œæµæ§åˆ¶æ’ä»¶
+            // 4. ¼ÓÔØ²¢×¢²á¹¤×÷Á÷¿ØÖÆ²å¼ş
             RegisterWorkflowControlPlugin(workflowEngine, pluginManager, logger);
 
             return (workflowEngine, executionEngine, pluginManager);
         }
 
         /// <summary>
-        /// æ³¨å†Œå·¥ä½œæµæ§åˆ¶æ’ä»¶
+        /// ×¢²á¹¤×÷Á÷¿ØÖÆ²å¼ş
         /// </summary>
         private static void RegisterWorkflowControlPlugin(
             WorkflowEngine workflowEngine,
@@ -47,21 +47,21 @@ namespace SunEyeVision.Workflow
         {
             try
             {
-                // åˆ›å»ºå·¥ä½œæµæ§åˆ¶æ’ä»¶
+                // ´´½¨¹¤×÷Á÷¿ØÖÆ²å¼ş
                 var controlPlugin = new SubroutinePlugin(workflowEngine);
                 pluginManager.RegisterPlugin(controlPlugin);
 
-                logger.LogInfo("å·¥ä½œæµæ§åˆ¶æ’ä»¶å·²æ³¨å†Œ");
+                logger.LogInfo("¹¤×÷Á÷¿ØÖÆ²å¼şÒÑ×¢²á");
             }
             catch (Exception ex)
             {
-                logger.LogError($"æ³¨å†Œå·¥ä½œæµæ§åˆ¶æ’ä»¶å¤±è´¥: {ex.Message}", ex);
+                logger.LogError($"×¢²á¹¤×÷Á÷¿ØÖÆ²å¼şÊ§°Ü: {ex.Message}", ex);
                 throw;
             }
         }
 
         /// <summary>
-        /// åˆ›å»ºå·¥ä½œæµå¼•æ“ï¼ˆä»…åŸºç¡€åŠŸèƒ½ï¼‰
+        /// ´´½¨¹¤×÷Á÷ÒıÇæ£¨½ö»ù´¡¹¦ÄÜ£©
         /// </summary>
         public static WorkflowEngine CreateBasicEngine(ILogger logger)
         {
@@ -74,7 +74,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// åˆ›å»ºå·¥ä½œæµæ‰§è¡Œå¼•æ“
+        /// ´´½¨¹¤×÷Á÷Ö´ĞĞÒıÇæ
         /// </summary>
         public static WorkflowExecutionEngine CreateExecutionEngine(
             WorkflowEngine workflowEngine,

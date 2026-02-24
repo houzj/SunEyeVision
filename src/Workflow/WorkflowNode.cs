@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Workflow
 {
@@ -36,6 +38,15 @@ namespace SunEyeVision.Workflow
         public AlgorithmParameters Parameters { get; set; }
 
         /// <summary>
+        /// 参数绑定配置
+        /// </summary>
+        /// <remarks>
+        /// 支持参数与父节点输出的动态绑定。
+        /// 用于在执行时自动从父节点获取参数值。
+        /// </remarks>
+        public ParameterBindingContainer ParameterBindings { get; set; }
+
+        /// <summary>
         /// 是否启用
         /// </summary>
         public bool IsEnabled { get; set; } = true;
@@ -55,8 +66,9 @@ namespace SunEyeVision.Workflow
             Id = id;
             Name = name;
             Type = type;
-            AlgorithmType = string.Empty;  // 初始化为非null值
+            AlgorithmType = string.Empty;
             Parameters = new AlgorithmParameters();
+            ParameterBindings = new ParameterBindingContainer();
         }
 
         /// <summary>
@@ -80,8 +92,61 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public virtual IImageProcessor CreateInstance()
         {
-            // 抛出异常，由子类重写来实现具体的加载逻辑
             throw new NotImplementedException($"Algorithm type '{AlgorithmType}' is not implemented.");
+        }
+
+        /// <summary>
+        /// 获取节点的可序列化数据
+        /// </summary>
+        public Dictionary<string, object> ToDictionary()
+        {
+            var dict = new Dictionary<string, object>
+            {
+                ["Id"] = Id,
+                ["Name"] = Name,
+                ["Type"] = (int)Type,
+                ["AlgorithmType"] = AlgorithmType,
+                ["IsEnabled"] = IsEnabled,
+                ["Parameters"] = Parameters.ToDictionary()
+            };
+
+            if (ParameterBindings != null && ParameterBindings.Count > 0)
+            {
+                dict["ParameterBindings"] = ParameterBindings.ToDictionary();
+            }
+
+            return dict;
+        }
+
+        /// <summary>
+        /// 从字典创建节点
+        /// </summary>
+        public static WorkflowNode FromDictionary(Dictionary<string, object> dict, NodeType type)
+        {
+            var id = dict.TryGetValue("Id", out var idVal) ? idVal?.ToString() ?? Guid.NewGuid().ToString() : Guid.NewGuid().ToString();
+            var name = dict.TryGetValue("Name", out var nameVal) ? nameVal?.ToString() ?? "Node" : "Node";
+            var algorithmType = dict.TryGetValue("AlgorithmType", out var algoVal) ? algoVal?.ToString() ?? string.Empty : string.Empty;
+            var isEnabled = dict.TryGetValue("IsEnabled", out var enabledVal) && Convert.ToBoolean(enabledVal);
+
+            var node = new WorkflowNode(id, name, type)
+            {
+                AlgorithmType = algorithmType,
+                IsEnabled = isEnabled
+            };
+
+            // 恢复参数
+            if (dict.TryGetValue("Parameters", out var paramsVal) && paramsVal is Dictionary<string, object> paramsDict)
+            {
+                node.Parameters = AlgorithmParameters.FromDictionary(paramsDict);
+            }
+
+            // 恢复参数绑定
+            if (dict.TryGetValue("ParameterBindings", out var bindingsVal) && bindingsVal is Dictionary<string, object> bindingsDict)
+            {
+                node.ParameterBindings = ParameterBindingContainer.FromDictionary(bindingsDict);
+            }
+
+            return node;
         }
     }
 }

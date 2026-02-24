@@ -6,7 +6,7 @@ using System.Windows.Media;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 颜色字符串到画笔转换器
+    /// 颜色字符串到画笔转换�?
     /// </summary>
     public class ColorToBrushConverter : IValueConverter
     {

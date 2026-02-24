@@ -4,7 +4,7 @@ namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
     /// 面板扩展接口
-    /// 插件可通过此接口向面板系统注册自定义面板
+    /// 插件可通过此接口向面板系统注册自定义面�?
     /// </summary>
     public interface IPanelExtension
     {

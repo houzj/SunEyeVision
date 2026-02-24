@@ -5,7 +5,7 @@ using System.Windows.Media.Imaging;
 namespace SunEyeVision.UI.Shared.Controls.Visualization
 {
     /// <summary>
-    /// 图像可视化面板
+    /// 图像可视化面�?
     /// 用于显示图像处理结果
     /// </summary>
     public partial class ImageVisualizationPanel : UserControl
@@ -16,7 +16,7 @@ namespace SunEyeVision.UI.Shared.Controls.Visualization
         }
 
         /// <summary>
-        /// 图像源
+        /// 图像�?
         /// </summary>
         public BitmapSource ImageSource
         {

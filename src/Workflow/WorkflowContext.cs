@@ -1,51 +1,51 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å­ç¨‹åºè°ƒç”¨ä¿¡æ¯
+    /// ×Ó³ÌĞòµ÷ÓÃĞÅÏ¢
     /// </summary>
     public class SubroutineCallInfo
     {
         /// <summary>
-        /// å­ç¨‹åºID
+        /// ×Ó³ÌĞòID
         /// </summary>
         public string SubroutineId { get; set; }
 
         /// <summary>
-        /// èŠ‚ç‚¹ID
+        /// ½ÚµãID
         /// </summary>
         public string NodeId { get; set; }
 
         /// <summary>
-        /// è°ƒç”¨æ·±åº¦
+        /// µ÷ÓÃÉî¶È
         /// </summary>
         public int CallDepth { get; set; }
 
         /// <summary>
-        /// è°ƒç”¨æ—¶é—´
+        /// µ÷ÓÃÊ±¼ä
         /// </summary>
         public DateTime CallTime { get; set; }
 
         /// <summary>
-        /// è¾“å…¥å‚æ•°
+        /// ÊäÈë²ÎÊı
         /// </summary>
         public Dictionary<string, object> InputParameters { get; set; }
 
         /// <summary>
-        /// è¾“å‡ºç»“æœ
+        /// Êä³ö½á¹û
         /// </summary>
         public Dictionary<string, object> OutputResults { get; set; }
 
         /// <summary>
-        /// è°ƒç”¨çŠ¶æ€
+        /// µ÷ÓÃ×´Ì¬
         /// </summary>
         public CallStatus Status { get; set; }
 
         /// <summary>
-        /// é”™è¯¯ä¿¡æ¯
+        /// ´íÎóĞÅÏ¢
         /// </summary>
         public string Error { get; set; }
 
@@ -57,58 +57,58 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// è°ƒç”¨çŠ¶æ€
+    /// µ÷ÓÃ×´Ì¬
     /// </summary>
     public enum CallStatus
     {
         /// <summary>
-        /// è°ƒç”¨ä¸­
+        /// µ÷ÓÃÖĞ
         /// </summary>
         Calling,
 
         /// <summary>
-        /// æ‰§è¡Œä¸­
+        /// Ö´ĞĞÖĞ
         /// </summary>
         Executing,
 
         /// <summary>
-        /// å®Œæˆ
+        /// Íê³É
         /// </summary>
         Completed,
 
         /// <summary>
-        /// å¤±è´¥
+        /// Ê§°Ü
         /// </summary>
         Failed,
         
         /// <summary>
-        /// å·²åœæ­¢
+        /// ÒÑÍ£Ö¹
         /// </summary>
         Stopped
     }
 
     /// <summary>
-    /// èŠ‚ç‚¹æ‰§è¡ŒçŠ¶æ€ï¼ˆå†…éƒ¨ä½¿ç”¨ï¼‰
+    /// ½ÚµãÖ´ĞĞ×´Ì¬£¨ÄÚ²¿Ê¹ÓÃ£©
     /// </summary>
     public class NodeExecutionStatusInternal
     {
         /// <summary>
-        /// çŠ¶æ€
+        /// ×´Ì¬
         /// </summary>
         public NodeStatus Status { get; set; }
 
         /// <summary>
-        /// å¼€å§‹æ—¶é—´
+        /// ¿ªÊ¼Ê±¼ä
         /// </summary>
         public DateTime StartTime { get; set; }
 
         /// <summary>
-        /// ç»“æŸæ—¶é—´
+        /// ½áÊøÊ±¼ä
         /// </summary>
         public DateTime? EndTime { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œæ—¶é•¿
+        /// Ö´ĞĞÊ±³¤
         /// </summary>
         public TimeSpan? Duration => EndTime.HasValue ? EndTime.Value - StartTime : null;
 
@@ -118,149 +118,149 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// èŠ‚ç‚¹çŠ¶æ€
+    /// ½Úµã×´Ì¬
     /// </summary>
     public enum NodeStatus
     {
         /// <summary>
-        /// ç­‰å¾…ä¸­
+        /// µÈ´ıÖĞ
         /// </summary>
         Pending,
 
         /// <summary>
-        /// æ‰§è¡Œä¸­
+        /// Ö´ĞĞÖĞ
         /// </summary>
         Running,
 
         /// <summary>
-        /// å·²å®Œæˆ
+        /// ÒÑÍê³É
         /// </summary>
         Completed,
 
         /// <summary>
-        /// å¤±è´¥
+        /// Ê§°Ü
         /// </summary>
         Failed,
 
         /// <summary>
-        /// å·²è·³è¿‡
+        /// ÒÑÌø¹ı
         /// </summary>
         Skipped
     }
 
     /// <summary>
-    /// æ‰§è¡Œè·¯å¾„é¡¹
+    /// Ö´ĞĞÂ·¾¶Ïî
     /// </summary>
     public class ExecutionPathItem
     {
         /// <summary>
-        /// èŠ‚ç‚¹ID
+        /// ½ÚµãID
         /// </summary>
         public string NodeId { get; set; }
 
         /// <summary>
-        /// èŠ‚ç‚¹ç±»å‹
+        /// ½ÚµãÀàĞÍ
         /// </summary>
         public string NodeType { get; set; }
 
         /// <summary>
-        /// æ—¶é—´æˆ³
+        /// Ê±¼ä´Á
         /// </summary>
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œæ—¶é•¿
+        /// Ö´ĞĞÊ±³¤
         /// </summary>
         public TimeSpan Duration { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦æˆåŠŸ
+        /// ÊÇ·ñ³É¹¦
         /// </summary>
         public bool Success { get; set; }
 
         /// <summary>
-        /// è¾“å‡ºæ•°æ®æ‘˜è¦
+        /// Êä³öÊı¾İÕªÒª
         /// </summary>
         public string OutputSummary { get; set; }
     }
 
     /// <summary>
-    /// å·¥ä½œæµæ‰§è¡Œä¸Šä¸‹æ–‡
+    /// ¹¤×÷Á÷Ö´ĞĞÉÏÏÂÎÄ
     /// </summary>
     public class WorkflowContext
     {
         /// <summary>
-        /// å·¥ä½œæµID
+        /// ¹¤×÷Á÷ID
         /// </summary>
         public string WorkflowId { get; set; }
 
         /// <summary>
-        /// å·¥ä½œæµåç§°
+        /// ¹¤×÷Á÷Ãû³Æ
         /// </summary>
         public string WorkflowName { get; set; }
 
         /// <summary>
-        /// æ‰§è¡ŒIDï¼ˆå”¯ä¸€æ ‡è¯†ä¸€æ¬¡æ‰§è¡Œï¼‰
+        /// Ö´ĞĞID£¨Î¨Ò»±êÊ¶Ò»´ÎÖ´ĞĞ£©
         /// </summary>
         public string ExecutionId { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œå¼€å§‹æ—¶é—´
+        /// Ö´ĞĞ¿ªÊ¼Ê±¼ä
         /// </summary>
         public DateTime ExecutionStartTime { get; set; }
 
         /// <summary>
-        /// å…¨å±€å˜é‡
+        /// È«¾Ö±äÁ¿
         /// </summary>
         public Dictionary<string, object> Variables { get; set; }
 
         /// <summary>
-        /// å­ç¨‹åºè°ƒç”¨æ ˆ
+        /// ×Ó³ÌĞòµ÷ÓÃÕ»
         /// </summary>
         public Stack<SubroutineCallInfo> CallStack { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œè·¯å¾„
+        /// Ö´ĞĞÂ·¾¶
         /// </summary>
         public List<ExecutionPathItem> ExecutionPath { get; set; }
 
         /// <summary>
-        /// èŠ‚ç‚¹æ‰§è¡ŒçŠ¶æ€
+        /// ½ÚµãÖ´ĞĞ×´Ì¬
         /// </summary>
         public Dictionary<string, NodeExecutionStatusInternal> NodeStates { get; set; }
 
         /// <summary>
-        /// å·¥ä½œæµæ§åˆ¶æ’ä»¶å¼•ç”¨
+        /// ¹¤×÷Á÷¿ØÖÆ²å¼şÒıÓÃ
         /// </summary>
         public IWorkflowControlPlugin WorkflowControlPlugin { get; set; }
 
         /// <summary>
-        /// å–æ¶ˆä»¤ç‰Œ
+        /// È¡ÏûÁîÅÆ
         /// </summary>
         public System.Threading.CancellationToken CancellationToken { get; set; }
 
         /// <summary>
-        /// è¿›åº¦æŠ¥å‘Šå™¨
+        /// ½ø¶È±¨¸æÆ÷
         /// </summary>
         public IProgress<ExecutionProgress> ProgressReporter { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œæ—¥å¿—
+        /// Ö´ĞĞÈÕÖ¾
         /// </summary>
         public List<ExecutionLog> Logs { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œå…ƒæ•°æ®
+        /// Ö´ĞĞÔªÊı¾İ
         /// </summary>
         public Dictionary<string, object> Metadata { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨è°ƒè¯•
+        /// ÊÇ·ñÆôÓÃµ÷ÊÔ
         /// </summary>
         public bool IsDebugMode { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨æ€§èƒ½åˆ†æ
+        /// ÊÇ·ñÆôÓÃĞÔÄÜ·ÖÎö
         /// </summary>
         public bool EnableProfiling { get; set; }
 
@@ -279,7 +279,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è®¾ç½®å˜é‡å€¼
+        /// ÉèÖÃ±äÁ¿Öµ
         /// </summary>
         public void SetVariable(string key, object value)
         {
@@ -287,7 +287,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–å˜é‡å€¼
+        /// »ñÈ¡±äÁ¿Öµ
         /// </summary>
         public object GetVariable(string key)
         {
@@ -295,7 +295,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–å˜é‡å€¼ï¼ˆæŒ‡å®šç±»å‹ï¼‰
+        /// »ñÈ¡±äÁ¿Öµ£¨Ö¸¶¨ÀàĞÍ£©
         /// </summary>
         public T GetVariable<T>(string key)
         {
@@ -308,7 +308,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ£€æŸ¥å˜é‡æ˜¯å¦å­˜åœ¨
+        /// ¼ì²é±äÁ¿ÊÇ·ñ´æÔÚ
         /// </summary>
         public bool HasVariable(string key)
         {
@@ -316,7 +316,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ç§»é™¤å˜é‡
+        /// ÒÆ³ı±äÁ¿
         /// </summary>
         public bool RemoveVariable(string key)
         {
@@ -324,7 +324,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–å½“å‰è°ƒç”¨æ·±åº¦
+        /// »ñÈ¡µ±Ç°µ÷ÓÃÉî¶È
         /// </summary>
         public int GetCurrentCallDepth()
         {
@@ -332,7 +332,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ¨é€è°ƒç”¨ä¿¡æ¯åˆ°æ ˆ
+        /// ÍÆËÍµ÷ÓÃĞÅÏ¢µ½Õ»
         /// </summary>
         public void PushCallInfo(SubroutineCallInfo callInfo)
         {
@@ -340,7 +340,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ä»æ ˆå¼¹å‡ºè°ƒç”¨ä¿¡æ¯
+        /// ´ÓÕ»µ¯³öµ÷ÓÃĞÅÏ¢
         /// </summary>
         public SubroutineCallInfo PopCallInfo()
         {
@@ -348,7 +348,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–å½“å‰è°ƒç”¨ä¿¡æ¯
+        /// »ñÈ¡µ±Ç°µ÷ÓÃĞÅÏ¢
         /// </summary>
         public SubroutineCallInfo GetCurrentCallInfo()
         {
@@ -356,7 +356,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ›´æ–°èŠ‚ç‚¹çŠ¶æ€
+        /// ¸üĞÂ½Úµã×´Ì¬
         /// </summary>
         public void UpdateNodeStatus(string nodeId, NodeStatus status, ExecutionResult result = null)
         {
@@ -379,12 +379,12 @@ namespace SunEyeVision.Workflow
 
             if (status == NodeStatus.Failed && result != null && result.Errors.Any())
             {
-                // èŠ‚ç‚¹æ‰§è¡Œå¤±è´¥ï¼Œé”™è¯¯ä¿¡æ¯å·²è®°å½•åœ¨result.Errorsä¸­
+                // ½ÚµãÖ´ĞĞÊ§°Ü£¬´íÎóĞÅÏ¢ÒÑ¼ÇÂ¼ÔÚresult.ErrorsÖĞ
             }
         }
 
         /// <summary>
-        /// æ·»åŠ æ‰§è¡Œæ—¥å¿—
+        /// Ìí¼ÓÖ´ĞĞÈÕÖ¾
         /// </summary>
         public void AddLog(string message, LogLevel level = LogLevel.Info)
         {
@@ -398,7 +398,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ·»åŠ æ‰§è¡Œè·¯å¾„é¡¹
+        /// Ìí¼ÓÖ´ĞĞÂ·¾¶Ïî
         /// </summary>
         public void AddExecutionPathItem(ExecutionPathItem item)
         {
@@ -406,7 +406,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æŠ¥å‘Šè¿›åº¦
+        /// ±¨¸æ½ø¶È
         /// </summary>
         public void ReportProgress(ExecutionProgress progress)
         {
@@ -414,7 +414,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ£€æŸ¥æ˜¯å¦å·²å–æ¶ˆ
+        /// ¼ì²éÊÇ·ñÒÑÈ¡Ïû
         /// </summary>
         public bool IsCancellationRequested()
         {
@@ -422,7 +422,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// åˆ›å»ºå­ä¸Šä¸‹æ–‡ï¼ˆç”¨äºå­ç¨‹åºï¼‰
+        /// ´´½¨×ÓÉÏÏÂÎÄ£¨ÓÃÓÚ×Ó³ÌĞò£©
         /// </summary>
         public WorkflowContext CreateSubContext(string subroutineId)
         {
@@ -436,13 +436,13 @@ namespace SunEyeVision.Workflow
                 EnableProfiling = EnableProfiling
             };
 
-            // å¤åˆ¶å…¨å±€å˜é‡
+            // ¸´ÖÆÈ«¾Ö±äÁ¿
             foreach (var variable in Variables)
             {
                 subContext.Variables[variable.Key] = variable.Value;
             }
 
-            // å¤åˆ¶å…ƒæ•°æ®
+            // ¸´ÖÆÔªÊı¾İ
             foreach (var meta in Metadata)
             {
                 subContext.Metadata[meta.Key] = meta.Value;
@@ -452,7 +452,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–æ‰§è¡Œç»Ÿè®¡ä¿¡æ¯
+        /// »ñÈ¡Ö´ĞĞÍ³¼ÆĞÅÏ¢
         /// </summary>
         public ExecutionStatistics GetStatistics()
         {
@@ -476,124 +476,124 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// æ‰§è¡Œæ—¥å¿—
+    /// Ö´ĞĞÈÕÖ¾
     /// </summary>
     public class ExecutionLog
     {
         /// <summary>
-        /// æ—¶é—´æˆ³
+        /// Ê±¼ä´Á
         /// </summary>
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// æ—¥å¿—çº§åˆ«
+        /// ÈÕÖ¾¼¶±ğ
         /// </summary>
         public LogLevel Level { get; set; }
 
         /// <summary>
-        /// æ¶ˆæ¯
+        /// ÏûÏ¢
         /// </summary>
         public string Message { get; set; }
 
         /// <summary>
-        /// æ‰§è¡ŒID
+        /// Ö´ĞĞID
         /// </summary>
         public string ExecutionId { get; set; }
 
         /// <summary>
-        /// èŠ‚ç‚¹ID
+        /// ½ÚµãID
         /// </summary>
         public string NodeId { get; set; }
     }
 
     /// <summary>
-    /// æ—¥å¿—çº§åˆ«
+    /// ÈÕÖ¾¼¶±ğ
     /// </summary>
     public enum LogLevel
     {
         /// <summary>
-        /// è°ƒè¯•
+        /// µ÷ÊÔ
         /// </summary>
         Debug,
 
         /// <summary>
-        /// ä¿¡æ¯
+        /// ĞÅÏ¢
         /// </summary>
         Info,
 
         /// <summary>
-        /// è­¦å‘Š
+        /// ¾¯¸æ
         /// </summary>
         Warning,
 
         /// <summary>
-        /// é”™è¯¯
+        /// ´íÎó
         /// </summary>
         Error,
 
         /// <summary>
-        /// è‡´å‘½é”™è¯¯
+        /// ÖÂÃü´íÎó
         /// </summary>
         Fatal
     }
 
     /// <summary>
-    /// æ‰§è¡Œç»Ÿè®¡ä¿¡æ¯
+    /// Ö´ĞĞÍ³¼ÆĞÅÏ¢
     /// </summary>
     public class ExecutionStatistics
     {
         /// <summary>
-        /// æ‰§è¡ŒID
+        /// Ö´ĞĞID
         /// </summary>
         public string ExecutionId { get; set; }
 
         /// <summary>
-        /// å¼€å§‹æ—¶é—´
+        /// ¿ªÊ¼Ê±¼ä
         /// </summary>
         public DateTime StartTime { get; set; }
 
         /// <summary>
-        /// ç»“æŸæ—¶é—´
+        /// ½áÊøÊ±¼ä
         /// </summary>
         public DateTime EndTime { get; set; }
 
         /// <summary>
-        /// æ‰§è¡Œæ—¶é•¿
+        /// Ö´ĞĞÊ±³¤
         /// </summary>
         public TimeSpan Duration { get; set; }
 
         /// <summary>
-        /// æ€»èŠ‚ç‚¹æ•°
+        /// ×Ü½ÚµãÊı
         /// </summary>
         public int TotalNodes { get; set; }
 
         /// <summary>
-        /// å·²å®ŒæˆèŠ‚ç‚¹æ•°
+        /// ÒÑÍê³É½ÚµãÊı
         /// </summary>
         public int CompletedNodes { get; set; }
 
         /// <summary>
-        /// å¤±è´¥èŠ‚ç‚¹æ•°
+        /// Ê§°Ü½ÚµãÊı
         /// </summary>
         public int FailedNodes { get; set; }
 
         /// <summary>
-        /// è·³è¿‡èŠ‚ç‚¹æ•°
+        /// Ìø¹ı½ÚµãÊı
         /// </summary>
         public int SkippedNodes { get; set; }
 
         /// <summary>
-        /// æ€»æ—¥å¿—æ•°
+        /// ×ÜÈÕÖ¾Êı
         /// </summary>
         public int TotalLogs { get; set; }
 
         /// <summary>
-        /// è°ƒç”¨æ·±åº¦
+        /// µ÷ÓÃÉî¶È
         /// </summary>
         public int CallDepth { get; set; }
 
         /// <summary>
-        /// æˆåŠŸç‡
+        /// ³É¹¦ÂÊ
         /// </summary>
         public double SuccessRate => TotalNodes > 0 ? (double)CompletedNodes / TotalNodes * 100 : 0;
     }

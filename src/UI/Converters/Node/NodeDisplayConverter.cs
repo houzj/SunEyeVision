@@ -9,7 +9,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Converters.Node
 {
     /// <summary>
-    /// 节点显示文本转换器 - 使用适配器获取显示文本
+    /// 节点显示文本转换�?- 使用适配器获取显示文�?
     /// </summary>
     public class NodeDisplayTextConverter : IValueConverter
     {
@@ -30,7 +30,7 @@ namespace SunEyeVision.UI.Converters.Node
     }
 
     /// <summary>
-    /// 节点背景颜色转换器 - 使用适配器获取背景颜色
+    /// 节点背景颜色转换�?- 使用适配器获取背景颜�?
     /// </summary>
     public class NodeBackgroundColorConverter : IValueConverter
     {
@@ -51,7 +51,7 @@ namespace SunEyeVision.UI.Converters.Node
     }
 
     /// <summary>
-    /// 节点边框颜色转换器 - 使用适配器获取边框颜色
+    /// 节点边框颜色转换�?- 使用适配器获取边框颜�?
     /// </summary>
     public class NodeBorderColorConverter : IValueConverter
     {
@@ -72,7 +72,7 @@ namespace SunEyeVision.UI.Converters.Node
     }
 
     /// <summary>
-    /// 颜色到画刷转换器（通用）
+    /// 颜色到画刷转换器（通用�?
     /// </summary>
     public class ColorToBrushConverter : IValueConverter
     {

@@ -7,7 +7,7 @@ using System.Windows.Controls;
 namespace SunEyeVision.UI.Views.Windows
 {
     /// <summary>
-    /// 帮助窗口 - 支持显示内置内容和外部 HTML 帮助文档
+    /// 帮助窗口 - 支持显示内置内容和外�?HTML 帮助文档
     /// </summary>
     public partial class HelpWindow : Window
     {
@@ -22,12 +22,12 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// 窗口加载时显示内置帮助内容
+        /// 窗口加载时显示内置帮助内�?
         /// </summary>
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             // 窗口保持打开，显示内置的帮助内容
-            // 用户可以通过按钮打开外部浏览器查看完整文档
+            // 用户可以通过按钮打开外部浏览器查看完整文�?
         }
 
         /// <summary>
@@ -35,14 +35,14 @@ namespace SunEyeVision.UI.Views.Windows
         /// </summary>
         private void OpenFullDocsButton_Click(object sender, RoutedEventArgs e)
         {
-            // 首先尝试相对于可执行文件的路径
+            // 首先尝试相对于可执行文件的路�?
             string basePath = AppDomain.CurrentDomain.BaseDirectory;
             string indexPath = Path.Combine(basePath, "Help", "index.html");
 
             // 如果文件不存在，尝试相对于解决方案的路径
             if (!File.Exists(indexPath))
             {
-                // 从代码目录查找
+                // 从代码目录查�?
                 string solutionDir = Path.GetFullPath(Path.Combine(basePath, "..", "..", "..", ".."));
                 indexPath = Path.Combine(solutionDir, "Help", "Output", "index.html");
             }
@@ -68,7 +68,7 @@ namespace SunEyeVision.UI.Views.Windows
             }
             else
             {
-                MessageBox.Show($"帮助文档未找到:\n{indexPath}\n\n请确保 Help 文件夹存在且包含帮助文档。\n\n{message}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"帮助文档未找�?\n{indexPath}\n\n请确�?Help 文件夹存在且包含帮助文档。\n\n{message}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -111,7 +111,7 @@ namespace SunEyeVision.UI.Views.Windows
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法打开 CHM 帮助文档: {ex.Message}\n将使用 HTML 文档代替。", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"无法打开 CHM 帮助文档: {ex.Message}\n将使�?HTML 文档代替�?, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
                 ShowHtmlHelp();
             }
         }
@@ -149,11 +149,11 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
         /// <summary>
-        /// 显示备用帮助信息(当文档文件不存在时)
+        /// 显示备用帮助信息(当文档文件不存在�?
         /// </summary>
         private void ShowFallbackHelp()
         {
-            // 显示内置的帮助内容
+            // 显示内置的帮助内�?
             HelpTitle.Text = "SunEyeVision 帮助";
 
             string fallbackContent = GetFallbackContent();
@@ -169,22 +169,22 @@ namespace SunEyeVision.UI.Views.Windows
             return "SunEyeVision 帮助文档\n\n" +
                    "欢迎使用 SunEyeVision 机器视觉算法平台!\n\n" +
                    "帮助文档功能:\n" +
-                   "- 按 F1 键快速打开帮助\n" +
-                   "- 支持 CHM 和 HTML 格式\n" +
+                   "- �?F1 键快速打开帮助\n" +
+                   "- 支持 CHM �?HTML 格式\n" +
                    "- 文档位于 Help/Output 目录\n\n" +
                    "帮助内容:\n" +
                    "- 用户手册 - 软件使用指南\n" +
                    "- 软件架构 - 系统设计和结构说明\n" +
-                   "- 开发计划 - 未来发展方向\n" +
-                   "- 开发进度 - 当前开发状态\n" +
+                   "- 开发计�?- 未来发展方向\n" +
+                   "- 开发进�?- 当前开发状态\n" +
                    "- API 文档 - 开发者参考\n\n" +
                    "注意: 当前帮助文档文件未找到。\n" +
-                   "请运行 tools\\GenerateHelpDocumentation.ps1 脚本生成帮助文档。\n\n" +
-                   "技术支持: support@suneyevision.com";
+                   "请运�?tools\\GenerateHelpDocumentation.ps1 脚本生成帮助文档。\n\n" +
+                   "技术支�? support@suneyevision.com";
         }
 
         /// <summary>
-        /// 显示指定的帮助主题
+        /// 显示指定的帮助主�?
         /// </summary>
         public void ShowTopic(string topic)
         {

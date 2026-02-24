@@ -6,7 +6,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Converters.Visibility
 {
     /// <summary>
-    /// CanvasType到WorkflowCanvas可见性的转换器
+    /// CanvasType到WorkflowCanvas可见性的转换�?
     /// </summary>
     public class CanvasTypeToWorkflowVisibilityConverter : System.Windows.Data.IValueConverter
     {

@@ -30,7 +30,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 高亮显示目标端口（根据源端口和目标节点位置智能选择）
+        /// 高亮显示目标端口（根据源端口和目标节点位置智能选择�?
         /// </summary>
         public void HighlightTargetPort(Border? nodeBorder, WorkflowNode? sourceNode, string sourcePortName)
         {
@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.Services.Interaction
             }
             _highlightCounter++;
 
-            // 获取端口元素并高亮
+            // 获取端口元素并高�?
             HighlightSpecificPort(nodeBorder, targetPortName);
         }
 
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Services.Interaction
             var portElement = GetPortElement(nodeBorder, portName);
             if (portElement != null)
             {
-                // 确保端口可见且响应鼠标事件
+                // 确保端口可见且响应鼠标事�?
                 portElement.Visibility = Visibility.Visible;
                 portElement.Opacity = 1.0;
 
@@ -90,10 +90,10 @@ namespace SunEyeVision.UI.Services.Interaction
 
                 // 设置高亮样式
                 portElement.Fill = new SolidColorBrush(Color.FromRgb(255, 200, 0)); // 金色填充
-                portElement.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 0)); // 深橙色边框
+                portElement.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 0)); // 深橙色边�?
                 portElement.StrokeThickness = 3;
 
-                // 只在端口变化时记录日志
+                // 只在端口变化时记录日�?
                 if (_lastHighlightedPort != portName && _highlightCounter % 5 == 0)
                 {
     
@@ -102,7 +102,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 清除目标端口的高亮
+        /// 清除目标端口的高�?
         /// </summary>
         public void ClearTargetPortHighlight()
         {
@@ -130,7 +130,7 @@ namespace SunEyeVision.UI.Services.Interaction
         {
             if (nodeBorder == null) return null;
 
-            // 根据端口名称构造Ellipse名称（例如："LeftPort" -> "LeftPortEllipse"）
+            // 根据端口名称构造Ellipse名称（例如："LeftPort" -> "LeftPortEllipse"�?
             string ellipseName = portName + "Ellipse";
 
             // 在节点Border的视觉树中查找指定名称的端口
@@ -138,12 +138,12 @@ namespace SunEyeVision.UI.Services.Interaction
 
             // 只在第一次查找失败时输出日志
             bool found = false;
-            // 查找包含端口名称的元素（通过Name属性或Tag）
+            // 查找包含端口名称的元素（通过Name属性或Tag�?
             foreach (var child in visualChildren)
             {
                 if (child is FrameworkElement element && element.Name == ellipseName)
                 {
-                    if (!found && _highlightCounter % 20 == 0) // 每20次高亮才输出一次
+                    if (!found && _highlightCounter % 20 == 0) // �?0次高亮才输出一�?
                     {
         
                     }
@@ -151,7 +151,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 }
             }
 
-            if (_highlightCounter % 20 == 0) // 每20次高亮才输出一次
+            if (_highlightCounter % 20 == 0) // �?0次高亮才输出一�?
             {
 
             }
@@ -159,7 +159,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 获取节点指定端口的位置
+        /// 获取节点指定端口的位�?
         /// </summary>
         private Point GetPortPosition(WorkflowNode node, string portName)
         {
@@ -181,14 +181,14 @@ namespace SunEyeVision.UI.Services.Interaction
             string targetPortName = "LeftPort"; // 默认
 
             // 根据源端口方向和相对位置选择目标端口
-            // 策略：优先选择与源端口方向对应的目标端口，但允许根据实际位置调整
+            // 策略：优先选择与源端口方向对应的目标端口，但允许根据实际位置调�?
             string direction = "";
             bool isVerticalDominant = sourcePortName == "TopPort" || sourcePortName == "BottomPort";
 
             if (isVerticalDominant)
             {
-                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
-                // 但如果水平偏移远大于垂直偏移（2倍以上），则选择水平方向
+                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端�?
+                // 但如果水平偏移远大于垂直偏移�?倍以上），则选择水平方向
                 if (Math.Abs(deltaX) > 2 * Math.Abs(deltaY))
                 {
                     direction = "水平（源垂直但水平偏移过大）";
@@ -199,7 +199,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 }
                 else
                 {
-                    direction = "垂直（源端口主导）";
+                    direction = "垂直（源端口主导�?;
                     if (deltaY > 0)
                         targetPortName = "TopPort";
                     else
@@ -208,8 +208,8 @@ namespace SunEyeVision.UI.Services.Interaction
             }
             else
             {
-                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
-                // 但如果垂直偏移远大于水平偏移（2倍以上），则选择垂直方向
+                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端�?
+                // 但如果垂直偏移远大于水平偏移�?倍以上），则选择垂直方向
                 if (Math.Abs(deltaY) > 2 * Math.Abs(deltaX))
                 {
                     direction = "垂直（源水平但垂直偏移过大）";
@@ -220,7 +220,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 }
                 else
                 {
-                    direction = "水平（源端口主导）";
+                    direction = "水平（源端口主导�?;
                     if (deltaX > 0)
                         targetPortName = "LeftPort";
                     else

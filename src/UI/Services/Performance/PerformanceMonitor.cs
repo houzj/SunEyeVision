@@ -8,7 +8,7 @@ using SunEyeVision.UI.Services.Performance;
 namespace SunEyeVision.UI.Services.Performance
 {
     /// <summary>
-    /// 性能监控器 - 用于监控和记录系统性能指标
+    /// 性能监控�?- 用于监控和记录系统性能指标
     /// </summary>
     public class PerformanceMonitor
     {
@@ -16,7 +16,7 @@ namespace SunEyeVision.UI.Services.Performance
         private readonly object _lockObj = new object();
 
         /// <summary>
-        /// 开始测量
+        /// 开始测�?
         /// </summary>
         public IDisposable StartMeasure(string operationName)
         {
@@ -44,7 +44,7 @@ namespace SunEyeVision.UI.Services.Performance
                 metric.MaxMilliseconds = Math.Max(metric.MaxMilliseconds, metric.MinMilliseconds == 0 ? milliseconds : metric.MaxMilliseconds);
                 metric.MinMilliseconds = metric.MinMilliseconds == 0 ? milliseconds : Math.Min(metric.MinMilliseconds, milliseconds);
 
-                // 更新平均值
+                // 更新平均�?
                 metric.AverageMilliseconds = metric.TotalMilliseconds / metric.Count;
             }
         }
@@ -92,7 +92,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 性能测量辅助类
+        /// 性能测量辅助�?
         /// </summary>
         private class PerformanceMeasurement : IDisposable
         {
@@ -139,7 +139,7 @@ namespace SunEyeVision.UI.Services.Performance
 
         public override string ToString()
         {
-            return $"性能统计 - 时间: {Timestamp:yyyy-MM-dd HH:mm:ss}, 操作数: {TotalOperations}";
+            return $"性能统计 - 时间: {Timestamp:yyyy-MM-dd HH:mm:ss}, 操作�? {TotalOperations}";
         }
     }
 }

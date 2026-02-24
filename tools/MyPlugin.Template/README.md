@@ -51,8 +51,8 @@ deploy.bat
 ```
 MyPlugin.Template/
 ├── lib/                           # SDK DLL（运行setup_sdk.bat生成）
-│   ├── SunEyeVision.Plugin.Abstractions.dll
-│   └── SunEyeVision.Plugin.Abstractions.xml
+│   ├── SunEyeVision.Plugin.SDK.dll
+│   └── SunEyeVision.Plugin.SDK.xml
 ├── setup_sdk.bat                  # 导出SDK
 ├── build.bat                      # 编译插件
 ├── deploy.bat                     # 部署插件
@@ -79,8 +79,8 @@ MyPlugin.Template/
 ```
 MyPlugin.Template/
 ├── lib/
-│   ├── SunEyeVision.Plugin.Abstractions.dll
-│   └── SunEyeVision.Plugin.Abstractions.xml
+│   ├── SunEyeVision.Plugin.SDK.dll
+│   └── SunEyeVision.Plugin.SDK.xml
 ├── build.bat
 ├── deploy.bat
 ├── MyPlugin.Template.csproj

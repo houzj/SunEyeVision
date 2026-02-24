@@ -1,5 +1,5 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.Threshold
 {
     public class ThresholdToolViewModel : AutoToolDebugViewModelBase
@@ -79,7 +79,7 @@ namespace SunEyeVision.Tool.Threshold
 
         public override void RunTool()
         {
-            ToolStatus = "运行中";
+            ToolStatus = "运行�?;
             StatusMessage = $"正在执行{ThresholdType}阈值化...";
             
             var random = new System.Random();

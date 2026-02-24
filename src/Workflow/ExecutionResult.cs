@@ -5,7 +5,7 @@ using System.Linq;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 工作流执行结果
+    /// 工作流执行结�?
     /// </summary>
     public class ExecutionResult
     {
@@ -30,7 +30,7 @@ namespace SunEyeVision.Workflow
         public TimeSpan ExecutionTime { get; set; }
 
         /// <summary>
-        /// 是否被停止
+        /// 是否被停�?
         /// </summary>
         public bool IsStopped { get; set; }
 
@@ -79,7 +79,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 合并另一个执行结果
+        /// 合并另一个执行结�?
         /// </summary>
         public void Merge(ExecutionResult other)
         {
@@ -122,7 +122,7 @@ namespace SunEyeVision.Workflow
         public bool Success { get; set; }
 
         /// <summary>
-        /// 执行开始时间
+        /// 执行开始时�?
         /// </summary>
         public DateTime StartTime { get; set; }
 
@@ -164,12 +164,12 @@ namespace SunEyeVision.Workflow
         public int CurrentIteration { get; set; }
 
         /// <summary>
-        /// 总迭代次数
+        /// 总迭代次�?
         /// </summary>
         public int TotalIterations { get; set; }
 
         /// <summary>
-        /// 进度百分比
+        /// 进度百分�?
         /// </summary>
         public double Progress => TotalIterations > 0 ? (double)CurrentIteration / TotalIterations * 100 : 0;
 

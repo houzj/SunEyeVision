@@ -44,7 +44,7 @@ namespace SunEyeVision.UI.Models
         public double ChipThickness { get; set; } = 2;
 
         /// <summary>
-        /// 验证配置的有效性
+        /// 验证配置的有效�?
         /// </summary>
         public void Validate()
         {
@@ -59,7 +59,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算节点的边界矩形
+        /// 计算节点的边界矩�?
         /// </summary>
         public Rect GetNodeRect(Point position)
         {
@@ -67,7 +67,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算节点中心点
+        /// 计算节点中心�?
         /// </summary>
         public Point GetNodeCenter(Point position)
         {
@@ -78,7 +78,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算上端口中心位置
+        /// 计算上端口中心位�?
         /// </summary>
         public Point GetTopPortPosition(Point position)
         {
@@ -89,7 +89,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算下端口中心位置
+        /// 计算下端口中心位�?
         /// </summary>
         public Point GetBottomPortPosition(Point position)
         {
@@ -100,7 +100,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算左端口中心位置
+        /// 计算左端口中心位�?
         /// </summary>
         public Point GetLeftPortPosition(Point position)
         {
@@ -111,7 +111,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算右端口中心位置
+        /// 计算右端口中心位�?
         /// </summary>
         public Point GetRightPortPosition(Point position)
         {
@@ -142,7 +142,7 @@ namespace SunEyeVision.UI.Models
         };
 
         /// <summary>
-        /// 紧凑节点样式（小尺寸）
+        /// 紧凑节点样式（小尺寸�?
         /// </summary>
         public static readonly NodeStyleConfig Compact = new NodeStyleConfig
         {
@@ -156,7 +156,7 @@ namespace SunEyeVision.UI.Models
         };
 
         /// <summary>
-        /// 大型节点样式（大尺寸）
+        /// 大型节点样式（大尺寸�?
         /// </summary>
         public static readonly NodeStyleConfig Large = new NodeStyleConfig
         {

@@ -12,12 +12,12 @@ using SunEyeVision.UI.Views.Windows;
 namespace SunEyeVision.UI.Views.Controls.Toolbox
 {
     /// <summary>
-    /// ToolboxControl.xaml 的交互逻辑（超简化版）
+    /// ToolboxControl.xaml 的交互逻辑（超简化版�?
     /// </summary>
     public partial class ToolboxControl : UserControl
     {
     private ToolboxViewModel _viewModel;
-    private double _popupVerticalOffset;  // Popup相对于CategorySidebar的垂直偏移
+    private double _popupVerticalOffset;  // Popup相对于CategorySidebar的垂直偏�?
 
         public ToolboxControl()
         {
@@ -38,24 +38,24 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
             // 设置Popup的DataContext（Popup不在Visual Tree中，需要手动设置）
             CompactModePopup.DataContext = _viewModel;
 
-            // 使用内置定位模式（相对于CategorySidebar）
+            // 使用内置定位模式（相对于CategorySidebar�?
             CompactModePopup.Placement = PlacementMode.Right;
             CompactModePopup.PlacementTarget = CategorySidebar;  // 相对于CategorySidebar
-            CompactModePopup.CustomPopupPlacementCallback = null;  // 移除自定义回调
+            CompactModePopup.CustomPopupPlacementCallback = null;  // 移除自定义回�?
 
             CompactModePopup.Opened += OnPopupOpened;
             CompactModePopup.Closed += OnPopupClosed;
 
-            // 初始化宽度
+            // 初始化宽�?
             AdjustParentWidth();
         }
 
         /// <summary>
-        /// 自定义Popup定位方法（已废弃，使用Placement.Right + VerticalOffset）
+        /// 自定义Popup定位方法（已废弃，使用Placement.Right + VerticalOffset�?
         /// </summary>
         private CustomPopupPlacement[] CustomPopupPlacementMethod(Size popupSize, Size targetSize, Point offset)
         {
-            // 此方法已不再使用，保留仅为兼容性
+            // 此方法已不再使用，保留仅为兼容�?
             return new CustomPopupPlacement[] { new CustomPopupPlacement(new Point(10, 0), PopupPrimaryAxis.Horizontal) };
         }
 
@@ -65,7 +65,7 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         private void ToolItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
-            System.Diagnostics.Debug.WriteLine("[拖拽开始] ▶ ToolItem_PreviewMouseLeftButtonDown 触发");
+            System.Diagnostics.Debug.WriteLine("[拖拽开始] �?ToolItem_PreviewMouseLeftButtonDown 触发");
 
             if (sender is Border border)
             {
@@ -73,13 +73,13 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
 
                 if (border.Tag is ToolItem tool)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[拖拽开始] ✓ ToolItem 数据:");
+                    System.Diagnostics.Debug.WriteLine($"[拖拽开始] �?ToolItem 数据:");
                     System.Diagnostics.Debug.WriteLine($"[拖拽开始]   - Name: {tool.Name}");
                     System.Diagnostics.Debug.WriteLine($"[拖拽开始]   - ToolId: {tool.ToolId}");
                     System.Diagnostics.Debug.WriteLine($"[拖拽开始]   - AlgorithmType: {tool.AlgorithmType}");
                     System.Diagnostics.Debug.WriteLine($"[拖拽开始]   - Category: {tool.Category}");
 
-                    // 在拖拽开始前关闭Popup，防止拖拽过程中Popup不消失
+                    // 在拖拽开始前关闭Popup，防止拖拽过程中Popup不消�?
                     if (CompactModePopup.IsOpen)
                     {
                         CompactModePopup.IsOpen = false;
@@ -94,12 +94,12 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[拖拽开始] ✗ Border.Tag 不是 ToolItem 类型！");
+                    System.Diagnostics.Debug.WriteLine($"[拖拽开始] �?Border.Tag 不是 ToolItem 类型�?);
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[拖拽开始] ✗ Sender 不是 Border 类型: {sender?.GetType().Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[拖拽开始] �?Sender 不是 Border 类型: {sender?.GetType().Name ?? "null"}");
             }
         }
 
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 鼠标离开Popup区域 - 即时检测联合区域
+        /// 鼠标离开Popup区域 - 即时检测联合区�?
         /// </summary>
         private void CompactModePopupBorder_MouseLeave(object sender, MouseEventArgs e)
         {
@@ -185,11 +185,11 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 鼠标离开侧边栏
+        /// 鼠标离开侧边�?
         /// </summary>
         private void CategorySidebar_MouseLeave(object sender, MouseEventArgs e)
         {
-            // 如果Popup没有打开，直接返回
+            // 如果Popup没有打开，直接返�?
             if (!CompactModePopup.IsOpen)
                 return;
 
@@ -222,14 +222,14 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 检查元素是否在指定祖先的Visual Tree中
+        /// 检查元素是否在指定祖先的Visual Tree�?
         /// </summary>
         private bool IsPointInElement(Point point, FrameworkElement element)
         {
             if (element == null || !element.IsVisible)
                 return false;
 
-            // 检查元素是否在当前Visual Tree中
+            // 检查元素是否在当前Visual Tree�?
             bool isInVisualTree = IsElementInVisualTree(element, this);
 
             if (isInVisualTree)
@@ -253,13 +253,13 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
                 // 元素不在Visual Tree中（如Popup），使用屏幕坐标进行比较
                 try
                 {
-                    // 将UserControl相对坐标转换为屏幕坐标
+                    // 将UserControl相对坐标转换为屏幕坐�?
                     var mouseScreenPos = this.PointToScreen(point);
 
-                    // 获取popup元素的屏幕位置
+                    // 获取popup元素的屏幕位�?
                     var elementScreenPos = element.PointToScreen(new Point(0, 0));
 
-                    // 使用屏幕坐标检测
+                    // 使用屏幕坐标检�?
                     return mouseScreenPos.X >= elementScreenPos.X &&
                            mouseScreenPos.X <= elementScreenPos.X + element.ActualWidth &&
                            mouseScreenPos.Y >= elementScreenPos.Y &&
@@ -273,7 +273,7 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 检查元素是否在指定祖先的Visual Tree中
+        /// 检查元素是否在指定祖先的Visual Tree�?
         /// </summary>
         private bool IsElementInVisualTree(FrameworkElement element, FrameworkElement ancestor)
         {
@@ -298,13 +298,13 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 点击分类标题（展开模式）
+        /// 点击分类标题（展开模式�?
         /// </summary>
         private void ExpandCategory_MouseLeftButtonUp(object sender, MouseButtonEventArgs _)
         {
             if (sender is Border border && border.Tag is ToolCategory category)
             {
-                // 切换展开/折叠状态
+                // 切换展开/折叠状�?
                 category.IsExpanded = !category.IsExpanded;
             }
         }
@@ -322,7 +322,7 @@ namespace SunEyeVision.UI.Views.Controls.Toolbox
         }
 
         /// <summary>
-        /// 调整父容器宽度
+        /// 调整父容器宽�?
         /// </summary>
         private void AdjustParentWidth()
         {

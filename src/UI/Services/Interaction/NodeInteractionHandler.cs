@@ -12,7 +12,7 @@ namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
     /// 工作流节点交互处理器
-    /// 负责节点的鼠标事件处理、拖拽、选择等交互
+    /// 负责节点的鼠标事件处理、拖拽、选择等交�?
     /// </summary>
     public class WorkflowNodeInteractionHandler
     {
@@ -28,9 +28,9 @@ namespace SunEyeVision.UI.Services.Interaction
 
         // 节点拖拽性能优化
         private DateTime _lastConnectionUpdateTime = DateTime.MinValue;
-        private const int ConnectionUpdateIntervalMs = 50; // 连接线更新间隔（毫秒）
+        private const int ConnectionUpdateIntervalMs = 50; // 连接线更新间隔（毫秒�?
 
-        // 多选节点拖拽相关
+        // 多选节点拖拽相�?
         private System.Windows.Point[]? _selectedNodesInitialPositions;
         private Dictionary<WorkflowNode, System.Windows.Point>? _initialNodePositions;
 
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 节点鼠标进入事件（显示连接点）
+        /// 节点鼠标进入事件（显示连接点�?
         /// </summary>
         public void Node_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -61,7 +61,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 节点鼠标离开事件（隐藏连接点）
+        /// 节点鼠标离开事件（隐藏连接点�?
         /// </summary>
         public void Node_MouseLeave(object sender, MouseEventArgs e)
         {
@@ -72,7 +72,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 连接点鼠标进入事件
+        /// 连接点鼠标进入事�?
         /// </summary>
         public void Ellipse_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -88,7 +88,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 设置单个节点的连接点可见性
+        /// 设置单个节点的连接点可见�?
         /// </summary>
         public void SetPortsVisibility(Border border, bool isVisible)
         {
@@ -104,7 +104,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 节点鼠标左键按下 - 开始拖拽
+        /// 节点鼠标左键按下 - 开始拖�?
         /// </summary>
         public void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -133,7 +133,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     return;
                 }
 
-                // 检查是否按住 Shift 或 Ctrl 键（多选模式）
+                // 检查是否按�?Shift �?Ctrl 键（多选模式）
                 bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                    (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
@@ -143,7 +143,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     ClearAllSelections();
                     node.IsSelected = true;
                 }
-                // 如果是多选模式，切换选中状态
+                // 如果是多选模式，切换选中状�?
                 else if (isMultiSelect)
                 {
                     node.IsSelected = !node.IsSelected;
@@ -151,10 +151,10 @@ namespace SunEyeVision.UI.Services.Interaction
 
                 _viewModel.SelectedNode = node;
 
-                // 记录所有选中节点的初始位置
+                // 记录所有选中节点的初始位�?
                 RecordSelectedNodesPositions();
 
-                // 单击事件：拖拽准备
+                // 单击事件：拖拽准�?
                 _isDragging = true;
                 _draggedNode = node;
                 _initialNodePosition = node.Position;
@@ -162,7 +162,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
                 border.CaptureMouse();
 
-                // 阻�止事件冒泡到 Canvas，避免触发框选
+                // 阻�止事件冒泡到 Canvas，避免触发框�?
                 e.Handled = true;
             }
             catch (Exception ex)
@@ -231,11 +231,11 @@ namespace SunEyeVision.UI.Services.Interaction
                 // 获取当前鼠标位置
                 Point currentPosition = e.GetPosition(_canvasControl.WorkflowCanvas);
 
-                // 计算偏移量
+                // 计算偏移�?
                 double offsetX = currentPosition.X - _startDragPosition.X;
                 double offsetY = currentPosition.Y - _startDragPosition.Y;
 
-                // 更新所有选中节点的位置
+                // 更新所有选中节点的位�?
                 if (_canvasControl.CurrentWorkflowTab != null)
                 {
                     int index = 0;
@@ -278,10 +278,10 @@ namespace SunEyeVision.UI.Services.Interaction
             }
             else
             {
-                // 检查是否是同一个节点
+                // 检查是否是同一个节�?
                 if (_connectionSourceNode == targetNode)
                 {
-                    _viewModel!.StatusText = "无法连接到同一个节点";
+                    _viewModel!.StatusText = "无法连接到同一个节�?;
     
                     _connectionSourceNode = null;
                     return;
@@ -293,16 +293,16 @@ namespace SunEyeVision.UI.Services.Interaction
 
                 if (existingConnection != null)
                 {
-                    _viewModel!.StatusText = "连接已存在";
+                    _viewModel!.StatusText = "连接已存�?;
                     _connectionSourceNode = null;
                     return;
                 }
 
-                // 创建新连接
+                // 创建新连�?
 
                 _connectionManager.CreateConnection(_connectionSourceNode, targetNode, null);
 
-                // 退出连接模式
+                // 退出连接模�?
                 _connectionSourceNode = null;
             }
         }
@@ -343,7 +343,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 清除所有节点的选中状态
+        /// 清除所有节点的选中状�?
         /// </summary>
         private void ClearAllSelections()
         {
@@ -357,7 +357,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 记录选中节点的初始位置
+        /// 记录选中节点的初始位�?
         /// </summary>
         private void RecordSelectedNodesPositions()
         {
@@ -411,7 +411,7 @@ namespace SunEyeVision.UI.Services.Interaction
             // 检查是否自连接
             if (_connectionStartNode.Id == targetNode.Id)
             {
-                _viewModel!.StatusText = "不能连接到自身";
+                _viewModel!.StatusText = "不能连接到自�?;
                 return;
             }
 
@@ -422,11 +422,11 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (exists)
             {
-                _viewModel!.StatusText = "连接已存在";
+                _viewModel!.StatusText = "连接已存�?;
                 return;
             }
 
-            // 创建新连接
+            // 创建新连�?
             _connectionManager.CreateConnection(_connectionStartNode, targetNode, "BottomPort");
             _viewModel!.StatusText = $"成功连接: {_connectionStartNode.Name} -> {targetNode.Name}";
         }

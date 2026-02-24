@@ -5,8 +5,8 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 展开图标转换器
-    /// true -> ▼ (展开状态), false -> ▶ (折叠状态)
+    /// 展开图标转换�?
+    /// true -> �?(展开状�?, false -> �?(折叠状�?
     /// </summary>
     public class ExpandIconConverter : IValueConverter
     {
@@ -14,9 +14,9 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool boolValue)
             {
-                return boolValue ? "▼" : "▶";
+                return boolValue ? "�? : "�?;
             }
-            return "▶";
+            return "�?;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

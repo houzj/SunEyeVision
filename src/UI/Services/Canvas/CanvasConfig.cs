@@ -4,7 +4,7 @@ using SunEyeVision.UI.Services.Canvas;
 namespace SunEyeVision.UI.Services.Canvas
 {
     /// <summary>
-    /// 画布配置 - 集中管理画布的配置参数
+    /// 画布配置 - 集中管理画布的配置参�?
     /// </summary>
     public static class CanvasConfig
     {
@@ -24,22 +24,22 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double DefaultHeight = 80;
 
             /// <summary>
-            /// 节点最小宽度
+            /// 节点最小宽�?
             /// </summary>
             public const double MinWidth = 80;
 
             /// <summary>
-            /// 节点最小高度
+            /// 节点最小高�?
             /// </summary>
             public const double MinHeight = 60;
 
             /// <summary>
-            /// 节点最大宽度
+            /// 节点最大宽�?
             /// </summary>
             public const double MaxWidth = 300;
 
             /// <summary>
-            /// 节点最大高度
+            /// 节点最大高�?
             /// </summary>
             public const double MaxHeight = 200;
 
@@ -64,17 +64,17 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double SelectionBorderThickness = 2;
 
             /// <summary>
-            /// 节点默认背景色
+            /// 节点默认背景�?
             /// </summary>
             public static readonly string DefaultBackgroundColor = "#FFFFFF";
 
             /// <summary>
-            /// 节点选中背景色
+            /// 节点选中背景�?
             /// </summary>
             public static readonly string SelectedBackgroundColor = "#E3F2FD";
 
             /// <summary>
-            /// 节点悬停背景色
+            /// 节点悬停背景�?
             /// </summary>
             public static readonly string HoverBackgroundColor = "#F5F5F5";
         }
@@ -116,7 +116,7 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double EdgeDistance = 0;
 
             /// <summary>
-            /// 端口可见性
+            /// 端口可见�?
             /// </summary>
             public const bool IsVisible = true;
 
@@ -132,12 +132,12 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 连接线配置
+        /// 连接线配�?
         /// </summary>
         public static class Connection
         {
             /// <summary>
-            /// 连接线默认粗细
+            /// 连接线默认粗�?
             /// </summary>
             public const double DefaultThickness = 2;
 
@@ -147,7 +147,7 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double SelectedThickness = 3;
 
             /// <summary>
-            /// 连接线默认颜色
+            /// 连接线默认颜�?
             /// </summary>
             public static readonly string DefaultColor = "#90CAF9";
 
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.Services.Canvas
             public static readonly string SelectedColor = "#42A5F5";
 
             /// <summary>
-            /// 连接线悬停颜色
+            /// 连接线悬停颜�?
             /// </summary>
             public static readonly string HoverColor = "#64B5F6";
 
@@ -177,43 +177,43 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double CornerRadius = 0;
 
             /// <summary>
-            /// 中间点大小
+            /// 中间点大�?
             /// </summary>
             public const double MidpointSize = 6;
 
             /// <summary>
-            /// 中间点颜色
+            /// 中间点颜�?
             /// </summary>
             public static readonly string MidpointColor = "#90CAF9";
         }
 
         /// <summary>
-        /// 框选配置
+        /// 框选配�?
         /// </summary>
         public static class Selection
         {
             /// <summary>
-            /// 框选矩形边框粗细
+            /// 框选矩形边框粗�?
             /// </summary>
             public const double BorderThickness = 1;
 
             /// <summary>
-            /// 框选矩形边框颜色
+            /// 框选矩形边框颜�?
             /// </summary>
             public static readonly string BorderColor = "#42A5F5";
 
             /// <summary>
-            /// 框选矩形填充颜色
+            /// 框选矩形填充颜�?
             /// </summary>
             public static readonly string FillColor = "#E3F2FD";
 
             /// <summary>
-            /// 框选矩形透明度
+            /// 框选矩形透明�?
             /// </summary>
             public const double FillOpacity = 0.3;
 
             /// <summary>
-            /// 最小框选区域大小
+            /// 最小框选区域大�?
             /// </summary>
             public const double MinSelectionSize = 5;
         }
@@ -224,12 +224,12 @@ namespace SunEyeVision.UI.Services.Canvas
         public static class Drag
         {
             /// <summary>
-            /// 拖拽阈值（像素）
+            /// 拖拽阈值（像素�?
             /// </summary>
             public const double Threshold = 3;
 
             /// <summary>
-            /// 拖拽时节点透明度
+            /// 拖拽时节点透明�?
             /// </summary>
             public const double NodeOpacity = 0.8;
 
@@ -260,12 +260,12 @@ namespace SunEyeVision.UI.Services.Canvas
         public static class Zoom
         {
             /// <summary>
-            /// 最小缩放比例
+            /// 最小缩放比�?
             /// </summary>
             public const double MinScale = 0.1;
 
             /// <summary>
-            /// 最大缩放比例
+            /// 最大缩放比�?
             /// </summary>
             public const double MaxScale = 5.0;
 
@@ -285,7 +285,7 @@ namespace SunEyeVision.UI.Services.Canvas
             public const bool EnableMouseWheelZoom = true;
 
             /// <summary>
-            /// 缩放中心点
+            /// 缩放中心�?
             /// </summary>
             public static readonly Point CenterPoint = new Point(0, 0);
         }
@@ -306,7 +306,7 @@ namespace SunEyeVision.UI.Services.Canvas
             public const double Speed = 1.0;
 
             /// <summary>
-            /// 是否启用空格键平移
+            /// 是否启用空格键平�?
             /// </summary>
             public const bool EnableSpaceKeyPan = true;
 
@@ -322,7 +322,7 @@ namespace SunEyeVision.UI.Services.Canvas
         public static class Cache
         {
             /// <summary>
-            /// 路径缓存最大大小
+            /// 路径缓存最大大�?
             /// </summary>
             public const int MaxPathCacheSize = 1000;
 
@@ -348,7 +348,7 @@ namespace SunEyeVision.UI.Services.Canvas
         public static class Performance
         {
             /// <summary>
-            /// 是否启用虚拟化
+            /// 是否启用虚拟�?
             /// </summary>
             public const bool EnableVirtualization = false;
 
@@ -394,12 +394,12 @@ namespace SunEyeVision.UI.Services.Canvas
             public const bool ShowPortPositions = false;
 
             /// <summary>
-            /// 是否显示连接线信息
+            /// 是否显示连接线信�?
             /// </summary>
             public const bool ShowConnectionInfo = false;
         }
 
-        // 向后兼容的属性
+        // 向后兼容的属�?
         public static double NodeWidth => Node.DefaultWidth;
         public static double NodeHeight => Node.DefaultHeight;
     }

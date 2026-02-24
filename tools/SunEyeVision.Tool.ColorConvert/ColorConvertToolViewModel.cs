@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.ColorConvert
 {
@@ -48,7 +48,7 @@ namespace SunEyeVision.Tool.ColorConvert
         public string[] SourceColorSpaces { get; } = { "BGR", "RGB", "GRAY", "HSV", "Lab" };
 
         /// <summary>
-        /// 构建参数字典（供基类 Execute 使用）
+        /// 构建参数字典（供基类 Execute 使用�?
         /// </summary>
         protected override Dictionary<string, object> BuildParameterDictionary()
         {
@@ -67,7 +67,7 @@ namespace SunEyeVision.Tool.ColorConvert
         {
             if (result.Data != null)
             {
-                DebugMessage = $"转换完成: {SourceColorSpace} → {TargetColorSpace}";
+                DebugMessage = $"转换完成: {SourceColorSpace} �?{TargetColorSpace}";
             }
         }
 

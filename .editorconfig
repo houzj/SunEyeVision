@@ -1,0 +1,58 @@
+# EditorConfig - 跨编辑器编码规范
+# https://editorconfig.org
+
+root = true
+
+# 所有文件的默认设置
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# 源代码文件
+[*.cs]
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+# XML / XAML 文件
+[*.{xml,xaml,csproj,proj,props,targets}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+
+# JSON 文件
+[*.json]
+charset = utf-8
+indent_style = space
+indent_size = 2
+
+# Markdown 文件
+[*.md]
+charset = utf-8
+trim_trailing_whitespace = false
+
+# YAML 文件
+[*.{yml,yaml}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+
+# PowerShell 脚本
+[*.ps1]
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+# 批处理文件
+[*.bat]
+charset = utf-8
+
+# Git 配置
+[.git*]
+charset = utf-8
+
+# 配置文件
+[*.config]
+charset = utf-8

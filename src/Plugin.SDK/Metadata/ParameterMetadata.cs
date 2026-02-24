@@ -1,138 +1,138 @@
-namespace SunEyeVision.Plugin.Abstractions
+namespace SunEyeVision.Plugin.SDK.Metadata
 {
     /// <summary>
-    /// ²ÎÊıÀàĞÍÃ¶¾Ù
+    /// å‚æ•°ç±»å‹æšä¸¾
     /// </summary>
     public enum ParameterType
     {
         /// <summary>
-        /// ÕûÊı
+        /// æ•´æ•°
         /// </summary>
         Int,
 
         /// <summary>
-        /// ¸¡µãÊı
+        /// æµ®ç‚¹æ•°
         /// </summary>
         Double,
 
         /// <summary>
-        /// ×Ö·û´®
+        /// å­—ç¬¦ä¸²
         /// </summary>
         String,
 
         /// <summary>
-        /// ²¼¶ûÖµ
+        /// å¸ƒå°”å€¼
         /// </summary>
         Bool,
 
         /// <summary>
-        /// Ã¶¾Ù
+        /// æšä¸¾
         /// </summary>
         Enum,
 
         /// <summary>
-        /// ÑÕÉ«
+        /// é¢œè‰²
         /// </summary>
         Color,
 
         /// <summary>
-        /// µã×ø±ê
+        /// ç‚¹åæ ‡
         /// </summary>
         Point,
 
         /// <summary>
-        /// ³ß´ç
+        /// å°ºå¯¸
         /// </summary>
         Size,
 
         /// <summary>
-        /// ¾ØĞÎ
+        /// çŸ©å½¢
         /// </summary>
         Rect,
 
         /// <summary>
-        /// Í¼Ïñ
+        /// å›¾åƒ
         /// </summary>
         Image,
 
         /// <summary>
-        /// ÎÄ¼şÂ·¾¶
+        /// æ–‡ä»¶è·¯å¾„
         /// </summary>
         FilePath,
 
         /// <summary>
-        /// ÁĞ±í
+        /// åˆ—è¡¨
         /// </summary>
         List,
 
         /// <summary>
-        /// ×Ô¶¨ÒåÀàĞÍ
+        /// è‡ªå®šä¹‰ç±»å‹
         /// </summary>
         Custom
     }
 
     /// <summary>
-    /// ²ÎÊıÔªÊı¾İ - ÃèÊö¹¤¾ß²ÎÊıµÄÍêÕûĞÅÏ¢
+    /// å‚æ•°å…ƒæ•°æ® - æè¿°å·¥å…·å‚æ•°çš„å®Œæ•´ä¿¡æ¯
     /// </summary>
     public class ParameterMetadata
     {
         /// <summary>
-        /// ²ÎÊıÃû (´úÂë±êÊ¶·û)
+        /// å‚æ•°å(ä»£ç æ ‡è¯†ç¬¦)
         /// </summary>
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// ÏÔÊ¾Ãû³Æ (UIÏÔÊ¾)
+        /// æ˜¾ç¤ºåç§° (UIæ˜¾ç¤º)
         /// </summary>
         public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
-        /// ²ÎÊıÃèÊö
+        /// å‚æ•°æè¿°
         /// </summary>
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// ²ÎÊıÀàĞÍ
+        /// å‚æ•°ç±»å‹
         /// </summary>
         public ParameterType Type { get; set; }
 
         /// <summary>
-        /// Ä¬ÈÏÖµ
+        /// é»˜è®¤å€¼
         /// </summary>
         public object? DefaultValue { get; set; }
 
         /// <summary>
-        /// ×îĞ¡Öµ (ÓÃÓÚÊıÖµÀàĞÍ)
+        /// æœ€å°å€¼(ç”¨äºæ•°å€¼ç±»å‹)
         /// </summary>
         public object? MinValue { get; set; }
 
         /// <summary>
-        /// ×î´óÖµ (ÓÃÓÚÊıÖµÀàĞÍ)
+        /// æœ€å¤§å€¼(ç”¨äºæ•°å€¼ç±»å‹)
         /// </summary>
         public object? MaxValue { get; set; }
 
         /// <summary>
-        /// Ã¶¾ÙÑ¡Ïî (ÓÃÓÚÃ¶¾ÙÀàĞÍ)
+        /// æšä¸¾é€‰é¡¹ (ç”¨äºæšä¸¾ç±»å‹)
         /// </summary>
         public object[]? Options { get; set; }
 
         /// <summary>
-        /// ÊÇ·ñ±ØÌî
+        /// æ˜¯å¦å¿…å¡«
         /// </summary>
         public bool Required { get; set; } = true;
 
         /// <summary>
-        /// ÊÇ·ñÖ»¶Á
+        /// æ˜¯å¦åªè¯»
         /// </summary>
         public bool ReadOnly { get; set; } = false;
 
         /// <summary>
-        /// ²ÎÊı·ÖÀà (ÓÃÓÚ·Ö×éÏÔÊ¾)
+        /// å‚æ•°åˆ†ç±» (ç”¨äºåˆ†ç»„æ˜¾ç¤º)
         /// </summary>
-        public string Category { get; set; } = "»ù±¾²ÎÊı";
+        public string Category { get; set; } = "åŸºæœ¬å‚æ•°";
 
         /// <summary>
-        /// ÊÇ·ñÖ§³Öµ÷ÊÔÄ£Ê½ÏÂÊµÊ±ĞŞ¸Ä
+        /// æ˜¯å¦æ”¯æŒè°ƒè¯•æ¨¡å¼ä¸‹å®æ—¶ä¿®æ”¹
         /// </summary>
         public bool EditableInDebug { get; set; } = true;
     }

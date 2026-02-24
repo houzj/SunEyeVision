@@ -1,129 +1,129 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å¾ªç¯ç±»å‹
+    /// Ñ­»·ÀàĞÍ
     /// </summary>
     public enum LoopType
     {
         /// <summary>
-        /// å›ºå®šæ¬¡æ•°å¾ªç¯
+        /// ¹Ì¶¨´ÎÊıÑ­»·
         /// </summary>
         FixedCount,
 
         /// <summary>
-        /// æ¡ä»¶å¾ªç¯ï¼ˆWhileï¼‰
+        /// Ìõ¼şÑ­»·£¨While£©
         /// </summary>
         ConditionBased,
 
         /// <summary>
-        /// æ•°æ®é©±åŠ¨å¾ªç¯ï¼ˆFor Eachï¼‰
+        /// Êı¾İÇı¶¯Ñ­»·£¨For Each£©
         /// </summary>
         DataDriven
     }
 
     /// <summary>
-    /// å‚æ•°æ˜ å°„
+    /// ²ÎÊıÓ³Éä
     /// </summary>
     public class ParameterMapping
     {
         /// <summary>
-        /// å¤–éƒ¨ç«¯å£ID
+        /// Íâ²¿¶Ë¿ÚID
         /// </summary>
         public string ExternalPortId { get; set; }
 
         /// <summary>
-        /// å­ç¨‹åºå†…éƒ¨ç«¯å£ID
+        /// ×Ó³ÌĞòÄÚ²¿¶Ë¿ÚID
         /// </summary>
         public string InternalPortId { get; set; }
 
         /// <summary>
-        /// æ˜ å°„åç§°
+        /// Ó³ÉäÃû³Æ
         /// </summary>
         public string MappingName { get; set; }
 
         /// <summary>
-        /// æ•°æ®ç±»å‹
+        /// Êı¾İÀàĞÍ
         /// </summary>
         public Type DataType { get; set; }
 
         /// <summary>
-        /// é»˜è®¤å€¼
+        /// Ä¬ÈÏÖµ
         /// </summary>
         public object DefaultValue { get; set; }
     }
 
     /// <summary>
-    /// å­ç¨‹åºèŠ‚ç‚¹
+    /// ×Ó³ÌĞò½Úµã
     /// </summary>
     public class SubroutineNode : WorkflowControlNode
     {
         /// <summary>
-        /// å­ç¨‹åºå”¯ä¸€æ ‡è¯†
+        /// ×Ó³ÌĞòÎ¨Ò»±êÊ¶
         /// </summary>
         public string SubroutineId { get; set; }
 
         /// <summary>
-        /// å­ç¨‹åºåç§°
+        /// ×Ó³ÌĞòÃû³Æ
         /// </summary>
         public string SubroutineName { get; set; }
 
         /// <summary>
-        /// å­ç¨‹åºæè¿°
+        /// ×Ó³ÌĞòÃèÊö
         /// </summary>
         public string Description { get; set; }
 
         /// <summary>
-        /// è¾“å…¥å‚æ•°æ˜ å°„
+        /// ÊäÈë²ÎÊıÓ³Éä
         /// </summary>
         public List<ParameterMapping> InputMappings { get; set; }
 
         /// <summary>
-        /// è¾“å‡ºå‚æ•°æ˜ å°„
+        /// Êä³ö²ÎÊıÓ³Éä
         /// </summary>
         public List<ParameterMapping> OutputMappings { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨å¾ªç¯
+        /// ÊÇ·ñÆôÓÃÑ­»·
         /// </summary>
         public bool IsLoop { get; set; }
 
         /// <summary>
-        /// æœ€å¤§è¿­ä»£æ¬¡æ•°
+        /// ×î´óµü´ú´ÎÊı
         /// </summary>
         public int MaxIterations { get; set; }
 
         /// <summary>
-        /// å¾ªç¯æ¡ä»¶è¡¨è¾¾å¼
+        /// Ñ­»·Ìõ¼ş±í´ïÊ½
         /// </summary>
         public string LoopCondition { get; set; }
 
         /// <summary>
-        /// å¾ªç¯ç±»å‹
+        /// Ñ­»·ÀàĞÍ
         /// </summary>
         public LoopType LoopType { get; set; }
 
         /// <summary>
-        /// å½“å‰è¿­ä»£æ¬¡æ•°
+        /// µ±Ç°µü´ú´ÎÊı
         /// </summary>
         public int CurrentIteration { get; set; }
 
         /// <summary>
-        /// æ€»æ‰§è¡Œæ—¶é—´
+        /// ×ÜÖ´ĞĞÊ±¼ä
         /// </summary>
         public TimeSpan TotalExecutionTime { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨å¹¶è¡Œæ‰§è¡Œ
+        /// ÊÇ·ñÆôÓÃ²¢ĞĞÖ´ĞĞ
         /// </summary>
         public bool EnableParallel { get; set; }
 
         /// <summary>
-        /// å­ç¨‹åºæ‰§è¡Œè®¡æ•°
+        /// ×Ó³ÌĞòÖ´ĞĞ¼ÆÊı
         /// </summary>
         public int ExecutionCount { get; set; }
 
@@ -148,14 +148,14 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ‰§è¡Œå­ç¨‹åºæ§åˆ¶é€»è¾‘
+        /// Ö´ĞĞ×Ó³ÌĞò¿ØÖÆÂß¼­
         /// </summary>
         public override async Task<ExecutionResult> ExecuteControl(WorkflowContext context)
         {
             var plugin = context.WorkflowControlPlugin;
             if (plugin == null)
             {
-                return ExecutionResult.CreateFailure("å·¥ä½œæµæ§åˆ¶æ’ä»¶æœªåŠ è½½");
+                return ExecutionResult.CreateFailure("¹¤×÷Á÷¿ØÖÆ²å¼şÎ´¼ÓÔØ");
             }
 
             ExecutionCount++;
@@ -163,7 +163,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// éªŒè¯å­ç¨‹åºèŠ‚ç‚¹é…ç½®
+        /// ÑéÖ¤×Ó³ÌĞò½ÚµãÅäÖÃ
         /// </summary>
         public override ValidationResult Validate()
         {
@@ -171,44 +171,44 @@ namespace SunEyeVision.Workflow
 
             if (string.IsNullOrEmpty(SubroutineId))
             {
-                result.AddError("å­ç¨‹åºIDä¸èƒ½ä¸ºç©º");
+                result.AddError("×Ó³ÌĞòID²»ÄÜÎª¿Õ");
             }
 
             if (string.IsNullOrEmpty(SubroutineName))
             {
-                result.AddError("å­ç¨‹åºåç§°ä¸èƒ½ä¸ºç©º");
+                result.AddError("×Ó³ÌĞòÃû³Æ²»ÄÜÎª¿Õ");
             }
 
             if (IsLoop)
             {
                 if (MaxIterations <= 0)
                 {
-                    result.AddError("å¾ªç¯æ¬¡æ•°å¿…é¡»å¤§äº0");
+                    result.AddError("Ñ­»·´ÎÊı±ØĞë´óÓÚ0");
                 }
 
                 if (MaxIterations > 10000)
                 {
-                    result.AddWarning("å¾ªç¯æ¬¡æ•°è¿‡å¤§ï¼Œå¯èƒ½å¯¼è‡´æ€§èƒ½é—®é¢˜");
+                    result.AddWarning("Ñ­»·´ÎÊı¹ı´ó£¬¿ÉÄÜµ¼ÖÂĞÔÄÜÎÊÌâ");
                 }
 
                 if (LoopType == LoopType.ConditionBased && string.IsNullOrEmpty(LoopCondition))
                 {
-                    result.AddError("æ¡ä»¶å¾ªç¯å¿…é¡»è®¾ç½®å¾ªç¯æ¡ä»¶è¡¨è¾¾å¼");
+                    result.AddError("Ìõ¼şÑ­»·±ØĞëÉèÖÃÑ­»·Ìõ¼ş±í´ïÊ½");
                 }
             }
 
-            // éªŒè¯å‚æ•°æ˜ å°„
+            // ÑéÖ¤²ÎÊıÓ³Éä
             if (InputMappings == null || InputMappings.Count == 0)
             {
-                result.AddWarning("å­ç¨‹åºæ²¡æœ‰é…ç½®è¾“å…¥å‚æ•°æ˜ å°„");
+                result.AddWarning("×Ó³ÌĞòÃ»ÓĞÅäÖÃÊäÈë²ÎÊıÓ³Éä");
             }
 
             if (OutputMappings == null || OutputMappings.Count == 0)
             {
-                result.AddWarning("å­ç¨‹åºæ²¡æœ‰é…ç½®è¾“å‡ºå‚æ•°æ˜ å°„");
+                result.AddWarning("×Ó³ÌĞòÃ»ÓĞÅäÖÃÊä³ö²ÎÊıÓ³Éä");
             }
 
-            // æ£€æŸ¥æ˜¯å¦æœ‰é‡å¤çš„æ˜ å°„
+            // ¼ì²éÊÇ·ñÓĞÖØ¸´µÄÓ³Éä
             var inputPortIds = new HashSet<string>();
             var outputPortIds = new HashSet<string>();
 
@@ -216,7 +216,7 @@ namespace SunEyeVision.Workflow
             {
                 if (!inputPortIds.Add(mapping.ExternalPortId))
                 {
-                    result.AddError($"è¾“å…¥ç«¯å£IDé‡å¤: {mapping.ExternalPortId}");
+                    result.AddError($"ÊäÈë¶Ë¿ÚIDÖØ¸´: {mapping.ExternalPortId}");
                 }
             }
 
@@ -224,7 +224,7 @@ namespace SunEyeVision.Workflow
             {
                 if (!outputPortIds.Add(mapping.ExternalPortId))
                 {
-                    result.AddError($"è¾“å‡ºç«¯å£IDé‡å¤: {mapping.ExternalPortId}");
+                    result.AddError($"Êä³ö¶Ë¿ÚIDÖØ¸´: {mapping.ExternalPortId}");
                 }
             }
 
@@ -232,7 +232,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// é‡ç½®æ‰§è¡ŒçŠ¶æ€
+        /// ÖØÖÃÖ´ĞĞ×´Ì¬
         /// </summary>
         public void ResetExecutionState()
         {
@@ -241,7 +241,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ·»åŠ è¾“å…¥å‚æ•°æ˜ å°„
+        /// Ìí¼ÓÊäÈë²ÎÊıÓ³Éä
         /// </summary>
         public void AddInputMapping(string externalPortId, string internalPortId, string mappingName, Type dataType)
         {
@@ -260,7 +260,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ·»åŠ è¾“å‡ºå‚æ•°æ˜ å°„
+        /// Ìí¼ÓÊä³ö²ÎÊıÓ³Éä
         /// </summary>
         public void AddOutputMapping(string externalPortId, string internalPortId, string mappingName, Type dataType)
         {

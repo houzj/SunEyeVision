@@ -6,16 +6,16 @@ using SunEyeVision.UI.Services.Path;
 namespace SunEyeVision.UI.Services.Path
 {
     /// <summary>
-    /// 路径计算器接口 - 定义正交折线路径计算的契约
+    /// 路径计算器接�?- 定义正交折线路径计算的契�?
     /// </summary>
     public interface IPathCalculator
     {
         /// <summary>
-        /// 计算正交折线路径点集合（基础方法）
+        /// 计算正交折线路径点集合（基础方法�?
         /// </summary>
-        /// <param name="sourcePosition">源端口位置</param>
+        /// <param name="sourcePosition">源端口位�?/param>
         /// <param name="targetPosition">目标端口位置</param>
-        /// <param name="sourceDirection">源端口方向</param>
+        /// <param name="sourceDirection">源端口方�?/param>
         /// <param name="targetDirection">目标端口方向</param>
         /// <returns>路径点集合（包括起点和终点）</returns>
         Point[] CalculateOrthogonalPath(
@@ -25,13 +25,13 @@ namespace SunEyeVision.UI.Services.Path
             PortDirection targetDirection);
 
         /// <summary>
-        /// 计算正交折线路径点集合（增强方法，带节点信息）
+        /// 计算正交折线路径点集合（增强方法，带节点信息�?
         /// </summary>
-        /// <param name="sourcePosition">源端口位置</param>
+        /// <param name="sourcePosition">源端口位�?/param>
         /// <param name="targetPosition">目标端口位置</param>
-        /// <param name="sourceDirection">源端口方向</param>
+        /// <param name="sourceDirection">源端口方�?/param>
         /// <param name="targetDirection">目标端口方向</param>
-        /// <param name="sourceNodeRect">源节点边界矩形</param>
+        /// <param name="sourceNodeRect">源节点边界矩�?/param>
         /// <param name="targetNodeRect">目标节点边界矩形</param>
         /// <param name="allNodeRects">所有节点的边界矩形（用于碰撞检测）</param>
         /// <returns>路径点集合（包括起点和终点）</returns>
@@ -45,17 +45,17 @@ namespace SunEyeVision.UI.Services.Path
             params Rect[] allNodeRects);
 
         /// <summary>
-        /// 根据路径点创建路径几何
+        /// 根据路径点创建路径几�?
         /// </summary>
-        /// <param name="pathPoints">路径点集合</param>
+        /// <param name="pathPoints">路径点集�?/param>
         /// <returns>PathGeometry对象</returns>
         PathGeometry CreatePathGeometry(Point[] pathPoints);
 
         /// <summary>
-        /// 计算箭头位置和角度
+        /// 计算箭头位置和角�?
         /// </summary>
-        /// <param name="pathPoints">路径点集合</param>
-        /// <param name="targetPosition">目标端口位置（箭头尖端应该到达的位置）</param>
+        /// <param name="pathPoints">路径点集�?/param>
+        /// <param name="targetPosition">目标端口位置（箭头尖端应该到达的位置�?/param>
         /// <param name="targetDirection">目标端口方向，决定箭头的固定角度</param>
         /// <returns>箭头位置和角度（角度为度数）</returns>
         (Point position, double angle) CalculateArrow(Point[] pathPoints, Point targetPosition, PortDirection targetDirection);
@@ -103,12 +103,12 @@ namespace SunEyeVision.UI.Services.Path
                 "bottom" or "bottomport" => PortDirection.Bottom,
                 "left" or "leftport" => PortDirection.Left,
                 "right" or "rightport" => PortDirection.Right,
-                _ => PortDirection.Right // 默认为右侧
+                _ => PortDirection.Right // 默认为右�?
             };
         }
 
         /// <summary>
-        /// 获取端口的水平移动方向（1为正向，-1为反向，0为无移动）
+        /// 获取端口的水平移动方向（1为正向，-1为反向，0为无移动�?
         /// </summary>
         public static int HorizontalMove(this PortDirection direction)
         {
@@ -121,7 +121,7 @@ namespace SunEyeVision.UI.Services.Path
         }
 
         /// <summary>
-        /// 获取端口的垂直移动方向（1为正向，-1为反向，0为无移动）
+        /// 获取端口的垂直移动方向（1为正向，-1为反向，0为无移动�?
         /// </summary>
         public static int VerticalMove(this PortDirection direction)
         {
@@ -134,7 +134,7 @@ namespace SunEyeVision.UI.Services.Path
         }
 
         /// <summary>
-        /// 获取端口的主方向（水平或垂直）
+        /// 获取端口的主方向（水平或垂直�?
         /// </summary>
         public static bool IsHorizontal(this PortDirection direction)
         {
@@ -142,7 +142,7 @@ namespace SunEyeVision.UI.Services.Path
         }
 
         /// <summary>
-        /// 获取端口的主方向（水平或垂直）
+        /// 获取端口的主方向（水平或垂直�?
         /// </summary>
         public static bool IsVertical(this PortDirection direction)
         {

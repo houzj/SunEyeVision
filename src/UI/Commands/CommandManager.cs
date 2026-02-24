@@ -7,7 +7,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Commands
 {
     /// <summary>
-    /// 命令管理器 - 用于撤销/重做功能
+    /// 命令管理�?- 用于撤销/重做功能
     /// </summary>
     public class CommandManager
     {
@@ -25,7 +25,7 @@ namespace SunEyeVision.UI.Commands
         public bool CanUndo => _undoStack.Count > 0;
         public bool CanRedo => _redoStack.Count > 0;
 
-        public string LastCommandDescription => _undoStack.Count > 0 ? _undoStack.Peek().GetType().Name : "无";
+        public string LastCommandDescription => _undoStack.Count > 0 ? _undoStack.Peek().GetType().Name : "�?;
 
         public event EventHandler? CommandStateChanged;
 

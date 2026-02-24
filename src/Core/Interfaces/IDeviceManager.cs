@@ -1,46 +1,46 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using SunEyeVision.Core.Models;
+using OpenCvSharp;
 
 namespace SunEyeVision.Core.Interfaces
 {
     /// <summary>
-    /// 设备管理器接口
+    /// 璁惧绠＄悊鍣ㄦ帴鍙?
     /// </summary>
     public interface IDeviceManager
     {
         /// <summary>
-        /// 检测可用设备
+        /// 妫€娴嬪彲鐢ㄨ澶?
         /// </summary>
-        /// <returns>设备列表</returns>
+        /// <returns>璁惧鍒楄〃</returns>
         Task<List<DeviceInfo>> DetectDevicesAsync();
 
         /// <summary>
-        /// 连接设备
+        /// 杩炴帴璁惧
         /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <returns>连接结果</returns>
+        /// <param name="deviceId">璁惧ID</param>
+        /// <returns>杩炴帴缁撴灉</returns>
         Task<bool> ConnectDeviceAsync(string deviceId);
 
         /// <summary>
-        /// 断开设备
+        /// 鏂紑璁惧
         /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <returns>断开结果</returns>
+        /// <param name="deviceId">璁惧ID</param>
+        /// <returns>鏂紑缁撴灉</returns>
         Task<bool> DisconnectDeviceAsync(string deviceId);
 
         /// <summary>
-        /// 从设备获取图像
+        /// 浠庤澶囪幏鍙栧浘鍍?
         /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <returns>获取的图像</returns>
+        /// <param name="deviceId">璁惧ID</param>
+        /// <returns>鑾峰彇鐨勫浘鍍?/returns>
         Task<Mat> CaptureImageAsync(string deviceId);
 
         /// <summary>
-        /// 获取已连接的设备列表
+        /// 鑾峰彇宸茶繛鎺ョ殑璁惧鍒楄〃
         /// </summary>
-        /// <returns>已连接的设备列表</returns>
+        /// <returns>宸茶繛鎺ョ殑璁惧鍒楄〃</returns>
         List<string> GetConnectedDevices();
     }
 }

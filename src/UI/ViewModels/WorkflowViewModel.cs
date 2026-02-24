@@ -7,7 +7,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 工作流画布视图模型
+    /// 工作流画布视图模�?
     /// </summary>
     public class WorkflowViewModel : ViewModelBase
     {
@@ -70,7 +70,7 @@ namespace SunEyeVision.UI.ViewModels
             var node2 = new WorkflowNode("node2", "高斯模糊", "Preprocess");
             node2.Position = new Point(250, 50);
 
-            var node3 = new WorkflowNode("node3", "边缘检测", "Detection");
+            var node3 = new WorkflowNode("node3", "边缘检�?, "Detection");
             node3.Position = new Point(450, 50);
 
             var node4 = new WorkflowNode("node4", "结果输出", "Output");
@@ -85,7 +85,7 @@ namespace SunEyeVision.UI.ViewModels
             var conn2 = new WorkflowConnection("conn2", "node2", "node3");
             var conn3 = new WorkflowConnection("conn3", "node3", "node4");
 
-            // 为初始连接设置位置
+            // 为初始连接设置位�?
             conn1.SourcePosition = new Point(190, 95);
             conn1.TargetPosition = new Point(250, 95);
 
@@ -109,9 +109,9 @@ namespace SunEyeVision.UI.ViewModels
             {
                 "Input" => "图像输入",
                 "Preprocess" => "高斯模糊",
-                "Detection" => "边缘检测",
+                "Detection" => "边缘检�?,
                 "Output" => "结果输出",
-                _ => "新节点"
+                _ => "新节�?
             };
 
             var newNode = new WorkflowNode(id, name, type);
@@ -189,14 +189,14 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 尝试连接到目标节点
+        /// 尝试连接到目标节�?
         /// </summary>
         public bool TryConnectNode(WorkflowNode targetNode)
         {
             if (ConnectionSourceNode == null || targetNode == null)
                 return false;
 
-            // 检查是否是同一个节点
+            // 检查是否是同一个节�?
             if (ConnectionSourceNode == targetNode)
                 return false;
 
@@ -207,7 +207,7 @@ namespace SunEyeVision.UI.ViewModels
             if (existingConnection != null)
                 return false;
 
-            // 创建新连接
+            // 创建新连�?
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, ConnectionSourceNode.Id, targetNode.Id);
 
@@ -226,7 +226,7 @@ namespace SunEyeVision.UI.ViewModels
 
             Connections.Add(newConnection);
 
-            // 退出连接模式
+            // 退出连接模�?
             IsInConnectionMode = false;
             ConnectionSourceNode = null;
 

@@ -20,7 +20,7 @@
 
         <!-- ========== 紧凑模式样式 ========== -->
 
-        <!-- 分类项样式（紧凑模式） -->
+        <!-- 分类项样式（紧凑模式�?-->
         <Style x:Key="CompactCategoryItemStyle" TargetType="Border">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Width" Value="44"/>
@@ -38,7 +38,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- 工具项样式（紧凑模式） -->
+        <!-- 工具项样式（紧凑模式�?-->
         <Style x:Key="CompactToolItemStyle" TargetType="Border">
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#E0E0E0"/>
@@ -57,7 +57,7 @@
 
         <!-- ========== 展开模式样式 ========== -->
 
-        <!-- 分类标题样式（展开模式） -->
+        <!-- 分类标题样式（展开模式�?-->
         <Style x:Key="ExpandedCategoryHeaderStyle" TargetType="Border">
             <Setter Property="Background" Value="#FAFAFA"/>
             <Setter Property="Padding" Value="12,8"/>
@@ -70,7 +70,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- 工具项样式（展开模式） -->
+        <!-- 工具项样式（展开模式�?-->
         <Style x:Key="ExpandedToolItemStyle" TargetType="Border">
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#E0E0E0"/>
@@ -104,22 +104,22 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- 主容器 - 浅色主题 -->
+    <!-- 主容�?- 浅色主题 -->
     <Border Background="#F5F5F5">
         <Grid>
             <!-- ========== 紧凑模式 ========== -->
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource BoolToVisibilityConverter}}">
-                <!-- 左侧分类侧边栏 (60px宽) -->
+                <!-- 左侧分类侧边�?(60px�? -->
                 <Border x:Name="CategorySidebar"
                         DockPanel.Dock="Left" Width="60" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"
                         MouseLeave="CategorySidebar_MouseLeave">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>  <!-- 上部：分类图标列表 -->
-                            <RowDefinition Height="Auto"/>  <!-- 底部：切换按钮 -->
+                            <RowDefinition Height="*"/>  <!-- 上部：分类图标列�?-->
+                            <RowDefinition Height="Auto"/>  <!-- 底部：切换按�?-->
                         </Grid.RowDefinitions>
 
-                        <!-- 上部：分类图标列表 -->
+                        <!-- 上部：分类图标列�?-->
                         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                             <ItemsControl x:Name="CategoryItemsControl" ItemsSource="{Binding Categories}">
                                 <ItemsControl.ItemTemplate>
@@ -141,7 +141,7 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <!-- 底部：切换按钮 -->
+                        <!-- 底部：切换按�?-->
                         <Button x:Name="CompactModeToggleBtn"
                                 Grid.Row="1"
                                 Width="16" Height="16"
@@ -163,7 +163,7 @@
                 </Border>
             </DockPanel>
 
-            <!-- Popup 用于紧凑模式下显示工具（移到DockPanel外部，作为Grid的直接子元素） -->
+            <!-- Popup 用于紧凑模式下显示工具（移到DockPanel外部，作为Grid的直接子元素�?-->
             <Popup x:Name="CompactModePopup"
                    Placement="Right"
                    PopupAnimation="Slide"
@@ -182,7 +182,7 @@
                         MouseEnter="CompactModePopupBorder_MouseEnter"
                         MouseLeave="CompactModePopupBorder_MouseLeave">
                     <StackPanel>
-                        <!-- 分类标题栏 -->
+                        <!-- 分类标题�?-->
                         <Border Padding="0,0,0,12" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Margin="-16,-16,-16,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -201,7 +201,7 @@
                             </Grid>
                         </Border>
 
-                        <!-- 工具列表（每行3列） -->
+                        <!-- 工具列表（每�?列） -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,12,0,0" MaxHeight="500">
                             <ItemsControl ItemsSource="{Binding SelectedCategoryTools}">
                                 <ItemsControl.ItemsPanel>
@@ -228,16 +228,16 @@
                 </Border>
             </Popup>
 
-            <!-- ========== 展开模式（传统工具箱样式，使用水平 WrapPanel）========== -->
+            <!-- ========== 展开模式（传统工具箱样式，使用水�?WrapPanel�?========= -->
             <DockPanel Visibility="{Binding IsCompactMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                <!-- 分类和工具列表 -->
+                <!-- 分类和工具列�?-->
                 <Grid DockPanel.Dock="Top">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 分类和工具滚动区域 -->
+                    <!-- 分类和工具滚动区�?-->
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="0">
                         <ItemsControl ItemsSource="{Binding Categories}">
                             <ItemsControl.ItemTemplate>
@@ -262,7 +262,7 @@
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"/>
 
-                                                <!-- 分类图标和名称 -->
+                                                <!-- 分类图标和名�?-->
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                     <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                     <TextBlock Text="{Binding Name}"
@@ -281,7 +281,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <!-- 工具列表（仅当展开时显示，使用水平 WrapPanel） -->
+                                        <!-- 工具列表（仅当展开时显示，使用水平 WrapPanel�?-->
                                         <ItemsControl ItemsSource="{Binding Tools}"
                                                       Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                                             <ItemsControl.ItemsPanel>
@@ -308,7 +308,7 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <!-- 底部：切换按钮 -->
+                    <!-- 底部：切换按�?-->
                     <Button x:Name="ExpandedModeToggleBtn"
                             Grid.Row="1"
                             Width="16" Height="16"

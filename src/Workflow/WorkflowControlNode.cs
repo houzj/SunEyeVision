@@ -1,49 +1,49 @@
-ï»¿using System;
+using System;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å·¥ä½œæµæ§åˆ¶ç±»å‹ï¼ˆå†…éƒ¨ä½¿ç”¨ï¼Œç”¨äºæ§åˆ¶èŠ‚ç‚¹åˆ†ç±»ï¼‰
+    /// ¹¤×÷Á÷¿ØÖÆÀàĞÍ£¨ÄÚ²¿Ê¹ÓÃ£¬ÓÃÓÚ¿ØÖÆ½Úµã·ÖÀà£©
     /// </summary>
     public enum WorkflowControlType
     {
         /// <summary>
-        /// å­ç¨‹åºè°ƒç”¨
+        /// ×Ó³ÌĞòµ÷ÓÃ
         /// </summary>
         Subroutine,
 
         /// <summary>
-        /// æ¡ä»¶åˆ¤æ–­
+        /// Ìõ¼şÅĞ¶Ï
         /// </summary>
         Condition,
 
         /// <summary>
-        /// å¤šè·¯åˆ†æ”¯
+        /// ¶àÂ··ÖÖ§
         /// </summary>
         Switch
     }
 
     /// <summary>
-    /// å·¥ä½œæµæ§åˆ¶èŠ‚ç‚¹åŸºç±»
+    /// ¹¤×÷Á÷¿ØÖÆ½Úµã»ùÀà
     /// </summary>
     public abstract class WorkflowControlNode : WorkflowNode
     {
         /// <summary>
-        /// æ§åˆ¶ç±»å‹
+        /// ¿ØÖÆÀàĞÍ
         /// </summary>
         public WorkflowControlType ControlType { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨éªŒè¯
+        /// ÊÇ·ñÆôÓÃÑéÖ¤
         /// </summary>
         public bool EnableValidation { get; set; } = true;
 
         /// <summary>
-        /// æœ€åéªŒè¯ç»“æœ
+        /// ×îºóÑéÖ¤½á¹û
         /// </summary>
         public ValidationResult LastValidationResult { get; private set; }
 
@@ -54,7 +54,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// å°†WorkflowControlTypeæ˜ å°„åˆ°NodeType
+        /// ½«WorkflowControlTypeÓ³Éäµ½NodeType
         /// </summary>
         private static NodeType MapControlTypeToNodeType(WorkflowControlType controlType)
         {
@@ -68,20 +68,20 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ‰§è¡Œæ§åˆ¶é€»è¾‘ï¼ˆæŠ½è±¡æ–¹æ³•ï¼‰
+        /// Ö´ĞĞ¿ØÖÆÂß¼­£¨³éÏó·½·¨£©
         /// </summary>
-        /// <param name="context">å·¥ä½œæµæ‰§è¡Œä¸Šä¸‹æ–‡</param>
-        /// <returns>æ‰§è¡Œç»“æœ</returns>
+        /// <param name="context">¹¤×÷Á÷Ö´ĞĞÉÏÏÂÎÄ</param>
+        /// <returns>Ö´ĞĞ½á¹û</returns>
         public abstract Task<ExecutionResult> ExecuteControl(WorkflowContext context);
 
         /// <summary>
-        /// éªŒè¯æ§åˆ¶èŠ‚ç‚¹é…ç½®
+        /// ÑéÖ¤¿ØÖÆ½ÚµãÅäÖÃ
         /// </summary>
-        /// <returns>éªŒè¯ç»“æœ</returns>
+        /// <returns>ÑéÖ¤½á¹û</returns>
         public abstract ValidationResult Validate();
 
         /// <summary>
-        /// æ‰§è¡ŒéªŒè¯å¹¶æ›´æ–°æœ€åéªŒè¯ç»“æœ
+        /// Ö´ĞĞÑéÖ¤²¢¸üĞÂ×îºóÑéÖ¤½á¹û
         /// </summary>
         public ValidationResult ValidateAndUpdate()
         {
@@ -90,9 +90,9 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// éªŒè¯æ§åˆ¶èŠ‚ç‚¹æ˜¯å¦é…ç½®æ­£ç¡®
+        /// ÑéÖ¤¿ØÖÆ½ÚµãÊÇ·ñÅäÖÃÕıÈ·
         /// </summary>
-        /// <returns>æ˜¯å¦éªŒè¯é€šè¿‡</returns>
+        /// <returns>ÊÇ·ñÑéÖ¤Í¨¹ı</returns>
         public bool IsValid()
         {
             if (!EnableValidation) return true;

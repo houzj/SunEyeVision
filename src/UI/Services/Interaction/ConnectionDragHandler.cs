@@ -16,7 +16,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 连接拖拽处理器 - 负责处理连接的创建和拖拽
+    /// 连接拖拽处理�?- 负责处理连接的创建和拖拽
     /// </summary>
     public class ConnectionDragHandler
     {
@@ -44,7 +44,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
         #endregion
 
-        #region 属性
+        #region 属�?
 
         /// <summary>
         /// 是否正在拖拽连接
@@ -52,23 +52,23 @@ namespace SunEyeVision.UI.Services.Interaction
         public bool IsDragging => _isDragging;
 
         /// <summary>
-        /// 源节点
+        /// 源节�?
         /// </summary>
         public WorkflowNode? SourceNode => _sourceNode;
 
         /// <summary>
-        /// 源端口
+        /// 源端�?
         /// </summary>
         public string? SourcePort => _sourcePort;
 
         /// <summary>
-        /// 临时连接线（用于显示拖拽预览）
+        /// 临时连接线（用于显示拖拽预览�?
         /// </summary>
         public System.Windows.Shapes.Path? TempConnectionLine => _tempConnectionLine;
 
         #endregion
 
-        #region 构造函数
+        #region 构造函�?
 
         public ConnectionDragHandler(
             System.Windows.Controls.Canvas canvas,
@@ -85,10 +85,10 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 公共方法
 
         /// <summary>
-        /// 开始拖拽连接
+        /// 开始拖拽连�?
         /// </summary>
-        /// <param name="sourceNode">源节点</param>
-        /// <param name="sourcePort">源端口</param>
+        /// <param name="sourceNode">源节�?/param>
+        /// <param name="sourcePort">源端�?/param>
         /// <param name="startPosition">起始位置</param>
         public void StartDrag(WorkflowNode sourceNode, string sourcePort, Point startPosition)
         {
@@ -137,7 +137,7 @@ namespace SunEyeVision.UI.Services.Interaction
             }
 
         /// <summary>
-        /// 结束拖拽并创建连接
+        /// 结束拖拽并创建连�?
         /// </summary>
         /// <param name="targetNode">目标节点</param>
         /// <param name="targetPort">目标端口</param>
@@ -193,7 +193,7 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 私有方法
 
         /// <summary>
-        /// 显示临时连接线
+        /// 显示临时连接�?
         /// </summary>
         private void ShowTempConnectionLine(Point startPosition)
         {
@@ -218,7 +218,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 隐藏临时连接线
+        /// 隐藏临时连接�?
         /// </summary>
         private void HideTempConnectionLine()
         {
@@ -229,7 +229,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 重置拖拽状态
+        /// 重置拖拽状�?
         /// </summary>
         private void ResetDragState()
         {
@@ -247,7 +247,7 @@ namespace SunEyeVision.UI.Services.Interaction
         {
             if (sourceNode == null)
             {
-                return new ValidationResult(false, "源节点不能为空");
+                return new ValidationResult(false, "源节点不能为�?);
             }
 
             if (targetNode == null)
@@ -262,7 +262,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
             {
-                return new ValidationResult(false, "当前标签页为空");
+                return new ValidationResult(false, "当前标签页为�?);
             }
 
             var existingConnection = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections
@@ -270,7 +270,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (existingConnection != null)
             {
-                return new ValidationResult(false, "连接已存在");
+                return new ValidationResult(false, "连接已存�?);
             }
 
             var reverseConnection = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections
@@ -278,7 +278,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (reverseConnection != null)
             {
-                return new ValidationResult(false, "反向连接已存在");
+                return new ValidationResult(false, "反向连接已存�?);
             }
 
             return new ValidationResult(true, string.Empty);
@@ -318,7 +318,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发拖拽开始事件
+        /// 触发拖拽开始事�?
         /// </summary>
         private void OnDragStarted(ConnectionDragEventArgs e)
         {
@@ -326,7 +326,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发拖拽中事件
+        /// 触发拖拽中事�?
         /// </summary>
         private void OnDragging(ConnectionDragEventArgs e)
         {
@@ -352,7 +352,7 @@ namespace SunEyeVision.UI.Services.Interaction
         #endregion
     }
 
-    #region 事件参数类
+    #region 事件参数�?
 
     /// <summary>
     /// 连接拖拽事件参数
@@ -403,7 +403,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
     #endregion
 
-    #region 验证结果类
+    #region 验证结果�?
 
     /// <summary>
     /// 验证结果

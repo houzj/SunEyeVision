@@ -11,6 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
   </ItemGroup>
 </Project>

@@ -22,7 +22,7 @@ namespace SunEyeVision.UI.Services.Rendering
     }
 
     /// <summary>
-    /// 网格空间索引 - 将画布划分为网格，快速查找节点
+    /// 网格空间索引 - 将画布划分为网格，快速查找节�?
     /// </summary>
     public class GridSpatialIndex : ISpatialIndex
     {
@@ -176,7 +176,7 @@ namespace SunEyeVision.UI.Services.Rendering
     }
 
     /// <summary>
-    /// 四叉树空间索引 - 适用于大规模场景
+    /// 四叉树空间索�?- 适用于大规模场景
     /// </summary>
     public class QuadTreeSpatialIndex : ISpatialIndex
     {
@@ -252,7 +252,7 @@ namespace SunEyeVision.UI.Services.Rendering
         }
 
         /// <summary>
-        /// 四叉树节点
+        /// 四叉树节�?
         /// </summary>
         private class QuadTreeNode
         {

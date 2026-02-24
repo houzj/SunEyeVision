@@ -1,97 +1,97 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// æ¡ä»¶åˆ¤æ–­èŠ‚ç‚¹
+    /// Ìõ¼şÅĞ¶Ï½Úµã
     /// </summary>
     public class ConditionNode : WorkflowControlNode
     {
         /// <summary>
-        /// æ¡ä»¶è¡¨è¾¾å¼
+        /// Ìõ¼ş±í´ïÊ½
         /// </summary>
         public string ConditionExpression { get; set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯ID
+        /// Õæ·ÖÖ§ID
         /// </summary>
         public string TrueBranchId { get; set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯ID
+        /// ¼Ù·ÖÖ§ID
         /// </summary>
         public string FalseBranchId { get; set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯èŠ‚ç‚¹åç§°
+        /// Õæ·ÖÖ§½ÚµãÃû³Æ
         /// </summary>
         public string TrueBranchName { get; set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯èŠ‚ç‚¹åç§°
+        /// ¼Ù·ÖÖ§½ÚµãÃû³Æ
         /// </summary>
         public string FalseBranchName { get; set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯è¿”å›å€¼
+        /// Õæ·ÖÖ§·µ»ØÖµ
         /// </summary>
         public object TrueValue { get; set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯è¿”å›å€¼
+        /// ¼Ù·ÖÖ§·µ»ØÖµ
         /// </summary>
         public object FalseValue { get; set; }
 
         /// <summary>
-        /// è¯„ä¼°ç»“æœ
+        /// ÆÀ¹À½á¹û
         /// </summary>
         public bool EvaluationResult { get; private set; }
 
         /// <summary>
-        /// æ˜¯å¦å·²è¯„ä¼°
+        /// ÊÇ·ñÒÑÆÀ¹À
         /// </summary>
         public bool IsEvaluated { get; private set; }
 
         /// <summary>
-        /// è¯„ä¼°æ¬¡æ•°ç»Ÿè®¡
+        /// ÆÀ¹À´ÎÊıÍ³¼Æ
         /// </summary>
         public int EvaluationCount { get; private set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯æ‰§è¡Œæ¬¡æ•°
+        /// Õæ·ÖÖ§Ö´ĞĞ´ÎÊı
         /// </summary>
         public int TrueBranchCount { get; private set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯æ‰§è¡Œæ¬¡æ•°
+        /// ¼Ù·ÖÖ§Ö´ĞĞ´ÎÊı
         /// </summary>
         public int FalseBranchCount { get; private set; }
 
         /// <summary>
-        /// æ¡ä»¶ç±»å‹
+        /// Ìõ¼şÀàĞÍ
         /// </summary>
         public ConditionType ConditionType { get; set; }
 
         /// <summary>
-        /// æ¯”è¾ƒæ“ä½œç¬¦
+        /// ±È½Ï²Ù×÷·û
         /// </summary>
         public ComparisonOperator Operator { get; set; }
 
         /// <summary>
-        /// å·¦æ“ä½œæ•°å˜é‡å
+        /// ×ó²Ù×÷Êı±äÁ¿Ãû
         /// </summary>
         public string LeftOperand { get; set; }
 
         /// <summary>
-        /// å³æ“ä½œæ•°å˜é‡åæˆ–å€¼
+        /// ÓÒ²Ù×÷Êı±äÁ¿Ãû»òÖµ
         /// </summary>
         public string RightOperand { get; set; }
 
         /// <summary>
-        /// å³æ“ä½œæ•°æ˜¯å¦ä¸ºå­—é¢é‡å€¼
+        /// ÓÒ²Ù×÷ÊıÊÇ·ñÎª×ÖÃæÁ¿Öµ
         /// </summary>
         public bool RightOperandIsLiteral { get; set; }
 
@@ -116,7 +116,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// æ‰§è¡Œæ¡ä»¶åˆ¤æ–­æ§åˆ¶é€»è¾‘
+        /// Ö´ĞĞÌõ¼şÅĞ¶Ï¿ØÖÆÂß¼­
         /// </summary>
         public override async Task<ExecutionResult> ExecuteControl(WorkflowContext context)
         {
@@ -125,13 +125,13 @@ namespace SunEyeVision.Workflow
             var plugin = context.WorkflowControlPlugin;
             if (plugin == null)
             {
-                return ExecutionResult.CreateFailure("å·¥ä½œæµæ§åˆ¶æ’ä»¶æœªåŠ è½½");
+                return ExecutionResult.CreateFailure("¹¤×÷Á÷¿ØÖÆ²å¼şÎ´¼ÓÔØ");
             }
 
             EvaluationResult = plugin.EvaluateCondition(this, context);
             IsEvaluated = true;
 
-            // æ›´æ–°åˆ†æ”¯ç»Ÿè®¡
+            // ¸üĞÂ·ÖÖ§Í³¼Æ
             if (EvaluationResult)
             {
                 TrueBranchCount++;
@@ -150,7 +150,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// éªŒè¯æ¡ä»¶èŠ‚ç‚¹é…ç½®
+        /// ÑéÖ¤Ìõ¼ş½ÚµãÅäÖÃ
         /// </summary>
         public override ValidationResult Validate()
         {
@@ -160,38 +160,38 @@ namespace SunEyeVision.Workflow
             {
                 if (string.IsNullOrEmpty(ConditionExpression))
                 {
-                    result.AddError("æ¡ä»¶è¡¨è¾¾å¼ä¸èƒ½ä¸ºç©º");
+                    result.AddError("Ìõ¼ş±í´ïÊ½²»ÄÜÎª¿Õ");
                 }
             }
             else
             {
-                // ç®€å•æ¡ä»¶ç±»å‹éªŒè¯
+                // ¼òµ¥Ìõ¼şÀàĞÍÑéÖ¤
                 if (string.IsNullOrEmpty(LeftOperand))
                 {
-                    result.AddError("å·¦æ“ä½œæ•°ä¸èƒ½ä¸ºç©º");
+                    result.AddError("×ó²Ù×÷Êı²»ÄÜÎª¿Õ");
                 }
 
                 if (string.IsNullOrEmpty(RightOperand))
                 {
-                    result.AddError("å³æ“ä½œæ•°ä¸èƒ½ä¸ºç©º");
+                    result.AddError("ÓÒ²Ù×÷Êı²»ÄÜÎª¿Õ");
                 }
             }
 
             if (string.IsNullOrEmpty(TrueBranchId) && string.IsNullOrEmpty(TrueBranchName))
             {
-                result.AddError("å¿…é¡»è®¾ç½®çœŸåˆ†æ”¯èŠ‚ç‚¹");
+                result.AddError("±ØĞëÉèÖÃÕæ·ÖÖ§½Úµã");
             }
 
             if (string.IsNullOrEmpty(FalseBranchId) && string.IsNullOrEmpty(FalseBranchName))
             {
-                result.AddError("å¿…é¡»è®¾ç½®å‡åˆ†æ”¯èŠ‚ç‚¹");
+                result.AddError("±ØĞëÉèÖÃ¼Ù·ÖÖ§½Úµã");
             }
 
             return result;
         }
 
         /// <summary>
-        /// é‡ç½®è¯„ä¼°çŠ¶æ€
+        /// ÖØÖÃÆÀ¹À×´Ì¬
         /// </summary>
         public void ResetEvaluationState()
         {
@@ -203,7 +203,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è®¾ç½®ç®€å•æ¡ä»¶
+        /// ÉèÖÃ¼òµ¥Ìõ¼ş
         /// </summary>
         public void SetSimpleCondition(
             string leftOperand,
@@ -219,7 +219,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è®¾ç½®è¡¨è¾¾å¼æ¡ä»¶
+        /// ÉèÖÃ±í´ïÊ½Ìõ¼ş
         /// </summary>
         public void SetExpressionCondition(string expression)
         {
@@ -228,7 +228,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–ç»Ÿè®¡ä¿¡æ¯
+        /// »ñÈ¡Í³¼ÆĞÅÏ¢
         /// </summary>
         public ConditionStatistics GetStatistics()
         {
@@ -244,104 +244,104 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// æ¡ä»¶ç±»å‹
+    /// Ìõ¼şÀàĞÍ
     /// </summary>
     public enum ConditionType
     {
         /// <summary>
-        /// è¡¨è¾¾å¼ç±»å‹
+        /// ±í´ïÊ½ÀàĞÍ
         /// </summary>
         Expression,
 
         /// <summary>
-        /// ç®€å•æ¯”è¾ƒç±»å‹
+        /// ¼òµ¥±È½ÏÀàĞÍ
         /// </summary>
         Simple,
 
         /// <summary>
-        /// å¤šæ¡ä»¶ç»„åˆç±»å‹
+        /// ¶àÌõ¼ş×éºÏÀàĞÍ
         /// </summary>
         Compound
     }
 
     /// <summary>
-    /// æ¯”è¾ƒæ“ä½œç¬¦
+    /// ±È½Ï²Ù×÷·û
     /// </summary>
     public enum ComparisonOperator
     {
         /// <summary>
-        /// ç­‰äº
+        /// µÈÓÚ
         /// </summary>
         Equal,
 
         /// <summary>
-        /// ä¸ç­‰äº
+        /// ²»µÈÓÚ
         /// </summary>
         NotEqual,
 
         /// <summary>
-        /// å¤§äº
+        /// ´óÓÚ
         /// </summary>
         GreaterThan,
 
         /// <summary>
-        /// å¤§äºç­‰äº
+        /// ´óÓÚµÈÓÚ
         /// </summary>
         GreaterThanOrEqual,
 
         /// <summary>
-        /// å°äº
+        /// Ğ¡ÓÚ
         /// </summary>
         LessThan,
 
         /// <summary>
-        /// å°äºç­‰äº
+        /// Ğ¡ÓÚµÈÓÚ
         /// </summary>
         LessThanOrEqual,
 
         /// <summary>
-        /// åŒ…å«
+        /// °üº¬
         /// </summary>
         Contains,
 
         /// <summary>
-        /// ä¸åŒ…å«
+        /// ²»°üº¬
         /// </summary>
         NotContains,
 
         /// <summary>
-        /// æ­£åˆ™åŒ¹é…
+        /// ÕıÔòÆ¥Åä
         /// </summary>
         RegexMatch
     }
 
     /// <summary>
-    /// æ¡ä»¶ç»Ÿè®¡ä¿¡æ¯
+    /// Ìõ¼şÍ³¼ÆĞÅÏ¢
     /// </summary>
     public class ConditionStatistics
     {
         /// <summary>
-        /// æ€»è¯„ä¼°æ¬¡æ•°
+        /// ×ÜÆÀ¹À´ÎÊı
         /// </summary>
         public int TotalEvaluations { get; set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯æ‰§è¡Œæ¬¡æ•°
+        /// Õæ·ÖÖ§Ö´ĞĞ´ÎÊı
         /// </summary>
         public int TrueBranchCount { get; set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯æ‰§è¡Œæ¬¡æ•°
+        /// ¼Ù·ÖÖ§Ö´ĞĞ´ÎÊı
         /// </summary>
         public int FalseBranchCount { get; set; }
 
         /// <summary>
-        /// çœŸåˆ†æ”¯ç™¾åˆ†æ¯”
+        /// Õæ·ÖÖ§°Ù·Ö±È
         /// </summary>
         public double TrueBranchPercentage { get; set; }
 
         /// <summary>
-        /// å‡åˆ†æ”¯ç™¾åˆ†æ¯”
+        /// ¼Ù·ÖÖ§°Ù·Ö±È
         /// </summary>
         public double FalseBranchPercentage { get; set; }
     }

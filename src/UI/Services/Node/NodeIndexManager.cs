@@ -8,7 +8,7 @@ using SunEyeVision.UI.Services.Node;
 namespace SunEyeVision.UI.Services.Node
 {
     /// <summary>
-    /// 节点索引管理器 - 提供O(1)的节点查找
+    /// 节点索引管理�?- 提供O(1)的节点查�?
     /// </summary>
     public class NodeIndexManager
     {
@@ -65,7 +65,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 检查节点是否存在
+        /// 检查节点是否存�?
         /// </summary>
         public bool ContainsNode(string nodeId)
         {
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 获取节点的所有输出连接
+        /// 获取节点的所有输出连�?
         /// </summary>
         public List<WorkflowConnection> GetSourceConnections(string nodeId)
         {
@@ -89,7 +89,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 获取节点的所有输入连接
+        /// 获取节点的所有输入连�?
         /// </summary>
         public List<WorkflowConnection> GetTargetConnections(string nodeId)
         {
@@ -116,7 +116,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 检查是否存在反向连接
+        /// 检查是否存在反向连�?
         /// </summary>
         public bool ReverseConnectionExists(string sourceNodeId, string targetNodeId)
         {
@@ -130,7 +130,7 @@ namespace SunEyeVision.UI.Services.Node
         }
 
         /// <summary>
-        /// 获取连接数
+        /// 获取连接�?
         /// </summary>
         public int GetConnectionCount(string nodeId)
         {

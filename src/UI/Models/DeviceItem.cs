@@ -20,7 +20,7 @@ namespace SunEyeVision.UI.Models
             Id = id;
             Name = name;
             Type = type;
-            Status = "未连接";
+            Status = "未连�?;
         }
     }
 }

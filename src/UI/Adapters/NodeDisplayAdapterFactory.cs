@@ -1,7 +1,7 @@
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 节点显示适配器工厂
+    /// 节点显示适配器工�?
     /// </summary>
     public static class NodeDisplayAdapterFactory
     {
@@ -9,27 +9,27 @@ namespace SunEyeVision.UI.Adapters
         private static readonly INodeDisplayAdapter _defaultAdapter = new DefaultNodeDisplayAdapter();
 
         /// <summary>
-        /// 注册节点显示适配器
+        /// 注册节点显示适配�?
         /// </summary>
         /// <param name="algorithmType">算法类型</param>
-        /// <param name="adapter">适配器实例</param>
+        /// <param name="adapter">适配器实�?/param>
         public static void RegisterAdapter(string algorithmType, INodeDisplayAdapter adapter)
         {
             _adapters[algorithmType] = adapter;
         }
 
         /// <summary>
-        /// 获取节点显示适配器
+        /// 获取节点显示适配�?
         /// </summary>
         /// <param name="algorithmType">算法类型</param>
-        /// <returns>适配器实例，如果未找到则返回默认适配器</returns>
+        /// <returns>适配器实例，如果未找到则返回默认适配�?/returns>
         public static INodeDisplayAdapter GetAdapter(string algorithmType)
         {
             return _adapters.TryGetValue(algorithmType, out var adapter) ? adapter : _defaultAdapter;
         }
 
         /// <summary>
-        /// 清空所有已注册的适配器
+        /// 清空所有已注册的适配�?
         /// </summary>
         public static void Clear()
         {

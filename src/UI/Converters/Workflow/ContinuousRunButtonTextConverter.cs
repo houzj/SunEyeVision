@@ -5,7 +5,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters.Workflow
 {
     /// <summary>
-    /// 连续运行按钮文本转换器
+    /// 连续运行按钮文本转换�?
     /// </summary>
     public class ContinuousRunButtonTextConverter : IValueConverter
     {
@@ -13,9 +13,9 @@ namespace SunEyeVision.UI.Converters.Workflow
         {
             if (value is bool isRunning)
             {
-                return isRunning ? "⏹ 停止" : "▶ 连续运行";
+                return isRunning ? "�?停止" : "�?连续运行";
             }
-            return "▶ 连续运行";
+            return "�?连续运行";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

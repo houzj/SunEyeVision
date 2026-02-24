@@ -47,7 +47,7 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <!-- 标签栏 -->
+            <!-- 标签�?-->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" Background="#333333">
                 <Button Content="📷 原图"
                         Padding="8,4" Height="28"
@@ -56,7 +56,7 @@
                         BorderThickness="1"
                         FontSize="11"
                         Command="{Binding SelectOriginalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <Button Content="🔄 处理后"
+                <Button Content="🔄 处理�?
                         Padding="8,4" Height="28"
                         Background="Transparent"
                         BorderBrush="#DDDDDD"
@@ -64,7 +64,7 @@
                         FontSize="11"
                         Margin="2,0,0,0"
                         Command="{Binding SelectProcessedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <Button Content="📊 检测结果"
+                <Button Content="📊 检测结�?
                         Padding="8,4" Height="28"
                         Background="Transparent"
                         BorderBrush="#DDDDDD"

@@ -1,5 +1,5 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.TemplateMatching
 {
     public class TemplateMatchingToolViewModel : AutoToolDebugViewModelBase
@@ -66,8 +66,8 @@ namespace SunEyeVision.Tool.TemplateMatching
 
         public override void RunTool()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行模板匹配（{Method}, 阈值={Threshold:F2}）...";
+            ToolStatus = "运行�?;
+            StatusMessage = $"正在执行模板匹配（{Method}, 阈�?{Threshold:F2}�?..";
             
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(200, 400));

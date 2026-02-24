@@ -16,7 +16,7 @@ namespace SunEyeVision.UI.Converters.Path
     {
         private readonly SmartPathConverter _converter = new SmartPathConverter();
 
-        // 4B: 绑定优先级控制 - 缓存和批处理
+        // 4B: 绑定优先级控�?- 缓存和批处理
         private readonly Dictionary<string, Geometry> _geometryCache = new Dictionary<string, Geometry>();
         private readonly Dictionary<string, int> _lastKnownCounters = new Dictionary<string, int>();
         private readonly HashSet<string> _pendingUpdates = new HashSet<string>();
@@ -31,7 +31,7 @@ namespace SunEyeVision.UI.Converters.Path
             // 初始化批处理定时器（使用Background优先级，降低对UI的影响）
             _batchUpdateTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(8) // 8ms ≈ 120FPS，比批量更新管理器的16ms更快
+                Interval = TimeSpan.FromMilliseconds(8) // 8ms �?120FPS，比批量更新管理器的16ms更快
             };
             _batchUpdateTimer.Tick += OnBatchUpdateTimerTick;
         }
@@ -44,10 +44,10 @@ namespace SunEyeVision.UI.Converters.Path
             {
                 int counter = values[1] is int ? (int)values[1] : 0;
 
-                // 4B: 检查缓存
+                // 4B: 检查缓�?
                 string cacheKey = connection.Id;
 
-                // 如果计数器没有变化且缓存存在，直接返回缓存
+                // 如果计数器没有变化且缓存存在，直接返回缓�?
                 if (_lastKnownCounters.TryGetValue(cacheKey, out int lastCounter) &&
                     lastCounter == counter &&
                     _geometryCache.TryGetValue(cacheKey, out var cachedGeometry))
@@ -55,14 +55,14 @@ namespace SunEyeVision.UI.Converters.Path
                     return cachedGeometry;
                 }
 
-                // 使用原有的 SmartPathConverter 进行转换，获取字符串
+                // 使用原有�?SmartPathConverter 进行转换，获取字符串
                 string pathString = _converter.Convert(connection, typeof(string), parameter, culture) as string;
 
                 // 4D: 优化 - 检查路径字符串是否变化
                 if (_lastPathStrings.TryGetValue(cacheKey, out string lastPathString) &&
                     string.Equals(pathString, lastPathString, StringComparison.Ordinal))
                 {
-                    // 路径字符串未变化，直接返回现有缓存
+                    // 路径字符串未变化，直接返回现有缓�?
                     if (_geometryCache.TryGetValue(cacheKey, out var cachedGeom))
                     {
                         _lastKnownCounters[cacheKey] = counter;
@@ -70,7 +70,7 @@ namespace SunEyeVision.UI.Converters.Path
                     }
                 }
 
-                // 6A: 将字符串转换为 StreamGeometry（比PathGeometry.Parse快10-20倍）
+                // 6A: 将字符串转换�?StreamGeometry（比PathGeometry.Parse�?0-20倍）
                 if (!string.IsNullOrEmpty(pathString))
                 {
                     try
@@ -120,7 +120,7 @@ namespace SunEyeVision.UI.Converters.Path
         }
 
         /// <summary>
-        /// 4B: 清除指定连接的缓存
+        /// 4B: 清除指定连接的缓�?
         /// </summary>
         public void InvalidateCache(string connectionId)
         {
@@ -131,14 +131,14 @@ namespace SunEyeVision.UI.Converters.Path
 
         /// <summary>
         /// 6A: 手动解析路径字符串并绘制到StreamGeometry
-        /// 支持命令：M (移动到), L (直线到), C (三次贝塞尔曲线)
+        /// 支持命令：M (移动�?, L (直线�?, C (三次贝塞尔曲�?
         /// </summary>
         private void ParseAndDrawPathToStreamGeometry(StreamGeometryContext context, string pathString)
         {
             try
             {
-                // 解析SVG路径字符串（支持M, L, C命令）
-                // 使用正则表达式分割路径命令
+                // 解析SVG路径字符串（支持M, L, C命令�?
+                // 使用正则表达式分割路径命�?
                 var parts = System.Text.RegularExpressions.Regex.Split(pathString, @"(?=[MLCmlc])");
                 Point? currentPoint = null;
 
@@ -175,7 +175,7 @@ namespace SunEyeVision.UI.Converters.Path
                             }
                             break;
 
-                        case 'C': // Cubic Bezier (三次贝塞尔曲线)
+                        case 'C': // Cubic Bezier (三次贝塞尔曲�?
                             // 格式：C cp1x,cp1y cp2x,cp2y x,y
                             if (coords.Length >= 6 &&
                                 double.TryParse(coords[0], out double cp1x) &&
@@ -202,7 +202,7 @@ namespace SunEyeVision.UI.Converters.Path
         }
 
         /// <summary>
-        /// 4B: 清除所有缓存
+        /// 4B: 清除所有缓�?
         /// </summary>
         public void ClearCache()
         {

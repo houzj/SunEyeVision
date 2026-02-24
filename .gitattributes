@@ -1,0 +1,39 @@
+# Git Attributes - 文件编码和换行符配置
+# 确保所有文本文件使用 UTF-8 编码
+
+# 自动检测文本文件并进行规范化
+* text=auto
+
+# C# 源代码强制 UTF-8
+*.cs text eol=crlf encoding=utf-8
+
+# 项目文件强制 UTF-8
+*.csproj text eol=crlf encoding=utf-8
+*.sln text eol=crlf encoding=utf-8
+
+# XAML 文件
+*.xaml text eol=crlf encoding=utf-8
+
+# 配置文件
+*.json text eol=lf encoding=utf-8
+*.xml text eol=crlf encoding=utf-8
+*.config text eol=crlf encoding=utf-8
+
+# 文档
+*.md text eol=lf encoding=utf-8
+
+# 脚本
+*.ps1 text eol=lf encoding=utf-8
+*.bat text eol=crlf encoding=utf-8
+
+# 二进制文件（不转换）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.dll binary
+*.exe binary
+*.nupkg binary
+*.snk binary
+*.pfx binary

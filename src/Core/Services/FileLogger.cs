@@ -4,7 +4,7 @@ using System.IO;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// 文件日志记录器实现
+    /// 文件日志记录器实�?
     /// </summary>
     public class FileLogger : SunEyeVision.Core.Interfaces.ILogger
     {

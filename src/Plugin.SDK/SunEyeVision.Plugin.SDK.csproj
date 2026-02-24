@@ -4,19 +4,20 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWPF>false</UseWPF>
-    <RootNamespace>SunEyeVision.Plugin.Abstractions</RootNamespace>
-    <AssemblyName>SunEyeVision.Plugin.Abstractions</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>SunEyeVision.Plugin.SDK</RootNamespace>
+    <AssemblyName>SunEyeVision.Plugin.SDK</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Plugin.Abstractions.xml</DocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Plugin.SDK.xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
 
     <!-- NuGet包配置 -->
     <PackageId>SunEyeVision.Plugin.SDK</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.2</Version>
     <Authors>SunEyeVision Team</Authors>
     <Company>SunEyeVision</Company>
     <Product>SunEyeVision Plugin SDK</Product>
-    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层，包含IImageProcessor、IToolPlugin等核心接口</Description>
+    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层，现代化架构，包含ITool、IToolPlugin等核心接口</Description>
     <Copyright>Copyright (c) 2026 SunEyeVision</Copyright>
     <PackageTags>vision;plugin;sdk;machine-vision;image-processing</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -41,5 +42,9 @@
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
-  <!-- 无任何项目依赖 - 纯契约层 -->
+  <!-- 图像处理核心依赖 -->
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+  </ItemGroup>
 </Project>

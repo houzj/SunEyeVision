@@ -1,21 +1,21 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.EdgeDetection
 {
     /// <summary>
-    /// 边缘检测工具插件
+    /// 边缘检测工具插�?
     /// </summary>
     [ToolPlugin("edge_detection", "EdgeDetection")]
     public class EdgeDetectionToolPlugin : IToolPlugin
     {
         #region 插件基本信息
-        public string Name => "边缘检测";
+        public string Name => "边缘检�?;
         public string Version => "1.0.0";
         public string Author => "SunEyeVision";
-        public string Description => "检测图像中的边缘";
+        public string Description => "检测图像中的边�?;
         public string PluginId => "suneye.edge_detection";
         public string Icon => "📐";
         public List<string> Dependencies => new List<string>();
@@ -38,10 +38,10 @@ namespace SunEyeVision.Tool.EdgeDetection
                 {
                     Id = "edge_detection",
                     Name = "EdgeDetection",
-                    DisplayName = "边缘检测",
+                    DisplayName = "边缘检�?,
                     Icon = "📐",
                     Category = "图像处理",
-                    Description = "检测图像中的边缘",
+                    Description = "检测图像中的边�?,
                     AlgorithmType = typeof(EdgeDetectionAlgorithm),
                     Version = "1.0.0",
                     Author = "SunEyeVision",
@@ -51,8 +51,8 @@ namespace SunEyeVision.Tool.EdgeDetection
                         new ParameterMetadata
                         {
                             Name = "method",
-                            DisplayName = "检测方法",
-                            Description = "边缘检测算法",
+                            DisplayName = "检测方�?,
+                            Description = "边缘检测算�?,
                             Type = ParameterType.Enum,
                             DefaultValue = "Canny",
                             Options = new object[] { "Canny", "Sobel", "Laplacian", "Scharr" },
@@ -62,8 +62,8 @@ namespace SunEyeVision.Tool.EdgeDetection
                         new ParameterMetadata
                         {
                             Name = "threshold1",
-                            DisplayName = "低阈值",
-                            Description = "第一个滞后阈值",
+                            DisplayName = "低阈�?,
+                            Description = "第一个滞后阈�?,
                             Type = ParameterType.Double,
                             DefaultValue = 50.0,
                             MinValue = 0.0,
@@ -75,8 +75,8 @@ namespace SunEyeVision.Tool.EdgeDetection
                         new ParameterMetadata
                         {
                             Name = "threshold2",
-                            DisplayName = "高阈值",
-                            Description = "第二个滞后阈值",
+                            DisplayName = "高阈�?,
+                            Description = "第二个滞后阈�?,
                             Type = ParameterType.Double,
                             DefaultValue = 150.0,
                             MinValue = 0.0,
@@ -89,7 +89,7 @@ namespace SunEyeVision.Tool.EdgeDetection
                         {
                             Name = "apertureSize",
                             DisplayName = "孔径大小",
-                            Description = "Sobel算子的孔径大小",
+                            Description = "Sobel算子的孔径大�?,
                             Type = ParameterType.Int,
                             DefaultValue = 3,
                             MinValue = 1,
@@ -101,7 +101,7 @@ namespace SunEyeVision.Tool.EdgeDetection
                         {
                             Name = "L2gradient",
                             DisplayName = "L2梯度",
-                            Description = "是否使用更精确的L2范数计算梯度幅值",
+                            Description = "是否使用更精确的L2范数计算梯度幅�?,
                             Type = ParameterType.Bool,
                             DefaultValue = true,
                             Required = false,
@@ -110,8 +110,8 @@ namespace SunEyeVision.Tool.EdgeDetection
                         new ParameterMetadata
                         {
                             Name = "kernelSize",
-                            DisplayName = "卷积核大小",
-                            Description = "Laplacian算子的孔径大小",
+                            DisplayName = "卷积核大�?,
+                            Description = "Laplacian算子的孔径大�?,
                             Type = ParameterType.Int,
                             DefaultValue = 3,
                             MinValue = 1,
@@ -126,14 +126,14 @@ namespace SunEyeVision.Tool.EdgeDetection
                         {
                             Name = "outputImage",
                             DisplayName = "输出图像",
-                            Description = "边缘检测结果图像",
+                            Description = "边缘检测结果图�?,
                             Type = ParameterType.Image
                         },
                         new ParameterMetadata
                         {
                             Name = "edgeCount",
                             DisplayName = "边缘数量",
-                            Description = "检测到的边缘轮廓数量",
+                            Description = "检测到的边缘轮廓数�?,
                             Type = ParameterType.Int
                         }
                     }
@@ -174,7 +174,7 @@ namespace SunEyeVision.Tool.EdgeDetection
 
             if (threshold1 != null && threshold2 != null && threshold1 >= threshold2)
             {
-                result.AddWarning("通常情况下低阈值应小于高阈值");
+                result.AddWarning("通常情况下低阈值应小于高阈�?);
             }
 
             result.IsValid = result.Errors.Count == 0;
@@ -184,12 +184,12 @@ namespace SunEyeVision.Tool.EdgeDetection
     }
 
     /// <summary>
-    /// 边缘检测算法实现
+    /// 边缘检测算法实�?
     /// </summary>
     public class EdgeDetectionAlgorithm : ImageProcessorBase
     {
-        public override string Name => "边缘检测";
-        public override string Description => "检测图像中的边缘";
+        public override string Name => "边缘检�?;
+        public override string Description => "检测图像中的边�?;
 
         protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
@@ -222,7 +222,7 @@ namespace SunEyeVision.Tool.EdgeDetection
             if (threshold2.HasValue && (threshold2.Value < 0 || threshold2.Value > 255))
                 result.AddError("高阈值必须在0-255之间");
             if (threshold1.HasValue && threshold2.HasValue && threshold1.Value >= threshold2.Value)
-                result.AddWarning("通常情况下低阈值应小于高阈值");
+                result.AddWarning("通常情况下低阈值应小于高阈�?);
 
             return result;
         }

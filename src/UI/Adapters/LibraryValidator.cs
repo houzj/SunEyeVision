@@ -5,19 +5,19 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 库验证器 - 验证AIStudio.Wpf.DiagramDesigner的API和连接算法
+    /// 库验证器 - 验证AIStudio.Wpf.DiagramDesigner的API和连接算�?
     /// </summary>
     public static class LibraryValidator
     {
         /// <summary>
-        /// 验证库是否可用并输出支持的连接算法
+        /// 验证库是否可用并输出支持的连接算�?
         /// </summary>
         public static void ValidateConnectionAlgorithms()
         {
             try
             {
 
-                // 加载程序集
+                // 加载程序�?
                 var assembly = Assembly.Load("AIStudio.Wpf.DiagramDesigner");
 
                 // 获取核心类型
@@ -26,7 +26,7 @@ namespace SunEyeVision.UI.Adapters
                 var linkType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.Link");
 
 
-                // 检查连接算法枚举
+                // 检查连接算法枚�?
                 var algorithmEnumType = assembly.GetType("AIStudio.Wpf.DiagramDesigner.LinkAlgorithm");
                 if (algorithmEnumType != null)
                 {
@@ -43,7 +43,7 @@ namespace SunEyeVision.UI.Adapters
                 if (diagramClassType != null)
                 {
                     
-                    // 检查关键属性
+                    // 检查关键属�?
                     var nodesProperty = diagramClassType.GetProperty("Nodes");
                     var linksProperty = diagramClassType.GetProperty("Links");
                     var zoomProperty = diagramClassType.GetProperty("Zoom");
@@ -107,7 +107,7 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 检查DiagramControl的属性
+        /// 检查DiagramControl的属�?
         /// </summary>
         public static void InspectDiagramControlProperties(object diagramControl)
         {
@@ -116,7 +116,7 @@ namespace SunEyeVision.UI.Adapters
                 var diagramType = diagramControl.GetType();
                 var properties = diagramType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-                // 检查SourceItemsContainer的详细信息
+                // 检查SourceItemsContainer的详细信�?
                 var sourceItemsContainerProp = diagramType.GetProperty("SourceItemsContainer");
                 if (sourceItemsContainerProp != null)
                 {
@@ -135,7 +135,7 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 检查BlockItemsContainer的创建问题
+        /// 检查BlockItemsContainer的创建问�?
         /// </summary>
         public static void CheckBlockItemsContainerCreation()
         {
@@ -154,7 +154,7 @@ namespace SunEyeVision.UI.Adapters
 
 
 
-                // 检查构造函数
+                // 检查构造函�?
                 var constructors = blockItemsContainerType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
 
 
@@ -171,7 +171,7 @@ namespace SunEyeVision.UI.Adapters
                     var instance = Activator.CreateInstance(blockItemsContainerType);
 
 
-                    // 检查实例的属性
+                    // 检查实例的属�?
                     var props = instance.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
                     foreach (var prop in props)
@@ -215,11 +215,11 @@ namespace SunEyeVision.UI.Adapters
                 var container = Activator.CreateInstance(blockItemsContainerType);
 
 
-                // 获取SourceItemsContainer属性
+                // 获取SourceItemsContainer属�?
                 var sourceItemsContainerProperty = designerCanvasType.GetProperty("SourceItemsContainer");
 
 
-                // 尝试设置属性
+                // 尝试设置属�?
 
                 try
                 {
@@ -235,7 +235,7 @@ namespace SunEyeVision.UI.Adapters
 
 
 
-                    // 检查属性是否可写
+                    // 检查属性是否可�?
                     if (sourceItemsContainerProperty != null)
                     {
 

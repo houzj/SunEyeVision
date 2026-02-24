@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 using Events = SunEyeVision.Core.Events;
 
 namespace SunEyeVision.Workflow

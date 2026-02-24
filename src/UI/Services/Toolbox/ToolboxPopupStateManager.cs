@@ -3,17 +3,17 @@ using System;
 namespace SunEyeVision.UI.Services.Toolbox
 {
     /// <summary>
-    /// Popup状态机管理器 - 管理Toolbox Popup的生命周期和状态转换
+    /// Popup状态机管理�?- 管理Toolbox Popup的生命周期和状态转�?
     /// </summary>
     public class ToolboxPopupStateManager
     {
         public enum PopupState
         {
-            Idle,           // 空闲状态
-            Hovering,       // 悬停中
+            Idle,           // 空闲状�?
+            Hovering,       // 悬停�?
             Opened,         // 已打开
-            Dragging,       // 拖拽中
-            Closing         // 关闭中
+            Dragging,       // 拖拽�?
+            Closing         // 关闭�?
         }
 
         private PopupState _currentState = PopupState.Idle;
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 转换到悬停状态
+        /// 转换到悬停状�?
         /// </summary>
         public void ToHovering()
         {
@@ -61,7 +61,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 转换到打开状态
+        /// 转换到打开状�?
         /// </summary>
         public void ToOpened()
         {
@@ -69,7 +69,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 转换到拖拽状态
+        /// 转换到拖拽状�?
         /// </summary>
         public void ToDragging()
         {
@@ -77,7 +77,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 转换到关闭状态
+        /// 转换到关闭状�?
         /// </summary>
         public void ToClosing()
         {
@@ -88,7 +88,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 转换到空闲状态
+        /// 转换到空闲状�?
         /// </summary>
         public void ToIdle()
         {
@@ -96,7 +96,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 重置状态到初始状态
+        /// 重置状态到初始状�?
         /// </summary>
         public void Reset()
         {
@@ -104,11 +104,11 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 从拖拽状态恢复
+        /// 从拖拽状态恢�?
         /// </summary>
         public void RecoverFromDragging()
         {
-            // 拖拽结束后，如果是打开状态，保持打开；否则进入空闲状态
+            // 拖拽结束后，如果是打开状态，保持打开；否则进入空闲状�?
             if (CurrentState == PopupState.Dragging)
             {
                 CurrentState = PopupState.Opened;

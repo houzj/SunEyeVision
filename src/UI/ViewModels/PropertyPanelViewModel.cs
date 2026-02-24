@@ -6,7 +6,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 属性面板视图模型
+    /// 属性面板视图模�?
     /// </summary>
     public class PropertyPanelViewModel : ViewModelBase
     {
@@ -54,17 +54,17 @@ namespace SunEyeVision.UI.ViewModels
             Properties.Add(new PropertyItem("类型", SelectedNode.AlgorithmType, "string", false));
             Properties.Add(new PropertyItem("位置X", SelectedNode.PositionX.ToString(), "double", true));
             Properties.Add(new PropertyItem("位置Y", SelectedNode.PositionY.ToString(), "double", true));
-            Properties.Add(new PropertyItem("状态", SelectedNode.Status, "string", false));
+            Properties.Add(new PropertyItem("状�?, SelectedNode.Status, "string", false));
             Properties.Add(new PropertyItem("启用", SelectedNode.IsEnabled.ToString(), "boolean", true));
 
             switch (SelectedNode.AlgorithmType.ToLower())
             {
                 case "preprocess":
-                    Properties.Add(new PropertyItem("核大小", "5", "int", true));
+                    Properties.Add(new PropertyItem("核大�?, "5", "int", true));
                     Properties.Add(new PropertyItem("Sigma", "1.4", "double", true));
                     break;
                 case "detection":
-                    Properties.Add(new PropertyItem("阈值", "128", "int", true));
+                    Properties.Add(new PropertyItem("阈�?, "128", "int", true));
                     Properties.Add(new PropertyItem("方法", "Canny", "enum", true));
                     break;
                 case "output":

@@ -15,7 +15,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 端口交互处理器 - 负责处理端口的高亮和交互
+    /// 端口交互处理�?- 负责处理端口的高亮和交互
     /// </summary>
     public class PortInteractionHandler
     {
@@ -43,21 +43,21 @@ namespace SunEyeVision.UI.Services.Interaction
 
         #endregion
 
-        #region 属性
+        #region 属�?
 
         /// <summary>
-        /// 当前高亮的目标节点
+        /// 当前高亮的目标节�?
         /// </summary>
         public Border? HighlightedTargetBorder => _highlightedTargetBorder;
 
         /// <summary>
-        /// 当前高亮的目标端口
+        /// 当前高亮的目标端�?
         /// </summary>
         public Ellipse? HighlightedTargetPort => _highlightedTargetPort;
 
         #endregion
 
-        #region 构造函数
+        #region 构造函�?
 
         public PortInteractionHandler(
             System.Windows.Controls.Canvas canvas,
@@ -76,10 +76,10 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 公共方法
 
         /// <summary>
-        /// 判断点击的端口
+        /// 判断点击的端�?
         /// </summary>
         /// <param name="node">节点</param>
-        /// <param name="clickPoint">点击点</param>
+        /// <param name="clickPoint">点击�?/param>
         /// <returns>端口名称</returns>
         public string? DetermineClickedPort(WorkflowNode node, Point clickPoint)
         {
@@ -118,7 +118,7 @@ namespace SunEyeVision.UI.Services.Interaction
         /// 高亮目标端口
         /// </summary>
         /// <param name="targetBorder">目标节点Border</param>
-        /// <param name="sourceNode">源节点</param>
+        /// <param name="sourceNode">源节�?/param>
         public void HighlightTargetPort(Border? targetBorder, WorkflowNode? sourceNode)
         {
             if (targetBorder == null || sourceNode == null)
@@ -203,7 +203,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 设置直接命中的目标端口
+        /// 设置直接命中的目标端�?
         /// </summary>
         /// <param name="portName">端口名称</param>
         public void SetDirectHitTargetPort(string? portName)
@@ -242,7 +242,7 @@ namespace SunEyeVision.UI.Services.Interaction
         /// <summary>
         /// 检查点是否在端口范围内
         /// </summary>
-        /// <param name="point">测试点</param>
+        /// <param name="point">测试�?/param>
         /// <param name="portPosition">端口位置</param>
         /// <returns>是否命中</returns>
         public bool IsPointInPort(Point point, Point portPosition)
@@ -253,9 +253,9 @@ namespace SunEyeVision.UI.Services.Interaction
         /// <summary>
         /// 查找最近的端口
         /// </summary>
-        /// <param name="point">测试点</param>
+        /// <param name="point">测试�?/param>
         /// <param name="node">节点</param>
-        /// <returns>端口名称和距离</returns>
+        /// <returns>端口名称和距�?/returns>
         public (string? PortName, double Distance) FindNearestPort(Point point, WorkflowNode node)
         {
             var portPositions = CanvasHelper.GetAllPortPositions(node);

@@ -10,7 +10,7 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 图表适配器实现
+    /// 图表适配器实�?
     /// 将Workflow模型转换为AIStudio.Wpf.DiagramDesigner原生图表
     /// 使用 DiagramViewModel 和贝塞尔曲线连接
     /// </summary>
@@ -27,14 +27,14 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 创建原生节点（DefaultDesignerItemViewModel）
+        /// 创建原生节点（DefaultDesignerItemViewModel�?
         /// </summary>
         public object CreateNode(WorkflowNode workflowNode)
         {
             // 缓存 WorkflowNode，稍后在 SyncNodes 中创建实际的 ViewModel
             _nodeMap[workflowNode.Id] = null!;
 
-            return workflowNode; // 返回 WorkflowNode，稍后处理
+            return workflowNode; // 返回 WorkflowNode，稍后处�?
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace SunEyeVision.UI.Adapters
             // 创建 DefaultDesignerItemViewModel
             var nativeNode = new DefaultDesignerItemViewModel(diagramViewModel)
             {
-                // 设置属性：Left 和 Top（不是 X 和 Y）
+                // 设置属性：Left �?Top（不�?X �?Y�?
                 Left = workflowNode.Position.X,
                 Top = workflowNode.Position.Y,
                 Text = workflowNode.Name
@@ -66,18 +66,18 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 创建原生连接（ConnectionViewModel）
-        /// 使用贝塞尔曲线连接
+        /// 创建原生连接（ConnectionViewModel�?
+        /// 使用贝塞尔曲线连�?
         /// </summary>
         public object CreateConnection(WorkflowConnection workflowConnection)
         {
-            // 暂时返回 null，实际创建在 SyncConnections 中完成
+            // 暂时返回 null，实际创建在 SyncConnections 中完�?
             return null!;
         }
 
         /// <summary>
         /// 创建原生连接（内部方法）
-        /// 使用贝塞尔曲线连接
+        /// 使用贝塞尔曲线连�?
         /// </summary>
         private ConnectionViewModel CreateConnectionInternal(WorkflowConnection workflowConnection, DiagramViewModel diagramViewModel)
         {
@@ -89,7 +89,7 @@ namespace SunEyeVision.UI.Adapters
 
             if (!_nodeMap.TryGetValue(workflowConnection.TargetNodeId, out var targetNode) || targetNode == null)
             {
-                throw new InvalidOperationException($"目标节点未找到: {workflowConnection.TargetNodeId}");
+                throw new InvalidOperationException($"目标节点未找�? {workflowConnection.TargetNodeId}");
             }
 
             // 获取连接端口
@@ -120,17 +120,17 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 同步节点到原生图表
+        /// 同步节点到原生图�?
         /// 使用 DiagramViewModel.Add() 方法
         /// </summary>
         public void SyncNodes(IEnumerable<WorkflowNode> nodes, object nativeDiagram)
         {
             try
             {
-                // 检查传入的 nativeDiagram 是否为 DiagramViewModel
+                // 检查传入的 nativeDiagram 是否�?DiagramViewModel
                 if (nativeDiagram is not DiagramViewModel diagramViewModel)
                 {
-                    throw new InvalidOperationException("nativeDiagram 必须是 DiagramViewModel 类型");
+                    throw new InvalidOperationException("nativeDiagram 必须�?DiagramViewModel 类型");
                 }
 
                 // 清空现有元素
@@ -138,7 +138,7 @@ namespace SunEyeVision.UI.Adapters
                 _nodeMap.Clear();
                 _connectionMap.Clear();
 
-                // 添加新节点
+                // 添加新节�?
                 foreach (var node in nodes)
                 {
                     var nativeNode = CreateNodeInternal(node, diagramViewModel);
@@ -153,20 +153,20 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 同步连接到原生图表
+        /// 同步连接到原生图�?
         /// 使用 DiagramViewModel.Add() 方法
         /// </summary>
         public void SyncConnections(IEnumerable<WorkflowConnection> connections, object nativeDiagram)
         {
             try
             {
-                // 检查传入的 nativeDiagram 是否为 DiagramViewModel
+                // 检查传入的 nativeDiagram 是否�?DiagramViewModel
                 if (nativeDiagram is not DiagramViewModel diagramViewModel)
                 {
-                    throw new InvalidOperationException("nativeDiagram 必须是 DiagramViewModel 类型");
+                    throw new InvalidOperationException("nativeDiagram 必须�?DiagramViewModel 类型");
                 }
 
-                // 添加新连接
+                // 添加新连�?
                 int successCount = 0;
                 foreach (var connection in connections)
                 {
@@ -193,7 +193,7 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 添加节点到原生图表
+        /// 添加节点到原生图�?
         /// 使用 DiagramViewModel.Add() 方法
         /// </summary>
         public void AddNode(object nativeNode, object nativeDiagram)
@@ -211,7 +211,7 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 添加连接到原生图表
+        /// 添加连接到原生图�?
         /// 使用 DiagramViewModel.Add() 方法
         /// </summary>
         public void AddConnection(object nativeConnection, object nativeDiagram)
@@ -271,13 +271,13 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 设置贝塞尔曲线样式（原生库默认使用贝塞尔曲线）
+        /// 设置贝塞尔曲线样式（原生库默认使用贝塞尔曲线�?
         /// </summary>
         /// <param name="nativeConnection">原生连接对象</param>
         public void SetBezierCurveStyle(object nativeConnection)
         {
             // AIStudio.Wpf.DiagramDesigner原生库默认使用贝塞尔曲线
-            // 在 CreateConnectionInternal 中已设置 DrawMode.ConnectingLineSmooth
+            // �?CreateConnectionInternal 中已设置 DrawMode.ConnectingLineSmooth
             // 此方法为接口实现预留
 
         }

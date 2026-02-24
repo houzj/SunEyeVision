@@ -8,8 +8,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Converters.UI
 {
     /// <summary>
-    /// 布尔值反转换转换器
-    /// </summary>
+    /// 布尔值反转换转换�?    /// </summary>
     public class InverseBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -56,16 +55,14 @@ namespace SunEyeVision.UI.Converters.UI
     }
 
     /// <summary>
-    /// 分类可见性转换器 - 根据工具分类显示或隐藏工具
-    /// </summary>
+    /// 分类可见性转换器 - 根据工具分类显示或隐藏工�?    /// </summary>
     public class CategoryVisibilityConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             if (values.Length >= 2 && values[0] is string toolCategory && values[1] is ToolCategory category)
             {
-                // 显示属于当前分类的
-                return toolCategory == category.Name ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                // 显示属于当前分类�?                return toolCategory == category.Name ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
             }
             return System.Windows.Visibility.Collapsed;
         }
@@ -105,8 +102,7 @@ namespace SunEyeVision.UI.Converters.UI
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            // 支持两种模式：比较 WorkflowInfo 对象或比较 Id 字符串
-            if (values.Length >= 2)
+            // 支持两种模式：比�?WorkflowInfo 对象或比�?Id 字符�?            if (values.Length >= 2)
             {
                 if (values[0] is WorkflowInfo workflow && values[1] is WorkflowInfo currentWorkflow)
                 {
@@ -115,8 +111,7 @@ namespace SunEyeVision.UI.Converters.UI
                 }
                 else if (values[0] is string workflowId && values[1] is string currentWorkflowId)
                 {
-                    // 模式2: 比较两个 Id 字符串
-                    return workflowId == currentWorkflowId;
+                    // 模式2: 比较两个 Id 字符�?                    return workflowId == currentWorkflowId;
                 }
             }
             return false;
@@ -129,7 +124,7 @@ namespace SunEyeVision.UI.Converters.UI
     }
 
     /// <summary>
-    /// 当前工作流 Id 转换器 - 判断当前工作流 Id 是否匹配
+    /// 当前工作�?Id 转换�?- 判断当前工作�?Id 是否匹配
     /// </summary>
     public class CurrentWorkflowIdConverter : IValueConverter
     {

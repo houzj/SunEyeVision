@@ -3,7 +3,7 @@ using NodeModel = SunEyeVision.UI.Models.WorkflowNode;
 namespace SunEyeVision.UI.Services.Workflow
 {
     /// <summary>
-    /// 工作流节点工厂接口
+    /// 工作流节点工厂接�?
     /// </summary>
     public interface IWorkflowNodeFactory
     {

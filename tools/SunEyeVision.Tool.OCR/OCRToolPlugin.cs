@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.OCR
 {
@@ -62,7 +62,7 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "confThreshold",
-                            DisplayName = "置信度阈值",
+                            DisplayName = "置信度阈�?,
                             Description = "识别结果的最低置信度(0-100)",
                             Type = ParameterType.Double,
                             DefaultValue = 80.0,
@@ -75,8 +75,8 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "whitelist",
-                            DisplayName = "白名单",
-                            Description = "允许的字符集(正则表达式)",
+                            DisplayName = "白名�?,
+                            Description = "允许的字符集(正则表达�?",
                             Type = ParameterType.String,
                             DefaultValue = "",
                             Required = false,
@@ -86,11 +86,11 @@ namespace SunEyeVision.Tool.OCR
                         {
                             Name = "enableDenoise",
                             DisplayName = "启用降噪",
-                            Description = "是否对图像进行降噪处理",
+                            Description = "是否对图像进行降噪处�?,
                             Type = ParameterType.Bool,
                             DefaultValue = true,
                             Required = false,
-                            Category = "图像预处理"
+                            Category = "图像预处�?
                         }
                     },
                     OutputParameters = new List<ParameterMetadata>
@@ -105,7 +105,7 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "confidence",
-                            DisplayName = "置信度",
+                            DisplayName = "置信�?,
                             Description = "识别结果的整体置信度",
                             Type = ParameterType.Double
                         },

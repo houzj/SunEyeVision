@@ -11,13 +11,13 @@ namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
     /// 工作流拖放处理器
-    /// 负责从工具箱拖放节点到画布
+    /// 负责从工具箱拖放节点到画�?
     /// </summary>
     public class WorkflowDragDropHandler
     {
         private readonly WorkflowCanvasControl _canvasControl;
 
-        // 性能优化：条件编译开关，设为 false 可禁用详细日志
+        // 性能优化：条件编译开关，设为 false 可禁用详细日�?
         private const bool ENABLE_VERBOSE_LOG = false;
 
         public WorkflowDragDropHandler(
@@ -67,18 +67,18 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 拖放放下事件 - 创建新节点
-        /// 性能优化：延迟设置 SelectedNode，让节点先渲染完成
+        /// 拖放放下事件 - 创建新节�?
+        /// 性能优化：延迟设�?SelectedNode，让节点先渲染完�?
         /// </summary>
         public async void Canvas_Drop(object sender, DragEventArgs e)
         {
             try
             {
-                // 检查 sender
+                // 检�?sender
                 if (sender is not System.Windows.Controls.Canvas canvas)
                     return;
 
-                // 检查拖拽数据
+                // 检查拖拽数�?
                 var toolItemData = e.Data.GetData("ToolItem");
                 if (toolItemData is not ToolItem item)
                     return;
@@ -89,7 +89,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 if (string.IsNullOrEmpty(item.ToolId))
                     return;
 
-                // 从 MainWindow 动态获取当前选中的工作流
+                // �?MainWindow 动态获取当前选中的工作流
                 WorkflowTabViewModel workflowTab = GetCurrentWorkflowTab();
                 if (workflowTab == null)
                 {
@@ -97,26 +97,26 @@ namespace SunEyeVision.UI.Services.Interaction
                     return;
                 }
 
-                // 清除其他节点的选中状态
+                // 清除其他节点的选中状�?
                 foreach (var node in workflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
 
-                // 使用 ViewModel 的 CreateNode 方法创建节点
+                // 使用 ViewModel �?CreateNode 方法创建节点
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
 
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
 
-                // 添加新节点
+                // 添加新节�?
                 workflowTab.WorkflowNodes.Add(newNode);
 
-                // ★ 关键优化：延迟设置 SelectedNode，让节点先渲染完成
-                // 使用 Dispatcher.Yield 让 UI 线程先处理渲染，再触发属性面板更新
+                // �?关键优化：延迟设�?SelectedNode，让节点先渲染完�?
+                // 使用 Dispatcher.Yield �?UI 线程先处理渲染，再触发属性面板更�?
                 await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
 
-                // 触发图像预览器显示
+                // 触发图像预览器显�?
                 if (Application.Current?.MainWindow is MainWindow mainWindow)
                 {
                     if (mainWindow.DataContext is MainWindowViewModel viewModel)
@@ -127,7 +127,7 @@ namespace SunEyeVision.UI.Services.Interaction
             }
             catch (Exception ex)
             {
-                // 不要 throw，避免程序崩溃
+                // 不要 throw，避免程序崩�?
                 MessageBox.Show($"拖放节点失败: {ex.Message}\n\n类型: {ex.GetType().Name}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -139,7 +139,7 @@ namespace SunEyeVision.UI.Services.Interaction
         {
             try
             {
-                // 从 MainWindow 获取当前选中的工作流
+                // �?MainWindow 获取当前选中的工作流
                 if (Application.Current?.MainWindow is MainWindow mainWindow)
                 {
                     if (mainWindow.DataContext is MainWindowViewModel mainWindowViewModel)

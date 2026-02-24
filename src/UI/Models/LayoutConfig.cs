@@ -5,11 +5,11 @@ using System.Text.Json;
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
-    /// 布局配置模型 - 用于保存和恢复主窗口列宽度和面板折叠状态
+    /// 布局配置模型 - 用于保存和恢复主窗口列宽度和面板折叠状�?
     /// </summary>
     public class LayoutConfig
     {
-        // 默认值
+        // 默认�?
         private const double DefaultLeftColumnWidth = 260.0;
         private const double DefaultRightColumnWidth = 500.0;
         private const double DefaultSplitterWidth = 5.0;
@@ -22,12 +22,12 @@ namespace SunEyeVision.UI.Models
         private const double MinMiddleColumnWidth = 400.0;
 
         /// <summary>
-        /// 左侧列宽度
+        /// 左侧列宽�?
         /// </summary>
         public double LeftColumnWidth { get; set; } = DefaultLeftColumnWidth;
 
         /// <summary>
-        /// 右侧列宽度
+        /// 右侧列宽�?
         /// </summary>
         public double RightColumnWidth { get; set; } = DefaultRightColumnWidth;
 
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Models
         public bool IsRightPanelCollapsed { get; set; } = false;
 
         /// <summary>
-        /// 保存配置到文件
+        /// 保存配置到文�?
         /// </summary>
         /// <returns>是否保存成功</returns>
         public bool Save()
@@ -67,15 +67,15 @@ namespace SunEyeVision.UI.Models
             }
             catch (Exception)
             {
-                // 保存失败时静默处理，使用默认值
+                // 保存失败时静默处理，使用默认�?
                 return false;
             }
         }
 
         /// <summary>
-        /// 从文件加载配置
+        /// 从文件加载配�?
         /// </summary>
-        /// <returns>配置对象，如果加载失败返回默认配置</returns>
+        /// <returns>配置对象，如果加载失败返回默认配�?/returns>
         public static LayoutConfig Load()
         {
             try
@@ -95,20 +95,20 @@ namespace SunEyeVision.UI.Models
                     return new LayoutConfig();
                 }
 
-                // 验证并修正超出范围的值
+                // 验证并修正超出范围的�?
                 config.ValidateAndCorrect();
 
                 return config;
             }
             catch (Exception)
             {
-                // 加载失败时返回默认配置
+                // 加载失败时返回默认配�?
                 return new LayoutConfig();
             }
         }
 
         /// <summary>
-        /// 验证并修正超出范围的值
+        /// 验证并修正超出范围的�?
         /// </summary>
         public void ValidateAndCorrect()
         {
@@ -142,12 +142,12 @@ namespace SunEyeVision.UI.Models
         public static double GetMinMiddleColumnWidth() => MinMiddleColumnWidth;
 
         /// <summary>
-        /// 获取分隔符宽度
+        /// 获取分隔符宽�?
         /// </summary>
         public static double GetSplitterWidth() => DefaultSplitterWidth;
 
         /// <summary>
-        /// 重置为默认配置
+        /// 重置为默认配�?
         /// </summary>
         public void Reset()
         {

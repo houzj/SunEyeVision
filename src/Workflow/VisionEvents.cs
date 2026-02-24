@@ -1,6 +1,6 @@
 using System;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
+using OpenCvSharp;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
 {

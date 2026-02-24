@@ -5,7 +5,7 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// AI分析节点显示适配器
+    /// AI分析节点显示适配�?
     /// </summary>
     public class AIAnalysisNodeDisplayAdapter : INodeDisplayAdapter
     {
@@ -21,12 +21,12 @@ namespace SunEyeVision.UI.Adapters
 
         public Color GetBackgroundColor(WorkflowNode node)
         {
-            return Color.FromRgb(240, 230, 255); // 淡紫色背景
+            return Color.FromRgb(240, 230, 255); // 淡紫色背�?
         }
 
         public Color GetBorderColor(WorkflowNode node)
         {
-            return Color.FromRgb(138, 43, 226); // 蓝紫色
+            return Color.FromRgb(138, 43, 226); // 蓝紫�?
         }
     }
 }

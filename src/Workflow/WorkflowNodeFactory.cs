@@ -1,26 +1,26 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// å·¥ä½œæµèŠ‚ç‚¹å·¥å‚ - ä»ToolRegistryåˆ›å»ºå·¥ä½œæµèŠ‚ç‚¹
+    /// ¹¤×÷Á÷½Úµã¹¤³§ - ´ÓToolRegistry´´½¨¹¤×÷Á÷½Úµã
     /// </summary>
     public static class WorkflowNodeFactory
     {
         /// <summary>
-        /// ä»å·¥å…·å…ƒæ•°æ®åˆ›å»ºç®—æ³•èŠ‚ç‚¹
+        /// ´Ó¹¤¾ßÔªÊı¾İ´´½¨Ëã·¨½Úµã
         /// </summary>
-        /// <param name="toolId">å·¥å…·ID(ç»Ÿä¸€æ ‡è¯†ç¬¦)</param>
-        /// <param name="nodeId">èŠ‚ç‚¹ID</param>
-        /// <param name="nodeName">èŠ‚ç‚¹åç§°</param>
-        /// <param name="parameters">ç®—æ³•å‚æ•°</param>
-        /// <param name="enableCaching">æ˜¯å¦å¯ç”¨ç¼“å­˜</param>
-        /// <param name="enableRetry">æ˜¯å¦å¯ç”¨é‡è¯•</param>
-        /// <returns>åˆ›å»ºçš„AlgorithmNode,å¦‚æœå·¥å…·ä¸å­˜åœ¨åˆ™è¿”å›null</returns>
+        /// <param name="toolId">¹¤¾ßID(Í³Ò»±êÊ¶·û)</param>
+        /// <param name="nodeId">½ÚµãID</param>
+        /// <param name="nodeName">½ÚµãÃû³Æ</param>
+        /// <param name="parameters">Ëã·¨²ÎÊı</param>
+        /// <param name="enableCaching">ÊÇ·ñÆôÓÃ»º´æ</param>
+        /// <param name="enableRetry">ÊÇ·ñÆôÓÃÖØÊÔ</param>
+        /// <returns>´´½¨µÄAlgorithmNode,Èç¹û¹¤¾ß²»´æÔÚÔò·µ»Ønull</returns>
         public static AlgorithmNode? CreateNode(
             string toolId,
             string nodeId,
@@ -33,15 +33,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ä»å·¥å…·IDåˆ›å»ºAlgorithmNode
+        /// ´Ó¹¤¾ßID´´½¨AlgorithmNode
         /// </summary>
-        /// <param name="toolId">å·¥å…·ID(ç»Ÿä¸€æ ‡è¯†ç¬¦)</param>
-        /// <param name="nodeId">èŠ‚ç‚¹ID</param>
-        /// <param name="nodeName">èŠ‚ç‚¹åç§°</param>
-        /// <param name="parameters">ç®—æ³•å‚æ•°</param>
-        /// <param name="enableCaching">æ˜¯å¦å¯ç”¨ç¼“å­˜</param>
-        /// <param name="enableRetry">æ˜¯å¦å¯ç”¨é‡è¯•</param>
-        /// <returns>åˆ›å»ºçš„AlgorithmNode,å¦‚æœå·¥å…·ä¸å­˜åœ¨åˆ™è¿”å›null</returns>
+        /// <param name="toolId">¹¤¾ßID(Í³Ò»±êÊ¶·û)</param>
+        /// <param name="nodeId">½ÚµãID</param>
+        /// <param name="nodeName">½ÚµãÃû³Æ</param>
+        /// <param name="parameters">Ëã·¨²ÎÊı</param>
+        /// <param name="enableCaching">ÊÇ·ñÆôÓÃ»º´æ</param>
+        /// <param name="enableRetry">ÊÇ·ñÆôÓÃÖØÊÔ</param>
+        /// <returns>´´½¨µÄAlgorithmNode,Èç¹û¹¤¾ß²»´æÔÚÔò·µ»Ønull</returns>
         public static AlgorithmNode? CreateAlgorithmNode(
             string toolId,
             string nodeId,
@@ -52,56 +52,56 @@ namespace SunEyeVision.Workflow
         {
             try
             {
-                // ä»ToolRegistryè·å–å·¥å…·å…ƒæ•°æ®
+                // ´ÓToolRegistry»ñÈ¡¹¤¾ßÔªÊı¾İ
                 var metadata = ToolRegistry.GetToolMetadata(toolId);
                 if (metadata == null)
                 {
-                    Console.WriteLine($"[WorkflowNodeFactory] å·¥å…·ä¸å­˜åœ¨: {toolId}");
+                    Console.WriteLine($"[WorkflowNodeFactory] ¹¤¾ß²»´æÔÚ: {toolId}");
                     return null;
                 }
 
-                // è·å–å·¥å…·æ’ä»¶
+                // »ñÈ¡¹¤¾ß²å¼ş
                 var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
                 if (toolPlugin == null)
                 {
-                    Console.WriteLine($"[WorkflowNodeFactory] æ— æ³•è·å–å·¥å…·æ’ä»¶: {toolId}");
+                    Console.WriteLine($"[WorkflowNodeFactory] ÎŞ·¨»ñÈ¡¹¤¾ß²å¼ş: {toolId}");
                     return null;
                 }
 
-                // ä½¿ç”¨åŸå§‹å·¥å…·æ’ä»¶
+                // Ê¹ÓÃÔ­Ê¼¹¤¾ß²å¼ş
                 var decoratedPlugin = toolPlugin;
 
-                // åˆ›å»ºå¤„ç†å™¨å®ä¾‹
+                // ´´½¨´¦ÀíÆ÷ÊµÀı
                 var processor = decoratedPlugin.CreateToolInstance(toolId);
 
-                // è®¾ç½®å‚æ•°
+                // ÉèÖÃ²ÎÊı
                 if (parameters == null)
                 {
                     parameters = toolPlugin.GetDefaultParameters(toolId);
                 }
 
-                // åˆ›å»ºAlgorithmNode
+                // ´´½¨AlgorithmNode
                 var algorithmNode = new AlgorithmNode(nodeId, nodeName, processor)
                 {
                     Parameters = parameters
                 };
 
-                Console.WriteLine($"[WorkflowNodeFactory] åˆ›å»ºAlgorithmNode: {nodeName} (ToolId: {toolId}, ç¼“å­˜: {enableCaching}, é‡è¯•: {enableRetry})");
+                Console.WriteLine($"[WorkflowNodeFactory] ´´½¨AlgorithmNode: {nodeName} (ToolId: {toolId}, »º´æ: {enableCaching}, ÖØÊÔ: {enableRetry})");
 
                 return algorithmNode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[WorkflowNodeFactory] åˆ›å»ºAlgorithmNodeå¤±è´¥: {ex.Message}");
+                Console.WriteLine($"[WorkflowNodeFactory] ´´½¨AlgorithmNodeÊ§°Ü: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// ä»å·¥å…·IDæ‰¹é‡åˆ›å»ºAlgorithmNode
+        /// ´Ó¹¤¾ßIDÅúÁ¿´´½¨AlgorithmNode
         /// </summary>
-        /// <param name="toolConfig">å·¥å…·é…ç½®åˆ—è¡¨</param>
-        /// <returns>åˆ›å»ºçš„AlgorithmNodeåˆ—è¡¨</returns>
+        /// <param name="toolConfig">¹¤¾ßÅäÖÃÁĞ±í</param>
+        /// <returns>´´½¨µÄAlgorithmNodeÁĞ±í</returns>
         public static List<AlgorithmNode> CreateAlgorithmNodes(IEnumerable<ToolNodeConfig> toolConfig)
         {
             var nodes = new List<AlgorithmNode>();
@@ -125,11 +125,11 @@ namespace SunEyeVision.Workflow
             return nodes;
         }
 
-        // Start èŠ‚ç‚¹å·²åºŸå¼ƒï¼Œä¸å†éœ€è¦ç‰¹æ®ŠèŠ‚ç‚¹ç±»å‹
-        // æ‰§è¡Œé¡ºåºç”±è¿çº¿å…³ç³»å†³å®šï¼ŒåŸºäºå…¥åº¦è‡ªåŠ¨è¯†åˆ«å…¥å£èŠ‚ç‚¹
+        // Start ½ÚµãÒÑ·ÏÆú£¬²»ÔÙĞèÒªÌØÊâ½ÚµãÀàĞÍ
+        // Ö´ĞĞË³ĞòÓÉÁ¬Ïß¹ØÏµ¾ö¶¨£¬»ùÓÚÈë¶È×Ô¶¯Ê¶±ğÈë¿Ú½Úµã
 
         /// <summary>
-        /// åˆ›å»ºå­ç¨‹åºèŠ‚ç‚¹
+        /// ´´½¨×Ó³ÌĞò½Úµã
         /// </summary>
         public static SubroutineNode CreateSubroutineNode(
             string nodeId,
@@ -145,7 +145,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// åˆ›å»ºæ¡ä»¶èŠ‚ç‚¹
+        /// ´´½¨Ìõ¼ş½Úµã
         /// </summary>
         public static ConditionNode CreateConditionNode(
             string nodeId,
@@ -164,7 +164,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// éªŒè¯å·¥å…·æ˜¯å¦å¯ç”¨
+        /// ÑéÖ¤¹¤¾ßÊÇ·ñ¿ÉÓÃ
         /// </summary>
         public static bool ValidateTool(string toolId)
         {
@@ -173,7 +173,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// è·å–å·¥å…·å…ƒæ•°æ®
+        /// »ñÈ¡¹¤¾ßÔªÊı¾İ
         /// </summary>
         public static ToolMetadata? GetToolMetadata(string toolId)
         {
@@ -182,37 +182,37 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// å·¥å…·èŠ‚ç‚¹é…ç½®
+    /// ¹¤¾ß½ÚµãÅäÖÃ
     /// </summary>
     public class ToolNodeConfig
     {
         /// <summary>
-        /// å·¥å…·ID(ç»Ÿä¸€æ ‡è¯†ç¬¦)
+        /// ¹¤¾ßID(Í³Ò»±êÊ¶·û)
         /// </summary>
         public string ToolId { get; set; } = string.Empty;
 
         /// <summary>
-        /// èŠ‚ç‚¹ID
+        /// ½ÚµãID
         /// </summary>
         public string NodeId { get; set; } = string.Empty;
 
         /// <summary>
-        /// èŠ‚ç‚¹åç§°
+        /// ½ÚµãÃû³Æ
         /// </summary>
         public string NodeName { get; set; } = string.Empty;
 
         /// <summary>
-        /// ç®—æ³•å‚æ•°
+        /// Ëã·¨²ÎÊı
         /// </summary>
         public AlgorithmParameters? Parameters { get; set; }
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨ç¼“å­˜
+        /// ÊÇ·ñÆôÓÃ»º´æ
         /// </summary>
         public bool EnableCaching { get; set; } = true;
 
         /// <summary>
-        /// æ˜¯å¦å¯ç”¨é‡è¯•
+        /// ÊÇ·ñÆôÓÃÖØÊÔ
         /// </summary>
         public bool EnableRetry { get; set; } = false;
     }

@@ -2,7 +2,7 @@ namespace SunEyeVision.Core.Interfaces.Plugins
 {
     /// <summary>
     /// 算法插件接口
-    /// 定义图像处理算法的标准行为
+    /// 定义图像处理算法的标准行�?
     /// </summary>
     public interface IAlgorithmPlugin : IPlugin
     {
@@ -22,7 +22,7 @@ namespace SunEyeVision.Core.Interfaces.Plugins
         string Category { get; }
 
         /// <summary>
-        /// 算法参数元数据
+        /// 算法参数元数�?
         /// </summary>
         ParameterMetadata[] GetParameters();
 

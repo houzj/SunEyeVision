@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.GaussianBlur
 {
@@ -17,7 +17,7 @@ namespace SunEyeVision.Tool.GaussianBlur
         public string Author => "SunEyeVision";
         public string Description => "应用高斯模糊滤镜";
         public string PluginId => "suneye.gaussian_blur";
-        public string Icon => "🌫️";
+        public string Icon => "🌫�?;
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
         #endregion
@@ -39,7 +39,7 @@ namespace SunEyeVision.Tool.GaussianBlur
                     Id = "gaussian_blur",
                     Name = "GaussianBlur",
                     DisplayName = "高斯模糊",
-                    Icon = "🌫️",
+                    Icon = "🌫�?,
                     Category = "图像处理",
                     Description = "应用高斯模糊滤镜",
                     AlgorithmType = typeof(GaussianBlurAlgorithm),
@@ -51,8 +51,8 @@ namespace SunEyeVision.Tool.GaussianBlur
                         new ParameterMetadata
                         {
                             Name = "kernelSize",
-                            DisplayName = "核大小",
-                            Description = "高斯核大小(必须为奇数)",
+                            DisplayName = "核大�?,
+                            Description = "高斯核大�?必须为奇�?",
                             Type = ParameterType.Int,
                             DefaultValue = 5,
                             MinValue = 3,
@@ -64,8 +64,8 @@ namespace SunEyeVision.Tool.GaussianBlur
                         new ParameterMetadata
                         {
                             Name = "sigma",
-                            DisplayName = "标准差",
-                            Description = "高斯核的标准差",
+                            DisplayName = "标准�?,
+                            Description = "高斯核的标准�?,
                             Type = ParameterType.Double,
                             DefaultValue = 1.5,
                             MinValue = 0.1,
@@ -160,7 +160,7 @@ namespace SunEyeVision.Tool.GaussianBlur
             var borderType = GetParameter(parameters, "borderType", "Reflect");
 
             // TODO: 实际图像处理逻辑
-            // 这里应使用 OpenCV 或其他图像处理库进行实际处理
+            // 这里应使�?OpenCV 或其他图像处理库进行实际处理
             // 示例：Cv2.GaussianBlur(mat, output, new Size(kernelSize, kernelSize), sigma)
 
             // 返回处理结果（简化示例）

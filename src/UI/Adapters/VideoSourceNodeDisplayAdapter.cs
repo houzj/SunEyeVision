@@ -5,13 +5,13 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 视频源节点显示适配器
+    /// 视频源节点显示适配�?
     /// </summary>
     public class VideoSourceNodeDisplayAdapter : INodeDisplayAdapter
     {
         public string GetDisplayText(WorkflowNode node)
         {
-            return $"视频源 {node.Index}";
+            return $"视频�?{node.Index}";
         }
 
         public string GetIcon(WorkflowNode node)
@@ -21,7 +21,7 @@ namespace SunEyeVision.UI.Adapters
 
         public Color GetBackgroundColor(WorkflowNode node)
         {
-            return Color.FromRgb(255, 240, 240); // 淡红色背景
+            return Color.FromRgb(255, 240, 240); // 淡红色背�?
         }
 
         public Color GetBorderColor(WorkflowNode node)

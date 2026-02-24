@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.IO;
 using System.Xml;
 using System.Xml.XPath;
@@ -10,21 +10,21 @@ using System.Linq;
 namespace ApiDocGenerator
 {
     /// <summary>
-    /// API æ–‡æ¡£ç”Ÿæˆå™¨ - ä» XML æ³¨é‡Šç”Ÿæˆ HTML æ–‡æ¡£
+    /// API ÎÄµµÉú³ÉÆ÷ - ´Ó XML ×¢ÊÍÉú³É HTML ÎÄµµ
     /// </summary>
     class Program
     {
         static void Main(string[] args)
         {
 
-            // é…ç½®è·¯å¾„
+            // ÅäÖÃÂ·¾¶
             string currentDir = AppDomain.CurrentDomain.BaseDirectory;
             string solutionDir = Path.GetFullPath(Path.Combine(currentDir, "../../../"));
             string sourceDir = Path.Combine(solutionDir, "Help/Source/zh-CN/api");
             string outputDir = Path.Combine(solutionDir, "Help/Output");
 
 
-            // XML æ–‡æ¡£è·¯å¾„ - ä½¿ç”¨ tools ç›®å½•ä¸‹çš„å‰¯æœ¬
+            // XML ÎÄµµÂ·¾¶ - Ê¹ÓÃ tools Ä¿Â¼ÏÂµÄ¸±±¾
             var xmlFiles = new[]
             {
                 Path.Combine(solutionDir, "tools/SunEyeVision.Core.xml"),
@@ -34,7 +34,7 @@ namespace ApiDocGenerator
                 Path.Combine(solutionDir, "tools/SunEyeVision.UI.xml")
             };
 
-            // ç”Ÿæˆå„ä¸ªæ¨¡å—çš„ API æ–‡æ¡£
+            // Éú³É¸÷¸öÄ£¿éµÄ API ÎÄµµ
             GenerateApiDocumentation("Core", xmlFiles[0], sourceDir, solutionDir);
             GenerateApiDocumentation("Algorithms", xmlFiles[1], sourceDir, solutionDir);
             GenerateApiDocumentation("Workflow", xmlFiles[2], sourceDir, solutionDir);
@@ -43,7 +43,7 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// ç”ŸæˆæŒ‡å®šæ¨¡å—çš„ API æ–‡æ¡£
+        /// Éú³ÉÖ¸¶¨Ä£¿éµÄ API ÎÄµµ
         /// </summary>
         static void GenerateApiDocumentation(string moduleName, string xmlPath, string outputDir, string solutionDir)
         {
@@ -64,7 +64,7 @@ namespace ApiDocGenerator
                     return;
                 }
 
-                // åˆ†ç±»æ”¶é›†æˆå‘˜
+                // ·ÖÀàÊÕ¼¯³ÉÔ±
                 var namespaces = new Dictionary<string, List<XmlNode>>();
                 foreach (XmlNode member in members)
                 {
@@ -79,7 +79,7 @@ namespace ApiDocGenerator
                     namespaces[ns].Add(member);
                 }
 
-                // ç”Ÿæˆ HTML æ–‡æ¡£
+                // Éú³É HTML ÎÄµµ
                 string outputFile = Path.Combine(outputDir, $"{moduleName.ToLower()}.html");
                 GenerateHtml(moduleName, namespaces, outputFile);
 
@@ -90,18 +90,18 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// ä»æˆå‘˜åç§°ä¸­æå–å‘½åç©ºé—´
+        /// ´Ó³ÉÔ±Ãû³ÆÖĞÌáÈ¡ÃüÃû¿Õ¼ä
         /// </summary>
         static string ExtractNamespace(string memberName)
         {
             if (memberName.StartsWith("N:"))
             {
-                // å‘½åç©ºé—´
+                // ÃüÃû¿Õ¼ä
                 return memberName.Substring(2);
             }
             else if (memberName.StartsWith("T:"))
             {
-                // ç±»å‹
+                // ÀàĞÍ
                 var typeName = memberName.Substring(2);
                 var lastDot = typeName.LastIndexOf('.');
                 return lastDot > 0 ? typeName.Substring(0, lastDot) : "";
@@ -109,7 +109,7 @@ namespace ApiDocGenerator
             else if (memberName.StartsWith("M:") || memberName.StartsWith("P:") ||
                      memberName.StartsWith("F:") || memberName.StartsWith("E:"))
             {
-                // æ–¹æ³•ã€å±æ€§ã€å­—æ®µã€äº‹ä»¶
+                // ·½·¨¡¢ÊôĞÔ¡¢×Ö¶Î¡¢ÊÂ¼ş
                 var memberNameOnly = memberName.Substring(2);
                 var lastDot = memberNameOnly.LastIndexOf('.');
                 if (lastDot > 0)
@@ -123,7 +123,7 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// ç”Ÿæˆ HTML æ–‡æ¡£
+        /// Éú³É HTML ÎÄµµ
         /// </summary>
         static void GenerateHtml(string moduleName, Dictionary<string, List<XmlNode>> namespaces, string outputPath)
         {
@@ -134,37 +134,37 @@ namespace ApiDocGenerator
             html.AppendLine("<head>");
             html.AppendLine("    <meta charset=\"UTF-8\">");
             html.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-            html.AppendLine($"    <title>{moduleName} æ¨¡å— - SunEyeVision API æ–‡æ¡£</title>");
+            html.AppendLine($"    <title>{moduleName} Ä£¿é - SunEyeVision API ÎÄµµ</title>");
             html.AppendLine("    <link rel=\"stylesheet\" href=\"../styles.css\">");
             html.AppendLine("</head>");
             html.AppendLine("<body>");
 
-            // ä¾§è¾¹æ 
+            // ²à±ßÀ¸
             html.AppendLine("    <div class=\"container\">");
             html.AppendLine("        <nav class=\"sidebar\">");
             html.AppendLine("            <div class=\"sidebar-header\">");
             html.AppendLine("                <h1>SunEyeVision</h1>");
             html.AppendLine("            </div>");
             html.AppendLine("            <div class=\"nav-menu\">");
-            html.AppendLine("                <div class=\"nav-item\" data-page=\"index\">ğŸ”§ API æ–‡æ¡£</div>");
-            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/core\">æ ¸å¿ƒæ¨¡å—</div>");
-            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/algorithms\">ç®—æ³•æ¨¡å—</div>");
-            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/workflow\">å·¥ä½œæµæ¨¡å—</div>");
-            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/plugins\">æ’ä»¶ç³»ç»Ÿ</div>");
+            html.AppendLine("                <div class=\"nav-item\" data-page=\"index\">?? API ÎÄµµ</div>");
+            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/core\">ºËĞÄÄ£¿é</div>");
+            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/algorithms\">Ëã·¨Ä£¿é</div>");
+            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/workflow\">¹¤×÷Á÷Ä£¿é</div>");
+            html.AppendLine("                <div class=\"nav-item\" data-page=\"api/plugins\">²å¼şÏµÍ³</div>");
             html.AppendLine("            </div>");
             html.AppendLine("        </nav>");
 
-            // ä¸»å†…å®¹
+            // Ö÷ÄÚÈİ
             html.AppendLine("        <main class=\"main-content\">");
             html.AppendLine($"            <header class=\"content-header\">");
-            html.AppendLine($"                <h1>{moduleName} æ¨¡å— API æ–‡æ¡£</h1>");
-            html.AppendLine($"                <div class=\"subtitle\">SunEyeVision {moduleName} æ¨¡å—è¯¦ç»†è¯´æ˜</div>");
+            html.AppendLine($"                <h1>{moduleName} Ä£¿é API ÎÄµµ</h1>");
+            html.AppendLine($"                <div class=\"subtitle\">SunEyeVision {moduleName} Ä£¿éÏêÏ¸ËµÃ÷</div>");
             html.AppendLine($"            </header>");
 
             foreach (var ns in namespaces)
             {
                 html.AppendLine($"            <section class=\"content-section\">");
-                html.AppendLine($"                <h2>å‘½åç©ºé—´: {ns.Key}</h2>");
+                html.AppendLine($"                <h2>ÃüÃû¿Õ¼ä: {ns.Key}</h2>");
 
                 var types = ns.Value.Where(m => m.Attributes?["name"]?.Value?.StartsWith("T:") ?? false);
                 foreach (XmlNode type in types)
@@ -178,7 +178,7 @@ namespace ApiDocGenerator
                     html.AppendLine($"                </div>");
                     html.AppendLine($"                <p>{FormatText(summary)}</p>");
 
-                    // æˆå‘˜
+                    // ³ÉÔ±
                     var members = ns.Value.Where(m =>
                     {
                         var name = m.Attributes?["name"]?.Value ?? "";
@@ -187,7 +187,7 @@ namespace ApiDocGenerator
 
                     if (members.Any())
                     {
-                        html.AppendLine($"                <h4>æˆå‘˜</h4>");
+                        html.AppendLine($"                <h4>³ÉÔ±</h4>");
                         html.AppendLine($"                <ul>");
                         foreach (XmlNode member in members)
                         {
@@ -203,12 +203,12 @@ namespace ApiDocGenerator
             }
 
             html.AppendLine("            <footer class=\"footer\">");
-            html.AppendLine($"                <p>&copy; 2026 SunEyeVision. ä¿ç•™æ‰€æœ‰æƒåˆ©ã€‚</p>");
+            html.AppendLine($"                <p>&copy; 2026 SunEyeVision. ±£ÁôËùÓĞÈ¨Àû¡£</p>");
             html.AppendLine($"            </footer>");
             html.AppendLine("        </main>");
             html.AppendLine("    </div>");
 
-            // ç®€å•çš„å¯¼èˆªè„šæœ¬
+            // ¼òµ¥µÄµ¼º½½Å±¾
             html.AppendLine("    <script>");
             html.AppendLine("        document.querySelectorAll('.nav-item').forEach(item => {");
             html.AppendLine("            item.addEventListener('click', function() {");
@@ -221,14 +221,14 @@ namespace ApiDocGenerator
             html.AppendLine("</body>");
             html.AppendLine("</html>");
 
-            // ç¡®ä¿è¾“å‡ºç›®å½•å­˜åœ¨
+            // È·±£Êä³öÄ¿Â¼´æÔÚ
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 
             File.WriteAllText(outputPath, html.ToString(), Encoding.UTF8);
         }
 
         /// <summary>
-        /// æå–ç±»å‹åç§°(ä¸å«å‘½åç©ºé—´)
+        /// ÌáÈ¡ÀàĞÍÃû³Æ(²»º¬ÃüÃû¿Õ¼ä)
         /// </summary>
         static string ExtractTypeName(string fullTypeName)
         {
@@ -237,11 +237,11 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// æå–æˆå‘˜åç§°
+        /// ÌáÈ¡³ÉÔ±Ãû³Æ
         /// </summary>
         static string ExtractMemberName(string fullMemberName)
         {
-            // ç§»é™¤å‰ç¼€å’Œå‚æ•°
+            // ÒÆ³ıÇ°×ººÍ²ÎÊı
             var name = Regex.Replace(fullMemberName, "^[MTFPE]:", "");
             name = Regex.Replace(name, "\\(.*\\)", "");
             var lastDot = name.LastIndexOf('.');
@@ -249,7 +249,7 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// è·å– XML å…ƒç´ çš„æ–‡æœ¬å†…å®¹
+        /// »ñÈ¡ XML ÔªËØµÄÎÄ±¾ÄÚÈİ
         /// </summary>
         static string GetElementText(XmlNode parent, string elementName)
         {
@@ -258,7 +258,7 @@ namespace ApiDocGenerator
         }
 
         /// <summary>
-        /// æ ¼å¼åŒ–æ–‡æœ¬(ç§»é™¤å¤šä½™ç©ºæ ¼å’Œæ¢è¡Œ)
+        /// ¸ñÊ½»¯ÎÄ±¾(ÒÆ³ı¶àÓà¿Õ¸ñºÍ»»ĞĞ)
         /// </summary>
         static string FormatText(string text)
         {

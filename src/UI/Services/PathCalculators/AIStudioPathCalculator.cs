@@ -10,7 +10,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
     /// <summary>
     /// 使用 AIStudio.Wpf.Diagram 概念实现的路径计算器
     /// 注意：AIStudio.Wpf.DiagramDesigner 是一个完整的 UI 控件库，
-    /// 本实现提供基于其设计理念的简化正交路径计算
+    /// 本实现提供基于其设计理念的简化正交路径计�?
     /// </summary>
     public class AIStudioPathCalculator : IPathCalculator
     {
@@ -18,7 +18,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         private readonly object _lockObject = new object();
 
         /// <summary>
-        /// 默认构造函数
+        /// 默认构造函�?
         /// </summary>
         public AIStudioPathCalculator()
         {
@@ -26,7 +26,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 确保编辑器已初始化
+        /// 确保编辑器已初始�?
         /// </summary>
         private void EnsureEditorInitialized()
         {
@@ -42,14 +42,14 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 {
                     
 
-                    // 检查 AIStudio.Wpf.DiagramDesigner 程序集是否可用
+                    // 检�?AIStudio.Wpf.DiagramDesigner 程序集是否可�?
                     var assembly = System.Reflection.Assembly.GetAssembly(typeof(AIStudioPathCalculator));
                     if (assembly != null)
                     {
                         
                     }
 
-                    // 尝试加载 AIStudio.Wpf.DiagramDesigner 程序集
+                    // 尝试加载 AIStudio.Wpf.DiagramDesigner 程序�?
                     try
                     {
                         var aiStudioAssembly = System.Reflection.Assembly.Load("AIStudio.Wpf.DiagramDesigner");
@@ -61,7 +61,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     catch (Exception ex)
                     {
                         
-                        // 这不是致命错误，我们仍然可以使用简化实现
+                        // 这不是致命错误，我们仍然可以使用简化实�?
                     }
 
                     _isInitialized = true;
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算正交路径（基础版本）
+        /// 计算正交路径（基础版本�?
         /// </summary>
         public Point[] CalculateOrthogonalPath(
             Point sourcePosition,
@@ -210,7 +210,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             else
             {
-                // 一个水平一个垂直
+                // 一个水平一个垂�?
                 if (sourceDir.IsHorizontal())
                 {
                     // 源水平，目标垂直
@@ -241,7 +241,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         {
             var path = new List<Point> { source };
 
-            // 简化的避障算法：检查中间点是否在障碍物内
+            // 简化的避障算法：检查中间点是否在障碍物�?
             double midX = source.X + (target.X - source.X) / 2;
             double midY = source.Y + (target.Y - source.Y) / 2;
             var midPoint = new Point(midX, midY);
@@ -258,8 +258,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
             if (midPointInObstacle)
             {
-                // 如果中间点在障碍物内，尝试绕行
-                // 简单策略：向上或向下绕行
+                // 如果中间点在障碍物内，尝试绕�?
+                // 简单策略：向上或向下绕�?
                 double offsetY = 50; // 绕行距离
 
                 // 尝试向上绕行
@@ -310,7 +310,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 优化路径：移除共线的中间点
+        /// 优化路径：移除共线的中间�?
         /// </summary>
         private List<Point> OptimizePath(List<Point> path, double minSegmentLength)
         {
@@ -325,7 +325,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 var current = path[i];
                 var next = path[i + 1];
 
-                // 检查是否共线
+                // 检查是否共�?
                 bool isHorizontal = Math.Abs(current.Y - prev.Y) < 0.001 && Math.Abs(next.Y - current.Y) < 0.001;
                 bool isVertical = Math.Abs(current.X - prev.X) < 0.001 && Math.Abs(next.X - current.X) < 0.001;
 
@@ -337,7 +337,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
             optimizedPath.Add(path[path.Count - 1]);
 
-            // 检查线段长度
+            // 检查线段长�?
             var finalPath = new List<Point> { optimizedPath[0] };
             for (int i = 1; i < optimizedPath.Count; i++)
             {
@@ -376,8 +376,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 计算箭头
-        /// 箭头尖端位于目标端口位置，角度基于目标端口方向固定
-        /// 路径终点已经是箭头尾部位置
+        /// 箭头尖端位于目标端口位置，角度基于目标端口方向固�?
+        /// 路径终点已经是箭头尾部位�?
         /// </summary>
         public (Point position, double angle) CalculateArrow(Point[] pathPoints, Point targetPosition, PortDirection targetDirection)
         {
@@ -388,20 +388,20 @@ namespace SunEyeVision.UI.Services.PathCalculators
             var arrowPosition = targetPosition;
 
             // 箭头角度基于目标端口方向固定
-            // 角度定义：0度指向右，90度指向下，180度指向左，270度指向上
+            // 角度定义�?度指向右�?0度指向下�?80度指向左�?70度指向上
             var arrowAngle = targetDirection switch
             {
-                PortDirection.Left => 0.0,     // 左边端口：箭头向右
-                PortDirection.Right => 180.0,   // 右边端口：箭头向左
-                PortDirection.Top => 90.0,      // 上边端口：箭头向下
-                PortDirection.Bottom => 270.0,  // 下边端口：箭头向上
+                PortDirection.Left => 0.0,     // 左边端口：箭头向�?
+                PortDirection.Right => 180.0,   // 右边端口：箭头向�?
+                PortDirection.Top => 90.0,      // 上边端口：箭头向�?
+                PortDirection.Bottom => 270.0,  // 下边端口：箭头向�?
                 _ => 0.0
             };
 
-            // 获取路径最后一点用于调试（箭头尾部位置）
+            // 获取路径最后一点用于调试（箭头尾部位置�?
             var lastPoint = pathPoints[pathPoints.Length - 1];
 
-            // 关键日志：记录箭头计算结果
+            // 关键日志：记录箭头计算结�?
             
 
             return (arrowPosition, arrowAngle);

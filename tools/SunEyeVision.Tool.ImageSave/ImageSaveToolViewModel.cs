@@ -1,9 +1,9 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.ImageSave
 {
     /// <summary>
-    /// ImageSaveTool ViewModel - 图像保存工具的视图模型
+    /// ImageSaveTool ViewModel - 图像保存工具的视图模�?
     /// </summary>
     public class ImageSaveToolViewModel : ToolDebugViewModelBase
     {
@@ -12,7 +12,7 @@ namespace SunEyeVision.Tool.ImageSave
         private int _imageQuality = 95;
         private bool _overwriteExisting = false;
 
-        #region 属性
+        #region 属�?
 
         /// <summary>
         /// 文件路径
@@ -24,7 +24,7 @@ namespace SunEyeVision.Tool.ImageSave
             {
                 if (SetProperty(ref _filePath, value))
                 {
-                    StatusMessage = $"文件路径已更新: {value}";
+                    StatusMessage = $"文件路径已更�? {value}";
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace SunEyeVision.Tool.ImageSave
             {
                 if (SetProperty(ref _imageQuality, value))
                 {
-                    StatusMessage = $"图像质量已更新: {value}";
+                    StatusMessage = $"图像质量已更�? {value}";
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace SunEyeVision.Tool.ImageSave
         #region 实现抽象方法
 
         /// <summary>
-        /// 初始化调试界面
+        /// 初始化调试界�?
         /// </summary>
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
@@ -139,7 +139,7 @@ namespace SunEyeVision.Tool.ImageSave
 
         #endregion
 
-        #region 重写虚方法
+        #region 重写虚方�?
 
         /// <summary>
         /// 重置参数
@@ -150,7 +150,7 @@ namespace SunEyeVision.Tool.ImageSave
             ImageFormat = "PNG";
             ImageQuality = 95;
             OverwriteExisting = false;
-            StatusMessage = "参数已重置为默认值";
+            StatusMessage = "参数已重置为默认�?;
         }
 
         /// <summary>
@@ -164,8 +164,8 @@ namespace SunEyeVision.Tool.ImageSave
                 return;
             }
 
-            ToolStatus = "运行中";
-            StatusMessage = $"正在保存图像到: {FilePath}";
+            ToolStatus = "运行�?;
+            StatusMessage = $"正在保存图像�? {FilePath}";
 
             // 模拟保存操作
             var random = new System.Random();

@@ -13,7 +13,7 @@ namespace SunEyeVision.Core.IO
         Write,
         /// <summary>删除访问</summary>
         Delete,
-        /// <summary>查询访问（检查存在性等）</summary>
+        /// <summary>查询访问（检查存在性等�?/summary>
         Query
     }
 
@@ -22,13 +22,13 @@ namespace SunEyeVision.Core.IO
     /// </summary>
     public enum FileAccessResult
     {
-        /// <summary>访问已授权</summary>
+        /// <summary>访问已授�?/summary>
         Granted,
         /// <summary>文件已被标记删除</summary>
         FileDeleted,
-        /// <summary>文件被锁定</summary>
+        /// <summary>文件被锁�?/summary>
         FileLocked,
-        /// <summary>文件不存在</summary>
+        /// <summary>文件不存�?/summary>
         FileNotFound
     }
 
@@ -62,23 +62,23 @@ namespace SunEyeVision.Core.IO
         /// <summary>访问是否成功</summary>
         bool IsGranted { get; }
         
-        /// <summary>错误消息（如果访问被拒绝）</summary>
+        /// <summary>错误消息（如果访问被拒绝�?/summary>
         string? ErrorMessage { get; }
     }
 
     /// <summary>
-    /// 文件访问管理器接口
+    /// 文件访问管理器接�?
     /// 统一管理文件生命周期，解决并发访问和删除竞争问题
     /// 
-    /// 核心原则：
-    /// 1. 所有文件访问（读/写/删除）都应通过此接口
-    /// 2. 使用引用计数跟踪正在使用的文件
-    /// 3. 延迟删除机制：删除正在使用的文件时标记为待删除
+    /// 核心原则�?
+    /// 1. 所有文件访问（�?�?删除）都应通过此接�?
+    /// 2. 使用引用计数跟踪正在使用的文�?
+    /// 3. 延迟删除机制：删除正在使用的文件时标记为待删�?
     /// </summary>
     public interface IFileAccessManager
     {
         /// <summary>
-        /// 尝试开始文件访问
+        /// 尝试开始文件访�?
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <param name="intent">访问意图</param>
@@ -93,7 +93,7 @@ namespace SunEyeVision.Core.IO
         void EndAccess(string filePath);
 
         /// <summary>
-        /// 创建文件访问范围（RAII模式）
+        /// 创建文件访问范围（RAII模式�?
         /// 推荐使用方式：using (var scope = manager.CreateAccessScope(path, FileAccessIntent.Read)) { ... }
         /// </summary>
         /// <param name="filePath">文件路径</param>
@@ -113,7 +113,7 @@ namespace SunEyeVision.Core.IO
         /// 检查文件是否已标记删除
         /// </summary>
         /// <param name="filePath">文件路径</param>
-        /// <returns>是否已标记删除</returns>
+        /// <returns>是否已标记删�?/returns>
         bool IsFileMarkedDeleted(string filePath);
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace SunEyeVision.Core.IO
         System.Collections.Generic.IReadOnlyList<string> GetInUseFiles();
 
         /// <summary>
-        /// 清除已删除文件记录（用于清理过期记录）
+        /// 清除已删除文件记录（用于清理过期记录�?
         /// </summary>
         void ClearDeletedRecords();
     }

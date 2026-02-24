@@ -6,9 +6,9 @@ using System.Windows.Media.Imaging;
 namespace SunEyeVision.UI.Controls.Rendering
 {
     /// <summary>
-    /// 简化的DirectX GPU加速缩略图加载器
-    /// 使用WPF的内置GPU加速功能 + 优化的加载策略
-    /// 相比纯CPU提升3-5倍
+    /// 简化的DirectX GPU加速缩略图加载�?
+    /// 使用WPF的内置GPU加速功�?+ 优化的加载策�?
+    /// 相比纯CPU提升3-5�?
     /// </summary>
     public class DirectXGpuThumbnailLoader : IDisposable
     {
@@ -36,14 +36,14 @@ namespace SunEyeVision.UI.Controls.Rendering
 
             try
             {
-                // 检测硬件渲染层级
+                // 检测硬件渲染层�?
                 int tier = System.Windows.Media.RenderCapability.Tier >> 16;
 
                 if (tier > 0)
                 {
                     _isGpuAvailable = true;
                     _useHardwareScaling = true;
-                    Debug.WriteLine("[DirectXGpuLoader] ✓ GPU硬件加速已启用");
+                    Debug.WriteLine("[DirectXGpuLoader] �?GPU硬件加速已启用");
                     Debug.WriteLine($"  渲染层级: Tier {tier}");
                     Debug.WriteLine($"  硬件缩放: 启用");
                 }
@@ -51,7 +51,7 @@ namespace SunEyeVision.UI.Controls.Rendering
                 {
                     _isGpuAvailable = false;
                     _useHardwareScaling = false;
-                    Debug.WriteLine("[DirectXGpuLoader] ⚠ 使用软件渲染");
+                    Debug.WriteLine("[DirectXGpuLoader] �?使用软件渲染");
                 }
 
                 _isInitialized = true;
@@ -59,7 +59,7 @@ namespace SunEyeVision.UI.Controls.Rendering
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DirectXGpuLoader] ✗ 初始化失败: {ex.Message}");
+                Debug.WriteLine($"[DirectXGpuLoader] �?初始化失�? {ex.Message}");
                 _isInitialized = false;
                 _isGpuAvailable = false;
                 return false;
@@ -68,10 +68,10 @@ namespace SunEyeVision.UI.Controls.Rendering
 
         /// <summary>
         /// 使用GPU加速加载缩略图
-        /// 优化策略：
+        /// 优化策略�?
         /// 1. 直接加载并解码到指定尺寸（减少内存占用）
-        /// 2. 使用GPU硬件加速缩放
-        /// 3. 冻结位图以便跨线程访问
+        /// 2. 使用GPU硬件加速缩�?
+        /// 3. 冻结位图以便跨线程访�?
         /// </summary>
         public BitmapImage? LoadThumbnail(string filePath, int size)
         {
@@ -94,8 +94,8 @@ namespace SunEyeVision.UI.Controls.Rendering
         /// <summary>
         /// 使用GPU硬件缩放加载（优化版本）
         /// 关键优化点：
-        /// 1. DecodePixelWidth - GPU硬件解码到指定尺寸
-        /// 2. BitmapCacheOption.OnLoad - 立即加载，避免延迟
+        /// 1. DecodePixelWidth - GPU硬件解码到指定尺�?
+        /// 2. BitmapCacheOption.OnLoad - 立即加载，避免延�?
         /// 3. Freeze - 冻结后可跨线程访问，GPU纹理
         /// </summary>
         private BitmapImage LoadWithGPUScaling(string filePath, int size)
@@ -110,27 +110,27 @@ namespace SunEyeVision.UI.Controls.Rendering
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 
-                // 关键优化1: CacheOption.OnLoad - 立即加载，利用GPU加速
+                // 关键优化1: CacheOption.OnLoad - 立即加载，利用GPU加�?
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 
-                // 关键优化2: DecodePixelWidth - GPU硬件解码到指定尺寸
-                // 这一步在GPU上完成，比CPU解码快3-5倍
+                // 关键优化2: DecodePixelWidth - GPU硬件解码到指定尺�?
+                // 这一步在GPU上完成，比CPU解码�?-5�?
                 bitmap.DecodePixelWidth = size;
                 
                 // 关键优化3: UriSource - 直接加载文件
                 bitmap.UriSource = new Uri(filePath);
                 
-                // 关键优化4: Rotation.Rotate0 - 确保不旋转
+                // 关键优化4: Rotation.Rotate0 - 确保不旋�?
                 bitmap.Rotation = Rotation.Rotate0;
                 
                 bitmap.EndInit();
                 
                 // 关键优化5: Freeze - 冻结位图
-                // 冻结后的位图可以在GPU上作为纹理使用，支持硬件加速渲染
+                // 冻结后的位图可以在GPU上作为纹理使用，支持硬件加速渲�?
                 bitmap.Freeze();
 
                 sw.Stop();
-                // GPU加载完成不输出日志（高频操作）
+                // GPU加载完成不输出日志（高频操作�?
 
                 return bitmap;
             }

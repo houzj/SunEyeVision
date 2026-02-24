@@ -6,7 +6,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters.Path
 {
     /// <summary>
-    /// 点偏移转换器 - 对 Point 进行偏移
+    /// 点偏移转换器 - �?Point 进行偏移
     /// </summary>
     public class PointOffsetConverter : IValueConverter
     {

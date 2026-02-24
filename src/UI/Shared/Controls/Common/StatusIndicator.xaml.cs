@@ -5,7 +5,7 @@ namespace SunEyeVision.UI.Shared.Controls.Common
 {
     /// <summary>
     /// 状态指示器
-    /// 用于显示运行状态
+    /// 用于显示运行状�?
     /// </summary>
     public partial class StatusIndicator : UserControl
     {
@@ -15,7 +15,7 @@ namespace SunEyeVision.UI.Shared.Controls.Common
         }
 
         /// <summary>
-        /// 状态文本
+        /// 状态文�?
         /// </summary>
         public string Status
         {
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Shared.Controls.Common
         }
 
         /// <summary>
-        /// 是否运行中
+        /// 是否运行�?
         /// </summary>
         public bool IsRunning
         {

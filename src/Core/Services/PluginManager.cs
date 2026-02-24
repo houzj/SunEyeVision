@@ -9,8 +9,8 @@ using System.Text.Json;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// 插件管理器
-    /// 负责插件的加载、注册、生命周期管理
+    /// 插件管理�?
+    /// 负责插件的加载、注册、生命周期管�?
     /// </summary>
     public class PluginManager
     {
@@ -18,7 +18,7 @@ namespace SunEyeVision.Core.Services
         private readonly Dictionary<string, PluginMetadata> _pluginMetadata = new Dictionary<string, PluginMetadata>();
 
         /// <summary>
-        /// 从指定目录加载所有插件
+        /// 从指定目录加载所有插�?
         /// </summary>
         /// <param name="pluginDirectory">插件目录</param>
         public void LoadPlugins(string pluginDirectory)
@@ -77,7 +77,7 @@ namespace SunEyeVision.Core.Services
 
             _plugins[plugin.PluginId] = plugin;
 
-            // 加载插件元数据
+            // 加载插件元数�?
             var metadata = LoadPluginMetadata(pluginPath);
             _pluginMetadata[plugin.PluginId] = metadata;
 
@@ -85,10 +85,10 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 加载插件元数据
+        /// 加载插件元数�?
         /// </summary>
         /// <param name="pluginPath">插件路径</param>
-        /// <returns>插件元数据</returns>
+        /// <returns>插件元数�?/returns>
         private PluginMetadata LoadPluginMetadata(string? pluginPath)
         {
             if (pluginPath == null)
@@ -125,7 +125,7 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 获取所有插件
+        /// 获取所有插�?
         /// </summary>
         /// <returns>插件列表</returns>
         public IEnumerable<IPlugin> GetAllPlugins()
@@ -134,10 +134,10 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 获取插件元数据
+        /// 获取插件元数�?
         /// </summary>
         /// <param name="pluginId">插件ID</param>
-        /// <returns>插件元数据</returns>
+        /// <returns>插件元数�?/returns>
         public PluginMetadata? GetPluginMetadata(string pluginId)
         {
             _pluginMetadata.TryGetValue(pluginId, out var metadata);
@@ -145,7 +145,7 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 启动所有插件
+        /// 启动所有插�?
         /// </summary>
         public void StartAllPlugins()
         {
@@ -162,7 +162,7 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 停止所有插件
+        /// 停止所有插�?
         /// </summary>
         public void StopAllPlugins()
         {
@@ -179,7 +179,7 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 清理所有插件
+        /// 清理所有插�?
         /// </summary>
         public void CleanupAllPlugins()
         {
@@ -200,12 +200,12 @@ namespace SunEyeVision.Core.Services
     }
 
     /// <summary>
-    /// 插件元数据
+    /// 插件元数�?
     /// </summary>
     public class PluginMetadata
     {
         /// <summary>
-        /// 依赖项
+        /// 依赖�?
         /// </summary>
         public List<string> Dependencies { get; set; } = new List<string>();
 
@@ -215,12 +215,12 @@ namespace SunEyeVision.Core.Services
         public List<string> Permissions { get; set; } = new List<string>();
 
         /// <summary>
-        /// 最小框架版本
+        /// 最小框架版�?
         /// </summary>
         public string MinFrameworkVersion { get; set; } = "1.0.0";
 
         /// <summary>
-        /// 自定义数据
+        /// 自定义数�?
         /// </summary>
         public Dictionary<string, object> CustomData { get; set; } = new Dictionary<string, object>();
     }

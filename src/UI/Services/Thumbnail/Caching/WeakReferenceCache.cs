@@ -8,23 +8,23 @@ using SunEyeVision.UI.Services.Thumbnail.Caching;
 namespace SunEyeVision.UI.Services.Thumbnail.Caching
 {
     /// <summary>
-    /// 弱引用缓存 - L2缓存层
+    /// 弱引用缓�?- L2缓存�?
     /// 核心优化：避免内存溢出，支持GC自动回收
     /// 
-    /// 特点：
-    /// 1. 使用弱引用存储，GC可自动回收
+    /// 特点�?
+    /// 1. 使用弱引用存储，GC可自动回�?
     /// 2. 线程安全的ConcurrentDictionary
-    /// 3. 自动清理死亡的引用
+    /// 3. 自动清理死亡的引�?
     /// 4. 缓存命中统计
     /// </summary>
-    /// <typeparam name="TKey">键类型</typeparam>
+    /// <typeparam name="TKey">键类�?/typeparam>
     /// <typeparam name="TValue">值类型（必须是引用类型）</typeparam>
     public class WeakReferenceCache<TKey, TValue> where TValue : class
     {
         private readonly ConcurrentDictionary<TKey, WeakReference<TValue>> _cache = new();
         private readonly object _cleanupLock = new();
         private int _cleanupCounter = 0;
-        private const int CLEANUP_INTERVAL = 100; // 每100次操作清理一次死引用
+        private const int CLEANUP_INTERVAL = 100; // �?00次操作清理一次死引用
 
         /// <summary>
         /// 缓存统计信息
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
             public int TotalRequests { get; set; }
             public int CacheHits { get; set; }
             public int CacheMisses { get; set; }
-            public int WeakRefRevived { get; set; } // 弱引用复活次数
+            public int WeakRefRevived { get; set; } // 弱引用复活次�?
             public double HitRate => TotalRequests > 0 ? (double)CacheHits / TotalRequests * 100 : 0;
         }
 
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         public CacheStatistics Statistics => _statistics;
 
         /// <summary>
-        /// 尝试从缓存获取值
+        /// 尝试从缓存获取�?
         /// </summary>
         public bool TryGet(TKey key, out TValue? value)
         {
@@ -74,7 +74,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 添加到缓存
+        /// 添加到缓�?
         /// </summary>
         public void Add(TKey key, TValue value)
         {
@@ -82,7 +82,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
 
             _cache[key] = new WeakReference<TValue>(value);
 
-            // 定期清理死引用
+            // 定期清理死引�?
             if (Interlocked.Increment(ref _cleanupCounter) >= CLEANUP_INTERVAL)
             {
                 CleanupDeadReferences();
@@ -91,7 +91,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 移除缓存项
+        /// 移除缓存�?
         /// </summary>
         public bool Remove(TKey key)
         {
@@ -111,7 +111,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 清理已死亡的弱引用
+        /// 清理已死亡的弱引�?
         /// </summary>
         private void CleanupDeadReferences()
         {
@@ -134,7 +134,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
 
                 if (deadKeys.Count > 0)
                 {
-                    Debug.WriteLine($"[WeakReferenceCache] ✓ 已清理 {deadKeys.Count} 个死引用，剩余: {_cache.Count}");
+                    Debug.WriteLine($"[WeakReferenceCache] �?已清�?{deadKeys.Count} 个死引用，剩�? {_cache.Count}");
                 }
             }
         }
@@ -180,7 +180,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         /// </summary>
         public string GetCacheInfo()
         {
-            return $"弱引用缓存: 总条目:{TotalCount}, 存活:{AliveCount}, 命中率:{_statistics.HitRate:F1}%, 复活:{_statistics.WeakRefRevived}";
+            return $"弱引用缓�? 总条�?{TotalCount}, 存活:{AliveCount}, 命中�?{_statistics.HitRate:F1}%, 复活:{_statistics.WeakRefRevived}";
         }
     }
 }

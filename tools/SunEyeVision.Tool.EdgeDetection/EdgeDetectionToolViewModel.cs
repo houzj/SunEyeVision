@@ -1,5 +1,5 @@
-using SunEyeVision.Plugin.Abstractions;
-using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.ViewModels;
 namespace SunEyeVision.Tool.EdgeDetection
 {
     public class EdgeDetectionToolViewModel : AutoToolDebugViewModelBase
@@ -54,7 +54,7 @@ namespace SunEyeVision.Tool.EdgeDetection
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
             ToolId = toolId;
-            ToolName = toolMetadata?.DisplayName ?? "边缘检测";
+            ToolName = toolMetadata?.DisplayName ?? "边缘检�?;
             ToolStatus = "就绪";
             StatusMessage = "准备就绪";
             LoadParameters(toolMetadata);
@@ -62,14 +62,14 @@ namespace SunEyeVision.Tool.EdgeDetection
 
         public override void RunTool()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行{Algorithm}边缘检测...";
+            ToolStatus = "运行�?;
+            StatusMessage = $"正在执行{Algorithm}边缘检�?..";
             
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(100, 200));
             
             ExecutionTime = $"{random.Next(60, 120)} ms";
-            StatusMessage = $"{Algorithm}边缘检测完成";
+            StatusMessage = $"{Algorithm}边缘检测完�?;
             ToolStatus = "就绪";
         }
     }

@@ -22,7 +22,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 创建节点连接（使用指定的目标端口）
+        /// 创建节点连接（使用指定的目标端口�?
         /// </summary>
         public WorkflowConnection? CreateConnectionWithSpecificPort(
             WorkflowNode sourceNode,
@@ -43,7 +43,7 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.SourcePort = sourcePortName;
             newConnection.TargetPort = targetPortName;
 
-            // 获取源端口位置
+            // 获取源端口位�?
             Point sourcePos = GetPortPosition(sourceNode, sourcePortName);
 
             // 获取目标端口位置
@@ -52,8 +52,8 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认值
-            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
+            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认�?
+            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位�?
             newConnection.ArrowAngle = 0;
 
             currentTab.WorkflowConnections.Add(newConnection);
@@ -62,7 +62,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 创建节点连接（智能选择端口）
+        /// 创建节点连接（智能选择端口�?
         /// </summary>
         public WorkflowConnection? CreateConnection(
             WorkflowNode sourceNode,
@@ -83,7 +83,7 @@ namespace SunEyeVision.UI.Services.Interaction
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
 
-            // 智能选择连接点位置
+            // 智能选择连接点位�?
             var (sourcePos, targetPos, finalSourcePort, finalTargetPort) =
                 CalculateSmartPortPositions(sourceNode, targetNode, initialSourcePort);
 
@@ -92,8 +92,8 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认值
-            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
+            // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认�?
+            newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位�?
             newConnection.ArrowAngle = 0;
 
             currentTab.WorkflowConnections.Add(newConnection);
@@ -112,10 +112,10 @@ namespace SunEyeVision.UI.Services.Interaction
             Point sourcePos, targetPos;
             string finalSourcePort, finalTargetPort;
 
-            // 获取初始源端口位置
+            // 获取初始源端口位�?
             sourcePos = GetPortPosition(sourceNode, initialSourcePort);
 
-            // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口）
+            // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口�?
             var deltaX = targetNode.Position.X - sourcePos.X;
             var deltaY = targetNode.Position.Y - sourcePos.Y;
 
@@ -124,7 +124,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (isVerticalDominant)
             {
-                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
+                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端�?
                 bool horizontalDominant = Math.Abs(deltaX) > 2 * Math.Abs(deltaY);
 
                 if (horizontalDominant)
@@ -147,7 +147,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 }
                 else
                 {
-                    direction = "垂直（源端口主导）";
+                    direction = "垂直（源端口主导�?;
                     if (deltaY > 0)
                     {
                         finalSourcePort = "BottomPort";
@@ -166,7 +166,7 @@ namespace SunEyeVision.UI.Services.Interaction
             }
             else
             {
-                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
+                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端�?
                 bool verticalDominant = Math.Abs(deltaY) > 2 * Math.Abs(deltaX);
 
                 if (verticalDominant)
@@ -189,7 +189,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 }
                 else
                 {
-                    direction = "水平（源端口主导）";
+                    direction = "水平（源端口主导�?;
                     if (deltaX > 0)
                     {
                         finalSourcePort = "RightPort";
@@ -237,7 +237,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 检查是否为自连接
+        /// 检查是否为自连�?
         /// </summary>
         public bool IsSelfConnection(string sourceNodeId, string targetNodeId)
         {
@@ -245,7 +245,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 获取指定端口的位置
+        /// 获取指定端口的位�?
         /// </summary>
         private static Point GetPortPosition(WorkflowNode node, string portName)
         {
@@ -260,11 +260,11 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 计算箭头角度（度）
+        /// 计算箭头角度（度�?
         /// </summary>
         private static double CalculateArrowAngle(Point targetPortPos, WorkflowNode targetNode, string targetPortName)
         {
-            // 箭头默认指向右方（0度），根据端口方向旋转
+            // 箭头默认指向右方�?度），根据端口方向旋�?
             return targetPortName switch
             {
                 "TopPort" => 270,    // 指向上方

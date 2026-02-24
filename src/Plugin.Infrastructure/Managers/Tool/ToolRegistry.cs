@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
 {
     /// <summary>
-    /// 工具注册表 - 管理所有已注册的工具插件（静态类）
-    /// </summary>
+    /// 工具注册�?- 管理所有已注册的工具插件（静态类�?    /// </summary>
     public static class ToolRegistry
     {
         private static readonly Dictionary<string, IToolPlugin> _toolPlugins = new Dictionary<string, IToolPlugin>();
@@ -68,8 +67,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 获取工具元数据
-        /// </summary>
+        /// 获取工具元数�?        /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <returns>工具元数据，如果不存在则返回null</returns>
         public static ToolMetadata? GetToolMetadata(string toolId)
@@ -106,8 +104,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 检查工具是否存在
-        /// </summary>
+        /// 检查工具是否存�?        /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <returns>是否存在</returns>
         public static bool ToolExists(string toolId)
@@ -173,8 +170,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 获取所有分类
-        /// </summary>
+        /// 获取所有分�?        /// </summary>
         /// <returns>分类列表</returns>
         public static List<string> GetAllCategories()
         {

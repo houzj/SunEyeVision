@@ -23,7 +23,7 @@
                     CornerRadius="20"
                     Background="#4CAF50"
                     Margin="0,0,15,0">
-                <TextBlock Text="⏳"
+                <TextBlock Text="�?
                            FontSize="20"
                            Foreground="White"
                            HorizontalAlignment="Center"
@@ -32,12 +32,12 @@
 
             <StackPanel Grid.Column="1"
                         VerticalAlignment="Center">
-                <TextBlock Text="加载中..."
+                <TextBlock Text="加载�?.."
                            FontSize="14"
                            Foreground="#FFFFFF"
                            FontWeight="SemiBold"/>
                 <TextBlock x:Name="MessageText"
-                           Text="请稍候"
+                           Text="请稍�?
                            FontSize="12"
                            Foreground="#E0E0E0"
                            Margin="0,5,0,0"/>

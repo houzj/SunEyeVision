@@ -5,13 +5,13 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 多集合节点显示适配器
+    /// 多集合节点显示适配�?
     /// </summary>
     public class MultiCollectionNodeDisplayAdapter : INodeDisplayAdapter
     {
         public string GetDisplayText(WorkflowNode node)
         {
-            return $"多集合 {node.Index}";
+            return $"多集�?{node.Index}";
         }
 
         public string GetIcon(WorkflowNode node)
@@ -21,7 +21,7 @@ namespace SunEyeVision.UI.Adapters
 
         public Color GetBackgroundColor(WorkflowNode node)
         {
-            return Color.FromRgb(245, 245, 245); // 淡灰色背景
+            return Color.FromRgb(245, 245, 245); // 淡灰色背�?
         }
 
         public Color GetBorderColor(WorkflowNode node)

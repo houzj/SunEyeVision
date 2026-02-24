@@ -8,17 +8,17 @@ using SunEyeVision.UI.Views.Windows;
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// 画布模板选择器 - 根据画布类型选择不同的模板
+    /// 画布模板选择�?- 根据画布类型选择不同的模�?
     /// </summary>
     public class CanvasTemplateSelector : DataTemplateSelector
     {
         /// <summary>
-        /// WorkflowCanvasControl的模板
+        /// WorkflowCanvasControl的模�?
         /// </summary>
         public DataTemplate? WorkflowCanvasTemplate { get; set; }
 
         /// <summary>
-        /// NativeDiagramControl的模板（原生AIStudio.Wpf.DiagramDesigner控件）
+        /// NativeDiagramControl的模板（原生AIStudio.Wpf.DiagramDesigner控件�?
         /// </summary>
         public DataTemplate? NativeDiagramTemplate { get; set; }
 
@@ -39,7 +39,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
             else
             {
-                // 尝试从 Application 获取 MainWindow，然后获取当前选中的 WorkflowTab
+                // 尝试�?Application 获取 MainWindow，然后获取当前选中�?WorkflowTab
                 if (Application.Current?.MainWindow is MainWindow mainWindow)
                 {
                     if (mainWindow.DataContext is MainWindowViewModel mainWindowViewModel)

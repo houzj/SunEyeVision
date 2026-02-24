@@ -13,13 +13,13 @@ namespace SunEyeVision.UI.Models
         public string Label { get; set; } = string.Empty;
 
         /// <summary>
-        /// 属性值
+        /// 属性�?
         /// </summary>
         public object Value { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// 属性分组
+    /// 属性分�?
     /// </summary>
     public class PropertyGroup
     {

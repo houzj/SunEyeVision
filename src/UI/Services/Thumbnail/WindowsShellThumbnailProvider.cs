@@ -12,14 +12,14 @@ using System.Windows.Media.Imaging;
 namespace SunEyeVision.UI.Services.Thumbnail
 {
     /// <summary>
-    /// Windows Shell缩略图提供者
-    /// 利用Windows系统缩略图缓存，性能提升10-50倍
+    /// Windows Shell缩略图提供�?
+    /// 利用Windows系统缩略图缓存，性能提升10-50�?
     /// 
-    /// 性能特点：
+    /// 性能特点�?
     /// - 系统缓存命中时：30-80ms
-    /// - 系统缓存未命中时：100-300ms（自动生成并缓存）
+    /// - 系统缓存未命中时�?00-300ms（自动生成并缓存�?
     /// 
-    /// 优势：
+    /// 优势�?
     /// 1. 利用Windows Explorer已有的缩略图缓存
     /// 2. 系统会自动管理缓存的生命周期
     /// 3. 支持所有Windows能预览的文件类型
@@ -60,19 +60,19 @@ namespace SunEyeVision.UI.Services.Thumbnail
             SIIGBF_RESIZETOFIT = 0x00000000,
             /// <summary>允许返回比请求更大的图像</summary>
             SIIGBF_BIGGERSIZEOK = 0x00000001,
-            /// <summary>仅在内存中返回图像</summary>
+            /// <summary>仅在内存中返回图�?/summary>
             SIIGBF_MEMORYONLY = 0x00000002,
-            /// <summary>仅返回图标</summary>
+            /// <summary>仅返回图�?/summary>
             SIIGBF_ICONONLY = 0x00000004,
             /// <summary>仅返回缩略图</summary>
             SIIGBF_THUMBNAILONLY = 0x00000008,
             /// <summary>仅从缓存获取，不生成新的</summary>
             SIIGBF_INCACHEONLY = 0x00000010,
-            /// <summary>仅返回项目图标</summary>
+            /// <summary>仅返回项目图�?/summary>
             SIIGBF_CROPTOSQUARE = 0x00000020,
-            /// <summary>在宽高比下缩放</summary>
+            /// <summary>在宽高比下缩�?/summary>
             SIIGBF_WIDETHUMBNAILS = 0x00000040,
-            /// <summary>如果需要则提取缩略图</summary>
+            /// <summary>如果需要则提取缩略�?/summary>
             SIIGBF_SCREENWIDETHUMBNAILS = 0x00000080,
         }
 
@@ -120,7 +120,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         public int CacheHits => _cacheHits;
 
         /// <summary>
-        /// 缓存未命中次数
+        /// 缓存未命中次�?
         /// </summary>
         public int CacheMisses => _cacheMisses;
 
@@ -132,11 +132,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
             : 0;
 
         /// <summary>
-        /// 获取系统缩略图
+        /// 获取系统缩略�?
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <param name="size">目标尺寸</param>
-        /// <param name="cacheOnly">是否仅从缓存获取（不生成新缩略图）</param>
+        /// <param name="cacheOnly">是否仅从缓存获取（不生成新缩略图�?/param>
         /// <returns>BitmapSource或null</returns>
         public BitmapSource? GetThumbnail(string filePath, int size, bool cacheOnly = false)
         {
@@ -155,7 +155,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
             try
             {
-                // 创建Shell项
+                // 创建Shell�?
                 HRESULT hr = SHCreateItemFromParsingName(
                     filePath,
                     IntPtr.Zero,
@@ -167,7 +167,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     return null;
                 }
 
-                // 获取缩略图工厂
+                // 获取缩略图工�?
                 var factory = (IShellItemImageFactory)shellItem;
 
                 // 设置尺寸
@@ -180,7 +180,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     flags |= SIIGBF.SIIGBF_INCACHEONLY;
                 }
 
-                // 获取缩略图
+                // 获取缩略�?
                 hr = factory.GetImage(sizeStruct, flags, out IntPtr hBitmap);
 
                 // 释放COM对象
@@ -188,7 +188,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
                 if (hr != HRESULT.S_OK || hBitmap == IntPtr.Zero)
                 {
-                    // 缓存未命中（静默处理）
+                    // 缓存未命中（静默处理�?
                     Interlocked.Increment(ref _cacheMisses);
                     return null;
                 }
@@ -198,7 +198,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 DeleteObject(hBitmap);
 
                 Interlocked.Increment(ref _cacheHits);
-                Interlocked.Add(ref _totalLoadTimeMs, 0); // 时间由调用者记录
+                Interlocked.Add(ref _totalLoadTimeMs, 0); // 时间由调用者记�?
 
                 return result;
             }
@@ -214,7 +214,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
         
         /// <summary>
-        /// 检测文件格式是否被Shell缩略图系统支持
+        /// 检测文件格式是否被Shell缩略图系统支�?
         /// </summary>
         private static bool IsShellSupportedFormat(string extension)
         {
@@ -226,10 +226,10 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 ".png" => true,               // PNG
                 ".gif" => true,               // GIF
                 ".tif" or ".tiff" => true,    // TIFF
-                ".bmp" => true,               // BMP - 支持（P0修复）
+                ".bmp" => true,               // BMP - 支持（P0修复�?
                 ".ico" => true,               // ICO
                 ".wdp" or ".jxr" => true,     // HD Photo
-                ".dds" => false,              // DDS - 不支持
+                ".dds" => false,              // DDS - 不支�?
                 ".webp" => false,             // WebP - 部分支持
                 ".pdf" => true,               // PDF
                 ".doc" or ".docx" => true,    // Word
@@ -237,12 +237,12 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 ".ppt" or ".pptx" => true,    // PowerPoint
                 ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" => true, // 视频
                 ".mp3" or ".wav" or ".flac" => true, // 音频
-                _ => false  // 其他格式默认不支持
+                _ => false  // 其他格式默认不支�?
             };
         }
 
         /// <summary>
-        /// 快速检查系统缓存是否存在缩略图（不生成）
+        /// 快速检查系统缓存是否存在缩略图（不生成�?
         /// </summary>
         public bool HasCachedThumbnail(string filePath, int size)
         {
@@ -261,7 +261,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             var result = new BitmapImage();
             using (var memory = new MemoryStream())
             {
-                // 使用PNG格式保持透明度
+                // 使用PNG格式保持透明�?
                 bitmap.Save(memory, ImageFormat.Png);
                 memory.Position = 0;
 
@@ -283,7 +283,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         {
             var total = _cacheHits + _cacheMisses;
             var hitRate = total > 0 ? (double)_cacheHits / total * 100 : 0;
-            return $"Shell缩略图: 命中{_cacheHits}次, 未命中{_cacheMisses}次, 命中率{hitRate:F1}%, 平均{AverageLoadTimeMs:F1}ms";
+            return $"Shell缩略�? 命中{_cacheHits}�? 未命中{_cacheMisses}�? 命中率{hitRate:F1}%, 平均{AverageLoadTimeMs:F1}ms";
         }
 
         public void Dispose()

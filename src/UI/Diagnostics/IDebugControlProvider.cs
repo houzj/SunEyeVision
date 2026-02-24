@@ -1,8 +1,8 @@
 namespace SunEyeVision.UI.Diagnostics
 {
     /// <summary>
-    /// 调试控制提供者接口
-    /// 插件可实现此接口提供自定义调试控制
+    /// 调试控制提供者接�?
+    /// 插件可实现此接口提供自定义调试控�?
     /// </summary>
     public interface IDebugControlProvider
     {
@@ -13,7 +13,7 @@ namespace SunEyeVision.UI.Diagnostics
         object GetDebugPanel();
 
         /// <summary>
-        /// 开始调试
+        /// 开始调�?
         /// </summary>
         void StartDebug();
 
@@ -33,17 +33,17 @@ namespace SunEyeVision.UI.Diagnostics
         void Reset();
 
         /// <summary>
-        /// 检查是否有自定义调试控件
+        /// 检查是否有自定义调试控�?
         /// </summary>
         /// <param name="toolType">工具类型</param>
         /// <returns>是否有自定义控件</returns>
         bool HasCustomDebugControl(string toolType);
 
         /// <summary>
-        /// 创建自定义调试控件
+        /// 创建自定义调试控�?
         /// </summary>
         /// <param name="toolType">工具类型</param>
-        /// <returns>自定义控件实例</returns>
+        /// <returns>自定义控件实�?/returns>
         System.Windows.FrameworkElement CreateDebugControl(string toolType);
     }
 }

@@ -4,15 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
 {
     /// <summary>
-    /// 插件管理器实现
-    /// </summary>
+    /// 插件管理器实�?    /// </summary>
     public class PluginManager : IPluginManager
     {
         private readonly ILogger _logger;
@@ -24,7 +23,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         }
 
         /// <summary>
-        /// 无参构造函数 - 使用空日志器
+        /// 无参构造函�?- 使用空日志器
         /// </summary>
         public PluginManager()
         {
@@ -32,18 +31,16 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         }
 
         /// <summary>
-        /// 加载所有插件
-        /// </summary>
+        /// 加载所有插�?        /// </summary>
         public void LoadPlugins()
         {
-            _logger.LogInfo("开始加载插件...");
-            // 插件加载逻辑由 PluginLoader 处理
+            _logger.LogInfo("开始加载插�?..");
+            // 插件加载逻辑�?PluginLoader 处理
             _logger.LogInfo("插件加载完成");
         }
 
         /// <summary>
-        /// 从指定目录加载所有插件
-        /// </summary>
+        /// 从指定目录加载所有插�?        /// </summary>
         /// <param name="pluginDirectory">插件目录路径</param>
         public void LoadPlugins(string pluginDirectory)
         {
@@ -51,7 +48,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
             
             if (!Directory.Exists(pluginDirectory))
             {
-                _logger.LogInfo($"插件目录不存在: {pluginDirectory}");
+                _logger.LogInfo($"插件目录不存�? {pluginDirectory}");
                 return;
             }
 
@@ -63,7 +60,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                 LoadPlugin(dllFile);
             }
 
-            _logger.LogInfo($"插件加载完成，共加载 {ToolRegistry.GetToolCount()} 个工具");
+            _logger.LogInfo($"插件加载完成，共加载 {ToolRegistry.GetToolCount()} 个工�?);
         }
 
         /// <summary>
@@ -89,7 +86,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                             toolPlugin.Initialize();
                             ToolRegistry.RegisterTool(toolPlugin);
                             RegisterPlugin(toolPlugin);
-                            _logger.LogInfo($"已加载工具插件: {toolPlugin.Name}");
+                            _logger.LogInfo($"已加载工具插�? {toolPlugin.Name}");
                         }
                     }
                     catch (Exception ex)
@@ -105,19 +102,17 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         }
 
         /// <summary>
-        /// 卸载所有插件
-        /// </summary>
+        /// 卸载所有插�?        /// </summary>
         public void UnloadPlugins()
         {
-            _logger.LogInfo("开始卸载插件...");
+            _logger.LogInfo("开始卸载插�?..");
             _plugins.Clear();
             ToolRegistry.ClearAll();
             _logger.LogInfo("插件卸载完成");
         }
 
         /// <summary>
-        /// 获取所有插件
-        /// </summary>
+        /// 获取所有插�?        /// </summary>
         /// <typeparam name="T">插件类型</typeparam>
         /// <returns>插件列表</returns>
         public List<T> GetPlugins<T>() where T : class
@@ -152,7 +147,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                 }
 
                 _plugins[iface].Add(plugin);
-                _logger.LogInfo($"已注册插件: {plugin.GetType().Name} 实现接口: {iface.Name}");
+                _logger.LogInfo($"已注册插�? {plugin.GetType().Name} 实现接口: {iface.Name}");
             }
         }
 
@@ -184,7 +179,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         /// 检查插件是否已加载
         /// </summary>
         /// <typeparam name="T">插件类型</typeparam>
-        /// <returns>是否已加载</returns>
+        /// <returns>是否已加�?/returns>
         public bool IsPluginLoaded<T>() where T : class
         {
             var pluginType = typeof(T);
@@ -193,8 +188,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
     }
 
     /// <summary>
-    /// 空日志器 - 不输出任何日志
-    /// </summary>
+    /// 空日志器 - 不输出任何日�?    /// </summary>
     internal class NullLogger : ILogger
     {
         public void LogDebug(string message) { }

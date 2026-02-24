@@ -9,7 +9,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
 {
     /// <summary>
     /// 测试画布引擎
-    /// 简化的测试引擎，用于性能测试和算法验证
+    /// 简化的测试引擎，用于性能测试和算法验�?
     /// </summary>
     public class TestCanvasEngine : ICanvasEngine
     {
@@ -30,7 +30,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
             // 添加调试信息
             _debugInfo = new TextBlock
             {
-                Text = "测试画布引擎\n用于性能测试和算法验证",
+                Text = "测试画布引擎\n用于性能测试和算法验�?,
                 FontSize = 24,
                 Foreground = new SolidColorBrush(Color.FromRgb(100, 100, 100)),
                 HorizontalAlignment = HorizontalAlignment.Center
@@ -57,7 +57,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
             // 更新调试信息
             if (_debugInfo != null)
             {
-                _debugInfo.Text = $"测试画布引擎\n当前路径算法: {pathCalculatorType}\n用于性能测试和算法验证";
+                _debugInfo.Text = $"测试画布引擎\n当前路径算法: {pathCalculatorType}\n用于性能测试和算法验�?;
             }
         }
 

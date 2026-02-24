@@ -4,8 +4,8 @@ using SunEyeVision.UI.Infrastructure;
 namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
-    /// 面板管理器
-    /// 管理所有扩展面板
+    /// 面板管理�?
+    /// 管理所有扩展面�?
     /// </summary>
     public class PanelManager
     {
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Infrastructure
         }
 
         /// <summary>
-        /// 获取所有面板
+        /// 获取所有面�?
         /// </summary>
         /// <returns>面板列表</returns>
         public IEnumerable<IPanelExtension> GetAllPanels()

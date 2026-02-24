@@ -51,27 +51,27 @@ namespace SunEyeVision.UI.Services.Connection
         bool DeleteConnection(WorkflowConnection connection);
 
         /// <summary>
-        /// 删除节点相关的所有连接
+        /// 删除节点相关的所有连�?
         /// </summary>
         void DeleteNodeConnections(string nodeId);
 
         /// <summary>
-        /// 检查连接是否存在
+        /// 检查连接是否存�?
         /// </summary>
         bool ConnectionExists(WorkflowNode sourceNode, WorkflowNode targetNode);
 
         /// <summary>
-        /// 获取节点的所有连接
+        /// 获取节点的所有连�?
         /// </summary>
         List<WorkflowConnection> GetNodeConnections(string nodeId);
 
         /// <summary>
-        /// 获取节点的输入连接
+        /// 获取节点的输入连�?
         /// </summary>
         List<WorkflowConnection> GetNodeInputConnections(string nodeId);
 
         /// <summary>
-        /// 获取节点的输出连接
+        /// 获取节点的输出连�?
         /// </summary>
         List<WorkflowConnection> GetNodeOutputConnections(string nodeId);
 
@@ -144,7 +144,7 @@ namespace SunEyeVision.UI.Services.Connection
                 return null;
             }
 
-            // 自动选择最佳端口
+            // 自动选择最佳端�?
             var (sourcePort, targetPort) = DetermineBestPorts(sourceNode, targetNode);
             return CreateConnectionWithPorts(sourceNode, targetNode, sourcePort, targetPort);
         }
@@ -186,7 +186,7 @@ namespace SunEyeVision.UI.Services.Connection
             // 计算路径
             connection.PathData = _pathService.CalculatePath(connection.SourcePosition, connection.TargetPosition);
 
-            // 添加到集合
+            // 添加到集�?
             Connections.Add(connection);
 
             // 触发事件
@@ -278,7 +278,7 @@ namespace SunEyeVision.UI.Services.Connection
 
         public bool ValidateConnection(WorkflowNode sourceNode, WorkflowNode targetNode)
         {
-            // 不能连接到自身
+            // 不能连接到自�?
             if (sourceNode == targetNode)
             {
                 return false;
@@ -334,7 +334,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 确定最佳端口组合
+        /// 确定最佳端口组�?
         /// </summary>
         private (PortDirection sourcePort, PortDirection targetPort) DetermineBestPorts(WorkflowNode sourceNode, WorkflowNode targetNode)
         {
@@ -377,11 +377,11 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 检查端口是否兼容
+        /// 检查端口是否兼�?
         /// </summary>
         private bool ArePortsCompatible(PortDirection sourcePort, PortDirection targetPort)
         {
-            // 相对的端口是兼容的
+            // 相对的端口是兼容�?
             return (sourcePort, targetPort) switch
             {
                 (PortDirection.Top, PortDirection.Bottom) => true,
@@ -397,13 +397,13 @@ namespace SunEyeVision.UI.Services.Connection
         /// </summary>
         private bool WouldCreateCycle(string sourceId, string targetId)
         {
-            // 使用深度优先搜索检测循环
+            // 使用深度优先搜索检测循�?
             var visited = new HashSet<string>();
             return HasPathToTarget(targetId, sourceId, visited);
         }
 
         /// <summary>
-        /// 检查是否存在从source到target的路径
+        /// 检查是否存在从source到target的路�?
         /// </summary>
         private bool HasPathToTarget(string currentId, string targetId, HashSet<string> visited)
         {
@@ -419,7 +419,7 @@ namespace SunEyeVision.UI.Services.Connection
 
             visited.Add(currentId);
 
-            // 获取所有从当前节点出发的连接
+            // 获取所有从当前节点出发的连�?
             var outgoingConnections = Connections.Where(c => c.SourceNodeId == currentId);
             foreach (var connection in outgoingConnections)
             {

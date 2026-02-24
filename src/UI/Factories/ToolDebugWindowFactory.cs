@@ -1,18 +1,18 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
 using SunEyeVision.Plugin.Infrastructure;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 using SunEyeVision.UI.Factories;
 using SunEyeVision.UI.Views.Windows;
 
 namespace SunEyeVision.UI.Factories
 {
     /// <summary>
-    /// å·¥å…·è°ƒè¯•çª—å£å·¥å‚ - åŠ¨æ€ä»æ’ä»¶åŠ è½½è°ƒè¯•çª—å£
+    /// ¹¤¾ßµ÷ÊÔ´°¿Ú¹¤³§ - ¶¯Ì¬´Ó²å¼ş¼ÓÔØµ÷ÊÔ´°¿Ú
     /// </summary>
     public static class ToolDebugWindowFactory
     {
@@ -21,7 +21,7 @@ namespace SunEyeVision.UI.Factories
         private static readonly object _lock = new object();
 
         /// <summary>
-        /// åˆå§‹åŒ– - æ‰«ææ’ä»¶ç›®å½•åŠ è½½è°ƒè¯•çª—å£ç±»å‹
+        /// ³õÊ¼»¯ - É¨Ãè²å¼şÄ¿Â¼¼ÓÔØµ÷ÊÔ´°¿ÚÀàĞÍ
         /// </summary>
         public static void Initialize()
         {
@@ -33,7 +33,7 @@ namespace SunEyeVision.UI.Factories
 
                 try
                 {
-                    // æ’ä»¶ç›®å½•åœ¨åº”ç”¨ç¨‹åºç›®å½•ä¸‹çš„ plugins å­ç›®å½•
+                    // ²å¼şÄ¿Â¼ÔÚÓ¦ÓÃ³ÌĞòÄ¿Â¼ÏÂµÄ plugins ×ÓÄ¿Â¼
                     var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
 
                     if (Directory.Exists(pluginsPath))
@@ -51,20 +51,20 @@ namespace SunEyeVision.UI.Factories
 
                                 foreach (var windowType in windowTypes)
                                 {
-                                    // â˜… ä¿®å¤ï¼šæ­£ç¡®æå–å·¥å…·åç§°å¹¶ç”Ÿæˆå¤šç§åŒ¹é…é”®
+                                    // ¡ï ĞŞ¸´£ºÕıÈ·ÌáÈ¡¹¤¾ßÃû³Æ²¢Éú³É¶àÖÖÆ¥Åä¼ü
                                     RegisterDebugWindowType(windowType);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"åŠ è½½æ’ä»¶è°ƒè¯•çª—å£å¤±è´¥: {dllFile}, {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"¼ÓÔØ²å¼şµ÷ÊÔ´°¿ÚÊ§°Ü: {dllFile}, {ex.Message}");
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"åˆå§‹åŒ–è°ƒè¯•çª—å£å·¥å‚å¤±è´¥: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"³õÊ¼»¯µ÷ÊÔ´°¿Ú¹¤³§Ê§°Ü: {ex.Message}");
                 }
 
                 _isInitialized = true;
@@ -72,14 +72,14 @@ namespace SunEyeVision.UI.Factories
         }
 
         /// <summary>
-        /// æ³¨å†Œè°ƒè¯•çª—å£ç±»å‹ - ç”Ÿæˆå¤šç§åŒ¹é…é”®ä»¥æ”¯æŒä¸åŒçš„å‘½åé£æ ¼
+        /// ×¢²áµ÷ÊÔ´°¿ÚÀàĞÍ - Éú³É¶àÖÖÆ¥Åä¼üÒÔÖ§³Ö²»Í¬µÄÃüÃû·ç¸ñ
         /// </summary>
         private static void RegisterDebugWindowType(Type windowType)
         {
-            // ä»ç±»å‹åç§°æå–å·¥å…·åç§°ï¼Œå¦‚ "TemplateMatchingToolDebugWindow" -> "TemplateMatchingTool"
+            // ´ÓÀàĞÍÃû³ÆÌáÈ¡¹¤¾ßÃû³Æ£¬Èç "TemplateMatchingToolDebugWindow" -> "TemplateMatchingTool"
             var toolName = windowType.Name.Replace("DebugWindow", "");
             
-            // â˜… å…³é”®ä¿®å¤ï¼šç§»é™¤ "Tool" åç¼€ï¼ˆå¦‚æœå­˜åœ¨ï¼‰
+            // ¡ï ¹Ø¼üĞŞ¸´£ºÒÆ³ı "Tool" ºó×º£¨Èç¹û´æÔÚ£©
             // "TemplateMatchingTool" -> "TemplateMatching"
             var toolNameWithoutToolSuffix = toolName;
             if (toolName.EndsWith("Tool"))
@@ -87,28 +87,28 @@ namespace SunEyeVision.UI.Factories
                 toolNameWithoutToolSuffix = toolName.Substring(0, toolName.Length - 4);
             }
 
-            // ç”Ÿæˆè›‡å½¢å‘½å
+            // Éú³ÉÉßĞÎÃüÃû
             // "TemplateMatchingTool" -> "template_matching_tool"
             // "TemplateMatching" -> "template_matching"
             var toolIdWithToolSuffix = ConvertToSnakeCase(toolName);
             var toolIdWithoutToolSuffix = ConvertToSnakeCase(toolNameWithoutToolSuffix);
 
-            // æ³¨å†Œå¤šç§åŒ¹é…é”®
+            // ×¢²á¶àÖÖÆ¥Åä¼ü
             _debugWindowTypes[toolName] = windowType;                          // "TemplateMatchingTool"
             _debugWindowTypes[toolNameWithoutToolSuffix] = windowType;          // "TemplateMatching"
             _debugWindowTypes[toolIdWithToolSuffix] = windowType;               // "template_matching_tool"
-            _debugWindowTypes[toolIdWithoutToolSuffix] = windowType;            // "template_matching" â˜… è¿™æ˜¯å·¥å…·çš„çœŸå®ID
+            _debugWindowTypes[toolIdWithoutToolSuffix] = windowType;            // "template_matching" ¡ï ÕâÊÇ¹¤¾ßµÄÕæÊµID
             
-            // ä¹Ÿæ³¨å†Œå¸¦ "Tool" åç¼€çš„ç‰ˆæœ¬ï¼Œä»¥æ”¯æŒå„ç§å‘½åé£æ ¼
+            // Ò²×¢²á´ø "Tool" ºó×ºµÄ°æ±¾£¬ÒÔÖ§³Ö¸÷ÖÖÃüÃû·ç¸ñ
             _debugWindowTypes[toolName + "Tool"] = windowType;                  // "TemplateMatchingToolTool"
             _debugWindowTypes[toolIdWithoutToolSuffix + "_tool"] = windowType;  // "template_matching_tool"
 
-            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] æ³¨å†Œè°ƒè¯•çª—å£: {windowType.Name}");
-            System.Diagnostics.Debug.WriteLine($"  - åŒ¹é…é”®: {toolName}, {toolNameWithoutToolSuffix}, {toolIdWithToolSuffix}, {toolIdWithoutToolSuffix}");
+            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] ×¢²áµ÷ÊÔ´°¿Ú: {windowType.Name}");
+            System.Diagnostics.Debug.WriteLine($"  - Æ¥Åä¼ü: {toolName}, {toolNameWithoutToolSuffix}, {toolIdWithToolSuffix}, {toolIdWithoutToolSuffix}");
         }
 
         /// <summary>
-        /// å°†é©¼å³°å‘½åè½¬æ¢ä¸ºè›‡å½¢å‘½å
+        /// ½«ÍÕ·åÃüÃû×ª»»ÎªÉßĞÎÃüÃû
         /// </summary>
         private static string ConvertToSnakeCase(string input)
         {
@@ -132,17 +132,17 @@ namespace SunEyeVision.UI.Factories
         }
 
         /// <summary>
-        /// åˆ›å»ºå·¥å…·è°ƒè¯•çª—å£
+        /// ´´½¨¹¤¾ßµ÷ÊÔ´°¿Ú
         /// </summary>
-        /// <param name="toolId">å·¥å…·ID</param>
-        /// <param name="toolPlugin">å·¥å…·æ’ä»¶</param>
-        /// <param name="toolMetadata">å·¥å…·å…ƒæ•°æ®</param>
-        /// <returns>è°ƒè¯•çª—å£å®ä¾‹</returns>
+        /// <param name="toolId">¹¤¾ßID</param>
+        /// <param name="toolPlugin">¹¤¾ß²å¼ş</param>
+        /// <param name="toolMetadata">¹¤¾ßÔªÊı¾İ</param>
+        /// <returns>µ÷ÊÔ´°¿ÚÊµÀı</returns>
         public static Window CreateDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata toolMetadata)
         {
             Initialize();
 
-            // å°è¯•ä»ç¼“å­˜ä¸­æŸ¥æ‰¾è°ƒè¯•çª—å£ç±»å‹
+            // ³¢ÊÔ´Ó»º´æÖĞ²éÕÒµ÷ÊÔ´°¿ÚÀàĞÍ
             if (_debugWindowTypes.TryGetValue(toolId, out var windowType))
             {
                 try
@@ -153,7 +153,7 @@ namespace SunEyeVision.UI.Factories
                         return (Window)constructor.Invoke(new object?[] { toolId, toolPlugin, toolMetadata });
                     }
 
-                    // å°è¯•æ— å‚æ„é€ å‡½æ•°
+                    // ³¢ÊÔÎŞ²Î¹¹Ôìº¯Êı
                     constructor = windowType.GetConstructor(Type.EmptyTypes);
                     if (constructor != null)
                     {
@@ -162,19 +162,19 @@ namespace SunEyeVision.UI.Factories
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"åˆ›å»ºè°ƒè¯•çª—å£å¤±è´¥: {toolId}, {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"´´½¨µ÷ÊÔ´°¿ÚÊ§°Ü: {toolId}, {ex.Message}");
                 }
             }
 
-            // é»˜è®¤ä½¿ç”¨é€šç”¨è°ƒè¯•çª—å£
+            // Ä¬ÈÏÊ¹ÓÃÍ¨ÓÃµ÷ÊÔ´°¿Ú
             return new DebugWindow(toolId, toolPlugin ?? new DefaultToolPlugin(), toolMetadata);
         }
 
         /// <summary>
-        /// æ£€æŸ¥å·¥å…·æ˜¯å¦æœ‰ä¸“ç”¨è°ƒè¯•çª—å£
+        /// ¼ì²é¹¤¾ßÊÇ·ñÓĞ×¨ÓÃµ÷ÊÔ´°¿Ú
         /// </summary>
-        /// <param name="toolId">å·¥å…·ID</param>
-        /// <returns>æ˜¯å¦æœ‰ä¸“ç”¨è°ƒè¯•çª—å£</returns>
+        /// <param name="toolId">¹¤¾ßID</param>
+        /// <returns>ÊÇ·ñÓĞ×¨ÓÃµ÷ÊÔ´°¿Ú</returns>
         public static bool HasCustomDebugWindow(string toolId)
         {
             Initialize();
@@ -183,7 +183,7 @@ namespace SunEyeVision.UI.Factories
     }
 
     /// <summary>
-    /// é»˜è®¤å·¥å…·æ’ä»¶ - ç”¨äºå·¥å…·è°ƒè¯•çª—å£å·¥å‚çš„å…¼å®¹æ€§
+    /// Ä¬ÈÏ¹¤¾ß²å¼ş - ÓÃÓÚ¹¤¾ßµ÷ÊÔ´°¿Ú¹¤³§µÄ¼æÈİĞÔ
     /// </summary>
     internal class DefaultToolPlugin : IToolPlugin
     {
@@ -193,7 +193,7 @@ namespace SunEyeVision.UI.Factories
         public string Description => "Default tool plugin";
         public string PluginId => "default.tool";
         public List<string> Dependencies => new List<string>();
-        public string Icon => "ğŸ”§";
+        public string Icon => "??";
 
         private bool _isLoaded = true;
         public bool IsLoaded => _isLoaded;
@@ -205,17 +205,17 @@ namespace SunEyeVision.UI.Factories
 
         public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
 
-        public SunEyeVision.Plugin.Abstractions.Core.IImageProcessor CreateToolInstance(string toolId)
+        public SunEyeVision.Plugin.SDK.Core.IImageProcessor CreateToolInstance(string toolId)
         {
             throw new NotImplementedException();
         }
 
-        public SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters GetDefaultParameters(string toolId)
+        public SunEyeVision.Plugin.SDK.Core.AlgorithmParameters GetDefaultParameters(string toolId)
         {
-            return new SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters();
+            return new SunEyeVision.Plugin.SDK.Core.AlgorithmParameters();
         }
 
-        public ValidationResult ValidateParameters(string toolId, SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters parameters)
+        public ValidationResult ValidateParameters(string toolId, SunEyeVision.Plugin.SDK.Core.AlgorithmParameters parameters)
         {
             return ValidationResult.Success();
         }

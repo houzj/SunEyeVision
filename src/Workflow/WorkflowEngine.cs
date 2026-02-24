@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.Abstractions.Core;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
 {

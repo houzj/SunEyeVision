@@ -1,108 +1,108 @@
 using System;
+using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
 
 namespace SunEyeVision.DeviceDriver
 {
     /// <summary>
-    /// ´¥·¢Æ÷Ä£Ê½
+    /// è§¦å‘å™¨æ¨¡å¼
     /// </summary>
     public enum TriggerMode
     {
         /// <summary>
-        /// ÎŞ´¥·¢,Á¬Ğø²É¼¯
+        /// æ— è§¦å‘,è¿ç»­é‡‡é›†
         /// </summary>
         None,
 
         /// <summary>
-        /// Ó²¼ş´¥·¢
+        /// ç¡¬ä»¶è§¦å‘
         /// </summary>
         Hardware,
 
         /// <summary>
-        /// Èí¼ş´¥·¢
+        /// è½¯ä»¶è§¦å‘
         /// </summary>
         Software,
 
         /// <summary>
-        /// ¶¨Ê±Æ÷´¥·¢
+        /// å®šæ—¶å™¨è§¦å‘
         /// </summary>
         Timer
     }
 
     /// <summary>
-    /// Í¼Ïñ²¶»ñÊÂ¼ş²ÎÊı
+    /// å›¾åƒæ•è·äº‹ä»¶å‚æ•°
     /// </summary>
     public class ImageCapturedEventArgs : EventArgs
     {
         /// <summary>
-        /// Éè±¸ID
+        /// è®¾å¤‡ID
         /// </summary>
         public string DeviceId { get; set; }
 
         /// <summary>
-        /// ²¶»ñµÄÍ¼Ïñ
+        /// æ•è·çš„å›¾åƒ
         /// </summary>
         public Mat Image { get; set; }
 
         /// <summary>
-        /// Ê±¼ä´Á
+        /// æ—¶é—´æˆ³
         /// </summary>
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// Ö¡±àºÅ
+        /// å¸§ç¼–å·
         /// </summary>
         public long FrameNumber { get; set; }
     }
 
     /// <summary>
-    /// Éè±¸Çı¶¯»ùÀà
+    /// è®¾å¤‡é©±åŠ¨åŸºç±»
     /// </summary>
     public abstract class BaseDeviceDriver : IDisposable
     {
         /// <summary>
-        /// Éè±¸ID
+        /// è®¾å¤‡ID
         /// </summary>
         public string DeviceId { get; protected set; }
 
         /// <summary>
-        /// Éè±¸Ãû³Æ
+        /// è®¾å¤‡åç§°
         /// </summary>
         public string DeviceName { get; protected set; }
 
         /// <summary>
-        /// Éè±¸ÀàĞÍ
+        /// è®¾å¤‡ç±»å‹
         /// </summary>
         public string DeviceType { get; protected set; }
 
         /// <summary>
-        /// ÊÇ·ñÒÑÁ¬½Ó
+        /// æ˜¯å¦å·²è¿æ¥
         /// </summary>
         public bool IsConnected { get; protected set; }
 
         /// <summary>
-        /// ´¥·¢Æ÷Ä£Ê½
+        /// è§¦å‘å™¨æ¨¡å¼
         /// </summary>
         public TriggerMode TriggerMode { get; protected set; }
 
         /// <summary>
-        /// ÈÕÖ¾¼ÇÂ¼Æ÷
+        /// æ—¥å¿—è®°å½•å™¨
         /// </summary>
         protected ILogger Logger { get; private set; }
 
         /// <summary>
-        /// Í¼Ïñ²¶»ñÊÂ¼ş
+        /// å›¾åƒæ•è·äº‹ä»¶
         /// </summary>
         public event EventHandler<ImageCapturedEventArgs> ImageCaptured;
 
         /// <summary>
-        /// ÊÇ·ñÒÑÊÍ·Å
+        /// æ˜¯å¦å·²é‡Šæ”¾
         /// </summary>
         private bool _disposed;
 
         /// <summary>
-        /// Ö¡¼ÆÊıÆ÷
+        /// å¸§è®¡æ•°å™¨
         /// </summary>
         protected long _frameCount = 0;
 
@@ -117,32 +117,32 @@ namespace SunEyeVision.DeviceDriver
         }
 
         /// <summary>
-        /// Á¬½ÓÉè±¸
+        /// è¿æ¥è®¾å¤‡
         /// </summary>
         public abstract bool Connect();
 
         /// <summary>
-        /// ¶Ï¿ªÉè±¸
+        /// æ–­å¼€è®¾å¤‡
         /// </summary>
         public abstract bool Disconnect();
 
         /// <summary>
-        /// »ñÈ¡Í¼Ïñ
+        /// è·å–å›¾åƒ
         /// </summary>
         public abstract Mat CaptureImage();
 
         /// <summary>
-        /// ¿ªÊ¼Á¬Ğø²É¼¯
+        /// å¼€å§‹è¿ç»­é‡‡é›†
         /// </summary>
         public abstract bool StartContinuousCapture();
 
         /// <summary>
-        /// Í£Ö¹Á¬Ğø²É¼¯
+        /// åœæ­¢è¿ç»­é‡‡é›†
         /// </summary>
         public abstract bool StopContinuousCapture();
 
         /// <summary>
-        /// ÉèÖÃ´¥·¢Æ÷Ä£Ê½
+        /// è®¾ç½®è§¦å‘å™¨æ¨¡å¼
         /// </summary>
         public virtual bool SetTriggerMode(TriggerMode mode)
         {
@@ -152,7 +152,7 @@ namespace SunEyeVision.DeviceDriver
         }
 
         /// <summary>
-        /// ´¥·¢Í¼Ïñ²É¼¯ (Èí¼ş´¥·¢)
+        /// è§¦å‘å›¾åƒé‡‡é›† (è½¯ä»¶è§¦å‘)
         /// </summary>
         public virtual Mat TriggerCapture()
         {
@@ -171,7 +171,7 @@ namespace SunEyeVision.DeviceDriver
         }
 
         /// <summary>
-        /// ´¥·¢Í¼Ïñ²¶»ñÊÂ¼ş
+        /// è§¦å‘å›¾åƒæ•è·äº‹ä»¶
         /// </summary>
         protected virtual void OnImageCaptured(Mat image)
         {
@@ -186,22 +186,22 @@ namespace SunEyeVision.DeviceDriver
         }
 
         /// <summary>
-        /// »ñÈ¡Éè±¸ĞÅÏ¢
+        /// è·å–è®¾å¤‡ä¿¡æ¯
         /// </summary>
         public abstract DeviceInfo GetDeviceInfo();
 
         /// <summary>
-        /// ÉèÖÃÉè±¸²ÎÊı
+        /// è®¾ç½®è®¾å¤‡å‚æ•°
         /// </summary>
         public abstract bool SetParameter(string key, object value);
 
         /// <summary>
-        /// »ñÈ¡Éè±¸²ÎÊı
+        /// è·å–è®¾å¤‡å‚æ•°
         /// </summary>
         public abstract T GetParameter<T>(string key);
 
         /// <summary>
-        /// ÊÍ·Å×ÊÔ´
+        /// é‡Šæ”¾èµ„æº
         /// </summary>
         public void Dispose()
         {
@@ -215,14 +215,14 @@ namespace SunEyeVision.DeviceDriver
             {
                 if (disposing)
                 {
-                    // ÊÍ·ÅÍĞ¹Ü×ÊÔ´
+                    // é‡Šæ”¾æ‰˜ç®¡èµ„æº
                     if (IsConnected)
                     {
                         Disconnect();
                     }
                 }
 
-                // ÊÍ·Å·ÇÍĞ¹Ü×ÊÔ´
+                // é‡Šæ”¾éæ‰˜ç®¡èµ„æº
                 _disposed = true;
             }
         }

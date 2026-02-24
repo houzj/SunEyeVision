@@ -12,7 +12,7 @@ using SunEyeVision.UI.Services.Thumbnail.Caching;
 namespace SunEyeVision.UI.Services.Thumbnail.Caching
 {
     /// <summary>
-    /// GPU缓存管理器 - 提供内存缓存和磁盘持久化缓存
+    /// GPU缓存管理�?- 提供内存缓存和磁盘持久化缓存
     /// </summary>
     public class GPUCache
     {
@@ -21,7 +21,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         private readonly string _cachePath;
         private readonly object _lockObj = new object();
 
-        // 内存缓存（LRU）
+        // 内存缓存（LRU�?
         private readonly LinkedList<CacheEntry> _lruList = new LinkedList<CacheEntry>();
         private readonly Dictionary<string, LinkedListNode<CacheEntry>> _memoryCache = new Dictionary<string, LinkedListNode<CacheEntry>>();
 
@@ -47,10 +47,10 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
 
         public GPUCache()
         {
-            _maxMemoryCacheSize = 100; // 内存缓存100张
+            _maxMemoryCacheSize = 100; // 内存缓存100�?
             _maxDiskCacheSizeMB = 500; // 磁盘缓存500MB
 
-            // 初始化磁盘缓存路径
+            // 初始化磁盘缓存路�?
             _cachePath = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SunEyeVision", "ThumbnailCache");
@@ -60,19 +60,19 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
                 Directory.CreateDirectory(_cachePath);
             }
 
-            Debug.WriteLine($"[GPUCache] 初始化完成 - 内存缓存:{_maxMemoryCacheSize}张, 磁盘缓存:{_maxDiskCacheSizeMB}MB, 路径:{_cachePath}");
+            Debug.WriteLine($"[GPUCache] 初始化完�?- 内存缓存:{_maxMemoryCacheSize}�? 磁盘缓存:{_maxDiskCacheSizeMB}MB, 路径:{_cachePath}");
 
-            // 启动时清理过期缓存
+            // 启动时清理过期缓�?
             Task.Run(() => CleanupOldCache());
         }
 
         /// <summary>
-        /// 获取或加载缩略图（三级缓存：内存 -> 磁盘 -> 文件）
+        /// 获取或加载缩略图（三级缓存：内存 -> 磁盘 -> 文件�?
         /// </summary>
         public BitmapImage? GetOrLoadThumbnail(string filePath, int size, Func<string, int, BitmapImage?> loader)
         {
             var cacheKey = GetCacheKey(filePath, size);
-            // 高频操作不输出日志
+            // 高频操作不输出日�?
 
             // L1: 内存缓存
             var cached = GetFromMemoryCache(cacheKey);
@@ -90,14 +90,14 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
                 return cached;
             }
 
-            // L3: 从文件加载
+            // L3: 从文件加�?
             var bitmap = loader(filePath, size);
             if (bitmap != null)
             {
                 // 加入内存缓存
                 AddToMemoryCache(cacheKey, bitmap);
 
-                // 异步保存到磁盘缓存
+                // 异步保存到磁盘缓�?
                 _ = Task.Run(() => SaveToDiskCache(cacheKey, bitmap));
             }
 
@@ -105,7 +105,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 从内存缓存获取
+        /// 从内存缓存获�?
         /// </summary>
         private BitmapImage? GetFromMemoryCache(string cacheKey)
         {
@@ -113,7 +113,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
             {
                 if (_memoryCache.TryGetValue(cacheKey, out var node))
                 {
-                    // LRU: 移到最前
+                    // LRU: 移到最�?
                     _lruList.Remove(node);
                     _lruList.AddFirst(node);
                     return node.Value.Bitmap;
@@ -123,7 +123,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 添加到内存缓存
+        /// 添加到内存缓�?
         /// </summary>
         private void AddToMemoryCache(string cacheKey, BitmapImage bitmap)
         {
@@ -159,7 +159,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 从磁盘缓存获取
+        /// 从磁盘缓存获�?
         /// </summary>
         private BitmapImage? GetFromDiskCache(string cacheKey)
         {
@@ -190,7 +190,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
             catch (Exception ex)
             {
                 Debug.WriteLine($"[GPUCache] 磁盘缓存读取失败: {ex.Message}");
-                // 删除损坏的缓存文件
+                // 删除损坏的缓存文�?
                 try
                 {
                     File.Delete(cacheFile);
@@ -202,7 +202,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 保存到磁盘缓存
+        /// 保存到磁盘缓�?
         /// </summary>
         private void SaveToDiskCache(string cacheKey, BitmapImage bitmap)
         {
@@ -220,9 +220,9 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
                     _diskCacheKeys.Add(cacheKey);
                 }
 
-                Debug.WriteLine($"[GPUCache] ✓ 已保存到磁盘缓存: {System.IO.Path.GetFileName(cacheFile)}");
+                Debug.WriteLine($"[GPUCache] �?已保存到磁盘缓存: {System.IO.Path.GetFileName(cacheFile)}");
 
-                // 随机触发清理（5%概率）
+                // 随机触发清理�?%概率�?
                 if (new Random().Next(100) < 5)
                 {
                     CleanupOldCache();
@@ -235,7 +235,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 清理旧的磁盘缓存（LRU策略）
+        /// 清理旧的磁盘缓存（LRU策略�?
         /// </summary>
         private void CleanupOldCache()
         {
@@ -270,7 +270,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
 
                 if (removedCount > 0)
                 {
-                    Debug.WriteLine($"[GPUCache] ✓ 清理磁盘缓存 - 删除了 {removedCount} 个文件");
+                    Debug.WriteLine($"[GPUCache] �?清理磁盘缓存 - 删除�?{removedCount} 个文�?);
                 }
             }
             catch (Exception ex)
@@ -280,7 +280,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 清除所有缓存
+        /// 清除所有缓�?
         /// </summary>
         public void ClearAll()
         {
@@ -304,7 +304,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
                     catch { }
                 }
 
-                Debug.WriteLine($"[GPUCache] ✓ 已清除所有缓存 - 删除了 {files.Length} 个磁盘缓存文件");
+                Debug.WriteLine($"[GPUCache] �?已清除所有缓�?- 删除�?{files.Length} 个磁盘缓存文�?);
             }
             catch (Exception ex)
             {
@@ -313,7 +313,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Caching
         }
 
         /// <summary>
-        /// 生成缓存键
+        /// 生成缓存�?
         /// </summary>
         private string GetCacheKey(string filePath, int size)
         {

@@ -8,7 +8,7 @@ namespace SunEyeVision.Core.IO
     /// 文件访问服务注册扩展
     /// 提供简化的依赖注入配置
     /// 
-    /// 使用方法：
+    /// 使用方法�?
     /// <code>
     /// var services = new ServiceCollection();
     /// services.AddFileAccessServices();
@@ -28,16 +28,16 @@ namespace SunEyeVision.Core.IO
         /// <returns>服务集合（支持链式调用）</returns>
         public static IServiceCollection AddFileAccessServices(this IServiceCollection services)
         {
-            // 注册单例文件访问管理器
+            // 注册单例文件访问管理�?
             services.AddSingleton<IFileAccessManager, FileAccessManager>();
             
-            Debug.WriteLine("[FileAccessServiceRegistration] ✓ 文件访问服务已注册");
+            Debug.WriteLine("[FileAccessServiceRegistration] �?文件访问服务已注�?);
             
             return services;
         }
         
         /// <summary>
-        /// 注册文件访问相关服务（带配置选项）
+        /// 注册文件访问相关服务（带配置选项�?
         /// </summary>
         /// <param name="services">服务集合</param>
         /// <param name="configure">配置回调</param>
@@ -52,16 +52,16 @@ namespace SunEyeVision.Core.IO
             // 注册配置选项
             services.AddSingleton(options);
             
-            // 注册单例文件访问管理器
+            // 注册单例文件访问管理�?
             services.AddSingleton<IFileAccessManager, FileAccessManager>();
             
             if (options.EnableVerboseLogging)
             {
-                Debug.WriteLine("[FileAccessServiceRegistration] ✓ 文件访问服务已注册（详细日志已启用）");
+                Debug.WriteLine("[FileAccessServiceRegistration] �?文件访问服务已注册（详细日志已启用）");
             }
             else
             {
-                Debug.WriteLine("[FileAccessServiceRegistration] ✓ 文件访问服务已注册");
+                Debug.WriteLine("[FileAccessServiceRegistration] �?文件访问服务已注�?);
             }
             
             return services;
@@ -74,13 +74,13 @@ namespace SunEyeVision.Core.IO
     public class FileAccessOptions
     {
         /// <summary>
-        /// 是否启用详细日志（默认：false）
+        /// 是否启用详细日志（默认：false�?
         /// </summary>
         public bool EnableVerboseLogging { get; set; } = false;
         
         /// <summary>
-        /// 延迟删除超时时间（默认：5分钟）
-        /// 超过此时间的待删除文件将被强制标记为已删除
+        /// 延迟删除超时时间（默认：5分钟�?
+        /// 超过此时间的待删除文件将被强制标记为已删�?
         /// </summary>
         public TimeSpan PendingDeletionTimeout { get; set; } = TimeSpan.FromMinutes(5);
     }

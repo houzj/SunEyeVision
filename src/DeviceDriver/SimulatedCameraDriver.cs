@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
+using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Core.Models;
 using Events = SunEyeVision.Core.Events;
 
 namespace SunEyeVision.DeviceDriver
@@ -83,7 +83,9 @@ namespace SunEyeVision.DeviceDriver
                 // Generate random noise image
                 _random.NextBytes(data);
 
-                var image = new Mat(data, width, height, channels);
+                // Create OpenCvSharp.Mat from byte array
+                var image = new Mat(height, width, MatType.CV_8UC(channels));
+                System.Runtime.InteropServices.Marshal.Copy(data, 0, image.Data, data.Length);
                 Logger.LogDebug($"Image captured successfully: {width}x{height}");
                 return image;
             }

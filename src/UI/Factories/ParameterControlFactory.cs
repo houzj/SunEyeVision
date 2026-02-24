@@ -1,21 +1,21 @@
-ï»¿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using SunEyeVision.Plugin.Abstractions;
+using SunEyeVision.Plugin.SDK;
 using SunEyeVision.UI.Factories;
 
 namespace SunEyeVision.UI.Factories
 {
     /// <summary>
-    /// å‚æ•°æ§ä»¶å·¥å‚ - æ ¹æ®å‚æ•°å…ƒæ•°æ®è‡ªåŠ¨ç”Ÿæˆå¯¹åº”çš„UIæ§ä»¶
+    /// ²ÎÊı¿Ø¼ş¹¤³§ - ¸ù¾İ²ÎÊıÔªÊı¾İ×Ô¶¯Éú³É¶ÔÓ¦µÄUI¿Ø¼ş
     /// </summary>
     public static class ParameterControlFactory
     {
         /// <summary>
-        /// æ ¹æ®å‚æ•°å…ƒæ•°æ®åˆ›å»ºå¯¹åº”çš„UIæ§ä»¶
+        /// ¸ù¾İ²ÎÊıÔªÊı¾İ´´½¨¶ÔÓ¦µÄUI¿Ø¼ş
         /// </summary>
-        /// <param name="metadata">å‚æ•°å…ƒæ•°æ®</param>
-        /// <returns>ç”Ÿæˆçš„æ§ä»¶</returns>
+        /// <param name="metadata">²ÎÊıÔªÊı¾İ</param>
+        /// <returns>Éú³ÉµÄ¿Ø¼ş</returns>
         public static FrameworkElement CreateControl(ParameterMetadata metadata)
         {
             switch (metadata.Type)
@@ -59,7 +59,7 @@ namespace SunEyeVision.UI.Factories
             }
         }
 
-        #region æ•°å€¼ç±»å‹æ§ä»¶
+        #region ÊıÖµÀàĞÍ¿Ø¼ş
 
         private static FrameworkElement CreateNumericControl(ParameterMetadata metadata)
         {
@@ -73,7 +73,7 @@ namespace SunEyeVision.UI.Factories
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // å¦‚æœæœ‰èŒƒå›´é™åˆ¶ï¼Œæ·»åŠ æ»‘å—
+            // Èç¹ûÓĞ·¶Î§ÏŞÖÆ£¬Ìí¼Ó»¬¿é
             if (metadata.MinValue != null && metadata.MaxValue != null)
             {
                 var slider = new Slider
@@ -106,7 +106,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region å¸ƒå°”ç±»å‹æ§ä»¶
+        #region ²¼¶ûÀàĞÍ¿Ø¼ş
 
         private static Control CreateBoolControl(ParameterMetadata metadata)
         {
@@ -120,7 +120,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region æšä¸¾ç±»å‹æ§ä»¶
+        #region Ã¶¾ÙÀàĞÍ¿Ø¼ş
 
         private static FrameworkElement CreateEnumControl(ParameterMetadata metadata)
         {
@@ -152,7 +152,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region é¢œè‰²ç±»å‹æ§ä»¶
+        #region ÑÕÉ«ÀàĞÍ¿Ø¼ş
 
         private static FrameworkElement CreateColorControl(ParameterMetadata metadata)
         {
@@ -179,7 +179,7 @@ namespace SunEyeVision.UI.Factories
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp|All Files|*.*",
-                    Title = "é€‰æ‹©é¢œè‰²æ–‡ä»¶"
+                    Title = "Ñ¡ÔñÑÕÉ«ÎÄ¼ş"
                 };
 
                 if (dialog.ShowDialog() == true)
@@ -209,7 +209,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region å›¾åƒç±»å‹æ§ä»¶
+        #region Í¼ÏñÀàĞÍ¿Ø¼ş
 
         private static FrameworkElement CreateImageControl(ParameterMetadata metadata)
         {
@@ -217,7 +217,7 @@ namespace SunEyeVision.UI.Factories
 
             var browseButton = new Button
             {
-                Content = "æµè§ˆ...",
+                Content = "ä¯ÀÀ...",
                 Width = 60,
                 Height = 24,
                 Margin = new Thickness(0, 0, 8, 0),
@@ -237,7 +237,7 @@ namespace SunEyeVision.UI.Factories
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.tiff|All Files|*.*",
-                    Title = "é€‰æ‹©å›¾åƒæ–‡ä»¶"
+                    Title = "Ñ¡ÔñÍ¼ÏñÎÄ¼ş"
                 };
 
                 if (dialog.ShowDialog() == true)
@@ -254,7 +254,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region æ–‡ä»¶è·¯å¾„æ§ä»¶
+        #region ÎÄ¼şÂ·¾¶¿Ø¼ş
 
         private static FrameworkElement CreateFilePathControl(ParameterMetadata metadata)
         {
@@ -280,7 +280,7 @@ namespace SunEyeVision.UI.Factories
             {
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "é€‰æ‹©æ–‡ä»¶"
+                    Title = "Ñ¡ÔñÎÄ¼ş"
                 };
 
                 if (dialog.ShowDialog() == true)
@@ -297,7 +297,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region å­—ç¬¦ä¸²æ§ä»¶
+        #region ×Ö·û´®¿Ø¼ş
 
         private static FrameworkElement CreateStringControl(ParameterMetadata metadata)
         {
@@ -326,7 +326,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region ç‚¹åæ ‡æ§ä»¶
+        #region µã×ø±ê¿Ø¼ş
 
         private static FrameworkElement CreatePointControl(ParameterMetadata metadata)
         {
@@ -358,7 +358,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region å°ºå¯¸æ§ä»¶
+        #region ³ß´ç¿Ø¼ş
 
         private static FrameworkElement CreateSizeControl(ParameterMetadata metadata)
         {
@@ -380,9 +380,9 @@ namespace SunEyeVision.UI.Factories
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            panel.Children.Add(new TextBlock { Text = "å®½:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 2, 0) });
+            panel.Children.Add(new TextBlock { Text = "¿í:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 2, 0) });
             panel.Children.Add(widthTextBox);
-            panel.Children.Add(new TextBlock { Text = "é«˜:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 2, 0) });
+            panel.Children.Add(new TextBlock { Text = "¸ß:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 2, 0) });
             panel.Children.Add(heightTextBox);
 
             return panel;
@@ -390,7 +390,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region çŸ©å½¢æ§ä»¶
+        #region ¾ØĞÎ¿Ø¼ş
 
         private static FrameworkElement CreateRectControl(ParameterMetadata metadata)
         {
@@ -442,7 +442,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region åˆ—è¡¨æ§ä»¶
+        #region ÁĞ±í¿Ø¼ş
 
         private static FrameworkElement CreateListControl(ParameterMetadata metadata)
         {
@@ -466,7 +466,7 @@ namespace SunEyeVision.UI.Factories
 
         #endregion
 
-        #region é»˜è®¤æ§ä»¶
+        #region Ä¬ÈÏ¿Ø¼ş
 
         private static FrameworkElement CreateDefaultControl(ParameterMetadata metadata)
         {

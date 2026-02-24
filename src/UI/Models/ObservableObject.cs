@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
-    /// 可观察对象基类
+    /// 可观察对象基�?
     /// </summary>
     public class ObservableObject : INotifyPropertyChanged
     {

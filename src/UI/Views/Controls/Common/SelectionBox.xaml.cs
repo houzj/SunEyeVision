@@ -41,7 +41,7 @@ namespace SunEyeVision.UI.Views.Controls.Common
 
         public void SetItemCount(int count)
         {
-            ItemCountText.Text = $"已选中 {count} 个项目";
+            ItemCountText.Text = $"已选中 {count} 个项�?;
             ItemCountText.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 

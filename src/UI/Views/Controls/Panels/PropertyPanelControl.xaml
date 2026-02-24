@@ -16,17 +16,17 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- 属性面板标题 -->
+            <!-- 属性面板标�?-->
             <Border Grid.Row="0" Background="#F0F0F0" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="8,6">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="⚙️" FontSize="12" VerticalAlignment="Center"/>
-                    <TextBlock Text="属性面板" Margin="6,0,0,0" FontWeight="Bold" FontSize="13" Foreground="#333333" VerticalAlignment="Center"/>
+                    <TextBlock Text="属性面�? Margin="6,0,0,0" FontWeight="Bold" FontSize="13" Foreground="#333333" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
-            <!-- 属性内容 -->
+            <!-- 属性内�?-->
             <TabControl Grid.Row="1" Background="#FFFFFF" BorderThickness="0" SelectionChanged="TabControl_SelectionChanged">
-                <!-- 工具参数标签页 -->
+                <!-- 工具参数标签�?-->
                 <TabItem Header="🔧 工具参数">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                         <StackPanel>
@@ -61,7 +61,7 @@
 
                             <!-- 无选中节点时的提示 -->
                             <TextBlock x:Name="NoSelectionText"
-                                       Text="请选择一个节点以查看其属性"
+                                       Text="请选择一个节点以查看其属�?
                                        Foreground="#999999" 
                                        FontSize="12" 
                                        HorizontalAlignment="Center" 
@@ -84,7 +84,7 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 信息标签页 -->
+                <!-- 信息标签�?-->
                 <TabItem Header="📋 信息">
                     <Grid Margin="4">
                         <Grid.RowDefinitions>

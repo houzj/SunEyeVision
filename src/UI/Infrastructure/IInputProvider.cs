@@ -4,7 +4,7 @@ using SunEyeVision.UI.Infrastructure;
 namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
-    /// 图像输入提供者接口
+    /// 图像输入提供者接�?
     /// </summary>
     public interface IInputProvider
     {

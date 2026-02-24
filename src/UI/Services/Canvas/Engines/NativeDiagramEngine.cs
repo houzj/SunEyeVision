@@ -7,7 +7,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
 {
     /// <summary>
     /// NativeDiagram画布引擎
-    /// 包装NativeDiagramControl，使用原生AIStudio.Wpf.DiagramDesigner库
+    /// 包装NativeDiagramControl，使用原生AIStudio.Wpf.DiagramDesigner�?
     /// </summary>
     public class NativeDiagramEngine : ICanvasEngine
     {
@@ -37,7 +37,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
         public void SetPathCalculator(string pathCalculatorType)
         {
             // NativeDiagramControl 使用原生贝塞尔曲线，不需要路径计算器设置
-            // 此方法用于兼容性
+            // 此方法用于兼容�?
             _control.SetPathCalculator(pathCalculatorType);
         }
 

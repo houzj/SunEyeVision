@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 namespace SunEyeVision.UI.Services.Performance
 {
     /// <summary>
-    /// 性能日志记录器
-    /// </summary>
+    /// 性能日志记录�?    /// </summary>
     public class PerformanceLogger
     {
         private readonly string _category;
@@ -34,8 +33,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 执行并计时
-        /// </summary>
+        /// 执行并计�?        /// </summary>
         public T ExecuteAndTime<T>(string operation, Func<T> func, string details = "")
         {
             var sw = Stopwatch.StartNew();
@@ -55,8 +53,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 异步执行并计时
-        /// </summary>
+        /// 异步执行并计�?        /// </summary>
         public async Task<T> ExecuteAndTimeAsync<T>(string operation, Func<Task<T>> func, string details = "")
         {
             var sw = Stopwatch.StartNew();
@@ -76,8 +73,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 重置计数器
-        /// </summary>
+        /// 重置计数�?        /// </summary>
         public static void ResetCounter()
         {
             _logCounter = 0;
