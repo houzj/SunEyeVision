@@ -1,6 +1,7 @@
-using System;
+using System.Collections.Generic;
 using SunEyeVision.Plugin.Abstractions;
 using SunEyeVision.Plugin.Abstractions.ViewModels;
+using SunEyeVision.Plugin.Abstractions.Core;
 
 namespace SunEyeVision.Tool.ColorConvert
 {
@@ -9,8 +10,9 @@ namespace SunEyeVision.Tool.ColorConvert
     /// </summary>
     public class ColorConvertToolViewModel : AutoToolDebugViewModelBase
     {
-        private string _targetColorSpace = "Gray";
-        private bool _useGpu = false;
+        private string _targetColorSpace = "GRAY";
+        private string _sourceColorSpace = "BGR";
+        private int _channels = 0;
 
         public string TargetColorSpace
         {
@@ -22,38 +24,62 @@ namespace SunEyeVision.Tool.ColorConvert
             }
         }
 
-        public bool UseGpu
+        public string SourceColorSpace
         {
-            get => _useGpu;
+            get => _sourceColorSpace;
             set
             {
-                SetProperty(ref _useGpu, value);
-                SetParamValue("UseGpu", value);
+                SetProperty(ref _sourceColorSpace, value);
+                SetParamValue("SourceColorSpace", value);
             }
         }
 
-        public string[] ColorSpaces { get; } = { "Gray", "HSV", "Lab", "YUV", "RGB", "BGR" };
-
-        public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
+        public int Channels
         {
-            ToolId = toolId;
-            ToolName = toolMetadata?.DisplayName ?? "颜色空间转换";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
+            get => _channels;
+            set
+            {
+                SetProperty(ref _channels, value);
+                SetParamValue("Channels", value);
+            }
         }
 
-        public override void RunTool()
+        public string[] ColorSpaces { get; } = { "GRAY", "RGB", "HSV", "Lab", "XYZ", "YCrCb" };
+        public string[] SourceColorSpaces { get; } = { "BGR", "RGB", "GRAY", "HSV", "Lab" };
+
+        /// <summary>
+        /// 构建参数字典（供基类 Execute 使用）
+        /// </summary>
+        protected override Dictionary<string, object> BuildParameterDictionary()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在转换到 {TargetColorSpace} 空间...";
-            
-            var random = new Random();
-            System.Threading.Thread.Sleep(random.Next(50, 150));
-            
-            ExecutionTime = $"{random.Next(30, 80)} ms";
-            StatusMessage = $"✅ 颜色转换完成（{TargetColorSpace}）";
-            ToolStatus = "就绪";
+            return new Dictionary<string, object>
+            {
+                ["targetColorSpace"] = TargetColorSpace,
+                ["sourceColorSpace"] = SourceColorSpace,
+                ["channels"] = Channels
+            };
+        }
+
+        /// <summary>
+        /// 执行成功回调
+        /// </summary>
+        protected override void OnExecutionCompleted(AlgorithmResult result)
+        {
+            if (result.Data != null)
+            {
+                DebugMessage = $"转换完成: {SourceColorSpace} → {TargetColorSpace}";
+            }
+        }
+
+        /// <summary>
+        /// 重置参数
+        /// </summary>
+        public override void ResetParameters()
+        {
+            TargetColorSpace = "GRAY";
+            SourceColorSpace = "BGR";
+            Channels = 0;
+            base.ResetParameters();
         }
     }
 }

@@ -219,7 +219,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                         try
                         {
                             using var memStream = new MemoryStream(imageBytes);
-                            var decoder = BitmapDecoder.Create(memStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                            var decoder = BitmapDecoder.Create(memStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnDemand);
                             if (decoder.Frames.Count > 0)
                             {
                                 var frame = decoder.Frames[0];

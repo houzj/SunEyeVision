@@ -184,17 +184,47 @@ namespace SunEyeVision.Tool.EdgeDetection
     }
 
     /// <summary>
-    /// 边缘检测算法实现（简化版）
+    /// 边缘检测算法实现
     /// </summary>
-    public class EdgeDetectionAlgorithm : IImageProcessor
+    public class EdgeDetectionAlgorithm : ImageProcessorBase
     {
-        public string Name => "边缘检测";
-        public string Description => "检测图像中的边缘";
+        public override string Name => "边缘检测";
+        public override string Description => "检测图像中的边缘";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回处理时间
-            return 12.8;
+            var method = GetParameter(parameters, "method", "Canny");
+            var threshold1 = GetParameter(parameters, "threshold1", 50.0);
+            var threshold2 = GetParameter(parameters, "threshold2", 150.0);
+            var apertureSize = GetParameter(parameters, "apertureSize", 3);
+
+            // TODO: 实际图像处理逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                Method = method,
+                Threshold1 = threshold1,
+                Threshold2 = threshold2,
+                ApertureSize = apertureSize,
+                EdgeCount = 0,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var threshold1 = GetParameter<double?>(parameters, "threshold1", null);
+            var threshold2 = GetParameter<double?>(parameters, "threshold2", null);
+
+            if (threshold1.HasValue && (threshold1.Value < 0 || threshold1.Value > 255))
+                result.AddError("低阈值必须在0-255之间");
+            if (threshold2.HasValue && (threshold2.Value < 0 || threshold2.Value > 255))
+                result.AddError("高阈值必须在0-255之间");
+            if (threshold1.HasValue && threshold2.HasValue && threshold1.Value >= threshold2.Value)
+                result.AddWarning("通常情况下低阈值应小于高阈值");
+
+            return result;
         }
     }
 }

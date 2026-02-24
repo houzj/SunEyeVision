@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>MyPlugin</RootNamespace>
+    <AssemblyName>MyPlugin</AssemblyName>
+    
+    <!-- 插件输出配置 -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    
+    <!-- 版本信息 -->
+    <Version>1.0.0</Version>
+    <Authors>Plugin Developer</Authors>
+    <Description>SunEyeVision Plugin</Description>
+  </PropertyGroup>
+
+  <!-- ============================================ -->
+  <!-- 方式一：项目引用（内部开发模式）               -->
+  <!-- 适用场景：在主项目解决方案内开发插件            -->
+  <!-- 使用方法：注释掉下面的DLL引用                  -->
+  <!--           取消注释ProjectReference            -->
+  <!-- ============================================ -->
+  <!--
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin.Abstractions\SunEyeVision.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+  -->
+
+  <!-- ============================================ -->
+  <!-- 方式二：NuGet包引用（在线独立开发模式）        -->
+  <!-- 适用场景：有网络环境，使用NuGet包              -->
+  <!-- 使用方法：注释掉下面的DLL引用                  -->
+  <!--           取消注释PackageReference            -->
+  <!-- ============================================ -->
+  <!--
+  <ItemGroup>
+    <PackageReference Include="SunEyeVision.Plugin.SDK" Version="1.0.0" />
+  </ItemGroup>
+  -->
+
+  <!-- ============================================ -->
+  <!-- 方式三：DLL引用（离线开发模式）★ 默认启用 ★   -->
+  <!-- 适用场景：无网络环境或完全隔离开发              -->
+  <!-- 前置条件：运行 setup_sdk.bat 生成lib目录       -->
+  <!-- 优点：完全独立，可拷贝到任意位置开发            -->
+  <!-- ============================================ -->
+  <ItemGroup>
+    <Reference Include="SunEyeVision.Plugin.Abstractions">
+      <HintPath>lib\SunEyeVision.Plugin.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- 复制XML文档到输出目录（智能提示支持） -->
+
+  <!-- 编译选项 -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+</Project>

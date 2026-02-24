@@ -1,0 +1,35 @@
+{
+  "profiles": {
+    "SunEyeVision.UI": {
+      "commandName": "Project",
+      "executablePath": "dotnet",
+      "commandLineArgs": "run --project \"$(ProjectDir)../SunEyeVision.UI.csproj\"",
+      "workingDirectory": "$(ProjectDir)",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "nativeDebugging": true
+    },
+    "SunEyeVision.UI (Debug)": {
+      "commandName": "Executable",
+      "executablePath": "$(ProjectDir)bin/Debug/net9.0-windows/SunEyeVision.UI.exe",
+      "workingDirectory": "$(ProjectDir)bin/Debug/net9.0-windows",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "nativeDebugging": true
+    },
+    "SunEyeVision.UI (Release)": {
+      "commandName": "Executable",
+      "executablePath": "$(ProjectDir)bin/Release/net9.0-windows/SunEyeVision.UI.exe",
+      "workingDirectory": "$(ProjectDir)bin/Release/net9.0-windows",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "DOTNET_ENVIRONMENT": "Production"
+      },
+      "nativeDebugging": false
+    }
+  }
+}

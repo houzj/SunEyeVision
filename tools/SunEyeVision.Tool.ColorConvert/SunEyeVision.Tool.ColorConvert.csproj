@@ -8,7 +8,7 @@
     <RootNamespace>SunEyeVision.Tool.ColorConvert</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.ColorConvert</AssemblyName>
     <!-- 输出到应用程序目录下的plugins子目录，便于发布 -->
-    <OutDir>$(SolutionDir)src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
+    <OutDir>$(MSBuildProjectDirectory)\..\..\src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>

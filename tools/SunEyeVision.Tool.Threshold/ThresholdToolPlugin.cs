@@ -184,17 +184,51 @@ namespace SunEyeVision.Tool.Threshold
     }
 
     /// <summary>
-    /// 阈值化算法实现（简化版）
+    /// 阈值化算法实现
     /// </summary>
-    public class ThresholdAlgorithm : IImageProcessor
+    public class ThresholdAlgorithm : ImageProcessorBase
     {
-        public string Name => "图像阈值化";
-        public string Description => "将灰度图像转换为二值图像";
+        public override string Name => "图像阈值化";
+        public override string Description => "将灰度图像转换为二值图像";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回处理时间
-            return 5.2;
+            var threshold = GetParameter(parameters, "threshold", 128);
+            var maxValue = GetParameter(parameters, "maxValue", 255);
+            var type = GetParameter(parameters, "type", "Binary");
+            var adaptiveMethod = GetParameter(parameters, "adaptiveMethod", "Mean");
+            var blockSize = GetParameter(parameters, "blockSize", 11);
+            var invert = GetParameter(parameters, "invert", false);
+
+            // TODO: 实际图像处理逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                ThresholdUsed = threshold,
+                MaxValue = maxValue,
+                Type = type,
+                AdaptiveMethod = adaptiveMethod,
+                BlockSize = blockSize,
+                Invert = invert,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var threshold = GetParameter<int?>(parameters, "threshold", null);
+            var maxValue = GetParameter<int?>(parameters, "maxValue", null);
+            var blockSize = GetParameter<int?>(parameters, "blockSize", null);
+
+            if (threshold.HasValue && (threshold.Value < 0 || threshold.Value > 255))
+                result.AddError("阈值必须在0-255之间");
+            if (maxValue.HasValue && (maxValue.Value < 0 || maxValue.Value > 255))
+                result.AddError("最大值必须在0-255之间");
+            if (blockSize.HasValue && (blockSize.Value < 3 || blockSize.Value > 31 || blockSize.Value % 2 == 0))
+                result.AddError("块大小必须在3-31之间且为奇数");
+
+            return result;
         }
     }
 }

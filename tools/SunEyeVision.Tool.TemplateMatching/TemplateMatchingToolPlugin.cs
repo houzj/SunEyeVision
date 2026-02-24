@@ -150,17 +150,42 @@ namespace SunEyeVision.Tool.TemplateMatching
     }
 
     /// <summary>
-    /// 模板匹配算法实现（简化版）
+    /// 模板匹配算法实现
     /// </summary>
-    public class TemplateMatchingAlgorithm : IImageProcessor
+    public class TemplateMatchingAlgorithm : ImageProcessorBase
     {
-        public string Name => "模板匹配定位";
-        public string Description => "使用模板匹配进行定位";
+        public override string Name => "模板匹配定位";
+        public override string Description => "使用模板匹配进行定位";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回匹配分数
-            return 0.95;
+            var threshold = GetParameter(parameters, "threshold", 0.8);
+            var method = GetParameter(parameters, "method", "SqDiffNormed");
+            var minSize = GetParameter(parameters, "minSize", 10);
+
+            // TODO: 实际模板匹配逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                Threshold = threshold,
+                Method = method,
+                MinSize = minSize,
+                Score = 0.0,
+                Position = new { X = 0, Y = 0 },
+                MatchCount = 0,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var threshold = GetParameter<double?>(parameters, "threshold", null);
+
+            if (threshold.HasValue && (threshold.Value < 0 || threshold.Value > 1))
+                result.AddError("匹配阈值必须在0-1之间");
+
+            return result;
         }
     }
 }

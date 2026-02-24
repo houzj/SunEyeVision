@@ -7,7 +7,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.OCR</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.OCR</AssemblyName>
-    <OutDir>$(SolutionDir)src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
+    <OutDir>$(MSBuildProjectDirectory)\..\..\src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>

@@ -132,17 +132,44 @@ namespace SunEyeVision.Tool.ImageSave
     }
 
     /// <summary>
-    /// 图像保存算法实现（简化版）
+    /// 图像保存算法实现
     /// </summary>
-    public class ImageSaveAlgorithm : IImageProcessor
+    public class ImageSaveAlgorithm : ImageProcessorBase
     {
-        public string Name => "图像保存";
-        public string Description => "保存图像到文件";
+        public override string Name => "图像保存";
+        public override string Description => "保存图像到文件";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回保存状态
-            return new { Saved = true, Path = "output/image.png" };
+            var outputPath = GetParameter(parameters, "outputPath", "output/image");
+            var outputFormat = GetParameter(parameters, "outputFormat", "png");
+            var overwrite = GetParameter(parameters, "overwrite", true);
+
+            // TODO: 实际图像保存逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                OutputPath = outputPath,
+                OutputFormat = outputFormat,
+                Overwrite = overwrite,
+                SavedPath = $"{outputPath}.{outputFormat}",
+                Saved = true,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var outputPath = GetParameter<string?>(parameters, "outputPath", null);
+            var outputFormat = GetParameter<string?>(parameters, "outputFormat", null);
+
+            if (string.IsNullOrWhiteSpace(outputPath))
+                result.AddError("输出路径不能为空");
+            if (string.IsNullOrWhiteSpace(outputFormat))
+                result.AddError("输出格式不能为空");
+
+            return result;
         }
     }
 }

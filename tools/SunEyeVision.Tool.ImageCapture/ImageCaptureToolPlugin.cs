@@ -139,17 +139,43 @@ namespace SunEyeVision.Tool.ImageCapture
     }
 
     /// <summary>
-    /// 图像采集算法实现（简化版）
+    /// 图像采集算法实现
     /// </summary>
-    public class ImageCaptureAlgorithm : IImageProcessor
+    public class ImageCaptureAlgorithm : ImageProcessorBase
     {
-        public string Name => "图像采集";
-        public string Description => "从相机采集图像";
+        public override string Name => "图像采集";
+        public override string Description => "从相机采集图像";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回时间戳
-            return DateTime.Now.Ticks;
+            var cameraId = GetParameter(parameters, "cameraId", 0);
+            var timeout = GetParameter(parameters, "timeout", 5000);
+            var triggerMode = GetParameter(parameters, "triggerMode", "Soft");
+
+            // TODO: 实际相机采集逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                CameraId = cameraId,
+                Timeout = timeout,
+                TriggerMode = triggerMode,
+                Timestamp = System.DateTime.Now.Ticks,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var cameraId = GetParameter<int?>(parameters, "cameraId", null);
+            var timeout = GetParameter<int?>(parameters, "timeout", null);
+
+            if (cameraId.HasValue && cameraId.Value < 0)
+                result.AddError("相机ID必须大于等于0");
+            if (timeout.HasValue && timeout.Value < 100)
+                result.AddWarning("超时时间过短，可能导致采集失败");
+
+            return result;
         }
     }
 }

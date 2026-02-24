@@ -145,17 +145,52 @@ namespace SunEyeVision.Tool.GaussianBlur
     }
 
     /// <summary>
-    /// 高斯模糊算法实现（简化版）
+    /// 高斯模糊算法实现
     /// </summary>
-    public class GaussianBlurAlgorithm : IImageProcessor
+    public class GaussianBlurAlgorithm : ImageProcessorBase
     {
-        public string Name => "高斯模糊";
-        public string Description => "应用高斯模糊滤镜";
+        public override string Name => "高斯模糊";
+        public override string Description => "应用高斯模糊滤镜";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回处理时间
-            return 10.5;
+            // 获取参数
+            var kernelSize = GetParameter(parameters, "kernelSize", 5);
+            var sigma = GetParameter(parameters, "sigma", 1.5);
+            var borderType = GetParameter(parameters, "borderType", "Reflect");
+
+            // TODO: 实际图像处理逻辑
+            // 这里应使用 OpenCV 或其他图像处理库进行实际处理
+            // 示例：Cv2.GaussianBlur(mat, output, new Size(kernelSize, kernelSize), sigma)
+
+            // 返回处理结果（简化示例）
+            return ImageProcessResult.FromData(new
+            {
+                KernelSize = kernelSize,
+                Sigma = sigma,
+                BorderType = borderType,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+
+            var kernelSize = GetParameter<int?>(parameters, "kernelSize", null);
+            if (kernelSize.HasValue)
+            {
+                if (kernelSize.Value < 3 || kernelSize.Value > 99)
+                    result.AddError("核大小必须在3-99之间");
+                else if (kernelSize.Value % 2 == 0)
+                    result.AddError("核大小必须为奇数");
+            }
+
+            var sigma = GetParameter<double?>(parameters, "sigma", null);
+            if (sigma.HasValue && sigma.Value <= 0)
+                result.AddWarning("标准差应大于0");
+
+            return result;
         }
     }
 }

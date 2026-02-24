@@ -150,17 +150,44 @@ namespace SunEyeVision.Tool.OCR
     }
 
     /// <summary>
-    /// OCR算法实现（简化版）
+    /// OCR算法实现
     /// </summary>
-    public class OCRAlgorithm : IImageProcessor
+    public class OCRAlgorithm : ImageProcessorBase
     {
-        public string Name => "OCR识别";
-        public string Description => "光学字符识别";
+        public override string Name => "OCR识别";
+        public override string Description => "光学字符识别";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回识别文本
-            return "Hello SunEyeVision";
+            var language = GetParameter(parameters, "language", "CN");
+            var confThreshold = GetParameter(parameters, "confThreshold", 80.0);
+            var whitelist = GetParameter(parameters, "whitelist", "");
+            var enableDenoise = GetParameter(parameters, "enableDenoise", true);
+
+            // TODO: 实际OCR识别逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                Language = language,
+                ConfThreshold = confThreshold,
+                Whitelist = whitelist,
+                EnableDenoise = enableDenoise,
+                Text = "",
+                Confidence = 0.0,
+                CharCount = 0,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var confThreshold = GetParameter<double?>(parameters, "confThreshold", null);
+
+            if (confThreshold.HasValue && (confThreshold.Value < 0 || confThreshold.Value > 100))
+                result.AddError("置信度阈值必须在0-100之间");
+
+            return result;
         }
     }
 }

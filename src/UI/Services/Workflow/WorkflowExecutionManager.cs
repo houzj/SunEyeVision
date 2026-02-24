@@ -468,6 +468,10 @@ namespace SunEyeVision.UI.Services.Workflow
             _algorithmType = algorithmType;
         }
 
+        public string Name => $"Test_{_algorithmType}";
+
+        public string Description => $"测试用 {_algorithmType} 处理器";
+
         public object? Process(object image)
         {
             Console.WriteLine($"[TestImageProcessor] 处理 {_algorithmType}");
@@ -490,6 +494,17 @@ namespace SunEyeVision.UI.Services.Workflow
 
             Console.WriteLine($"[TestImageProcessor] 处理完成");
             return image;
+        }
+
+        public SunEyeVision.Plugin.Abstractions.Core.AlgorithmResult Execute(object image, SunEyeVision.Plugin.Abstractions.Core.AlgorithmParameters parameters)
+        {
+            var result = Process(image);
+            return new SunEyeVision.Plugin.Abstractions.Core.AlgorithmResult
+            {
+                Success = true,
+                ResultImage = result,
+                AlgorithmName = _algorithmType
+            };
         }
     }
 

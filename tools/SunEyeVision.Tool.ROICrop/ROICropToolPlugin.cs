@@ -157,17 +157,44 @@ namespace SunEyeVision.Tool.ROICrop
     }
 
     /// <summary>
-    /// ROI裁剪算法实现（简化版）
+    /// ROI裁剪算法实现
     /// </summary>
-    public class ROICropAlgorithm : IImageProcessor
+    public class ROICropAlgorithm : ImageProcessorBase
     {
-        public string Name => "ROI裁剪";
-        public string Description => "裁剪指定的矩形感兴趣区域";
+        public override string Name => "ROI裁剪";
+        public override string Description => "裁剪指定的矩形感兴趣区域";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回处理时间
-            return 3.5;
+            var roi = GetParameter(parameters, "roi", "0,0,100,100");
+            var padding = GetParameter(parameters, "padding", 0);
+            var clipToImage = GetParameter(parameters, "clipToImage", true);
+            var outputWidth = GetParameter(parameters, "outputWidth", 0);
+            var outputHeight = GetParameter(parameters, "outputHeight", 0);
+
+            // TODO: 实际图像处理逻辑
+
+            return ImageProcessResult.FromData(new
+            {
+                ROI = roi,
+                Padding = padding,
+                ClipToImage = clipToImage,
+                OutputWidth = outputWidth,
+                OutputHeight = outputHeight,
+                CroppedArea = roi,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            var padding = GetParameter<int?>(parameters, "padding", null);
+
+            if (padding.HasValue && padding.Value < 0)
+                result.AddError("边距填充不能为负数");
+
+            return result;
         }
     }
 }

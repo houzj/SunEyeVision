@@ -9,10 +9,37 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Plugin.Abstractions.xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <!-- SDK标识 - 可独立打包分发 -->
+
+    <!-- NuGet包配置 -->
     <PackageId>SunEyeVision.Plugin.SDK</PackageId>
-    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层</Description>
+    <Version>1.0.0</Version>
+    <Authors>SunEyeVision Team</Authors>
+    <Company>SunEyeVision</Company>
+    <Product>SunEyeVision Plugin SDK</Product>
+    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层，包含IImageProcessor、IToolPlugin等核心接口</Description>
+    <Copyright>Copyright (c) 2026 SunEyeVision</Copyright>
+    <PackageTags>vision;plugin;sdk;machine-vision;image-processing</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <!-- 包输出配置 -->
+    <PackageOutputPath>$(SolutionDir)nupkg\</PackageOutputPath>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- 源码链接支持 -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 
   <!-- 无任何项目依赖 - 纯契约层 -->
 </Project>

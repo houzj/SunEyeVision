@@ -132,15 +132,41 @@ namespace SunEyeVision.Tool.ColorConvert
     /// <summary>
     /// 颜色空间转换算法实现
     /// </summary>
-    public class ColorConvertAlgorithm : IImageProcessor
+    public class ColorConvertAlgorithm : ImageProcessorBase
     {
-        public string Name => "颜色空间转换";
-        public string Description => "转换图像颜色空间";
+        public override string Name => "颜色空间转换";
+        public override string Description => "转换图像颜色空间";
 
-        public object? Process(object image)
+        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
-            // 简化实现：仅返回处理时间
-            return 2.3;
+            // 获取参数
+            var targetColorSpace = GetParameter(parameters, "targetColorSpace", "GRAY");
+            var sourceColorSpace = GetParameter(parameters, "sourceColorSpace", "BGR");
+            var channels = GetParameter(parameters, "channels", 0);
+
+            // TODO: 实际图像处理逻辑
+            // 这里应使用 OpenCV 或其他图像处理库进行实际处理
+            // 示例：Cv2.CvtColor(mat, output, GetColorConversionCode(sourceColorSpace, targetColorSpace))
+
+            // 返回处理结果（简化示例）
+            return ImageProcessResult.FromData(new
+            {
+                TargetColorSpace = targetColorSpace,
+                SourceColorSpace = sourceColorSpace,
+                Channels = channels,
+                ProcessedAt = System.DateTime.Now
+            });
+        }
+
+        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+        {
+            var result = new ValidationResult();
+            
+            var channels = GetParameter<int?>(parameters, "channels", null);
+            if (channels.HasValue && channels.Value > 4)
+                result.AddError("通道数不能超过4");
+
+            return result;
         }
     }
 }

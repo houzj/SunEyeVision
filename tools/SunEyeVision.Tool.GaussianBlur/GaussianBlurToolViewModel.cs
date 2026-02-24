@@ -1,6 +1,7 @@
 using SunEyeVision.Plugin.Abstractions;
 using SunEyeVision.Plugin.Abstractions.ViewModels;
-using System;
+using SunEyeVision.Plugin.Abstractions.Core;
+using System.Collections.Generic;
 
 namespace SunEyeVision.Tool.GaussianBlur
 {
@@ -65,48 +66,26 @@ namespace SunEyeVision.Tool.GaussianBlur
         public string[] BorderTypes { get; } = { "Reflect", "Constant", "Replicate", "Default" };
 
         /// <summary>
-        /// 初始化工具
+        /// 构建参数字典（供基类 Execute 使用）
         /// </summary>
-        public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
+        protected override Dictionary<string, object> BuildParameterDictionary()
         {
-            ToolId = toolId;
-            ToolName = toolMetadata?.DisplayName ?? "高斯模糊";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-
-            // 从ToolMetadata加载参数
-            LoadParameters(toolMetadata);
-
-            // 确保 KernelSize 是奇数
-            if (_kernelSize % 2 == 0)
-                KernelSize = _kernelSize + 1;
+            return new Dictionary<string, object>
+            {
+                ["kernelSize"] = KernelSize,
+                ["sigma"] = Sigma,
+                ["borderType"] = BorderType
+            };
         }
 
         /// <summary>
-        /// 运行工具（同步方法）
+        /// 执行成功回调
         /// </summary>
-        public override void RunTool()
+        protected override void OnExecutionCompleted(AlgorithmResult result)
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行高斯模糊（核大小={KernelSize}, Sigma={Sigma:F2}）...";
-
-            try
+            if (result.Data != null)
             {
-                // 模拟执行时间
-                var random = new Random();
-                System.Threading.Thread.Sleep(random.Next(100, 300));
-
-                // 模拟处理结果
-                var executionTime = random.Next(50, 150);
-                ExecutionTime = $"{executionTime} ms";
-                StatusMessage = $"高斯模糊处理完成 - 耗时: {ExecutionTime}";
-                ToolStatus = "就绪";
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"执行失败: {ex.Message}";
-                ToolStatus = "错误";
-                throw;
+                DebugMessage = $"处理参数: KernelSize={KernelSize}, Sigma={Sigma:F2}, BorderType={BorderType}";
             }
         }
 
