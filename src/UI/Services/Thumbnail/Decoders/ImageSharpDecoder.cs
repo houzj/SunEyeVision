@@ -28,15 +28,15 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
     public class ImageSharpDecoder : IThumbnailDecoder
     {
         /// <summary>
-        /// 解码并发限制信号?
-        /// CPU解码可充分利用多核优势，并发数设为CPU核心数（最?个）
+        /// 解码并发限制信号量。
+        /// CPU解码可充分利用多核优势，并发数设为CPU核心数（最多8个）。
         /// </summary>
         private static readonly SemaphoreSlim _decodeSemaphore = new SemaphoreSlim(
             Math.Max(8, Environment.ProcessorCount),
             Math.Max(8, Environment.ProcessorCount));
         
         /// <summary>
-        /// 统计当前等待中的解码任务?
+        /// 统计当前等待中的解码任务数。
         /// </summary>
         private static int _waitingCount = 0;
         

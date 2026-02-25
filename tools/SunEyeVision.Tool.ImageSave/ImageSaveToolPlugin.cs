@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Tool.ImageSave
 {
@@ -90,7 +92,7 @@ namespace SunEyeVision.Tool.ImageSave
                             Type = ParameterType.String
                         }
                     },
-                    HasSideEffects = true,
+                    SideEffect = SideEffectType.Write,
                     SupportCaching = false,
                     MaxRetryCount = 2,
                     RetryDelayMs = 500

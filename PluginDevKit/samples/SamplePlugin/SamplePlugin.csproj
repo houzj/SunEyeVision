@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SamplePlugin</RootNamespace>
+    <AssemblyName>SamplePlugin</AssemblyName>
+    
+    <!-- 插件元数据 -->
+    <PluginId>SamplePlugin</PluginId>
+    <PluginName>示例插件</PluginName>
+    <PluginVersion>1.0.0</PluginVersion>
+    <PluginDescription>用于演示插件开发流程的示例插件</PluginDescription>
+    <PluginAuthor>SunEyeVision Team</PluginAuthor>
+  </PropertyGroup>
+
+  <!-- 引用 SDK -->
+  <ItemGroup Condition="'$(UseNuGet)' != 'true'">
+    <Reference Include="SunEyeVision.Plugin.Abstractions">
+      <HintPath>$(SdkPath)SunEyeVision.Plugin.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseNuGet)' == 'true'">
+    <PackageReference Include="SunEyeVision.Plugin.SDK" Version="1.0.0" />
+  </ItemGroup>
+</Project>

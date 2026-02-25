@@ -283,7 +283,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         {
             var total = _cacheHits + _cacheMisses;
             var hitRate = total > 0 ? (double)_cacheHits / total * 100 : 0;
-            return $"Shell缩略? 命中{_cacheHits}? 未命中{_cacheMisses}? 命中率{hitRate:F1}%, 平均{AverageLoadTimeMs:F1}ms";
+            return $"Shell缩略图: 命中{_cacheHits}次, 未命中{_cacheMisses}次, 命中率{hitRate:F1}%, 平均{AverageLoadTimeMs:F1}ms";
         }
 
         public void Dispose()

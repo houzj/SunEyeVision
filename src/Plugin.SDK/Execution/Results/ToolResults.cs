@@ -9,147 +9,147 @@ using SunEyeVision.Plugin.SDK.Validation;
 namespace SunEyeVision.Plugin.SDK.Execution.Results
 {
     /// <summary>
-    /// ִ״̬ö
+    /// 执行状态枚举
     /// </summary>
     public enum ExecutionStatus
     {
         /// <summary>
-        /// δִ
+        /// 未执行
         /// </summary>
         NotExecuted = 0,
 
         /// <summary>
-        /// ִ
+        /// 执行中
         /// </summary>
         Running = 1,
 
         /// <summary>
-        /// ִгɹ
+        /// 执行成功
         /// </summary>
         Success = 2,
 
         /// <summary>
-        /// ִʧ
+        /// 执行失败
         /// </summary>
         Failed = 3,
 
         /// <summary>
-        /// ִгʱ
+        /// 执行超时
         /// </summary>
         Timeout = 4,
 
         /// <summary>
-        /// ȡ
+        /// 已取消
         /// </summary>
         Cancelled = 5,
 
         /// <summary>
-        /// ֳɹ
+        /// 部分成功
         /// </summary>
         PartialSuccess = 6
     }
 
     /// <summary>
-    /// 
+    /// 结果项类型
     /// </summary>
     public enum ResultItemType
     {
         /// <summary>
-        /// ֵ
+        /// 数值
         /// </summary>
         Numeric,
 
         /// <summary>
-        /// ı
+        /// 文本
         /// </summary>
         Text,
 
         /// <summary>
-        /// ֵ
+        /// 布尔值
         /// </summary>
         Boolean,
 
         /// <summary>
-        /// ״
+        /// 几何形状
         /// </summary>
         Geometry,
 
         /// <summary>
-        /// ͼ
+        /// 图像
         /// </summary>
         Image,
 
         /// <summary>
-        /// /
+        /// 数组/列表
         /// </summary>
         Array,
 
         /// <summary>
-        /// Զ
+        /// 自定义对象
         /// </summary>
         Object
     }
 
     /// <summary>
-    /// 
+    /// 结果项
     /// </summary>
     /// <remarks>
-    /// ڱʾݣ֧ͻֵԪݡ
+    /// 用于表示工具执行结果数据，支持多种数据类型和值的元数据。
     /// </remarks>
     public sealed class ResultItem
     {
         /// <summary>
-        /// 
+        /// 名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// ʾ
+        /// 显示名称
         /// </summary>
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// ֵ
+        /// 值
         /// </summary>
         public object? Value { get; set; }
 
         /// <summary>
-        /// 
+        /// 类型
         /// </summary>
         public ResultItemType Type { get; set; }
 
         /// <summary>
-        /// λ
+        /// 单位
         /// </summary>
         public string? Unit { get; set; }
 
         /// <summary>
-        /// 
+        /// 描述
         /// </summary>
         public string? Description { get; set; }
 
         /// <summary>
-        /// Ƿͨ
+        /// 是否通过
         /// </summary>
         public bool? IsPass { get; set; }
 
         /// <summary>
-        /// 
+        /// 下限
         /// </summary>
         public double? LowerLimit { get; set; }
 
         /// <summary>
-        /// 
+        /// 上限
         /// </summary>
         public double? UpperLimit { get; set; }
 
         /// <summary>
-        /// ûԶ
+        /// 用户自定义数据
         /// </summary>
         public object? Tag { get; set; }
 
         /// <summary>
-        /// ֵ
+        /// 创建数值项
         /// </summary>
         public static ResultItem Numeric(string name, double value, string? unit = null)
         {
@@ -163,7 +163,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ֵ
+        /// 创建带规格的数值项
         /// </summary>
         public static ResultItem NumericWithSpec(string name, double value, double? lowerLimit, double? upperLimit, string? unit = null)
         {
@@ -184,7 +184,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ı
+        /// 创建文本项
         /// </summary>
         public static ResultItem Text(string name, string value)
         {
@@ -197,7 +197,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// 
+        /// 创建布尔项
         /// </summary>
         public static ResultItem Boolean(string name, bool value)
         {
@@ -211,7 +211,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ν
+        /// 创建几何项
         /// </summary>
         public static ResultItem Geometry(string name, object geometry)
         {
@@ -224,7 +224,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// 
+        /// 创建点结果
         /// </summary>
         public static ResultItem Point(string name, Point2d point)
         {
@@ -237,7 +237,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// Բ
+        /// 创建圆结果
         /// </summary>
         public static ResultItem Circle(string name, Circle2d circle)
         {
@@ -250,7 +250,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ȡֵƥ䣩
+        /// 获取数值（支持类型匹配）
         /// </summary>
         public double? GetNumericValue()
         {
@@ -262,7 +262,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ȡֵַ
+        /// 获取字符串值
         /// </summary>
         public string? GetStringValue()
         {
@@ -271,18 +271,18 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
     }
 
     /// <summary>
-    /// ߽
+    /// 工具执行结果基类
     /// </summary>
     /// <remarks>
-    /// й߽Ļ࣬ṩͳһִнṹ
+    /// 所有工具执行结果的基类，提供统一的执行结果结构
     /// 
-    /// 
-    /// 1. ͳһ״̬ʹϢ
-    /// 2. ֿ֧ӻԪ
-    /// 3. ֽ֧б
-    /// 4. ִ֧ͳ
+    /// 主要功能：
+    /// 1. 统一的执行状态和错误信息
+    /// 2. 支持可视化元素
+    /// 3. 支持结果列表
+    /// 4. 支持执行统计
     /// 
-    /// ʹʾ
+    /// 使用示例：
     /// <code>
     /// public class CircleFindResults : ToolResultsBase
     /// {
@@ -301,9 +301,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
     ///     {
     ///         return new List&lt;ResultItem&gt;
     ///         {
-    ///             ResultItem.Point("Բ", Center),
-    ///             ResultItem.Numeric("뾶", Radius, ""),
-    ///             ResultItem.NumericWithSpec("÷", Score, 0.5, 1.0)
+    ///             ResultItem.Point("圆心", Center),
+    ///             ResultItem.Numeric("半径", Radius, "像素"),
+    ///             ResultItem.NumericWithSpec("得分", Score, 0.5, 1.0)
     ///         };
     ///     }
     /// }
@@ -312,75 +312,75 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
     public abstract class ToolResults
     {
         /// <summary>
-        /// ִ״̬
+        /// 执行状态
         /// </summary>
         public ExecutionStatus Status { get; set; } = ExecutionStatus.NotExecuted;
 
         /// <summary>
-        /// Ƿɹ
+        /// 是否成功
         /// </summary>
         public bool IsSuccess => Status == ExecutionStatus.Success || Status == ExecutionStatus.PartialSuccess;
 
         /// <summary>
-        /// Ϣ
+        /// 错误信息
         /// </summary>
         public string? ErrorMessage { get; set; }
 
         /// <summary>
-        /// ջ
+        /// 错误堆栈
         /// </summary>
         public string? ErrorStackTrace { get; set; }
 
         /// <summary>
-        /// ִʱ䣨룩
+        /// 执行时间（毫秒）
         /// </summary>
         public long ExecutionTimeMs { get; set; }
 
         /// <summary>
-        /// ʱ
+        /// 时间戳
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.Now;
 
         /// <summary>
-        /// 
+        /// 工具名称
         /// </summary>
         public string? ToolName { get; set; }
 
         /// <summary>
-        /// ID
+        /// 工具ID
         /// </summary>
         public string? ToolId { get; set; }
 
         /// <summary>
-        /// Ϣб
+        /// 警告信息列表
         /// </summary>
         public List<string> Warnings { get; set; } = new List<string>();
 
         /// <summary>
-        /// ûԶ
+        /// 用户自定义数据
         /// </summary>
         public object? Tag { get; set; }
 
         /// <summary>
-        /// ȡӻԪ
+        /// 获取可视化元素
         /// </summary>
-        /// <returns>ӻԪؼ</returns>
+        /// <returns>可视化元素集合</returns>
         public virtual IEnumerable<VisualElement> GetVisualElements()
         {
             return Array.Empty<VisualElement>();
         }
 
         /// <summary>
-        /// ȡб
+        /// 获取结果列表
         /// </summary>
-        /// <returns>б</returns>
+        /// <returns>结果列表</returns>
         public virtual IReadOnlyList<ResultItem> GetResultItems()
         {
             return Array.Empty<ResultItem>();
         }
 
         /// <summary>
-        /// Ӿ
+        /// 添加警告
         /// </summary>
         public void AddWarning(string warning)
         {
@@ -388,7 +388,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ôϢ
+        /// 设置错误信息
         /// </summary>
         public void SetError(string message, Exception? exception = null)
         {
@@ -401,7 +401,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// óɹ
+        /// 设置成功
         /// </summary>
         public void SetSuccess(long executionTimeMs = 0)
         {
@@ -410,7 +410,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ʧܽ
+        /// 创建失败结果
         /// </summary>
         public static T CreateError<T>(string errorMessage, Exception? exception = null) where T : ToolResults, new()
         {
@@ -428,7 +428,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// תΪֵʽݣ
+        /// 转换为字典形式数据
         /// </summary>
         public virtual Dictionary<string, object> ToDictionary()
         {
@@ -459,12 +459,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
     }
 
     /// <summary>
-    /// չ
+    /// 结果项集合扩展
     /// </summary>
     public static class ResultItemExtensions
     {
         /// <summary>
-        /// ֵ
+        /// 添加数值项
         /// </summary>
         public static void AddNumeric(this List<ResultItem> items, string name, double value, string? unit = null)
         {
@@ -472,7 +472,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// Ӵֵ
+        /// 添加带规格的数值项
         /// </summary>
         public static void AddNumericWithSpec(this List<ResultItem> items, string name, double value,
             double? lowerLimit, double? upperLimit, string? unit = null)
@@ -481,7 +481,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ı
+        /// 添加文本项
         /// </summary>
         public static void AddText(this List<ResultItem> items, string name, string value)
         {
@@ -489,7 +489,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// Ӳ
+        /// 添加布尔项
         /// </summary>
         public static void AddBoolean(this List<ResultItem> items, string name, bool value)
         {
@@ -497,7 +497,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// ӵ
+        /// 添加点项
         /// </summary>
         public static void AddPoint(this List<ResultItem> items, string name, Point2d point)
         {
@@ -505,7 +505,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// Բ
+        /// 添加圆项
         /// </summary>
         public static void AddCircle(this List<ResultItem> items, string name, Circle2d circle)
         {

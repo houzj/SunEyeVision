@@ -61,7 +61,7 @@ namespace SunEyeVision.Core.IO
         {
             if (!_disposed)
             {
-                // 只有访问成功时才需要释放?
+                // 只有访问成功时才需要释放。
                 if (IsGranted)
                 {
                     _manager.EndAccess(FilePath);

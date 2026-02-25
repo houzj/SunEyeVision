@@ -214,9 +214,9 @@ namespace SunEyeVision.UI.Factories
             return null;
         }
 
-        public Dictionary<string, object> GetDefaultParameters(string toolId)
+        public AlgorithmParameters GetDefaultParameters(string toolId)
         {
-            return new Dictionary<string, object>();
+            return new AlgorithmParameters();
         }
     }
 }

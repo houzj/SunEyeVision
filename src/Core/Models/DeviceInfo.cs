@@ -21,7 +21,7 @@ namespace SunEyeVision.Core.Models
         public string DeviceType { get; set; } = string.Empty;
 
         /// <summary>
-        /// 是否已连接?
+        /// 是否已连接。
         /// </summary>
         public bool IsConnected { get; set; }
 

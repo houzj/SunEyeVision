@@ -388,20 +388,20 @@ namespace SunEyeVision.UI.Services.PathCalculators
             var arrowPosition = targetPosition;
 
             // 箭头角度基于目标端口方向固定
-            // 角度定义?度指向右?0度指向下载?80度指向左?70度指向上
+            // 角度定义：0度指向右，90度指向下，180度指向左，270度指向上。
             var arrowAngle = targetDirection switch
             {
-                PortDirection.Left => 0.0,     // 左边端口：箭头向?
-                PortDirection.Right => 180.0,   // 右边端口：箭头向?
-                PortDirection.Top => 90.0,      // 上边端口：箭头向?
-                PortDirection.Bottom => 270.0,  // 下边端口：箭头向?
+                PortDirection.Left => 0.0,     // 左边端口：箭头向右
+                PortDirection.Right => 180.0,   // 右边端口：箭头向左
+                PortDirection.Top => 90.0,      // 上边端口：箭头向下
+                PortDirection.Bottom => 270.0,  // 下边端口：箭头向上
                 _ => 0.0
             };
 
-            // 获取路径最后一点用于调试（箭头尾部位设置?
+            // 获取路径最后一点用于调试（箭头尾部位置设置）。
             var lastPoint = pathPoints[pathPoints.Length - 1];
 
-            // 关键日志：记录箭头计算结果?
+            // 关键日志：记录箭头计算结果。
             
 
             return (arrowPosition, arrowAngle);

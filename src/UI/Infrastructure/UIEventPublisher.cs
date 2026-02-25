@@ -7,7 +7,7 @@ using SunEyeVision.UI.Infrastructure;
 namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
-    /// UI事件发布服务 - 负责发布UI相关的事件?
+    /// UI事件发布服务 - 负责发布UI相关的事件。
     /// </summary>
     public class UIEventPublisher
     {
@@ -82,7 +82,7 @@ namespace SunEyeVision.UI.Infrastructure
         }
 
         /// <summary>
-        /// 发布工作流保存事件?
+        /// 发布工作流保存事件。
         /// </summary>
         public void PublishWorkflowSaved(string workflowPath, int nodeCount)
         {
@@ -94,7 +94,7 @@ namespace SunEyeVision.UI.Infrastructure
         }
 
         /// <summary>
-        /// 发布工作流加载事件?
+        /// 发布工作流加载事件。
         /// </summary>
         public void PublishWorkflowLoaded(string workflowPath, int nodeCount)
         {
@@ -106,7 +106,7 @@ namespace SunEyeVision.UI.Infrastructure
         }
 
         /// <summary>
-        /// 发布工作流清除事件?
+        /// 发布工作流清除事件。
         /// </summary>
         public void PublishWorkflowCleared()
         {
@@ -160,7 +160,7 @@ namespace SunEyeVision.UI.Infrastructure
         }
 
         /// <summary>
-        /// 发布状态更新事件?
+        /// 发布状态更新事件。
         /// </summary>
         public void PublishStatusUpdate(string statusText)
         {

@@ -1,4 +1,6 @@
 using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.TemplateMatching

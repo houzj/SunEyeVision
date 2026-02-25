@@ -7,7 +7,8 @@ using SunEyeVision.Plugin.SDK.Metadata;
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
 {
     /// <summary>
-    /// ?- ѵĹ߲?    /// </summary>
+    /// 工具注册中心 - 管理所有已注册的工具插件
+    /// </summary>
     public static class ToolRegistry
     {
         private static readonly Dictionary<string, IToolPlugin> _toolPlugins = new Dictionary<string, IToolPlugin>();
@@ -15,7 +16,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         private static readonly object _lock = new object();
 
         /// <summary>
-        /// ߲
+        /// 注册工具插件
         /// </summary>
         /// <param name="toolPlugin">工具插件实例</param>
         public static void RegisterTool(IToolPlugin toolPlugin)
@@ -39,10 +40,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ߲
+        /// 获取工具插件
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>߲ʵ򷵻null</returns>
+        /// <returns>工具插件实例，未找到则返回null</returns>
         public static IToolPlugin? GetToolPlugin(string toolId)
         {
             lock (_lock)
@@ -68,9 +69,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ȡ工具元数?        /// </summary>
+        /// 获取工具元数据
+        /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>Ԫ򷵻null</returns>
+        /// <returns>工具元数据，未找到则返回null</returns>
         public static ToolMetadata? GetToolMetadata(string toolId)
         {
             lock (_lock)
@@ -80,9 +82,9 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ȡ有工具元
+        /// 获取所有工具元数据
         /// </summary>
-        /// <returns>йԪб</returns>
+        /// <returns>所有工具元数据列表</returns>
         public static List<ToolMetadata> GetAllToolMetadata()
         {
             lock (_lock)
@@ -92,10 +94,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ȡԪ
+        /// 获取指定分类的工具元数据
         /// </summary>
         /// <param name="category">分类名称</param>
-        /// <returns>÷µĹԪб</returns>
+        /// <returns>该分类下的工具元数据列表</returns>
         public static List<ToolMetadata> GetToolsByCategory(string category)
         {
             lock (_lock)
@@ -105,9 +107,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 查工具是否存?        /// </summary>
+        /// 检查工具是否存在
+        /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>昐存在</returns>
+        /// <returns>是否存在</returns>
         public static bool ToolExists(string toolId)
         {
             lock (_lock)
@@ -117,10 +120,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ע
+        /// 注销工具
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>昐ɹ</returns>
+        /// <returns>是否注销成功</returns>
         public static bool UnregisterTool(string toolId)
         {
             lock (_lock)
@@ -147,7 +150,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// עĹ
+        /// 清除所有已注册的工具
         /// </summary>
         public static void ClearAll()
         {
@@ -159,7 +162,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// עĹ
+        /// 获取已注册的工具数量
         /// </summary>
         /// <returns>工具数量</returns>
         public static int GetToolCount()
@@ -171,7 +174,8 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// ȡ有分?        /// </summary>
+        /// 获取所有分类
+        /// </summary>
         /// <returns>分类列表</returns>
         public static List<string> GetAllCategories()
         {

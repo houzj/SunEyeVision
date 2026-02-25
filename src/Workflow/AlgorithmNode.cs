@@ -8,16 +8,17 @@ using SunEyeVision.Plugin.SDK.Core;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 算法ڵ
+    /// 算法节点
     /// </summary>
     public class AlgorithmNode : WorkflowNode
     {
         /// <summary>
-        /// 图像?        /// </summary>
+        /// 图像处理器
+        /// </summary>
         public IImageProcessor Processor { get; set; }
 
         /// <summary>
-        /// 上ִн
+        /// 上次执行结果
         /// </summary>
         public AlgorithmResult LastResult { get; private set; }
 
@@ -28,7 +29,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ִнڵ
+        /// 执行节点算法
         /// </summary>
         public AlgorithmResult Execute(Mat inputImage)
         {
@@ -41,7 +42,7 @@ namespace SunEyeVision.Workflow
 
             try
             {
-                // ʹ÷ Execute [
+                // 使用反射调用 Execute 方法
                 var executeMethod = Processor.GetType().GetMethod("Execute", new[] { typeof(Mat), typeof(AlgorithmParameters) });
                 if (executeMethod != null)
                 {
@@ -49,7 +50,7 @@ namespace SunEyeVision.Workflow
                 }
                 else
                 {
-                    // 否则使用 Process 
+                    // 否则使用 Process 方法
                     var resultImage = Processor.Process(inputImage);
                     LastResult = AlgorithmResult.CreateSuccess(resultImage as Mat ?? inputImage, 0);
                 }
@@ -58,7 +59,7 @@ namespace SunEyeVision.Workflow
             }
             catch (Exception ex)
             {
-                var result = AlgorithmResult.CreateError($"ڵ {Name} ִʧ: {ex.Message}");
+                var result = AlgorithmResult.CreateError($"节点 {Name} 执行失败: {ex.Message}");
                 OnAfterExecute(result);
                 return result;
             }

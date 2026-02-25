@@ -1,10 +1,9 @@
 using System;
-
 using System.Collections.Generic;
-
 using SunEyeVision.Plugin.SDK;
-
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Tool.GaussianBlur
 {

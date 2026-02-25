@@ -77,8 +77,7 @@ namespace SunEyeVision.Workflow
                 // 设置参数
                 if (parameters == null)
                 {
-                    var defaultParams = toolPlugin.GetDefaultParameters(toolId);
-                    parameters = AlgorithmParameters.FromDictionary(defaultParams);
+                    parameters = toolPlugin.GetDefaultParameters(toolId);
                 }
 
                 // 创建AlgorithmNode

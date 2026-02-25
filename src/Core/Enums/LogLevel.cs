@@ -6,12 +6,12 @@ namespace SunEyeVision.Core
     public enum LogLevel
     {
         /// <summary>
-        /// 调试信息 - 最详细的日志，用于开发调试?
+        /// 调试信息 - 最详细的日志，用于开发调试
         /// </summary>
         Debug = 0,
 
         /// <summary>
-        /// 信息 - 一般信息?
+        /// 信息 - 一般信息
         /// </summary>
         Info = 1,
 

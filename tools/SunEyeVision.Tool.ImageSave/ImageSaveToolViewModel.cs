@@ -1,4 +1,6 @@
 using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.ImageSave
@@ -90,7 +92,7 @@ namespace SunEyeVision.Tool.ImageSave
         /// <summary>
         /// 加载参数
         /// </summary>
-        public override void LoadParameters(ToolMetadata? toolMetadata)
+        protected override void LoadParameters(ToolMetadata? toolMetadata)
         {
             if (toolMetadata?.InputParameters == null)
                 return;
@@ -125,7 +127,7 @@ namespace SunEyeVision.Tool.ImageSave
         /// <summary>
         /// 保存参数
         /// </summary>
-        public override System.Collections.Generic.Dictionary<string, object> SaveParameters()
+        public System.Collections.Generic.Dictionary<string, object> SaveParameters()
         {
             return new System.Collections.Generic.Dictionary<string, object>
             {

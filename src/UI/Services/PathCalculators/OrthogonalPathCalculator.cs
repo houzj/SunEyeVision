@@ -36,23 +36,23 @@ namespace SunEyeVision.UI.Services.PathCalculators
             HorizontalFirst,
 
             /// <summary>
-            /// 垂直优先策略 - 优先从源端口沿垂直方向延?
+            /// 垂直优先策略 - 优先从源端口沿垂直方向延伸。
             /// </summary>
             VerticalFirst,
 
             /// <summary>
-            /// 三段式策略?- 简单的三段折线（水平?垂直-水平或垂直?水平-垂直?
+            /// 三段式策略 - 简单的三段折线（水平-垂直-水平或垂直-水平-垂直）。
             /// </summary>
             ThreeSegment,
 
             /// <summary>
-            /// 相对方向策略 - 用于Top-Bottom, Bottom-Top等相对方向连接?
-            /// 先沿源端口方向延伸，再水平，再沿目标端口方向延伸?段）
+            /// 相对方向策略 - 用于Top-Bottom, Bottom-Top等相对方向连接。
+            /// 先沿源端口方向延伸，再水平，再沿目标端口方向延伸（三段）。
             /// </summary>
             OppositeDirection,
 
             /// <summary>
-            /// 四段式策略?- 中等距离的四段折线，优化同向端口场景
+            /// 四段式策略 - 中等距离的四段折线，优化同向端口场景。
             /// </summary>
             FourSegment,
 
@@ -899,7 +899,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算水平优先路径（水平?垂直-水平?
+        /// 计算水平优先路径（水平-垂直-水平）。
         /// </summary>
         private Point[] CalculateHorizontalFirstPath(
             Point sourcePosition,
@@ -931,7 +931,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算垂直优先路径（垂直?水平-垂直?
+        /// 计算垂直优先路径（垂直-水平-垂直）。
         /// </summary>
         private Point[] CalculateVerticalFirstPath(
             Point sourcePosition,
@@ -1303,18 +1303,18 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 获取固定箭头角度（基于目标端口方向）
-        /// 箭头角度不受源节点端口影响，固定为目标端口方法?
-        /// 角度定义?度指向右?0度指向下载?80度指向左?70度指向上
+        /// 获取固定箭头角度（基于目标端口方向）。
+        /// 箭头角度不受源节点端口影响，固定为目标端口方向。
+        /// 角度定义：0度指向右，90度指向下，180度指向左，270度指向上。
         /// </summary>
         private double GetFixedArrowAngle(PortDirection targetDirection)
         {
             return targetDirection switch
             {
-                PortDirection.Left => 0.0,     // 左边端口：箭头向?
-                PortDirection.Right => 180.0,   // 右边端口：箭头向?
-                PortDirection.Top => 90.0,      // 上边端口：箭头向?
-                PortDirection.Bottom => 270.0,  // 下边端口：箭头向?
+                PortDirection.Left => 0.0,     // 左边端口：箭头向右
+                PortDirection.Right => 180.0,   // 右边端口：箭头向左
+                PortDirection.Top => 90.0,      // 上边端口：箭头向下
+                PortDirection.Bottom => 270.0,  // 下边端口：箭头向上
                 _ => 0.0
             };
         }

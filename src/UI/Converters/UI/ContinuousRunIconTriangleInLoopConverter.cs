@@ -5,7 +5,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 连续运行图标转换�?- 运行状态显示停止图�?红色)，非运行状态显示循环图�?绿色)
+    /// 连续运行图标转换器 - 运行状态显示停止图标(红色)，非运行状态显示循环图标(绿色)
     /// </summary>
     public class ContinuousRunIconTriangleInLoopConverter : IValueConverter
     {
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Converters
     }
 
     /// <summary>
-    /// 连续运行图标颜色转换�?- 运行状态为红色，非运行状态为鲜艳的绿�?
+    /// 连续运行图标颜色转换器 - 运行状态为红色，非运行状态为鲜嫩的绿色
     /// </summary>
     public class ContinuousRunIconColorConverter : IValueConverter
     {
@@ -42,8 +42,8 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool isRunning)
             {
-                // 运行状态：红色 (#FF5252 - 更醒�?
-                // 停止状态：绿色 (#4CAF50 - 更清晰可�?
+                // 运行状态：红色 (#FF5252 - 更醒目)
+                // 停止状态：绿色 (#4CAF50 - 更清晰可见)
                 return isRunning ? "#FF5252" : "#4CAF50";
             }
             return "#4CAF50";

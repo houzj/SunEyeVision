@@ -5,7 +5,7 @@ using SunEyeVision.UI.Adapters;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 默认节点显示适配器实例?
+    /// 默认节点显示适配器。
     /// </summary>
     public class DefaultNodeDisplayAdapter : INodeDisplayAdapter
     {

@@ -347,7 +347,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             _highPrioritySemaphore = new SemaphoreSlim(HIGH_PRIORITY_THREADS);
             _normalPrioritySemaphore = new SemaphoreSlim(normalThreads);
             
-            Debug.WriteLine($"[PriorityLoader] ?线程池分组?- 高优先级:{HIGH_PRIORITY_THREADS}, 普?{normalThreads}, 总计:{totalThreads}");
+            Debug.WriteLine($"[PriorityLoader] 🔧线程池分组🔧 - 高优先级:{HIGH_PRIORITY_THREADS}, 普通:{normalThreads}, 总计:{totalThreads}");
         }
 
         #endregion
@@ -482,20 +482,20 @@ namespace SunEyeVision.UI.Services.Thumbnail
             stepSw.Stop();
             long policyCalcMs = stepSw.ElapsedMilliseconds;
 
-            // 设置可视区域范围（首屏加载时间?开始）
+            // 设置可视区域范围（首屏加载时间点开始）。
             _lastFirstVisible = 0;
             _lastLastVisible = loadCount - 1;
             _visibleAreaLoadStartTime = DateTime.Now;
-            _visibleAreaCount = loadCount;  // ?统一：使用实际可视数据?
+            _visibleAreaCount = loadCount;  // 统一：使用实际可视数据。
             _loadedInVisibleArea = 0;
 
-            // ===== ?诊断日志：前置准备阶?=====
+            // ===== 诊断日志：前置准备阶段 =====
             totalDiagSw.Stop();
             Debug.WriteLine($"[诊断] CancelAndReset: {cancelAndResetMs}ms");
             Debug.WriteLine($"[诊断] 内存预判: {memoryCheckMs}ms");
             Debug.WriteLine($"[诊断] 计算可视数量: {calcVisibleMs}ms, visibleCount={visibleCount}");
             Debug.WriteLine($"[诊断] 策略计算: {policyCalcMs}ms");
-            Debug.WriteLine($"[诊断] ?前置准备总计: {totalDiagSw.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"[诊断] ✅前置准备总计: {totalDiagSw.ElapsedMilliseconds}ms");
 
             // ===== ?P0优化：Critical任务直接同步执行，消除线程池冷启动开销 =====
             // 首张图片不入队，直接同步解码
@@ -560,19 +560,19 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 }
             }
 
-            // 第一批：可视区域剩余部分（High? 从index=1开?
+            // 第一批：可视区域剩余部分（High）从index=1开始
             for (int i = 1; i < visibleCount; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.High);
             }
 
-            // 第二批：缓冲区域（Medium? 预加载边框?
+            // 第二批：缓冲区域（Medium）预加载边框
             for (int i = visibleCount; i < visibleCount + bufferSize && i < fileNames.Length; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.Medium);
             }
 
-            // 第三批：预测区域（Low? 后台预加?
+            // 第三批：预测区域（Low）后台预加载
             for (int i = visibleCount + bufferSize; i < totalEnqueueCount; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.Low);
@@ -856,7 +856,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             if (collection == null)
             {
                 _getVisibleRangeFunc = null;
-                Debug.WriteLine("[SetImageCollection] ?集合已清空，同时清除_getVisibleRangeFunc委托");
+                Debug.WriteLine("[SetImageCollection] ❌集合已清空，同时清除_getVisibleRangeFunc委托");
             }
         }
 
@@ -1114,7 +1114,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     }
                 }
 
-                // 快速滚动开?停止处理
+                // 快速滚动开始/停止处理
                 if (_isFastScrolling && !wasFastScrolling)
                 {
                     Debug.WriteLine($"[DynamicRange] Fast scroll started - Speed:{_scrollVelocity:F1} items/s");
@@ -1122,11 +1122,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 else if (!_isFastScrolling && wasFastScrolling)
                 {
                     _lastScrollStopTime = now;
-                    Debug.WriteLine($"[DynamicRange] 快速滚动停止?- 启动后备区域激活定时器");
+                    Debug.WriteLine($"[DynamicRange] 快速滚动停止 - 启动后备区域激活定时器");
                     StartReserveActivationTimer(totalCount);
                 }
 
-                // 静止状态?
+                // 静止状态。
                 if (_scrollDirection == 0 && previousDirection != 0)
                 {
                     _lastScrollStopTime = now;
@@ -1592,14 +1592,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[PriorityLoader] 缩略图加载失? {filePath} - {ex.Message}");
+                Debug.WriteLine($"[PriorityLoader] 缩略图加载失败: {filePath} - {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
         /// 动态调整并发数
-        /// ?优化：首屏加载期间延?秒调整，避免误降并发
+        /// 优化：首屏加载期间延迟秒调整，避免误降并发。
         /// </summary>
         private void AdjustConcurrencyIfNeeded(long decodeTimeMs)
         {

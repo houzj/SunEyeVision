@@ -232,7 +232,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             var headerText = new TextBlock
             {
-                Text = $"?? {groupName}",
+                Text = $"📋 {groupName}",
                 FontWeight = FontWeights.Bold,
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Color.FromRgb(0, 102, 204))

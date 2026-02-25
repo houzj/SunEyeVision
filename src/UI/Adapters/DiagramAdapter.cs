@@ -22,6 +22,19 @@ namespace SunEyeVision.UI.Adapters
         // 缓存映射：WorkflowConnection -> native Connection
         private readonly Dictionary<string, ConnectionViewModel> _connectionMap = new Dictionary<string, ConnectionViewModel>();
 
+        private static DateTime _lastLogTime = DateTime.Now;
+
+        /// <summary>
+        /// 带时间戳的调试日志
+        /// </summary>
+        private static void LogTimestamp(string tag, string message)
+        {
+            var now = DateTime.Now;
+            var elapsed = (now - _lastLogTime).TotalMilliseconds;
+            _lastLogTime = now;
+            System.Diagnostics.Debug.WriteLine($"[{now:HH:mm:ss.fff}] [+{elapsed:F0}ms] [{tag}] {message}");
+        }
+
         public DiagramAdapter()
         {
         }
@@ -42,6 +55,8 @@ namespace SunEyeVision.UI.Adapters
         /// </summary>
         private DesignerItemViewModelBase CreateNodeInternal(WorkflowNode workflowNode, DiagramViewModel diagramViewModel)
         {
+            LogTimestamp("Adapter", $"CreateNodeInternal: {workflowNode.Name}");
+
             // 创建 DefaultDesignerItemViewModel
             var nativeNode = new DefaultDesignerItemViewModel(diagramViewModel)
             {
@@ -54,6 +69,7 @@ namespace SunEyeVision.UI.Adapters
             // 缓存映射
             _nodeMap[workflowNode.Id] = nativeNode;
 
+            LogTimestamp("Adapter", $"CreateNodeInternal 完成");
             return nativeNode;
         }
 
@@ -62,6 +78,7 @@ namespace SunEyeVision.UI.Adapters
         /// </summary>
         public DesignerItemViewModelBase CreateNativeNode(WorkflowNode workflowNode, DiagramViewModel diagramViewModel)
         {
+            _lastLogTime = DateTime.Now; // 重置计时器
             return CreateNodeInternal(workflowNode, diagramViewModel);
         }
 
@@ -125,6 +142,9 @@ namespace SunEyeVision.UI.Adapters
         /// </summary>
         public void SyncNodes(IEnumerable<WorkflowNode> nodes, object nativeDiagram)
         {
+            _lastLogTime = DateTime.Now; // 重置计时器
+            LogTimestamp("Adapter", "SyncNodes 开始");
+
             try
             {
                 // 检查传入的 nativeDiagram 是否为 DiagramViewModel
@@ -134,20 +154,28 @@ namespace SunEyeVision.UI.Adapters
                 }
 
                 // 清空现有元素
+                var startTime = DateTime.Now;
                 diagramViewModel.Items.Clear();
                 _nodeMap.Clear();
                 _connectionMap.Clear();
+                LogTimestamp("Adapter", $"清空集合耗时: {(DateTime.Now - startTime).TotalMilliseconds:F0}ms");
 
                 // 添加新节点
+                int count = 0;
                 foreach (var node in nodes)
                 {
+                    startTime = DateTime.Now;
                     var nativeNode = CreateNodeInternal(node, diagramViewModel);
                     diagramViewModel.Add(nativeNode);
+                    count++;
+                    LogTimestamp("Adapter", $"  节点 {count}: {(DateTime.Now - startTime).TotalMilliseconds:F0}ms");
                 }
 
+                LogTimestamp("Adapter", $"SyncNodes 完成, 共 {count} 个节点");
             }
             catch (Exception ex)
             {
+                LogTimestamp("Adapter", $"SyncNodes 异常: {ex.Message}");
                 throw;
             }
         }

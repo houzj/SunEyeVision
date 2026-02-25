@@ -12,7 +12,7 @@ using PortDirection = SunEyeVision.UI.Services.Path.PortDirection;
 namespace SunEyeVision.UI.Services.Connection
 {
     /// <summary>
-    /// 杩炴帴绾胯矾寰勭紦瀛?- 閬垮厤閲嶅璁＄畻杩炴帴绾胯矾寰?
+    /// 连接线路径缓存 - 避免重复计算连接线路径
     /// </summary>
     public class ConnectionPathCache
     {
@@ -22,27 +22,27 @@ namespace SunEyeVision.UI.Services.Connection
         private readonly object _lockObj;
         private readonly IPathCalculator _pathCalculator;
 
-        // 5C: 鑺傜偣浣嶇疆璺熻釜锛堢敤浜庣粺璁″拰璋冭瘯锛屼笉鍐嶇敤浜庤窛绂婚槇鍊煎垽鏂級
+        // 5C: 节点位置跟踪（用于统计和调试，不再用于距离阈值判断）
         private readonly Dictionary<string, Point> _lastNodePositions = new Dictionary<string, Point>();
         private readonly Dictionary<string, int> _connectionUsageCount = new Dictionary<string, int>();
 
         /// <summary>
-        /// 缂撳瓨鍛戒腑娆℃暟
+        /// 缓存命中次数
         /// </summary>
         public int CacheHits { get; private set; }
 
         /// <summary>
-        /// 缂撳瓨鏈懡涓鏁?
+        /// 缓存未命中次数
         /// </summary>
         public int CacheMisses { get; private set; }
 
         /// <summary>
-        /// 缂撳瓨澶у皬
+        /// 缓存大小
         /// </summary>
         public int CacheSize => _pathCache.Count;
 
         /// <summary>
-        /// 缂撳瓨鍛戒腑鐜?
+        /// 缓存命中率
         /// </summary>
         public double HitRate => CacheHits + CacheMisses > 0
             ? (double)CacheHits / (CacheHits + CacheMisses)
@@ -60,13 +60,13 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鑾峰彇杩炴帴绾胯矾寰?
+        /// 获取连接线路径
         /// </summary>
         public PathGeometry? GetPath(WorkflowConnection connection)
         {
             lock (_lockObj)
             {
-                // 4C: 澧炲姞杩炴帴浣跨敤璁℃暟
+                // 4C: 增加连接使用计数
                 if (_connectionUsageCount.ContainsKey(connection.Id))
                 {
                     _connectionUsageCount[connection.Id]++;
@@ -97,7 +97,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鑾峰彇杩炴帴绾胯矾寰勬暟鎹紙瀛楃涓诧級
+        /// 获取连接线路径数据（字符串）
         /// </summary>
         public string? GetPathData(WorkflowConnection connection)
         {
@@ -106,7 +106,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鏍囪杩炴帴涓鸿剰锛堥渶瑕侀噸鏂拌绠楋級
+        /// 标记连接为脏（需要重新计算）
         /// </summary>
         public void MarkDirty(WorkflowConnection connection)
         {
@@ -117,7 +117,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鏍囪鎵€鏈夎繛鎺ヤ负鑴?
+        /// 标记所有连接为脏
         /// </summary>
         public void MarkAllDirty()
         {
@@ -131,7 +131,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鏍囪鑺傜偣鐩稿叧鐨勬墍鏈夎繛鎺ヤ负鑴?
+        /// 标记节点相关的所有连接为脏
         /// </summary>
         public void MarkNodeDirty(string nodeId)
         {
@@ -148,24 +148,24 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 5C: 鏍囪鑺傜偣涓鸿剰锛堢Щ闄よ窛绂婚槇鍊硷紝浣跨敤鑺傛祦鏈哄埗锛?
-        /// 璺緞鏇存柊鐨勮妭娴佺敱ConnectionBatchUpdateManager鎺у埗锛?6ms寤惰繜锛?
+        /// 5C: 标记节点为脏（移除距离阈值，使用节流机制）
+        /// 路径更新的节流由ConnectionBatchUpdateManager控制（16ms延迟）
         /// </summary>
         public void MarkNodeDirtySmart(string nodeId, Point newPosition)
         {
             lock (_lockObj)
             {
-                // 璁板綍鏂颁綅缃?
+                // 记录新位置
                 _lastNodePositions[nodeId] = newPosition;
 
-                // 鐩存帴鏍囪鐩稿叧杩炴帴涓鸿剰
-                // 涓嶄娇鐢ㄨ窛绂婚槇鍊硷紝璁〤onnectionBatchUpdateManager鎺у埗鑺傛祦
+                // 直接标记相关连接为脏
+                // 不使用距离阈值，让ConnectionBatchUpdateManager控制节流
                 MarkNodeDirty(nodeId);
             }
         }
 
         /// <summary>
-        /// 娓呴櫎缂撳瓨
+        /// 清除缓存
         /// </summary>
         public void Clear()
         {
@@ -181,7 +181,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 4C: 鏅鸿兘娓呯悊缂撳瓨锛堝熀浜庝娇鐢ㄩ鐜囧拰LRU绛栫暐锛?
+        /// 4C: 智能清理缓存（基于使用频率和LRU策略）
         /// </summary>
         public void CleanupCache(int targetSize = 500)
         {
@@ -190,7 +190,7 @@ namespace SunEyeVision.UI.Services.Connection
                 if (_pathCache.Count <= targetSize)
                     return;
 
-                // 鎸変娇鐢ㄩ鐜囨帓搴忥紝绉婚櫎鏈€灏戜娇鐢ㄧ殑
+                // 按使用频率排序，移除最少使用的
                 var sortedConnections = _connectionUsageCount
                     .OrderBy(kvp => kvp.Value)
                     .Take(_pathCache.Count - targetSize)
@@ -207,7 +207,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 绉婚櫎杩炴帴鐨勭紦瀛?
+        /// 移除连接的缓存
         /// </summary>
         public void Remove(string connectionId)
         {
@@ -219,7 +219,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 棰勭儹缂撳瓨锛堥鍏堣绠楁墍鏈夎繛鎺ワ級
+        /// 预热缓存（预先计算所有连接）
         /// </summary>
         public void WarmUp(IEnumerable<WorkflowConnection> connections)
         {
@@ -239,7 +239,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鑾峰彇缂撳瓨缁熻淇℃伅
+        /// 获取缓存统计信息
         /// </summary>
         public CacheStatistics GetStatistics()
         {
@@ -263,14 +263,14 @@ namespace SunEyeVision.UI.Services.Connection
             if (sourceNode == null || targetNode == null)
                 return new PathGeometry();
 
-            // 鏍规嵁绔彛鍚嶇О鑾峰彇绔彛鏂瑰悜鍜屼綅缃?
+            // 根据端口名称获取端口方向和位置
             var sourceDirection = PortDirectionExtensions.FromPortName(connection.SourcePort);
             var targetDirection = PortDirectionExtensions.FromPortName(connection.TargetPort);
 
             var sourcePos = GetPortPosition(sourceNode, connection.SourcePort);
             var targetPos = GetPortPosition(targetNode, connection.TargetPort);
 
-            // 璁＄畻鑺傜偣杈圭晫鐭╁舰
+            // 计算节点边界矩形
             var sourceNodeRect = new Rect(
                 sourceNode.Position.X,
                 sourceNode.Position.Y,
@@ -283,35 +283,35 @@ namespace SunEyeVision.UI.Services.Connection
                 targetNode.StyleConfig.NodeWidth,
                 targetNode.StyleConfig.NodeHeight);
 
-            // 璁＄畻鎵€鏈夎妭鐐硅竟鐣岋紙鐢ㄤ簬纰版挒妫€娴嬶級
+            // 计算所有节点边界（用于碰撞检测）
             var allNodeRects = _nodes.Select(n => new Rect(
                 n.Position.X,
                 n.Position.Y,
                 n.StyleConfig.NodeWidth,
-                n                .StyleConfig.NodeHeight)).ToArray();
+                n.StyleConfig.NodeHeight)).ToArray();
 
-            // 鏍规嵁绔彛鏂瑰悜璁＄畻绠ご灏鹃儴浣嶇疆锛堣矾寰勭粓鐐癸級
+            // 根据端口方向计算箭头尾部位置（路径终点）
             var arrowTailPos = CalculateArrowTailPosition(targetPos, targetDirection);
 
 
 
-            // 浣跨敤绠ご灏鹃儴浣滀负璺緞缁堢偣锛屼紶閫掓墍鏈夎妭鐐硅竟鐣屼俊鎭敤浜庣鎾炴娴?
+            // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检测
             var pathPoints = _pathCalculator.CalculateOrthogonalPath(
                 sourcePos,
-                arrowTailPos,  // 璺緞缁堢偣 = 绠ご灏鹃儴
+                arrowTailPos,  // 路径终点 = 箭头尾部
                 sourceDirection,
                 targetDirection,
-                sourceNodeRect,  // 婧愯妭鐐硅竟鐣?
-                targetNodeRect,  // 鐩爣鑺傜偣杈圭晫
-                allNodeRects);   // 鎵€鏈夎妭鐐硅竟鐣岋紙鐢ㄤ簬纰版挒妫€娴嬶級
+                sourceNodeRect,  // 源节点边界
+                targetNodeRect,  // 目标节点边界
+                allNodeRects);   // 所有节点边界（用于碰撞检测）
 
-            // 鍒涘缓璺緞鍑犱綍
+            // 创建路径几何
             var pathGeometry = _pathCalculator.CreatePathGeometry(pathPoints);
 
-            // 鏇存柊杩炵嚎璺緞鐐归泦鍚堬紙鐢ㄤ簬璋冭瘯鍜屾樉绀猴級
+            // 更新连线路径点集合（用于调试和显示）
             UpdateConnectionPathPoints(connection, pathPoints);
 
-            // 璁＄畻绠ご浣嶇疆鍜岃搴?
+            // 计算箭头位置和角度
             var (arrowPosition, arrowAngle) = _pathCalculator.CalculateArrow(pathPoints, targetPos, targetDirection);
             connection.ArrowPosition = arrowPosition;
             connection.ArrowAngle = arrowAngle;
@@ -320,7 +320,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鏍规嵁绔彛鍚嶇О鑾峰彇绔彛浣嶇疆
+        /// 根据端口名称获取端口位置
         /// </summary>
         private static Point GetPortPosition(WorkflowNode node, string portName)
         {
@@ -330,19 +330,19 @@ namespace SunEyeVision.UI.Services.Connection
                 "bottom" or "bottomport" => node.BottomPortPosition,
                 "left" or "leftport" => node.LeftPortPosition,
                 "right" or "rightport" => node.RightPortPosition,
-                _ => node.RightPortPosition // 榛樿涓哄彸渚х鍙?
+                _ => node.RightPortPosition // 默认为右侧端口
             };
         }
 
         /// <summary>
-        /// 璁＄畻绠ご灏鹃儴浣嶇疆锛堣矾寰勭粓鐐癸級
-        /// 绠ご灏栫鍦ㄧ洰鏍囩鍙ｄ腑蹇冿紝绠ご灏鹃儴鍚戝鍋忕Щ绠ご闀垮害
+        /// 计算箭头尾部位置（路径终点）
+        /// 箭头尖端在目标端口中心，箭头尾部向外偏移箭头长度
         /// </summary>
         private static Point CalculateArrowTailPosition(Point arrowTipPosition, PortDirection targetDirection)
         {
-            const double arrowLength = 15.0; // 绠ご闀垮害
+            const double arrowLength = 15.0; // 箭头长度
 
-            // 鏍规嵁绔彛鏂瑰悜锛屽皢绠ご灏栫鍚戝悗鍋忕Щ绠ご闀垮害
+            // 根据端口方向，将箭头尖端向后偏移箭头长度
             return targetDirection switch
             {
                 PortDirection.Top => new Point(arrowTipPosition.X, arrowTipPosition.Y - arrowLength),
@@ -354,7 +354,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 鏇存柊杩炵嚎鐨勮矾寰勭偣闆嗗悎
+        /// 更新连线的路径点集合
         /// </summary>
         private static void UpdateConnectionPathPoints(WorkflowConnection connection, Point[] pathPoints)
         {
@@ -411,7 +411,7 @@ namespace SunEyeVision.UI.Services.Connection
     }
 
     /// <summary>
-    /// 缂撳瓨鐨勮矾寰?
+    /// 缓存的路径
     /// </summary>
     internal class CachedPath
     {
@@ -422,7 +422,7 @@ namespace SunEyeVision.UI.Services.Connection
     }
 
     /// <summary>
-    /// 缂撳瓨缁熻淇℃伅
+    /// 缓存统计信息
     /// </summary>
     public class CacheStatistics
     {
@@ -434,7 +434,7 @@ namespace SunEyeVision.UI.Services.Connection
 
         public override string ToString()
         {
-            return $"缂撳瓨澶у皬: {CacheSize}, 鍛戒腑: {CacheHits}, 鏈懡涓? {CacheMisses}, 鍛戒腑鐜? {HitRate:P2}";
+            return $"缓存大小: {CacheSize}, 命中: {CacheHits}, 未命中: {CacheMisses}, 命中率: {HitRate:P2}";
         }
     }
 }

@@ -25,18 +25,18 @@ namespace SunEyeVision.UI.ViewModels
         public event EventHandler? SelectionChanged;
 
         /// <summary>
-        /// 工作流状态变化事?
+        /// 工作流状态变化事件。
         /// </summary>
         public event EventHandler? WorkflowStatusChanged;
 
         public WorkflowTabControlViewModel()
         {
-            // 创建默认工作?
+            // 创建默认工作流。
             CreateDefaultWorkflow();
         }
 
         /// <summary>
-        /// 标签页集?
+        /// 标签页集合。
         /// </summary>
         public ObservableCollection<WorkflowTabViewModel> Tabs
         {
@@ -60,10 +60,10 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        #region 工作流管?
+        #region 工作流管理。
 
         /// <summary>
-        /// 创建默认工作?
+        /// 创建默认工作流。
         /// </summary>
         private void CreateDefaultWorkflow()
         {
@@ -72,7 +72,7 @@ namespace SunEyeVision.UI.ViewModels
 
             var defaultWorkflow = new WorkflowTabViewModel
             {
-                Name = "工作?"
+                Name = "工作流1"
             };
             Tabs.Add(defaultWorkflow);
             SelectedTab = defaultWorkflow;
@@ -97,7 +97,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 删除工作?
+        /// 删除工作流。
         /// </summary>
         public bool DeleteWorkflow(WorkflowTabViewModel workflow)
         {
@@ -111,20 +111,20 @@ namespace SunEyeVision.UI.ViewModels
 
             if (workflow.IsRunning)
             {
-                return false; // 运行中不能删?
+                return false; // 运行中不能删除。
             }
 
             var index = Tabs.IndexOf(workflow);
             Tabs.Remove(workflow);
 
             // 从已使用的编号集合中移除
-            var match = System.Text.RegularExpressions.Regex.Match(workflow.Name, @"工作?\d+)");
+            var match = System.Text.RegularExpressions.Regex.Match(workflow.Name, @"工作流(\d+)");
             if (match.Success && int.TryParse(match.Groups[1].Value, out int number))
             {
                 _usedWorkflowNumbers.Remove(number);
             }
 
-            // 选择其他标签?
+            // 选择其他标签页。
             if (SelectedTab == workflow)
             {
                 if (Tabs.Count > 0)
@@ -142,7 +142,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 获取下一个可用的工作流编?
+        /// 获取下一个可用的工作流编号。
         /// </summary>
         private int GetNextWorkflowNumber()
         {
@@ -167,10 +167,10 @@ namespace SunEyeVision.UI.ViewModels
 
         #endregion
 
-        #region 工作流运行控?
+        #region 工作流运行控制。
 
         /// <summary>
-        /// 单次运行工作?
+        /// 单次运行工作流。
         /// </summary>
         public void RunSingle(WorkflowTabViewModel workflow)
         {
@@ -200,7 +200,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 停止工作流运?
+        /// 停止工作流运行。
         /// </summary>
         public void StopWorkflow(WorkflowTabViewModel workflow)
         {
@@ -286,7 +286,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 切换所有工作流的连续运?停止
+        /// 切换所有工作流的连续运行/停止。
         /// </summary>
         public void ToggleAllWorkflows()
         {

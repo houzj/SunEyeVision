@@ -125,8 +125,8 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// 获取工具默认参数
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>默认参数字典</returns>
-        Dictionary<string, object> GetDefaultParameters(string toolId);
+        /// <returns>默认参数</returns>
+        AlgorithmParameters GetDefaultParameters(string toolId);
 
         #endregion
     }

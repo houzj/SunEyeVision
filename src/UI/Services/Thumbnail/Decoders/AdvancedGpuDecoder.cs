@@ -337,16 +337,16 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                 report.AppendLine($"  最小耗时: {MinDecodeTime:F2}ms");
                 report.AppendLine($"  最大耗时: {MaxDecodeTime:F2}ms");
 
-                // 按方法分组统计?
+                // 按方法分组统计。
                 var byMethod = _performanceMetrics.Values.GroupBy(m => m.Method);
                 foreach (var group in byMethod)
                 {
                     var avg = group.Average(m => m.ElapsedMs);
                     var count = group.Count();
-                    report.AppendLine($"  {group.Key}: {count}? 平均{avg:F2}ms");
+                    report.AppendLine($"  {group.Key}: {count}次, 平均{avg:F2}ms");
                 }
 
-                // 性能提升计算（假设CPU平均200ms?
+                // 性能提升计算（假设CPU平均200ms）。
                 double cpuBaseline = 200.0;
                 double improvement = ((cpuBaseline - AverageDecodeTime) / cpuBaseline) * 100;
                 report.AppendLine($"  性能提升: {improvement:F1}% (相比CPU基准)");

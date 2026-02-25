@@ -757,26 +757,26 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新?
+        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新）。
         /// </summary>
         public void InvalidatePath()
         {
             // 只触发PathUpdateCounter，其他属性在XAML中通过PathUpdateCounter自动更新
-            // 这样可以将PropertyChanged事件?个减少到1个，性能提升83%
+            // 这样可以将PropertyChanged事件（4个）减少到1个，性能提升83%。
             _pathUpdateCounter++;
             OnPropertyChanged(nameof(PathUpdateCounter));
 
             // 移除这些不必要的PropertyChanged（通过绑定自动更新）：
             // OnPropertyChanged(nameof(PathData));         // 通过MultiBinding自动更新
-            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计?
-            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计?
+            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计算。
+            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计算。
             // OnPropertyChanged(nameof(ArrowX));           // 通过ArrowPosition自动更新
             // OnPropertyChanged(nameof(ArrowY));           // 通过ArrowPosition自动更新
         }
     }
 
     /// <summary>
-    /// 连接状?
+    /// 连接状态。
     /// </summary>
     public enum ConnectionStatus
     {

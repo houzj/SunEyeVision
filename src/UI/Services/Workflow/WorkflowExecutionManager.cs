@@ -13,8 +13,8 @@ using SunEyeVision.UI.Services.Workflow;
 namespace SunEyeVision.UI.Services.Workflow
 {
     /// <summary>
-    /// ִ
-    /// ĵ˺?
+    /// 工作流执行管理器
+    /// 管理工作流的同步和异步执行
     /// </summary>
     public class WorkflowExecutionManager
     {
@@ -39,7 +39,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ָ?
+        /// 执行指定工作流
         /// </summary>
         public async Task RunSingleAsync(WorkflowTabViewModel workflow, CancellationToken cancellationToken = default)
         {
@@ -65,7 +65,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ʼָ
+        /// 开始指定工作流的连续执行
         /// </summary>
         public void StartContinuousRun(WorkflowTabViewModel workflow)
         {
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Services.Workflow
 
             lock (_lock)
             {
-                // ѾУֹͣ
+                // 如果已经在运行，先停止
                 if (_runningTasks.ContainsKey(workflowId))
                 {
                     StopContinuousRun(workflow);
@@ -96,7 +96,7 @@ namespace SunEyeVision.UI.Services.Workflow
                             await ExecuteWorkflowInternal(workflow, cts.Token);
                             OnWorkflowExecutionCompleted(workflowId);
 
-                            // ˼CPUռù
+                            // 短暂休息避免CPU占用过高
                             await Task.Delay(10, cts.Token);
                         }
                     }
@@ -123,7 +123,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ָͣ?
+        /// 停止指定工作流的连续执行
         /// </summary>
         public void StopContinuousRun(WorkflowTabViewModel workflow)
         {
@@ -145,7 +145,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ʼй(单)
+        /// 开始所有工作流执行(单次)
         /// </summary>
         public async Task StartAllWorkflowsRun(IEnumerable<WorkflowTabViewModel> workflows)
         {
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ʼй
+        /// 开始所有工作流的连续执行
         /// </summary>
         public void StartAllContinuousRun(IEnumerable<WorkflowTabViewModel> workflows)
         {
@@ -171,7 +171,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ͣй?
+        /// 停止所有工作流的连续执行
         /// </summary>
         public void StopAllContinuousRun()
         {
@@ -187,7 +187,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// жָǷ?
+        /// 判断指定工作流是否正在运行
         /// </summary>
         public bool IsRunning(string workflowId)
         {
@@ -198,7 +198,7 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// жϕSκι
+        /// 判断是否有任何工作流正在运行
         /// </summary>
         public bool IsAnyRunning()
         {
@@ -209,22 +209,22 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// ڲ
+        /// 内部执行工作流
         /// </summary>
         private async Task ExecuteWorkflowInternal(WorkflowTabViewModel workflow, CancellationToken cancellationToken)
         {
-            // ڷʼͷһ?
-            InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] ====== 始执行工作流 ======")));
+            // 在开始时先发送一条开始日志
+            InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] ====== 开始执行工作流 ======")));
 
             try
             {
-                // ȡ输入图像
+                // 获取输入图像
                 object? inputImage = null;
                 try
                 {
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在ȡ输入图像...")));
+                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在获取输入图像...")));
                     inputImage = await _inputProvider.GetInputImageAsync();
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 输入图像ȡ完成")));
+                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 输入图像获取完成")));
                     cancellationToken.ThrowIfCancellationRequested();
                 }
                 catch (OperationCanceledException)
@@ -233,78 +233,78 @@ namespace SunEyeVision.UI.Services.Workflow
                 }
                 catch (Exception ex)
                 {
-                    // ͼ־
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[WARN] ȡ输入图像ʧ: {ex.Message}")));
-                    Console.WriteLine($"[WorkflowExecutionManager] ȡ输入图像ʧ: {ex.Message}");
+                    // 获取图像失败只记录日志
+                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[WARN] 获取输入图像失败: {ex.Message}")));
+                    Console.WriteLine($"[WorkflowExecutionManager] 获取输入图像失败: {ex.Message}");
                 }
 
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在日志?..")));
-                // 单的日志输出
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建日志器...")));
+                // 创建简单的日志输出器
                 var logger = new SimpleLogger();
 
-                // ־תUI߳
+                // 将日志转发到UI线程
                 logger.LogMessage += (sender, message) =>
                 {
                     InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, message)));
                 };
 
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在工作流引?..")));
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建工作流引擎...")));
                 var (workflowEngine, executionEngine, context) = WorkflowEngineFactory.CreateEngineSuite(logger);
 
-                // ?
+                // 创建工作流
                 var suneyeWorkflow = workflowEngine.CreateWorkflow(workflow.Name, workflow.Name);
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 工作流已, ID: {suneyeWorkflow.Id}")));
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 工作流已创建, ID: {suneyeWorkflow.Id}")));
 
-                // 从UIڵ㴴AlgorithmNode
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 正在添加ڵ (总数: {workflow.WorkflowNodes.Count})...")));
+                // 从UI节点创建AlgorithmNode
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 正在添加节点 (总数: {workflow.WorkflowNodes.Count})...")));
                 foreach (var uiNode in workflow.WorkflowNodes)
                 {
                     var algorithmNode = CreateAlgorithmNodeFromUiNode(uiNode, logger);
                     if (algorithmNode != null)
                     {
                         suneyeWorkflow.AddNode(algorithmNode);
-                        logger.LogInfo($"添加ڵ: {uiNode.Name} (ID: {uiNode.Id})");
+                        logger.LogInfo($"添加节点: {uiNode.Name} (ID: {uiNode.Id})");
                     }
                 }
 
-                // UI?
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 正在添加 (总数: {workflow.WorkflowConnections.Count})...")));
+                // 添加UI连接
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 正在添加连接 (总数: {workflow.WorkflowConnections.Count})...")));
                 foreach (var uiConnection in workflow.WorkflowConnections)
                 {
                     try
                     {
                         suneyeWorkflow.ConnectNodes(uiConnection.SourceNodeId, uiConnection.TargetNodeId);
-                        logger.LogInfo($"添加: {uiConnection.SourceNodeId} -> {uiConnection.TargetNodeId}");
+                        logger.LogInfo($"添加连接: {uiConnection.SourceNodeId} -> {uiConnection.TargetNodeId}");
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning($"添加ʧ: {ex.Message}");
+                        logger.LogWarning($"添加连接失败: {ex.Message}");
                     }
                 }
 
-                // ?
-                logger.LogInfo($"始执行工作流: {workflow.Name}");
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在测试图像...")));
+                // 执行
+                logger.LogInfo($"开始执行工作流: {workflow.Name}");
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建测试图像...")));
                 var matImage = CreateTestMat();
-                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 测试图像已创建，始执行工作流...")));
+                InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 测试图像已创建，开始执行工作流...")));
                 var result = await executionEngine.ExecuteWorkflowAsync(suneyeWorkflow.Id, matImage);
 
-                // 
-                logger.LogInfo($"工作流执行完? {workflow.Name}");
-                logger.LogInfo($"ִн: {(result.Success ? "ɹ" : "ʧ")}");
-                logger.LogInfo($"ִ时间: {result.ExecutionTime.TotalMilliseconds:F2} ms");
+                // 输出结果
+                logger.LogInfo($"工作流执行完成: {workflow.Name}");
+                logger.LogInfo($"执行结果: {(result.Success ? "成功" : "失败")}");
+                logger.LogInfo($"执行时间: {result.ExecutionTime.TotalMilliseconds:F2} ms");
 
                 if (!result.Success && result.Errors.Any())
                 {
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[ERROR] 工作流执行失败，数量: {result.Errors.Count}")));
+                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[ERROR] 工作流执行失败，错误数量: {result.Errors.Count}")));
                     foreach (var error in result.Errors)
                     {
-                        logger.LogError($": {error}");
+                        logger.LogError($"错误: {error}");
                     }
                 }
                 else
                 {
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] ====== 工作流执行结?======")));
+                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] ====== 工作流执行结束 ======")));
                 }
             }
             catch (Exception ex)
@@ -317,22 +317,22 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// õMat
+        /// 创建测试用的Mat
         /// </summary>
         private OpenCvSharp.Mat CreateTestMat()
         {
-            // 640x4803ͨͼ
+            // 创建640x480的3通道图像
             return new OpenCvSharp.Mat(480, 640, OpenCvSharp.MatType.CV_8UC3, new OpenCvSharp.Scalar(0));
         }
 
         /// <summary>
-        /// 从UIڵ㴴AlgorithmNode
+        /// 从UI节点创建AlgorithmNode
         /// </summary>
         private SunEyeVision.Workflow.AlgorithmNode? CreateAlgorithmNodeFromUiNode(Models.WorkflowNode uiNode, SunEyeVision.Core.Interfaces.ILogger logger)
         {
             try
             {
-                // 使用WorkflowNodeFactoryڵ(使用真实插件)
+                // 使用WorkflowNodeFactory创建节点(使用真实插件)
                 var toolId = uiNode.AlgorithmType ?? uiNode.Name;
                 var node = SunEyeVision.Workflow.WorkflowNodeFactory.CreateAlgorithmNode(
                     toolId,
@@ -344,13 +344,13 @@ namespace SunEyeVision.UI.Services.Workflow
 
                 if (node != null)
                 {
-                    logger.LogInfo($"通过WorkflowNodeFactoryڵ: {uiNode.Name} (ToolId: {toolId})");
+                    logger.LogInfo($"通过WorkflowNodeFactory创建节点: {uiNode.Name} (ToolId: {toolId})");
                     return node;
                 }
                 else
                 {
-                    // ߲[ʹòΪ?
-                    logger.LogWarning($"߲: {toolId}, ʹòԴ");
+                    // 工具不存在，使用测试处理器
+                    logger.LogWarning($"工具不存在: {toolId}, 使用测试处理器");
                     var processor = new TestImageProcessor(toolId);
                     return new SunEyeVision.Workflow.AlgorithmNode(
                         uiNode.Id,
@@ -361,7 +361,7 @@ namespace SunEyeVision.UI.Services.Workflow
             }
             catch (Exception ex)
             {
-                logger.LogError($"AlgorithmNodeʧ: {ex.Message}");
+                logger.LogError($"创建AlgorithmNode失败: {ex.Message}");
                 return null;
             }
         }
@@ -417,7 +417,7 @@ namespace SunEyeVision.UI.Services.Workflow
     }
 
     /// <summary>
-    /// 单的日志输出?
+    /// 简单的日志输出器
     /// </summary>
     public class SimpleLogger : SunEyeVision.Core.Interfaces.ILogger
     {
@@ -511,7 +511,7 @@ namespace SunEyeVision.UI.Services.Workflow
     }
 
     /// <summary>
-    /// ִ¼?
+    /// 工作流执行事件参数
     /// </summary>
     public class WorkflowExecutionEventArgs : EventArgs
     {
@@ -528,7 +528,7 @@ namespace SunEyeVision.UI.Services.Workflow
     }
 
     /// <summary>
-    /// ִн¼?
+    /// 工作流执行进度事件参数
     /// </summary>
     public class WorkflowExecutionProgressEventArgs : EventArgs
     {

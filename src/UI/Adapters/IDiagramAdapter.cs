@@ -4,9 +4,9 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 图表适配器接收?
+    /// 图表适配器接口。
     /// 用于在Workflow模型和AIStudio.Wpf.DiagramDesigner原生图表之间进行适配
-    /// 使用贝塞尔曲线连接算法?
+    /// 使用贝塞尔曲线连接算法。
     /// </summary>
     public interface IDiagramAdapter
     {
@@ -21,27 +21,27 @@ namespace SunEyeVision.UI.Adapters
         object CreateConnection(WorkflowConnection workflowConnection);
 
         /// <summary>
-        /// 同步节点到原生图表?
+        /// 同步节点到原生图表。
         /// </summary>
         void SyncNodes(IEnumerable<WorkflowNode> nodes, object nativeDiagram);
 
         /// <summary>
-        /// 同步连接到原生图表?
+        /// 同步连接到原生图表。
         /// </summary>
         void SyncConnections(IEnumerable<WorkflowConnection> connections, object nativeDiagram);
 
         /// <summary>
-        /// 设置贝塞尔曲线样式?
+        /// 设置贝塞尔曲线样式。
         /// </summary>
         void SetBezierCurveStyle(object nativeConnection);
 
         /// <summary>
-        /// 添加节点到原生图表?
+        /// 添加节点到原生图表。
         /// </summary>
         void AddNode(object nativeNode, object nativeDiagram);
 
         /// <summary>
-        /// 添加连接到原生图表?
+        /// 添加连接到原生图表。
         /// </summary>
         void AddConnection(object nativeConnection, object nativeDiagram);
 

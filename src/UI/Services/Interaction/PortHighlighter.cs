@@ -187,8 +187,8 @@ namespace SunEyeVision.UI.Services.Interaction
 
             if (isVerticalDominant)
             {
-                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端?
-                // 但如果水平偏移远大于垂直偏移?倍以上），则选择水平方向
+                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口。
+                // 但如果水平偏移远大于垂直偏移（2倍以上），则选择水平方向。
                 if (Math.Abs(deltaX) > 2 * Math.Abs(deltaY))
                 {
                     direction = "水平（源垂直但水平偏移过大）";
@@ -209,7 +209,7 @@ namespace SunEyeVision.UI.Services.Interaction
             else
             {
                     direction = "水平（源端口主导）";
-                // 但如果垂直偏移远大于水平偏移?倍以上），则选择垂直方向
+                // 但如果垂直偏移远大于水平偏移（2倍以上），则选择垂直方向。
                 if (Math.Abs(deltaY) > 2 * Math.Abs(deltaX))
                 {
                     direction = "垂直（源水平但垂直偏移过大）";

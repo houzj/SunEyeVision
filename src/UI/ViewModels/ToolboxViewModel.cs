@@ -73,7 +73,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public string DisplayModeIcon
         {
-            get => IsCompactMode ? "?" : "?";
+            get => IsCompactMode ? "◀" : "▶";
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace SunEyeVision.UI.ViewModels
                 if (string.IsNullOrWhiteSpace(SelectedCategory))
                     return "";
                 var category = Categories.FirstOrDefault(c => c.Name == SelectedCategory);
-                return category?.Icon ?? "?";
+                return category?.Icon ?? "📦";
             }
         }
 

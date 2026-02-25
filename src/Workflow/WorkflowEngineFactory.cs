@@ -8,12 +8,12 @@ using SunEyeVision.Plugin.SDK;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 湤 - ڴͳʼ
+    /// 工作流引擎工厂 - 用于创建和初始化工作流引擎套件
     /// </summary>
     public static class WorkflowEngineFactory
     {
         /// <summary>
-        /// Ĺ׼
+        /// 创建完整的工作流引擎套件
         /// </summary>
         public static (WorkflowEngine, WorkflowExecutionEngine, IPluginManager) CreateEngineSuite(ILogger logger)
         {
@@ -22,23 +22,23 @@ namespace SunEyeVision.Workflow
                 throw new ArgumentNullException(nameof(logger));
             }
 
-            // 1. logger
+            // 1. 创建插件管理器
             var pluginManager = new PluginManager(logger);
 
-            // 2. 
+            // 2. 创建工作流引擎
             var workflowEngine = new WorkflowEngine(logger);
 
-            // 3. ִ
+            // 3. 创建执行引擎
             var executionEngine = new WorkflowExecutionEngine(workflowEngine, pluginManager, logger);
 
-            // 4. زעṤƲ
+            // 4. 加载并注册工作流控制插件
             RegisterWorkflowControlPlugin(workflowEngine, pluginManager, logger);
 
             return (workflowEngine, executionEngine, pluginManager);
         }
 
         /// <summary>
-        /// עṤƲ
+        /// 注册工作流控制插件
         /// </summary>
         private static void RegisterWorkflowControlPlugin(
             WorkflowEngine workflowEngine,
@@ -47,21 +47,21 @@ namespace SunEyeVision.Workflow
         {
             try
             {
-                // Ʋ
+                // 创建控制插件
                 var controlPlugin = new SubroutinePlugin(workflowEngine);
                 pluginManager.RegisterPlugin(controlPlugin);
 
-                logger.LogInfo("Ʋע");
+                logger.LogInfo("工作流控制插件已注册");
             }
             catch (Exception ex)
             {
-                logger.LogError($"עṤƲʧ: {ex.Message}", ex);
+                logger.LogError($"注册工作流控制插件失败: {ex.Message}", ex);
                 throw;
             }
         }
 
         /// <summary>
-        /// 棨ܣ
+        /// 创建基础工作流引擎（无插件功能）
         /// </summary>
         public static WorkflowEngine CreateBasicEngine(ILogger logger)
         {
@@ -74,7 +74,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ִ
+        /// 创建执行引擎
         /// </summary>
         public static WorkflowExecutionEngine CreateExecutionEngine(
             WorkflowEngine workflowEngine,

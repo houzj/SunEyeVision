@@ -215,12 +215,12 @@ namespace SunEyeVision.Core.Services
         public List<string> Permissions { get; set; } = new List<string>();
 
         /// <summary>
-        /// 最小框架版本?
+        /// 最小框架版本。
         /// </summary>
         public string MinFrameworkVersion { get; set; } = "1.0.0";
 
         /// <summary>
-        /// 自定义数据?
+        /// 自定义数据。
         /// </summary>
         public Dictionary<string, object> CustomData { get; set; } = new Dictionary<string, object>();
     }

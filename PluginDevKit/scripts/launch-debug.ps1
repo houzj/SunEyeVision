@@ -1,0 +1,66 @@
+# 启动主程序进行插件调试
+# 使用方法: .\launch-debug.ps1
+
+param(
+    [string]$PluginName = ""
+)
+
+$ErrorActionPreference = "Stop"
+
+$RootDir = Split-Path -Parent $PSScriptRoot
+$RuntimeDir = Join-Path $RootDir "runtime"
+
+Write-Host "=== 启动调试 ===" -ForegroundColor Cyan
+
+# 检查 Runtime 是否存在
+if (-not (Test-Path $RuntimeDir)) {
+    Write-Host "Runtime 目录不存在，请先运行 build-runtime.ps1" -ForegroundColor Red
+    exit 1
+}
+
+# 查找主程序
+$ExePath = Join-Path $RuntimeDir "SunEyeVision.exe"
+if (-not (Test-Path $ExePath)) {
+    # 尝试其他可能的名称
+    $PossibleExes = @(
+        "SunEyeVision.UI.exe",
+        "SunEyeVision.App.exe"
+    )
+    
+    foreach ($exe in $PossibleExes) {
+        $fullPath = Join-Path $RuntimeDir $exe
+        if (Test-Path $fullPath) {
+            $ExePath = $fullPath
+            break
+        }
+    }
+}
+
+if (-not (Test-Path $ExePath)) {
+    Write-Host "找不到主程序可执行文件" -ForegroundColor Red
+    Write-Host "Runtime 目录内容:" -ForegroundColor Yellow
+    Get-ChildItem $RuntimeDir -Filter "*.exe" | Format-Table Name
+    exit 1
+}
+
+Write-Host "启动主程序: $ExePath" -ForegroundColor Green
+
+# 构建插件（如果指定）
+if ($PluginName -ne "") {
+    $PluginDir = Join-Path $RootDir "samples\$PluginName"
+    if (Test-Path $PluginDir) {
+        Write-Host "构建插件: $PluginName" -ForegroundColor Yellow
+        $PluginProject = Get-ChildItem $PluginDir -Filter "*.csproj" | Select-Object -First 1
+        if ($PluginProject) {
+            dotnet build $PluginProject.FullName -c Debug
+        }
+    }
+}
+
+# 启动程序
+Push-Location $RuntimeDir
+try {
+    & $ExePath
+} finally {
+    Pop-Location
+}

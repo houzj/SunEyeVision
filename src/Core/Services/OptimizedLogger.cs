@@ -7,7 +7,7 @@ using SunEyeVision.Core.Interfaces;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// 优化的日志记录器 - 支持日志级别控制、采样日志、条件编辑?
+    /// 优化的日志记录器 - 支持日志级别控制、采样日志、条件编辑。
     /// </summary>
     public class OptimizedLogger : ILogger
     {

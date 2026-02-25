@@ -4,7 +4,7 @@ namespace SunEyeVision.UI.Diagnostics
 {
     /// <summary>
     /// 共享调试控件
-    /// 提供通用的调试控制功能?
+    /// 提供通用的调试控制功能。
     /// </summary>
     public partial class SharedDebugControl : UserControl
     {
@@ -15,7 +15,7 @@ namespace SunEyeVision.UI.Diagnostics
 
         private void OnStartDebug(object sender, System.Windows.RoutedEventArgs e)
         {
-            // 触发开始调试事件?
+            // 触发开始调试事件。
         }
 
         private void OnStopDebug(object sender, System.Windows.RoutedEventArgs e)

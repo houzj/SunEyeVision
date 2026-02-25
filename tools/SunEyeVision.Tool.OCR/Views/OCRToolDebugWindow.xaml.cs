@@ -1,6 +1,8 @@
 using SunEyeVision.Plugin.SDK;
-using System.Windows;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.ViewModels;
+using System.Windows;
 namespace SunEyeVision.Tool.OCR.Views
 {
     public partial class OCRToolDebugWindow

@@ -205,7 +205,7 @@ namespace SunEyeVision.Workflow
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
 
                     var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "? 成功" : "? 失败")}, 耗时: {duration:F2}ms");
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms");
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {
@@ -243,7 +243,7 @@ namespace SunEyeVision.Workflow
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow);
 
                     var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "? 成功" : "? 失败")}, 耗时: {duration:F2}ms");
+                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms");
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {

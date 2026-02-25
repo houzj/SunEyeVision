@@ -16,30 +16,30 @@ using SunEyeVision.UI.Services.Performance;
 namespace SunEyeVision.UI.Services.Thumbnail
 {
     /// <summary>
-    /// ȼ
+    /// 清理优先级
     /// </summary>
     public enum CleanupPriority
     {
-        /// <summary>ȼ - ̨ʱ</summary>
+        /// <summary>低优先级 - 应用关闭时</summary>
         Low = 0,
-        /// <summary>晚优先级 - 泬ʱ/summary>
+        /// <summary>普通优先级 - 缓存超限时</summary>
         Normal = 1,
-        /// <summary>ȼ - ڴѹʱ</summary>
+        /// <summary>高优先级 - 内存压力大时</summary>
         High = 2,
-        /// <summary>ȼ - ڴΣʱ</summary>
+        /// <summary>紧急优先级 - 内存危险时</summary>
         Critical = 3
     }
 
     /// <summary>
-    /// 
+    /// 清理请求
     /// </summary>
     public class CleanupRequest
     {
         public CleanupPriority Priority { get; set; }
-        public long? TargetBytes { get; set; }  // ࠇ释放字节?
-        public int? TargetFreeMB { get; set; }  // ࠇ释放MB?
-        public string Requester { get; set; }   // Դ־
-        public Action<int, int>? ProgressCallback { get; set; } // Ȼص
+        public long? TargetBytes { get; set; }  // 目标释放字节数
+        public int? TargetFreeMB { get; set; }  // 目标释放MB数
+        public string Requester { get; set; }   // 请求者，用于日志
+        public Action<int, int>? ProgressCallback { get; set; } // 进度回调
 
         public static CleanupRequest FromBytes(long targetBytes, CleanupPriority priority, string requester)
             => new CleanupRequest { TargetBytes = targetBytes, Priority = priority, Requester = requester };
@@ -49,12 +49,15 @@ namespace SunEyeVision.UI.Services.Thumbnail
     }
 
     /// <summary>
-    /// ͳһ- 
-    /// ˵
+    /// 统一清理调度器 - 管理缓存文件的清理
+    /// 说明：
+    /// - 协调磁盘缓存和内存缓存的清理
+    /// - 防止并发清理冲突
+    /// - 确保正在使用的文件不被删除
     /// 
-    /// ԭ?
-    /// 1. Ӧɾʹõ
-    /// 2. ʹͨü
+    /// 原则:
+    /// 1. 不删除正在使用的文件
+    /// 2. 使用计数管理文件使用状态
     /// 3. 在使用中的文件应跳过清理
     /// </summary>
     public static class CleanupScheduler
@@ -62,17 +65,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
         private static readonly object _globalLock = new object();
         private static readonly HashSet<string> _deletedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         
-        // ļʹü - ʹõļ
+        // 文件使用计数 - 跟踪正在使用的文件
         private static readonly Dictionary<string, int> _fileUseCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         
         private static CancellationTokenSource? _currentCancellation;
         private static bool _isRunning;
         private static CleanupPriority _currentPriority = CleanupPriority.Low;
 
-        /// <summary>ȫɾļϣ?/summary>
+        /// <summary>全局已删除文件集合</summary>
         public static HashSet<string> DeletedFiles => _deletedFiles;
         
-        /// <summary>ǰʹõļ?/summary>
+        /// <summary>当前使用中的文件数</summary>
         public static int InUseFileCount
         {
             get
@@ -84,20 +87,20 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
         }
 
-        /// <summary>Sִ?/summary>
+        /// <summary>是否正在执行清理</summary>
         public static bool IsRunning => _isRunning;
 
-        /// <summary>当前清理优先?/summary>
+        /// <summary>当前清理优先级</summary>
         public static CleanupPriority CurrentPriority => _currentPriority;
 
         /// <summary>
         /// 请求磁盘清理
         /// </summary>
         /// <param name="request">清理请求</param>
-        /// <param name="cacheDirectory">缓存ཕ</param>
+        /// <param name="cacheDirectory">缓存目录</param>
         /// <param name="cacheIndex">缓存索引引用</param>
-        /// <param name="scheduleIndexSave">保存索引的回?/param>
-        /// <returns>实际ɾ的文件数?/returns>
+        /// <param name="scheduleIndexSave">保存索引的回调</param>
+        /// <returns>实际删除的文件数量</returns>
         public static int RequestDiskCleanup(
             CleanupRequest request,
             string cacheDirectory,
@@ -106,18 +109,18 @@ namespace SunEyeVision.UI.Services.Thumbnail
         {
             lock (_globalLock)
             {
-                // иڣȡǰ?
+                // 如果有更高优先级正在运行，取消当前请求
                 if (_isRunning && request.Priority <= _currentPriority)
                 {
-                    Debug.WriteLine($"[CleanupScheduler] ?跳过低优先级请求({request.Priority})，当前运行优先级({_currentPriority})");
+                    Debug.WriteLine($"[CleanupScheduler] ⏭️ 跳过低优先级请求({request.Priority})，当前运行优先级({_currentPriority})");
                     return 0;
                 }
 
-                // ȡ
+                // 取消低优先级任务
                 if (_isRunning && request.Priority > _currentPriority)
                 {
                     _currentCancellation?.Cancel();
-                    Debug.WriteLine($"[CleanupScheduler] ?取消低优先级任务，启动高优先?{request.Priority})");
+                    Debug.WriteLine($"[CleanupScheduler] 🔄 取消低优先级任务，启动高优先级({request.Priority})");
                 }
 
                 _currentCancellation = new CancellationTokenSource();
@@ -140,7 +143,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ڲ
+        /// 内部执行清理
         /// </summary>
         private static int ExecuteDiskCleanup(
             CleanupRequest request,
@@ -153,14 +156,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
             int deletedCount = 0;
             long currentFreeBytes = 0;
 
-            // أ̰߳
+            // 安全获取文件列表（线程安全）
             var files = GetCacheFilesSnapshot(cacheDirectory);
             int totalFiles = files.Count;
 
-            // ͷ?
+            // 计算需要释放的空间
             long targetFreeBytes = request.TargetBytes ?? (request.TargetFreeMB ?? 0) * 1024L * 1024L;
 
-            // K򣨾ɵ
+            // 按时间排序（旧的先删）
             var sortedFiles = files
                 .Select(f => new { File = f, Info = SafeGetFileInfo(f) })
                 .Where(f => f.Info != null)
@@ -172,7 +175,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 // 检查取消请求
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    Debug.WriteLine($"[CleanupScheduler] 已完成清理");
+                    Debug.WriteLine($"[CleanupScheduler] ⏹️ 已取消清理");
                     break;
                 }
 
@@ -180,7 +183,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 if (targetFreeBytes > 0 && currentFreeBytes >= targetFreeBytes)
                     break;
 
-                // 安全ɾļ
+                // 安全删除文件
                 if (SafeDeleteFile(item.File, out long fileSize))
                 {
                     currentFreeBytes += fileSize;
@@ -194,10 +197,10 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     }
                 }
 
-                // Ȼص
+                // 进度回调
                 request.ProgressCallback?.Invoke(deletedCount, totalFiles);
 
-                // Ϣ⿨٣
+                // 短暂休眠避免卡顿
                 if (deletedCount % 10 == 0 && deletedCount > 0)
                 {
                     Thread.Sleep(10);
@@ -207,45 +210,45 @@ namespace SunEyeVision.UI.Services.Thumbnail
             scheduleIndexSave();
             sw.Stop();
 
-            Debug.WriteLine($"[CleanupScheduler] ?清理完成 [{request.Requester}] - 删除{deletedCount}世?{currentFreeBytes / 1024 / 1024:F1}MB) 耗时:{sw.ElapsedMilliseconds}ms 优先?{request.Priority}");
+            Debug.WriteLine($"[CleanupScheduler] ✅ 清理完成 [{request.Requester}] - 删除{deletedCount}个文件({currentFreeBytes / 1024 / 1024:F1}MB) 耗时:{sw.ElapsedMilliseconds}ms 优先级:{request.Priority}");
 
             return deletedCount;
         }
 
         /// <summary>
-        /// ȫֹɾͻ
-        /// 核心规则：不ɾ正在使用的文?
+        /// 全局安全删除函数
+        /// 核心规则：不删除正在使用的文件
         /// </summary>
         public static bool SafeDeleteFile(string filePath, out long fileSize)
         {
             fileSize = 0;
             string fileName = System.IO.Path.GetFileName(filePath);
 
-            // Ƿ?
+            // 检查是否已删除
             lock (_globalLock)
             {
                 if (_deletedFiles.Contains(filePath))
                 {
-                    Debug.WriteLine($"[FileLife] ?AlreadyDeleted | {fileName}");
+                    Debug.WriteLine($"[FileLife] ⏭️ AlreadyDeleted | {fileName}");
                     return false;
                 }
             }
 
-            // ?ıļǷʹ?
+            // 检查当前文件是否正在使用
             bool inUse = IsFileInUse(filePath);
             if (inUse)
             {
-                // ?ؼ־ʹõļ
+                // 关键日志：跳过正在使用的文件
                 Debug.WriteLine($"[FileLife] 🔒 SkipInUse | {fileName}");
                 return false;
             }
 
             try
             {
-                // ٲļǷ?
+                // 再次检查文件是否存在
                 if (!File.Exists(filePath))
                 {
-                    Debug.WriteLine($"[FileLife] ?NotExists | {fileName}");
+                    Debug.WriteLine($"[FileLife] ⏭️ NotExists | {fileName}");
                     lock (_globalLock)
                     {
                         _deletedFiles.Add(filePath);
@@ -253,7 +256,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     return false;
                 }
 
-                // ?ɾǰٴȷ?
+                // 在删除前再次确认
                 lock (_globalLock)
                 {
                     if (_fileUseCount.ContainsKey(filePath) && _fileUseCount[filePath] > 0)
@@ -266,25 +269,25 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 var info = new FileInfo(filePath);
                 fileSize = info.Length;
 
-                // ?ؼ־ʼɾ?
-                Debug.WriteLine($"[FileLife] 🗑?Deleting | {fileName}");
+                // 关键日志：开始删除文件
+                Debug.WriteLine($"[FileLife] 🗑️ Deleting | {fileName}");
 
                 File.Delete(filePath);
 
-                // Ϊ
+                // 标记为已删除
                 lock (_globalLock)
                 {
                     _deletedFiles.Add(filePath);
                 }
 
-                // ?ؼ־ɾ?
-                Debug.WriteLine($"[FileLife] ?Deleted | {fileName}");
+                // 关键日志：删除完成
+                Debug.WriteLine($"[FileLife] ✅ Deleted | {fileName}");
                 return true;
             }
             catch (FileNotFoundException)
             {
-                // ?ؼ־ļɾ?
-                Debug.WriteLine($"[FileLife] ?DeletedByOther | {fileName}");
+                // 关键日志：文件已被其他进程删除
+                Debug.WriteLine($"[FileLife] ✅ DeletedByOther | {fileName}");
                 lock (_globalLock)
                 {
                     _deletedFiles.Add(filePath);
@@ -293,19 +296,19 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             catch (IOException ex)
             {
-                // ?ؼ־ļռ
-                Debug.WriteLine($"[FileLife] ?Locked {ex.Message} | {fileName}");
+                // 关键日志：文件被锁定
+                Debug.WriteLine($"[FileLife] 🔒 Locked {ex.Message} | {fileName}");
                 return false;
             }
             catch (UnauthorizedAccessException)
             {
-                Debug.WriteLine($"[FileLife] ?NoAccess | {fileName}");
+                Debug.WriteLine($"[FileLife] 🚫 NoAccess | {fileName}");
                 return false;
             }
         }
 
         /// <summary>
-        /// أ̰߳
+        /// 安全获取文件列表（线程安全）
         /// </summary>
         public static List<string> GetCacheFilesSnapshot(string cacheDirectory)
         {
@@ -317,13 +320,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[CleanupScheduler] ?获取文件列表失败: {ex.Message}");
+                Debug.WriteLine($"[CleanupScheduler] ❌ 获取文件列表失败: {ex.Message}");
                 return new List<string>();
             }
         }
 
         /// <summary>
-        /// 安全ȡļ信息
+        /// 安全获取文件信息
         /// </summary>
         private static FileInfo? SafeGetFileInfo(string filePath)
         {
@@ -338,7 +341,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 文件是否已ɾ
+        /// 文件是否已删除
         /// </summary>
         public static bool IsFileDeleted(string filePath)
         {
@@ -349,7 +352,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ɾļ¼ڼ¼?
+        /// 清除已删除文件记录（仅在重启时调用）
         /// </summary>
         public static void ClearDeletedRecords()
         {
@@ -359,13 +362,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
         }
 
-        #region ʹü
+        #region 使用计数
 
         /// <summary>
-        /// ʹã
-        /// 在加载缓存文件前调用，防止清理器ɾ正在使用的文?
+        /// 标记文件正在使用
+        /// 在加载缓存文件前调用，防止清理器删除正在使用的文件
         /// </summary>
-        /// <param name="filePath">ļ跾</param>
+        /// <param name="filePath">文件路径</param>
         public static void MarkFileInUse(string filePath)
         {
             if (string.IsNullOrEmpty(filePath)) return;
@@ -384,16 +387,16 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     newCount = 1;
                 }
                 
-                // ?ؼ־¼ļ
+                // 关键日志：记录文件使用
                 Debug.WriteLine($"[FileLife] 📌 MarkInUse cnt={newCount} | {System.IO.Path.GetFileName(filePath)}");
             }
         }
 
         /// <summary>
-        /// ͷʹã
-        /// 在加载缓存文件完成后调用（无论成功或ʧ?
+        /// 释放文件使用标记
+        /// 在加载缓存文件完成后调用（无论成功或失败）
         /// </summary>
-        /// <param name="filePath">ļ跾</param>
+        /// <param name="filePath">文件路径</param>
         public static void ReleaseFile(string filePath)
         {
             if (string.IsNullOrEmpty(filePath)) return;
@@ -408,29 +411,29 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     if (remaining <= 0)
                     {
                         _fileUseCount.Remove(filePath);
-                        // ?ؼ־ļȫ?
+                        // 关键日志：文件完全释放
                         Debug.WriteLine($"[FileLife] 📤 ReleaseAll | {System.IO.Path.GetFileName(filePath)}");
                     }
                     else
                     {
-                        // ?ؼ־ļü?
+                        // 关键日志：文件计数减少
                         Debug.WriteLine($"[FileLife] 📤 Release cnt={remaining} | {System.IO.Path.GetFileName(filePath)}");
                     }
                 }
                 else
                 {
-                    // ?쳣ͷ˖Pǵļ
-                    Debug.WriteLine($"[FileLife] ?ReleaseNotMarked | {System.IO.Path.GetFileName(filePath)}");
+                    // 异常释放未标记的文件
+                    Debug.WriteLine($"[FileLife] ⚠️ ReleaseNotMarked | {System.IO.Path.GetFileName(filePath)}");
                 }
             }
         }
 
         /// <summary>
-        /// ļǷʹ
-        /// ǰӦô˷?
+        /// 检查文件是否正在使用
+        /// 调用前应持有锁
         /// </summary>
-        /// <param name="filePath">ļ跾</param>
-        /// <returns>ʹ÷ true</returns>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>正在使用返回 true</returns>
         public static bool IsFileInUse(string filePath)
         {
             lock (_globalLock)
@@ -440,7 +443,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ʹõб
+        /// 获取正在使用的文件列表
         /// </summary>
         public static IReadOnlyList<string> GetInUseFiles()
         {
@@ -454,17 +457,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
     }
 
     /// <summary>
-    /// 缓存管理?- 򻯰3ܹ
+    /// 缓存管理器 - 简化版3级架构
     /// 
-    /// 㼶?
-    /// L1: ڴ滺棨ǿ50?+ k
-    /// L2: Shell + 黺油?
+    /// 缓存层级：
+    /// L1: 内存缓存（强引用50项 + 弱引用缓存）
+    /// L2: Shell缓存 + 磁盘缓存补充
     /// 
-    /// Żμض?0%?
+    /// 优化目标：缩略图加载时间缩短至0%
     /// 
-    /// ?ļڹ?
-    /// - 通过 IFileAccessManager 统一管理ļ访问
-    /// - ɾʹõ
+    /// 文件生命周期管理：
+    /// - 通过 IFileAccessManager 统一管理文件访问
+    /// - 不删除正在使用的文件
     /// </summary>
     public class ThumbnailCacheManager : IDisposable
     {
@@ -475,29 +478,29 @@ namespace SunEyeVision.UI.Services.Thumbnail
         private readonly PerformanceLogger _logger = new PerformanceLogger("ThumbnailCache");
         private readonly ConcurrentDictionary<string, string> _cacheIndex = new ConcurrentDictionary<string, string>();
         
-        // L1棺ǿÝHʹk
+        // L1缓存：强引用，使用LRU淘汰
         private readonly ConcurrentDictionary<string, BitmapImage> _memoryCache = new ConcurrentDictionary<string, BitmapImage>();
-        private const int MAX_MEMORY_CACHE_SIZE = 50; // 大强引用缓存数量
+        private const int MAX_MEMORY_CACHE_SIZE = 50; // 最大强引用缓存数量
         
-        // L1备份：弱引用缓存（可被GC回收?
+        // L1备份：弱引用缓存（可被GC回收）
         private readonly WeakReferenceCache<string, BitmapImage> _weakCache = new WeakReferenceCache<string, BitmapImage>();
         
-        // Shell缓存提供者（L2优先策略?
+        // Shell缓存提供者（L2优先策略）
         private readonly WindowsShellThumbnailProvider _shellProvider;
         
-        // ?ļʹ棬ͳһļ
+        // 文件访问管理器，用于统一文件生命周期管理
         private readonly IFileAccessManager? _fileAccessManager;
         
-        private readonly object _indexLock = new object(); // 索引ļ访问?
+        private readonly object _indexLock = new object(); // 索引文件访问锁
         
-        // ֵ䣬дͬһ
+        // 文件锁字典，用于防止同一文件的并发写入冲突
         private readonly ConcurrentDictionary<string, object> _fileLocks = new ConcurrentDictionary<string, object>();
         private Timer? _indexSaveTimer; // 延迟保存索引的定时器
-        private bool _indexDirty = false; // 索引昐要保?
+        private bool _indexDirty = false; // 索引是否需要保存
         private bool _disposed = false;
 
         /// <summary>
-        /// ͳ
+        /// 缓存统计
         /// </summary>
         public class CacheStatistics
         {
@@ -510,14 +513,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
         private readonly CacheStatistics _statistics = new CacheStatistics();
 
         /// <summary>
-        /// ͳϢ
+        /// 缓存统计信息
         /// </summary>
         public CacheStatistics Statistics => _statistics;
 
         /// <summary>
-        /// 构函?
+        /// 构造函数
         /// </summary>
-        /// <param name="fileAccessManager">ʹ棬ͳһڹ?/param>
+        /// <param name="fileAccessManager">文件访问管理器，用于统一生命周期管理</param>
         public ThumbnailCacheManager(IFileAccessManager? fileAccessManager = null)
         {
             _cacheDirectory = System.IO.Path.Combine(
@@ -525,15 +528,15 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 "SunEyeVision",
                 "ThumbnailCache");
             
-            // Shellṩ?
+            // 创建Shell缓存提供者
             _shellProvider = new WindowsShellThumbnailProvider();
             
-            // ?ļʹͳһļڹ?
+            // 文件访问管理器，用于统一文件生命周期管理
             _fileAccessManager = fileAccessManager;
 
             InitializeCache();
 
-            // ʱ?뱣һб仯
+            // 定时保存索引，避免频繁写入
             _indexSaveTimer = new Timer(_ =>
             {
                 if (_indexDirty)
@@ -609,7 +612,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 保存缓存索引线程安全
+        /// 保存缓存索引（线程安全）
         /// </summary>
         private void SaveCacheIndex()
         {
@@ -620,11 +623,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     var indexFile = System.IO.Path.Combine(_cacheDirectory, "cache_index.txt");
                     var lines = _cacheIndex.Select(kvp => $"{kvp.Key}|{kvp.Value}");
                     File.WriteAllLines(indexFile, lines);
-                    _indexDirty = false; // 清除脏标?
+                    _indexDirty = false; // 清除脏标记
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[ThumbnailCache] ?保存缓存索引失败: {ex.Message}");
+                    Debug.WriteLine($"[ThumbnailCache] ❌ 保存缓存索引失败: {ex.Message}");
                 }
             }
         }
@@ -634,12 +637,12 @@ namespace SunEyeVision.UI.Services.Thumbnail
         /// </summary>
         private void ScheduleIndexSave()
         {
-            _indexDirty = true; // 标索引要保?
-            // ʱ?󱣴棬
+            _indexDirty = true; // 标记索引需要保存
+            // 由定时器在稍后保存，避免频繁写入
         }
 
         /// <summary>
-        /// SΨϣ
+        /// 获取文件哈希值
         /// </summary>
         private string GetFileHash(string filePath)
         {
@@ -649,8 +652,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ȡļ跾
-        /// ע⣺ʹJPEGʽ棬չ̶?jpg
+        /// 获取缓存文件路径
+        /// 注意：使用JPEG格式缓存，扩展名固定为.jpg
         /// </summary>
         private string GetCacheFilePath(string filePath)
         {
@@ -659,16 +662,16 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ӵڴ滺棨༶?
+        /// 添加到内存缓存（多级缓存）
         /// </summary>
         public void AddToMemoryCache(string filePath, BitmapImage bitmap)
         {
             if (bitmap != null && !string.IsNullOrEmpty(filePath))
             {
-                // L1缓存：强引用（有上限?
+                // L1缓存：强引用（有上限）
                 if (_memoryCache.Count >= MAX_MEMORY_CACHE_SIZE)
                 {
-                    // L1ɵƵL2û?
+                    // L1淘汰的转移到L2弱引用
                     var oldestKey = _memoryCache.Keys.FirstOrDefault();
                     if (oldestKey != null && _memoryCache.TryRemove(oldestKey, out var oldBitmap))
                     {
@@ -677,10 +680,10 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 }
                 _memoryCache.TryAdd(filePath, bitmap);
                 
-                // 同时存入L2弱引用缓存（作为备份?
+                // 同时存入L2弱引用缓存（作为备份）
                 _weakCache.Add(filePath, bitmap);
                 
-                // 缓存添加不输出日?
+                // 缓存添加不输出日志
             }
         }
 
@@ -691,31 +694,31 @@ namespace SunEyeVision.UI.Services.Thumbnail
         {
             if (string.IsNullOrEmpty(filePath)) return;
 
-            // 从L1强引用缓存移?
-            // 缓存移除不输出日?
+            // 从L1强引用缓存移除
+            _memoryCache.TryRemove(filePath, out _);
 
-            // 从L2弱引用缓存移?
+            // 从L2弱引用缓存移除
             _weakCache.Remove(filePath);
         }
 
         /// <summary>
-        /// Դӻͼ?㻺
-        /// L1: ڴ滺棨ǿ + k
-        /// L2: Shell优先 + 臻̻
-        /// ?ʹ FileAccessManager ļʣɮk
+        /// 尝试从缓存加载图像
+        /// L1: 内存缓存（强引用 + 弱引用）
+        /// L2: Shell缓存优先 + 磁盘缓存补充
+        /// 使用 FileAccessManager 管理文件访问
         /// </summary>
         public BitmapImage? TryLoadFromCache(string filePath)
         {
             _statistics.TotalRequests++;
 
-            // L1a: 强引用内存缓?
+            // L1a: 强引用内存缓存
             if (_memoryCache.TryGetValue(filePath, out var cachedBitmap))
             {
                 _statistics.CacheHits++;
                 return cachedBitmap;
             }
 
-            // L1b: 弱引用缓?
+            // L1b: 弱引用缓存
             if (_weakCache.TryGet(filePath, out var weakCachedBitmap) && weakCachedBitmap != null)
             {
                 _statistics.CacheHits++;
@@ -729,13 +732,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
             if (shellThumbnail != null)
             {
                 _statistics.CacheHits++;
-                // ӵڴ滺?
+                // 添加到内存缓存
                 _memoryCache.TryAdd(filePath, shellThumbnail);
                 _weakCache.Add(filePath, shellThumbnail);
                 return shellThumbnail;
             }
 
-            // L2b: 飨òԣ
+            // L2b: 磁盘缓存（次选策略）
             var cacheFilePath = GetCacheFilePath(filePath);
             if (!_cacheIndex.TryGetValue(filePath, out string? cachedPath) || !File.Exists(cacheFilePath))
             {
@@ -743,14 +746,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 return null;
             }
 
-            // ?ģʹ?FileAccessManager ļʣRAIIģʽ?
+            // 使用 FileAccessManager 管理文件访问，RAII模式
             if (_fileAccessManager != null)
             {
                 using var scope = _fileAccessManager.CreateAccessScope(cacheFilePath, FileAccessIntent.Read, FileType.CacheFile);
                 
                 if (!scope.IsGranted)
                 {
-                    Debug.WriteLine($"[ThumbnailCache] ?文件访问袋? {scope.ErrorMessage} file={System.IO.Path.GetFileName(cacheFilePath)}");
+                    Debug.WriteLine($"[ThumbnailCache] ⚠️ 文件访问被拒绝: {scope.ErrorMessage} file={System.IO.Path.GetFileName(cacheFilePath)}");
                     _statistics.CacheMisses++;
                     return null;
                 }
@@ -759,7 +762,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             else
             {
-                // ģʽʹ?CleanupSchedulerɷʽ?
+                // 无管理模式，使用 CleanupScheduler 方式访问
                 CleanupScheduler.MarkFileInUse(cacheFilePath);
                 
                 try
@@ -774,30 +777,30 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
         
         /// <summary>
-        /// 从缓存文件加载（内部实现?
-        /// ?ؼʹ?StreamSource + ڴ滺壬?UriSource ӳټص¾?
+        /// 从缓存文件加载（内部实现）
+        /// 关键优化：使用 StreamSource + 内存缓冲，避免 UriSource 延迟加载的问题
         /// 
-        /// ?
-        /// - BitmapImage.UriSource nټصģ EndInit() ʱȡ
-        /// - 清理器可能在 MarkFileInUse() ?EndInit() 之间ɾļ
+        /// 问题：
+        /// - BitmapImage.UriSource 是延迟加载的，EndInit() 时才读取
+        /// - 清理器可能在 MarkFileInUse() 和 EndInit() 之间删除文件
         /// - 导致 FileNotFoundException 异常
         /// 
-        /// ?
-        /// - ͬȡļڴ滺
-        /// - 再用 MemoryStream 加载，完全避免文件竞?
+        /// 解决：
+        /// - 同步读取文件到内存缓冲
+        /// - 再用 MemoryStream 加载，完全避免文件竞态
         /// </summary>
         private BitmapImage? LoadCacheFileInternal(string filePath, string cacheFilePath)
         {
             try
             {
-                // ļ[˫ر?
+                // 检查文件是否存在（双重保护）
                 if (!File.Exists(cacheFilePath))
                 {
                     _cacheIndex.TryRemove(filePath, out _);
                     return null;
                 }
 
-                // ?ģͬȡļڴ棬 UriSource ӳټ
+                // 关键优化：同步读取文件到内存，避免 UriSource 延迟加载
                 byte[] imageBytes;
                 using (var fs = new FileStream(cacheFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
                 {
@@ -815,46 +818,46 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
-                bitmap.StreamSource = new MemoryStream(imageBytes);  // 使用内存?
+                bitmap.StreamSource = new MemoryStream(imageBytes);  // 使用内存流
                 bitmap.EndInit();
                 bitmap.Freeze();
 
-                // ӵڴ滺?
+                // 添加到内存缓存
                 _memoryCache.TryAdd(filePath, bitmap);
                 _weakCache.Add(filePath, bitmap);
 
                 _statistics.CacheHits++;
-                // в־߲?
+                // 命中不输出日志
 
                 return bitmap;
             }
             catch (FileNotFoundException)
             {
-                // 
-                Debug.WriteLine($"[ThumbnailCache] ?缓存文件已删? {System.IO.Path.GetFileName(cacheFilePath)}");
+                // 文件已被删除
+                Debug.WriteLine($"[ThumbnailCache] ⚠️ 缓存文件已删除: {System.IO.Path.GetFileName(cacheFilePath)}");
                 _cacheIndex.TryRemove(filePath, out _);
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ThumbnailCache] ?缓存加载失败: {ex.Message}");
+                Debug.WriteLine($"[ThumbnailCache] ❌ 缓存加载失败: {ex.Message}");
                 _cacheIndex.TryRemove(filePath, out _);
                 return null;
             }
         }
         
         /// <summary>
-        /// 尝试从Shell缓存加载（L2优先策略?
+        /// 尝试从Shell缓存加载（L2优先策略）
         /// </summary>
         private BitmapImage? TryLoadFromShellCache(string filePath)
         {
             try
             {
-                // 仅从系统缓存ȡ，不生成新的缩略?
+                // 仅从系统缓存读取，不生成新的缩略图
                 var thumbnail = _shellProvider.GetThumbnail(filePath, _thumbnailSize, cacheOnly: true);
                 if (thumbnail != null)
                 {
-                    // 轍为BitmapImage
+                    // 转换为BitmapImage
                     return ConvertToBitmapImage(thumbnail, _thumbnailSize);
                 }
                 return null;
@@ -866,7 +869,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
         
         /// <summary>
-        /// 将BitmapSource轍为BitmapImage
+        /// 将BitmapSource转换为BitmapImage
         /// </summary>
         private BitmapImage ConvertToBitmapImage(BitmapSource source, int size)
         {
@@ -892,7 +895,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ͼ棨ͬ棬
+        /// 保存缩略图到缓存（同步保存）
         /// 适用于需要确保缓存立即可用的场景
         /// </summary>
         public void SaveToCache(string filePath, BitmapSource thumbnail)
@@ -902,13 +905,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 var sw = Stopwatch.StartNew();
                 var cacheFilePath = GetCacheFilePath(filePath);
 
-                // 浽ڴ滺棨?
+                // 保存到内存缓存（同步）
                 if (thumbnail is BitmapImage bitmap)
                 {
                     _memoryCache.TryAdd(filePath, bitmap);
                 }
 
-                // 浽?- 벢д?
+                // 保存到磁盘 - 编码并写入
                 var encoder = new JpegBitmapEncoder();
                 encoder.QualityLevel = _jpegQuality;
                 encoder.Frames.Add(BitmapFrame.Create(thumbnail));
@@ -922,17 +925,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 // 索引（延迟保存）
                 var indexSw = Stopwatch.StartNew();
                 _cacheIndex.TryAdd(filePath, cacheFilePath);
-                ScheduleIndexSave(); // 延迟保存索引，不再立即保?
+                ScheduleIndexSave(); // 延迟保存索引，不再立即保存
                 indexSw.Stop();
 
-                // 查缓存大小并清理
+                // 检查缓存大小并清理
                 CheckCacheSizeAndCleanup();
 
-                // 缓存保存ɹ不输出日?
+                // 缓存保存成功不输出日志
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ThumbnailCache] ?缓存保存失败: {ex.Message}");
+                Debug.WriteLine($"[ThumbnailCache] ❌ 缓存保存失败: {ex.Message}");
             }
         }
 
@@ -941,25 +944,25 @@ namespace SunEyeVision.UI.Services.Thumbnail
         private readonly object _diskWriteLock = new object();
 
         /// <summary>
-        /// ͼ棨Ż棩
-        /// - ͬHأ
-        /// - 챣棨ִ̨У
+        /// 保存缩略图到缓存（优化版）
+        /// - 同步更新内存缓存
+        /// - 异步保存到磁盘（后台执行）
         /// </summary>
         /// <remarks>
-        /// ƣʾӳٴ +10-35ms  0ms
+        /// 优化：显示延迟从 +10-35ms 降至 0ms
         /// </remarks>
         public void SaveToCacheNonBlocking(string filePath, BitmapSource thumbnail)
         {
             if (thumbnail == null || string.IsNullOrEmpty(filePath))
                 return;
 
-            // 1. 立即更新内存缓存（同步，<1ms?
+            // 1. 立即更新内存缓存（同步，<1ms）
             if (thumbnail is BitmapImage bitmap)
             {
                 AddToMemoryCache(filePath, bitmap);
             }
 
-            // 2. 챣浽÷?
+            // 2. 异步保存到磁盘
             Interlocked.Increment(ref _pendingDiskWrites);
             _ = Task.Run(() =>
             {
@@ -975,7 +978,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 浽棨ڲִ̨߳У
+        /// 保存到磁盘缓存（内部方法，在后台线程执行）
         /// </summary>
         private void SaveToDiskCache(string filePath, BitmapSource thumbnail)
         {
@@ -983,17 +986,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
             {
                 var cacheFilePath = GetCacheFilePath(filePath);
                 
-                // ?ȡļרдͻ
+                // 获取文件独占锁防止并发写入冲突
                 var fileLock = _fileLocks.GetOrAdd(cacheFilePath, _ => new object());
                 
                 lock (fileLock)
                 {
-                    // JPEG编码并写入文?
+                    // JPEG编码并写入文件
                     var encoder = new JpegBitmapEncoder();
                     encoder.QualityLevel = _jpegQuality;
                     encoder.Frames.Add(BitmapFrame.Create(thumbnail));
 
-                    // ?ʹ FileShare.None 
+                    // 使用 FileShare.None 防止并发读写
                     using var stream = new FileStream(cacheFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
                     encoder.Save(stream);
                 }
@@ -1002,17 +1005,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 _cacheIndex.TryAdd(filePath, cacheFilePath);
                 ScheduleIndexSave();
 
-                // 查缓存大?
+                // 检查缓存大小
                 CheckCacheSizeAndCleanup();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ThumbnailCache] ?磁盘缓存保存失败: {ex.Message}");
+                Debug.WriteLine($"[ThumbnailCache] ❌ 磁盘缓存保存失败: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// ȴдɣӦóʱ?
+        /// 等待所有待处理的保存完成（应用程序退出时调用）
         /// </summary>
         public async Task WaitForPendingSavesAsync(TimeSpan? timeout = null)
         {
@@ -1030,7 +1033,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 챣ͼ
+        /// 异步保存缩略图到缓存
         /// </summary>
         public async Task SaveToCacheAsync(string filePath, BitmapSource thumbnail)
         {
@@ -1038,7 +1041,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 黺Сʹͳ
+        /// 检查缓存大小并在需要时清理
         /// </summary>
         private void CheckCacheSizeAndCleanup()
         {
@@ -1054,13 +1057,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
                 if (totalSize > _maxCacheSizeBytes)
                 {
-                    Debug.WriteLine($"[ThumbnailCache] ?缓存超限 ({totalSize / 1024 / 1024:F1}MB)，开始清?..");
+                    Debug.WriteLine($"[ThumbnailCache] ⚠️ 缓存超限 ({totalSize / 1024 / 1024:F1}MB)，开始清理...");
 
-                    // 计算要释放的空间（清理到80%?
+                    // 计算要释放的空间（清理到80%）
                     var targetSize = (long)(_maxCacheSizeBytes * 0.8);
                     var bytesToFree = totalSize - targetSize;
 
-                    // 使用统一调度器执行清?
+                    // 使用统一调度器执行清理
                     var request = CleanupRequest.FromBytes(bytesToFree, CleanupPriority.Normal, "CheckCacheSizeAndCleanup");
                     var deletedCount = CleanupScheduler.RequestDiskCleanup(request, _cacheDirectory, _cacheIndex, ScheduleIndexSave);
                 }
@@ -1072,7 +1075,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 清除有缓?
+        /// 清除所有缓存
         /// </summary>
         public void ClearCache()
         {
@@ -1112,8 +1115,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
         /// </summary>
         public async Task PreGenerateCacheAsync(string[] filePaths, Func<string, BitmapSource?> loadFunc)
         {
-            Debug.WriteLine($"[ThumbnailCache] ========== 预生成缓存开?==========");
-            Debug.WriteLine($"[ThumbnailCache] 待生成数? {filePaths.Length}");
+            Debug.WriteLine($"[ThumbnailCache] ========== 预生成缓存开始 ==========");
+            Debug.WriteLine($"[ThumbnailCache] 待生成数量: {filePaths.Length}");
 
             var sw = Stopwatch.StartNew();
             int generatedCount = 0;
@@ -1170,14 +1173,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 }
 
                 _memoryCache.Clear(); // 清理内存缓存
-                _shellProvider?.Dispose(); // 释放Shell提供?
+                _shellProvider?.Dispose(); // 释放Shell提供者
                 _disposed = true;
                 Debug.WriteLine("[ThumbnailCache] 资源已释放");
             }
         }
 
         /// <summary>
-        /// ȡ缓存信息
+        /// 获取缓存信息
         /// </summary>
         public string GetCacheInfo()
         {
@@ -1191,11 +1194,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 var fileSize = totalSize / 1024.0 / 1024.0;
                 var shellStats = _shellProvider.GetStatistics();
 
-                return $"L1:{_memoryCache.Count}?L2弱引?{_weakCache.AliveCount}?磁盘:{files.Count}?{fileSize:F1}MB 命中?{_statistics.HitRate:F1}% | {shellStats}";
+                return $"L1:{_memoryCache.Count}项 L2弱引用:{_weakCache.AliveCount}项 磁盘:{files.Count}个({fileSize:F1}MB) 命中率:{_statistics.HitRate:F1}% | {shellStats}";
             }
             catch
             {
-                return "缓存信息ȡʧ";
+                return "缓存信息获取失败";
             }
         }
         
@@ -1208,8 +1211,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
             {
                 // 危险级别：立即清空L1，渐进清理L2
                 _memoryCache.Clear();
-                // ?P1Żʽ̻
-                ProgressiveCleanup(100); // ࠇ释放100MB
+                // P1优化：渐进式磁盘缓存清理
+                ProgressiveCleanup(100); // 目标释放100MB
             }
             else
             {
@@ -1230,23 +1233,23 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// ?P1Żʽڴʹͳ
-        /// 棬δ¿?
+        /// P1优化：渐进式内存使用统计
+        /// 根据内存压力级别清理缓存，避免一次性大量删除
         /// </summary>
-        /// <param name="targetFreeMB">ࠇ释放空间(MB)</param>
-        /// <param name="progressCallback">Ȼص(已删除数? 总数?</param>
+        /// <param name="targetFreeMB">目标释放空间(MB)</param>
+        /// <param name="progressCallback">进度回调(已删除数量, 总数量)</param>
         public void ProgressiveCleanup(int targetFreeMB, Action<int, int>? progressCallback = null)
         {
-            // ݵԴȷ?
-            // RespondToMemoryPressure 会根?isCritical 传入不同?targetFreeMB
-            // 100MB = 危险级别(Critical), 50MB = 高压?High)
+            // 根据内存压力级别确定优先级
+            // RespondToMemoryPressure 会根据 isCritical 传入不同的 targetFreeMB
+            // 100MB = 危险级别(Critical), 50MB = 高压力(High)
             var priority = targetFreeMB >= 100 ? CleanupPriority.Critical : CleanupPriority.High;
 
             _ = Task.Run(() =>
             {
                 try
                 {
-                    // 使用统一调度器执行清?
+                    // 使用统一调度器执行清理
                     var request = new CleanupRequest
                     {
                         TargetFreeMB = targetFreeMB,
@@ -1259,7 +1262,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[ThumbnailCache] ?渐进清理失败: {ex.Message}");
+                    Debug.WriteLine($"[ThumbnailCache] ❌ 渐进清理失败: {ex.Message}");
                 }
             });
         }

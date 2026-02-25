@@ -1,0 +1,44 @@
+<Project>
+  <!-- PluginDevKit 统一构建配置 -->
+  <!-- 用于独立插件开发，可分发给插件开发者 -->
+  
+  <PropertyGroup>
+    <!-- 目标框架 -->
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- SDK 路径 -->
+    <SdkPath Condition="'$(SdkPath)' == ''">$(MSBuildThisFileDirectory)sdk\net9.0\</SdkPath>
+    
+    <!-- 输出路径：默认输出到 runtime/plugins -->
+    <OutputPath Condition="'$(OutputPath)' == ''">$(MSBuildThisFileDirectory)runtime\plugins\$(MSBuildProjectName)\</OutputPath>
+    
+    <!-- 插件元数据输出 -->
+    <GeneratePluginMetadata>true</GeneratePluginMetadata>
+  </PropertyGroup>
+  
+  <!-- SDK 引用：优先使用本地 DLL，支持切换到 NuGet -->
+  <ItemGroup Condition="'$(UseNuGet)' != 'true'">
+    <Reference Include="SunEyeVision.Plugin.SDK">
+      <HintPath>$(SdkPath)SunEyeVision.Plugin.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SunEyeVision.Plugin.Abstractions">
+      <HintPath>$(SdkPath)SunEyeVision.Plugin.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  
+  <!-- NuGet 包引用方式 -->
+  <ItemGroup Condition="'$(UseNuGet)' == 'true'">
+    <PackageReference Include="SunEyeVision.Plugin.SDK" Version="1.0.0" />
+  </ItemGroup>
+  
+  <!-- 常用命名空间 -->
+  <ItemGroup>
+    <Using Include="SunEyeVision.Plugin.Abstractions" />
+    <Using Include="SunEyeVision.Plugin.Abstractions.Models" />
+  </ItemGroup>
+</Project>
