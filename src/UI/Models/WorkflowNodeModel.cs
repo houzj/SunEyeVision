@@ -4,12 +4,13 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
-    /// 工作流节点模�?
+    /// 工作流节点模?
     /// </summary>
     public class WorkflowNode : INotifyPropertyChanged
     {
@@ -19,19 +20,19 @@ namespace SunEyeVision.UI.Models
         private Point _position;
         private bool _isSelected;
         private bool _isEnabled = true;
-        private string _status = "待运�?;
+        private string _status = "待运行";
         private int _index;
         private int _globalIndex;
         private string _nodeTypeIcon = string.Empty;
         private NodeStyleConfig _styleConfig = NodeStyles.Standard; // 默认样式配置
 
-        // 4A: 智能属性变更批处理 - 批处理机�?
+        // 4A: 智能属性变更批处理 - 批处理机?
         private readonly HashSet<string> _pendingPropertyChanges = new HashSet<string>();
         private bool _isBatchingProperties = false;
         private DispatcherTimer? _batchTimer;
 
         /// <summary>
-        /// 节点样式配置（用于完全解耦样式和逻辑�?
+        /// 节点样式配置（用于完全解耦样式和逻辑?
         /// </summary>
         public NodeStyleConfig StyleConfig
         {
@@ -43,7 +44,7 @@ namespace SunEyeVision.UI.Models
                     _styleConfig = value ?? NodeStyles.Standard;
                     _styleConfig.Validate();
                     OnPropertyChanged();
-                    // 触发端口位置属性变�?
+                    // 触发端口位置属性变?
                     OnPropertyChanged(nameof(TopPortPosition));
                     OnPropertyChanged(nameof(BottomPortPosition));
                     OnPropertyChanged(nameof(LeftPortPosition));
@@ -58,7 +59,7 @@ namespace SunEyeVision.UI.Models
         public event Action<WorkflowNode, string>? PropertyChanging;
 
         /// <summary>
-        /// 属性变更后事件（扩展的标准PropertyChanged�?
+        /// 属性变更后事件（扩展的标准PropertyChanged?
         /// </summary>
         public event Action<WorkflowNode, string>? PropertyChangedExtended;
 
@@ -109,7 +110,7 @@ namespace SunEyeVision.UI.Models
                 if (_position != value)
                 {
                     _position = value;
-                    // 5B: 位置更新必须实时，不使用批处�?
+                    // 5B: 位置更新必须实时，不使用批处?
                     // 拖拽时节点位置必须立即更新，否则会出现延迟和闪烁
                     OnPropertyChanged(nameof(Position));
                     OnPropertyChanged(nameof(PositionX));
@@ -159,12 +160,12 @@ namespace SunEyeVision.UI.Models
         public Point RightPortPosition => _styleConfig.GetRightPortPosition(Position);
 
         /// <summary>
-        /// 获取节点边界矩形（用于框选等操作�?
+        /// 获取节点边界矩形（用于框选等操作?
         /// </summary>
         public Rect NodeRect => _styleConfig.GetNodeRect(Position);
 
         /// <summary>
-        /// 获取节点中心点（用于距离计算�?
+        /// 获取节点中心点（用于距离计算?
         /// </summary>
         public Point NodeCenter => _styleConfig.GetNodeCenter(Position);
 
@@ -212,7 +213,7 @@ namespace SunEyeVision.UI.Models
         private bool _isVisible = true;
 
         /// <summary>
-        /// 节点是否可见（用于虚拟化渲染�?
+        /// 节点是否可见（用于虚拟化渲染?
         /// </summary>
         public bool IsVisible
         {
@@ -262,7 +263,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 全局唯一序号（所有工作流中的总序号，不可修改�?
+        /// 全局唯一序号（所有工作流中的总序号，不可修改?
         /// </summary>
         public int GlobalIndex { get; private set; }
 
@@ -283,7 +284,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 本地显示名称（节点名�?+ 本地序号�?
+        /// 本地显示名称（节点名?+ 本地序号?
         /// </summary>
         public string LocalDisplayName => $"{_name} {_index}";
 
@@ -292,6 +293,15 @@ namespace SunEyeVision.UI.Models
         /// 每个采集节点维护独立的图像集合，实现独立的图像预览器
         /// </summary>
         public NodeImageData? ImageData { get; set; }
+
+        /// <summary>
+        /// 参数绑定配置
+        /// </summary>
+        /// <remarks>
+        /// 支持参数与父节点输出的动态绑定。
+        /// 用于在执行时自动从父节点获取参数值。
+        /// </remarks>
+        public ParameterBindingContainer? ParameterBindings { get; set; }
 
         /// <summary>
         /// 判断是否为图像采集类节点
@@ -310,14 +320,14 @@ namespace SunEyeVision.UI.Models
             GlobalIndex = globalIndex;
             Position = new Point(0, 0);
 
-            // 初始化批处理定时�?16ms延迟)
+            // 初始化批处理定时?16ms延迟)
             _batchTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(16)
             };
             _batchTimer.Tick += OnBatchTimerTick;
 
-            // 图标由工厂设置，不再在这里设�?
+            // 图标由工厂设置，不再在这里设?
         }
 
         /// <summary>
@@ -331,7 +341,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 4A: 结束属性变更批处理并触发所有挂起的属性变�?
+        /// 4A: 结束属性变更批处理并触发所有挂起的属性变?
         /// </summary>
         public void EndPropertyBatch()
         {
@@ -339,7 +349,7 @@ namespace SunEyeVision.UI.Models
 
             if (_pendingPropertyChanges.Count > 0)
             {
-                // 立即触发所有挂起的属性变�?
+                // 立即触发所有挂起的属性变?
                 foreach (var propertyName in _pendingPropertyChanges)
                 {
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -349,7 +359,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 4A: 批处理定时器触发 - 在延迟后触发所有挂起的属性变�?
+        /// 4A: 批处理定时器触发 - 在延迟后触发所有挂起的属性变?
         /// </summary>
         private void OnBatchTimerTick(object? sender, EventArgs e)
         {
@@ -366,11 +376,11 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 4A: 智能属性变更通知（支持批处理�?
+        /// 4A: 智能属性变更通知（支持批处理?
         /// </summary>
         protected void OnPropertyChangedSmart(string propertyName, bool batchPositionChanges = false)
         {
-            // 如果是位置相关属性且启用了批处理，则加入批处理队�?
+            // 如果是位置相关属性且启用了批处理，则加入批处理队?
             if (batchPositionChanges && _isBatchingProperties)
             {
                 _pendingPropertyChanges.Add(propertyName);
@@ -383,7 +393,7 @@ namespace SunEyeVision.UI.Models
                 return;
             }
 
-            // 正常情况立即触发属性变�?
+            // 正常情况立即触发属性变?
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
@@ -497,7 +507,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 箭头角度 (�? - 用于旋转箭头指向目标方向
+        /// 箭头角度 (? - 用于旋转箭头指向目标方向
         /// </summary>
         public double ArrowAngle
         {
@@ -513,7 +523,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 箭头位置 - 箭头尾部的实际显示位�?
+        /// 箭头位置 - 箭头尾部的实际显示位?
         /// </summary>
         public System.Windows.Point ArrowPosition
         {
@@ -541,17 +551,17 @@ namespace SunEyeVision.UI.Models
         public double ArrowY => ArrowPosition.Y;
 
         /// <summary>
-        /// 箭头大小 - 固定�?0px
+        /// 箭头大小 - 固定?0px
         /// </summary>
         public double ArrowSize => 10;
 
         /// <summary>
-        /// 箭头缩放比例 - 固定�?.0�?0px基准�?
+        /// 箭头缩放比例 - 固定?.0?0px基准?
         /// </summary>
         public double ArrowScale => 1.0;
 
         /// <summary>
-        /// 连接状�?- 用于执行过程中的视觉反馈
+        /// 连接状?- 用于执行过程中的视觉反馈
         /// </summary>
         public ConnectionStatus Status
         {
@@ -579,7 +589,7 @@ namespace SunEyeVision.UI.Models
         };
 
         /// <summary>
-        /// 是否显示路径点（用于调试�?
+        /// 是否显示路径点（用于调试?
         /// </summary>
         public bool ShowPathPoints
         {
@@ -611,7 +621,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 连线路径点集合（拐点�?
+        /// 连线路径点集合（拐点?
         /// </summary>
         public System.Collections.ObjectModel.ObservableCollection<System.Windows.Point> PathPoints { get; set; } = new System.Collections.ObjectModel.ObservableCollection<System.Windows.Point>();
 
@@ -634,7 +644,7 @@ namespace SunEyeVision.UI.Models
         private bool _isVisible = true;
 
         /// <summary>
-        /// 连线是否可见（用于虚拟化渲染�?
+        /// 连线是否可见（用于虚拟化渲染?
         /// </summary>
         public bool IsVisible
         {
@@ -656,8 +666,8 @@ namespace SunEyeVision.UI.Models
             {
                 if (_sourcePosition != value)
                 {
-                    // 注意：这�?Model 类，无法直接访问 ViewModel
-                    // 日志已移�?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
+                    // 注意：这?Model 类，无法直接访问 ViewModel
+                    // 日志已移?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
                     _sourcePosition = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(StartX));
@@ -673,8 +683,8 @@ namespace SunEyeVision.UI.Models
             {
                 if (_targetPosition != value)
                 {
-                    // 注意：这�?Model 类，无法直接访问 ViewModel
-                    // 日志已移�?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
+                    // 注意：这?Model 类，无法直接访问 ViewModel
+                    // 日志已移?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
                     _targetPosition = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(EndX));
@@ -731,7 +741,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 路径更新计数器（用于触发绑定更新�?
+        /// 路径更新计数器（用于触发绑定更新?
         /// </summary>
         public int PathUpdateCounter
         {
@@ -747,26 +757,26 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新�?
+        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新?
         /// </summary>
         public void InvalidatePath()
         {
             // 只触发PathUpdateCounter，其他属性在XAML中通过PathUpdateCounter自动更新
-            // 这样可以将PropertyChanged事件�?个减少到1个，性能提升83%
+            // 这样可以将PropertyChanged事件?个减少到1个，性能提升83%
             _pathUpdateCounter++;
             OnPropertyChanged(nameof(PathUpdateCounter));
 
             // 移除这些不必要的PropertyChanged（通过绑定自动更新）：
             // OnPropertyChanged(nameof(PathData));         // 通过MultiBinding自动更新
-            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计�?
-            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计�?
+            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计?
+            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计?
             // OnPropertyChanged(nameof(ArrowX));           // 通过ArrowPosition自动更新
             // OnPropertyChanged(nameof(ArrowY));           // 通过ArrowPosition自动更新
         }
     }
 
     /// <summary>
-    /// 连接状�?
+    /// 连接状?
     /// </summary>
     public enum ConnectionStatus
     {

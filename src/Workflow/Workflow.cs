@@ -8,53 +8,53 @@ using SunEyeVision.Plugin.SDK.Core;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 绔彛杩炴帴 - 璁板綍婧愯妭鐐圭鍙ｅ埌鐩爣鑺傜偣绔彛鐨勮繛鎺?
+    /// 端口连接 - 记录源节点端口到目标节点端口的连接
     /// </summary>
     public class PortConnection
     {
         /// <summary>
-        /// 婧愯妭鐐笽D
+        /// 源节点ID
         /// </summary>
         public string SourceNodeId { get; set; }
 
         /// <summary>
-        /// 婧愮鍙?(濡? "output", "left", "right", "top", "bottom")
+        /// 源端口 (如 "output", "left", "right", "top", "bottom")
         /// </summary>
         public string SourcePort { get; set; }
 
         /// <summary>
-        /// 鐩爣鑺傜偣ID
+        /// 目标节点ID
         /// </summary>
         public string TargetNodeId { get; set; }
 
         /// <summary>
-        /// 鐩爣绔彛 (濡? "input", "left", "right", "top", "bottom")
+        /// 目标端口 (如 "input", "left", "right", "top", "bottom")
         /// </summary>
         public string TargetPort { get; set; }
     }
 
     /// <summary>
-    /// 鎵ц閾?- 鐢盨tart鑺傜偣椹卞姩鐨勭嫭绔嬫墽琛屽崟鍏?
+    /// 执行链 - 由Start节点驱动的独立执行单元
     /// </summary>
     public class ExecutionChain
     {
         /// <summary>
-        /// 鎵ц閾惧敮涓€鏍囪瘑
+        /// 执行链唯一标识
         /// </summary>
         public string ChainId { get; set; }
 
         /// <summary>
-        /// 璧峰鑺傜偣ID
+        /// 起始节点ID
         /// </summary>
         public string StartNodeId { get; set; }
 
         /// <summary>
-        /// 鎵ц閾句腑鐨勮妭鐐笽D鍒楄〃锛堟寜鎷撴墤椤哄簭锛?
+        /// 执行链中的节点ID列表（按拓扑顺序）
         /// </summary>
         public List<string> NodeIds { get; set; }
 
         /// <summary>
-        /// 鎵ц閾句腑鐨勬墍鏈変緷璧栵紙鐢ㄤ簬璺ㄩ摼鍚屾锛?
+        /// 执行链中的所有依赖（用于跨链同步）
         /// </summary>
         public List<ChainDependency> Dependencies { get; set; }
 
@@ -66,22 +66,22 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// 鎵ц閾句緷璧栧叧绯?
+    /// 执行链依赖关系
     /// </summary>
     public class ChainDependency
     {
         /// <summary>
-        /// 渚濊禆鐨勬簮閾綢D
+        /// 依赖的源链ID
         /// </summary>
         public string SourceChainId { get; set; }
 
         /// <summary>
-        /// 婧愯妭鐐笽D
+        /// 源节点ID
         /// </summary>
         public string SourceNodeId { get; set; }
 
         /// <summary>
-        /// 鏈摼涓緷璧栬婧愮殑鑺傜偣ID
+        /// 本链中依赖该源的节点ID
         /// </summary>
         public string TargetNodeId { get; set; }
     }
@@ -117,7 +117,7 @@ namespace SunEyeVision.Workflow
         public Dictionary<string, List<string>> Connections { get; set; }
 
         /// <summary>
-        /// 绔彛绾ц繛鎺ュ垪琛?- 绮剧‘璁板綍鍝釜绔彛杩炴帴鍒板摢涓鍙?
+        /// 端口级连接列表 - 精确记录哪个端口连接到哪个端口
         /// </summary>
         public List<PortConnection> PortConnections { get; set; }
 
@@ -145,9 +145,9 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 娣诲姞鑺傜偣鍒板伐浣滄祦
+        /// 添加节点到工作流
         /// </summary>
-        /// <param name="node">瑕佹坊鍔犵殑宸ヤ綔娴佽妭鐐?/param>
+        /// <param name="node">要添加的工作流节点</param>
         public void AddNode(WorkflowNode node)
         {
             Nodes.Add(node);
@@ -155,15 +155,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 浠庡伐浣滄祦涓Щ闄よ妭鐐?
+        /// 从工作流中移除节点
         /// </summary>
-        /// <param name="nodeId">瑕佺Щ闄ょ殑鑺傜偣ID</param>
+        /// <param name="nodeId">要移除的节点ID</param>
         /// <remarks>
-        /// 绉婚櫎鎿嶄綔鍖呮嫭锛?
-        /// 1. 浠庤妭鐐瑰垪琛ㄤ腑绉婚櫎
-        /// 2. 绉婚櫎璇ヨ妭鐐圭殑鎵€鏈夎緭鍑鸿繛鎺?
-        /// 3. 绉婚櫎鍏朵粬鑺傜偣鍒拌鑺傜偣鐨勮緭鍏ヨ繛鎺?
-        /// 4. 绉婚櫎璇ヨ妭鐐圭殑鎵€鏈夌鍙ｈ繛鎺?
+        /// 移除操作包括：
+        /// 1. 从节点列表中移除
+        /// 2. 移除该节点的所有输出连接
+        /// 3. 移除其他节点到该节点的输入连接
+        /// 4. 移除该节点的所有端口连接
         /// </remarks>
         public void RemoveNode(string nodeId)
         {
@@ -173,13 +173,13 @@ namespace SunEyeVision.Workflow
                 Nodes.Remove(node);
                 Connections.Remove(nodeId);
 
-                // 绉婚櫎鍏朵粬鑺傜偣鍒拌鑺傜偣鐨勮繛鎺?
+                // 移除其他节点到该节点的连接
                 foreach (var kvp in Connections)
                 {
                     kvp.Value.Remove(nodeId);
                 }
 
-                // 绉婚櫎璇ヨ妭鐐圭殑绔彛杩炴帴
+                // 移除该节点的端口连接
                 PortConnections.RemoveAll(pc => pc.SourceNodeId == nodeId || pc.TargetNodeId == nodeId);
 
                 Logger.LogInfo($"Workflow {Name} removed node: {node.Name}");
@@ -187,10 +187,10 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 杩炴帴涓や釜鑺傜偣锛堝垱寤轰粠婧愯妭鐐瑰埌鐩爣鑺傜偣鐨勮繛鎺ワ級
+        /// 连接两个节点（创建从源节点到目标节点的连接）
         /// </summary>
-        /// <param name="sourceNodeId">婧愯妭鐐笽D</param>
-        /// <param name="targetNodeId">鐩爣鑺傜偣ID</param>
+        /// <param name="sourceNodeId">源节点ID</param>
+        /// <param name="targetNodeId">目标节点ID</param>
         public void ConnectNodes(string sourceNodeId, string targetNodeId)
         {
             if (!Connections.ContainsKey(sourceNodeId))
@@ -206,14 +206,14 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// Connect nodes by port - 绮剧‘鎸囧畾婧愮鍙ｅ拰鐩爣绔彛
+        /// Connect nodes by port - 精确指定源端口和目标端口
         /// </summary>
         public void ConnectNodesByPort(string sourceNodeId, string sourcePort, string targetNodeId, string targetPort)
         {
-            // 娣诲姞鑺傜偣绾ц繛鎺?
+            // 添加节点级连接
             ConnectNodes(sourceNodeId, targetNodeId);
 
-            // 娣诲姞绔彛绾ц繛鎺?
+            // 添加端口级连接
             var existingConnection = PortConnections.FirstOrDefault(pc =>
                 pc.SourceNodeId == sourceNodeId && pc.SourcePort == sourcePort &&
                 pc.TargetNodeId == targetNodeId && pc.TargetPort == targetPort);
@@ -237,10 +237,10 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public void DisconnectNodesByPort(string sourceNodeId, string sourcePort, string targetNodeId, string targetPort)
         {
-            // 绉婚櫎鑺傜偣绾ц繛鎺?
+            // 移除节点级连接
             DisconnectNodes(sourceNodeId, targetNodeId);
 
-            // 绉婚櫎绔彛绾ц繛鎺?
+            // 移除端口级连接
             var connection = PortConnections.FirstOrDefault(pc =>
                 pc.SourceNodeId == sourceNodeId && pc.SourcePort == sourcePort &&
                 pc.TargetNodeId == targetNodeId && pc.TargetPort == targetPort);
@@ -253,16 +253,16 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣鐨勫苟琛屾墽琛屽垎缁勶紙鍩轰簬鎷撴墤鎺掑簭鐨勫垎灞傦級
+        /// 获取节点的并行执行分组（基于拓扑排序的分层）
         /// </summary>
-        /// <returns>骞惰鎵ц缁勫垪琛紝姣忎釜缁勫寘鍚彲骞惰鎵ц鐨勮妭鐐笽D</returns>
+        /// <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
         /// <remarks>
-        /// 绠楁硶璇存槑锛?
-        /// 1. 鍒濆鍖栵細鎵€鏈夎妭鐐规湭澶勭悊锛屽凡澶勭悊闆嗗悎涓虹┖
-        /// 2. 杩唬锛氬湪姣忚疆涓紝鎵惧嚭鎵€鏈変緷璧栧凡婊¤冻鐨勮妭鐐?
-        /// 3. 鍒嗙粍锛氬皢婊¤冻鏉′欢鐨勮妭鐐瑰姞鍏ュ綋鍓嶅垎缁?
-        /// 4. 鏇存柊锛氭爣璁板綋鍓嶇粍涓哄凡澶勭悊锛岀户缁笅涓€杞?
-        /// 5. 缁堟锛氭墍鏈夎妭鐐瑰鐞嗗畬姣曟垨鏃犳硶缁х画锛堝惊鐜緷璧栵級
+        /// 算法说明：
+        /// 1. 初始化：所有节点未处理，已处理集合为空
+        /// 2. 迭代：在每轮中，找出所有依赖已满足的节点
+        /// 3. 分组：将满足条件的节点加入当前分组
+        /// 4. 更新：标记当前组为已处理，继续下一轮
+        /// 5. 终止：所有节点处理完毕或无法继续（循环依赖）
         /// </remarks>
         public List<List<string>> GetParallelExecutionGroups()
         {
@@ -274,7 +274,7 @@ namespace SunEyeVision.Workflow
             {
                 var currentGroup = new List<string>();
 
-                // 鎵惧嚭褰撳墠鎵€鏈変緷璧栧凡婊¤冻鐨勮妭鐐?
+                // 找出当前所有依赖已满足的节点
                 foreach (var nodeId in remaining.ToList())
                 {
                     var dependencies = Connections
@@ -288,16 +288,16 @@ namespace SunEyeVision.Workflow
                     }
                 }
 
-                // 濡傛灉鏃犳硶鎵惧埌鍙墽琛岀殑鑺傜偣锛岃鏄庡瓨鍦ㄥ惊鐜緷璧?
+                // 如果无法找到可执行的节点，说明存在循环依赖
                 if (currentGroup.Count == 0)
                 {
-                    Logger?.LogWarning($"鏃犳硶缁х画鍒嗙粍锛屽彲鑳藉瓨鍦ㄥ惊鐜緷璧?);
+                    Logger?.LogWarning("无法继续分组，可能存在循环依赖");
                     break;
                 }
 
                 groups.Add(currentGroup);
 
-                // 鏍囪褰撳墠缁勪负宸插鐞?
+                // 标记当前组为已处理
                 foreach (var nodeId in currentGroup)
                 {
                     processed.Add(nodeId);
@@ -309,24 +309,24 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣鐨勬墽琛岄『搴忥紙浣跨敤Kahn绠楁硶杩涜鎷撴墤鎺掑簭锛?
+        /// 获取节点的执行顺序（使用Kahn算法进行拓扑排序）
         /// </summary>
-        /// <returns>鎸夋嫇鎵戞帓搴忕殑鑺傜偣ID鍒楄〃</returns>
+        /// <returns>按拓扑排序的节点ID列表</returns>
         /// <remarks>
-        /// 鎷撴墤鎺掑簭绠楁硶姝ラ锛?
-        /// 1. 璁＄畻姣忎釜鑺傜偣鐨勫叆搴︼紙鎸囧悜璇ヨ妭鐐圭殑杩炴帴鏁伴噺锛?
-        /// 2. 灏嗘墍鏈夊叆搴︿负0鐨勮妭鐐瑰姞鍏ラ槦鍒?
-        /// 3. 浠庨槦鍒椾腑鍙栧嚭鑺傜偣骞跺姞鍏ョ粨鏋滃垪琛?
-        /// 4. 鍑忓皯璇ヨ妭鐐规墍鏈夊悗缁ц妭鐐圭殑鍏ュ害锛屽鏋滃叆搴﹀彉涓?鍒欏姞鍏ラ槦鍒?
-        /// 5. 閲嶅姝ラ3-4鐩村埌闃熷垪涓虹┖
-        /// 6. 濡傛灉澶勭悊鐨勮妭鐐规暟涓嶇瓑浜庢€昏妭鐐规暟锛岃鏄庡瓨鍦ㄥ惊鐜緷璧?
+        /// 拓扑排序算法步骤：
+        /// 1. 计算每个节点的入度（指向该节点的连接数量）
+        /// 2. 将所有入度为0的节点加入队列
+        /// 3. 从队列中取出节点并加入结果列表
+        /// 4. 减少该节点所有后续节点的入度，如果入度变为0则加入队列
+        /// 5. 重复步骤3-4直到队列为空
+        /// 6. 如果处理的节点数不等于总节点数，说明存在循环依赖
         /// </remarks>
         public List<string> GetExecutionOrder()
         {
             var order = new List<string>();
             var inDegree = CalculateNodeInDegrees();
 
-            // 灏嗗叆搴︿负0鐨勮妭鐐瑰姞鍏ラ槦鍒?
+            // 将入度为0的节点加入队列
             var queue = new Queue<string>();
             foreach (var node in Nodes)
             {
@@ -336,7 +336,7 @@ namespace SunEyeVision.Workflow
                 }
             }
 
-            // 鎷撴墤鎺掑簭澶勭悊
+            // 拓扑排序处理
             var processedCount = 0;
             while (queue.Count > 0)
             {
@@ -344,26 +344,26 @@ namespace SunEyeVision.Workflow
                 order.Add(nodeId);
                 processedCount++;
 
-                // 鍑忓皯鍚庣户鑺傜偣鐨勫叆搴?
+                // 减少后续节点的入度
                 ProcessSuccessors(nodeId, inDegree, queue);
             }
 
-            // 妫€娴嬪惊鐜緷璧?
+            // 检测循环依赖
             if (processedCount != Nodes.Count)
             {
-                Logger?.LogWarning($"鎷撴墤鎺掑簭妫€娴嬪埌寰幆渚濊禆锛屽凡澶勭悊 {processedCount}/{Nodes.Count} 涓妭鐐?);
+                Logger?.LogWarning($"拓扑排序检测到循环依赖，已处理 {processedCount}/{Nodes.Count} 个节点");
             }
 
-            Logger?.LogInfo($"鎷撴墤鎺掑簭瀹屾垚锛屾墽琛岄『搴? [{string.Join(" -> ", order)}]");
+            Logger?.LogInfo($"拓扑排序完成，执行顺序: [{string.Join(" -> ", order)}]");
             return order;
         }
 
         /// <summary>
-        /// 澶勭悊鎸囧畾鑺傜偣鐨勬墍鏈夊悗缁ц妭鐐癸紝鍑忓皯瀹冧滑鐨勫叆搴?
+        /// 处理指定节点的所有后续节点，减少它们的入度
         /// </summary>
-        /// <param name="nodeId">婧愯妭鐐笽D</param>
-        /// <param name="inDegree">鑺傜偣鍏ュ害瀛楀吀</param>
-        /// <param name="queue">寰呭鐞嗚妭鐐归槦鍒?/param>
+        /// <param name="nodeId">源节点ID</param>
+        /// <param name="inDegree">节点入度字典</param>
+        /// <param name="queue">待处理节点队列</param>
         private void ProcessSuccessors(string nodeId, Dictionary<string, int> inDegree, Queue<string> queue)
         {
             if (!Connections.ContainsKey(nodeId))
@@ -382,15 +382,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 妫€娴嬪伐浣滄祦涓殑寰幆渚濊禆
+        /// 检测工作流中的循环依赖
         /// </summary>
-        /// <returns>妫€娴嬪埌鐨勫惊鐜緷璧栬矾寰勫垪琛?/returns>
+        /// <returns>检测到的循环依赖路径列表</returns>
         /// <remarks>
-        /// 浣跨敤DFS娣卞害浼樺厛鎼滅储绠楁硶妫€娴嬪惊鐜細
-        /// 1. 璁块棶鑺傜偣鏃跺姞鍏ュ凡璁块棶闆嗗悎鍜岄€掑綊鏍?
-        /// 2. 閫掑綊璁块棶鎵€鏈夊悗缁ц妭鐐?
-        /// 3. 濡傛灉鍦ㄩ€掑綊鏍堜腑鍐嶆閬囧埌鏌愪釜鑺傜偣锛岃鏄庡瓨鍦ㄥ惊鐜?
-        /// 4. 璁板綍寰幆璺緞骞惰繑鍥?
+        /// 使用DFS深度优先搜索算法检测循环：
+        /// 1. 访问节点时加入已访问集合和递归栈
+        /// 2. 递归访问所有后续节点
+        /// 3. 如果在递归栈中再次遇到某个节点，说明存在循环
+        /// 4. 记录循环路径并返回
         /// </remarks>
         public List<string> DetectCycles()
         {
@@ -410,14 +410,14 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 浣跨敤娣卞害浼樺厛鎼滅储锛圖FS锛夋娴嬪惊鐜緷璧?
+        /// 使用深度优先搜索（DFS）检测循环依赖
         /// </summary>
-        /// <param name="nodeId">褰撳墠鑺傜偣ID</param>
-        /// <param name="path">褰撳墠璺緞</param>
-        /// <param name="cycles">寰幆鍒楄〃锛堢敤浜庤褰曞彂鐜扮殑寰幆锛?/param>
-        /// <param name="visited">宸茶闂妭鐐归泦鍚?/param>
-        /// <param name="recursionStack">閫掑綊鏍堬紙鐢ㄤ簬妫€娴嬪洖杈癸級</param>
-        /// <returns>鏄惁鍙戠幇寰幆</returns>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <param name="path">当前路径</param>
+        /// <param name="cycles">循环列表（用于记录发现的循环）</param>
+        /// <param name="visited">已访问节点集合</param>
+        /// <param name="recursionStack">递归栈（用于检测回边）</param>
+        /// <returns>是否发现循环</returns>
         private bool DetectCycleDFS(
             string nodeId,
             string path,
@@ -441,7 +441,7 @@ namespace SunEyeVision.Workflow
                     }
                     else if (recursionStack.Contains(dependentId))
                     {
-                        // 鍙戠幇鍥炶竟锛岃褰曞惊鐜矾寰?
+                        // 发现回边，记录循环路径
                         cycles.Add(path + " -> " + dependentId);
                         return true;
                     }
@@ -453,15 +453,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣浼樺厛绾э紙鍩轰簬浠庤鑺傜偣鍑哄彂鐨勬渶闀胯矾寰勯暱搴︼級
+        /// 获取节点优先级（基于从该节点出发的最长路径长度）
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鑺傜偣浼樺厛绾у€硷紙鍊艰秺澶ц〃绀鸿鑺傜偣绂诲嚭鍙ｈ秺杩滐級</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点优先级值（值越大表示该节点离出口越远）</returns>
         /// <remarks>
-        /// 浼樺厛绾ц绠楄鏄庯細
-        /// 1. 鍑哄彛鑺傜偣锛堟棤鍚庣户鑺傜偣锛夌殑浼樺厛绾т负0
-        /// 2. 鍏朵粬鑺傜偣鐨勪紭鍏堢骇 = 1 + max(鎵€鏈夊悗缁ц妭鐐圭殑浼樺厛绾?
-        /// 3. 浼樺厛绾ц秺楂樼殑鑺傜偣搴旇瓒婃棭鎵ц
+        /// 优先级计算说明：
+        /// 1. 出口节点（无后续节点）的优先级为0
+        /// 2. 其他节点的优先级 = 1 + max(所有后续节点的优先级)
+        /// 3. 优先级越高的节点应该越早执行
         /// </remarks>
         public int GetNodePriority(string nodeId)
         {
@@ -470,14 +470,14 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 閫掑綊璁＄畻鑺傜偣浼樺厛绾?
+        /// 递归计算节点优先级
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <param name="visited">宸茶闂妭鐐归泦鍚堬紙鐢ㄤ簬閬垮厤寰幆瀵艰嚧鐨勬棤闄愰€掑綊锛?/param>
-        /// <returns>鑺傜偣浼樺厛绾?/returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="visited">已访问节点集合（用于避免循环导致的无限递归）</param>
+        /// <returns>节点优先级</returns>
         private int CalculateNodePriority(string nodeId, HashSet<string> visited)
         {
-            // 閬垮厤寰幆瀵艰嚧鐨勬棤闄愰€掑綊
+            // 避免循环导致的无限递归
             if (visited.Contains(nodeId))
             {
                 return 0;
@@ -485,13 +485,13 @@ namespace SunEyeVision.Workflow
 
             visited.Add(nodeId);
 
-            // 鍑哄彛鑺傜偣浼樺厛绾т负0
+            // 出口节点优先级为0
             if (!Connections.ContainsKey(nodeId))
             {
                 return 0;
             }
 
-            // 璁＄畻鎵€鏈夊悗缁ц妭鐐圭殑鏈€澶т紭鍏堢骇
+            // 计算所有后续节点的最大优先级
             var maxPriority = 0;
             foreach (var dependentId in Connections[nodeId])
             {
@@ -518,17 +518,17 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鎵ц宸ヤ綔娴?
+        /// 执行工作流
         /// </summary>
-        /// <param name="inputImage">杈撳叆鍥惧儚鏁版嵁</param>
-        /// <returns>鎵€鏈夎妭鐐圭殑鎵ц缁撴灉鍒楄〃</returns>
+        /// <param name="inputImage">输入图像数据</param>
+        /// <returns>所有节点的执行结果列表</returns>
         /// <remarks>
-        /// 鎵ц娴佺▼锛?
-        /// 1. 鍒涘缓鎵ц璁″垝锛堝苟琛屽垎缁勶級
-        /// 2. 鑾峰彇鎷撴墤鎺掑簭鐨勬墽琛岄『搴?
-        /// 3. 鎸夐『搴忎緷娆℃墽琛屾瘡涓妭鐐?
-        /// 4. 鑺傜偣鐨勮緭鍑轰綔涓哄悗缁妭鐐圭殑杈撳叆
-        /// 5. 璁板綍鎵€鏈夎妭鐐圭殑鎵ц缁撴灉鍜屾墽琛屾椂闂?
+        /// 执行流程：
+        /// 1. 创建执行计划（并行分组）
+        /// 2. 获取拓扑排序的执行顺序
+        /// 3. 按顺序依次执行每个节点
+        /// 4. 节点的输出作为后续节点的输入
+        /// 5. 记录所有节点的执行结果和执行时间
         /// </remarks>
         public List<AlgorithmResult> Execute(Mat inputImage)
         {
@@ -538,19 +538,19 @@ namespace SunEyeVision.Workflow
 
             Logger.LogInfo($"Starting workflow execution: {Name}");
 
-            // 鍒涘缓鎵ц璁″垝
+            // 创建执行计划
             var executionPlan = CreateExecutionPlan();
             executionPlan.Start();
 
-            // 鑾峰彇鎷撴墤鎺掑簭鐨勬墽琛岄『搴?
+            // 获取拓扑排序的执行顺序
             var executionOrder = GetExecutionOrder();
             if (executionOrder.Count == 0)
             {
-                Logger.LogWarning("鏃犳硶纭畾鎵ц椤哄簭,鍙兘瀛樺湪寰幆渚濊禆");
+                Logger.LogWarning("无法确定执行顺序,可能存在循环依赖");
                 return results;
             }
 
-            // 鎸夋墽琛岄『搴忔墽琛岃妭鐐?
+            // 按执行顺序执行节点
             foreach (var nodeId in executionOrder)
             {
                 var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
@@ -567,14 +567,14 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鍒涘缓鎵ц璁″垝锛堝熀浜庡苟琛屾墽琛屽垎缁勶級
+        /// 创建执行计划（基于并行执行分组）
         /// </summary>
-        /// <returns>鎵ц璁″垝瀵硅薄</returns>
+        /// <returns>执行计划对象</returns>
         /// <remarks>
-        /// 鎵ц璁″垝鍖呭惈锛?
-        /// 1. 澶氫釜鎵ц缁勶紝姣忎釜缁勫寘鍚彲骞惰鎵ц鐨勮妭鐐?
-        /// 2. 鎵ц缁勭殑搴忓彿鍜岀姸鎬?
-        /// 3. 鎵ц寮€濮嬪拰缁撴潫鏃堕棿
+        /// 执行计划包含：
+        /// 1. 多个执行组，每个组包含可并行执行的节点
+        /// 2. 执行组的序号和状态
+        /// 3. 执行开始和结束时间
         /// </remarks>
         public ExecutionPlan CreateExecutionPlan()
         {
@@ -595,13 +595,13 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鎵ц鍗曚釜宸ヤ綔娴佽妭鐐?
+        /// 执行单个工作流节点
         /// </summary>
-        /// <param name="node">瑕佹墽琛岀殑鑺傜偣</param>
-        /// <param name="inputImage">杈撳叆鍥惧儚</param>
-        /// <param name="nodeResults">鑺傜偣鎵ц缁撴灉鏄犲皠琛紙鐢ㄤ簬瀛樺偍鍜岃幏鍙栦腑闂寸粨鏋滐級</param>
-        /// <param name="executedNodes">宸叉墽琛岃妭鐐归泦鍚堬紙鐢ㄤ簬閬垮厤閲嶅鎵ц锛?/param>
-        /// <param name="results">绠楁硶缁撴灉鍒楄〃锛堢敤浜庢敹闆嗘墍鏈夎妭鐐圭殑鎵ц缁撴灉锛?/param>
+        /// <param name="node">要执行的节点</param>
+        /// <param name="inputImage">输入图像</param>
+        /// <param name="nodeResults">节点执行结果映射表（用于存储和获取中间结果）</param>
+        /// <param name="executedNodes">已执行节点集合（用于避免重复执行）</param>
+        /// <param name="results">算法结果列表（用于收集所有节点的执行结果）</param>
         private void ExecuteNode(
             WorkflowNode node,
             Mat inputImage,
@@ -609,27 +609,27 @@ namespace SunEyeVision.Workflow
             HashSet<string> executedNodes,
             List<AlgorithmResult> results)
         {
-            // 璺宠繃宸叉墽琛屾垨鏈惎鐢ㄧ殑鑺傜偣
+            // 跳过已执行或未启用的节点
             if (executedNodes.Contains(node.Id) || !node.IsEnabled)
             {
                 return;
             }
 
-            // 鍑嗗杈撳叆鏁版嵁
+            // 准备输入数据
             var input = PrepareNodeInput(node, inputImage, nodeResults);
 
             try
             {
                 Logger.LogInfo($"Executing node: {node.Name} (ID: {node.Id})");
 
-                // 鍒涘缓绠楁硶瀹炰緥骞舵墽琛?
+                // 创建算法实例并执行
                 var algorithm = node.CreateInstance();
                 var resultImage = algorithm.Process(input) as Mat;
 
-                // 淇濆瓨鑺傜偣鎵ц缁撴灉
+                // 保存节点执行结果
                 nodeResults[node.Id] = resultImage ?? input;
 
-                // 璁板綍鎵ц缁撴灉
+                // 记录执行结果
                 var result = new AlgorithmResult
                 {
                     AlgorithmName = node.AlgorithmType,
@@ -656,15 +656,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑾峰彇宸ヤ綔娴佷俊鎭憳瑕?
+        /// 获取工作流信息摘要
         /// </summary>
-        /// <returns>宸ヤ綔娴佷俊鎭殑鏍煎紡鍖栧瓧绗︿覆</returns>
+        /// <returns>工作流信息的格式化字符串</returns>
         /// <remarks>
-        /// 淇℃伅鍖呭惈锛?
-        /// - 宸ヤ綔娴佸悕绉板拰ID
-        /// - 宸ヤ綔娴佹弿杩?
-        /// - 鑺傜偣鎬绘暟
-        /// - 鎵€鏈夎妭鐐圭殑璇︾粏鍒楄〃锛堝悕绉般€両D銆佺畻娉曠被鍨嬨€佸惎鐢ㄧ姸鎬侊級
+        /// 信息包含：
+        /// - 工作流名称和ID
+        /// - 工作流描述
+        /// - 节点总数
+        /// - 所有节点的详细列表（名称、ID、算法类型、启用状态）
         /// </remarks>
         public string GetInfo()
         {
@@ -683,29 +683,29 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑷姩璇嗗埆鎵ц閾撅紙鍩轰簬鑺傜偣杩炴帴鍏崇郴鍜屽叆搴︼級
+        /// 自动识别执行链（基于节点连接关系和入度）
         /// </summary>
-        /// <returns>璇嗗埆鍒扮殑鎵ц閾惧垪琛?/returns>
+        /// <returns>识别到的执行链列表</returns>
         public List<ExecutionChain> GetAutoDetectExecutionChains()
         {
             var chains = new List<ExecutionChain>();
             var allVisitedNodes = new HashSet<string>();
             var chainCounter = 0;
 
-            // 姝ラ1锛氳绠楁瘡涓妭鐐圭殑鍏ュ害
+            // 步骤1：计算每个节点的入度
             var inDegree = CalculateNodeInDegrees();
 
-            // 姝ラ2锛氳瘑鍒墍鏈夊叆鍙ｈ妭鐐癸紙鍏ュ害=0涓斿凡鍚敤锛?
+            // 步骤2：识别所有入口节点（入度=0且已启用）
             var entryNodes = Nodes
                 .Where(n => inDegree[n.Id] == 0 && n.IsEnabled)
                 .ToList();
 
-            Logger?.LogInfo($"[AutoDetect] 鎵惧埌 {entryNodes.Count} 涓叆鍙ｈ妭鐐?);
+            Logger?.LogInfo($"[AutoDetect] 找到 {entryNodes.Count} 个入口节点");
 
-            // 姝ラ3锛氬叆鍙ｈ妭鐐瑰悎骞?- 灏嗗叡浜笅娓歌妭鐐圭殑鍏ュ彛鑺傜偣鍚堝苟鍒板悓涓€鎵ц閾?
+            // 步骤3：入口节点合并 - 将共享下游节点的入口节点合并到同一执行链
             var entryGroups = GroupEntryNodesByDownstream(entryNodes);
 
-            // 姝ラ4锛氫负姣忎釜鍏ュ彛缁勬瀯寤烘墽琛岄摼
+            // 步骤4：为每个入口组构建执行链
             foreach (var entryGroup in entryGroups)
             {
                 var chain = CreateExecutionChain(entryGroup, chainCounter, allVisitedNodes, chains);
@@ -713,53 +713,53 @@ namespace SunEyeVision.Workflow
                 chainCounter++;
 
                 var entryNames = string.Join(", ", entryGroup.Select(n => n.Name));
-                Logger?.LogInfo($"[AutoDetect] 鍒涘缓鎵ц閾綶{chainCounter}]: [{entryNames}] (鍖呭惈{chain.NodeIds.Count}涓妭鐐?");
+                Logger?.LogInfo($"[AutoDetect] 创建执行链[{chainCounter}]: [{entryNames}] (包含{chain.NodeIds.Count}个节点)");
             }
 
-            // 姝ラ5锛氬鐞嗘湭璁块棶鐨勮妭鐐癸紙瀛ゅ矝鑺傜偣锛?
+            // 步骤5：处理未访问的节点（孤岛节点）
             CreateIsolatedChains(allVisitedNodes, ref chainCounter, chains);
 
-            Logger?.LogInfo($"[AutoDetect] 鍏辫瘑鍒?{chains.Count} 鏉℃墽琛岄摼");
+            Logger?.LogInfo($"[AutoDetect] 共识别 {chains.Count} 条执行链");
             return chains;
         }
 
         /// <summary>
-        /// 鑾峰彇鎵ц閾撅紙鍩轰簬杩炴帴鍏崇郴鑷姩璇嗗埆鍏ュ彛鑺傜偣锛?
+        /// 获取执行链（基于连接关系自动识别入口节点）
         /// </summary>
-        /// <returns>鎵ц閾惧垪琛?/returns>
+        /// <returns>执行链列表</returns>
         public List<ExecutionChain> GetExecutionChains()
         {
             return GetAutoDetectExecutionChains();
         }
 
         /// <summary>
-        /// 閫掑綊鏀堕泦鎵ц閾句腑鐨勬墍鏈夎妭鐐癸紙浠庢寚瀹氳妭鐐瑰紑濮嬶級
+        /// 递归收集执行链中的所有节点（从指定节点开始）
         /// </summary>
-        /// <param name="nodeId">璧峰鑺傜偣ID</param>
-        /// <param name="chainNodes">鎵ц閾捐妭鐐瑰垪琛紙鐢ㄤ簬鏀堕泦鑺傜偣锛?/param>
-        /// <param name="allVisitedNodes">鍏ㄥ眬宸茶闂妭鐐归泦鍚堬紙鐢ㄤ簬閬垮厤璺ㄩ摼閲嶅璁块棶锛?/param>
+        /// <param name="nodeId">起始节点ID</param>
+        /// <param name="chainNodes">执行链节点列表（用于收集节点）</param>
+        /// <param name="allVisitedNodes">全局已访问节点集合（用于避免跨链重复访问）</param>
         /// <remarks>
-        /// 绠楁硶璇存槑锛?
-        /// 1. 妫€鏌ヨ妭鐐规槸鍚﹀凡璁块棶锛堥伩鍏嶉噸澶嶅拰寰幆锛?
-        /// 2. 灏嗚妭鐐瑰姞鍏ユ墽琛岄摼鍜屽叏灞€璁块棶闆嗗悎
-        /// 3. 閫掑綊鏀堕泦鎵€鏈変笅娓歌妭鐐?
+        /// 算法说明：
+        /// 1. 检查节点是否已访问（避免重复和循环）
+        /// 2. 将节点加入执行链和全局访问集合
+        /// 3. 递归收集所有下游节点
         /// </remarks>
         private void CollectExecutionChain(
             string nodeId,
             List<string> chainNodes,
             HashSet<string> allVisitedNodes)
         {
-            // 璺宠繃宸茶闂殑鑺傜偣
+            // 跳过已访问的节点
             if (allVisitedNodes.Contains(nodeId) || chainNodes.Contains(nodeId))
             {
                 return;
             }
 
-            // 娣诲姞鑺傜偣鍒版墽琛岄摼鍜屽叏灞€璁块棶闆嗗悎
+            // 添加节点到执行链和全局访问集合
             chainNodes.Add(nodeId);
             allVisitedNodes.Add(nodeId);
 
-            // 閫掑綊鏀堕泦涓嬫父鑺傜偣
+            // 递归收集下游节点
             if (Connections.ContainsKey(nodeId))
             {
                 foreach (var childId in Connections[nodeId])
@@ -770,16 +770,16 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鍒嗘瀽骞惰褰曟墽琛岄摼鐨勮法閾句緷璧栧叧绯?
+        /// 分析并记录执行链的跨链依赖关系
         /// </summary>
-        /// <param name="chain">鐩爣鎵ц閾?/param>
-        /// <param name="allVisitedNodes">鍏ㄥ眬宸茶闂妭鐐归泦鍚?/param>
-        /// <param name="existingChains">宸插瓨鍦ㄧ殑鎵ц閾惧垪琛?/param>
+        /// <param name="chain">目标执行链</param>
+        /// <param name="allVisitedNodes">全局已访问节点集合</param>
+        /// <param name="existingChains">已存在的执行链列表</param>
         /// <remarks>
-        /// 璺ㄩ摼渚濊禆瀹氫箟锛?
-        /// - 褰撴墽琛岄摼涓殑鏌愪釜鑺傜偣渚濊禆浜庡叾浠栨墽琛岄摼涓殑鑺傜偣鏃?
-        /// - 闇€瑕佽褰曟簮閾綢D銆佹簮鑺傜偣ID鍜岀洰鏍囪妭鐐笽D
-        /// - 鐢ㄤ簬鎵ц鏃剁殑鍚屾鍜岄『搴忔帶鍒?
+        /// 跨链依赖定义：
+        /// - 当执行链中的某个节点依赖于其他执行链中的节点时
+        /// - 需要记录源链ID、源节点ID和目标节点ID
+        /// - 用于执行时的同步和顺序控制
         /// </remarks>
         private void AnalyzeChainDependencies(
             ExecutionChain chain,
@@ -795,10 +795,10 @@ namespace SunEyeVision.Workflow
 
                 foreach (var parentId in parentIds)
                 {
-                    // 濡傛灉鐖惰妭鐐逛笉鍦ㄦ湰閾句腑锛屽垯鍒涘缓璺ㄩ摼渚濊禆
+                    // 如果父节点不在本链中，则创建跨链依赖
                     if (!chain.NodeIds.Contains(parentId))
                     {
-                        // 鏌ユ壘鐖惰妭鐐规墍鍦ㄧ殑婧愰摼
+                        // 查找父节点所在的源链
                         var sourceChain = existingChains.FirstOrDefault(c => c.NodeIds.Contains(parentId));
                         var sourceChainId = sourceChain?.ChainId ?? "unknown";
 
@@ -814,30 +814,30 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鍩轰簬鎵ц閾剧殑骞惰鎵ц鍒嗙粍锛堟敼杩涚増 - 浣跨敤灞傜骇鍒嗙粍鏈€澶у寲骞惰搴︼級
+        /// 基于执行链的并行执行分组（改进版 - 使用层级分组最大化并行度）
         /// </summary>
-        /// <returns>骞惰鎵ц缁勫垪琛紝姣忎釜缁勫寘鍚彲骞惰鎵ц鐨勮妭鐐笽D</returns>
+        /// <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
         /// <remarks>
-        /// 绠楁硶鐗圭偣锛?
-        /// 1. 璇嗗埆鎵€鏈夋墽琛岄摼锛堢嫭绔嬬殑鎵ц鍗曞厓锛?
-        /// 2. 涓烘瘡涓墽琛岄摼鐢熸垚灞傜骇鍒嗙粍锛圔FS灞傜骇鎰熺煡锛?
-        /// 3. 灏嗕笉鍚屾墽琛岄摼涓悓涓€灞傜骇鐨勮妭鐐瑰悎骞跺埌鍚屼竴鎵ц缁?
-        /// 4. 纭繚涓嶅悓鎵ц閾剧殑鑺傜偣涓嶄細琚敊璇湴娣峰悎鍒板悓涓€缁?
+        /// 算法特点：
+        /// 1. 识别所有执行链（独立的执行单元）
+        /// 2. 为每个执行链生成层级分组（BFS层级感知）
+        /// 3. 将不同执行链中同一层级的节点合并到同一执行组
+        /// 4. 确保不同执行链的节点不会被错误地混合到同一组
         /// 
-        /// 浼樺娍锛?
-        /// - 鏈€澶у寲骞惰搴︼細鍚屼竴灞傜骇鐨勬墍鏈夎妭鐐瑰彲浠ュ苟琛屾墽琛?
-        /// - 閬垮厤渚濊禆鍐茬獊锛氶€氳繃灞傜骇鍒嗙粍淇濊瘉鎵ц椤哄簭姝ｇ‘
-        /// - 鏀寔璺ㄩ摼鍚屾锛氫笉鍚屾墽琛岄摼鐨勫悓涓€灞傜骇鑺傜偣鍙互鍚屾鎵ц
+        /// 优势：
+        /// - 最大化并行度：同一层级的所有节点可以并行执行
+        /// - 避免依赖冲突：通过层级分组保证执行顺序正确
+        /// - 支持跨链同步：不同执行链的同一层级节点可以同步执行
         /// </remarks>
         public List<List<string>> GetParallelExecutionGroupsByChains()
         {
             var groups = new List<List<string>>();
 
-            // 姝ラ1锛氳瘑鍒墍鏈夋墽琛岄摼
+            // 步骤1：识别所有执行链
             var chains = GetAutoDetectExecutionChains();
-            Logger?.LogInfo($"[ParallelGroups] 璇嗗埆鍒?{chains.Count} 鏉℃墽琛岄摼");
+            Logger?.LogInfo($"[ParallelGroups] 识别到 {chains.Count} 条执行链");
 
-            // 姝ラ2锛氫负姣忎釜鎵ц閾剧敓鎴愬眰绾у垎缁勶紙鑰岄潪绾挎€ф帓搴忥級
+            // 步骤2：为每个执行链生成层级分组（而非线性排序）
             var chainExecutionLevels = new Dictionary<string, List<List<string>>>();
 
             foreach (var chain in chains)
@@ -846,14 +846,14 @@ namespace SunEyeVision.Workflow
                 var levels = GetExecutionLevelsForNodes(chainNodes);
                 chainExecutionLevels[chain.ChainId] = levels;
 
-                Logger?.LogInfo($"[ParallelGroups] 鎵ц閾?{chain.ChainId} ({GetNodeDisplayName(chain.StartNodeId)}):");
+                Logger?.LogInfo($"[ParallelGroups] 执行链 {chain.ChainId} ({GetNodeDisplayName(chain.StartNodeId)}):");
                 for (int i = 0; i < levels.Count; i++)
                 {
-                    Logger?.LogInfo($"    灞傜骇{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
+                    Logger?.LogInfo($"    层级{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
                 }
             }
 
-            // 姝ラ3锛氳法閾惧苟琛屽悎骞?- 灏嗕笉鍚屾墽琛岄摼涓悓涓€灞傜骇鐨勮妭鐐瑰悎骞?
+            // 步骤3：跨链并行合并 - 将不同执行链中同一层级的节点合并
             int maxLevel = chainExecutionLevels.Values.Max(l => l.Count);
 
             for (int level = 0; level < maxLevel; level++)
@@ -865,7 +865,7 @@ namespace SunEyeVision.Workflow
                     var levels = chainExecutionLevels[chainId];
                     if (level < levels.Count)
                     {
-                        // 灏嗚閾惧湪褰撳墠灞傜骇鐨勬墍鏈夎妭鐐瑰姞鍏ユ墽琛岀粍
+                        // 将该链在当前层级的所有节点加入执行组
                         currentGroup.AddRange(levels[level]);
                     }
                 }
@@ -873,31 +873,31 @@ namespace SunEyeVision.Workflow
                 if (currentGroup.Count > 0)
                 {
                     groups.Add(currentGroup);
-                    Logger?.LogInfo($"[ParallelGroups] 鎵ц缁剓level + 1}: [{FormatNodeListDisplay(currentGroup)}]");
+                    Logger?.LogInfo($"[ParallelGroups] 执行组{level + 1}: [{FormatNodeListDisplay(currentGroup)}]");
                 }
             }
 
-            Logger?.LogInfo($"[ParallelGroups] 鍏辩敓鎴?{groups.Count} 涓苟琛屾墽琛岀粍锛堜紭鍖栧悗锛?);
+            Logger?.LogInfo($"[ParallelGroups] 共生成 {groups.Count} 个并行执行组（优化后）");
             return groups;
         }
 
         /// <summary>
-        /// 鑾峰彇鎸囧畾鑺傜偣闆嗗悎鐨勬墽琛岄『搴忥紙浣跨敤Kahn绠楁硶杩涜鎷撴墤鎺掑簭锛?
+        /// 获取指定节点集合的执行顺序（使用Kahn算法进行拓扑排序）
         /// </summary>
-        /// <param name="nodeIds">鑺傜偣ID闆嗗悎</param>
-        /// <returns>鎸夋嫇鎵戞帓搴忕殑鑺傜偣ID鍒楄〃</returns>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>按拓扑排序的节点ID列表</returns>
         /// <remarks>
-        /// 涓嶨etExecutionOrder鐨勫尯鍒細
-        /// - 浠呰€冭檻鎸囧畾闆嗗悎鍐呯殑鑺傜偣鍜岃繛鎺?
-        /// - 蹇界暐闆嗗悎澶栬妭鐐圭殑渚濊禆鍏崇郴
-        /// - 鐢ㄤ簬瀛愬浘鎴栭儴鍒嗚妭鐐圭殑鎵ц鎺掑簭
+        /// 与GetExecutionOrder的区别：
+        /// - 仅考虑指定集合内的节点和连接
+        /// - 忽略集合外节点的依赖关系
+        /// - 用于子图或部分节点的执行排序
         /// </remarks>
         private List<string> GetExecutionOrderForNodes(HashSet<string> nodeIds)
         {
             var order = new List<string>();
             var inDegree = CalculateInDegreesForNodes(nodeIds);
 
-            // 灏嗗叆搴︿负0鐨勮妭鐐瑰姞鍏ラ槦鍒?
+            // 将入度为0的节点加入队列
             var queue = new Queue<string>();
             foreach (var nodeId in nodeIds)
             {
@@ -907,7 +907,7 @@ namespace SunEyeVision.Workflow
                 }
             }
 
-            // 鎷撴墤鎺掑簭澶勭悊
+            // 拓扑排序处理
             var processedCount = 0;
             while (queue.Count > 0)
             {
@@ -915,7 +915,7 @@ namespace SunEyeVision.Workflow
                 order.Add(nodeId);
                 processedCount++;
 
-                // 鍑忓皯鍚庣户鑺傜偣鐨勫叆搴︼紙浠呰€冭檻闆嗗悎鍐呯殑鑺傜偣锛?
+                // 减少后续节点的入度（仅考虑集合内的节点）
                 if (Connections.ContainsKey(nodeId))
                 {
                     foreach (var dependentId in Connections[nodeId])
@@ -934,28 +934,28 @@ namespace SunEyeVision.Workflow
 
             if (processedCount != nodeIds.Count)
             {
-                Logger?.LogWarning($"鎷撴墤鎺掑簭妫€娴嬪埌寰幆渚濊禆锛屽凡澶勭悊 {processedCount}/{nodeIds.Count} 涓妭鐐?);
+                Logger?.LogWarning($"拓扑排序检测到循环依赖，已处理 {processedCount}/{nodeIds.Count} 个节点");
             }
 
             return order;
         }
 
         /// <summary>
-        /// 鑾峰彇鎸囧畾鑺傜偣闆嗗悎鐨勬墽琛屽眰绾э紙BFS灞傜骇鎰熺煡鍒嗙粍锛?
+        /// 获取指定节点集合的执行层级（BFS层级感知分组）
         /// </summary>
-        /// <param name="nodeIds">鑺傜偣ID闆嗗悎</param>
-        /// <returns>灞傜骇鍒楄〃锛屾瘡涓眰绾у寘鍚彲骞惰鎵ц鐨勮妭鐐笽D</returns>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>层级列表，每个层级包含可并行执行的节点ID</returns>
         /// <remarks>
-        /// 绠楁硶璇存槑锛?
-        /// 1. 璁＄畻鑺傜偣闆嗗悎鍐呯殑鍏ュ害锛堜粎鑰冭檻闆嗗悎鍐呯殑杩炴帴锛?
-        /// 2. BFS灞傜骇閬嶅巻锛屽皢鍚屼竴灞傜骇鐨勮妭鐐瑰垎缁?
-        /// 3. 姣忓眰鍖呭惈鍏ュ害涓?涓旀湭澶勭悊鐨勮妭鐐?
-        /// 4. 澶勭悊鍚庡噺灏戝悗缁ц妭鐐圭殑鍏ュ害锛岃繘鍏ヤ笅涓€灞?
+        /// 算法说明：
+        /// 1. 计算节点集合内的入度（仅考虑集合内的连接）
+        /// 2. BFS层级遍历，将同一层级的节点分组
+        /// 3. 每层包含入度为0且未处理的节点
+        /// 4. 处理后减少后续节点的入度，进入下一层
         /// 
-        /// 浼樺娍锛?
-        /// - 鏈€澶у寲骞惰搴︼細鍚屼竴灞傜骇鐨勬墍鏈夎妭鐐瑰彲浠ュ苟琛屾墽琛?
-        /// - 淇濊瘉椤哄簭姝ｇ‘锛氶€氳繃灞傜骇鍒嗙粍纭繚渚濊禆鍏崇郴
-        /// - 鏀寔閮ㄥ垎鎵ц锛氫粎澶勭悊鎸囧畾闆嗗悎鍐呯殑鑺傜偣
+        /// 优势：
+        /// - 最大化并行度：同一层级的所有节点可以并行执行
+        /// - 保证顺序正确：通过层级分组确保依赖关系
+        /// - 支持部分执行：仅处理指定集合内的节点
         /// </remarks>
         private List<List<string>> GetExecutionLevelsForNodes(HashSet<string> nodeIds)
         {
@@ -963,12 +963,12 @@ namespace SunEyeVision.Workflow
             var inDegree = CalculateInDegreesForNodes(nodeIds);
             var remaining = new HashSet<string>(nodeIds);
 
-            // BFS灞傜骇閬嶅巻锛屽皢鍚屼竴灞傜骇鐨勮妭鐐瑰垎缁?
+            // BFS层级遍历，将同一层级的节点分组
             while (remaining.Count > 0)
             {
                 var currentLevel = new List<string>();
 
-                // 鎵惧嚭褰撳墠鎵€鏈夊叆搴︿负0鐨勮妭鐐癸紙鍙苟琛屾墽琛岋級
+                // 找出当前所有入度为0的节点（可并行执行）
                 foreach (var nodeId in remaining.ToList())
                 {
                     if (inDegree[nodeId] == 0)
@@ -977,50 +977,50 @@ namespace SunEyeVision.Workflow
                     }
                 }
 
-                // 娌℃湁鍙墽琛岀殑鑺傜偣锛屽彲鑳芥槸寰幆渚濊禆
+                // 没有可执行的节点，可能是循环依赖
                 if (currentLevel.Count == 0)
                 {
-                    Logger?.LogWarning($"鏃犳硶澶勭悊鍓╀綑鑺傜偣锛屽彲鑳藉瓨鍦ㄥ惊鐜緷璧? [{FormatNodeListDisplay(remaining)}]");
+                    Logger?.LogWarning($"无法处理剩余节点，可能存在循环依赖 [{FormatNodeListDisplay(remaining)}]");
                     break;
                 }
 
                 levels.Add(currentLevel);
 
-                // 浠庡墿浣欒妭鐐逛腑绉婚櫎宸插鐞嗙殑鑺傜偣
+                // 从剩余节点中移除已处理的节点
                 foreach (var nodeId in currentLevel)
                 {
                     remaining.Remove(nodeId);
                 }
 
-                // 鍑忓皯杩欎簺鑺傜偣鐨勫悗缁ц妭鐐圭殑鍏ュ害
+                // 减少这些节点的后续节点的入度
                 ProcessLevelSuccessors(currentLevel, nodeIds, inDegree);
             }
 
-            Logger?.LogInfo($"灞傜骇鍒嗙粍瀹屾垚锛屽叡{levels.Count}涓眰绾?);
+            Logger?.LogInfo($"层级分组完成，共{levels.Count}个层级");
             for (int i = 0; i < levels.Count; i++)
             {
-                Logger?.LogInfo($"  灞傜骇{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
+                Logger?.LogInfo($"  层级{i + 1}: [{FormatNodeListDisplay(levels[i])}]");
             }
 
             return levels;
         }
 
         /// <summary>
-        /// 璁＄畻鎸囧畾鑺傜偣闆嗗悎涓瘡涓妭鐐圭殑鍏ュ害
+        /// 计算指定节点集合中每个节点的入度
         /// </summary>
-        /// <param name="nodeIds">鑺傜偣ID闆嗗悎</param>
-        /// <returns>鑺傜偣鍏ュ害瀛楀吀</returns>
+        /// <param name="nodeIds">节点ID集合</param>
+        /// <returns>节点入度字典</returns>
         private Dictionary<string, int> CalculateInDegreesForNodes(HashSet<string> nodeIds)
         {
             var inDegree = new Dictionary<string, int>();
 
-            // 鍒濆鍖栨墍鏈夎妭鐐圭殑鍏ュ害涓?
+            // 初始化所有节点的入度为0
             foreach (var nodeId in nodeIds)
             {
                 inDegree[nodeId] = 0;
             }
 
-            // 璁＄畻闆嗗悎鍐呰繛鎺ョ殑鍏ュ害
+            // 计算集合内连接的入度
             foreach (var connection in Connections)
             {
                 foreach (var targetId in connection.Value)
@@ -1036,11 +1036,11 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 澶勭悊褰撳墠灞傜骇鐨勫悗缁ц妭鐐癸紝鍑忓皯瀹冧滑鐨勫叆搴?
+        /// 处理当前层级的后续节点，减少它们的入度
         /// </summary>
-        /// <param name="currentLevel">褰撳墠灞傜骇鐨勮妭鐐瑰垪琛?/param>
-        /// <param name="nodeIds">鑺傜偣ID闆嗗悎锛堢敤浜庤繃婊わ級</param>
-        /// <param name="inDegree">鑺傜偣鍏ュ害瀛楀吀</param>
+        /// <param name="currentLevel">当前层级的节点列表</param>
+        /// <param name="nodeIds">节点ID集合（用于过滤）</param>
+        /// <param name="inDegree">节点入度字典</param>
         private void ProcessLevelSuccessors(
             List<string> currentLevel,
             HashSet<string> nodeIds,
@@ -1062,10 +1062,10 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣鐨勫畬鏁存樉绀哄悕绉帮紙鏍煎紡锛氳妭鐐瑰悕绉?ID: xxx)锛?
+        /// 获取节点的完整显示名称（格式：节点名称(ID: xxx)）
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鑺傜偣鐨勫畬鏁存樉绀哄悕绉帮紝濡傛灉鑺傜偣涓嶅瓨鍦ㄥ垯杩斿洖ID鏈韩</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点的完整显示名称，如果节点不存在则返回ID本身</returns>
         private string GetNodeDisplayName(string nodeId)
         {
             var node = Nodes.FirstOrDefault(n => n.Id == nodeId);
@@ -1077,13 +1077,13 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 涓鸿妭鐐瑰噯澶囪緭鍏ユ暟鎹?
-        /// 濡傛灉鑺傜偣鏈夌埗鑺傜偣锛屽垯浣跨敤鐖惰妭鐐圭殑杈撳嚭浣滀负杈撳叆锛涘惁鍒欎娇鐢ㄥ師濮嬭緭鍏?
+        /// 为节点准备输入数据
+        /// 如果节点有父节点，则使用父节点的输出作为输入；否则使用原始输入
         /// </summary>
-        /// <param name="node">鐩爣鑺傜偣</param>
-        /// <param name="defaultInput">榛樿杈撳叆鏁版嵁</param>
-        /// <param name="nodeResults">鑺傜偣鎵ц缁撴灉鏄犲皠琛?/param>
-        /// <returns>鑺傜偣鐨勮緭鍏ユ暟鎹?/returns>
+        /// <param name="node">目标节点</param>
+        /// <param name="defaultInput">默认输入数据</param>
+        /// <param name="nodeResults">节点执行结果映射表</param>
+        /// <returns>节点的输入数据</returns>
         private Mat PrepareNodeInput(
             WorkflowNode node,
             Mat defaultInput,
@@ -1093,7 +1093,7 @@ namespace SunEyeVision.Workflow
 
             if (Connections.Any(kvp => kvp.Value.Contains(node.Id)))
             {
-                // 鑾峰彇鐖惰妭鐐圭殑杈撳嚭浣滀负杈撳叆
+                // 获取父节点的输出作为输入
                 var parentIds = Connections
                     .Where(kvp => kvp.Value.Contains(node.Id))
                     .Select(kvp => kvp.Key);
@@ -1113,30 +1113,30 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鏍煎紡鍖栬妭鐐笽D鍒楄〃涓烘樉绀哄悕绉板垪琛?
+        /// 格式化节点ID列表为显示名称列表
         /// </summary>
-        /// <param name="nodeIds">鑺傜偣ID鍒楄〃</param>
-        /// <returns>鏍煎紡鍖栧悗鐨勮妭鐐规樉绀哄悕绉板垪琛ㄥ瓧绗︿覆</returns>
+        /// <param name="nodeIds">节点ID列表</param>
+        /// <returns>格式化后的节点显示名称列表字符串</returns>
         private string FormatNodeListDisplay(IEnumerable<string> nodeIds)
         {
             return string.Join(", ", nodeIds.Select(id => GetNodeDisplayName(id)));
         }
 
         /// <summary>
-        /// 璁＄畻鎵€鏈夎妭鐐圭殑鍏ュ害
+        /// 计算所有节点的入度
         /// </summary>
-        /// <returns>鑺傜偣ID鍒板叆搴︾殑鏄犲皠瀛楀吀</returns>
+        /// <returns>节点ID到入度的映射字典</returns>
         private Dictionary<string, int> CalculateNodeInDegrees()
         {
             var inDegree = new Dictionary<string, int>();
 
-            // 鍒濆鍖栨墍鏈夎妭鐐圭殑鍏ュ害涓?
+            // 初始化所有节点的入度为0
             foreach (var node in Nodes)
             {
                 inDegree[node.Id] = 0;
             }
 
-            // 閬嶅巻鎵€鏈夎繛鎺ワ紝璁＄畻姣忎釜鐩爣鑺傜偣鐨勫叆搴?
+            // 遍历所有连接，计算每个目标节点的入度
             foreach (var connection in Connections)
             {
                 foreach (var targetId in connection.Value)
@@ -1149,10 +1149,10 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 璁＄畻鎸囧畾鑺傜偣缁勭殑鎵€鏈変笅娓歌妭鐐?
+        /// 计算指定节点组的所有下游节点
         /// </summary>
-        /// <param name="nodes">鑺傜偣鍒楄〃</param>
-        /// <returns>涓嬫父鑺傜偣ID闆嗗悎</returns>
+        /// <param name="nodes">节点列表</param>
+        /// <returns>下游节点ID集合</returns>
         private HashSet<string> CalculateDownstreamNodes(List<WorkflowNode> nodes)
         {
             var downstream = new HashSet<string>();
@@ -1169,11 +1169,11 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鏍规嵁涓嬫父鑺傜偣閲嶅彔鎯呭喌瀵瑰叆鍙ｈ妭鐐硅繘琛屽垎缁?
-        /// 灏嗗叡浜笅娓歌妭鐐圭殑鍏ュ彛鑺傜偣鍚堝苟鍒板悓涓€缁勶紝浠ヤ究鏋勫缓鍗曚釜鎵ц閾?
+        /// 根据下游节点重叠情况对入口节点进行分组
+        /// 将共享下游节点的入口节点合并到同一组，以便构建单个执行链
         /// </summary>
-        /// <param name="entryNodes">鍏ュ彛鑺傜偣鍒楄〃</param>
-        /// <returns>鍒嗙粍鍚庣殑鍏ュ彛鑺傜偣缁勫垪琛?/returns>
+        /// <param name="entryNodes">入口节点列表</param>
+        /// <returns>分组后的入口节点组列表</returns>
         private List<List<WorkflowNode>> GroupEntryNodesByDownstream(List<WorkflowNode> entryNodes)
         {
             var entryGroups = new List<List<WorkflowNode>>();
@@ -1188,35 +1188,35 @@ namespace SunEyeVision.Workflow
                     var group = entryGroups[groupIndex];
                     var groupDownstream = CalculateDownstreamNodes(group);
 
-                    // 濡傛灉涓嬫父鑺傜偣鏈変氦闆嗭紝鍒欏悎骞跺埌鍚屼竴缁?
+                    // 如果下游节点有交集，则合并到同一组
                     if (groupDownstream.Overlaps(currentDownstream))
                     {
                         group.Add(entryNode);
                         merged = true;
-                        Logger?.LogInfo($"[AutoDetect] 鍚堝苟鍏ュ彛鑺傜偣: {entryNode.Name} -> 缁剓groupIndex}");
+                        Logger?.LogInfo($"[AutoDetect] 合并入口节点: {entryNode.Name} -> 组[{groupIndex}]");
                         break;
                     }
                 }
 
-                // 濡傛灉娌℃湁鎵惧埌閲嶅彔鐨勭粍锛屽垯鍒涘缓鏂扮粍
+                // 如果没有找到重叠的组，则创建新组
                 if (!merged)
                 {
                     entryGroups.Add(new List<WorkflowNode> { entryNode });
                 }
             }
 
-            Logger?.LogInfo($"[AutoDetect] 灏?{entryNodes.Count} 涓叆鍙ｈ妭鐐瑰悎骞朵负 {entryGroups.Count} 缁?);
+            Logger?.LogInfo($"[AutoDetect] 将 {entryNodes.Count} 个入口节点合并为 {entryGroups.Count} 组");
             return entryGroups;
         }
 
         /// <summary>
-        /// 涓烘寚瀹氱殑鍏ュ彛鑺傜偣缁勫垱寤烘墽琛岄摼
+        /// 为指定的入口节点组创建执行链
         /// </summary>
-        /// <param name="entryGroup">鍏ュ彛鑺傜偣缁?/param>
-        /// <param name="chainIndex">鎵ц閾剧储寮?/param>
-        /// <param name="allVisitedNodes">宸茶闂殑鑺傜偣闆嗗悎锛堢敤浜庢爣璁板凡澶勭悊鐨勮妭鐐癸級</param>
-        /// <param name="existingChains">宸插瓨鍦ㄧ殑鎵ц閾惧垪琛紙鐢ㄤ簬鍒嗘瀽璺ㄩ摼渚濊禆锛?/param>
-        /// <returns>鍒涘缓鐨勬墽琛岄摼</returns>
+        /// <param name="entryGroup">入口节点组</param>
+        /// <param name="chainIndex">执行链索引</param>
+        /// <param name="allVisitedNodes">已访问的节点集合（用于标记已处理的节点）</param>
+        /// <param name="existingChains">已存在的执行链列表（用于分析跨链依赖）</param>
+        /// <returns>创建的执行链</returns>
         private ExecutionChain CreateExecutionChain(
             List<WorkflowNode> entryGroup,
             int chainIndex,
@@ -1231,24 +1231,24 @@ namespace SunEyeVision.Workflow
                 Dependencies = new List<ChainDependency>()
             };
 
-            // 閫掑綊鏀堕泦璇ョ粍鎵€鏈夊叆鍙ｈ妭鐐逛笅娓哥殑鎵€鏈夎妭鐐?
+            // 递归收集该组所有入口节点下游的所有节点
             foreach (var entryNode in entryGroup)
             {
                 CollectExecutionChain(entryNode.Id, chain.NodeIds, allVisitedNodes);
             }
 
-            // 鍒嗘瀽璺ㄩ摼渚濊禆鍏崇郴
+            // 分析跨链依赖关系
             AnalyzeChainDependencies(chain, allVisitedNodes, existingChains);
 
             return chain;
         }
 
         /// <summary>
-        /// 涓烘湭璁块棶鐨勮妭鐐癸紙瀛ゅ矝鑺傜偣锛夊垱寤虹嫭绔嬬殑鎵ц閾?
+        /// 为未访问的节点（孤岛节点）创建独立的执行链
         /// </summary>
-        /// <param name="allVisitedNodes">宸茶闂殑鑺傜偣闆嗗悎</param>
-        /// <param name="chainCounter">鎵ц閾捐鏁板櫒锛堝紩鐢ㄧ被鍨嬶紝鐢ㄤ簬閫掑绱㈠紩锛?/param>
-        /// <param name="chains">鎵ц閾惧垪琛紙鐢ㄤ簬娣诲姞鏂扮殑瀛ゅ矝閾撅級</param>
+        /// <param name="allVisitedNodes">已访问的节点集合</param>
+        /// <param name="chainCounter">执行链计数器（引用类型，用于递增索引）</param>
+        /// <param name="chains">执行链列表（用于添加新的孤岛链）</param>
         private void CreateIsolatedChains(
             HashSet<string> allVisitedNodes,
             ref int chainCounter,
@@ -1271,13 +1271,13 @@ namespace SunEyeVision.Workflow
                 chains.Add(chain);
                 chainCounter++;
 
-                Logger?.LogInfo($"[AutoDetect] 鍒涘缓瀛ゅ矝閾綶{chainCounter}]: {isolatedNode.Name}");
+                Logger?.LogInfo($"[AutoDetect] 创建孤岛链[{chainCounter}]: {isolatedNode.Name}");
             }
         }
     }
 
     /// <summary>
-    /// 鎵ц缁勭姸鎬?
+    /// 执行组状态
     /// </summary>
     public enum ExecutionGroupStatus
     {
@@ -1288,7 +1288,7 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// 鎵ц缁?
+    /// 执行组
     /// </summary>
     public class ExecutionGroup
     {
@@ -1298,7 +1298,7 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// 鎵ц璁″垝
+    /// 执行计划
     /// </summary>
     public class ExecutionPlan
     {

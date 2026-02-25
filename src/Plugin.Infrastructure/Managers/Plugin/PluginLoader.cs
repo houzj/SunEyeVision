@@ -4,12 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SunEyeVision.Core.Interfaces;
-using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
 {
     /// <summary>
-    /// 插件加载�?- 从目录加载插件程序集
+    /// 插件加载器 - 从目录加载插件程序集
     /// </summary>
     public class PluginLoader
     {
@@ -22,13 +22,14 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         }
 
         /// <summary>
-        /// 从目录加载所有插�?        /// </summary>
+        /// 从目录加载所有插件
+        /// </summary>
         /// <param name="pluginDirectory">插件目录</param>
         public void LoadPluginsFromDirectory(string pluginDirectory)
         {
             if (!Directory.Exists(pluginDirectory))
             {
-                _logger.LogWarning($"插件目录不存�? {pluginDirectory}");
+                _logger.LogWarning($"插件目录不存在: {pluginDirectory}");
                 return;
             }
 
@@ -46,7 +47,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                 }
             }
 
-            _logger.LogInfo($"已加�?{_loadedPlugins.Count} 个插�?);
+            _logger.LogInfo($"已加载 {_loadedPlugins.Count} 个插件");
         }
 
         /// <summary>
@@ -80,7 +81,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"实例化插件失�? {pluginType.Name}", ex);
+                    _logger.LogError($"实例化插件失败: {pluginType.Name}", ex);
                 }
             }
         }
@@ -93,7 +94,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         {
             if (!_loadedPlugins.TryGetValue(pluginId, out var plugin))
             {
-                _logger.LogWarning($"插件未找�? {pluginId}");
+                _logger.LogWarning($"插件未找到: {pluginId}");
                 return false;
             }
 
@@ -122,14 +123,16 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
         }
 
         /// <summary>
-        /// 获取所有已加载的插�?        /// </summary>
+        /// 获取所有已加载的插件
+        /// </summary>
         public List<IToolPlugin> GetAllPlugins()
         {
             return _loadedPlugins.Values.ToList();
         }
 
         /// <summary>
-        /// 卸载所有插�?        /// </summary>
+        /// 卸载所有插件
+        /// </summary>
         public void UnloadAllPlugins()
         {
             var pluginIds = _loadedPlugins.Keys.ToList();

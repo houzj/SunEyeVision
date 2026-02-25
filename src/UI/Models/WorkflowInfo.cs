@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 工作流名�?
+        /// 工作流名称?
         /// </summary>
         public string Name
         {
@@ -74,7 +74,7 @@ namespace SunEyeVision.UI.Models
         public ObservableCollection<WorkflowNode> Nodes { get; set; }
 
         /// <summary>
-        /// 连接线集�?
+        /// 连接线集合?
         /// </summary>
         public ObservableCollection<WorkflowConnection> Connections { get; set; }
     }

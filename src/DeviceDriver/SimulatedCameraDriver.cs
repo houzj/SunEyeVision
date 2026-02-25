@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Core.Models;
 using Events = SunEyeVision.Core.Events;
 
 namespace SunEyeVision.DeviceDriver

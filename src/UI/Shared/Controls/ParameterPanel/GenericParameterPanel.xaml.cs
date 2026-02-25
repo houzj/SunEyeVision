@@ -6,7 +6,7 @@ namespace SunEyeVision.UI.Shared.Controls.ParameterPanel
 {
     /// <summary>
     /// 通用参数面板控件
-    /// 用于展示插件运行时参�?
+    /// 用于展示插件运行时参考?
     /// </summary>
     public partial class GenericParameterPanel : UserControl
     {
@@ -49,7 +49,7 @@ namespace SunEyeVision.UI.Shared.Controls.ParameterPanel
     }
 
     /// <summary>
-    /// 参数�?
+    /// 参数据?
     /// </summary>
     public class ParameterItem : StackPanel
     {

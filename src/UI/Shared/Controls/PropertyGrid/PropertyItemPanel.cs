@@ -4,7 +4,7 @@ using System.Windows.Controls;
 namespace SunEyeVision.UI.Shared.Controls.PropertyGrid
 {
     /// <summary>
-    /// 单个属性项的面�?
+    /// 单个属性项的面板
     /// </summary>
     public class PropertyItemPanel : StackPanel
     {
@@ -30,7 +30,7 @@ namespace SunEyeVision.UI.Shared.Controls.PropertyGrid
             };
             Children.Add(label);
 
-            // 根据类型创建编辑�?
+            // 根据类型创建编辑器
             var editor = CreateEditor();
             Children.Add(editor);
 
@@ -96,7 +96,7 @@ namespace SunEyeVision.UI.Shared.Controls.PropertyGrid
             {
                 Text = _property.Value?.ToString() ?? "0"
             };
-            // 这里需要根据实际的NumericUpDown控件来设置属�?
+            // 这里需要根据实际的NumericUpDown控件来设置属性
             return editor;
         }
 

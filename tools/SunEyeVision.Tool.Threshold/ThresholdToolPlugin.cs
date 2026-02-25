@@ -15,9 +15,9 @@ namespace SunEyeVision.Tool.Threshold
         public string Name => "图像阈值化";
         public string Version => "1.0.0";
         public string Author => "SunEyeVision";
-        public string Description => "将灰度图像转换为二值图�?;
+        public string Description => "将灰度图像转换为二值图像";
         public string PluginId => "suneye.threshold";
-        public string Icon => "🎚�?;
+        public string Icon => "📷";
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
         #endregion
@@ -39,9 +39,9 @@ namespace SunEyeVision.Tool.Threshold
                     Id = "threshold",
                     Name = "Threshold",
                     DisplayName = "图像阈值化",
-                    Icon = "🎚�?,
+                    Icon = "📷",
                     Category = "图像处理",
-                    Description = "将灰度图像转换为二值图�?,
+                    Description = "将灰度图像转换为二值图像",
                     AlgorithmType = typeof(ThresholdAlgorithm),
                     Version = "1.0.0",
                     Author = "SunEyeVision",
@@ -51,8 +51,8 @@ namespace SunEyeVision.Tool.Threshold
                         new ParameterMetadata
                         {
                             Name = "threshold",
-                            DisplayName = "阈�?,
-                            Description = "二值化的阈�?0-255)",
+                            DisplayName = "阈值",
+                            Description = "二值化的阈值(0-255)",
                             Type = ParameterType.Int,
                             DefaultValue = 128,
                             MinValue = 0,
@@ -64,8 +64,8 @@ namespace SunEyeVision.Tool.Threshold
                         new ParameterMetadata
                         {
                             Name = "maxValue",
-                            DisplayName = "最大�?,
-                            Description = "超过阈值时使用的最大�?0-255)",
+                            DisplayName = "最大值",
+                            Description = "超过阈值时使用的最大值(0-255)",
                             Type = ParameterType.Int,
                             DefaultValue = 255,
                             MinValue = 0,
@@ -77,7 +77,7 @@ namespace SunEyeVision.Tool.Threshold
                         new ParameterMetadata
                         {
                             Name = "type",
-                            DisplayName = "阈值类�?,
+                            DisplayName = "阈值类型",
                             Description = "二值化方法",
                             Type = ParameterType.Enum,
                             DefaultValue = "Binary",
@@ -89,7 +89,7 @@ namespace SunEyeVision.Tool.Threshold
                         {
                             Name = "adaptiveMethod",
                             DisplayName = "自适应方法",
-                            Description = "自适应阈值方�?,
+                            Description = "自适应阈值方法",
                             Type = ParameterType.Enum,
                             DefaultValue = "Mean",
                             Options = new object[] { "Mean", "Gaussian" },
@@ -99,7 +99,7 @@ namespace SunEyeVision.Tool.Threshold
                         new ParameterMetadata
                         {
                             Name = "blockSize",
-                            DisplayName = "块大�?,
+                            DisplayName = "块大小",
                             Description = "计算阈值的邻域大小(奇数)",
                             Type = ParameterType.Int,
                             DefaultValue = 11,
@@ -132,8 +132,8 @@ namespace SunEyeVision.Tool.Threshold
                         new ParameterMetadata
                         {
                             Name = "thresholdUsed",
-                            DisplayName = "实际阈�?,
-                            Description = "实际使用的阈�?,
+                            DisplayName = "实际阈值",
+                            Description = "实际使用的阈值",
                             Type = ParameterType.Double
                         }
                     }
@@ -189,7 +189,7 @@ namespace SunEyeVision.Tool.Threshold
     public class ThresholdAlgorithm : ImageProcessorBase
     {
         public override string Name => "图像阈值化";
-        public override string Description => "将灰度图像转换为二值图�?;
+        public override string Description => "将灰度图像转换为二值图像";
 
         protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {

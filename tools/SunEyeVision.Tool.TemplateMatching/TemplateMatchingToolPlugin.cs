@@ -52,7 +52,7 @@ namespace SunEyeVision.Tool.TemplateMatching
                         {
                             Name = "templateImage",
                             DisplayName = "模板图像",
-                            Description = "用于匹配的模板图�?,
+                            Description = "用于匹配的模板图像",
                             Type = ParameterType.Image,
                             Required = true,
                             Category = "基本参数"
@@ -60,8 +60,8 @@ namespace SunEyeVision.Tool.TemplateMatching
                         new ParameterMetadata
                         {
                             Name = "threshold",
-                            DisplayName = "匹配阈�?,
-                            Description = "匹配分数阈�?0-1)",
+                            DisplayName = "匹配阈值",
+                            Description = "匹配分数阈值(0-1)",
                             Type = ParameterType.Double,
                             DefaultValue = 0.8,
                             MinValue = 0.0,
@@ -84,8 +84,8 @@ namespace SunEyeVision.Tool.TemplateMatching
                         new ParameterMetadata
                         {
                             Name = "minSize",
-                            DisplayName = "最小尺�?,
-                            Description = "目标最小尺�?,
+                            DisplayName = "最小尺寸",
+                            Description = "目标最小尺寸",
                             Type = ParameterType.Int,
                             DefaultValue = 10,
                             MinValue = 1,
@@ -100,14 +100,14 @@ namespace SunEyeVision.Tool.TemplateMatching
                         {
                             Name = "score",
                             DisplayName = "匹配分数",
-                            Description = "最佳匹配分�?,
+                            Description = "最佳匹配分数",
                             Type = ParameterType.Double
                         },
                         new ParameterMetadata
                         {
                             Name = "position",
                             DisplayName = "匹配位置",
-                            Description = "匹配到的中心点坐�?,
+                            Description = "匹配到的中心点坐标",
                             Type = ParameterType.Point
                         },
                         new ParameterMetadata
@@ -136,13 +136,11 @@ namespace SunEyeVision.Tool.TemplateMatching
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var threshold = parameters.Get<double>("threshold");
             if (threshold != null && (threshold < 0 || threshold > 1))
             {
                 result.AddError("匹配阈值必须在0-1之间");
             }
-
             result.IsValid = result.Errors.Count == 0;
             return result;
         }
@@ -162,9 +160,7 @@ namespace SunEyeVision.Tool.TemplateMatching
             var threshold = GetParameter(parameters, "threshold", 0.8);
             var method = GetParameter(parameters, "method", "SqDiffNormed");
             var minSize = GetParameter(parameters, "minSize", 10);
-
             // TODO: 实际模板匹配逻辑
-
             return ImageProcessResult.FromData(new
             {
                 Threshold = threshold,
@@ -173,7 +169,7 @@ namespace SunEyeVision.Tool.TemplateMatching
                 Score = 0.0,
                 Position = new { X = 0, Y = 0 },
                 MatchCount = 0,
-                ProcessedAt = System.DateTime.Now
+                ProcessedAt = DateTime.Now
             });
         }
 
@@ -181,10 +177,8 @@ namespace SunEyeVision.Tool.TemplateMatching
         {
             var result = new ValidationResult();
             var threshold = GetParameter<double?>(parameters, "threshold", null);
-
             if (threshold.HasValue && (threshold.Value < 0 || threshold.Value > 1))
                 result.AddError("匹配阈值必须在0-1之间");
-
             return result;
         }
     }

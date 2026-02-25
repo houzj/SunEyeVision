@@ -13,7 +13,7 @@ namespace SunEyeVision.Tool.GaussianBlur.DTOs
         public int KernelSize { get; set; } = 5;
 
         /// <summary>
-        /// 标准差（Sigma�?
+        /// 标准差（Sigma）
         /// </summary>
         public double Sigma { get; set; } = 1.5;
 

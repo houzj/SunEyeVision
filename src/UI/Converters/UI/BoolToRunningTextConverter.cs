@@ -13,9 +13,9 @@ namespace SunEyeVision.UI.Converters
         {
             if (value is bool isRunning)
             {
-                return isRunning ? "运行�? : "已停�?;
+                return isRunning ? "运行中" : "停止";
             }
-            return "已停�?;
+            return "停止";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

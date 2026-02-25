@@ -23,8 +23,8 @@
         <convertersNode:NodeBorderColorConverter x:Key="NodeBorderColorConverter"/>
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
 
-        <!-- 箭头标记 - 尖端指向右侧�?度方向），方便旋�?-->
-        <!-- 箭头长度与OrthogonalPathCalculator.ArrowLength保持一致（15px�?-->
+        <!-- 箭头标记 - 尖端指向右侧（度的方向），方便旋转 -->
+        <!-- 箭头长度与OrthogonalPathCalculator.ArrowLength保持一致（15px） -->
         <PathGeometry x:Key="ArrowGeometry">
             <PathFigure StartPoint="0,0">
                 <LineSegment Point="-15,-8" />
@@ -65,9 +65,9 @@
         <SolidColorBrush x:Key="NodeBorderBrushSelected" Color="#0066CC"/>
     </UserControl.Resources>
 
-    <!-- 主容�?-->
+    <!-- 主容器 -->
     <Grid x:Name="MainGrid">
-        <!-- 原有�?WorkflowCanvas -->
+        <!-- 原有的 WorkflowCanvas -->
         <Canvas x:Name="WorkflowCanvas"
                 ClipToBounds="True"
                 AllowDrop="True"
@@ -98,7 +98,7 @@
             </DrawingBrush>
         </Canvas.Background>
 
-        <!-- 连接�?- 使用智能直角折线 -->
+        <!-- 连接线 - 使用智能直角折线 -->
         <ItemsControl ItemsSource="{Binding WorkflowConnections}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -113,7 +113,7 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Canvas>
-                        <!-- 连接�?-->
+                        <!-- 连接线 -->
                         <Path Loaded="Path_Loaded"
                               MouseLeftButtonDown="ConnectionLine_MouseLeftButtonDown">
                             <Path.Data>
@@ -128,13 +128,13 @@
                                     <Setter Property="StrokeThickness" Value="2"/>
                                     <Setter Property="StrokeLineJoin" Value="Round"/>
                                     <Setter Property="Cursor" Value="Hand"/>
-                                    <!-- 6D: 移除默认的DropShadowEffect，仅在鼠标悬停时启用（性能提升�?-->
+                                    <!-- 6D: 移除默认的DropShadowEffect，仅在鼠标悬停时启用（性能提升） -->
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Stroke" Value="#0066CC"/>
                                             <Setter Property="StrokeThickness" Value="3"/>
-                                            <!-- 6D: 降低BlurRadius�?降到3，减少阴影计算开销 -->
+                                            <!-- 6D: 降低BlurRadius从5降到3，减少阴影计算开销 -->
                                             <Setter Property="Effect">
                                                 <Setter.Value>
                                                     <DropShadowEffect Color="#0066CC" BlurRadius="3" ShadowDepth="1" Opacity="0.6"/>
@@ -263,7 +263,7 @@
                                            TextTrimming="CharacterEllipsis"/>
                             </Grid>
 
-                            <!-- 连接�?- �?-->
+                            <!-- 连接点 - 上 -->
                             <Ellipse Name="TopPortEllipse"
                                      Style="{StaticResource PortEllipseStyle}"
                                      HorizontalAlignment="Center"
@@ -277,7 +277,7 @@
                                      Tag="TopPort"
                                      Visibility="Collapsed"/>
 
-                            <!-- 连接�?- �?-->
+                            <!-- 连接点 - 下 -->
                             <Ellipse Name="BottomPortEllipse"
                                      Style="{StaticResource PortEllipseStyle}"
                                      HorizontalAlignment="Center"
@@ -291,7 +291,7 @@
                                      Tag="BottomPort"
                                      Visibility="Collapsed"/>
 
-                            <!-- 连接�?- �?-->
+                            <!-- 连接点 - 左 -->
                             <Ellipse Name="LeftPortEllipse"
                                      Style="{StaticResource PortEllipseStyle}"
                                      HorizontalAlignment="Left"
@@ -305,7 +305,7 @@
                                      Tag="LeftPort"
                                      Visibility="Collapsed"/>
 
-                            <!-- 连接�?- �?-->
+                            <!-- 连接点 - 右 -->
                             <Ellipse Name="RightPortEllipse"
                                      Style="{StaticResource PortEllipseStyle}"
                                      HorizontalAlignment="Right"
@@ -327,7 +327,7 @@
                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                         <Setter Property="BorderBrush" Value="#ff6600"/>
                                         <Setter Property="BorderThickness" Value="3"/>
-                                        <!-- 6D: 大幅降低BlurRadius�?0降到3，显著减少阴影计算开销 -->
+                                        <!-- 6D: 大幅降低BlurRadius从10降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
                                                 <DropShadowEffect Color="#ff6600" BlurRadius="3" ShadowDepth="0"/>
@@ -337,7 +337,7 @@
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="BorderBrush" Value="#ff7700"/>
                                         <Setter Property="BorderThickness" Value="3"/>
-                                        <!-- 6D: 大幅降低BlurRadius�?降到3，显著减少阴影计算开销 -->
+                                        <!-- 6D: 大幅降低BlurRadius从5降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
                                                 <DropShadowEffect Color="#ff7700" BlurRadius="3" ShadowDepth="0"/>
@@ -352,7 +352,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- 拖拽连接时的临时连接�?-->
+        <!-- 拖拽连接时的临时连接线 -->
         <Path x:Name="TempConnectionLine"
               Stroke="#FF6600"
               StrokeThickness="2"
@@ -367,10 +367,10 @@
             </Path.Data>
         </Path>
 
-        <!-- 框选控�?-->
+        <!-- 框选控件 -->
         <common:SelectionBox x:Name="SelectionBox" Canvas.ZIndex="9999"/>
 
-        <!-- 最大外接矩形（用于调试�?-->
+        <!-- 最大外接矩形（用于调试） -->
         <Border x:Name="BoundingRectangle"
                  BorderBrush="#FF0000"
                  BorderThickness="3"

@@ -6,7 +6,7 @@ using System.Windows.Media;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 布尔值转选中背景转换�?
+    /// 布尔值转选中背景转换器
     /// </summary>
     public class BoolToSelectedBackgroundConverter : IValueConverter
     {

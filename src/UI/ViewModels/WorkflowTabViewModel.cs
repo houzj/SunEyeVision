@@ -15,7 +15,7 @@ using SunEyeVision.UI.Services.Workflow;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 工作流标签页ViewModel
+    /// ǩҳViewModel
     /// </summary>
     public class WorkflowTabViewModel : ObservableObject
     {
@@ -31,22 +31,22 @@ namespace SunEyeVision.UI.ViewModels
         private CanvasType _canvasType;
 
         /// <summary>
-        /// 节点序号管理�?
+        /// ڵ序号管理?
         /// </summary>
         private readonly INodeSequenceManager _sequenceManager;
 
         /// <summary>
-        /// 节点显示适配�?
+        /// ڵʾ?
         /// </summary>
         private readonly INodeDisplayAdapter _displayAdapter;
 
         /// <summary>
-        /// 节点工厂
+        /// 
         /// </summary>
         private readonly IWorkflowNodeFactory _nodeFactory;
 
         /// <summary>
-        /// 每个画布独立的撤销/重做命令管理�?
+        /// ÿJĳ/?
         /// </summary>
         public AppCommands.CommandManager CommandManager { get; }
 
@@ -57,36 +57,36 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 带依赖注入的构造函�?
+        /// 带依赖注入的构函?
         /// </summary>
         public WorkflowTabViewModel(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
         {
             _sequenceManager = sequenceManager ?? throw new ArgumentNullException(nameof(sequenceManager));
             _displayAdapter = displayAdapter ?? throw new ArgumentNullException(nameof(displayAdapter));
 
-            // 创建节点工厂
+            // 
             _nodeFactory = new WorkflowNodeFactory(_sequenceManager, _displayAdapter);
 
             Id = Guid.NewGuid().ToString();
-            Name = "工作�?";
+            Name = "工作?";
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
             WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
-            CanvasType = CanvasType.WorkflowCanvas; // 默认使用 WorkflowCanvas，每个工作流独立
+            CanvasType = CanvasType.WorkflowCanvas; // 默使用 WorkflowCanvas，每丷作流狫
 
-            // 每个画布初始化独立的命令管理�?
+            // ÿ?
             CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
 
-            // 订阅节点和连接集合变化事�?
+            // 订阅ڵ和连接集合变化事?
             WorkflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
             WorkflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
         }
 
         /// <summary>
-        /// 工作流ID
+        /// ID
         /// </summary>
         public string Id
         {
@@ -95,7 +95,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流名�?
+        /// ?
         /// </summary>
         public string Name
         {
@@ -104,7 +104,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 是否正在运行
+        /// S
         /// </summary>
         public bool IsRunning
         {
@@ -119,7 +119,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 运行模式
+        /// ģʽ
         /// </summary>
         public RunMode RunMode
         {
@@ -128,7 +128,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流状�?
+        /// ״?
         /// </summary>
         public WorkflowState State
         {
@@ -137,7 +137,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流节点集�?
+        /// ڵ㼯?
         /// </summary>
         public ObservableCollection<Models.WorkflowNode> WorkflowNodes
         {
@@ -161,7 +161,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流连接集�?
+        /// Ӽ?
         /// </summary>
         public ObservableCollection<Models.WorkflowConnection> WorkflowConnections
         {
@@ -185,7 +185,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 缩放变换对象（每个工作流独立�?
+        /// 任ÿRJ?
         /// </summary>
         public ScaleTransform ScaleTransform
         {
@@ -194,7 +194,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 当前缩放比例（每个工作流独立，默�?.0�?00%�?
+        /// ǰÿRJĬ?.0?00%?
         /// </summary>
         public double CurrentScale
         {
@@ -203,7 +203,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 画布类型
+        /// 画布
         /// </summary>
         public CanvasType CanvasType
         {
@@ -212,22 +212,22 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 单次运行按钮文本
+        /// ˰ťı
         /// </summary>
-        public string SingleRunButtonText => "�?;
+        public string SingleRunButtonText => "?";
 
         /// <summary>
-        /// 连续运行按钮文本
+        /// ˰ťı
         /// </summary>
-        public string ContinuousRunButtonText => IsRunning ? "�? : "▶▶";
+        public string ContinuousRunButtonText => IsRunning ? " ֹͣ" : " ";
 
         /// <summary>
-        /// 是否可以删除
+        /// S߷
         /// </summary>
         public bool IsCloseable => true;
 
         /// <summary>
-        /// 获取状态显示文�?
+        /// 获取状显示文?
         /// </summary>
         public string StateText
         {
@@ -235,17 +235,17 @@ namespace SunEyeVision.UI.ViewModels
             {
                 return State switch
                 {
-                    WorkflowState.Stopped => "�?,
-                    WorkflowState.Running => "�?,
-                    WorkflowState.Paused => "�?,
-                    WorkflowState.Error => "�?,
-                    _ => "�?
+                    WorkflowState.Stopped => "",
+                    WorkflowState.Running => "",
+                    WorkflowState.Paused => "",
+                    WorkflowState.Error => "",
+                    _ => ""
                 };
             }
         }
 
         /// <summary>
-        /// 获取状态颜�?
+        /// ȡ״?
         /// </summary>
         public string StateColor
         {
@@ -263,11 +263,11 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 创建新节点并自动分配序号
+        /// ½ڵ㲢
         /// </summary>
-        /// <param name="algorithmType">算法类型</param>
-        /// <param name="name">节点名称（可选，默认使用算法类型�?/param>
-        /// <returns>新创建的节点</returns>
+        /// <param name="algorithmType">算法</param>
+        /// <param name="name">ƣѡĬʹ㷨?/param>
+        /// <returns>新创建的ڵ</returns>
         public Models.WorkflowNode CreateNode(string algorithmType, string? name = null)
         {
             if (_nodeFactory == null)
@@ -275,14 +275,14 @@ namespace SunEyeVision.UI.ViewModels
                 throw new InvalidOperationException("NodeFactory is not initialized");
             }
 
-            // 使用工厂创建节点，自动处理序号分�?
+            // ʹùԶŷ?
             var node = _nodeFactory.CreateNode(algorithmType, name, Id);
 
             return node;
         }
 
         /// <summary>
-        /// 重置工作流的所有序�?
+        /// ù?
         /// </summary>
         public void ResetNodeSequences()
         {
@@ -290,7 +290,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 强制刷新属性通知（用于手动触发属性更新）
+        /// ǿˢֶ֪Ը£
         /// </summary>
         public void RefreshProperty(string propertyName)
         {
@@ -299,13 +299,13 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 工作流状态枚�?
+    /// ״̬ö?
     /// </summary>
     public enum WorkflowState
     {
-        Stopped,   // 已停�?
-        Running,   // 运行�?
-        Paused,    // 已暂�?
-        Error      // 错误
+        Stopped,   // 已停?
+        Running,   // 运?
+        Paused,    // 已暂?
+        Error      // 
     }
 }

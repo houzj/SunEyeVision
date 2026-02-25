@@ -7,7 +7,7 @@ using SunEyeVision.UI.Infrastructure;
 namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
-    /// 简单的服务定位器（单例模式�?
+    /// 简单的服务定位器（单例模式）
     /// </summary>
     public class ServiceLocator
     {

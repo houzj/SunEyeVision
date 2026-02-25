@@ -8,7 +8,7 @@ namespace SunEyeVision.Core.Models
         // ==================== 流程控制类型 ====================
 
         /// <summary>
-        /// 开始节�?- 执行链起点（如图像采集）
+        /// 开始节点?- 执行链起点（如图像采集）
         /// </summary>
         Start,
 
@@ -22,7 +22,7 @@ namespace SunEyeVision.Core.Models
         // ==================== 逻辑控制类型 ====================
 
         /// <summary>
-        /// 子程序节�?- 可复用的子工作流
+        /// 子程序节点?- 可复用的子工作流
         /// </summary>
         Subroutine,
 

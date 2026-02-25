@@ -5,7 +5,7 @@ using System.Windows.Controls;
 namespace SunEyeVision.UI.Shared.Controls.PropertyGrid
 {
     /// <summary>
-    /// 通用属性网格控�?
+    /// 通用属性网格控件?
     /// 用于显示和编辑插件的参数
     /// </summary>
     public partial class GenericPropertyGrid : UserControl

@@ -4,9 +4,9 @@ namespace SunEyeVision.Core.IO
 {
     /// <summary>
     /// 文件访问范围 - RAII模式实现
-    /// 确保 EndAccess 在作用域结束时自动调�?
+    /// 确保 EndAccess 在作用域结束时自动调用
     /// 
-    /// 使用示例�?
+    /// 使用示例：
     /// <code>
     /// using (var scope = fileAccessManager.CreateAccessScope(filePath, FileAccessIntent.Read))
     /// {
@@ -38,7 +38,7 @@ namespace SunEyeVision.Core.IO
         /// <summary>
         /// 创建文件访问范围
         /// </summary>
-        /// <param name="manager">文件访问管理�?/param>
+        /// <param name="manager">文件访问管理器</param>
         /// <param name="filePath">文件路径</param>
         /// <param name="result">访问结果</param>
         /// <param name="errorMessage">错误消息</param>
@@ -61,7 +61,7 @@ namespace SunEyeVision.Core.IO
         {
             if (!_disposed)
             {
-                // 只有访问成功时才需要释�?
+                // 只有访问成功时才需要释放?
                 if (IsGranted)
                 {
                     _manager.EndAccess(FilePath);

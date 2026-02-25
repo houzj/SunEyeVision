@@ -21,13 +21,13 @@
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"/>
 
-        <!-- 空状态提�?-->
+        <!-- 空状态提示 -->
         <TextBlock x:Name="EmptyStateText"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    FontSize="16"
                    Foreground="#999999"
-                   Text="拖放节点到此区域以开始构建工作流"
+                   Text="拖拽节点到此区域以开始构建工作流"
                    Panel.ZIndex="50"
                    IsHitTestVisible="False"
                    Visibility="Collapsed"/>

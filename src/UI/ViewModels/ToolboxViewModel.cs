@@ -9,7 +9,7 @@ using SunEyeVision.UI.Services.Toolbox;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// ¹¤¾ßÏäÊÓÍ¼Ä£ĞÍ - Ö§³Ö¶¯Ì¬²å¼ş¼ÓÔØºÍË«Ä£ÏÔÊ¾£¨ÓÅ»¯°æ£©
+    /// å·¥å…·ç®±è§†å›¾æ¨¡å‹ - æ”¯æŒåŠ¨æ€æ’ä»¶åŠ è½½å’ŒåŒæ¨¡æ˜¾ç¤ºï¼ˆä¼˜åŒ–ç‰ˆï¼‰
     /// </summary>
     public class ToolboxViewModel : ViewModelBase
     {
@@ -24,7 +24,7 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<ToolItem> SelectedCategoryTools { get; }
 
         /// <summary>
-        /// ÊÇ·ñÎª½ô´ÕÄ£Ê½£¨true: ½ô´Õ²à±ßÀ¸Ä£Ê½, false: ´«Í³Õ¹¿ªÄ£Ê½£©
+        /// æ˜¯å¦ä¸ºç´§å‡‘æ¨¡å¼ï¼ˆtrue: ç´§å‡‘ä¾§è¾¹æ æ¨¡å¼, false: ä¼ ç»Ÿå±•å¼€æ¨¡å¼ï¼‰
         /// </summary>
         public bool IsCompactMode
         {
@@ -33,7 +33,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (SetProperty(ref _isCompactMode, value))
                 {
-                    // ÇĞ»»Ä£Ê½Ê±Çå¿ÕÑ¡ÖĞ·ÖÀà²¢¹Ø±Õ Popup
+                    // åˆ‡æ¢æ¨¡å¼æ—¶æ¸…ç©ºé€‰ä¸­åˆ†ç±»å¹¶å…³é—­ Popup
                     SelectedCategory = null;
                     IsCompactModePopupOpen = false;
                     OnPropertyChanged(nameof(DisplayModeIcon));
@@ -43,7 +43,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ½ô´ÕÄ£Ê½ÏÂµÄ Popup ÊÇ·ñ´ò¿ª
+        /// ç´§å‡‘æ¨¡å¼ä¸‹çš„ Popup æ˜¯å¦æ‰“å¼€
         /// </summary>
         public bool IsCompactModePopupOpen
         {
@@ -52,7 +52,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// PopupµÄ´¹Ö±Æ«ÒÆÁ¿£¨Ïà¶ÔÓÚPlacementTarget£©
+        /// Popupçš„å‚ç›´åç§»é‡ï¼ˆç›¸å¯¹äºPlacementTargetï¼‰
         /// </summary>
         public double PopupVerticalOffset
         {
@@ -61,7 +61,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÉèÖÃPopupµÄ´¹Ö±Æ«ÒÆÁ¿
+        /// è®¾ç½®Popupçš„å‚ç›´åç§»é‡
         /// </summary>
         public void SetPopupVerticalOffset(double offset)
         {
@@ -69,7 +69,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÏÔÊ¾Ä£Ê½Í¼±ê£¨Èı½Ç¼ıÍ·£©
+        /// æ˜¾ç¤ºæ¨¡å¼å›¾æ ‡ï¼ˆä¸‰è§’ç®­å¤´ï¼‰
         /// </summary>
         public string DisplayModeIcon
         {
@@ -77,11 +77,11 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÏÔÊ¾Ä£Ê½ÌáÊ¾
+        /// æ˜¾ç¤ºæ¨¡å¼æç¤º
         /// </summary>
         public string DisplayModeTooltip
         {
-            get => IsCompactMode ? "ÇĞ»»µ½Õ¹¿ªÄ£Ê½" : "ÇĞ»»µ½½ô´ÕÄ£Ê½";
+            get => IsCompactMode ? "åˆ‡æ¢åˆ°å±•å¼€æ¨¡å¼" : "åˆ‡æ¢åˆ°ç´§å‡‘æ¨¡å¼";
         }
 
         public string SelectedCategory
@@ -95,7 +95,7 @@ namespace SunEyeVision.UI.ViewModels
                     UpdateCategorySelection();
                     OnPropertyChanged(nameof(SelectedCategoryIcon));
 
-                    // ½ô´ÕÄ£Ê½£º¿ØÖÆ Popup ´ò¿ª/¹Ø±Õ
+                    // ç´§å‡‘æ¨¡å¼ï¼šæ§åˆ¶ Popup æ‰“å¼€/å…³é—­
                     if (IsCompactMode && !string.IsNullOrEmpty(value))
                     {
                         IsCompactModePopupOpen = true;
@@ -115,7 +115,7 @@ namespace SunEyeVision.UI.ViewModels
                 if (string.IsNullOrWhiteSpace(SelectedCategory))
                     return "";
                 var category = Categories.FirstOrDefault(c => c.Name == SelectedCategory);
-                return category?.Icon ?? "??";
+                return category?.Icon ?? "?";
             }
         }
 
@@ -139,7 +139,7 @@ namespace SunEyeVision.UI.ViewModels
 
             InitializeFromPlugins();
 
-            // ¼àÌı·ÖÀà¹¤¾ß±ä»¯£¬Èç¹ûÃ»ÓĞ¹¤¾ßÔò¹Ø±ÕPopup
+            // ç›‘å¬åˆ†ç±»å·¥å…·å˜åŒ–ï¼Œå¦‚æœæ²¡æœ‰å·¥å…·åˆ™å…³é—­Popup
             SelectedCategoryTools.CollectionChanged += (s, e) =>
             {
                 if (IsCompactMode && SelectedCategoryTools.Count == 0)
@@ -150,24 +150,24 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ´Ó²å¼ş³õÊ¼»¯¹¤¾ßÏä
+        /// ä»æ’ä»¶åˆå§‹åŒ–å·¥å…·ç®±
         /// </summary>
         private void InitializeFromPlugins()
         {
-            // Çå¿ÕÏÖÓĞÊı¾İ
+            // æ¸…ç©ºç°æœ‰æ•°æ®
             Categories.Clear();
             AllTools.Clear();
 
-            // ×¢Òâ£º²å¼şÒÑÔÚ App.OnStartup ÖĞÓÉ PluginManager ¼ÓÔØ²¢×¢²áµ½ ToolRegistry
-            // ÕâÀïÖ»ĞèÒª´Ó ToolRegistry ¼ÓÔØ¹¤¾ß¼´¿É
+            // æ³¨æ„ï¼šæ’ä»¶å·²åœ¨ App.OnStartup ä¸­ç”± PluginManager åŠ è½½å¹¶æ³¨å†Œåˆ° ToolRegistry
+            // è¿™é‡Œåªéœ€è¦ä» ToolRegistry åŠ è½½å·¥å…·å³å¯
             LoadToolsFromRegistry();
 
-            // ¸üĞÂ·ÖÀàµÄ¹¤¾ßÊıÁ¿
+            // æ›´æ–°åˆ†ç±»çš„å·¥å…·æ•°é‡
             UpdateCategoryToolCounts();
         }
 
         /// <summary>
-        /// ´Ó¹¤¾ß×¢²áÖĞĞÄ¼ÓÔØ¹¤¾ß
+        /// ä»å·¥å…·æ³¨å†Œä¸­å¿ƒåŠ è½½å·¥å…·
         /// </summary>
         private void LoadToolsFromRegistry()
         {
@@ -190,34 +190,34 @@ namespace SunEyeVision.UI.ViewModels
                     tool.AlgorithmType?.Name,
                     tool.HasDebugInterface
                 );
-                // ÉèÖÃÕæÕıµÄ¹¤¾ßID
+                // è®¾ç½®çœŸæ­£çš„å·¥å…·ID
                 toolItem.ToolId = tool.Id;
                 AllTools.Add(toolItem);
             }
         }
 
         /// <summary>
-        /// »ñÈ¡·ÖÀàÍ¼±ê
+        /// è·å–åˆ†ç±»å›¾æ ‡
         /// </summary>
         private string GetCategoryIcon(string category)
         {
             return category switch
             {
-                "²É¼¯" => "??",
-                "¶¨Î»" => "??",
-                "Í¼Ïñ´¦Àí" => "???",
-                "Ê¶±ğ" => "??",
-                "²âÁ¿" => "??",
-                _ => "??"
+                "é‡‡é›†" => "ğŸ“·",
+                "å®šä½" => "ğŸ¯",
+                "å›¾åƒå¤„ç†" => "ğŸ–¼ï¸",
+                "è¯†åˆ«" => "ğŸ”",
+                "æµ‹é‡" => "ğŸ“",
+                _ => "ğŸ“¦"
             };
         }
 
         /// <summary>
-        /// »ñÈ¡·ÖÀàÃèÊö
+        /// è·å–åˆ†ç±»æè¿°
         /// </summary>
         private string GetCategoryDescription(string category)
         {
-            return category + "Ïà¹Ø¹¤¾ß";
+            return category + "ç›¸å…³å·¥å…·";
         }
 
         private void UpdateCategoryToolCounts()
@@ -225,14 +225,14 @@ namespace SunEyeVision.UI.ViewModels
             foreach (var category in Categories)
             {
                 category.ToolCount = AllTools.Count(t => t.Category == category.Name);
-                // ÎªÃ¿¸ö·ÖÀàÉèÖÃ¹¤¾ßÁĞ±í
+                // ä¸ºæ¯ä¸ªåˆ†ç±»è®¾ç½®å·¥å…·åˆ—è¡¨
                 var tools = AllTools.Where(t => t.Category == category.Name).ToList();
                 category.Tools = new System.Collections.ObjectModel.ObservableCollection<ToolItem>(tools);
             }
         }
 
         /// <summary>
-        /// ¸üĞÂÑ¡ÖĞ·ÖÀàµÄ¹¤¾ßÁĞ±í£¨Ê¹ÓÃ»º´æÓÅ»¯£©
+        /// æ›´æ–°é€‰ä¸­åˆ†ç±»çš„å·¥å…·åˆ—è¡¨ï¼ˆä½¿ç”¨ç¼“å­˜ä¼˜åŒ–ï¼‰
         /// </summary>
         private void UpdateSelectedCategoryTools()
         {
@@ -243,7 +243,7 @@ namespace SunEyeVision.UI.ViewModels
                 return;
             }
 
-            // Ê¹ÓÃ»º´æ¹ÜÀíÆ÷»ñÈ¡¹¤¾ßÁĞ±í
+            // ä½¿ç”¨ç¼“å­˜ç®¡ç†å™¨è·å–å·¥å…·åˆ—è¡¨
             var cachedTools = _toolCacheManager.GetToolsByCategory(SelectedCategory);
             foreach (var tool in cachedTools)
             {
@@ -252,7 +252,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ¸üĞÂ·ÖÀàÑ¡ÖĞ×´Ì¬
+        /// æ›´æ–°åˆ†ç±»é€‰ä¸­çŠ¶æ€
         /// </summary>
         private void UpdateCategorySelection()
         {
@@ -266,17 +266,17 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (SelectedCategory == category.Name)
             {
-                SelectedCategory = null; // È¡ÏûÑ¡Ôñ
+                SelectedCategory = null; // å–æ¶ˆé€‰æ‹©
             }
             else
             {
-                SelectedCategory = category.Name; // Ñ¡ÔñĞÂ·ÖÀà
+                SelectedCategory = category.Name; // é€‰æ‹©æ–°åˆ†ç±»
             }
         }
 
         private void ExecuteUseTool(ToolItem tool)
         {
-            // TODO: ÊµÏÖ¹¤¾ßÊ¹ÓÃÊÂ¼ş
+            // TODO: å®ç°å·¥å…·ä½¿ç”¨äº‹ä»¶
         }
 
         private void ExecuteClearSelection()
@@ -285,7 +285,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// ÇĞ»»ÏÔÊ¾Ä£Ê½
+        /// åˆ‡æ¢æ˜¾ç¤ºæ¨¡å¼
         /// </summary>
         private void ExecuteToggleDisplayMode()
         {

@@ -6,7 +6,7 @@ using System.Windows.Media;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 布尔值转选中边框转换�?
+    /// 布尔值转选中边框转换器
     /// </summary>
     public class BoolToSelectedBorderConverter : IValueConverter
     {

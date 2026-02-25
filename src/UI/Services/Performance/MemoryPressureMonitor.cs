@@ -1,19 +1,18 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
-using SunEyeVision.UI.Services.Performance;
 
 namespace SunEyeVision.UI.Services.Performance
 {
     /// <summary>
-    /// 内存压力监控�?- 响应系统内存压力自动调整缓存策略
-    /// 核心优化：避免OOM，智能降�?
+    /// 内存压力监控器 - 响应系统内存压力自动调整缓存策略
+    /// 核心优化：避免OOM，智能降级
     /// 
-    /// 特点�?
+    /// 特点：
     /// 1. 监控系统可用内存
     /// 2. 内存压力大时自动触发缓存清理
     /// 3. 支持多级压力响应（正常、中等、高、危险）
-    /// 4. 轻量化实现，无外部依�?
+    /// 4. 轻量化实现，无外部依赖
     /// </summary>
     public class MemoryPressureMonitor : IDisposable
     {
@@ -51,8 +50,8 @@ namespace SunEyeVision.UI.Services.Performance
         private bool _disposed = false;
 
         // 配置参数
-        private const int MONITOR_INTERVAL_MS = 2000; // 2秒检查一�?
-        private const long MIN_MEMORY_MB = 100; // 最小保留内�?
+        private const int MONITOR_INTERVAL_MS = 2000; // 2秒检查一次
+        private const long MIN_MEMORY_MB = 100; // 最小保留内存
 
         /// <summary>
         /// 当前内存压力级别
@@ -65,7 +64,7 @@ namespace SunEyeVision.UI.Services.Performance
         public bool IsEnabled { get; private set; }
 
         /// <summary>
-        /// 开始监�?
+        /// 开始监控
         /// </summary>
         public void Start()
         {
@@ -75,7 +74,7 @@ namespace SunEyeVision.UI.Services.Performance
             _monitorTimer = new Timer(CheckMemoryPressure, null, 
                 MONITOR_INTERVAL_MS, MONITOR_INTERVAL_MS);
 
-            Debug.WriteLine("[MemoryMonitor] �?内存压力监控已启�?);
+            Debug.WriteLine("[MemoryMonitor] 内存监控已启动");
         }
 
         /// <summary>
@@ -89,11 +88,11 @@ namespace SunEyeVision.UI.Services.Performance
             _monitorTimer?.Dispose();
             _monitorTimer = null;
 
-            Debug.WriteLine("[MemoryMonitor] �?内存压力监控已停�?);
+            Debug.WriteLine("[MemoryMonitor] 内存监控已停止");
         }
 
         /// <summary>
-        /// 检查内存压�?
+        /// 检查内存压力
         /// </summary>
         private void CheckMemoryPressure(object? state)
         {
@@ -102,11 +101,13 @@ namespace SunEyeVision.UI.Services.Performance
                 var (availableMB, totalMB, availablePercent) = GetMemoryInfo();
                 var newLevel = CalculatePressureLevel(availablePercent);
 
-                // 压力级别变化时触发事�?
                 if (newLevel != _currentLevel)
                 {
                     var oldLevel = _currentLevel;
-                    _currentLevel = newLevel;
+                    lock (_lock)
+                    {
+                        _currentLevel = newLevel;
+                    }
 
                     var args = new MemoryPressureEventArgs
                     {
@@ -119,13 +120,13 @@ namespace SunEyeVision.UI.Services.Performance
 
                     MemoryPressureChanged?.Invoke(this, args);
 
-                    Debug.WriteLine($"[MemoryMonitor] �?内存压力变化: {oldLevel} -> {newLevel} " +
+                    Debug.WriteLine($"[MemoryMonitor] 内存压力变化: {oldLevel} -> {newLevel} " +
                         $"(可用:{availableMB}MB, {availablePercent:F1}%)");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[MemoryMonitor] �?检查内存压力失�? {ex.Message}");
+                Debug.WriteLine($"[MemoryMonitor] 检查内存压力失败: {ex.Message}");
             }
         }
 
@@ -134,25 +135,12 @@ namespace SunEyeVision.UI.Services.Performance
         /// </summary>
         private (long availableMB, long totalMB, double availablePercent) GetMemoryInfo()
         {
-            using var proc = Process.GetCurrentProcess();
-            var workingSet = proc.WorkingSet64 / (1024 * 1024);
-
-            // 使用GC获取可用内存信息
-            var totalMemory = GC.GetTotalMemory(false) / (1024 * 1024);
-            
-            // 估算可用内存（简化实现，无性能计数器依赖）
-            // 实际可用内存需要考虑系统状�?
-            var availableMB = Math.Max(0, Environment.WorkingSet / (1024 * 1024));
-            
-            // 使用更可靠的方式估算
-            GCMemoryInfo gcInfo = GC.GetGCMemoryInfo();
-            long totalAvailableMemory = gcInfo.TotalAvailableMemoryBytes / (1024 * 1024);
-            long memoryLoad = gcInfo.MemoryLoadBytes / (1024 * 1024);
-            long estimatedAvailable = Math.Max(0, totalAvailableMemory - memoryLoad);
-
-            double availablePercent = totalAvailableMemory > 0 
+            using var process = Process.GetCurrentProcess();
+            var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024);
+            var estimatedAvailable = Math.Max(0, totalAvailableMemory - process.WorkingSet64 / (1024 * 1024));
+            var availablePercent = totalAvailableMemory > 0 
                 ? (double)estimatedAvailable / totalAvailableMemory * 100 
-                : 50;
+                : 100;
 
             return (estimatedAvailable, totalAvailableMemory, availablePercent);
         }
@@ -180,15 +168,15 @@ namespace SunEyeVision.UI.Services.Performance
             return level switch
             {
                 PressureLevel.Normal => "正常加载",
-                PressureLevel.Moderate => "减少预读取数�?,
-                PressureLevel.High => "清理弱引用缓�?,
-                PressureLevel.Critical => "强制GC，清空缓�?,
+                PressureLevel.Moderate => "减少预读取数量",
+                PressureLevel.High => "清理弱引用缓存",
+                PressureLevel.Critical => "强制GC，清空缓存",
                 _ => "未知"
             };
         }
 
         /// <summary>
-        /// 手动触发内存检�?
+        /// 手动触发内存检查
         /// </summary>
         public MemoryPressureEventArgs CheckNow()
         {
@@ -213,19 +201,19 @@ namespace SunEyeVision.UI.Services.Performance
             switch (level)
             {
                 case PressureLevel.High:
-                    // 高压力：清理弱引用缓存，减少预读�?
+                    // 高压力：清理弱引用缓存，减少预读取
                     onHigh?.Invoke();
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
-                    Debug.WriteLine("[MemoryMonitor] �?高压力响应：执行清理");
+                    Debug.WriteLine("[MemoryMonitor] 高压力响应：执行清理");
                     break;
 
                 case PressureLevel.Critical:
-                    // 危险：强制GC，清空缓�?
+                    // 危险：强制GC，清空缓存
                     onCritical?.Invoke();
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
-                    Debug.WriteLine("[MemoryMonitor] �?危险响应：强制GC");
+                    Debug.WriteLine("[MemoryMonitor] 危险响应：强制GC");
                     break;
             }
         }

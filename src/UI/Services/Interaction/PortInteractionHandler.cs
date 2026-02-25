@@ -45,7 +45,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 端口鼠标左键按下 - 开始拖拽连�?
+        /// 端口鼠标左键按下 - 开始拖拽连接?
         /// </summary>
         public void Port_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -62,10 +62,10 @@ namespace SunEyeVision.UI.Services.Interaction
                 .Transform(new System.Windows.Point(port.ActualWidth / 2, port.ActualHeight / 2));
             _dragConnectionStartPoint = portPosition;
 
-            // 显示临时连接�?
+            // 显示临时连接收?
             _canvasControl.TempConnectionLine.Visibility = Visibility.Visible;
             
-            // 使用 PathGeometry 更新临时连接�?
+            // 使用 PathGeometry 更新临时连接收?
             var pathGeometry = new System.Windows.Media.PathGeometry();
             var pathFigure = new System.Windows.Media.PathFigure();
             pathFigure.StartPoint = portPosition;
@@ -123,7 +123,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 端口鼠标移动 - 更新临时连接�?
+        /// 端口鼠标移动 - 更新临时连接收?
         /// </summary>
         public void Port_MouseMove(object sender, MouseEventArgs e)
         {
@@ -136,7 +136,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
             var currentPos = e.GetPosition(_canvasControl.WorkflowCanvas);
 
-            // 更新临时连接�?
+            // 更新临时连接收?
             var pathGeometry = new System.Windows.Media.PathGeometry();
             var pathFigure = new System.Windows.Media.PathFigure();
             pathFigure.StartPoint = _dragConnectionStartPoint;
@@ -144,7 +144,7 @@ namespace SunEyeVision.UI.Services.Interaction
             pathGeometry.Figures.Add(pathFigure);
             _canvasControl.TempConnectionLine.Data = pathGeometry;
 
-            // 查找目标节点和端�?
+            // 查找目标节点和端口?
             var targetNode = HitTestForNode(currentPos);
             if (targetNode != null && targetNode != _dragSourceNode)
             {
@@ -203,7 +203,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 {
                     if (obj is Ellipse ellipse && ellipse.Name?.Contains("Port") == true)
                     {
-                        // 检查是否属于目标节�?
+                        // 检查是否属于目标节点?
                         var parent = VisualTreeHelper.GetParent(ellipse);
                         while (parent != null)
                         {
@@ -229,7 +229,7 @@ namespace SunEyeVision.UI.Services.Interaction
             var sourcePortName = sourcePort.Name ?? "";
             bool isSourceInput = sourcePortName.Contains("Input");
 
-            // 获取目标节点的所有端�?
+            // 获取目标节点的所有端口?
             var targetNodeElement = _canvasControl.WorkflowCanvas.Children
                 .OfType<Border>()
                 .FirstOrDefault(b => b.Tag == targetNode);
@@ -255,7 +255,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 targetPort = targetPorts.FirstOrDefault(p => p.Name?.Contains("Input") == true);
             }
 
-            // 如果没有找到对应方向的端口，选择第一个端�?
+            // 如果没有找到对应方向的端口，选择第一个端口?
             targetPort ??= targetPorts.First();
 
             HighlightSpecificPort(targetPort);

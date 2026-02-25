@@ -1,0 +1,206 @@
+<UserControl x:Class="SunEyeVision.UI.Controls.ParameterBinding.ParameterBindingControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:SunEyeVision.UI.ViewModels"
+             xmlns:visibility="clr-namespace:SunEyeVision.UI.Converters.Visibility"
+             xmlns:uiConverters="clr-namespace:SunEyeVision.UI.Converters.UI"
+             mc:Ignorable="d" 
+             d:DesignHeight="120" d:DesignWidth="300"
+             d:DataContext="{d:DesignInstance Type=vm:ParameterBindingViewModel, IsDesignTimeCreatable=False}">
+
+    <UserControl.Resources>
+        <!-- 布尔到可见性转换器 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        
+        <!-- 反向布尔到可见性转换器 -->
+        <visibility:InverseBoolToVisibilityConverter x:Key="InverseBooleanToVisibility"/>
+        
+        <!-- 字符串到可见性转换器 -->
+        <visibility:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        
+        <!-- 反向布尔转换器 -->
+        <uiConverters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        
+        <!-- 绑定类型到背景色转换 -->
+        <Style x:Key="BindingTypeIndicatorStyle" TargetType="Border">
+            <Setter Property="Width" Value="4"/>
+            <Setter Property="Margin" Value="0,2,8,2"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedBindingType}" Value="Constant">
+                    <Setter Property="Background" Value="#4CAF50"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SelectedBindingType}" Value="DynamicBinding">
+                    <Setter Property="Background" Value="#2196F3"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- 参数名称样式 -->
+        <Style x:Key="ParameterNameStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        
+        <!-- 参数类型样式 -->
+        <Style x:Key="ParameterTypeStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        
+        <!-- 绑定类型选择样式 -->
+        <Style x:Key="BindingTypeComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Width" Value="100"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        
+        <!-- 数据源按钮样式 -->
+        <Style x:Key="DataSourceButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Content" Value="{Binding SelectedDataSourceDisplay}"/>
+        </Style>
+        
+        <!-- 验证消息样式 -->
+        <Style x:Key="ValidationMessageStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="4,2,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 参数标题行 -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- 绑定类型指示器 -->
+                    <Border Grid.Column="0" Style="{StaticResource BindingTypeIndicatorStyle}"/>
+                    
+                    <!-- 参数名称和类型 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="{Binding DisplayName}" Style="{StaticResource ParameterNameStyle}"/>
+                        <TextBlock Text="{Binding TypeName, StringFormat='({0})'}" Style="{StaticResource ParameterTypeStyle}"/>
+                    </StackPanel>
+                    
+                    <!-- 重置按钮 -->
+                    <Button Grid.Column="2" 
+                            Content="重置" 
+                            Padding="8,2"
+                            FontSize="11"
+                            Command="{Binding ResetToDefaultCommand}"
+                            Visibility="{Binding ShowResetButton, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"/>
+                </Grid>
+                
+                <!-- 绑定类型选择 -->
+                <Grid Grid.Row="1" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="绑定类型:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox Grid.Column="1" 
+                              ItemsSource="{Binding BindingTypeOptions}"
+                              SelectedValue="{Binding SelectedBindingType}"
+                              SelectedValuePath="Type"
+                              DisplayMemberPath="DisplayName"
+                              Style="{StaticResource BindingTypeComboBoxStyle}"
+                              IsEnabled="{Binding IsReadOnly, Converter={StaticResource InverseBooleanConverter}, FallbackValue=True}"/>
+                </Grid>
+                
+                <!-- 绑定值区域 -->
+                <Grid Grid.Row="2">
+                    <!-- 常量值输入 -->
+                    <Grid Visibility="{Binding IsConstantMode, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="值:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" 
+                                 Text="{Binding ConstantValueString, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="24"
+                                 VerticalContentAlignment="Center"
+                                 IsReadOnly="{Binding IsReadOnly}"/>
+                    </Grid>
+                    
+                    <!-- 动态绑定选择 -->
+                    <Grid Visibility="{Binding IsDynamicMode, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- 数据源选择 -->
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="数据源:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" 
+                                    Command="{Binding SelectDataSourceCommand}"
+                                    Style="{StaticResource DataSourceButtonStyle}"
+                                    IsEnabled="{Binding IsReadOnly, Converter={StaticResource InverseBooleanConverter}, FallbackValue=True}"/>
+                            <Button Grid.Column="2" 
+                                    Content="清除" 
+                                    Margin="4,0,0,0"
+                                    Padding="8,2"
+                                    Command="{Binding ClearDataSourceCommand}"
+                                    Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}"/>
+                        </Grid>
+                        
+                        <!-- 转换表达式 -->
+                        <Grid Grid.Row="1" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="转换:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="1" 
+                                     Text="{Binding TransformExpression, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="24"
+                                     VerticalContentAlignment="Center"
+                                     IsReadOnly="{Binding IsReadOnly}"
+                                     ToolTip="可选的值转换表达式，如 'value * 1.5'"/>
+                        </Grid>
+                    </Grid>
+                </Grid>
+                
+                <!-- 验证消息 -->
+                <TextBlock Grid.Row="3" 
+                           Text="{Binding ValidationMessage}"
+                           Style="{StaticResource ValidationMessageStyle}"
+                           Visibility="{Binding IsValid, Converter={StaticResource InverseBooleanToVisibility}, FallbackValue=Collapsed}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

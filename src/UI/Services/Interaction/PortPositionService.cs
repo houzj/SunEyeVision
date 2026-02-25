@@ -11,7 +11,7 @@ using SunEyeVision.UI.Services.Rendering;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 端口位置查询服务 - 基于视觉树查询，完全解耦样�?
+    /// 端口位置查询服务 - 基于视觉树查询，完全解耦样式
     /// </summary>
     public class PortPositionService
     {
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Services.Interaction
                 // 1. 在Canvas的视觉树中查找所有Border
                 var borders = WorkflowVisualHelper.FindAllVisualChildren<Border>(_canvas);
 
-                // 2. 找到对应节点的Border（通过Tag匹配�?
+                // 2. 找到对应节点的Border（通过Tag匹配）
                 var nodeBorder = borders.FirstOrDefault(b => 
                     b.Tag is WorkflowNode node && node.Id == nodeId);
 
@@ -44,7 +44,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     return null;
                 }
 
-                // 3. 在Border中查找端口Ellipse（通过Name匹配�?
+                // 3. 在Border中查找端口Ellipse（通过Name匹配）
                 var ellipseName = $"{portName}Ellipse";
                 var portEllipse = WorkflowVisualHelper.FindAllVisualChildren<Ellipse>(nodeBorder)
                     .FirstOrDefault(e => e.Name == ellipseName);
@@ -55,7 +55,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     return null;
                 }
 
-                // 4. 计算端口中心点（相对于Ellipse�?
+                // 4. 计算端口中心点（相对于Ellipse）
                 var portCenterInEllipse = new Point(
                     portEllipse.Width / 2,
                     portEllipse.Height / 2
@@ -75,7 +75,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 通过节点Border查询所有端口位�?
+        /// 通过节点Border查询所有端口位置
         /// </summary>
         public PortPositionMap QueryAllPortPositions(Border nodeBorder)
         {
@@ -97,7 +97,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 降级方案：使用配置对象计算默认端口位�?
+        /// 降级方案：使用配置对象计算默认端口位置
         /// </summary>
         public Point GetDefaultPortPosition(WorkflowNode node, string portName)
         {
@@ -116,12 +116,12 @@ namespace SunEyeVision.UI.Services.Interaction
         /// </summary>
         public bool ValidatePortPosition(WorkflowNode node, string portName)
         {
-            // 1. 查询视觉树中的实际位�?
+            // 1. 查询视觉树中的实际位置
             var actualPosition = QueryPortPosition(node.Id, portName);
             if (!actualPosition.HasValue)
                 return false;
 
-            // 2. 获取配置计算的期望位�?
+            // 2. 获取配置计算的期望位置
             var expectedPosition = GetDefaultPortPosition(node, portName);
 
             // 3. 计算位置差异
@@ -176,7 +176,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 查找指定类型的父级元�?
+        /// 查找指定类型的父级元素
         /// </summary>
         private static T? FindVisualParent<T>(this DependencyObject element) where T : DependencyObject
         {

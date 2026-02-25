@@ -14,7 +14,7 @@ using AIStudio.Wpf.DiagramDesigner;
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// NativeDiagramControl - 使用AIStudio.Wpf.DiagramDesigner原生�?
+    /// NativeDiagramControl - 使用AIStudio.Wpf.DiagramDesigner原生?
     /// 支持贝塞尔曲线连接、缩放平移、对齐吸附、撤销重做
     /// </summary>
     public partial class NativeDiagramControl : UserControl
@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 初始化控�?
+        /// 初始化控件?
         /// </summary>
         public void Initialize()
         {
@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
 
 
-                // 初始化适配�?
+                // 初始化适配置?
                 _adapter = new DiagramAdapter();
 
                 // 加载原生图表控件
@@ -82,14 +82,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
                 // 显示错误信息
-                MessageBox.Show($"初始化失�? {ex.Message}\n请确保已安装 AIStudio.Wpf.DiagramDesigner �?,
+                MessageBox.Show($"初始化失败: {ex.Message}\n请确保已安装 AIStudio.Wpf.DiagramDesigner 包",
                     "NativeDiagramControl", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
+        /// 加载原生图表控件
+        /// <summary>
         /// <summary>
         /// 加载原生图表控件
-        /// 创建 DiagramViewModel �?DiagramControl
+        /// 创建 DiagramViewModel 和 DiagramControl
         /// </summary>
         private void LoadNativeDiagram()
         {
@@ -98,16 +100,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 // 创建 DiagramViewModel 实例
                 _diagramViewModel = new DiagramViewModel();
 
-
                 // 创建 DiagramControl 实例
                 _diagramControl = new DiagramControl();
-
 
                 // === 新增：设置画布尺寸为 10000x10000 ===
                 _diagramControl.Width = 10000;
                 _diagramControl.Height = 10000;
-                
-            
 
                 // ==========================================
 
@@ -117,23 +115,20 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 _diagramControl.DragOver += DiagramControl_DragOver;
                 _diagramControl.Drop += DiagramControl_Drop;
 
-                // 设置 DiagramControl �?DataContext �?DiagramViewModel
+                // 设置 DiagramControl 的 DataContext 为 DiagramViewModel
                 _diagramControl.DataContext = _diagramViewModel;
 
-                // 设置到容�?
+                // 设置到容器
                 DiagramContainer.Content = _diagramControl;
-
             }
             catch (Exception ex)
             {
-
-                throw;
+                // 显示错误信息
+                MessageBox.Show($"初始化失败: {ex.Message}\n请确保已安装 AIStudio.Wpf.DiagramDesigner 包",
+                    "NativeDiagramControl", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 配置原生图表功能
-        /// </summary>
         private void ConfigureDiagramFeatures()
         {
             if (_diagramViewModel == null)
@@ -173,13 +168,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
 
 
-                // 同步节点（传�?DiagramViewModel�?
+                // 同步节点（传?DiagramViewModel?
                 _adapter.SyncNodes(_nodes, _diagramViewModel);
 
-                // 同步连接（传�?DiagramViewModel�?
+                // 同步连接（传?DiagramViewModel?
                 _adapter.SyncConnections(_connections, _diagramViewModel);
 
-                // 更新空状�?
+                // 更新空状态?
                 UpdateEmptyState();
 
 
@@ -191,7 +186,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 更新空状态显�?
+        /// 更新空状态显示?
         /// </summary>
         private void UpdateEmptyState()
         {
@@ -234,7 +229,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 订阅工作流变�?
+        /// 订阅工作流变量?
         /// </summary>
         private void SubscribeToWorkflowChanges(WorkflowTabViewModel workflowTab)
         {
@@ -273,7 +268,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         {
 
 
-                            // 使用公开方法创建节点（不使用反射�?
+                            // 使用公开方法创建节点（不使用反射?
                             var nativeNode = _adapter.CreateNativeNode(node, _diagramViewModel);
                             _diagramViewModel.Add(nativeNode);
                         }
@@ -307,7 +302,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         {
                             try
                             {
-                                // 重新创建连接（传�?DiagramViewModel�?
+                                // 重新创建连接（传?DiagramViewModel?
                                 var createConnectionMethod = _adapter.GetType().GetMethod("CreateConnectionInternal",
                                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
@@ -370,11 +365,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 e.Effects = DragDropEffects.None;
             }
-            // 不设�?e.Handled，允�?Drop 事件触发
+            // 不设?e.Handled，允?Drop 事件触发
         }
 
         /// <summary>
-        /// NativeDiagramControl �?DragEnter 事件（作为备选方案）
+        /// NativeDiagramControl ?DragEnter 事件（作为备选方案）
         /// </summary>
         private void NativeDiagramControl_DragEnter(object sender, DragEventArgs e)
         {
@@ -392,7 +387,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// NativeDiagramControl �?PreviewDrop 事件（隧道事件，最先触发）
+        /// NativeDiagramControl ?PreviewDrop 事件（隧道事件，最先触发）
         /// </summary>
         private void NativeDiagramControl_PreviewDrop(object sender, DragEventArgs e)
         {
@@ -406,7 +401,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     return;
                 }
 
-                // 去重检查：防止同一个拖放操作触发多�?
+                // 去重检查：防止同一个拖放操作触发多?
                 var currentDropId = $"{item.ToolId}_{DateTime.Now.Ticks}";
                 var timeSinceLastDrop = (DateTime.Now - _lastDropTime).TotalMilliseconds;
 
@@ -420,7 +415,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 _lastDragDropId = currentDropId;
                 _lastDropTime = DateTime.Now;
 
-                // 获取放置位置（相对于 NativeDiagramControl�?
+                // 获取放置位置（相对于 NativeDiagramControl?
                 Point dropPosition = e.GetPosition(this);
                 
 
@@ -440,13 +435,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 
 
-                // 清除其他节点的选中状�?
+                // 清除其他节点的选中状态?
                 foreach (var node in workflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
 
-                // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+                // 使用 ViewModel ?CreateNode 方法创建节点，自动分配序?
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
@@ -464,13 +459,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 
                 
-                // 不要 throw，避免程序崩�?
+                // 不要 throw，避免程序崩?
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// NativeDiagramControl �?DragOver 事件（作为备选方案）
+        /// NativeDiagramControl ?DragOver 事件（作为备选方案）
         /// </summary>
         private void NativeDiagramControl_DragOver(object sender, DragEventArgs e)
         {
@@ -482,11 +477,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 e.Effects = DragDropEffects.None;
             }
-            // 不设�?e.Handled，允�?Drop 事件触发
+            // 不设?e.Handled，允?Drop 事件触发
         }
 
         /// <summary>
-        /// NativeDiagramControl �?Drop 事件（作为备选方案）
+        /// NativeDiagramControl ?Drop 事件（作为备选方案）
         /// </summary>
         private void NativeDiagramControl_Drop(object sender, DragEventArgs e)
         {
@@ -500,7 +495,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     return;
                 }
 
-                // 获取放置位置（相对于 NativeDiagramControl�?
+                // 获取放置位置（相对于 NativeDiagramControl?
                 Point dropPosition = e.GetPosition(this);
                 
 
@@ -520,22 +515,22 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 
 
-                // 清除其他节点的选中状�?
+                // 清除其他节点的选中状态?
                 foreach (var node in workflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
 
-                // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+                // 使用 ViewModel ?CreateNode 方法创建节点，自动分配序?
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
                 
 
-                // 添加新节点到工作�?
+                // 添加新节点到工操作?
                 workflowTab.WorkflowNodes.Add(newNode);
 
-                // 创建原生节点（通过 DiagramAdapter�?
+                // 创建原生节点（通过 DiagramAdapter?
                 if (_adapter != null && _diagramViewModel != null)
                 {
                     // 直接调用公开方法，不使用反射
@@ -550,13 +545,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 
                 
-                // 不要 throw，避免程序崩�?
+                // 不要 throw，避免程序崩?
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// 拖放放下事件 - 创建新节�?
+        /// 拖放放下事件 - 创建新节点?
         /// </summary>
         private void DiagramControl_Drop(object sender, DragEventArgs e)
         {
@@ -575,7 +570,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     return;
                 }
 
-                // 获取放置位置（相对于 DiagramControl�?
+                // 获取放置位置（相对于 DiagramControl?
                 Point dropPosition = e.GetPosition(_diagramControl);
                 
 
@@ -595,22 +590,22 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 
 
-                // 清除其他节点的选中状�?
+                // 清除其他节点的选中状态?
                 foreach (var node in workflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
 
-                // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+                // 使用 ViewModel ?CreateNode 方法创建节点，自动分配序?
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
                 
 
-                // 添加新节点到工作�?
+                // 添加新节点到工操作?
                 workflowTab.WorkflowNodes.Add(newNode);
 
-                // 创建原生节点（通过 DiagramAdapter�?
+                // 创建原生节点（通过 DiagramAdapter?
                 if (_adapter != null && _diagramViewModel != null)
                 {
                     // 直接调用公开方法，不使用反射
@@ -625,7 +620,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 
                 
-                // 不要 throw，避免程序崩�?
+                // 不要 throw，避免程序崩?
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

@@ -1,12 +1,12 @@
 namespace SunEyeVision.Core.Interfaces.Plugins
 {
     /// <summary>
-    /// 所有插件的基础接口，必须实�?
+    /// 所有插件的基础接口，必须实现
     /// </summary>
     public interface IPlugin
     {
         /// <summary>
-        /// 插件唯一标识�?
+        /// 插件唯一标识符
         /// </summary>
         string PluginId { get; }
 
@@ -26,12 +26,12 @@ namespace SunEyeVision.Core.Interfaces.Plugins
         string Description { get; }
 
         /// <summary>
-        /// 插件作�?
+        /// 插件作者
         /// </summary>
         string Author { get; }
 
         /// <summary>
-        /// 初始化插�?
+        /// 初始化插件
         /// </summary>
         void Initialize();
 

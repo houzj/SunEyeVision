@@ -12,7 +12,7 @@ using static SunEyeVision.UI.Services.Canvas.CanvasConfig;
 namespace SunEyeVision.UI.Services.Rendering
 {
     /// <summary>
-    /// 画布渲染�?- 使用 DrawingContext 直接绘制，减少视觉树开销
+    /// 画布渲染器 - 使用 DrawingContext 直接绘制，减少视觉树开销
     /// </summary>
     public class CanvasRenderer
     {
@@ -117,7 +117,7 @@ namespace SunEyeVision.UI.Services.Rendering
         }
 
         /// <summary>
-        /// 标记为需要重新渲�?
+        /// 标记为需要重新渲染
         /// </summary>
         public void Invalidate()
         {
@@ -274,7 +274,7 @@ namespace SunEyeVision.UI.Services.Rendering
 
             var typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
             var text = new FormattedText(
-                "⏱️ 0ms",
+                "⏱ 0ms",
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 typeface,

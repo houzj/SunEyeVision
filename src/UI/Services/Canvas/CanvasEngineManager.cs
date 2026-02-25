@@ -9,7 +9,7 @@ using SunEyeVision.UI.ViewModels;
 namespace SunEyeVision.UI.Services.Canvas
 {
     /// <summary>
-    /// 画布引擎管理�?
+    /// 画布引擎管理器
     /// 静态管理器，用于创建、切换和管理画布引擎
     /// 支持通过后台代码进行画布切换，无需配置面板
     /// </summary>
@@ -19,7 +19,7 @@ namespace SunEyeVision.UI.Services.Canvas
         private static object? _dataContext;
 
         /// <summary>
-        /// 创建指定类型的画布引�?
+        /// 创建指定类型的画布引擎
         /// </summary>
         public static ICanvasEngine CreateEngine(string engineType)
         {
@@ -37,13 +37,13 @@ namespace SunEyeVision.UI.Services.Canvas
         /// </summary>
         public static ICanvasEngine SwitchEngine(string engineType, Decorator container)
         {
-            // 清理旧引�?
+            // 清理旧引擎
             _currentEngine?.Cleanup();
 
-            // 创建新引�?
+            // 创建新引擎
             var newEngine = CreateEngine(engineType);
 
-            // 如果有数据上下文，设置到新引�?
+            // 如果有数据上下文，设置到新引擎
             if (_dataContext != null)
             {
                 newEngine.SetDataContext(_dataContext);
@@ -69,7 +69,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 设置路径计算�?
+        /// 设置路径计算器
         /// </summary>
         public static void SetPathCalculator(string pathCalculatorType)
         {
@@ -85,7 +85,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 重置管理�?
+        /// 重置管理器
         /// </summary>
         public static void Reset()
         {

@@ -9,7 +9,7 @@ using SunEyeVision.UI.Services.Connection;
 namespace SunEyeVision.UI.Services.Connection
 {
     /// <summary>
-    /// 连接批量延迟更新管理�?
+    /// 连接批量延迟更新管理器
     /// 用于优化节点拖拽时连接线的更新性能
     /// </summary>
     public class ConnectionBatchUpdateManager
@@ -22,12 +22,12 @@ namespace SunEyeVision.UI.Services.Connection
 
         /// <summary>
         /// 批量更新延迟(毫秒)
-        /// 16ms �?60FPS, 既能保证流畅度又能合并快速连续的更新
+        /// 16ms 约60FPS, 既能保证流畅度又能合并快速连续的更新
         /// </summary>
         private const int UpdateDelayMs = 16;
 
         /// <summary>
-        /// 当前活动的WorkflowTab，用于查找连�?
+        /// 当前活动的WorkflowTab，用于查找连接
         /// </summary>
         private ViewModels.WorkflowTabViewModel? _currentTab;
 
@@ -50,7 +50,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 调度单个连接的更�?
+        /// 调度单个连接的更新
         /// </summary>
         public void ScheduleUpdate(WorkflowConnection connection)
         {
@@ -68,7 +68,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 调度节点相关的所有连接更�?
+        /// 调度节点相关的所有连接更新
         /// </summary>
         public void ScheduleUpdateForNode(string nodeId)
         {
@@ -86,7 +86,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 调度多个节点相关的所有连接更�?
+        /// 调度多个节点相关的所有连接更新
         /// </summary>
         public void ScheduleUpdateForNodes(IEnumerable<string> nodeIds)
         {
@@ -111,7 +111,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 立即执行所有待处理的更�?
+        /// 立即执行所有待处理的更新
         /// </summary>
         public void ForceUpdateAll()
         {
@@ -122,7 +122,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 清空所有待处理的更�?
+        /// 清空所有待处理的更新
         /// </summary>
         public void ClearPendingUpdates()
         {
@@ -143,7 +143,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 定时器触�?- 批量执行更新
+        /// 定时器触发 - 批量执行更新
         /// </summary>
         private void OnUpdateTimerTick(object? sender, EventArgs e)
         {
@@ -152,7 +152,7 @@ namespace SunEyeVision.UI.Services.Connection
 
             try
             {
-                // 获取需要更新的节点和连接列�?
+                // 获取需要更新的节点和连接列表
                 HashSet<string> nodesToUpdate;
                 HashSet<string> connectionsToUpdate;
 
@@ -168,7 +168,7 @@ namespace SunEyeVision.UI.Services.Connection
                     _pendingConnectionUpdates.Clear();
                 }
 
-                // 如果没有需要更新的，直接返�?
+                // 如果没有需要更新的，直接返回
                 if (nodesToUpdate.Count == 0 && connectionsToUpdate.Count == 0)
                 {
                     return;
@@ -253,7 +253,7 @@ namespace SunEyeVision.UI.Services.Connection
         }
 
         /// <summary>
-        /// 销毁管理器，释放资�?
+        /// 销毁管理器，释放资源
         /// </summary>
         public void Dispose()
         {

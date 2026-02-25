@@ -1,6 +1,9 @@
 using System;
+
 using System.Collections.Generic;
+
 using SunEyeVision.Plugin.SDK;
+
 using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.ROICrop
@@ -12,6 +15,7 @@ namespace SunEyeVision.Tool.ROICrop
     public class ROICropToolPlugin : IToolPlugin
     {
         #region 插件基本信息
+
         public string Name => "ROI裁剪";
         public string Version => "1.0.0";
         public string Author => "SunEyeVision";
@@ -20,14 +24,19 @@ namespace SunEyeVision.Tool.ROICrop
         public string Icon => "✂️";
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
+
         #endregion
 
         #region 生命周期管理
+
         public void Initialize() => IsLoaded = true;
+
         public void Unload() => IsLoaded = false;
+
         #endregion
 
         #region 工具管理
+
         public List<Type> GetAlgorithmNodes() => new List<Type> { typeof(ROICropAlgorithm) };
 
         public List<ToolMetadata> GetToolMetadata()
@@ -62,7 +71,7 @@ namespace SunEyeVision.Tool.ROICrop
                         {
                             Name = "padding",
                             DisplayName = "边距填充",
-                            Description = "在ROI周围添加的边�?,
+                            Description = "在ROI周围添加的边距",
                             Type = ParameterType.Int,
                             DefaultValue = 0,
                             MinValue = 0,
@@ -85,7 +94,7 @@ namespace SunEyeVision.Tool.ROICrop
                         {
                             Name = "outputWidth",
                             DisplayName = "输出宽度",
-                            Description = "输出图像宽度(0表示保持原尺�?",
+                            Description = "输出图像宽度(0表示保持原尺寸)",
                             Type = ParameterType.Int,
                             DefaultValue = 0,
                             MinValue = 0,
@@ -97,7 +106,7 @@ namespace SunEyeVision.Tool.ROICrop
                         {
                             Name = "outputHeight",
                             DisplayName = "输出高度",
-                            Description = "输出图像高度(0表示保持原尺�?",
+                            Description = "输出图像高度(0表示保持原尺寸)",
                             Type = ParameterType.Int,
                             DefaultValue = 0,
                             MinValue = 0,
@@ -119,7 +128,7 @@ namespace SunEyeVision.Tool.ROICrop
                         {
                             Name = "croppedArea",
                             DisplayName = "实际裁剪区域",
-                            Description = "实际裁剪的矩形区�?,
+                            Description = "实际裁剪的矩形区域",
                             Type = ParameterType.Rect
                         }
                     }
@@ -143,16 +152,17 @@ namespace SunEyeVision.Tool.ROICrop
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var padding = parameters.Get<int>("padding");
+
             if (padding != null && padding < 0)
             {
-                result.AddError("边距填充不能为负�?);
+                result.AddError("边距填充不能为负数");
             }
 
             result.IsValid = result.Errors.Count == 0;
             return result;
         }
+
         #endregion
     }
 
@@ -192,7 +202,7 @@ namespace SunEyeVision.Tool.ROICrop
             var padding = GetParameter<int?>(parameters, "padding", null);
 
             if (padding.HasValue && padding.Value < 0)
-                result.AddError("边距填充不能为负�?);
+                result.AddError("边距填充不能为负数");
 
             return result;
         }

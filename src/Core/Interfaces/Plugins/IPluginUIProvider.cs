@@ -6,12 +6,12 @@ namespace SunEyeVision.Core.Interfaces.Plugins
     public enum UIProviderMode
     {
         /// <summary>
-        /// 自动模式：使用框架提供的通用UI，插件只需提供元数�?
+        /// 自动模式：使用框架提供的通用UI，插件只需提供元数据
         /// </summary>
         Auto,
 
         /// <summary>
-        /// 混合模式：使用框架共享UI组件，插件可自定义部分界�?
+        /// 混合模式：使用框架共享UI组件，插件可自定义部分界面
         /// </summary>
         Hybrid,
 

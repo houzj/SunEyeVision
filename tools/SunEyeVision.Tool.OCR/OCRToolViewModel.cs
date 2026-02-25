@@ -1,5 +1,6 @@
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.ViewModels;
+
 namespace SunEyeVision.Tool.OCR
 {
     public class OCRToolViewModel : AutoToolDebugViewModelBase
@@ -65,14 +66,12 @@ namespace SunEyeVision.Tool.OCR
 
         public override void RunTool()
         {
-            ToolStatus = "运行�?;
-            StatusMessage = $"正在执行OCR识别（语言: {Language}�?..";
-            
+            ToolStatus = "运行中";
+            StatusMessage = $"正在执行OCR识别（语言: {Language}）...";
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(300, 600));
-            
             ExecutionTime = $"{random.Next(200, 400)} ms";
-            StatusMessage = $"OCR识别完成";
+            StatusMessage = "OCR识别完成";
             ToolStatus = "就绪";
         }
     }

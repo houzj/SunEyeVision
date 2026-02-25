@@ -10,8 +10,8 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// 虚拟化画�?- 只渲染可见区域内的节点和连线
-    /// 用于提升大规模节点场景下的渲染性能
+    /// ⻯?- ֻȾɼڵĽڵ
+    /// ģڵ㳡µȾ
     /// </summary>
     public class VirtualizedCanvas : System.Windows.Controls.Canvas
     {
@@ -20,11 +20,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         private readonly HashSet<string> _visibleNodes = new HashSet<string>();
         private readonly HashSet<string> _visibleConnections = new HashSet<string>();
 
-        // 可见区域（带缓冲�?
+        // ɼ򣨴?
         private Rect _viewPort = new Rect(0, 0, 1920, 1080);
-        private readonly double _bufferSize = 200.0; // 缓冲区大小（像素�?
+        private readonly double _bufferSize = 200.0; // С?
 
-        // 性能统计
+        // ͳ
         public int TotalNodes => _allNodes.Count;
         public int VisibleNodes => _visibleNodes.Count;
         public int TotalConnections => _allConnections.Count;
@@ -37,17 +37,17 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             _allNodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
             _allConnections = connections ?? throw new ArgumentNullException(nameof(connections));
 
-            // 订阅集合变化事件
+            // ļϱ仯¼
             _allNodes.CollectionChanged += (s, e) => UpdateVisibleNodes();
             _allConnections.CollectionChanged += (s, e) => UpdateVisibleConnections();
 
-            // 初始化可见元�?
+            // ʼɼԪ?
             UpdateVisibleNodes();
             UpdateVisibleConnections();
         }
 
         /// <summary>
-        /// 设置视图区域
+        /// ͼ
         /// </summary>
         public void SetViewPort(double x, double y, double width, double height)
         {
@@ -57,7 +57,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 更新可见节点
+        /// ¿ɼڵ
         /// </summary>
         public void UpdateVisibleNodes()
         {
@@ -98,7 +98,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 更新可见连线
+        /// ¿ɼ
         /// </summary>
         public void UpdateVisibleConnections()
         {
@@ -129,7 +129,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         targetNode.StyleConfig.NodeWidth,
                         targetNode.StyleConfig.NodeHeight);
 
-                    // 检查源节点、目标节点或连线本身是否在可见区域内
+                    // Դڵ㡢Ŀڵ߱Ƿڿɼ
                     if (visibleArea.IntersectsWith(sourceRect) ||
                         visibleArea.IntersectsWith(targetRect) ||
                         IsConnectionInVisibleArea(connection, visibleArea))
@@ -154,11 +154,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 检查连线是否在可见区域�?
+        /// Ƿڿɼ?
         /// </summary>
         private bool IsConnectionInVisibleArea(WorkflowConnection connection, Rect visibleArea)
         {
-            // 如果连接线有路径点，检查路径点
+            // ·㣬·
             if (connection.PathPoints != null && connection.PathPoints.Count > 0)
             {
                 foreach (var point in connection.PathPoints)
@@ -174,7 +174,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 获取可见节点集合（用于绑定）
+        /// ȡɼڵ㼯ϣڰ󶨣
         /// </summary>
         public ObservableCollection<WorkflowNode> GetVisibleNodes()
         {
@@ -183,7 +183,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 获取可见连线集合（用于绑定）
+        /// ȡɼ߼ϣڰ󶨣
         /// </summary>
         public ObservableCollection<WorkflowConnection> GetVisibleConnections()
         {
@@ -192,7 +192,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 获取虚拟化统计信�?
+        /// ȡ⻯ͳ?
         /// </summary>
         public VirtualizationStatistics GetStatistics()
         {
@@ -212,7 +212,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// 打印虚拟化统计信�?
+        /// ӡ⻯ͳ?
         /// </summary>
         public void PrintStatistics()
         {
@@ -225,7 +225,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
     }
 
     /// <summary>
-    /// 虚拟化统计信�?
+    /// ⻯ͳ?
     /// </summary>
     public class VirtualizationStatistics
     {
@@ -238,7 +238,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         public override string ToString()
         {
-            return $"节点: {VisibleNodes}/{TotalNodes} ({NodeVisibilityRate:F1}%), 连线: {VisibleConnections}/{TotalConnections} ({ConnectionVisibilityRate:F1}%)";
+            return $"ڵ: {VisibleNodes}/{TotalNodes} ({NodeVisibilityRate:F1}%), : {VisibleConnections}/{TotalConnections} ({ConnectionVisibilityRate:F1}%)";
         }
     }
 }

@@ -1,9 +1,10 @@
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.ViewModels;
+
 namespace SunEyeVision.Tool.ImageSave
 {
     /// <summary>
-    /// ImageSaveTool ViewModel - 图像保存工具的视图模�?
+    /// ImageSaveTool ViewModel - 图像保存工具的视图模型
     /// </summary>
     public class ImageSaveToolViewModel : ToolDebugViewModelBase
     {
@@ -12,7 +13,7 @@ namespace SunEyeVision.Tool.ImageSave
         private int _imageQuality = 95;
         private bool _overwriteExisting = false;
 
-        #region 属�?
+        #region 属性
 
         /// <summary>
         /// 文件路径
@@ -24,7 +25,7 @@ namespace SunEyeVision.Tool.ImageSave
             {
                 if (SetProperty(ref _filePath, value))
                 {
-                    StatusMessage = $"文件路径已更�? {value}";
+                    StatusMessage = $"文件路径已更新: {value}";
                 }
             }
         }
@@ -48,7 +49,7 @@ namespace SunEyeVision.Tool.ImageSave
             {
                 if (SetProperty(ref _imageQuality, value))
                 {
-                    StatusMessage = $"图像质量已更�? {value}";
+                    StatusMessage = $"图像质量已更新: {value}";
                 }
             }
         }
@@ -75,7 +76,7 @@ namespace SunEyeVision.Tool.ImageSave
         #region 实现抽象方法
 
         /// <summary>
-        /// 初始化调试界�?
+        /// 初始化调试界面
         /// </summary>
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
@@ -83,7 +84,6 @@ namespace SunEyeVision.Tool.ImageSave
             ToolName = toolMetadata?.DisplayName ?? "图像保存";
             ToolStatus = "就绪";
             StatusMessage = "准备就绪";
-
             LoadParameters(toolMetadata);
         }
 
@@ -119,7 +119,6 @@ namespace SunEyeVision.Tool.ImageSave
                         break;
                 }
             }
-
             StatusMessage = "参数加载完成";
         }
 
@@ -139,7 +138,7 @@ namespace SunEyeVision.Tool.ImageSave
 
         #endregion
 
-        #region 重写虚方�?
+        #region 重写虚方法
 
         /// <summary>
         /// 重置参数
@@ -150,7 +149,7 @@ namespace SunEyeVision.Tool.ImageSave
             ImageFormat = "PNG";
             ImageQuality = 95;
             OverwriteExisting = false;
-            StatusMessage = "参数已重置为默认�?;
+            StatusMessage = "参数已重置为默认值";
         }
 
         /// <summary>
@@ -164,13 +163,10 @@ namespace SunEyeVision.Tool.ImageSave
                 return;
             }
 
-            ToolStatus = "运行�?;
-            StatusMessage = $"正在保存图像�? {FilePath}";
-
-            // 模拟保存操作
+            ToolStatus = "运行中";
+            StatusMessage = $"正在保存图像到: {FilePath}";
             var random = new System.Random();
             System.Threading.Thread.Sleep(random.Next(100, 500));
-
             ExecutionTime = $"{random.Next(50, 200)} ms";
             StatusMessage = $"图像保存成功: {System.IO.Path.GetFileName(FilePath)}";
             ToolStatus = "就绪";

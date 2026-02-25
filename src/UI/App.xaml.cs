@@ -21,16 +21,16 @@ public partial class App : Application
     {
         // 抑制 AIStudio.Wpf.DiagramDesigner 库内部的绑定警告
         // 这些警告不影响功能，来自库的默认模板
-        // 只显�?Warning 及以上级别，不显�?Information 级别的绑定信�?
+        // 只显示?Warning 及以上级别，不显示?Information 级别的绑定信息?
         PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Warning;
     }
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // 设置控制台编码为UTF-8，解决中文乱码问�?
+        // 设置控制台编码为UTF-8，解决中文乱码问题?
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-        // �?P0优化：预热线程池，消除首次加载延�?
+        // ?P0优化：预热线程池，消除首次加载延?
         PrewarmThreadPool();
 
         base.OnStartup(e);
@@ -40,31 +40,31 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         // 初始化服务（包括节点显示适配器）
-        // Debug.WriteLine("[App] 正在初始化服�?..");
+        // Debug.WriteLine("[App] 正在初始化服务?..");
         ServiceInitializer.InitializeServices();
-        // Debug.WriteLine("[App] �?服务初始化完�?);
+        // Debug.WriteLine("[App] ?服务初始化完成?);
 
         // 初始化插件管理器
         // Debug.WriteLine("[App] 正在初始化插件管理器...");
         var pluginManager = new PluginManager(); // 使用 Plugin.Infrastructure.PluginManager
-        // 工具插件目录：plugins/（相对于应用程序运行目录�?
+        // 工具插件目录：plugins/（相对于应用程序运行目录?
         string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         // Debug.WriteLine($"[App] 插件路径: {pluginsPath}");
         pluginManager.LoadPlugins(pluginsPath);
-        // Debug.WriteLine("[App] �?插件管理器初始化完成");
+        // Debug.WriteLine("[App] ?插件管理器初始化完成");
 
-        // 显示主窗�?
-        // Debug.WriteLine("[App] 正在创建主窗�?..");
+        // 显示主窗口?
+        // Debug.WriteLine("[App] 正在创建主窗口?..");
         var mainWindow = new MainWindow();
         mainWindow.Show();
-        // Debug.WriteLine("[App] �?主窗口已显示");
+        // Debug.WriteLine("[App] ?主窗口已显示");
     }
 
     private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         Exception ex = e.ExceptionObject as Exception;
         // Debug.WriteLine("=================================================");
-        // Debug.WriteLine($"[App] �?全局未处理异�? {ex?.Message}");
+        // Debug.WriteLine($"[App] ?全局未处理异步? {ex?.Message}");
         // Debug.WriteLine($"[App] 异常类型: {ex?.GetType().FullName}");
         // Debug.WriteLine($"[App] 堆栈跟踪:\n{ex?.StackTrace}");
         // Debug.WriteLine($"[App] 是否终止: {e.IsTerminating}");
@@ -78,12 +78,12 @@ public partial class App : Application
 
             if (ex.InnerException.InnerException != null)
             {
-                // Debug.WriteLine($"[App] 第二层内部异�? {ex.InnerException.InnerException.Message}");
-                // Debug.WriteLine($"[App] 第二层内部异常类�? {ex.InnerException.InnerException.GetType().FullName}");
+                // Debug.WriteLine($"[App] 第二层内部异步? {ex.InnerException.InnerException.Message}");
+                // Debug.WriteLine($"[App] 第二层内部异常类型? {ex.InnerException.InnerException.GetType().FullName}");
             }
         }
 
-        // 保存到文�?
+        // 保存到文件夹?
         try
         {
             string crashLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash_log.txt");
@@ -110,7 +110,7 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        // Debug.WriteLine($"[App] �?Dispatcher 未处理异�? {e.Exception.Message}");
+        // Debug.WriteLine($"[App] ?Dispatcher 未处理异步? {e.Exception.Message}");
         // Debug.WriteLine($"[App] 堆栈跟踪: {e.Exception.StackTrace}");
 
         if (e.Exception.InnerException != null)
@@ -125,8 +125,8 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// �?P0优化：预热线程池 - 消除首次Task.Run的冷启动延迟
-    /// 预期效果：首张缩略图加载�?1783ms �?~50ms
+    /// ?P0优化：预热线程池 - 消除首次Task.Run的冷启动延迟
+    /// 预期效果：首张缩略图加加载?1783ms ?~50ms
     /// </summary>
     private void PrewarmThreadPool()
     {
@@ -135,7 +135,7 @@ public partial class App : Application
             // 设置最小线程数，确保线程池立即可用
             ThreadPool.GetMinThreads(out int minWorker, out int minIO);
             ThreadPool.SetMinThreads(
-                Math.Max(minWorker, 8),  // 至少8个工作线�?
+                Math.Max(minWorker, 8),  // 至少8个工作线程?
                 Math.Max(minIO, 4)       // 至少4个IO线程
             );
 
@@ -147,11 +147,11 @@ public partial class App : Application
             }
             Task.WaitAll(warmupTasks);
 
-            Debug.WriteLine("[App] �?线程池预热完�?- 工作线程:8, IO线程:4");
+            Debug.WriteLine("[App] ?线程池预热完成?- 工作线程:8, IO线程:4");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[App] �?线程池预热失�? {ex.Message}");
+            Debug.WriteLine($"[App] ?线程池预热失? {ex.Message}");
         }
     }
 }

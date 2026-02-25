@@ -7,7 +7,7 @@ using SunEyeVision.UI.ViewModels;
 namespace SunEyeVision.UI.Converters.Workflow
 {
     /// <summary>
-    /// 工作流状态到颜色转换�?
+    /// 工作流状态到颜色转换
     /// </summary>
     public class WorkflowStateToColorConverter : IValueConverter
     {
@@ -34,7 +34,7 @@ namespace SunEyeVision.UI.Converters.Workflow
     }
 
     /// <summary>
-    /// 工作流状态到文本转换�?
+    /// 工作流状态到文本转换
     /// </summary>
     public class WorkflowStateToTextConverter : IValueConverter
     {
@@ -42,9 +42,9 @@ namespace SunEyeVision.UI.Converters.Workflow
         {
             if (value is WorkflowState state)
             {
-                return "�?; // 所有状态都用●表示
+                return "●"; // 所有状态都用●表示
             }
-            return "�?;
+            return "●";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -54,7 +54,7 @@ namespace SunEyeVision.UI.Converters.Workflow
     }
 
     /// <summary>
-    /// 连续运行按钮背景转换�?- 运行状态为红色，非运行状态为蓝色
+    /// 连续运行按钮背景转换- 运行状态为红色，非运行状态为蓝色
     /// </summary>
     public class ContinuousRunBackgroundConverter : IValueConverter
     {
@@ -74,7 +74,7 @@ namespace SunEyeVision.UI.Converters.Workflow
     }
 
     /// <summary>
-    /// 连续运行按钮边框转换�?
+    /// 连续运行按钮边框转换
     /// </summary>
     public class ContinuousRunBorderConverter : IValueConverter
     {

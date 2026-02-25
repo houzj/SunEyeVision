@@ -32,7 +32,7 @@ namespace SunEyeVision.Core.Interfaces.Plugins
         PortDefinition[] OutputPorts { get; }
 
         /// <summary>
-        /// 节点参数元数�?
+        /// 节点参数元数据
         /// </summary>
         ParameterMetadata[] GetParameters();
 
@@ -71,7 +71,7 @@ namespace SunEyeVision.Core.Interfaces.Plugins
     }
 
     /// <summary>
-    /// 参数元数�?
+    /// 参数元数据
     /// </summary>
     public class ParameterMetadata
     {
@@ -91,22 +91,22 @@ namespace SunEyeVision.Core.Interfaces.Plugins
         public string Type { get; set; }
 
         /// <summary>
-        /// 默认�?
+        /// 默认值
         /// </summary>
         public object DefaultValue { get; set; }
 
         /// <summary>
-        /// 最小�?
+        /// 最小值
         /// </summary>
         public object MinValue { get; set; }
 
         /// <summary>
-        /// 最大�?
+        /// 最大值
         /// </summary>
         public object MaxValue { get; set; }
 
         /// <summary>
-        /// 可选值列�?
+        /// 可选值列表
         /// </summary>
         public object[] Options { get; set; }
 

@@ -1,20 +1,20 @@
 using SunEyeVision.Core.Models;
-using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// ½Úµã½çÃæ¹¤³§ - ¸ù¾İ½ÚµãÀàĞÍ¾ö¶¨´ò¿ªÄÄ¸ö½çÃæ
+    /// èŠ‚ç‚¹ç•Œé¢å·¥å‚ - æ ¹æ®èŠ‚ç‚¹ç±»å‹å†³å®šæ‰“å¼€å“ªä¸ªç•Œé¢
     /// </summary>
     public static class NodeInterfaceFactory
     {
         /// <summary>
-        /// »ñÈ¡½ÚµãµÄ½çÃæÀàĞÍ
+        /// è·å–èŠ‚ç‚¹çš„ç•Œé¢ç±»å‹
         /// </summary>
-        /// <param name="node">¹¤×÷Á÷½Úµã</param>
-        /// <param name="toolMetadata">¹¤¾ßÔªÊı¾İ</param>
-        /// <returns>½çÃæÀàĞÍ</returns>
+        /// <param name="node">å·¥ä½œæµèŠ‚ç‚¹</param>
+        /// <param name="toolMetadata">å·¥å…·å…ƒæ•°æ®</param>
+        /// <returns>ç•Œé¢ç±»å‹</returns>
         public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata)
         {
             if (node == null)
@@ -22,20 +22,20 @@ namespace SunEyeVision.Workflow
                 return NodeInterfaceType.None;
             }
 
-            // ¸ù¾İ½ÚµãÀàĞÍ¾ö¶¨½çÃæÀàĞÍ
+            // æ ¹æ®èŠ‚ç‚¹ç±»å‹å†³å®šç•Œé¢ç±»å‹
             switch (node.Type)
             {
                 case NodeType.Subroutine:
-                    // ×Ó³ÌĞò½Úµã£º´´½¨ĞÂµÄ¹¤×÷Á÷»­²¼
+                    // å­ç¨‹åºèŠ‚ç‚¹ï¼šåˆ›å»ºæ–°çš„å·¥ä½œæµç”»å¸ƒ
                     return NodeInterfaceType.NewWorkflowCanvas;
 
                 case NodeType.Condition:
-                    // Ìõ¼ş½Úµã£ºÊ¹ÓÃ×Ó³ÌĞò±à¼­Æ÷£¨Ìõ¼şÅäÖÃ½çÃæ£©
+                    // æ¡ä»¶èŠ‚ç‚¹ï¼šä½¿ç”¨å­ç¨‹åºç¼–è¾‘å™¨ï¼ˆæ¡ä»¶é…ç½®ç•Œé¢ï¼‰
                     return NodeInterfaceType.SubroutineEditor;
 
                 case NodeType.Algorithm:
                 default:
-                    // Ëã·¨½Úµã£ºÊ¹ÓÃµ÷ÊÔ´°¿Ú
+                    // ç®—æ³•èŠ‚ç‚¹ï¼šä½¿ç”¨è°ƒè¯•çª—å£
                     if (toolMetadata != null && toolMetadata.HasDebugInterface)
                     {
                         return NodeInterfaceType.DebugWindow;
@@ -45,11 +45,11 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ¼ì²é½ÚµãÊÇ·ñ¿ÉÒÔ´ò¿ª½çÃæ
+        /// æ£€æŸ¥èŠ‚ç‚¹æ˜¯å¦å¯ä»¥æ‰“å¼€ç•Œé¢
         /// </summary>
-        /// <param name="node">¹¤×÷Á÷½Úµã</param>
-        /// <param name="toolMetadata">¹¤¾ßÔªÊı¾İ</param>
-        /// <returns>ÊÇ·ñ¿ÉÒÔ´ò¿ª½çÃæ</returns>
+        /// <param name="node">å·¥ä½œæµèŠ‚ç‚¹</param>
+        /// <param name="toolMetadata">å·¥å…·å…ƒæ•°æ®</param>
+        /// <returns>æ˜¯å¦å¯ä»¥æ‰“å¼€ç•Œé¢</returns>
         public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata)
         {
             return GetInterfaceType(node, toolMetadata) != NodeInterfaceType.None;
@@ -57,27 +57,27 @@ namespace SunEyeVision.Workflow
     }
 
     /// <summary>
-    /// ½Úµã½çÃæÀàĞÍÃ¶¾Ù
+    /// èŠ‚ç‚¹ç•Œé¢ç±»å‹æšä¸¾
     /// </summary>
     public enum NodeInterfaceType
     {
         /// <summary>
-        /// ÎŞ½çÃæ
+        /// æ— ç•Œé¢
         /// </summary>
         None,
 
         /// <summary>
-        /// µ÷ÊÔ´°¿Ú
+        /// è°ƒè¯•çª—å£
         /// </summary>
         DebugWindow,
 
         /// <summary>
-        /// ×Ó³ÌĞò±à¼­Æ÷
+        /// å­ç¨‹åºç¼–è¾‘å™¨
         /// </summary>
         SubroutineEditor,
 
         /// <summary>
-        /// ĞÂ¹¤×÷Á÷»­²¼
+        /// æ–°å·¥ä½œæµç”»å¸ƒ
         /// </summary>
         NewWorkflowCanvas
     }

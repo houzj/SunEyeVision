@@ -12,40 +12,40 @@ using SunEyeVision.UI.Services.Thumbnail.Decoders;
 namespace SunEyeVision.UI.Services.Thumbnail
 {
     /// <summary>
-    /// 智能缩略图加载器 - 简化版4层架�?
+    /// 智能缩略图加载器 - 简化版4层架?
     /// 
     /// 加载策略优先级：
-    /// 1. L1内存缓存�?ms�?- 强引�?0�?+ 弱引�?
-    /// 2. L2磁盘缓存�?-80ms�?- Shell缓存优先 + 自建缓存补充
-    /// 3. L3 解码器解码（30-150ms�?- GPU或CPU解码
-    /// 4. L4原图解码�?00-800ms�?- 最终回退方案
+    /// 1. L1内存缓保存?ms?- 强引?0?+ 弱引?
+    /// 2. L2磁盘缓保存?-80ms?- Shell缓存优先 + 自建缓存补充
+    /// 3. L3 解码器解码（30-150ms?- GPU或CPU解码
+    /// 4. L4原图解码?00-800ms?- 最终回退方案
     /// 
-    /// 优化说明�?
+    /// 优化说明?
     /// - 移除重复的Shell缓存调用（ThumbnailCacheManager内部已处理）
     /// - 统一缓存命中统计
-    /// - �?支持多种解码器（IThumbnailDecoder接口�?
-    /// - �?方案二优化：高优先级任务使用GPU解码器，普通任务使用CPU解码�?
-    /// - �?文件生命周期管理：通过 FileAccessManager 防止竞态条�?
+    /// - ?支持多种解码器（IThumbnailDecoder接口?
+    /// - ?方案二优化：高优先级任务使用GPU解码器，普通任务使用CPU解码?
+    /// - ?文件生命周期管理：通过 FileAccessManager 防止竞态条件?
     /// </summary>
     public class SmartThumbnailLoader : IDisposable
     {
         private readonly ThumbnailCacheManager _cacheManager;
-        private readonly IThumbnailDecoder _gpuDecoder;  // �?GPU解码器（高优先级任务�?
-        private readonly IThumbnailDecoder _cpuDecoder;  // �?CPU解码器（普通任务）
-        private readonly IFileAccessManager? _fileAccessManager; // �?文件访问管理�?
+        private readonly IThumbnailDecoder _gpuDecoder;  // ?GPU解码器（高优先级任务?
+        private readonly IThumbnailDecoder _cpuDecoder;  // ?CPU解码器（普通任务）
+        private readonly IFileAccessManager? _fileAccessManager; // ?文件访问管理?
         private readonly ConcurrentDictionary<string, byte[]> _prefetchCache;
         private bool _disposed;
 
         // 统计信息
         private int _cacheHits;
         private int _gpuHits;
-        private int _originalHits; // �?P1优化：新增原图加载统�?
+        private int _originalHits; // ?P1优化：新增原图加载统计?
         private int _misses;
         private long _totalLoadTimeMs;
         
-        // �?日志优化：首张图片追踪（用于诊断日志�?
+        // ?日志优化：首张图片追踪（用于诊断日志?
         private static int _loadCounter = 0;
-        private const int FIRST_IMAGE_LOG_COUNT = 3; // �?张图片输出详细日�?
+        private const int FIRST_IMAGE_LOG_COUNT = 3; // ?张图片输出详细日期?
 
         /// <summary>
         /// 获取统计信息
@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// �?日志优化：重置加载计数器（新文件夹加载时调用�?
+        /// ?日志优化：重置加载计数器（新文件夹加载时调用?
         /// </summary>
         public static void ResetLoadCounter()
         {
@@ -68,8 +68,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 构造函�?- 方案二：双解码器架构
-        /// 高优先级任务使用GPU解码器，普通任务使用CPU解码�?
+        /// 构造函?- 方案二：双解码器架构
+        /// 高优先级任务使用GPU解码器，普通任务使用CPU解码?
         /// </summary>
         public SmartThumbnailLoader(
             ThumbnailCacheManager cacheManager,
@@ -90,7 +90,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
         
         /// <summary>
-        /// 兼容旧构造函�?- 单解码器（高优先级和普通任务共用同一解码器）
+        /// 兼容旧构造函?- 单解码器（高优先级和普通任务共用同一解码器）
         /// </summary>
         [Obsolete("建议使用双解码器构造函数以提高性能")]
         public SmartThumbnailLoader(
@@ -100,8 +100,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 预读取文件数据（用于并行优化�?
-        /// �?优化：使�?CleanupScheduler 保护文件访问
+        /// 预读取文件数据（用于并行优化?
+        /// ?优化：使?CleanupScheduler 保护文件访问
         /// </summary>
         public void PrefetchFile(string filePath)
         {
@@ -115,7 +115,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             {
                 Task.Run(() =>
                 {
-                    // �?核心修复：使�?CleanupScheduler 保护预读取操�?
+                    // ?核心修复：使?CleanupScheduler 保护预读取操作?
                     CleanupScheduler.MarkFileInUse(filePath);
                     
                     try
@@ -135,7 +135,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                             Array.Resize(ref buffer, bytesRead);
                         }
 
-                        // 限制预读取缓存大小（最多保�?0个文件）
+                        // 限制预读取缓存大小（最多保存?0个文件）
                         if (_prefetchCache.Count > 10)
                         {
                             foreach (var key in _prefetchCache.Keys)
@@ -164,17 +164,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
         {
             if (string.IsNullOrEmpty(filePath))
             {
-                Debug.WriteLine("[SmartLoader] �?文件路径为空");
+                Debug.WriteLine("[SmartLoader] ?文件路径为空");
                 return null;
             }
             
             if (!File.Exists(filePath))
             {
-                Debug.WriteLine($"[SmartLoader] �?文件不存�? {filePath}");
+                Debug.WriteLine($"[SmartLoader] ?文件不保存? {filePath}");
                 return null;
             }
 
-            // �?日志优化：判断是否是前几张图片（输出详细日志�?
+            // ?日志优化：判断是否是前几张图片（输出详细日志?
             int currentCount = Interlocked.Increment(ref _loadCounter);
             bool isFirstFewImages = currentCount <= FIRST_IMAGE_LOG_COUNT;
 
@@ -183,7 +183,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             string method = "";
             BitmapImage? result = null;
             
-            // �?诊断计时变量
+            // ?诊断计时变量
             long cacheQueryMs = 0;
             long gpuDecodeMs = 0;
             long originalDecodeMs = 0;
@@ -191,7 +191,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
             try
             {
                 // ===== L1 + L2: 缓存查询（统一在ThumbnailCacheManager中处理）=====
-                // 内部流程：L1a强引�?�?L1b弱引�?�?L2a Shell缓存 �?L2b 自建磁盘缓存
+                // 内部流程：L1a强引??L1b弱引??L2a Shell缓存 ?L2b 自建磁盘缓存
                 stepSw.Restart();
                 var cached = _cacheManager.TryLoadFromCache(filePath);
                 stepSw.Stop();
@@ -199,7 +199,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 
                 if (cached != null)
                 {
-                    // �?关键诊断：检查缓存缩略图有效�?
+                    // ?关键诊断：检查缓存缩略图有效果?
                     if (cached.Width > 0 && cached.Height > 0)
                     {
                         method = "缓存命中";
@@ -207,24 +207,24 @@ namespace SunEyeVision.UI.Services.Thumbnail
                         totalSw.Stop();
                         Interlocked.Add(ref _totalLoadTimeMs, totalSw.ElapsedMilliseconds);
                         
-                        // �?日志优化：前几张图片输出日志
+                        // ?日志优化：前几张图片输出日志
                         if (isFirstFewImages)
                         {
                             Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, Result=缓存命中 | file={System.IO.Path.GetFileName(filePath)}");
-                            Debug.WriteLine($"[SmartLoader] �?缓存命中 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.GetFileName(filePath)}");
+                            Debug.WriteLine($"[SmartLoader] ?缓存命中 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.GetFileName(filePath)}");
                         }
                         return cached;
                     }
                     else
                     {
-                        Debug.WriteLine($"[SmartLoader] �?缓存缩略图无�?size={cached.Width}x{cached.Height} file={System.IO.Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[SmartLoader] ?缓存缩略图无?size={cached.Width}x{cached.Height} file={System.IO.Path.GetFileName(filePath)}");
                     }
                 }
 
-                // ===== L3: 解码器解�?=====
-                // �?方案二：根据优先级选择解码�?
+                // ===== L3: 解码器解决方案?=====
+                // ?方案二：根据优先级选择解码?
                 // 高优先级任务使用GPU解码器（快速响应）
-                // 普通任务使用CPU解码器（避免阻塞GPU队列�?
+                // 普通任务使用CPU解码器（避免阻塞GPU队列?
                 stepSw.Restart();
                 result = TryLoadFromDecoder(filePath, size, isFirstFewImages, isHighPriority);
                 stepSw.Stop();
@@ -232,24 +232,24 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 
                 if (result != null)
                 {
-                    // 检查解码结果有效�?
+                    // 检查解码结果有效果?
                     if (result.Width > 0 && result.Height > 0)
                     {
                         method = "Decoder";
                         Interlocked.Increment(ref _gpuHits);
-                        // �?方案二日志：显示使用的解码器类型
+                        // ?方案二日志：显示使用的解码器类型
                         string decoderName = isHighPriority ? _gpuDecoder.GetType().Name : _cpuDecoder.GetType().Name;
                         Debug.WriteLine($"[Diagnostics] LoadThumbnail details: CacheQuery={cacheQueryMs}ms, Decode={gpuDecodeMs}ms, Decoder={decoderName}, Priority={isHighPriority} | file={System.IO.Path.GetFileName(filePath)}");
                         goto SUCCESS;
                     }
                     else
                     {
-                        Debug.WriteLine($"[SmartLoader] �?解码器结果无�?size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[SmartLoader] ?解码器结果无?size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
                         result = null;
                     }
                 }
 
-                // ===== L4: 原图解码回退（★ P1优化�?====
+                // ===== L4: 原图解码回退（★ P1优化?====
                 stepSw.Restart();
                 result = TryLoadFromOriginal(filePath, size);
                 stepSw.Stop();
@@ -257,7 +257,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 
                 if (result != null)
                 {
-                    // 检查原图解码结果有效�?
+                    // 检查原图解码结果有效果?
                     if (result.Width > 0 && result.Height > 0)
                     {
                         method = "原图解码";
@@ -265,13 +265,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
                         Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, OriginalDecode={originalDecodeMs}ms, Result=原图解码 | file={System.IO.Path.GetFileName(filePath)}");
                         if (isFirstFewImages)
                         {
-                            Debug.WriteLine($"[SmartLoader] �?L4原图解码 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.GetFileName(filePath)}");
+                            Debug.WriteLine($"[SmartLoader] ?L4原图解码 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.GetFileName(filePath)}");
                         }
                         goto SUCCESS;
                     }
                     else
                     {
-                        Debug.WriteLine($"[SmartLoader] �?原图解码结果无效 size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[SmartLoader] ?原图解码结果无效 size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
                         result = null;
                     }
                 }
@@ -280,11 +280,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 Interlocked.Increment(ref _misses);
                 totalSw.Stop();
                 Debug.WriteLine($"[诊断] LoadThumbnail详情: CacheQuery={cacheQueryMs}ms, GpuDecode={gpuDecodeMs}ms, OriginalDecode={originalDecodeMs}ms, Result=失败 | file={System.IO.Path.GetFileName(filePath)}");
-                Debug.WriteLine($"[SmartLoader] �?所有策略失�?file={System.IO.Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[SmartLoader] ?所有策略失?file={System.IO.Path.GetFileName(filePath)}");
                 return null;
 
             SUCCESS:
-                // 添加到内存缓存（会自动保存到磁盘缓存�?
+                // 添加到内存缓存（会自动保存到磁盘缓保存?
                 if (result != null)
                 {
                     _cacheManager.AddToMemoryCache(filePath, result);
@@ -298,14 +298,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
             catch (Exception ex)
             {
                 totalSw.Stop();
-                Debug.WriteLine($"[SmartLoader] �?加载异常: {ex.Message} file={System.IO.Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[SmartLoader] ?加载异常: {ex.Message} file={System.IO.Path.GetFileName(filePath)}");
                 Interlocked.Increment(ref _misses);
                 return null;
             }
         }
 
         /// <summary>
-        /// 异步加载缩略�?
+        /// 异步加载缩略?
         /// </summary>
         public async Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size, CancellationToken cancellationToken = default, bool isHighPriority = false)
         {
@@ -313,9 +313,9 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 尝试解码器解码（L3策略�?
-        /// �?方案二：根据优先级选择GPU或CPU解码�?
-        /// �?文件安全访问：通过 FileAccessManager 保护文件访问
+        /// 尝试解码器解码（L3策略?
+        /// ?方案二：根据优先级选择GPU或CPU解码?
+        /// ?文件安全访问：通过 FileAccessManager 保护文件访问
         /// </summary>
         private BitmapImage? TryLoadFromDecoder(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
         {
@@ -324,17 +324,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 byte[]? prefetchedData = null;
                 _prefetchCache.TryRemove(filePath, out prefetchedData);
 
-                // �?方案二核心：根据优先级选择解码�?
-                // 高优先级任务 �?GPU解码器（WicGpuDecoder�?槽位专用�?
-                // 普通任�?�?CPU解码器（ImageSharpDecoder，不占用GPU资源�?
+                // ?方案二核心：根据优先级选择解码?
+                // 高优先级任务 ?GPU解码器（WicGpuDecoder?槽位专用?
+                // 普通任务??CPU解码器（ImageSharpDecoder，不占用GPU资源?
                 var decoder = isHighPriority ? _gpuDecoder : _cpuDecoder;
                 
-                // �?核心修复：始终使用安全解码方�?
-                // DecodeThumbnailSafe 内部会使�?CleanupScheduler 保护文件
-                // 无论是否�?FileAccessManager，都会调�?MarkFileInUse/ReleaseFile
+                // ?核心修复：始终使用安全解码方法?
+                // DecodeThumbnailSafe 内部会使?CleanupScheduler 保护文件
+                // 无论是否?FileAccessManager，都会调试?MarkFileInUse/ReleaseFile
                 BitmapImage? result = decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
                 
-                // 解码成功后异步保存到缓存（不阻塞显示�?
+                // 解码成功后异步保存到缓存（不阻塞显示例?
                 if (result != null)
                 {
                     _cacheManager.SaveToCacheNonBlocking(filePath, result);
@@ -349,19 +349,19 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// �?P1优化：尝试从原图加载（L4最终回退方案�?
+        /// ?P1优化：尝试从原图加载（L4最终回退方案?
         /// 使用WPF内置解码，带缩放优化
-        /// �?文件安全访问：通过 FileAccessManager 保护文件访问
+        /// ?文件安全访问：通过 FileAccessManager 保护文件访问
         /// </summary>
         private BitmapImage? TryLoadFromOriginal(string filePath, int size)
         {
-            // �?使用 FileAccessManager 保护文件访问（RAII模式�?
+            // ?使用 FileAccessManager 保护文件访问（RAII模式?
             if (_fileAccessManager != null)
             {
                 using var scope = _fileAccessManager.CreateAccessScope(filePath, FileAccessIntent.Read, FileType.OriginalImage);
                 if (!scope.IsGranted)
                 {
-                    Debug.WriteLine($"[SmartLoader] �?文件访问被拒�? {scope.ErrorMessage} file={System.IO.Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"[SmartLoader] ?文件访问被拒? {scope.ErrorMessage} file={System.IO.Path.GetFileName(filePath)}");
                     return null;
                 }
                 
@@ -375,18 +375,18 @@ namespace SunEyeVision.UI.Services.Thumbnail
         
         /// <summary>
         /// 原图解码内部实现
-        /// �?优化：使�?CleanupScheduler 保护 + StreamSource 立即加载
+        /// ?优化：使?CleanupScheduler 保护 + StreamSource 立即加载
         /// </summary>
         private BitmapImage? DecodeOriginalInternal(string filePath, int size)
         {
-            // �?核心修复：使�?CleanupScheduler 保护文件访问
+            // ?核心修复：使?CleanupScheduler 保护文件访问
             CleanupScheduler.MarkFileInUse(filePath);
             
             try
             {
                 var sw = Stopwatch.StartNew();
                 
-                // �?优化：先读取文件到内存，避免 UriSource 延迟加载问题
+                // ?优化：先读取文件到内存，避免 UriSource 延迟加载问题
                 byte[] imageBytes;
                 using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
                 {
@@ -403,7 +403,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                bitmap.DecodePixelWidth = size; // �?解码时缩放，节省内存
+                bitmap.DecodePixelWidth = size; // ?解码时缩放，节省内存
                 bitmap.StreamSource = new MemoryStream(imageBytes);
                 bitmap.EndInit();
                 bitmap.Freeze();
@@ -411,7 +411,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 sw.Stop();
                 Debug.WriteLine($"[SmartLoader] L4原图解码耗时:{sw.ElapsedMilliseconds}ms file={System.IO.Path.GetFileName(filePath)}");
                 
-                // 异步保存到缓存（L4解码较慢，值得缓存�?
+                // 异步保存到缓存（L4解码较慢，值得缓保存?
                 if (bitmap.Width > 0 && bitmap.Height > 0)
                 {
                     _cacheManager.SaveToCacheNonBlocking(filePath, bitmap);
@@ -421,18 +421,18 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[SmartLoader] �?L4原图解码失败: {ex.Message} file={System.IO.Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[SmartLoader] ?L4原图解码失败: {ex.Message} file={System.IO.Path.GetFileName(filePath)}");
                 return null;
             }
             finally
             {
-                // �?确保释放文件引用
+                // ?确保释放文件引用
                 CleanupScheduler.ReleaseFile(filePath);
             }
         }
 
         /// <summary>
-        /// 批量加载缩略图（用于可视区域批量加载�?
+        /// 批量加载缩略图（用于可视区域批量加加载?
         /// </summary>
         public async Task<System.Collections.Generic.Dictionary<string, BitmapImage>> LoadThumbnailsBatchAsync(
             string[] filePaths,
@@ -471,7 +471,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 清除预读取缓�?
+        /// 清除预读取缓存?
         /// </summary>
         public void ClearPrefetchCache()
         {

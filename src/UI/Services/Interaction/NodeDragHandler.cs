@@ -13,7 +13,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 节点拖拽处理�?- 负责处理节点的拖拽操�?
+    /// 节点拖拽处理器 - 负责处理节点的拖拽操作
     /// </summary>
     public class NodeDragHandler
     {
@@ -39,7 +39,7 @@ namespace SunEyeVision.UI.Services.Interaction
 
         #endregion
 
-        #region 属�?
+        #region 属性
 
         /// <summary>
         /// 是否正在拖拽
@@ -47,13 +47,13 @@ namespace SunEyeVision.UI.Services.Interaction
         public bool IsDragging => _isDragging;
 
         /// <summary>
-        /// 当前拖拽的节�?
+        /// 当前拖拽的节点
         /// </summary>
         public WorkflowNode? DraggedNode => _draggedNode;
 
         #endregion
 
-        #region 构造函�?
+        #region 构造函数
 
         public NodeDragHandler(
             System.Windows.Controls.Canvas canvas,
@@ -70,7 +70,7 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 公共方法
 
         /// <summary>
-        /// 开始拖拽节�?
+        /// 开始拖拽节点
         /// </summary>
         /// <param name="node">要拖拽的节点</param>
         /// <param name="startPosition">拖拽起始位置</param>
@@ -219,7 +219,7 @@ namespace SunEyeVision.UI.Services.Interaction
         #region 私有方法
 
         /// <summary>
-        /// 记录所有选中节点的初始位�?
+        /// 记录所有选中节点的初始位置
         /// </summary>
         private void RecordSelectedNodesPositions()
         {
@@ -243,7 +243,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发拖拽开始事�?
+        /// 触发拖拽开始事件
         /// </summary>
         private void OnDragStarted(NodeDragEventArgs e)
         {
@@ -251,7 +251,7 @@ namespace SunEyeVision.UI.Services.Interaction
         }
 
         /// <summary>
-        /// 触发拖拽中事�?
+        /// 触发拖拽中事件
         /// </summary>
         private void OnDragging(NodeDragEventArgs e)
         {
@@ -277,7 +277,7 @@ namespace SunEyeVision.UI.Services.Interaction
     public class NodeDragEventArgs : EventArgs
     {
         /// <summary>
-        /// 拖拽的节�?
+        /// 拖拽的节点
         /// </summary>
         public WorkflowNode? Node { get; }
 
@@ -287,7 +287,7 @@ namespace SunEyeVision.UI.Services.Interaction
         public Point Position { get; }
 
         /// <summary>
-        /// 偏移�?
+        /// 偏移量
         /// </summary>
         public Vector? Offset { get; }
 

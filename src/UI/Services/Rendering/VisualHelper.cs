@@ -15,7 +15,7 @@ namespace SunEyeVision.UI.Services.Rendering
     public static class WorkflowVisualHelper
     {
         /// <summary>
-        /// 在视觉树中查找指定类型的子元�?
+        /// 在视觉树中查找指定类型的子元素
         /// </summary>
         public static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.Services.Rendering
         }
 
         /// <summary>
-        /// 在视觉树中查找所有指定类型的子元�?
+        /// 在视觉树中查找所有指定类型的子元素
         /// </summary>
         public static IEnumerable<T> FindAllVisualChildren<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -90,7 +90,7 @@ namespace SunEyeVision.UI.Services.Rendering
         }
 
         /// <summary>
-        /// 获取元素的视觉父�?
+        /// 获取元素的视觉父级
         /// </summary>
         public static DependencyObject? GetVisualParent(this DependencyObject element)
         {

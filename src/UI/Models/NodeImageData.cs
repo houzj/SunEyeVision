@@ -9,7 +9,7 @@ using SunEyeVision.UI.Services.Thumbnail;
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
-    /// 节点级别的图像数据容器（每个采集节点独立维护�?
+    /// 节点级别的图像数据容器（每个采集节点独立维护
     /// 用于实现不同采集节点拥有独立的图像预览器
     /// </summary>
     public class NodeImageData : INotifyPropertyChanged
@@ -19,7 +19,7 @@ namespace SunEyeVision.UI.Models
         private bool _autoSwitchEnabled = false;
 
         /// <summary>
-        /// 节点ID（与WorkflowNode关联�?
+        /// 节点ID（与WorkflowNode关联
         /// </summary>
         public string NodeId { get; }
 
@@ -29,7 +29,7 @@ namespace SunEyeVision.UI.Models
         public BatchObservableCollection<ImageInfo> ImageCollection { get; }
 
         /// <summary>
-        /// 当前显示的图像索�?
+        /// 当前显示的图像索
         /// </summary>
         public int CurrentImageIndex
         {
@@ -67,7 +67,7 @@ namespace SunEyeVision.UI.Models
         public int ImageCount => ImageCollection.Count;
 
         /// <summary>
-        /// 获取选中用于运行的图像列�?
+        /// 获取选中用于运行的图像列
         /// </summary>
         public IEnumerable<ImageInfo> GetSelectedImages()
         {
@@ -92,7 +92,7 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 添加图像到集�?
+        /// 添加图像到集
         /// </summary>
         public void AddImage(ImageInfo image)
         {
@@ -143,16 +143,16 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 准备切换到此节点的图像数据进行显示（延迟渲染优化�?
-        /// 切换节点时，先隐藏所有缩略图显示占位符，然后�?ImagePreviewControl 异步加载可视区域
+        /// 准备切换到此节点的图像数据进行显示（延迟渲染优化
+        /// 切换节点时，先隐藏所有缩略图显示占位符，然后ImagePreviewControl 异步加载可视区域
         /// </summary>
-        /// <returns>返回图像数量，用于后续异步加�?/returns>
+        /// <returns>返回图像数量，用于后续异步加/returns>
         public int PrepareForDisplay()
         {
             int count = ImageCollection.Count;
             
-            // 清除所有缩略图显示（保留文件路径等数据�?
-            // 这样切换节点�?UI 会立即显示占位符，而不是尝试渲染已有缩略图
+            // 清除所有缩略图显示（保留文件路径等数据
+            // 这样切换节点UI 会立即显示占位符，而不是尝试渲染已有缩略图
             foreach (var image in ImageCollection)
             {
                 image.Thumbnail = null;

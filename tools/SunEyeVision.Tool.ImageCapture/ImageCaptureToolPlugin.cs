@@ -1,6 +1,9 @@
 using System;
+
 using System.Collections.Generic;
+
 using SunEyeVision.Plugin.SDK;
+
 using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.ImageCapture
@@ -12,22 +15,28 @@ namespace SunEyeVision.Tool.ImageCapture
     public class ImageCaptureToolPlugin : IToolPlugin
     {
         #region 插件基本信息
+
         public string Name => "图像采集";
         public string Version => "1.0.0";
         public string Author => "SunEyeVision";
-        public string Description => "从相机采集图�?;
+        public string Description => "从相机采集图像";
         public string PluginId => "suneye.image_capture";
         public string Icon => "📷";
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
+
         #endregion
 
         #region 生命周期管理
+
         public void Initialize() => IsLoaded = true;
+
         public void Unload() => IsLoaded = false;
+
         #endregion
 
         #region 工具管理
+
         public List<Type> GetAlgorithmNodes() => new List<Type> { typeof(ImageCaptureAlgorithm) };
 
         public List<ToolMetadata> GetToolMetadata()
@@ -41,7 +50,7 @@ namespace SunEyeVision.Tool.ImageCapture
                     DisplayName = "图像采集",
                     Icon = "📷",
                     Category = "采集",
-                    Description = "从相机采集图�?,
+                    Description = "从相机采集图像",
                     AlgorithmType = typeof(ImageCaptureAlgorithm),
                     Version = "1.0.0",
                     Author = "SunEyeVision",
@@ -96,8 +105,8 @@ namespace SunEyeVision.Tool.ImageCapture
                         new ParameterMetadata
                         {
                             Name = "timestamp",
-                            DisplayName = "时间�?,
-                            Description = "采集时间�?,
+                            DisplayName = "时间戳",
+                            Description = "采集时间戳",
                             Type = ParameterType.Double
                         }
                     }
@@ -119,8 +128,8 @@ namespace SunEyeVision.Tool.ImageCapture
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var cameraId = parameters.Get<int>("cameraId");
+
             if (cameraId == null || cameraId < 0)
             {
                 result.AddError("相机ID必须大于等于0");
@@ -129,12 +138,13 @@ namespace SunEyeVision.Tool.ImageCapture
             var timeout = parameters.Get<int>("timeout");
             if (timeout != null && timeout < 100)
             {
-                result.AddWarning("超时时间过短，可能导致采集失�?);
+                result.AddWarning("超时时间过短，可能导致采集失败");
             }
 
             result.IsValid = result.Errors.Count == 0;
             return result;
         }
+
         #endregion
     }
 
@@ -144,7 +154,7 @@ namespace SunEyeVision.Tool.ImageCapture
     public class ImageCaptureAlgorithm : ImageProcessorBase
     {
         public override string Name => "图像采集";
-        public override string Description => "从相机采集图�?;
+        public override string Description => "从相机采集图像";
 
         protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
@@ -173,7 +183,7 @@ namespace SunEyeVision.Tool.ImageCapture
             if (cameraId.HasValue && cameraId.Value < 0)
                 result.AddError("相机ID必须大于等于0");
             if (timeout.HasValue && timeout.Value < 100)
-                result.AddWarning("超时时间过短，可能导致采集失�?);
+                result.AddWarning("超时时间过短，可能导致采集失败");
 
             return result;
         }

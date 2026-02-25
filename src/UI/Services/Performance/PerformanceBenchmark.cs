@@ -67,7 +67,7 @@ namespace SunEyeVision.UI.Services.Performance
 
             foreach (var nodeCount in testSizes)
             {
-                using var measure = _monitor.StartMeasure($"渲染{nodeCount}个节�?);
+                using var measure = _monitor.StartMeasure($"渲染{nodeCount}个节点");
 
                 var nodes = CreateTestNodes(nodeCount);
                 var stopwatch = Stopwatch.StartNew();
@@ -85,18 +85,18 @@ namespace SunEyeVision.UI.Services.Performance
 
                 metrics.Add(new BenchmarkMetric
                 {
-                    MetricName = $"{nodeCount}个节�?,
+                    MetricName = $"{nodeCount}个节点",
                     ValueMs = elapsedMs,
                     TargetMs = nodeCount * 0.5, // 目标: 每个节点<0.5ms
                     Passed = elapsedMs < nodeCount * 0.5
                 });
 
-                // Debug.WriteLine($"[节点渲染] {nodeCount}个节�? {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[节点渲染] {nodeCount}个节点: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
             result.Passed = metrics.All(m => m.Passed);
-            result.Summary = $"平均每个节点: {metrics.Average(m => m.ValueMs / int.Parse(m.MetricName.Replace("个节�?, ""))):F3}ms";
+            result.Summary = $"平均每个节点: {metrics.Average(m => m.ValueMs / int.Parse(m.MetricName.Replace("个节点", ""))):F3}ms";
 
             return result;
         }
@@ -118,7 +118,7 @@ namespace SunEyeVision.UI.Services.Performance
 
             foreach (var connectionCount in testSizes)
             {
-                using var measure = _monitor.StartMeasure($"更新{connectionCount}条连�?);
+                using var measure = _monitor.StartMeasure($"更新{connectionCount}条连线");
 
                 var nodes = CreateTestNodes(20);
                 var connections = CreateTestConnections(nodes, connectionCount);
@@ -136,13 +136,13 @@ namespace SunEyeVision.UI.Services.Performance
 
                 metrics.Add(new BenchmarkMetric
                 {
-                    MetricName = $"{connectionCount}条连�?,
+                    MetricName = $"{connectionCount}条连线",
                     ValueMs = elapsedMs,
                     TargetMs = 20.0,
                     Passed = elapsedMs < 20.0
                 });
 
-                // Debug.WriteLine($"[连线更新] {connectionCount}条连�? {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[连线更新] {connectionCount}条连线: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
@@ -169,7 +169,7 @@ namespace SunEyeVision.UI.Services.Performance
 
             foreach (var nodeCount in testSizes)
             {
-                using var measure = _monitor.StartMeasure($"拖拽{nodeCount}个节点场�?);
+                using var measure = _monitor.StartMeasure($"拖拽{nodeCount}个节点场景");
 
                 var nodes = CreateTestNodes(nodeCount);
                 var draggedNode = nodes.First();
@@ -195,13 +195,13 @@ namespace SunEyeVision.UI.Services.Performance
 
                 metrics.Add(new BenchmarkMetric
                 {
-                    MetricName = $"{nodeCount}个节�?,
+                    MetricName = $"{nodeCount}个节点",
                     ValueMs = elapsedMs,
                     TargetMs = 30.0,
                     Passed = elapsedMs < 30.0
                 });
 
-                // Debug.WriteLine($"[拖拽响应] {nodeCount}个节�? {elapsedMs:F2}ms");
+                // Debug.WriteLine($"[拖拽响应] {nodeCount}个节点: {elapsedMs:F2}ms");
             }
 
             result.Metrics = metrics;
@@ -228,7 +228,7 @@ namespace SunEyeVision.UI.Services.Performance
 
             foreach (var iterations in testIterations)
             {
-                using var measure = _monitor.StartMeasure($"计算{iterations}次路�?);
+                using var measure = _monitor.StartMeasure($"计算{iterations}次路径");
 
                 var nodes = CreateTestNodes(20);
                 var connections = CreateTestConnections(nodes, iterations);
@@ -242,7 +242,7 @@ namespace SunEyeVision.UI.Services.Performance
 
                     if (sourceNode != null && targetNode != null)
                     {
-                        // 简单模拟路径计�?
+                        // 简单模拟路径计算
                         var pathPoints = new Point[]
                         {
                             sourceNode.RightPortPosition,
@@ -257,7 +257,7 @@ namespace SunEyeVision.UI.Services.Performance
 
                 metrics.Add(new BenchmarkMetric
                 {
-                    MetricName = $"{iterations}次计�?,
+                    MetricName = $"{iterations}次计算",
                     ValueMs = avgPerPath,
                     TargetMs = 1.0,
                     Passed = avgPerPath < 1.0
@@ -313,7 +313,7 @@ namespace SunEyeVision.UI.Services.Performance
 
                 metrics.Add(new BenchmarkMetric
                 {
-                    MetricName = $"{connectionCount}条连�?,
+                    MetricName = $"{connectionCount}条连线",
                     ValueMs = batchTime,
                     TargetMs = singleTime * 0.5, // 目标: 提升50%
                     Passed = batchTime < singleTime * 0.5,
@@ -336,7 +336,7 @@ namespace SunEyeVision.UI.Services.Performance
         private ObservableCollection<WorkflowNode> CreateTestNodes(int count)
         {
             var nodes = new ObservableCollection<WorkflowNode>();
-            var random = new Random(42); // 固定种子以保证可重复�?
+            var random = new Random(42); // 固定种子以保证可重复性
 
             for (int i = 0; i < count; i++)
             {
@@ -403,9 +403,9 @@ namespace SunEyeVision.UI.Services.Performance
 
             foreach (var result in resultsList)
             {
-                // Debug.WriteLine($"【{result.TestName}�?);
+                // Debug.WriteLine($"【{result.TestName}】");
                 // Debug.WriteLine($"目标: {result.Target}");
-                // Debug.WriteLine($"结果: {(result.Passed ? "�?通过" : "�?未通过")}");
+                // Debug.WriteLine($"结果: {(result.Passed ? "✓ 通过" : "✗ 未通过")}");
                 // Debug.WriteLine($"摘要: {result.Summary}");
                 // Debug.WriteLine(string.Empty);
 
@@ -414,13 +414,13 @@ namespace SunEyeVision.UI.Services.Performance
                     // Debug.WriteLine("详细指标:");
                     foreach (var metric in result.Metrics)
                     {
-                    var status = metric.Passed ? "�? : "�?;
+                        var status = metric.Passed ? "✓" : "✗";
 
-                    if (!string.IsNullOrEmpty(metric.AdditionalInfo))
-                    {
-                        // Debug.WriteLine($"     {metric.AdditionalInfo}");
+                        if (!string.IsNullOrEmpty(metric.AdditionalInfo))
+                        {
+                            // Debug.WriteLine($"     {metric.AdditionalInfo}");
+                        }
                     }
-                }
                 }
             }
 

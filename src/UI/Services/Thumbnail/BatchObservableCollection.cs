@@ -6,7 +6,7 @@ using System.ComponentModel;
 namespace SunEyeVision.UI.Services.Thumbnail
 {
     /// <summary>
-    /// 支持批量操作的ObservableCollection，显著提升批量添�?删除时的性能
+    /// 支持批量操作的ObservableCollection，显著提升批量添加、删除时的性能
     /// 通过抑制通知和批量触发Reset事件，避免每次Add触发UI更新
     /// </summary>
     /// <typeparam name="T">集合元素类型</typeparam>
@@ -17,7 +17,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
         /// <summary>
         /// 批量添加多个元素，只触发一次Reset通知
-        /// 性能提升�?000次Add从~1200ms降到~30ms
+        /// 性能提升：1000次Add从~1200ms降到~30ms
         /// </summary>
         /// <param name="items">要添加的元素集合</param>
         public void AddRange(IEnumerable<T> items)
@@ -41,7 +41,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 
                 if (_hasChanges)
                 {
-                    // 只触发一次Reset事件，让UI一次性更�?
+                    // 只触发一次Reset事件，让UI一次性更新
                     OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
                     OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
                 }
@@ -80,7 +80,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 批量移除满足条件的元�?
+        /// 批量移除满足条件的元素
         /// </summary>
         /// <param name="predicate">移除条件</param>
         public void RemoveRange(Predicate<T> predicate)
@@ -136,7 +136,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 强制触发Reset通知（用于手动控制UI更新�?
+        /// 强制触发Reset通知（用于手动控制UI更新）
         /// </summary>
         public void Refresh()
         {

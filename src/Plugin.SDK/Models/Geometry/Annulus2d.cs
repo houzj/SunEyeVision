@@ -5,12 +5,12 @@ using System;
 namespace SunEyeVision.Plugin.SDK.Models.Geometry
 {
     /// <summary>
-    /// 圆环结构（环形ROI）
+    /// 圆环结构ROI
     /// </summary>
     /// <remarks>
-    /// OpenCvSharp缺少Annulus类型，因此提供此补充类型。
-    /// 由两个同心圆定义的区域，用于环形搜索区域。
-    /// 常用于圆查找、边缘检测等算法。
+    /// OpenCvSharp缺少Annulus类型，提供了此类型。
+    /// 用于同圆度检测、环形区域分析等。
+    /// 支持圆弧和完整圆环。
     /// </remarks>
     public readonly struct Annulus2d : IEquatable<Annulus2d>
     {
@@ -35,7 +35,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         public readonly double StartAngle;
 
         /// <summary>
-        /// 结束角度（弧度）
+        /// 终止角度（弧度）
         /// </summary>
         public readonly double EndAngle;
 
@@ -58,7 +58,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
             : this(new Point2d(centerX, centerY), innerRadius, outerRadius) { }
 
         /// <summary>
-        /// 创建扇形圆环
+        /// 创建圆弧圆环
         /// </summary>
         public Annulus2d(Point2d center, double innerRadius, double outerRadius,
                         double startAngle, double endAngle)
@@ -71,7 +71,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         }
 
         /// <summary>
-        /// 创建扇形圆环（坐标参数）
+        /// 创建圆弧圆环
         /// </summary>
         public Annulus2d(double centerX, double centerY, double innerRadius, double outerRadius,
                         double startAngle, double endAngle)
@@ -93,7 +93,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         public double MeanRadius => (InnerRadius + OuterRadius) / 2;
 
         /// <summary>
-        /// 环宽度
+        /// 宽度
         /// </summary>
         public double Width => OuterRadius - InnerRadius;
 
@@ -108,7 +108,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         public Circle2d OuterCircle => new Circle2d(Center, OuterRadius);
 
         /// <summary>
-        /// 是否为完整圆环（360度）
+        /// 是否为完整圆（360度）
         /// </summary>
         public bool IsFullCircle => EndAngle - StartAngle >= 2 * Math.PI - 0.001;
 
@@ -157,7 +157,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         }
 
         /// <summary>
-        /// 获取圆环上的点（在平均半径处）
+        /// 获取圆环上的点（平均半径）
         /// </summary>
         public Point2d GetPointOnAnnulus(double angleRadians)
         {
@@ -170,7 +170,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
         /// <summary>
         /// 获取圆环边界上的采样点
         /// </summary>
-        /// <param name="pointCount">采样点数量</param>
+        /// <param name="pointCount">点数</param>
         public Point2d[] GetSamplePoints(int pointCount)
         {
             Point2d[] points = new Point2d[pointCount];
@@ -232,7 +232,7 @@ namespace SunEyeVision.Plugin.SDK.Models.Geometry
 
         public override string ToString() => IsFullCircle
             ? $"Annulus2d(Center={Center}, R=[{InnerRadius:F1}, {OuterRadius:F1}])"
-            : $"Annulus2d(Center={Center}, R=[{InnerRadius:F1}, {OuterRadius:F1}], θ=[{StartAngle:F2}, {EndAngle:F2}])";
+            : $"Annulus2d(Center={Center}, R=[{InnerRadius:F1}, {OuterRadius:F1}], Angle=[{StartAngle:F2}, {EndAngle:F2}])";
 
         #endregion
     }

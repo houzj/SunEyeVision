@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="太阳眼视�?- 用户手册" Height="600" Width="900"
+        Title="太阳眼视觉 - 用户手册" Height="600" Width="900"
         WindowStartupLocation="CenterOwner"
         Background="#FFFFFF"
         Loaded="Window_Loaded">
@@ -25,25 +25,25 @@
                     <!-- 欢迎页面 -->
                     <TextBlock x:Name="HelpTitle" Text="欢迎使用 SunEyeVision" FontSize="24" FontWeight="Bold" Foreground="#0066CC" Margin="0,0,0,20"/>
                     <TextBlock x:Name="HelpContent" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,20">
-                        <Run Text="SunEyeVision 是一款专业的机器视觉平台，提供强大的图像处理和工作流设计功能。本手册将帮助您快速上手并掌握各项功能�?/>
+                        <Run Text="SunEyeVision 是一款专业的机器视觉平台，提供强大的图像处理和工作流设计功能。本手册将帮助您快速上手并掌握各项功能。"/>
                         <LineBreak/><LineBreak/>
                         <Run Text="主要特性：" FontWeight="Bold"/>
                         <LineBreak/>
-                        <Run Text="�?直观的可视化工作流编辑器"/>
+                        <Run Text="• 直观的可视化工作流编辑器"/>
                         <LineBreak/>
-                        <Run Text="�?丰富的图像处理算法库"/>
+                        <Run Text="• 丰富的图像处理算法库"/>
                         <LineBreak/>
-                        <Run Text="�?灵活的插件系�?/>
+                        <Run Text="• 灵活的插件系统"/>
                         <LineBreak/>
-                        <Run Text="�?支持多种相机和设�?/>
+                        <Run Text="• 支持多种相机和设备"/>
                         <LineBreak/>
-                        <Run Text="�?高性能的图像处理引�?/>
+                        <Run Text="• 高性能的图像处理引擎"/>
                         <LineBreak/><LineBreak/>
-                        <Run Text="从左侧目录选择您想了解的主题�?/>
+                        <Run Text="从左侧目录选择您想了解的主题。"/>
                     </TextBlock>
 
                     <!-- 查看完整文档按钮 -->
-                    <Button x:Name="OpenFullDocsButton" Content="📖 查看完整帮助文档 (在浏览器中打开)" 
+                    <Button x:Name="OpenFullDocsButton" Content="📄 查看完整帮助文档 (在浏览器中打开)" 
                             Click="OpenFullDocsButton_Click"
                             Padding="15,10" Margin="0,0,0,20"
                             FontSize="14" Background="#0066CC" Foreground="White"
@@ -75,10 +75,10 @@
                         </Button.Style>
                     </Button>
 
-                    <!-- 快捷键列�?-->
+                    <!-- 快捷键列表 -->
                     <Border Background="#F0F8FF" BorderBrush="#0066CC" BorderThickness="1" Padding="15" CornerRadius="5" Margin="0,20,0,0">
                         <StackPanel>
-                            <TextBlock Text="常用快捷�? FontSize="16" FontWeight="Bold" Foreground="#0066CC" Margin="0,0,0,10"/>
+                            <TextBlock Text="常用快捷键" FontSize="16" FontWeight="Bold" Foreground="#0066CC" Margin="0,0,0,10"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -135,7 +135,7 @@
                         <StackPanel>
                             <TextBlock Text="需要帮助？" FontSize="16" FontWeight="Bold" Foreground="#FF9900" Margin="0,0,0,10"/>
                             <TextBlock FontSize="13" TextWrapping="Wrap" Foreground="#333333">
-                                <Run Text="如果您在使用过程中遇到问题或有任何建议，欢迎联系我们�?/>
+                                <Run Text="如果您在使用过程中遇到问题或有任何建议，欢迎联系我们："/>
                                 <LineBreak/><LineBreak/>
                                 <Run Text="官方网站：https://www.suneyevision.com" FontWeight="SemiBold"/>
                                 <LineBreak/>

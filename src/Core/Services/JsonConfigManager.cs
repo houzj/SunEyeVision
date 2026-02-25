@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// JSON配置管理器实�?
+    /// JSON配置管理器实例?
     /// </summary>
     public class JsonConfigManager : SunEyeVision.Core.Interfaces.IConfigManager
     {
@@ -94,7 +94,7 @@ namespace SunEyeVision.Core.Services
         {
             if (!File.Exists(filePath))
             {
-                throw new FileNotFoundException($"配置文件不存�? {filePath}");
+                throw new FileNotFoundException($"配置文件不保存? {filePath}");
             }
 
             var json = await File.ReadAllTextAsync(filePath);

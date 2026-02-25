@@ -114,9 +114,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 // 尝试从节点信息提供者获取
                 if (_nodeInfoProvider != null)
                 {
-                    var nodeName = _nodeInfoProvider.GetNodeName(parentNodeId);
-                    var nodeType = _nodeInfoProvider.GetNodeType(parentNodeId);
-
                     // 返回空属性列表（节点未执行）
                     return properties;
                 }

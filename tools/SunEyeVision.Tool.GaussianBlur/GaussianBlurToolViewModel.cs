@@ -1,6 +1,9 @@
 using SunEyeVision.Plugin.SDK;
+
 using SunEyeVision.Plugin.SDK.ViewModels;
+
 using SunEyeVision.Plugin.SDK.Core;
+
 using System.Collections.Generic;
 
 namespace SunEyeVision.Tool.GaussianBlur
@@ -23,7 +26,7 @@ namespace SunEyeVision.Tool.GaussianBlur
             set
             {
                 if (value % 2 == 0)
-                    value = value + 1; // 确保为奇�?
+                    value = value + 1; // 确保为奇数
                 if (SetProperty(ref _kernelSize, value))
                 {
                     SetParamValue("KernelSize", value);
@@ -32,7 +35,7 @@ namespace SunEyeVision.Tool.GaussianBlur
         }
 
         /// <summary>
-        /// 标准差（Sigma�?
+        /// 标准差（Sigma）
         /// </summary>
         public double Sigma
         {
@@ -66,7 +69,7 @@ namespace SunEyeVision.Tool.GaussianBlur
         public string[] BorderTypes { get; } = { "Reflect", "Constant", "Replicate", "Default" };
 
         /// <summary>
-        /// 构建参数字典（供基类 Execute 使用�?
+        /// 构建参数字典（供基类 Execute 使用）
         /// </summary>
         protected override Dictionary<string, object> BuildParameterDictionary()
         {

@@ -5,7 +5,7 @@ using System.Windows.Data;
 namespace SunEyeVision.UI.Converters
 {
     /// <summary>
-    /// 布尔值转选中边框粗细转换�?
+    /// 布尔值转选中边框粗细转换器
     /// </summary>
     public class BoolToSelectedBorderThicknessConverter : IValueConverter
     {

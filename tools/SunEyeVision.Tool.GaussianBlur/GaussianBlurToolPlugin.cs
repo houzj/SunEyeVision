@@ -1,6 +1,9 @@
 using System;
+
 using System.Collections.Generic;
+
 using SunEyeVision.Plugin.SDK;
+
 using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Tool.GaussianBlur
@@ -12,22 +15,28 @@ namespace SunEyeVision.Tool.GaussianBlur
     public class GaussianBlurToolPlugin : IToolPlugin
     {
         #region 插件基本信息
+
         public string Name => "高斯模糊";
         public string Version => "1.0.0";
         public string Author => "SunEyeVision";
-        public string Description => "应用高斯模糊滤镜";
+        public string Description => "应用高斯模糊滤波";
         public string PluginId => "suneye.gaussian_blur";
-        public string Icon => "🌫�?;
+        public string Icon => "🖼️";
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
+
         #endregion
 
         #region 生命周期管理
+
         public void Initialize() => IsLoaded = true;
+
         public void Unload() => IsLoaded = false;
+
         #endregion
 
         #region 工具管理
+
         public List<Type> GetAlgorithmNodes() => new List<Type> { typeof(GaussianBlurAlgorithm) };
 
         public List<ToolMetadata> GetToolMetadata()
@@ -39,9 +48,9 @@ namespace SunEyeVision.Tool.GaussianBlur
                     Id = "gaussian_blur",
                     Name = "GaussianBlur",
                     DisplayName = "高斯模糊",
-                    Icon = "🌫�?,
+                    Icon = "🖼️",
                     Category = "图像处理",
-                    Description = "应用高斯模糊滤镜",
+                    Description = "应用高斯模糊滤波",
                     AlgorithmType = typeof(GaussianBlurAlgorithm),
                     Version = "1.0.0",
                     Author = "SunEyeVision",
@@ -51,8 +60,8 @@ namespace SunEyeVision.Tool.GaussianBlur
                         new ParameterMetadata
                         {
                             Name = "kernelSize",
-                            DisplayName = "核大�?,
-                            Description = "高斯核大�?必须为奇�?",
+                            DisplayName = "核大小",
+                            Description = "高斯核大小，必须为奇数",
                             Type = ParameterType.Int,
                             DefaultValue = 5,
                             MinValue = 3,
@@ -64,8 +73,8 @@ namespace SunEyeVision.Tool.GaussianBlur
                         new ParameterMetadata
                         {
                             Name = "sigma",
-                            DisplayName = "标准�?,
-                            Description = "高斯核的标准�?,
+                            DisplayName = "标准差",
+                            Description = "高斯核的标准差",
                             Type = ParameterType.Double,
                             DefaultValue = 1.5,
                             MinValue = 0.1,
@@ -121,8 +130,8 @@ namespace SunEyeVision.Tool.GaussianBlur
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var kernelSize = parameters.Get<int>("kernelSize");
+
             if (kernelSize == null || kernelSize < 3 || kernelSize > 99)
             {
                 result.AddError("核大小必须在3-99之间");
@@ -141,6 +150,7 @@ namespace SunEyeVision.Tool.GaussianBlur
             result.IsValid = result.Errors.Count == 0;
             return result;
         }
+
         #endregion
     }
 
@@ -150,7 +160,7 @@ namespace SunEyeVision.Tool.GaussianBlur
     public class GaussianBlurAlgorithm : ImageProcessorBase
     {
         public override string Name => "高斯模糊";
-        public override string Description => "应用高斯模糊滤镜";
+        public override string Description => "应用高斯模糊滤波";
 
         protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
         {
@@ -160,7 +170,7 @@ namespace SunEyeVision.Tool.GaussianBlur
             var borderType = GetParameter(parameters, "borderType", "Reflect");
 
             // TODO: 实际图像处理逻辑
-            // 这里应使�?OpenCV 或其他图像处理库进行实际处理
+            // 这里应使用 OpenCV 或其他图像处理库进行实际处理
             // 示例：Cv2.GaussianBlur(mat, output, new Size(kernelSize, kernelSize), sigma)
 
             // 返回处理结果（简化示例）
@@ -176,8 +186,8 @@ namespace SunEyeVision.Tool.GaussianBlur
         protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var kernelSize = GetParameter<int?>(parameters, "kernelSize", null);
+
             if (kernelSize.HasValue)
             {
                 if (kernelSize.Value < 3 || kernelSize.Value > 99)

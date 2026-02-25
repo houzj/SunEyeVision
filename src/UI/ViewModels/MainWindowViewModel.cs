@@ -9,6 +9,9 @@ using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Validation;
+using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.UI;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Services.Thumbnail;
@@ -26,17 +29,17 @@ using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 图像显示类型枚举
+    /// ͼʾö
     /// </summary>
     public enum ImageDisplayType
     {
-        Original,    // 原始图像
-        Processed,   // 处理后图�?
-        Result       // 结果图像
+        Original,    // ԭʼͼ
+        Processed,   // ͼ?
+        Result       // ͼ
     }
 
     /// <summary>
-    /// 图像显示类型�?
+    /// ͼʾ?
     /// </summary>
     public class ImageDisplayTypeItem
     {
@@ -46,7 +49,7 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 计算结果�?
+    /// 规则:
     /// </summary>
     public class ResultItem
     {
@@ -55,43 +58,43 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 主窗口视图模�?
+    /// ͼģ?
     /// </summary>
     public class MainWindowViewModel : ViewModelBase
     {
-        private string _title = "太阳眼视�?;
+        private string _title = "太阳眼视觉";
         private bool _isRunning = false;
-        private string _status = "就绪";
-        private string _selectedWorkflowName = "默认工作�?;
-        private string _currentCanvasTypeText = "原生 Diagram (贝塞尔曲�?";
+        private string _status = "";
+        private string _selectedWorkflowName = "默认工作流";
+        private string _currentCanvasTypeText = "ԭ Diagram (?";
 
-        // 图像显示相关
+        // ͼʾ
         private BitmapSource? _displayImage;
         private double _imageScale = 1.0;
 
-        // 图像类型相关
+        // ͼ
         private ImageDisplayTypeItem? _selectedImageType;
         private bool _showImagePreview = false;
         private BitmapSource? _originalImage;
         private BitmapSource? _processedImage;
         private BitmapSource? _resultImage;
 
-        // 图像预览相关
+        // ͼԤ
         private bool _autoSwitchEnabled = false;
         private int _currentImageIndex = -1;
 
-        // 所有工作流运行状�?
+        // й״?
         private bool _isAllWorkflowsRunning = false;
-        private string _allWorkflowsRunButtonText = "连续运行";
+        private string _allWorkflowsRunButtonText = "";
 
-        // 工作流执行管理器
+        // ִй
         private readonly WorkflowExecutionManager _executionManager;
 
-        // 属性面板相�?
+        // ?
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
-        private string _logText = "[系统] 等待操作...\n";
+        private string _logText = "[ϵͳ] ȴ...\n";
 
-        // 面板折叠状�?
+        // ۵״?
         private bool _isToolboxCollapsed = true;
         private bool _isImageDisplayCollapsed = false;
         private bool _isPropertyPanelCollapsed = false;
@@ -99,8 +102,8 @@ namespace SunEyeVision.UI.ViewModels
         private double _rightPanelWidth = 500;
         private double _imageDisplayHeight = 500;
 
-        // 分隔条相�?
-        private double _splitterPosition = 500; // 默认图像区域高度
+        // ָ?
+        private double _splitterPosition = 500; // Ĭͼ߶
         private const double DefaultPropertyPanelHeight = 300;
         private const double MinImageAreaHeight = 200;
         private const double MaxImageAreaHeight = 800;
@@ -120,7 +123,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (SetProperty(ref _isRunning, value))
                 {
-                    Status = _isRunning ? "运行�? : "已停�?;
+                    Status = _isRunning ? "运行中" : "已停止";
                 }
             }
         }
@@ -132,7 +135,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 当前画布类型显示文本
+        /// ǰʾı
         /// </summary>
         public string CurrentCanvasTypeText
         {
@@ -151,18 +154,18 @@ namespace SunEyeVision.UI.ViewModels
         public ObservableCollection<Models.ToolItem> Tools { get; }
         public ToolboxViewModel Toolbox { get; }
 
-        // 注意：删除了全局�?WorkflowNodes �?WorkflowConnections 属�?
-        // 所有节点和连接都应该通过 WorkflowTabViewModel.SelectedTab 访问
-        // 这样确保每个工作�?Tab 都是独立�?
+        // ע⣺ɾȫ?WorkflowNodes ?WorkflowConnections ?
+        // нڵӶӦͨ WorkflowTabViewModel.SelectedTab 
+        // ȷÿ?Tab Ƕ?
 
         private Models.WorkflowNode? _selectedNode;
         private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
-        private string? _currentDisplayNodeId = null;  // �?跟踪当前显示的采集节点ID，用于避免重复加�?
+        private string? _currentDisplayNodeId = null;  // ?ٵǰʾĲɼڵIDڱظ?
 
         /// <summary>
-        /// 当前活动节点的图像数据（用于绑定到图像预览控件）
-        /// 每个采集节点维护独立的图像集�?
+        /// ǰڵͼݣڰ󶨵ͼԤؼ
+        /// ÿɼڵάͼ?
         /// </summary>
         public Models.NodeImageData? ActiveNodeImageData
         {
@@ -182,62 +185,62 @@ namespace SunEyeVision.UI.ViewModels
                 
                 if (changed)
                 {
-                    // 更新属性面板可见�?
+                    // ɼ?
                     ShowPropertyPanel = value != null;
 
-                    // 更新活动节点的图像数据（核心：切换节点时切换图像集合�?
+                    // »ڵͼݣģлڵʱлͼ񼯺?
                     UpdateActiveNodeImageData(value);
 
-                    // 节点选中状态变化时，更新图像预览显�?
+                    // ڵѡ״̬仯ʱͼԤ?
                     UpdateImagePreviewVisibility(value);
-                    // 加载节点属性到属性面�?
+                    // ؽڵԵ?
                     LoadNodeProperties(value);
                 }
             }
         }
 
         /// <summary>
-        /// 更新活动节点的图像数�?
-        /// 实现不同采集节点拥有独立的图像预览器
-        /// �?优化：避免重复加载相同节点的缩略�?
+        /// »ڵͼ?
+        /// ʵֲͬɼڵӵжͼԤ
+        /// 规则:Żظͬڵ?
         /// </summary>
         private void UpdateActiveNodeImageData(Models.WorkflowNode? node)
         {
-            // 情况1：切换到图像采集节点
+            // 1лͼɼڵ
             if (node?.IsImageCaptureNode == true)
             {
-                // 确保节点有图像数据容器（延迟初始化）
+                // ȷڵͼӳٳʼ
                 node.ImageData ??= new Models.NodeImageData(node.Id);
                 
-                // �?关键优化：检查是否切换到相同的节点且当前已有数据
+                // ?ؼŻǷлͬĽڵҵǰ
                 bool isSameNode = _currentDisplayNodeId == node.Id;
                 bool hasActiveData = ActiveNodeImageData != null;
                 
                 if (isSameNode && hasActiveData)
                 {
-                    // 相同节点且当前有数据
-                    // �?仍然需要更�?ActiveNodeImageData 以确保绑定触发更�?
-                    // （因为可能从非采集节点切换回来，ActiveNodeImageData 曾被设为 null�?
+                    // ͬڵҵǰ
+                    // ?ȻҪ?ActiveNodeImageData ȷ󶨴?
+                    // ΪܴӷǲɼڵлActiveNodeImageData Ϊ null?
                     ActiveNodeImageData = node.ImageData;
                     return;
                 }
                 
-                // �?不同节点或之前数据已清空：更新跟踪ID并清空缩略图
+                // ?ͬڵ֮ǰգ¸IDͼ
                 _currentDisplayNodeId = node.Id;
-                int imageCount = node.ImageData.PrepareForDisplay();  // 清空缩略�?
+                int imageCount = node.ImageData.PrepareForDisplay();  // ?
                 
                 ActiveNodeImageData = node.ImageData;
             }
-            // 情况2：切换到非图像采集节�?
-            // �?不做任何操作，由 UpdateImagePreviewVisibility 统一处理
-            // 这样可以保持 _currentDisplayNodeId �?ActiveNodeImageData 不变�?
-            // 当切换到相同上游采集节点的非采集节点时，不会触发重新加载
-            // 原问题：之前这里会清�?_currentDisplayNodeId，导�?UpdateImagePreviewVisibility
-            // 中的 isSameNode 判断失效，每次切换都会重新加�?
+            // 2лͼɼ?
+            // ?κβ UpdateImagePreviewVisibility ͳһ
+            // Ա _currentDisplayNodeId ?ActiveNodeImageData ?
+            // лͬβɼڵķǲɼڵʱᴥ¼
+            // ԭ⣺֮ǰ?_currentDisplayNodeId?UpdateImagePreviewVisibility
+            // е isSameNode жʧЧÿл¼?
         }
 
         /// <summary>
-        /// 显示属性面�?
+        /// ʾ?
         /// </summary>
         public bool ShowPropertyPanel
         {
@@ -247,19 +250,19 @@ namespace SunEyeVision.UI.ViewModels
         public Models.WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
-        // 多流程管�?
+        // ̹?
         public WorkflowTabControlViewModel WorkflowTabViewModel { get; }
 
         /// <summary>
-        /// 当前选中画布的命令管理器（用于撤销/重做功能�?
-        /// 每个画布都有独立的撤销/重做�?
+        /// ǰѡлڳ/?
+        /// ÿжĳ/?
         /// </summary>
         public AppCommands.CommandManager? CurrentCommandManager
         {
             get => WorkflowTabViewModel.SelectedTab?.CommandManager;
         }
 
-        // 用于跟踪当前订阅的命令管理器，避免重复订�?
+        // ڸٵǰĵظ?
         private AppCommands.CommandManager? _subscribedCommandManager;
 
         public string StatusText
@@ -268,9 +271,9 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _status, value);
         }
 
-        public string CameraStatus => "已连�?(2�?";
+        public string CameraStatus => "?(2?";
 
-        // 图像显示属�?
+        // ͼʾ?
         public BitmapSource? DisplayImage
         {
             get => _displayImage;
@@ -290,12 +293,12 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 图像显示类型集合
+        /// ͼʾͼ
         /// </summary>
         public ObservableCollection<ImageDisplayTypeItem> ImageDisplayTypes { get; }
 
         /// <summary>
-        /// 当前选中的图像显示类�?
+        /// ǰѡеͼʾ?
         /// </summary>
         public ImageDisplayTypeItem? SelectedImageType
         {
@@ -310,24 +313,24 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 显示图像载入及预览模块（仅对ImageCaptureTool节点显示�?
+        /// ʾͼ뼰Ԥģ飨ImageCaptureToolڵʾ?
         /// </summary>
         public bool ShowImagePreview
         {
             get => _showImagePreview;
             set
             {
-                System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] Setter被调�? {_showImagePreview} -> {value}");
+                System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] Setter? {_showImagePreview} -> {value}");
                 if (SetProperty(ref _showImagePreview, value))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] PropertyChanged已触�? 当前�? {_showImagePreview}");
+                    System.Diagnostics.Debug.WriteLine($"[ShowImagePreview] PropertyChangedѴ? ǰ? {_showImagePreview}");
                     OnPropertyChanged(nameof(ImagePreviewHeight));
                 }
             }
         }
 
         /// <summary>
-        /// 图像预览区域高度（用于动态控制图像预览模块的空间�?
+        /// ͼԤ߶ȣڶ̬ͼԤģĿռ?
         /// </summary>
         public GridLength ImagePreviewHeight
         {
@@ -335,11 +338,11 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 计算结果集合
+        /// 
         /// </summary>
         public ObservableCollection<ResultItem> CalculationResults { get; }
 
-        // 属性面板属�?
+        // ?
         public ObservableCollection<Models.PropertyGroup> PropertyGroups
         {
             get => _propertyGroups;
@@ -352,7 +355,7 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _logText, value);
         }
 
-        // 面板折叠状态属�?
+        // ۵״̬?
         public bool IsToolboxCollapsed
         {
             get => _isToolboxCollapsed;
@@ -390,21 +393,21 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 图像显示区域高度（分隔条上方区域�?
+        /// ͼʾ߶ȣָϷ?
         /// </summary>
         public double SplitterPosition
         {
             get => _splitterPosition;
             private set
             {
-                // 确保在合理范围内
+                // ȷںΧ
                 value = Math.Max(MinImageAreaHeight, Math.Min(MaxImageAreaHeight, value));
-                if (Math.Abs(_splitterPosition - value) > 1) // 避免微小抖动
+                if (Math.Abs(_splitterPosition - value) > 1) // ΢С
                 {
                     _splitterPosition = value;
                     OnPropertyChanged(nameof(SplitterPosition));
 
-                    // 更新属性面板实际高�?
+                    // ʵʸ?
                     double availableHeight = _splitterPosition;
                     double propertyHeight = Math.Max(200, Math.Min(600, 900 - availableHeight));
                     PropertyPanelActualHeight = propertyHeight;
@@ -413,7 +416,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 属性面板实际高�?
+        /// ʵʸ?
         /// </summary>
         public double PropertyPanelActualHeight
         {
@@ -429,20 +432,20 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 保存分隔条位置（从代码后台调用）
+        /// ָλãӴ̨ã
         /// </summary>
         public void SaveSplitterPosition(double position)
         {
-            System.Diagnostics.Debug.WriteLine($"[SaveSplitterPosition] 保存位置: {position}");
+            System.Diagnostics.Debug.WriteLine($"[SaveSplitterPosition] λ: {position}");
             SplitterPosition = position;
 
-            // 可选：保存到用户设置文�?
+            // ѡ浽û?
             // Settings.Default.SplitterPosition = position;
             // Settings.Default.Save();
         }
 
         /// <summary>
-        /// 所有工作流是否正在运行
+        /// йǷ
         /// </summary>
         public bool IsAllWorkflowsRunning
         {
@@ -451,7 +454,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 所有工作流运行按钮文本
+        /// йаťı
         /// </summary>
         public string AllWorkflowsRunButtonText
         {
@@ -460,7 +463,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 原始图像
+        /// ԭʼͼ
         /// </summary>
         public BitmapSource? OriginalImage
         {
@@ -475,7 +478,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 处理后图�?
+        /// ͼ?
         /// </summary>
         public BitmapSource? ProcessedImage
         {
@@ -490,7 +493,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 结果图像
+        /// ͼ
         /// </summary>
         public BitmapSource? ResultImage
         {
@@ -505,12 +508,12 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 图像集合（使用批量操作优化集合）
+        /// ͼ񼯺ϣʹŻϣ
         /// </summary>
         public BatchObservableCollection<ImageInfo> ImageCollection { get; }
 
         /// <summary>
-        /// 是否启用自动切换
+        /// ǷԶл
         /// </summary>
         public bool AutoSwitchEnabled
         {
@@ -519,7 +522,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 当前显示的图像索�?
+        /// ǰʾͼ?
         /// </summary>
         public int CurrentImageIndex
         {
@@ -534,15 +537,15 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 添加日志
+        /// ־
         /// </summary>
         public void AddLog(string message)
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            // 新日志追加到末尾
+            // ־׷ӵĩβ
             LogText += $"[{timestamp}] {message}\n";
 
-            // 限制日志条目数量，最多保�?00�?
+            // ־Ŀౣ?00?
             var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length > 100)
             {
@@ -568,18 +571,18 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ToggleBoundingRectangleCommand { get; }
         public ICommand TogglePathPointsCommand { get; }
 
-        // 所有工作流控制命令
+        // й
         public ICommand RunAllWorkflowsCommand { get; }
         public ICommand ToggleContinuousAllCommand { get; }
 
-        // 图像控制命令
+        // ͼ
         public ICommand ZoomInCommand { get; }
         public ICommand ZoomOutCommand { get; }
         public ICommand FitToWindowCommand { get; }
         public ICommand ResetViewCommand { get; }
         public ICommand ToggleFullScreenCommand { get; }
 
-        // 图像载入命令
+        // ͼ
         public ICommand BrowseImageCommand { get; }
         public ICommand LoadImageCommand { get; }
         public ICommand ClearImageCommand { get; }
@@ -588,58 +591,58 @@ namespace SunEyeVision.UI.ViewModels
         {
             Workflows = new ObservableCollection<string>
             {
-                "默认工作�?,
-                "边缘检�?,
-                "目标检�?,
-                "质量检�?
+                "默认工作流",
+                "测试工作流",
+                "项目工作流",
+                "示例工作流"
             };
 
             Tools = new ObservableCollection<Models.ToolItem>();
             Toolbox = new ToolboxViewModel();
-            // 删除了全局 WorkflowNodes �?WorkflowConnections 的初始化
+            // ɾȫ WorkflowNodes ?WorkflowConnections ĳʼ
 
             WorkflowViewModel = new WorkflowViewModel();
             WorkflowTabViewModel = new WorkflowTabControlViewModel();
 
-            // 初始化图像显示类�?
+            // 初始化图像显示类型
             ImageDisplayTypes = new ObservableCollection<ImageDisplayTypeItem>
             {
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Original, DisplayName = "原始图像", Icon = "??" },
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Processed, DisplayName = "处理后图�?, Icon = "??" },
-                new ImageDisplayTypeItem { Type = ImageDisplayType.Result, DisplayName = "结果图像", Icon = "?" }
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Original, DisplayName = "原始图", Icon = "📷" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Processed, DisplayName = "处理图", Icon = "🔧" },
+                new ImageDisplayTypeItem { Type = ImageDisplayType.Result, DisplayName = "结果图", Icon = "✅" }
             };
             SelectedImageType = ImageDisplayTypes.FirstOrDefault();
 
-            // 初始化计算结果集�?
+            // 初始化计算结果
             CalculationResults = new ObservableCollection<ResultItem>();
 
-            // 初始化图像集合（批量操作优化�?
+            // 初始化图像集合（优化版）
             ImageCollection = new BatchObservableCollection<ImageInfo>();
 
-            // 初始化工作流执行管理�?
+            // 初始化执行管理器
             _executionManager = new Services.Workflow.WorkflowExecutionManager(new Infrastructure.DefaultInputProvider());
 
-            // 订阅执行管理器的事件
+            // 订阅执行管理器事件
             _executionManager.WorkflowExecutionStarted += OnWorkflowExecutionStarted;
             _executionManager.WorkflowExecutionCompleted += OnWorkflowExecutionCompleted;
             _executionManager.WorkflowExecutionStopped += OnWorkflowExecutionStopped;
             _executionManager.WorkflowExecutionError += OnWorkflowExecutionError;
             _executionManager.WorkflowExecutionProgress += OnWorkflowExecutionProgress;
 
-            // 初始化当前画布类�?
+            // 初始化当前画布类型
             UpdateCurrentCanvasType();
 
-            // 订阅选中画布变化事件，更新撤销/重做按钮状�?
+            // 选中标签页变化时更新运行/停止按钮状态
             WorkflowTabViewModel.SelectionChanged += OnSelectedTabChanged;
 
-            // 订阅工作流状态变化事�?
+            // 订阅工作流状态变化
             WorkflowTabViewModel.WorkflowStatusChanged += OnWorkflowStatusChanged;
 
-            // 订阅初始画布的命令管理器
+            // 命令管理器的初始化
             SubscribeToCurrentCommandManager();
 
             InitializeTools();
-            // InitializeSampleNodes(); // 已禁用：程序启动时不加载测试节点和连�?
+            // InitializeSampleNodes(); // 已禁用，暂时不加载测试节点
             InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
@@ -660,38 +663,38 @@ namespace SunEyeVision.UI.ViewModels
             ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
 
-            // 所有工作流控制命令
+            // й
             RunAllWorkflowsCommand = new RelayCommand(async () => await ExecuteRunAllWorkflows(), () => !IsAllWorkflowsRunning);
             ToggleContinuousAllCommand = new RelayCommand(ExecuteToggleContinuousAll, () => true);
 
-            // 图像控制命令
+            // ͼ
             ZoomInCommand = new RelayCommand(ExecuteZoomIn);
             ZoomOutCommand = new RelayCommand(ExecuteZoomOut);
             FitToWindowCommand = new RelayCommand(ExecuteFitToWindow);
             ResetViewCommand = new RelayCommand(ExecuteResetView);
             ToggleFullScreenCommand = new RelayCommand(ExecuteToggleFullScreen);
 
-            // 图像载入命令
+            // ͼ
             BrowseImageCommand = new RelayCommand(ExecuteBrowseImage);
             LoadImageCommand = new RelayCommand(ExecuteLoadImage);
             ClearImageCommand = new RelayCommand(ExecuteClearImage);
         }
 
         /// <summary>
-        /// 选中画布变化处理
+        /// ѡл仯
         /// </summary>
         private void OnSelectedTabChanged(object? sender, EventArgs e)
         {
-            // 订阅新画布的命令管理�?
+            // »?
             SubscribeToCurrentCommandManager();
 
-            // 更新撤销/重做按钮状�?
+            // ³/ť״?
             UpdateUndoRedoCommands();
 
-            // 更新当前画布类型显示
+            // µǰʾ
             UpdateCurrentCanvasType();
 
-            // 更新 SmartPathConverter 的节点和连接集合
+            //  SmartPathConverter ĽڵӼ
             if (WorkflowTabViewModel?.SelectedTab != null)
             {
                 Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
@@ -700,21 +703,21 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 工作流状态变化处�?
+        /// ״̬仯?
         /// </summary>
         private void OnWorkflowStatusChanged(object? sender, EventArgs e)
         {
-            // 更新所有工作流运行状�?
+            // й״?
             IsAllWorkflowsRunning = WorkflowTabViewModel.IsAnyWorkflowRunning;
-            AllWorkflowsRunButtonText = IsAllWorkflowsRunning ? "停止运行" : "连续运行";
+            AllWorkflowsRunButtonText = IsAllWorkflowsRunning ? "ֹͣ" : "";
 
-            // 更新命令的CanExecute状�?
+            // CanExecute״?
             (RunAllWorkflowsCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleContinuousAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         /// <summary>
-        /// 更新当前画布类型显示
+        /// µǰʾ
         /// </summary>
         public void UpdateCurrentCanvasType()
         {
@@ -723,29 +726,29 @@ namespace SunEyeVision.UI.ViewModels
                 var canvasType = WorkflowTabViewModel.SelectedTab.CanvasType;
             CurrentCanvasTypeText = canvasType switch
             {
-                Views.Controls.Canvas.CanvasType.WorkflowCanvas => "工作流画�?,
-                Views.Controls.Canvas.CanvasType.NativeDiagram => "原生 Diagram (贝塞尔曲�?",
-                _ => "未知画布"
+                Views.Controls.Canvas.CanvasType.WorkflowCanvas => "工作流画布",
+                Views.Controls.Canvas.CanvasType.NativeDiagram => "原生 Diagram (测试)",
+                _ => "δ֪"
             };
             }
             else
             {
-                CurrentCanvasTypeText = "工作流画�?;
+                CurrentCanvasTypeText = "无画布";
             }
         }
 
         /// <summary>
-        /// 订阅当前画布的命令管理器状态变�?
+        /// ĵǰ״̬?
         /// </summary>
         private void SubscribeToCurrentCommandManager()
         {
-            // 取消订阅旧的命令管理�?
+            // ȡľɵ?
             if (_subscribedCommandManager != null)
             {
                 _subscribedCommandManager.CommandStateChanged -= OnCurrentCommandManagerStateChanged;
             }
 
-            // 订阅新的命令管理�?
+            // µ?
             if (CurrentCommandManager != null)
             {
                 CurrentCommandManager.CommandStateChanged += OnCurrentCommandManagerStateChanged;
@@ -758,7 +761,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 更新撤销/重做命令的CanExecute状�?
+        /// ³/CanExecute״?
         /// </summary>
         private void UpdateUndoRedoCommands()
         {
@@ -769,13 +772,13 @@ namespace SunEyeVision.UI.ViewModels
                 undoCmd?.RaiseCanExecuteChanged();
                 redoCmd?.RaiseCanExecuteChanged();
 
-                // 更新状态栏显示
-                StatusText = CurrentCommandManager?.LastCommandDescription ?? "就绪";
+                // ״̬ʾ
+                StatusText = CurrentCommandManager?.LastCommandDescription ?? "";
             });
         }
 
         /// <summary>
-        /// 当前画布的命令管理器状态变化处�?
+        /// ǰ״̬仯?
         /// </summary>
         private void OnCurrentCommandManagerStateChanged(object? sender, EventArgs e)
         {
@@ -783,7 +786,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 判断是否可以撤销（基于当前选中画布�?
+        /// жǷԳڵǰѡл?
         /// </summary>
         private bool CanExecuteUndo()
         {
@@ -791,7 +794,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 判断是否可以重做（基于当前选中画布�?
+        /// жǷڵǰѡл?
         /// </summary>
         private bool CanExecuteRedo()
         {
@@ -800,25 +803,25 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecutePause()
         {
-            // TODO: 实现暂停功能
+            // TODO: ʵͣ
         }
 
         private void ExecuteUndo()
         {
             if (CurrentCommandManager == null)
             {
-                AddLog("?? 没有选中的画布，无法撤销");
+                AddLog("?? ûѡеĻ޷");
                 return;
             }
 
             try
             {
                 CurrentCommandManager.Undo();
-                AddLog($"?? 撤销: {CurrentCommandManager.LastCommandDescription}");
+                AddLog($"?? : {CurrentCommandManager.LastCommandDescription}");
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"撤销失败: {ex.Message}", "错误",
+                System.Windows.MessageBox.Show($"ʧ: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
@@ -827,58 +830,58 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (CurrentCommandManager == null)
             {
-                AddLog("?? 没有选中的画布，无法重做");
+                AddLog("?? ûѡеĻ޷");
                 return;
             }
 
             try
             {
                 CurrentCommandManager.Redo();
-                AddLog($"?? 重做: {CurrentCommandManager.LastCommandDescription}");
+                AddLog($"?? : {CurrentCommandManager.LastCommandDescription}");
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"重做失败: {ex.Message}", "错误",
+                System.Windows.MessageBox.Show($"ʧ: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         private void InitializeTools()
         {
-            Tools.Add(new Models.ToolItem("图像采集", "ImageAcquisition", "??", "从相机或图像文件获取图像数据"));
-            Tools.Add(new Models.ToolItem("灰度�?, "GrayScale", "??", "将彩色图像转换为灰度图像"));
-            Tools.Add(new Models.ToolItem("高斯模糊", "GaussianBlur", "??", "应用高斯模糊滤镜减少噪声"));
-            Tools.Add(new Models.ToolItem("二值化", "Threshold", "?", "将图像转换为二值图�?));
-            Tools.Add(new Models.ToolItem("边缘检�?, "EdgeDetection", "??", "检测图像中的边�?));
-            Tools.Add(new Models.ToolItem("形态学操作", "Morphology", "??", "腐蚀、膨胀等形态学操作"));
+            Tools.Add(new Models.ToolItem("图像采集", "ImageAcquisition", "📷", "从文件或相机获取图像"));
+            Tools.Add(new Models.ToolItem("灰度化", "GrayScale", "🎨", "彩色图转换为灰度图"));
+            Tools.Add(new Models.ToolItem("高斯模糊", "GaussianBlur", "🌫️", "应用高斯模糊滤镜"));
+            Tools.Add(new Models.ToolItem("阈值化", "Threshold", "🔲", "图像转换为二值图像"));
+            Tools.Add(new Models.ToolItem("边缘检测", "EdgeDetection", "🔍", "检测图像中的边缘"));
+            Tools.Add(new Models.ToolItem("形态学", "Morphology", "📐", "腐蚀和膨胀等形态学运算"));
         }
 
         private void InitializePropertyGroups()
         {
-            // 初始化日�?
-            AddLog("? [系统] 系统启动成功");
-            AddLog("? [设备] 相机1 连接成功");
-            AddLog("? [设备] 相机2 连接成功");
+            // 初始化日志
+            AddLog("✅ [系统] 系统启动成功");
+            AddLog("✅ [设备] 相机1连接成功");
+            AddLog("✅ [设备] 相机2连接成功");
         }
 
         private void InitializeSampleNodes()
         {
             if (WorkflowTabViewModel.SelectedTab != null)
             {
-                // 添加节点到当前选中的标签页
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
+                // ӽڵ㵽ǰѡеıǩҳ
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "ͼɼ_1", "image_capture")
                 {
                     Position = new System.Windows.Point(100, 100),
                     IsSelected = false
                 });
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "˹ģ", "gaussian_blur")
                 {
                     Position = new System.Windows.Point(300, 100),
                     IsSelected = false
                 });
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检�?, "edge_detection")
+                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
                 {
                     Position = new System.Windows.Point(500, 100),
                     IsSelected = false
@@ -900,65 +903,65 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteNewWorkflow()
         {
-            // TODO: 创建新工作流
+            // TODO: ¹
         }
 
         private void ExecuteOpenWorkflow()
         {
-            // TODO: 打开工作流文�?
+            // TODO: 򿪹?
         }
 
         private void ExecuteSaveWorkflow()
         {
-            // TODO: 保存工作流到文件
+            // TODO: 湤ļ
         }
 
         private void ExecuteSaveAsWorkflow()
         {
-            // TODO: 另存为工作流文件
+            // TODO: Ϊļ
         }
 
         private async System.Threading.Tasks.Task ExecuteRunWorkflow()
         {
-            AddLog("=== 开始执行工作流 ===");
+            AddLog("=== ʼִй ===");
 
             if (WorkflowTabViewModel == null)
             {
-                AddLog("?? WorkflowTabViewModel �?null");
+                AddLog("?? WorkflowTabViewModel ?null");
                 return;
             }
 
             if (WorkflowTabViewModel.SelectedTab == null)
             {
-                AddLog("?? 没有选中的工作流标签�?);
-                AddLog("?? 请确保至少有一个工作流标签页被选中");
+                AddLog("❌ 没有选中的工作流标签页");
+                AddLog("💡 请确保一个标签页被选中");
                 return;
             }
 
-            AddLog($"?? 当前工作�? {WorkflowTabViewModel.SelectedTab.Name}");
-            AddLog($"?? 节点数量: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}");
-            AddLog($"?? 连接数量: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
+            AddLog($"📋 当前工作流: {WorkflowTabViewModel.SelectedTab.Name}");
+            AddLog($"📊 节点数量: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}");
+            AddLog($"🔗 连接数量: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
 
             if (WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count == 0)
             {
-                AddLog("?? 当前工作流没有节�?);
-                AddLog("?? 提示：请从左侧工具箱拖拽算法节点到画布上");
-                AddLog("?? 可选节点：图像采集、灰度化、高斯模糊、二值化、边缘检测、形态学操作");
+                AddLog("⚠️ 当前工作流没有节点");
+                AddLog("💡 请从工具箱拖拽算法节点到画布");
+                AddLog("📝 可选节点：图像采集、灰度化、高斯模糊、阈值化、边缘检测、形态学");
                 return;
             }
 
             IsRunning = true;
-            AddLog("?? 调用执行引擎...");
+            AddLog("🚀 开始执行工作流...");
 
             try
             {
                 await _executionManager.RunSingleAsync(WorkflowTabViewModel.SelectedTab);
-                AddLog("? 工作流执行完�?);
+                AddLog("✅ 执行完成");
             }
             catch (Exception ex)
             {
-                AddLog($"? 工作流执行失�? {ex.Message}");
-                AddLog($"? 异常详情: {ex.StackTrace}");
+                AddLog($"? ִʧ? {ex.Message}");
+                AddLog($"? 쳣: {ex.StackTrace}");
             }
             finally
             {
@@ -968,20 +971,20 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteStopWorkflow()
         {
-            if (WorkflowTabViewModel?.SelectedTab == null)
+            if (WorkflowTabViewModel.SelectedTab == null)
             {
-                AddLog("?? 没有选中的工作流标签�?);
+                AddLog("⚠️ 没有选中的工作流标签页");
                 return;
             }
 
             _executionManager.StopContinuousRun(WorkflowTabViewModel.SelectedTab);
             IsRunning = false;
-            AddLog("?? 停止工作流执�?);
+            AddLog("⏹️ 工作流已停止");
         }
 
         private void ExecuteShowSettings()
         {
-            // TODO: 显示设置对话�?
+            // TODO: 显示设置对话框
         }
 
         private void ExecuteShowAbout()
@@ -1000,11 +1003,11 @@ namespace SunEyeVision.UI.ViewModels
         {
             var helpWindow = new HelpWindow();
             helpWindow.ShowDialog();
-            // TODO: 直接跳转到快捷键页面
+            // TODO: ֱתݼҳ
         }
 
         /// <summary>
-        /// 加载节点属性到属性面�?
+        /// ؽڵԵ?
         /// </summary>
         public void LoadNodeProperties(Models.WorkflowNode? node)
         {
@@ -1016,24 +1019,24 @@ namespace SunEyeVision.UI.ViewModels
 
             PropertyGroups.Clear();
 
-            // 基本信息
+            // Ϣ
             var basicGroup = new Models.PropertyGroup
             {
-                Name = "?? 基本信息",
+                Name = "?? Ϣ",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new Models.PropertyItem { Label = "名称", Value = node.Name },
+                    new Models.PropertyItem { Label = "错误", Value = node.Name },
                     new Models.PropertyItem { Label = "ID", Value = node.Id },
-                    new Models.PropertyItem { Label = "类型", Value = node.AlgorithmType ?? "未知" }
+                    new Models.PropertyItem { Label = "错误", Value = node.AlgorithmType ?? "δ֪" }
                 }
             };
             PropertyGroups.Add(basicGroup);
 
-            // 参数配置
+            // 
             var paramGroup = new Models.PropertyGroup
             {
-                Name = "?? 参数配置",
+                Name = "?? ",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>()
             };
@@ -1051,23 +1054,20 @@ namespace SunEyeVision.UI.ViewModels
             }
             PropertyGroups.Add(paramGroup);
 
-            // 性能统计
+            // ͳ
             var perfGroup = new Models.PropertyGroup
             {
-                Name = "?? 性能统计",
+                Name = "?? ͳ",
                 IsExpanded = true,
                 Parameters = new ObservableCollection<Models.PropertyItem>
                 {
-                    new Models.PropertyItem { Label = "执行次数", Value = "0" },
                     new Models.PropertyItem { Label = "平均时间", Value = "0 ms" },
-                    new Models.PropertyItem { Label = "成功�?, Value = "100%" }
                 }
             };
-            PropertyGroups.Add(perfGroup);
         }
 
         /// <summary>
-        /// 添加节点到当前工作流（通过命令模式�?
+        /// 添加节点到当前工作流
         /// </summary>
         public void AddNodeToWorkflow(UIWorkflowNode node)
         {
@@ -1079,7 +1079,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 从当前工作流删除节点（通过命令模式�?
+        /// ӵǰɾڵ㣨ͨģʽ?
         /// </summary>
         public void DeleteNodeFromWorkflow(UIWorkflowNode node)
         {
@@ -1094,7 +1094,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 移动节点到新位置（通过命令模式�?
+        /// ƶڵ㵽λãͨģʽ?
         /// </summary>
         public void MoveNode(UIWorkflowNode node, Point newPosition)
         {
@@ -1106,7 +1106,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 添加连接到当前工作流（通过命令模式�?
+        /// ӵǰͨģʽ?
         /// </summary>
         public void AddConnectionToWorkflow(WorkflowConnection connection)
         {
@@ -1118,7 +1118,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 从当前工作流删除连接（通过命令模式�?
+        /// ӵǰɾӣͨģʽ?
         /// </summary>
         public void DeleteConnectionFromWorkflow(WorkflowConnection connection)
         {
@@ -1130,7 +1130,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 批量删除选中的节点（通过命令模式�?
+        /// ɾѡеĽڵ㣨ͨģʽ?
         /// </summary>
         public void DeleteSelectedNodes()
         {
@@ -1144,13 +1144,13 @@ namespace SunEyeVision.UI.ViewModels
                 selectedNodes);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
 
-            // 清除选中状�?
+            // ѡ״?
             SelectedNode = null;
             ClearNodeSelections();
         }
 
         /// <summary>
-        /// 清除所有节点的选中状�?
+        /// нڵѡ״?
         /// </summary>
         private void ClearNodeSelections()
         {
@@ -1164,7 +1164,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 判断是否可以删除选中节点
+        /// жǷɾѡнڵ
         /// </summary>
         private bool CanDeleteSelectedNodes()
         {
@@ -1175,7 +1175,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 执行删除选中节点
+        /// ִɾѡнڵ
         /// </summary>
         private void ExecuteDeleteSelectedNodes()
         {
@@ -1188,8 +1188,8 @@ namespace SunEyeVision.UI.ViewModels
                 return;
 
             var result = System.Windows.MessageBox.Show(
-                $"确定要删除选中�?{selectedCount} 个节点吗?",
-                "确认删除",
+                $"ȷҪɾѡ?{selectedCount} ڵ?",
+                "ȷɾ",
                 System.Windows.MessageBoxButton.YesNo,
                 System.Windows.MessageBoxImage.Question);
 
@@ -1201,11 +1201,11 @@ namespace SunEyeVision.UI.ViewModels
                     selectedNodes);
                 WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
 
-                // 清除选中状�?
+                // ѡ״?
                 SelectedNode = null;
                 ClearNodeSelections();
 
-                AddLog($"已删�?{selectedCount} 个节�?);
+                AddLog($"🗑️ 已删除 {selectedCount} 个节点");
             }
         }
 
@@ -1215,7 +1215,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 try
                 {
-                    // 从ToolRegistry获取工具信息和插�?
+                    // 从 ToolRegistry 获取元数据和插件
                     var toolId = node.AlgorithmType ?? node.Name;
                     var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
                     var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
@@ -1223,155 +1223,155 @@ namespace SunEyeVision.UI.ViewModels
                     if (toolMetadata == null)
                     {
                         System.Windows.MessageBox.Show(
-                            $"未找到工�?'{toolId}' 的元数据信息",
-                            "工具未找�?,
+                            $"未找到工具 '{toolId}' 的元数据信息",
+                            "未找到工具",
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
                         return;
                     }
 
-                    // 使用NodeInterfaceFactory决定打开哪个界面
+                    // 使用 NodeInterfaceFactory 获取界面类型
                     var interfaceType = NodeInterfaceFactory.GetInterfaceType(node.ToWorkflowNode(), toolMetadata);
 
                     switch (interfaceType)
                     {
                         case NodeInterfaceType.DebugWindow:
-                            // 使用工厂创建调试窗口
+                            // ʹùԴ
                             var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, toolPlugin, toolMetadata);
                             debugWindow.Owner = System.Windows.Application.Current.MainWindow;
                             debugWindow.ShowDialog();
-                            AddLog($"?? 打开调试窗口: {node.Name}");
+                            AddLog($"?? 򿪵Դ: {node.Name}");
                             break;
 
                         case NodeInterfaceType.NewWorkflowCanvas:
-                            // 创建新的工作流标签页（子程序节点�?
+                            // µĹǩҳӳڵ?
                             CreateSubroutineWorkflowTab(node);
                             break;
 
                         case NodeInterfaceType.SubroutineEditor:
-                            // 子程序编辑器（条件配置界面）
-                            AddLog($"?? 打开子程序编辑器: {node.Name}");
-                            // TODO: 实现子程序编辑器
+                            // ӳ༭ý棩
+                            AddLog($"编辑界面: {node.Name}");
+                            // TODO: 实现节点编辑
                             System.Windows.MessageBox.Show(
-                                "子程序编辑器功能待实�?,
-                                "功能提示",
+                                "节点编辑功能待实现",
+                                "提示",
                                 System.Windows.MessageBoxButton.OK,
                                 System.Windows.MessageBoxImage.Information);
                             break;
 
                         case NodeInterfaceType.None:
                         default:
-                            // 不打开任何界面
+                            // 不显示任何界面
                             break;
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show(
-                        $"打开节点界面失败: {ex.Message}",
+                        $"打开节点失败: {ex.Message}",
                         "错误",
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Error);
-                    AddLog($"? 打开节点界面失败: {ex.Message}");
+                    AddLog($"打开节点失败: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// 为子程序节点创建新的工作流标签页
+        /// 为子程序节点创建新的标签页
         /// </summary>
-        /// <param name="subroutineNode">子程序节�?/param>
+        /// <param name="subroutineNode">ӳ?/param>
         private void CreateSubroutineWorkflowTab(Models.WorkflowNode subroutineNode)
         {
             try
             {
                 if (WorkflowTabViewModel == null)
                 {
-                    AddLog("?? WorkflowTabViewModel �?null");
+                    AddLog("?? WorkflowTabViewModel ?null");
                     return;
                 }
 
-                // 使用子程序节点名称作为工作流名称
+                // ʹӳڵΪ
                 string workflowName = subroutineNode.Name;
                 if (string.IsNullOrWhiteSpace(workflowName))
                 {
-                    workflowName = "子程序工作流";
+                    workflowName = "ӳ";
                 }
 
-                AddLog($"?? 创建子程序工作流标签�? {workflowName}");
+                AddLog($"?? ӳǩ? {workflowName}");
 
-                // 创建新的工作流标签页
+                // µĹǩҳ
                 var newWorkflowTab = new WorkflowTabViewModel
                 {
                     Name = workflowName,
                     Id = Guid.NewGuid().ToString()
                 };
 
-                // 添加到标签页集合
+                // ӵǩҳ
                 WorkflowTabViewModel.Tabs.Add(newWorkflowTab);
 
-                // 选中新创建的标签�?
+                // ѡ´ıǩ?
                 WorkflowTabViewModel.SelectedTab = newWorkflowTab;
 
-                AddLog($"? 子程序工作流 '{workflowName}' 创建成功");
-                AddLog($"?? 提示：您现在可以在这个工作流中添加节点来定义子程序逻辑");
+                AddLog($"? ӳ '{workflowName}' ɹ");
+                AddLog($"?? ʾڿӽڵӳ߼");
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(
-                    $"创建子程序工作流失败: {ex.Message}",
+                    $"ӳʧ: {ex.Message}",
                     "错误",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
-                AddLog($"? 创建子程序工作流失败: {ex.Message}");
+                AddLog($"? ӳʧ: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 切换最大外接矩形显�?
+        /// лӾ?
         /// </summary>
         private void ExecuteToggleBoundingRectangle()
         {
-            AddLog("[ToggleBoundingRectangle] ========== 切换最大外接矩形显�?==========");
+            AddLog("[ToggleBoundingRectangle] ========== лӾ?==========");
 
             try
             {
                 var mainWindow = System.Windows.Application.Current.MainWindow as Views.Windows.MainWindow;
                 if (mainWindow == null)
                 {
-                    AddLog("[ToggleBoundingRectangle] ? MainWindow为null");
+                    AddLog("[ToggleBoundingRectangle] ? MainWindowΪnull");
                     return;
                 }
 
-                AddLog("[ToggleBoundingRectangle] ? MainWindow已找�?);
+                AddLog("[ToggleBoundingRectangle] 获取 MainWindow");
 
-                // 使用MainWindow中保存的WorkflowCanvasControl引用
+                // 使用 MainWindow 获取当前 WorkflowCanvasControl
                 var workflowCanvas = mainWindow.GetCurrentWorkflowCanvas();
                 if (workflowCanvas == null)
                 {
-                    AddLog("[ToggleBoundingRectangle] ? 无法获取WorkflowCanvasControl");
+                    AddLog("[ToggleBoundingRectangle] 无法获取 WorkflowCanvasControl");
                     return;
                 }
 
-                AddLog("[ToggleBoundingRectangle] ? 获取到WorkflowCanvasControl");
+                AddLog("[ToggleBoundingRectangle] 获取 WorkflowCanvasControl 成功");
 
                 ToggleBoundingRectangleOnCanvas(workflowCanvas);
             }
             catch (Exception ex)
             {
-                AddLog($"[ToggleBoundingRectangle] ? 错误: {ex.Message}");
+                AddLog($"[ToggleBoundingRectangle] 错误: {ex.Message}");
                 AddLog($"[ToggleBoundingRectangle] 堆栈: {ex.StackTrace}");
             }
         }
 
         /// <summary>
-        /// 在指定的WorkflowCanvasControl上切换矩形显�?
+        /// 在指定的 WorkflowCanvasControl 中切换显示
         /// </summary>
         private void ToggleBoundingRectangleOnCanvas(WorkflowCanvasControl workflowCanvas)
         {
             workflowCanvas.ShowBoundingRectangle = !workflowCanvas.ShowBoundingRectangle;
 
-            // 如果开启矩形显示，使用第一个连接作为示�?
+            // ʾʹõһΪʾ?
             if (workflowCanvas.ShowBoundingRectangle)
             {
                 var selectedTab = WorkflowTabViewModel?.SelectedTab;
@@ -1382,32 +1382,32 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         workflowCanvas.BoundingSourceNodeId = firstConnection.SourceNodeId;
                         workflowCanvas.BoundingTargetNodeId = firstConnection.TargetNodeId;
-                        AddLog($"[ToggleBoundingRectangle] 显示连接 {firstConnection.Id} 的外接矩�?);
+                        AddLog($"[ToggleBoundingRectangle] 显示 {firstConnection.Id} 的包围矩形");
                         AddLog($"[ToggleBoundingRectangle]   源节点ID: {firstConnection.SourceNodeId}");
                         AddLog($"[ToggleBoundingRectangle]   目标节点ID: {firstConnection.TargetNodeId}");
                     }
                     else
                     {
-                        AddLog("[ToggleBoundingRectangle] ?? 未找到连�?);
+                        AddLog("[ToggleBoundingRectangle] 未找到连接");
                         workflowCanvas.ShowBoundingRectangle = false;
                     }
                 }
                 else
                 {
-                    AddLog("[ToggleBoundingRectangle] ?? 当前Tab没有连接");
+                    AddLog("[ToggleBoundingRectangle] 当前Tab没有连接");
                     workflowCanvas.ShowBoundingRectangle = false;
                 }
             }
 
-            AddLog($"[ToggleBoundingRectangle] ========== 外接矩形: {(workflowCanvas.ShowBoundingRectangle ? "显示" : "隐藏")} ==========");
+            AddLog($"[ToggleBoundingRectangle] ========== Ӿ: {(workflowCanvas.ShowBoundingRectangle ? "ʾ" : "")} ==========");
         }
 
         /// <summary>
-        /// 切换路径拐点显示
+        /// л·յʾ
         /// </summary>
         private void ExecuteTogglePathPoints()
         {
-            AddLog("[TogglePathPoints] 切换所有连接的路径拐点显示");
+            AddLog("[TogglePathPoints] лӵ·յʾ");
 
             if (WorkflowTabViewModel?.SelectedTab?.WorkflowConnections != null)
             {
@@ -1418,71 +1418,71 @@ namespace SunEyeVision.UI.ViewModels
                     connection.ShowPathPoints = newState;
                 }
 
-                AddLog($"[TogglePathPoints] 所有连接的路径拐点: {(newState ? "显示" : "隐藏")}");
+                AddLog($"[TogglePathPoints] ӵ·յ: {(newState ? "ʾ" : "")}");
             }
         }
 
         /// <summary>
-        /// 执行单次运行所有工作流
+        /// ִей
         /// </summary>
         private async System.Threading.Tasks.Task ExecuteRunAllWorkflows()
         {
-            AddLog("?? 开始单次运行所有工作流...");
+            AddLog("?? ʼй...");
             await WorkflowTabViewModel.RunAllWorkflowsAsync();
-            AddLog("? 所有工作流单次运行完成");
+            AddLog("? й");
         }
 
         /// <summary>
-        /// 切换所有工作流的连续运�?停止
+        /// лй?ֹͣ
         /// </summary>
         private void ExecuteToggleContinuousAll()
         {
             if (IsAllWorkflowsRunning)
             {
-                AddLog("?? 停止所有工作流连续运行");
+                AddLog("?? ֹͣй");
                 WorkflowTabViewModel.StopAllWorkflows();
             }
             else
             {
-                AddLog("?? 开始所有工作流连续运行");
+                AddLog("?? ʼй");
                 WorkflowTabViewModel.StartAllWorkflows();
             }
         }
 
         /// <summary>
-        /// 工作流执行开始事件处�?
+        /// ִпʼ¼?
         /// </summary>
         private void OnWorkflowExecutionStarted(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"?? 工作流开始执�? {e.WorkflowId}");
+            AddLog($"?? ʼִ? {e.WorkflowId}");
         }
 
         /// <summary>
-        /// 工作流执行完成事件处�?
+        /// ִ¼?
         /// </summary>
         private void OnWorkflowExecutionCompleted(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"? 工作流执行完�? {e.WorkflowId}");
+            AddLog($"? ִ? {e.WorkflowId}");
         }
 
         /// <summary>
-        /// 工作流执行停止事件处�?
+        /// ִֹͣ¼?
         /// </summary>
         private void OnWorkflowExecutionStopped(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"?? 工作流执行停�? {e.WorkflowId}");
+            AddLog($"?? ִͣ? {e.WorkflowId}");
         }
 
         /// <summary>
-        /// 工作流执行错误事件处�?
+        /// ִд¼?
         /// </summary>
         private void OnWorkflowExecutionError(object? sender, WorkflowExecutionEventArgs e)
         {
-            AddLog($"? 工作流执行错�? {e.WorkflowId} - {e.ErrorMessage}");
+            AddLog($"? ִд? {e.WorkflowId} - {e.ErrorMessage}");
         }
 
         /// <summary>
-        /// 工作流执行进度事件处�?
+        /// ִн¼?
         /// </summary>
         private void OnWorkflowExecutionProgress(object? sender, WorkflowExecutionProgressEventArgs e)
         {
@@ -1492,13 +1492,13 @@ namespace SunEyeVision.UI.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[MainWindowViewModel] OnWorkflowExecutionProgress异常: {ex.Message}");
-                AddLog($"?? 日志处理异常: {ex.Message}");
+                Console.WriteLine($"[MainWindowViewModel] OnWorkflowExecutionProgress쳣: {ex.Message}");
+                AddLog($"?? ־쳣: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 查找指定类型的子元素
+        /// ָ͵Ԫ
         /// </summary>
         private static T? FindVisualChild<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject
         {
@@ -1518,60 +1518,60 @@ namespace SunEyeVision.UI.ViewModels
             return null;
         }
 
-        #region 图像控制命令
+        #region ͼ
 
         /// <summary>
-        /// 放大图像
+        /// Ŵͼ
         /// </summary>
         private void ExecuteZoomIn()
         {
             ImageScale = Math.Min(ImageScale * 1.2, 5.0);
-            AddLog($"?? 图像放大: {ImageScale:P0}");
+            AddLog($"?? ͼŴ: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// 缩小图像
+        /// Сͼ
         /// </summary>
         private void ExecuteZoomOut()
         {
             ImageScale = Math.Max(ImageScale / 1.2, 0.1);
-            AddLog($"?? 图像缩小: {ImageScale:P0}");
+            AddLog($"?? ͼС: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// 适应窗口
+        /// Ӧ
         /// </summary>
         private void ExecuteFitToWindow()
         {
-            // TODO: 根据窗口大小计算合适的缩放比例
+            // TODO: ݴڴСʵű
             ImageScale = 1.0;
-            AddLog($"?? 适应窗口: {ImageScale:P0}");
+            AddLog($"?? Ӧ: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// 重置视图
+        /// ͼ
         /// </summary>
         private void ExecuteResetView()
         {
             ImageScale = 1.0;
-            AddLog($"? 重置视图: {ImageScale:P0}");
+            AddLog($"? ͼ: {ImageScale:P0}");
         }
 
         /// <summary>
-        /// 切换全屏显示
+        /// лȫʾ
         /// </summary>
         private void ExecuteToggleFullScreen()
         {
-            // TODO: 实现图像全屏显示功能
-            AddLog("? 切换全屏显示");
+            // TODO: ʵͼȫʾ
+            AddLog("? лȫʾ");
         }
 
         #endregion
 
-        #region 图像载入命令
+        #region ͼ
 
         /// <summary>
-        /// 浏览图像文件
+        /// ͼļ
         /// </summary>
         private void ExecuteBrowseImage()
         {
@@ -1579,29 +1579,29 @@ namespace SunEyeVision.UI.ViewModels
             {
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|所有文件|*.*",
-                    Title = "选择图像文件"
+                    Filter = "ͼļ|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|ļ|*.*",
+                    Title = "ѡͼļ"
                 };
 
                 if (openFileDialog.ShowDialog() == true)
                 {
                     var filePath = openFileDialog.FileName;
-                    AddLog($"?? 已选择文件: {filePath}");
+                    AddLog($"?? ѡļ: {filePath}");
 
-                    // TODO: 载入图像到OriginalImage
+                    // TODO: ͼOriginalImage
                     // OriginalImage = LoadImageFromFile(filePath);
                 }
             }
             catch (Exception ex)
             {
-                AddLog($"? 浏览图像失败: {ex.Message}");
-                System.Windows.MessageBox.Show($"浏览图像失败: {ex.Message}", "错误",
+                AddLog($"? ͼʧ: {ex.Message}");
+                System.Windows.MessageBox.Show($"ͼʧ: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// 载入图像
+        /// ͼ
         /// </summary>
         private void ExecuteLoadImage()
         {
@@ -1609,23 +1609,23 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (OriginalImage == null)
                 {
-                    AddLog("?? 请先选择图像文件");
+                    AddLog("?? ѡͼļ");
                     return;
                 }
 
-                AddLog("? 图像载入成功");
-                // TODO: 处理图像并更新ProcessedImage和ResultImage
+                AddLog("? ͼɹ");
+                // TODO: ͼ񲢸ProcessedImageResultImage
             }
             catch (Exception ex)
             {
-                AddLog($"? 载入图像失败: {ex.Message}");
-                System.Windows.MessageBox.Show($"载入图像失败: {ex.Message}", "错误",
+                AddLog($"? ͼʧ: {ex.Message}");
+                System.Windows.MessageBox.Show($"ͼʧ: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// 清除图像
+        /// ͼ
         /// </summary>
         private void ExecuteClearImage()
         {
@@ -1635,17 +1635,17 @@ namespace SunEyeVision.UI.ViewModels
                 ProcessedImage = null;
                 ResultImage = null;
                 ImageScale = 1.0;
-                AddLog("??? 已清除图�?);
+                AddLog("已清除图像");
             }
             catch (Exception ex)
             {
-                AddLog($"? 清除图像失败: {ex.Message}");
+                AddLog($"清除图像失败: {ex.Message}");
             }
         }
 
         #endregion
 
-        #region 图像预览命令
+        #region ͼԤ
 
         /// <summary>
         /// 更新当前图像显示
@@ -1662,25 +1662,25 @@ namespace SunEyeVision.UI.ViewModels
 
             var imageInfo = ImageCollection[CurrentImageIndex];
             
-            // 主动触发FullImage加载
+            // FullImage
             var fullImage = imageInfo.FullImage;
             
             if (fullImage != null)
             {
                 OriginalImage = fullImage;
-                AddLog($"?? 加载图像: {imageInfo.Name}");
+                AddLog($"?? ͼ: {imageInfo.Name}");
                 
-                // 确保DisplayImage被更�?
+                // ȷDisplayImage?
                 UpdateDisplayImage();
             }
         }
 
         #endregion
 
-        #region 辅助方法
+        #region 
 
         /// <summary>
-        /// 更新显示图像
+        /// ʾͼ
         /// </summary>
         private void UpdateDisplayImage()
         {
@@ -1704,7 +1704,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 更新计算结果
+        /// ¼
         /// </summary>
         public void UpdateCalculationResults(Dictionary<string, object> results)
         {
@@ -1722,33 +1722,33 @@ namespace SunEyeVision.UI.ViewModels
                 });
             }
 
-            AddLog($"?? 更新计算结果: {results.Count} �?);
+            AddLog($"添加了 {results.Count} 条结果记录");
         }
 
-        #region 图像预览器智能显�?
+        #region 图像预览
 
         /// <summary>
-        /// 更新图像预览显示状态（基于连接关系智能切换�?
+        /// 图像预览显示状态管理关系
         /// </summary>
         /// <remarks>
-        /// 规则�?
-        /// 1. 选中图像采集节点 �?显示该节点的图像（如有）
-        /// 2. 选中其他节点 �?BFS追溯上游采集节点，找到则显示其图�?
-        ///    �?优化：如果上游采集节点与当前显示的相同，不重新加�?
-        /// 3. 无上游采集节点或无图�?�?隐藏图像预览�?
+        /// 规则:
+        /// 1. 选择图像采集节点 -> 显示该节点的图像
+        /// 2. 选择其他节点 -> BFS逆向追踪采集节点，找到可显示图像
+        ///    (优化: 逆向追踪采集节点与当前显示同源则更新)
+        /// 3. 逆向追踪采集节点图像 -> 显示在图像预览中
         /// </remarks>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
-            // 情况1：没有选中节点 �?隐藏
+            // 1ûѡнڵ ?
             if (selectedNode == null)
             {
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
-                _currentDisplayNodeId = null;  // �?清除跟踪ID
+                _currentDisplayNodeId = null;  // ?ID
                 return;
             }
 
-            // 情况2：选中的是图像采集节点 �?始终显示图像预览器（即使暂时没有图像�?
+            // 2ѡеͼɼڵ ?ʼʾͼԤʹʱûͼ?
             if (selectedNode.IsImageCaptureNode)
             {
                 UpdateActiveNodeImageData(selectedNode);
@@ -1757,8 +1757,8 @@ namespace SunEyeVision.UI.ViewModels
                 return;
             }
 
-            // 情况3：选中的不是图像采集节�?�?BFS追溯上游采集节点
-            // �?快速检查：如果没有连接，不可能有上游节点，直接隐藏
+            // 3ѡеĲͼɼ??BFS׷βɼڵ
+            // ?ټ飺ûӣνڵ㣬ֱ
             var connections = WorkflowTabViewModel?.SelectedTab?.WorkflowConnections;
             if (connections == null || connections.Count == 0)
             {
@@ -1775,7 +1775,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 bool hasImages = sourceCaptureNode.ImageData != null && sourceCaptureNode.ImageData.ImageCount > 0;
                 
-                // �?优化：检查上游采集节点是否与当前显示的相�?
+                // ?ŻβɼڵǷ뵱ǰʾ?
                 bool isSameNode = _currentDisplayNodeId == sourceCaptureNode.Id;
                 bool hasActiveData = ActiveNodeImageData != null;
                 
@@ -1783,13 +1783,13 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     if (isSameNode && hasActiveData)
                     {
-                        // �?相同节点且当前有数据，不需要更�?ActiveNodeImageData
-                        // 避免触发不必要的缩略图重新加�?
+                        // ?ͬڵҵǰݣҪ?ActiveNodeImageData
+                        // ⴥҪͼ¼?
                         ShowImagePreview = true;
                     }
                     else
                     {
-                        // 不同节点或之前数据已清空，需要更新显�?
+                        // ͬڵ֮ǰգҪ?
                         _currentDisplayNodeId = sourceCaptureNode.Id;
                         ActiveNodeImageData = sourceCaptureNode.ImageData;
                         ShowImagePreview = true;
@@ -1797,26 +1797,26 @@ namespace SunEyeVision.UI.ViewModels
                 }
                 else
                 {
-                    // 上游采集节点无图�?�?隐藏
+                    // βɼڵͼ??
                     ShowImagePreview = false;
                     ActiveNodeImageData = null;
-                    _currentDisplayNodeId = null;  // �?清除跟踪ID
+                    _currentDisplayNodeId = null;  // ?ID
                 }
             }
             else
             {
-                // 无上游采集节�?�?隐藏
+                // βɼ??
                 ShowImagePreview = false;
                 ActiveNodeImageData = null;
-                _currentDisplayNodeId = null;  // �?清除跟踪ID
+                _currentDisplayNodeId = null;  // ?ID
             }
 
             OnPropertyChanged(nameof(ShowImagePreview));
         }
 
         /// <summary>
-        /// 强制刷新图像预览器（用于连接创建后等场景�?
-        /// 即使当前 SelectedNode 未改变，也会重新计算是否显示图像预览�?
+        /// ǿˢͼԤӴȳ?
+        /// ʹǰ SelectedNode δı䣬Ҳ¼ǷʾͼԤ?
         /// </summary>
         public void ForceRefreshImagePreview()
         {
@@ -1824,15 +1824,15 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 查找选中节点的上游图像采集节点（BFS广度优先搜索�?
+        /// ѡнڵͼɼڵ㣨BFS?
         /// </summary>
         /// <remarks>
-        /// 当存在多个上游采集节点时，返回第一个找到的采集节点�?
-        /// 1. BFS保证连接路径最�?
-        /// 2. 按节点ID排序保证确定性选择
+        /// ڶβɼڵʱصһҵĲɼڵ?
+        /// 1. BFS֤·?
+        /// 2. ڵID֤ȷѡ
         /// </remarks>
-        /// <param name="node">起始节点</param>
-        /// <returns>第一个找到的上游图像采集节点，未找到返回null</returns>
+        /// <param name="node">ʼڵ</param>
+        /// <returns>һҵͼɼڵ㣬δҵnull</returns>
         private Models.WorkflowNode? FindUpstreamImageCaptureNode(Models.WorkflowNode node)
         {
             var selectedTab = WorkflowTabViewModel?.SelectedTab;
@@ -1850,12 +1850,12 @@ namespace SunEyeVision.UI.ViewModels
             {
                 var currentNode = queue.Dequeue();
 
-                // 获取上游节点ID（按连接在集合中的顺序，再按节点ID排序保证确定性）
+                // ȡνڵIDڼе˳ٰڵID֤ȷԣ
                 var upstreamNodeIds = selectedTab.WorkflowConnections
                     .Where(conn => conn.TargetNodeId == currentNode.Id)
                     .Select(conn => conn.SourceNodeId)
                     .Distinct()
-                    .OrderBy(id => id) // 按节点ID排序，保证确定�?
+                    .OrderBy(id => id) // ڵID򣬱֤ȷ?
                     .ToList();
 
                 foreach (var upstreamNodeId in upstreamNodeIds)
@@ -1871,13 +1871,13 @@ namespace SunEyeVision.UI.ViewModels
                         continue;
                     }
 
-                    // 找到图像采集节点，立即返回（第一个找到的�?
+                    // ҵͼɼڵ㣬أһҵ?
                     if (upstreamNode.IsImageCaptureNode)
                     {
                         return upstreamNode;
                     }
 
-                    // 非采集节点，继续向上追溯
+                    // ǲɼڵ㣬׷
                     visited.Add(upstreamNodeId);
                     queue.Enqueue(upstreamNode);
                 }
@@ -1888,10 +1888,10 @@ namespace SunEyeVision.UI.ViewModels
 
         #endregion
 
-        #endregion // 辅助方法
+        #endregion // 
 
         /// <summary>
-        /// 默认工具插件 - 用于兼容�?
+        /// 默认工具插件 - 用于测试
         /// </summary>
         private class DefaultToolPlugin : IToolPlugin
         {
@@ -1901,7 +1901,7 @@ namespace SunEyeVision.UI.ViewModels
             public string Description => "Default tool plugin";
             public string PluginId => "default.tool";
             public List<string> Dependencies => new List<string>();
-            public string Icon => "??";
+            public string Icon => "🔧";
 
             private bool _isLoaded = true;
             public bool IsLoaded => _isLoaded;
@@ -1913,19 +1913,14 @@ namespace SunEyeVision.UI.ViewModels
 
             public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
 
-            public SunEyeVision.Plugin.SDK.Core.IImageProcessor CreateToolInstance(string toolId)
+            public SunEyeVision.Plugin.SDK.Core.IImageProcessor? CreateToolInstance(string toolId)
             {
-                throw new NotImplementedException();
+                return null;
             }
 
-            public SunEyeVision.Plugin.SDK.Core.AlgorithmParameters GetDefaultParameters(string toolId)
+            public Dictionary<string, object> GetDefaultParameters(string toolId)
             {
-                return new SunEyeVision.Plugin.SDK.Core.AlgorithmParameters();
-            }
-
-            public ValidationResult ValidateParameters(string toolId, SunEyeVision.Plugin.SDK.Core.AlgorithmParameters parameters)
-            {
-                return ValidationResult.Success();
+                return new Dictionary<string, object>();
             }
         }
     }

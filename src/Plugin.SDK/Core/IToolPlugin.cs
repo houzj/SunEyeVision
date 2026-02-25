@@ -114,6 +114,20 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <returns>算法节点类型列表</returns>
         List<Type> GetAlgorithmNodes();
 
+        /// <summary>
+        /// 创建工具实例
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <returns>图像处理器实例</returns>
+        Core.IImageProcessor? CreateToolInstance(string toolId);
+
+        /// <summary>
+        /// 获取工具默认参数
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <returns>默认参数字典</returns>
+        Dictionary<string, object> GetDefaultParameters(string toolId);
+
         #endregion
     }
 

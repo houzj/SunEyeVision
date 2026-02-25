@@ -8,7 +8,7 @@ using WorkflowModel = SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services.Workflow
 {
     /// <summary>
-    /// 工作流节点工厂实�?
+    /// 工作流节点工厂实现
     /// </summary>
     public class WorkflowNodeFactory : IWorkflowNodeFactory
     {
@@ -17,7 +17,7 @@ namespace SunEyeVision.UI.Services.Workflow
 
         public WorkflowNodeFactory(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
         {
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory] �?构造函数调�?);
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory] 构造函数调用");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory]   - sequenceManager: {(sequenceManager != null ? "存在" : "null")}");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory]   - displayAdapter: {(displayAdapter != null ? "存在" : "null")}");
 
@@ -27,26 +27,26 @@ namespace SunEyeVision.UI.Services.Workflow
 
         public NodeModel CreateNode(string algorithmType, string? name = null, string? workflowId = null)
         {
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?开始创建节�?);
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 开始创建节点");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - algorithmType: {algorithmType}");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - name: {name ?? "(null)"}");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - workflowId: {workflowId ?? "(null)"}");
 
             if (string.IsNullOrWhiteSpace(algorithmType))
             {
-                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?algorithmType 为空!");
+                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] algorithmType 为空!");
                 throw new ArgumentException("Algorithm type cannot be null or empty.", nameof(algorithmType));
             }
 
             string workflowIdSafe = workflowId ?? Guid.NewGuid().ToString();
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - workflowIdSafe: {workflowIdSafe}");
 
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?获取序号...");
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 获取序号...");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - _sequenceManager: {(_sequenceManager != null ? "存在" : "null")}");
 
             if (_sequenceManager == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?_sequenceManager �?null!");
+                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] _sequenceManager 为 null!");
                 throw new InvalidOperationException("SequenceManager is not initialized");
             }
 
@@ -55,7 +55,7 @@ namespace SunEyeVision.UI.Services.Workflow
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - localIndex: {localIndex}");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - globalIndex: {globalIndex}");
 
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?创建 WorkflowNode 实例...");
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 创建 WorkflowNode 实例...");
             var node = new WorkflowModel.WorkflowNode(
                 Guid.NewGuid().ToString(),
                 name ?? algorithmType,
@@ -63,25 +63,24 @@ namespace SunEyeVision.UI.Services.Workflow
                 localIndex,
                 globalIndex
             );
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?WorkflowNode 实例创建成功: Id={node.Id}");
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] WorkflowNode 实例创建成功: Id={node.Id}");
 
-            // 使用显示适配器设置图�?
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?设置节点图标...");
+            // 使用显示适配器设置图标
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 设置节点图标...");
             System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode]   - _displayAdapter: {(_displayAdapter != null ? "存在" : "null")}");
 
             if (_displayAdapter != null)
             {
                 node.NodeTypeIcon = _displayAdapter.GetIcon(node);
-                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?图标设置成功");
+                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 图标设置成功");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] �?_displayAdapter �?null，跳过图标设�?);
+                System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] _displayAdapter 为null，跳过图标设置");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] ✓✓�?节点创建完成 ✓✓�?);
+            System.Diagnostics.Debug.WriteLine($"[NodeFactory.CreateNode] 节点创建完成");
             return node;
         }
     }
 }
-

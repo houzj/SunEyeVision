@@ -20,60 +20,60 @@ using WpfCanvas = System.Windows.Controls.Canvas;
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// WorkflowCanvasControl.xaml µÄ½»»¥Âß¼­
-    /// ´¿»­²¼¿Ø¼ş£¬¸ºÔğ½ÚµãºÍÁ¬ÏßµÄÏÔÊ¾¡¢ÍÏ×§¡¢Á¬½ÓµÈ½»»¥
+    /// WorkflowCanvasControl.xaml çš„äº¤äº’é€»è¾‘
+    /// çº¯ç”»å¸ƒæ§ä»¶ï¼Œè´Ÿè´£èŠ‚ç‚¹å’Œè¿çº¿çš„æ˜¾ç¤ºã€æ‹–æ‹½ã€è¿æ¥ç­‰äº¤äº’
     /// </summary>
     public partial class WorkflowCanvasControl : UserControl
     {
         private MainWindowViewModel? _viewModel;
 
-        // ¸¨ÖúÀà
+        // è¾…åŠ©ç±»
         private WorkflowDragDropHandler? _dragDropHandler;
         private WorkflowPortHighlighter? _portHighlighter;
         private WorkflowConnectionCreator? _connectionCreator;
-        private PortPositionService? _portPositionService; // ¶Ë¿ÚÎ»ÖÃ²éÑ¯·şÎñ
+        private PortPositionService? _portPositionService; // ç«¯å£ä½ç½®æŸ¥è¯¢æœåŠ¡
 
         private bool _isDragging;
         private WorkflowNode? _draggedNode;
         private System.Windows.Point _startDragPosition;
         private System.Windows.Point _initialNodePosition;
 
-        // ¿òÑ¡Ïà¹Ø
+        // æ¡†é€‰ç›¸å…³
         private bool _isBoxSelecting;
         private System.Windows.Point _boxSelectStart;
         private System.Windows.Point[]? _selectedNodesInitialPositions;
 
-        // Á¬½ÓÄ£Ê½Ïà¹Ø
+        // è¿æ¥æ¨¡å¼ç›¸å…³
         private WorkflowNode? _connectionSourceNode = null;
 
-        // ÍÏ×§Á¬½ÓÏà¹Ø
+        // æ‹–æ‹½è¿æ¥ç›¸å…³
         private bool _isDraggingConnection = false;
         private WorkflowNode? _dragConnectionSourceNode = null;
-        private Border? _dragConnectionSourceBorder = null; // ÍÏ×§Á¬½ÓÊ±µÄÔ´½ÚµãBorder
+        private Border? _dragConnectionSourceBorder = null; // æ‹–æ‹½è¿æ¥æ—¶çš„æºèŠ‚ç‚¹Border
         private System.Windows.Point _dragConnectionStartPoint;
         private System.Windows.Point _dragConnectionEndPoint;
-        private string? _dragConnectionSourcePort = null; // ¼ÇÂ¼ÍÏ×§¿ªÊ¼Ê±µÄÔ´¶Ë¿Ú
-    private Border? _highlightedTargetBorder = null; // ¸ßÁÁµÄÄ¿±ê½ÚµãBorder£¨ÓÃÓÚ»Ö¸´Ô­Ê¼ÑùÊ½£©
-    private Ellipse? _highlightedTargetPort = null; // ¸ßÁÁµÄÄ¿±ê¶Ë¿Ú£¨Ellipse£©
-    private int _dragMoveCounter = 0; // ÍÏ×§ÒÆ¶¯¼ÆÊıÆ÷£¬ÓÃÓÚ¼õÉÙÈÕÖ¾Êä³öÆµÂÊ
-    private string? _lastHighlightedPort = null; // ÉÏ´Î¸ßÁÁµÄ¶Ë¿ÚÃû³Æ
-    private string? _directHitTargetPort = null; // ÓÃ»§Ö±½ÓÃüÖĞµÄÄ¿±ê¶Ë¿ÚÃû³Æ
-    private Path? _tempConnectionLine = null; // ÁÙÊ±Á¬½ÓÏß£¨ÓÃÓÚÍÏ×§Ê±ÏÔÊ¾£©
-    private PathGeometry? _tempConnectionGeometry = null; // ÁÙÊ±Á¬½ÓÏßÂ·¾¶¼¸ºÎ
-    private Border? _highlightedTargetNodeBorder = null; // ÍÏ×§Ê±¸ßÁÁµÄÄ¿±ê½ÚµãBorder£¨ÓÃÓÚÏÔÊ¾¶Ë¿Ú£©
+        private string? _dragConnectionSourcePort = null; // è®°å½•æ‹–æ‹½å¼€å§‹æ—¶çš„æºç«¯å£
+    private Border? _highlightedTargetBorder = null; // é«˜äº®çš„ç›®æ ‡èŠ‚ç‚¹Borderï¼ˆç”¨äºæ¢å¤åŸå§‹æ ·å¼ï¼‰
+    private Ellipse? _highlightedTargetPort = null; // é«˜äº®çš„ç›®æ ‡ç«¯å£ï¼ˆEllipseï¼‰
+    private int _dragMoveCounter = 0; // æ‹–æ‹½ç§»åŠ¨è®¡æ•°å™¨ï¼Œç”¨äºå‡å°‘æ—¥å¿—è¾“å‡ºé¢‘ç‡
+    private string? _lastHighlightedPort = null; // ä¸Šæ¬¡é«˜äº®çš„ç«¯å£åç§°
+    private string? _directHitTargetPort = null; // ç”¨æˆ·ç›´æ¥å‘½ä¸­çš„ç›®æ ‡ç«¯å£åç§°
+    private Path? _tempConnectionLine = null; // ä¸´æ—¶è¿æ¥çº¿ï¼ˆç”¨äºæ‹–æ‹½æ—¶æ˜¾ç¤ºï¼‰
+    private PathGeometry? _tempConnectionGeometry = null; // ä¸´æ—¶è¿æ¥çº¿è·¯å¾„å‡ ä½•
+    private Border? _highlightedTargetNodeBorder = null; // æ‹–æ‹½æ—¶é«˜äº®çš„ç›®æ ‡èŠ‚ç‚¹Borderï¼ˆç”¨äºæ˜¾ç¤ºç«¯å£ï¼‰
 
-        // Á¬½ÓÏßÂ·¾¶»º´æ
+        // è¿æ¥çº¿è·¯å¾„ç¼“å­˜
         private ConnectionPathCache? _connectionPathCache;
 
-        // ÅúÁ¿ÑÓ³Ù¸üĞÂ¹ÜÀíÆ÷
+        // æ‰¹é‡å»¶è¿Ÿæ›´æ–°ç®¡ç†å™¨
         private ConnectionBatchUpdateManager? _batchUpdateManager;
 
-        // Î»ÖÃ½ÚÁ÷ÓÅ»¯ - Ö»ÔÚÒÆ¶¯³¬¹ıãĞÖµÊ±²Å´¥·¢Á¬½ÓÏß¸üĞÂ
-        private const double PositionUpdateThreshold = 5.0; // 5px ãĞÖµ
+        // ä½ç½®èŠ‚æµä¼˜åŒ– - åªåœ¨ç§»åŠ¨è¶…è¿‡é˜ˆå€¼æ—¶æ‰è§¦å‘è¿æ¥çº¿æ›´æ–°
+        private const double PositionUpdateThreshold = 5.0; // 5px é˜ˆå€¼
         private Dictionary<string, Point> _lastReportedNodePositions = new Dictionary<string, Point>();
 
         /// <summary>
-        /// ÊÇ·ñÕıÔÚÍÏ×§Á¬½Ó£¨ÓÃÓÚ°ó¶¨£¬¿ØÖÆÁ¬½ÓµãÊÇ·ñÏÔÊ¾£©
+        /// æ˜¯å¦æ­£åœ¨æ‹–æ‹½è¿æ¥ï¼ˆç”¨äºç»‘å®šï¼Œæ§åˆ¶è¿æ¥ç‚¹æ˜¯å¦æ˜¾ç¤ºï¼‰
         /// </summary>
         public bool IsDraggingConnection
         {
@@ -81,12 +81,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             private set
             {
                 _isDraggingConnection = value;
-                // ²»ÔÙ¿ØÖÆËùÓĞ¶Ë¿ÚµÄ¿É¼ûĞÔ£¬¸ÄÎªÖ»ÔÚÊó±êĞüÍ£½ÚµãÊ±ÏÔÊ¾¸Ã½ÚµãµÄ¶Ë¿Ú
+                // ä¸å†æ§åˆ¶æ‰€æœ‰ç«¯å£çš„å¯è§æ€§ï¼Œæ”¹ä¸ºåªåœ¨é¼ æ ‡æ‚¬åœèŠ‚ç‚¹æ—¶æ˜¾ç¤ºè¯¥èŠ‚ç‚¹çš„ç«¯å£
             }
         }
 
         /// <summary>
-        /// ÊÇ·ñÏÔÊ¾×î´óÍâ½Ó¾ØĞÎ
+        /// æ˜¯å¦æ˜¾ç¤ºæœ€å¤§å¤–æ¥çŸ©å½¢
         /// </summary>
         public bool ShowBoundingRectangle
         {
@@ -110,7 +110,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ×î´óÍâ½Ó¾ØĞÎµÄÔ´½ÚµãID
+        /// æœ€å¤§å¤–æ¥çŸ©å½¢çš„æºèŠ‚ç‚¹ID
         /// </summary>
         public string? BoundingSourceNodeId
         {
@@ -126,7 +126,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 new PropertyMetadata(null, OnBoundingRectangleChanged));
 
         /// <summary>
-        /// ×î´óÍâ½Ó¾ØĞÎµÄÄ¿±ê½ÚµãID
+        /// æœ€å¤§å¤–æ¥çŸ©å½¢çš„ç›®æ ‡èŠ‚ç‚¹ID
         /// </summary>
         public string? BoundingTargetNodeId
         {
@@ -150,12 +150,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// »ñÈ¡µ±Ç°¹¤×÷Á÷Tab£¨´Ó DataContext »ñÈ¡£©
+        /// è·å–å½“å‰å·¥ä½œæµTabï¼ˆä» DataContext è·å–ï¼‰
         /// </summary>
         public ViewModels.WorkflowTabViewModel? CurrentWorkflowTab => DataContext as WorkflowTabViewModel;
 
         /// <summary>
-        /// »ñÈ¡µ±Ç°¹¤×÷Á÷ĞÅÏ¢£¨ÓÃÓÚ×ª»»Æ÷£©
+        /// è·å–å½“å‰å·¥ä½œæµä¿¡æ¯ï¼ˆç”¨äºè½¬æ¢å™¨ï¼‰
         /// </summary>
         public Models.WorkflowInfo? CurrentWorkflow
         {
@@ -168,82 +168,82 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// DataContext±ä»¯Ê±°ó¶¨ScaleTransform²¢³õÊ¼»¯ConnectionPathCache
+        /// DataContextå˜åŒ–æ—¶ç»‘å®šScaleTransformå¹¶åˆå§‹åŒ–ConnectionPathCache
         /// </summary>
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (DataContext is WorkflowTabViewModel workflowTab)
             {
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
-                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContextÒÑÉèÖÃÎª: {workflowTab.Name}");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContextå·²è®¾ç½®ä¸º: {workflowTab.Name}");
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Id: {workflowTab.Id}");
-                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   ½ÚµãÊı: {workflowTab.WorkflowNodes?.Count ?? 0}, Á¬½ÓÊı: {workflowTab.WorkflowConnections?.Count ?? 0}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   èŠ‚ç‚¹æ•°: {workflowTab.WorkflowNodes?.Count ?? 0}, è¿æ¥æ•°: {workflowTab.WorkflowConnections?.Count ?? 0}");
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowNodes Hash: {workflowTab.WorkflowNodes?.GetHashCode() ?? 0}");
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   WorkflowConnections Hash: {workflowTab.WorkflowConnections?.GetHashCode() ?? 0}");
 
-                // ½«WorkflowCanvasµÄRenderTransform°ó¶¨µ½ViewModelµÄScaleTransform
+                // å°†WorkflowCanvasçš„RenderTransformç»‘å®šåˆ°ViewModelçš„ScaleTransform
                 var binding = new System.Windows.Data.Binding("ScaleTransform")
                 {
                     Source = workflowTab,
                     Mode = System.Windows.Data.BindingMode.OneWay
                 };
                 WorkflowCanvas.SetBinding(System.Windows.Controls.Canvas.RenderTransformProperty, binding);
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? ÒÑ°ó¶¨ScaleTransformµ½WorkflowCanvas");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? å·²ç»‘å®šScaleTransformåˆ°WorkflowCanvas");
 
-                // ÉèÖÃSmartPathConverterµÄ½Úµã¼¯ºÏºÍÁ¬½Ó¼¯ºÏ
+                // è®¾ç½®SmartPathConverterçš„èŠ‚ç‚¹é›†åˆå’Œè¿æ¥é›†åˆ
                 SmartPathConverter.Nodes = workflowTab.WorkflowNodes;
                 SmartPathConverter.Connections = workflowTab.WorkflowConnections;
-                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? SmartPathConverter.Nodes/ConnectionsÒÑÉèÖÃ");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? SmartPathConverter.Nodes/Connectionså·²è®¾ç½®");
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Nodes Hash: {Converters.SmartPathConverter.Nodes?.GetHashCode() ?? 0}");
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   Connections Hash: {Converters.SmartPathConverter.Connections?.GetHashCode() ?? 0}");
 
-                // ?? ¹Ø¼üĞŞ¸´£ºÇ¿ÖÆË¢ĞÂËùÓĞ ItemsControl µÄ ItemsSource °ó¶¨
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ?? Ç¿ÖÆË¢ĞÂ ItemsControl °ó¶¨...");
+                // ?? å…³é”®ä¿®å¤ï¼šå¼ºåˆ¶åˆ·æ–°æ‰€æœ‰ ItemsControl çš„ ItemsSource ç»‘å®š
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ?? å¼ºåˆ¶åˆ·æ–° ItemsControl ç»‘å®š...");
                 ForceRefreshItemsControls();
 
-                // Ã¿´Î DataContext ±ä»¯Ê±¶¼ÖØĞÂ´´½¨ ConnectionPathCache£¨È·±£Ã¿¸ö¹¤×÷Á÷¶ÀÁ¢£©
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[");
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨U      ÕıÔÚ´´½¨Â·¾¶¼ÆËãÆ÷...                        ¨U");
-                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a");
+                // æ¯æ¬¡ DataContext å˜åŒ–æ—¶éƒ½é‡æ–°åˆ›å»º ConnectionPathCacheï¼ˆç¡®ä¿æ¯ä¸ªå·¥ä½œæµç‹¬ç«‹ï¼‰
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•‘      æ­£åœ¨åˆ›å»ºè·¯å¾„è®¡ç®—å™¨...                        â•‘");
+                // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
 
                 try
                 {
                     var calculatorType = Services.PathCalculators.PathCalculatorFactory.CurrentCalculatorType;
-                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] µ±Ç°Â·¾¶¼ÆËãÆ÷ÀàĞÍ: {calculatorType}");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] å½“å‰è·¯å¾„è®¡ç®—å™¨ç±»å‹: {calculatorType}");
 
                     var calculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator();
-                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? Â·¾¶¼ÆËãÆ÷ÊµÀı´´½¨³É¹¦");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? è·¯å¾„è®¡ç®—å™¨å®ä¾‹åˆ›å»ºæˆåŠŸ");
 
-                    // Ã¿´Î¶¼´´½¨ĞÂµÄ ConnectionPathCache£¬È·±£Ã¿¸ö¹¤×÷Á÷¶ÀÁ¢
+                    // æ¯æ¬¡éƒ½åˆ›å»ºæ–°çš„ ConnectionPathCacheï¼Œç¡®ä¿æ¯ä¸ªå·¥ä½œæµç‹¬ç«‹
                     _connectionPathCache = new ConnectionPathCache(
                         workflowTab.WorkflowNodes,
                         calculator
                     );
-                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? ConnectionPathCache ´´½¨³É¹¦£¨¹¤×÷Á÷¶ÀÁ¢£©");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? ConnectionPathCache åˆ›å»ºæˆåŠŸï¼ˆå·¥ä½œæµç‹¬ç«‹ï¼‰");
 
-                    // ÉèÖÃSmartPathConverterµÄPathCacheÒıÓÃ
+                    // è®¾ç½®SmartPathConverterçš„PathCacheå¼•ç”¨
                     SmartPathConverter.PathCache = _connectionPathCache;
-                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? SmartPathConverter.PathCacheÒÑÉèÖÃ");
+                    // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? SmartPathConverter.PathCacheå·²è®¾ç½®");
 
-                    // ³õÊ¼»¯ÅúÁ¿ÑÓ³Ù¸üĞÂ¹ÜÀíÆ÷
+                    // åˆå§‹åŒ–æ‰¹é‡å»¶è¿Ÿæ›´æ–°ç®¡ç†å™¨
                     if (_connectionPathCache != null)
                     {
                         _batchUpdateManager = new ConnectionBatchUpdateManager(_connectionPathCache);
                         _batchUpdateManager.SetCurrentTab(workflowTab);
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? BatchUpdateManagerÒÑ³õÊ¼»¯");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? BatchUpdateManagerå·²åˆå§‹åŒ–");
                     }
 
-                        // Ô¤ÈÈ»º´æ
+                        // é¢„çƒ­ç¼“å­˜
                         _connectionPathCache.WarmUp(workflowTab.WorkflowConnections);
                         var stats = _connectionPathCache.GetStatistics();
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] »º´æÔ¤ÈÈÍê³É: {stats.CacheSize}¸öÁ¬½Ó");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ç¼“å­˜é¢„çƒ­å®Œæˆ: {stats.CacheSize}ä¸ªè¿æ¥");
 
-                        // ¶©ÔÄÁ¬½Ó¼¯ºÏ±ä»¯ÊÂ¼ş
+                        // è®¢é˜…è¿æ¥é›†åˆå˜åŒ–äº‹ä»¶
                         if (workflowTab.WorkflowConnections != null)
                         {
                             workflowTab.WorkflowConnections.CollectionChanged += (s, args) =>
                             {
-                                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] Á¬½Ó¼¯ºÏ±ä»¯: Added={args.NewItems?.Count ?? 0}, Removed={args.OldItems?.Count ?? 0}");
+                                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] è¿æ¥é›†åˆå˜åŒ–: Added={args.NewItems?.Count ?? 0}, Removed={args.OldItems?.Count ?? 0}");
                                 UpdateBoundingRectangle();
                                 if (_connectionPathCache != null)
                                 {
@@ -252,7 +252,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             };
                         }
 
-                        // ¶©ÔÄ½Úµã¼¯ºÏ±ä»¯ÊÂ¼ş
+                        // è®¢é˜…èŠ‚ç‚¹é›†åˆå˜åŒ–äº‹ä»¶
                         if (workflowTab.WorkflowNodes is ObservableCollection<WorkflowNode> nodesCollection)
                         {
                             nodesCollection.CollectionChanged += (s, args) =>
@@ -272,55 +272,55 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             };
                         }
 
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[");
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨U  ? Â·¾¶¼ÆËãÆ÷³õÊ¼»¯³É¹¦£¡                        ¨U");
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•‘  ? è·¯å¾„è®¡ç®—å™¨åˆå§‹åŒ–æˆåŠŸï¼                        â•‘");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
                     }
                     catch (Exception ex)
                     {
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? Â·¾¶¼ÆËãÆ÷´´½¨Ê§°Ü: {ex.GetType().Name}");
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ÏûÏ¢: {ex.Message}");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? è·¯å¾„è®¡ç®—å™¨åˆ›å»ºå¤±è´¥: {ex.GetType().Name}");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] æ¶ˆæ¯: {ex.Message}");
 
-                        // ±¸ÓÃ·½°¸£ºÊ¹ÓÃ PathCalculatorFactory ´´½¨£¨Ä¬ÈÏ±´Èû¶ûÇúÏß£©
+                        // å¤‡ç”¨æ–¹æ¡ˆï¼šä½¿ç”¨ PathCalculatorFactory åˆ›å»ºï¼ˆé»˜è®¤è´å¡å°”æ›²çº¿ï¼‰
                         _connectionPathCache = new ConnectionPathCache(
                             workflowTab.WorkflowNodes,
                             Services.PathCalculators.PathCalculatorFactory.CreateCalculator()
                         );
                         SmartPathConverter.PathCache = _connectionPathCache;
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? OrthogonalPathCalculator ±¸ÓÃ·½°¸ÒÑÆôÓÃ");
+                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? OrthogonalPathCalculator å¤‡ç”¨æ–¹æ¡ˆå·²å¯ç”¨");
                     }
                 }
             else
             {
-                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? DataContext ²»ÊÇ WorkflowTabViewModel: {DataContext?.GetType().Name ?? "null"}");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? DataContext ä¸æ˜¯ WorkflowTabViewModel: {DataContext?.GetType().Name ?? "null"}");
             }
         }
 
         /// <summary>
-        /// Ç¿ÖÆË¢ĞÂËùÓĞ ItemsControl µÄ ItemsSource °ó¶¨
-        /// ÕâÊÇĞŞ¸´¹¤×÷Á÷ Tab ¹²ÏíÍ¬Ò»»­²¼ÎÊÌâµÄ¹Ø¼ü
+        /// å¼ºåˆ¶åˆ·æ–°æ‰€æœ‰ ItemsControl çš„ ItemsSource ç»‘å®š
+        /// è¿™æ˜¯ä¿®å¤å·¥ä½œæµ Tab å…±äº«åŒä¸€ç”»å¸ƒé—®é¢˜çš„å…³é”®
         /// </summary>
         public void ForceRefreshItemsControls()
         {
             try
             {
-                // ²éÕÒ WorkflowCanvas ÖĞµÄËùÓĞ ItemsControl
+                // æŸ¥æ‰¾ WorkflowCanvas ä¸­çš„æ‰€æœ‰ ItemsControl
                 var itemsControls = FindVisualChildren<ItemsControl>(WorkflowCanvas).ToList();
 
                 int refreshed = 0;
                 foreach (var itemsControl in itemsControls)
                 {
-                    // »ñÈ¡°ó¶¨±í´ïÊ½
+                    // è·å–ç»‘å®šè¡¨è¾¾å¼
                     var bindingExpression = itemsControl.GetBindingExpression(ItemsControl.ItemsSourceProperty);
                     if (bindingExpression != null)
                     {
-                        // Ë¢ĞÂ°ó¶¨±í´ïÊ½£¬Ç¿ÖÆÖØĞÂ´ÓDataContext¶ÁÈ¡Êı¾İ
+                        // åˆ·æ–°ç»‘å®šè¡¨è¾¾å¼ï¼Œå¼ºåˆ¶é‡æ–°ä»DataContextè¯»å–æ•°æ®
                         bindingExpression.UpdateTarget();
                     }
                     else
                     {
-                        // Èç¹ûÃ»ÓĞ°ó¶¨±í´ïÊ½£¬¿ÉÄÜÊÇÒòÎª°ó¶¨»¹Ã»ÓĞ½¨Á¢
-                        // ÎÒÃÇĞèÒªÊÖ¶¯´¥·¢DataContextChangedÊÂ¼ş
+                        // å¦‚æœæ²¡æœ‰ç»‘å®šè¡¨è¾¾å¼ï¼Œå¯èƒ½æ˜¯å› ä¸ºç»‘å®šè¿˜æ²¡æœ‰å»ºç«‹
+                        // æˆ‘ä»¬éœ€è¦æ‰‹åŠ¨è§¦å‘DataContextChangedäº‹ä»¶
                         var oldDataContext = itemsControl.DataContext;
                         itemsControl.DataContext = null;
                         itemsControl.DataContext = oldDataContext;
@@ -331,12 +331,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
             catch (Exception)
             {
-                // ºöÂÔÒì³£
+                // å¿½ç•¥å¼‚å¸¸
             }
         }
 
         /// <summary>
-        /// ²éÕÒËùÓĞÖ¸¶¨ÀàĞÍµÄ×ÓÔªËØ
+        /// æŸ¥æ‰¾æ‰€æœ‰æŒ‡å®šç±»å‹çš„å­å…ƒç´ 
         /// </summary>
         private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
         {
@@ -361,18 +361,18 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         {
             InitializeComponent();
 
-            // ÑéÖ¤BoundingRectangleÔªËØ
+            // éªŒè¯BoundingRectangleå…ƒç´ 
 
-            // ½ûÓÃÉè±¸ÏñËØ¶ÔÆë£¬ÆôÓÃÑÇÏñËØäÖÈ¾
+            // ç¦ç”¨è®¾å¤‡åƒç´ å¯¹é½ï¼Œå¯ç”¨äºšåƒç´ æ¸²æŸ“
             this.SnapsToDevicePixels = false;
             this.UseLayoutRounding = false;
 
-            // ¼àÌıDataContext±ä»¯£¬°ó¶¨ScaleTransform
+            // ç›‘å¬DataContextå˜åŒ–ï¼Œç»‘å®šScaleTransform
             DataContextChanged += OnDataContextChanged;
 
             Loaded += WorkflowCanvasControl_Loaded;
 
-            // ³õÊ¼»¯ÁÙÊ±Á¬½ÓÏß
+            // åˆå§‹åŒ–ä¸´æ—¶è¿æ¥çº¿
             _tempConnectionLine = this.FindName("TempConnectionLine") as Path;
             _tempConnectionGeometry = this.FindName("TempConnectionGeometry") as PathGeometry;
             if (_tempConnectionLine != null)
@@ -380,16 +380,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
             }
 
-            // ³õÊ¼»¯¸¨ÖúÀà
+            // åˆå§‹åŒ–è¾…åŠ©ç±»
             _dragDropHandler = new WorkflowDragDropHandler(this);
         }
 
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
         {
-            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
             // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ? WorkflowCanvasControl Loaded Event Triggered");
 
-            // ¼ì²éDataContext
+            // æ£€æŸ¥DataContext
             var dataContext = DataContext;
             // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] DataContext: {dataContext?.GetType().Name ?? "null"}");
             if (dataContext is WorkflowTabViewModel workflowTab)
@@ -408,85 +408,85 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? DataContext is not WorkflowTabViewModel!");
             }
 
-            // Ìí¼Óµ÷ÊÔ£º¼ì²é ItemsControl µÄ°ó¶¨
-            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ?? ¼ì²é UI ÔªËØ°ó¶¨...");
+            // æ·»åŠ è°ƒè¯•ï¼šæ£€æŸ¥ ItemsControl çš„ç»‘å®š
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ?? æ£€æŸ¥ UI å…ƒç´ ç»‘å®š...");
             var nodesItemsControl = this.FindName("WorkflowCanvas") as WpfCanvas;
             if (nodesItemsControl != null)
             {
-                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowCanvas ÔªËØ´æÔÚ");
+                // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowCanvas å…ƒç´ å­˜åœ¨");
             }
 
-            // »ñÈ¡ MainWindowViewModel
+            // è·å– MainWindowViewModel
             if (Window.GetWindow(this) is MainWindow mainWindow)
             {
                 _viewModel = mainWindow.DataContext as MainWindowViewModel;
                 if (_viewModel != null)
                 {
-                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel »ñÈ¡³É¹¦");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel è·å–æˆåŠŸ");
 
-                    // ³õÊ¼»¯¸¨ÖúÀà£¨ĞèÒªViewModel£©
+                    // åˆå§‹åŒ–è¾…åŠ©ç±»ï¼ˆéœ€è¦ViewModelï¼‰
                     if (_portHighlighter == null)
                     {
                         _portHighlighter = new WorkflowPortHighlighter(_viewModel);
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortHighlighter ³õÊ¼»¯³É¹¦");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortHighlighter åˆå§‹åŒ–æˆåŠŸ");
                     }
                     if (_connectionCreator == null)
                     {
                         _connectionCreator = new WorkflowConnectionCreator(_viewModel);
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? ConnectionCreator ³õÊ¼»¯³É¹¦");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? ConnectionCreator åˆå§‹åŒ–æˆåŠŸ");
                     }
 
-                    // ³õÊ¼»¯¶Ë¿ÚÎ»ÖÃ²éÑ¯·şÎñ£¨ÍêÈ«½âñî·½°¸£©
+                    // åˆå§‹åŒ–ç«¯å£ä½ç½®æŸ¥è¯¢æœåŠ¡ï¼ˆå®Œå…¨è§£è€¦æ–¹æ¡ˆï¼‰
                     if (_portPositionService == null)
                     {
                         _portPositionService = new PortPositionService(WorkflowCanvas, NodeStyles.Standard);
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortPositionService ³õÊ¼»¯³É¹¦");
+                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortPositionService åˆå§‹åŒ–æˆåŠŸ");
                     }
                 }
                 else
                 {
-                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel »ñÈ¡Ê§°Ü");
+                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel è·å–å¤±è´¥");
                 }
             }
 
-            // ×¢Òâ£ºConnectionPathCache µÄ³õÊ¼»¯ÒÑÒÆµ½ OnDataContextChanged ·½·¨ÖĞ
-            // ÕâÑù¿ÉÒÔÈ·±£ÔÚ DataContext ÉèÖÃºóÁ¢¼´³õÊ¼»¯£¬±ÜÃâ PathCache Îª null µÄÎÊÌâ
+            // æ³¨æ„ï¼šConnectionPathCache çš„åˆå§‹åŒ–å·²ç§»åˆ° OnDataContextChanged æ–¹æ³•ä¸­
+            // è¿™æ ·å¯ä»¥ç¡®ä¿åœ¨ DataContext è®¾ç½®åç«‹å³åˆå§‹åŒ–ï¼Œé¿å… PathCache ä¸º null çš„é—®é¢˜
 
-            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
         }
 
         /// <summary>
-        /// Ë¢ĞÂËùÓĞÁ¬½ÓµÄÂ·¾¶£¨´¥·¢ÖØĞÂ¼ÆËã£©
+        /// åˆ·æ–°æ‰€æœ‰è¿æ¥çš„è·¯å¾„ï¼ˆè§¦å‘é‡æ–°è®¡ç®—ï¼‰
         /// </summary>
         private void RefreshAllConnectionPaths()
         {
             if (CurrentWorkflowTab == null) return;
 
-            // ±ê¼ÇËùÓĞ»º´æÎªÔàÊı¾İ
+            // æ ‡è®°æ‰€æœ‰ç¼“å­˜ä¸ºè„æ•°æ®
             if (_connectionPathCache != null)
             {
                 _connectionPathCache.MarkAllDirty();
             }
 
-            // Ê¹ÓÃ WorkflowPathCalculator Ë¢ĞÂËùÓĞÁ¬½ÓÂ·¾¶
+            // ä½¿ç”¨ WorkflowPathCalculator åˆ·æ–°æ‰€æœ‰è¿æ¥è·¯å¾„
             WorkflowPathCalculator.RefreshAllConnectionPaths(CurrentWorkflowTab.WorkflowConnections);
         }
 
         /// <summary>
-        /// ÉèÖÃÂ·¾¶¼ÆËãÆ÷£¨Ö§³ÖÔËĞĞÊ±ÇĞ»»£©
+        /// è®¾ç½®è·¯å¾„è®¡ç®—å™¨ï¼ˆæ”¯æŒè¿è¡Œæ—¶åˆ‡æ¢ï¼‰
         /// </summary>
         public void SetPathCalculator(string pathCalculatorType)
         {
 
             try
             {
-                // ½âÎöÂ·¾¶¼ÆËãÆ÷ÀàĞÍ
+                // è§£æè·¯å¾„è®¡ç®—å™¨ç±»å‹
                 if (System.Enum.TryParse<Services.PathCalculators.PathCalculatorType>(pathCalculatorType, true, out var type))
                 {
-                    // ´´½¨ĞÂµÄÂ·¾¶¼ÆËãÆ÷ÊµÀı
+                    // åˆ›å»ºæ–°çš„è·¯å¾„è®¡ç®—å™¨å®ä¾‹
                     var newCalculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator(type);
 
-                    // Ìæ»»ConnectionPathCache
+                    // æ›¿æ¢ConnectionPathCache
                     if (CurrentWorkflowTab != null)
                     {
                         _connectionPathCache = new ConnectionPathCache(
@@ -494,10 +494,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             newCalculator
                         );
 
-                        // ¸üĞÂSmartPathConverterµÄ»º´æÒıÓÃ
+                        // æ›´æ–°SmartPathConverterçš„ç¼“å­˜å¼•ç”¨
                         SmartPathConverter.PathCache = _connectionPathCache;
 
-                        // Ë¢ĞÂËùÓĞÁ¬½ÓÂ·¾¶
+                        // åˆ·æ–°æ‰€æœ‰è¿æ¥è·¯å¾„
                         RefreshAllConnectionPaths();
 
                     }
@@ -511,10 +511,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
         }
 
-        #region ½Úµã½»»¥ÊÂ¼ş
+        #region èŠ‚ç‚¹äº¤äº’äº‹ä»¶
 
         /// <summary>
-        /// ½ÚµãÊó±ê½øÈëÊÂ¼ş£¨ÏÔÊ¾Á¬½Óµã£©
+        /// èŠ‚ç‚¹é¼ æ ‡è¿›å…¥äº‹ä»¶ï¼ˆæ˜¾ç¤ºè¿æ¥ç‚¹ï¼‰
         /// </summary>
         private void Node_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -525,13 +525,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ½ÚµãÊó±êÀë¿ªÊÂ¼ş£¨Òş²ØÁ¬½Óµã£©
+        /// èŠ‚ç‚¹é¼ æ ‡ç¦»å¼€äº‹ä»¶ï¼ˆéšè—è¿æ¥ç‚¹ï¼‰
         /// </summary>
         private void Node_MouseLeave(object sender, MouseEventArgs e)
         {
             if (sender is Border border && border.Tag is WorkflowNode node)
             {
-                // Èç¹ûÃ»ÓĞÕıÔÚÍÏ×§Á¬½Ó£¬ÔòÒş²Øµ±Ç°½ÚµãµÄ¶Ë¿Ú
+                // å¦‚æœæ²¡æœ‰æ­£åœ¨æ‹–æ‹½è¿æ¥ï¼Œåˆ™éšè—å½“å‰èŠ‚ç‚¹çš„ç«¯å£
                 if (!_isDraggingConnection)
                 {
                     SetPortsVisibility(border, false);
@@ -540,46 +540,46 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// Á¬½ÓµãÊó±ê½øÈëÊÂ¼ş
+        /// è¿æ¥ç‚¹é¼ æ ‡è¿›å…¥äº‹ä»¶
         /// </summary>
         private void Ellipse_MouseEnter(object sender, MouseEventArgs e)
         {
-            // Á¬½ÓµãÑùÊ½ÒÑÍ¨¹ı XAML ´¦Àí
+            // è¿æ¥ç‚¹æ ·å¼å·²é€šè¿‡ XAML å¤„ç†
         }
 
         /// <summary>
-        /// Á¬½ÓµãÊó±êÀë¿ªÊÂ¼ş
+        /// è¿æ¥ç‚¹é¼ æ ‡ç¦»å¼€äº‹ä»¶
         /// </summary>
         private void Ellipse_MouseLeave(object sender, MouseEventArgs e)
         {
-            // Á¬½ÓµãÑùÊ½ÒÑÍ¨¹ı XAML ´¦Àí
+            // è¿æ¥ç‚¹æ ·å¼å·²é€šè¿‡ XAML å¤„ç†
         }
 
         /// <summary>
-        /// ¶Ë¿ÚÊó±ê½øÈëÊÂ¼ş - µ÷ÊÔÓÃ
+        /// ç«¯å£é¼ æ ‡è¿›å…¥äº‹ä»¶ - è°ƒè¯•ç”¨
         /// </summary>
         private void Port_MouseEnter(object sender, MouseEventArgs e)
         {
-            // ÒÆ³ı¸ßÆµÈÕÖ¾
+            // ç§»é™¤é«˜é¢‘æ—¥å¿—
         }
 
         /// <summary>
-        /// ¶Ë¿ÚÊó±êÀë¿ªÊÂ¼ş - µ÷ÊÔÓÃ
+        /// ç«¯å£é¼ æ ‡ç¦»å¼€äº‹ä»¶ - è°ƒè¯•ç”¨
         /// </summary>
         private void Port_MouseLeave(object sender, MouseEventArgs e)
         {
-            // ÒÆ³ı¸ßÆµÈÕÖ¾
+            // ç§»é™¤é«˜é¢‘æ—¥å¿—
         }
 
         /// <summary>
-        /// ÉèÖÃËùÓĞ½ÚµãµÄÁ¬½Óµã¿É¼ûĞÔ
+        /// è®¾ç½®æ‰€æœ‰èŠ‚ç‚¹çš„è¿æ¥ç‚¹å¯è§æ€§
         /// </summary>
         private void SetPortsVisibility(bool isVisible)
         {
             if (_viewModel?.WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            // ±éÀúËùÓĞ½Úµã²¢ÉèÖÃÁ¬½Óµã¿É¼ûĞÔ
+            // éå†æ‰€æœ‰èŠ‚ç‚¹å¹¶è®¾ç½®è¿æ¥ç‚¹å¯è§æ€§
             var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
             var nodeBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
 
@@ -593,7 +593,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ÉèÖÃµ¥¸ö½ÚµãµÄÁ¬½Óµã¿É¼ûĞÔ
+        /// è®¾ç½®å•ä¸ªèŠ‚ç‚¹çš„è¿æ¥ç‚¹å¯è§æ€§
         /// </summary>
         private void SetPortsVisibility(Border border, bool isVisible)
         {
@@ -605,8 +605,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     var ellipseName = ellipse.Name ?? "";
                     if (ellipseName.Contains("Port"))
                     {
-                        // Ê¹ÓÃ Visibility.Collapsed ¶ø²»ÊÇ Opacity£¬È·±£¶Ë¿Ú²»ÏìÓ¦Êó±êÊÂ¼ş
-                        // Collapsed µÄÔªËØ²»¿É¼ûÇÒ²»ÏìÓ¦Êó±êÊÂ¼ş
+                        // ä½¿ç”¨ Visibility.Collapsed è€Œä¸æ˜¯ Opacityï¼Œç¡®ä¿ç«¯å£ä¸å“åº”é¼ æ ‡äº‹ä»¶
+                        // Collapsed çš„å…ƒç´ ä¸å¯è§ä¸”ä¸å“åº”é¼ æ ‡äº‹ä»¶
                         ellipse.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
                     }
                 }
@@ -616,14 +616,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
         /// <summary>
-        /// ½ÚµãÊó±ê×ó¼ü°´ÏÂ - ¿ªÊ¼ÍÏ×§
+        /// èŠ‚ç‚¹é¼ æ ‡å·¦é”®æŒ‰ä¸‹ - å¼€å§‹æ‹–æ‹½
         /// </summary>
         private void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Border border || border.Tag is not WorkflowNode node)
                 return;
 
-            // Ë«»÷ÊÂ¼ş£º´ò¿ªµ÷ÊÔ´°¿Ú
+            // åŒå‡»äº‹ä»¶ï¼šæ‰“å¼€è°ƒè¯•çª—å£
             if (e.ClickCount == 2)
             {
                 if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
@@ -635,25 +635,25 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
                 _viewModel.SelectedNode = node;
 
-                // ´ò¿ªµ÷ÊÔ´°¿Ú
+                // æ‰“å¼€è°ƒè¯•çª—å£
                 _viewModel.OpenDebugWindowCommand.Execute(node);
-                // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+                // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
                 return;
             }
 
-            // ¼ì²éÊÇ·ñ°´×¡ Shift »ò Ctrl ¼ü£¨¶àÑ¡Ä£Ê½£©
+            // æ£€æŸ¥æ˜¯å¦æŒ‰ä½ Shift æˆ– Ctrl é”®ï¼ˆå¤šé€‰æ¨¡å¼ï¼‰
             bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
-            // Èç¹û½ÚµãÎ´±»Ñ¡ÖĞ£¬ÇÒ²»ÊÇ¶àÑ¡Ä£Ê½£¬ÔòÖ»Ñ¡ÖĞµ±Ç°½Úµã
+            // å¦‚æœèŠ‚ç‚¹æœªè¢«é€‰ä¸­ï¼Œä¸”ä¸æ˜¯å¤šé€‰æ¨¡å¼ï¼Œåˆ™åªé€‰ä¸­å½“å‰èŠ‚ç‚¹
             if (!node.IsSelected && !isMultiSelect)
             {
                 ClearAllSelections();
                 node.IsSelected = true;
             }
-            // Èç¹ûÊÇ¶àÑ¡Ä£Ê½£¬ÇĞ»»Ñ¡ÖĞ×´Ì¬
+            // å¦‚æœæ˜¯å¤šé€‰æ¨¡å¼ï¼Œåˆ‡æ¢é€‰ä¸­çŠ¶æ€
             else if (isMultiSelect)
             {
                 node.IsSelected = !node.IsSelected;
@@ -661,10 +661,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             _viewModel.SelectedNode = node;
 
-            // ¼ÇÂ¼ËùÓĞÑ¡ÖĞ½ÚµãµÄ³õÊ¼Î»ÖÃ
+            // è®°å½•æ‰€æœ‰é€‰ä¸­èŠ‚ç‚¹çš„åˆå§‹ä½ç½®
             RecordSelectedNodesPositions();
 
-            // µ¥»÷ÊÂ¼ş£ºÍÏ×§×¼±¸
+            // å•å‡»äº‹ä»¶ï¼šæ‹–æ‹½å‡†å¤‡
             _isDragging = true;
             _draggedNode = node;
             _initialNodePosition = node.Position;
@@ -672,23 +672,23 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             border.CaptureMouse();
 
-            // ×èÖ¹ÊÂ¼şÃ°Åİµ½ Canvas£¬±ÜÃâ´¥·¢¿òÑ¡
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // é˜»æ­¢äº‹ä»¶å†’æ³¡åˆ° Canvasï¼Œé¿å…è§¦å‘æ¡†é€‰
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
         }
 
         /// <summary>
-        /// ½ÚµãÊó±ê×ó¼üÊÍ·Å - ½áÊøÍÏ×§
+        /// èŠ‚ç‚¹é¼ æ ‡å·¦é”®é‡Šæ”¾ - ç»“æŸæ‹–æ‹½
         /// </summary>
         private void Node_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (_isDragging && _draggedNode != null)
             {
-                // ?? ¼õÉÙÈÕÖ¾Êä³öÒÔÌá¸ßĞÔÄÜ
-                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ========== ½ÚµãÊÍ·Å [{DateTime.Now:HH:mm:ss.fff}] ==========");
+                // ?? å‡å°‘æ—¥å¿—è¾“å‡ºä»¥æé«˜æ€§èƒ½
+                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ========== èŠ‚ç‚¹é‡Šæ”¾ [{DateTime.Now:HH:mm:ss.fff}] ==========");
 
-                // ÍÏ×§½áÊø
+                // æ‹–æ‹½ç»“æŸ
                 if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
                 {
                     var selectedNodes = _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes
@@ -697,7 +697,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     if (selectedNodes.Count > 0 && _selectedNodesInitialPositions != null)
                     {
-                        // ¼ÆËãÍ³Ò»µÄÒÆ¶¯Æ«ÒÆÁ¿£¨´Ó³õÊ¼Î»ÖÃµ½µ±Ç°Î»ÖÃ£©
+                        // è®¡ç®—ç»Ÿä¸€çš„ç§»åŠ¨åç§»é‡ï¼ˆä»åˆå§‹ä½ç½®åˆ°å½“å‰ä½ç½®ï¼‰
                         var delta = new Vector(
                             selectedNodes[0].Position.X - _selectedNodesInitialPositions[0].X,
                             selectedNodes[0].Position.Y - _selectedNodesInitialPositions[0].Y
@@ -706,48 +706,48 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         /*
                         */
 
-                        // ?? ¹Ø¼üĞŞ¸´£º²»ÒªÔÙ´ÎÖ´ĞĞ BatchMoveNodesCommand
-                        // ÒòÎª½ÚµãÎ»ÖÃÒÑ¾­ÔÚ Node_MouseMove ÖĞ±»¸üĞÂÁË
-                        // Èç¹ûÕâÀïÔÙÖ´ĞĞÒ»´Î£¬»áµ¼ÖÂ½Úµã±»ÒÆ¶¯Á½´Î
+                        // ?? å…³é”®ä¿®å¤ï¼šä¸è¦å†æ¬¡æ‰§è¡Œ BatchMoveNodesCommand
+                        // å› ä¸ºèŠ‚ç‚¹ä½ç½®å·²ç»åœ¨ Node_MouseMove ä¸­è¢«æ›´æ–°äº†
+                        // å¦‚æœè¿™é‡Œå†æ‰§è¡Œä¸€æ¬¡ï¼Œä¼šå¯¼è‡´èŠ‚ç‚¹è¢«ç§»åŠ¨ä¸¤æ¬¡
 
-                        // ÍÏ×§½áÊøºó£¬Ç¿ÖÆ¸üĞÂËùÓĞÏà¹ØÁ¬½ÓµÄ»º´æ
+                        // æ‹–æ‹½ç»“æŸåï¼Œå¼ºåˆ¶æ›´æ–°æ‰€æœ‰ç›¸å…³è¿æ¥çš„ç¼“å­˜
                         if (_connectionPathCache != null)
                         {
                             foreach (var node in selectedNodes)
                             {
                                 _connectionPathCache.MarkNodeDirty(node.Id);
-                                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   ÒÑ±ê¼Ç½Úµã {node.Name} ÎªÔà");
+                                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   å·²æ ‡è®°èŠ‚ç‚¹ {node.Name} ä¸ºè„");
                             }
                         }
 
-                        // ?? Ê¹ÓÃÅúÁ¿ÑÓ³Ù¸üĞÂ¹ÜÀíÆ÷£ºÁ¢¼´Ö´ĞĞËùÓĞ´ı´¦ÀíµÄ¸üĞÂ
+                        // ?? ä½¿ç”¨æ‰¹é‡å»¶è¿Ÿæ›´æ–°ç®¡ç†å™¨ï¼šç«‹å³æ‰§è¡Œæ‰€æœ‰å¾…å¤„ç†çš„æ›´æ–°
                         if (_batchUpdateManager != null)
                         {
                             _batchUpdateManager.ForceUpdateAll();
-                            // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ÒÑÇ¿ÖÆÖ´ĞĞËùÓĞ´ı´¦ÀíµÄÁ¬½Ó¸üĞÂ");
+                            // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] å·²å¼ºåˆ¶æ‰§è¡Œæ‰€æœ‰å¾…å¤„ç†çš„è¿æ¥æ›´æ–°");
                         }
 
-                        // ?? TODO: Èç¹ûĞèÒªÖ§³Ö³·Ïú/ÖØ×ö£¬ĞèÒªÔÚÕâÀï´´½¨²¢Ö´ĞĞÃüÁî
-                        // µ«ÊÇÒªÈ·±£ÃüÁî²»»áÖØ¸´ÒÆ¶¯½Úµã
+                        // ?? TODO: å¦‚æœéœ€è¦æ”¯æŒæ’¤é”€/é‡åšï¼Œéœ€è¦åœ¨è¿™é‡Œåˆ›å»ºå¹¶æ‰§è¡Œå‘½ä»¤
+                        // ä½†æ˜¯è¦ç¡®ä¿å‘½ä»¤ä¸ä¼šé‡å¤ç§»åŠ¨èŠ‚ç‚¹
                     }
                 }
 
                 _isDragging = false;
                 _draggedNode = null!;
                 (sender as Border)?.ReleaseMouseCapture();
-                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   ÍÏ×§ÒÑ½áÊø£¬_isDragging={_isDragging}");
+                // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   æ‹–æ‹½å·²ç»“æŸï¼Œ_isDragging={_isDragging}");
 
-                // Çå³ıÎ»ÖÃ½ÚÁ÷¼ÇÂ¼£¬×¼±¸ÏÂ´ÎÍÏ×§
+                // æ¸…é™¤ä½ç½®èŠ‚æµè®°å½•ï¼Œå‡†å¤‡ä¸‹æ¬¡æ‹–æ‹½
                 ClearPositionThrottling();
             }
         }
 
         /// <summary>
-        /// ½ÚµãÊó±êÒÆ¶¯ - Ö´ĞĞÍÏ×§£¨·½°¸5ÓÅ»¯£º·Ö²ã¸üĞÂ²ßÂÔ - ÊµÊ±Î»ÖÃ+ÑÓ³ÙÂ·¾¶£©
+        /// èŠ‚ç‚¹é¼ æ ‡ç§»åŠ¨ - æ‰§è¡Œæ‹–æ‹½ï¼ˆæ–¹æ¡ˆ5ä¼˜åŒ–ï¼šåˆ†å±‚æ›´æ–°ç­–ç•¥ - å®æ—¶ä½ç½®+å»¶è¿Ÿè·¯å¾„ï¼‰
         /// </summary>
         private void Node_MouseMove(object sender, MouseEventArgs e)
         {
-            // Èç¹ûÕıÔÚÍÏ×§Á¬½Ó£¬Ôò²»ÒÆ¶¯½Úµã£¨±ÜÃâ³åÍ»£©
+            // å¦‚æœæ­£åœ¨æ‹–æ‹½è¿æ¥ï¼Œåˆ™ä¸ç§»åŠ¨èŠ‚ç‚¹ï¼ˆé¿å…å†²çªï¼‰
             if (_isDraggingConnection)
                 return;
 
@@ -755,18 +755,18 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 var currentPosition = e.GetPosition(WorkflowCanvas);
 
-                // ¼ÆËã´ÓÍÏ¶¯¿ªÊ¼µ½ÏÖÔÚµÄ×ÜÆ«ÒÆÁ¿
+                // è®¡ç®—ä»æ‹–åŠ¨å¼€å§‹åˆ°ç°åœ¨çš„æ€»åç§»é‡
                 var totalOffset = currentPosition - _startDragPosition;
 
-                // 5A: »ñÈ¡ËùÓĞÑ¡ÖĞ½Úµã
+                // 5A: è·å–æ‰€æœ‰é€‰ä¸­èŠ‚ç‚¹
                 var selectedNodes = _viewModel?.WorkflowTabViewModel.SelectedTab?.WorkflowNodes
                     .Where(n => n.IsSelected)
                     .ToList();
 
                 if (selectedNodes != null && selectedNodes.Count > 0 && _selectedNodesInitialPositions != null)
                 {
-                    // ?? ¹Ø¼üÓÅ»¯£ºÁ¢¼´¸üĞÂ½ÚµãÎ»ÖÃ£¨ÊµÊ±²ã£©£¬²»Ê¹ÓÃÅú´¦Àí
-                    // Î»ÖÃ¸üĞÂ±ØĞëÊµÊ±ÏìÓ¦Êó±êÒÆ¶¯£¬·ñÔò»á³öÏÖÑÓ³ÙºÍÉÁË¸
+                    // ?? å…³é”®ä¼˜åŒ–ï¼šç«‹å³æ›´æ–°èŠ‚ç‚¹ä½ç½®ï¼ˆå®æ—¶å±‚ï¼‰ï¼Œä¸ä½¿ç”¨æ‰¹å¤„ç†
+                    // ä½ç½®æ›´æ–°å¿…é¡»å®æ—¶å“åº”é¼ æ ‡ç§»åŠ¨ï¼Œå¦åˆ™ä¼šå‡ºç°å»¶è¿Ÿå’Œé—ªçƒ
                     for (int i = 0; i < selectedNodes.Count && i < _selectedNodesInitialPositions.Length; i++)
                     {
                         var newPos = new System.Windows.Point(
@@ -774,16 +774,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             _selectedNodesInitialPositions[i].Y + totalOffset.Y
                         );
 
-                        // Ö±½ÓÉèÖÃÎ»ÖÃ£¬Á¢¼´´¥·¢PropertyChanged
-                        // Õâ»áÁ¢¼´¸üĞÂCanvas°ó¶¨£¬½ÚµãÎ»ÖÃÊµÊ±¸úËæÊó±ê
+                        // ç›´æ¥è®¾ç½®ä½ç½®ï¼Œç«‹å³è§¦å‘PropertyChanged
+                        // è¿™ä¼šç«‹å³æ›´æ–°Canvasç»‘å®šï¼ŒèŠ‚ç‚¹ä½ç½®å®æ—¶è·Ÿéšé¼ æ ‡
                         selectedNodes[i].Position = newPos;
                     }
 
-                    // 5C: Â·¾¶¸üĞÂÊ¹ÓÃÎ»ÖÃ½ÚÁ÷ + ÅúÁ¿ÑÓ³Ù»úÖÆ£¨Ë«²ãÓÅ»¯£©
-                    // Â·¾¶¼ÆËã³É±¾¸ß£¬ÏÈÍ¨¹ı¾àÀë½ÚÁ÷¼õÉÙ¸üĞÂ´ÎÊı£¬ÔÙÍ¨¹ıÅúÁ¿ÑÓ³ÙºÏ²¢¿ìËÙ¸üĞÂ
+                    // 5C: è·¯å¾„æ›´æ–°ä½¿ç”¨ä½ç½®èŠ‚æµ + æ‰¹é‡å»¶è¿Ÿæœºåˆ¶ï¼ˆåŒå±‚ä¼˜åŒ–ï¼‰
+                    // è·¯å¾„è®¡ç®—æˆæœ¬é«˜ï¼Œå…ˆé€šè¿‡è·ç¦»èŠ‚æµå‡å°‘æ›´æ–°æ¬¡æ•°ï¼Œå†é€šè¿‡æ‰¹é‡å»¶è¿Ÿåˆå¹¶å¿«é€Ÿæ›´æ–°
                     if (_batchUpdateManager != null)
                     {
-                        // ÊÕ¼¯ĞèÒª¸üĞÂµÄ½ÚµãID£¨Í¨¹ıÎ»ÖÃ½ÚÁ÷¹ıÂË£©
+                        // æ”¶é›†éœ€è¦æ›´æ–°çš„èŠ‚ç‚¹IDï¼ˆé€šè¿‡ä½ç½®èŠ‚æµè¿‡æ»¤ï¼‰
                         var nodesToUpdate = new List<string>();
                         foreach (var node in selectedNodes)
                         {
@@ -793,7 +793,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             }
                         }
 
-                        // Ö»ÓĞµ±ÓĞ½ÚµãĞèÒª¸üĞÂÊ±²Åµ÷ÓÃÅúÁ¿¸üĞÂ¹ÜÀíÆ÷
+                        // åªæœ‰å½“æœ‰èŠ‚ç‚¹éœ€è¦æ›´æ–°æ—¶æ‰è°ƒç”¨æ‰¹é‡æ›´æ–°ç®¡ç†å™¨
                         if (nodesToUpdate.Count > 0)
                         {
                             _batchUpdateManager.ScheduleUpdateForNodes(nodesToUpdate);
@@ -802,16 +802,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
                 else
                 {
-                    // µ¥¸ö½ÚµãÒÆ¶¯£¨Ïòºó¼æÈİ£©
+                    // å•ä¸ªèŠ‚ç‚¹ç§»åŠ¨ï¼ˆå‘åå…¼å®¹ï¼‰
                     var newPos = new System.Windows.Point(
                         _initialNodePosition.X + totalOffset.X,
                         _initialNodePosition.Y + totalOffset.Y
                     );
 
-                    // Ö±½ÓÉèÖÃÎ»ÖÃ£¬Á¢¼´´¥·¢PropertyChanged
+                    // ç›´æ¥è®¾ç½®ä½ç½®ï¼Œç«‹å³è§¦å‘PropertyChanged
                     _draggedNode.Position = newPos;
 
-                    // 5C: µ¥¸ö½ÚµãµÄÂ·¾¶¸üĞÂÒ²Ê¹ÓÃÎ»ÖÃ½ÚÁ÷»úÖÆ
+                    // 5C: å•ä¸ªèŠ‚ç‚¹çš„è·¯å¾„æ›´æ–°ä¹Ÿä½¿ç”¨ä½ç½®èŠ‚æµæœºåˆ¶
                     if (_batchUpdateManager != null)
                     {
                         if (ShouldScheduleConnectionUpdate(_draggedNode.Id, _draggedNode.Position))
@@ -824,24 +824,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñÓ¦¸Ã´¥·¢Á¬½ÓÏß¸üĞÂ£¨Î»ÖÃ½ÚÁ÷£©
-        /// Ö»ÓĞµ±½ÚµãÒÆ¶¯¾àÀë³¬¹ıãĞÖµÊ±²Å´¥·¢¸üĞÂ
+        /// åˆ¤æ–­æ˜¯å¦åº”è¯¥è§¦å‘è¿æ¥çº¿æ›´æ–°ï¼ˆä½ç½®èŠ‚æµï¼‰
+        /// åªæœ‰å½“èŠ‚ç‚¹ç§»åŠ¨è·ç¦»è¶…è¿‡é˜ˆå€¼æ—¶æ‰è§¦å‘æ›´æ–°
         /// </summary>
         private bool ShouldScheduleConnectionUpdate(string nodeId, Point currentPosition)
         {
-            // Èç¹ûÃ»ÓĞ¼ÇÂ¼¹ı¸Ã½ÚµãµÄÎ»ÖÃ£¬Ôò¼ÇÂ¼²¢·µ»Øtrue£¨Ê×´Î¸üĞÂ£©
+            // å¦‚æœæ²¡æœ‰è®°å½•è¿‡è¯¥èŠ‚ç‚¹çš„ä½ç½®ï¼Œåˆ™è®°å½•å¹¶è¿”å›trueï¼ˆé¦–æ¬¡æ›´æ–°ï¼‰
             if (!_lastReportedNodePositions.ContainsKey(nodeId))
             {
                 _lastReportedNodePositions[nodeId] = currentPosition;
                 return true;
             }
 
-            // ¼ÆËã¾àÀëÉÏ´Î±¨¸æÎ»ÖÃµÄÆ«ÒÆ
+            // è®¡ç®—è·ç¦»ä¸Šæ¬¡æŠ¥å‘Šä½ç½®çš„åç§»
             Point lastPosition = _lastReportedNodePositions[nodeId];
             double deltaX = Math.Abs(currentPosition.X - lastPosition.X);
             double deltaY = Math.Abs(currentPosition.Y - lastPosition.Y);
 
-            // ¼ì²éÊÇ·ñ³¬¹ıãĞÖµ
+            // æ£€æŸ¥æ˜¯å¦è¶…è¿‡é˜ˆå€¼
             if (deltaX > PositionUpdateThreshold || deltaY > PositionUpdateThreshold)
             {
                 _lastReportedNodePositions[nodeId] = currentPosition;
@@ -852,7 +852,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// Çå³ıÎ»ÖÃ½ÚÁ÷¼ÇÂ¼£¨ÔÚÍÏ×§½áÊøÊ±µ÷ÓÃ£©
+        /// æ¸…é™¤ä½ç½®èŠ‚æµè®°å½•ï¼ˆåœ¨æ‹–æ‹½ç»“æŸæ—¶è°ƒç”¨ï¼‰
         /// </summary>
         private void ClearPositionThrottling()
         {
@@ -860,33 +860,33 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ¶Ë¿ÚÊó±ê×ó¼ü°´ÏÂ - ¿ªÊ¼ÍÏ×§Á¬½ÓÏß
+        /// ç«¯å£é¼ æ ‡å·¦é”®æŒ‰ä¸‹ - å¼€å§‹æ‹–æ‹½è¿æ¥çº¿
         /// </summary>
         private void Port_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
-            System.Diagnostics.Debug.WriteLine("[Port_MouseLeftButtonDown] ? ´¥·¢");
+            System.Diagnostics.Debug.WriteLine("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
+            System.Diagnostics.Debug.WriteLine("[Port_MouseLeftButtonDown] ? è§¦å‘");
 
             var mousePos = e.GetPosition(WorkflowCanvas);
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] Êó±êÎ»ÖÃ: ({mousePos.X:F1}, {mousePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] é¼ æ ‡ä½ç½®: ({mousePos.X:F1}, {mousePos.Y:F1})");
 
             if (sender is not Ellipse ellipse || ellipse.Tag is not string portName)
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ÌáÇ°·µ»Ø: senderÀàĞÍ={sender?.GetType().Name ?? "null"}, TagÀàĞÍ={(sender is Ellipse el ? el.Tag?.GetType().Name ?? "null" : "N/A")}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? æå‰è¿”å›: senderç±»å‹={sender?.GetType().Name ?? "null"}, Tagç±»å‹={(sender is Ellipse el ? el.Tag?.GetType().Name ?? "null" : "N/A")}");
                 return;
             }
 
             System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? Ellipse: Name={ellipse.Name}, Tag={portName}, Visibility={ellipse.Visibility}");
 
-            // ±£»¤£ºÈç¹ûÒÑ¾­ÔÚÍÏ×§×´Ì¬£¬Ö±½Ó·µ»Ø£¬²»Æô¶¯ĞÂµÄÍÏ×§
+            // ä¿æŠ¤ï¼šå¦‚æœå·²ç»åœ¨æ‹–æ‹½çŠ¶æ€ï¼Œç›´æ¥è¿”å›ï¼Œä¸å¯åŠ¨æ–°çš„æ‹–æ‹½
             if (_isDraggingConnection)
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ÒÑÔÚÍÏ×§×´Ì¬£¬Ìø¹ı");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? å·²åœ¨æ‹–æ‹½çŠ¶æ€ï¼Œè·³è¿‡");
                 e.Handled = true;
                 return;
             }
 
-            // »ñÈ¡¸¸½ÚµãBorder£¨ÏòÉÏ±éÀú²éÕÒ£©
+            // è·å–çˆ¶èŠ‚ç‚¹Borderï¼ˆå‘ä¸Šéå†æŸ¥æ‰¾ï¼‰
             DependencyObject? current = VisualTreeHelper.GetParent(ellipse);
             Border? border = null;
             WorkflowNode? node = null;
@@ -904,61 +904,61 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             if (border == null || node == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? Î´ÕÒµ½¸¸½Úµã: border={border != null}, node={node?.Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? æœªæ‰¾åˆ°çˆ¶èŠ‚ç‚¹: border={border != null}, node={node?.Name ?? "null"}");
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ÕÒµ½¸¸½Úµã: {node.Name} (Id={node.Id})");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? æ‰¾åˆ°çˆ¶èŠ‚ç‚¹: {node.Name} (Id={node.Id})");
 
-            // ÉèÖÃÁ¬½ÓÍÏ×§×´Ì¬
+            // è®¾ç½®è¿æ¥æ‹–æ‹½çŠ¶æ€
             _isDraggingConnection = true;
             _dragConnectionSourceNode = node;
-            _dragConnectionSourceBorder = border; // ±£´æÔ´½ÚµãµÄBorder
+            _dragConnectionSourceBorder = border; // ä¿å­˜æºèŠ‚ç‚¹çš„Border
             _dragConnectionSourcePort = portName;
 
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ??? ÍÏ×§×´Ì¬ÒÑÉèÖÃ: _isDraggingConnection=True, Ô´½Úµã={node.Name}, Ô´¶Ë¿Ú={portName}");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ??? æ‹–æ‹½çŠ¶æ€å·²è®¾ç½®: _isDraggingConnection=True, æºèŠ‚ç‚¹={node.Name}, æºç«¯å£={portName}");
 
-            // ±£³ÖÔ´½ÚµãµÄ¶Ë¿Ú¿É¼û
+            // ä¿æŒæºèŠ‚ç‚¹çš„ç«¯å£å¯è§
             SetPortsVisibility(border, true);
 
-            // »ñÈ¡¶Ë¿ÚÎ»ÖÃ
+            // è·å–ç«¯å£ä½ç½®
             Point portPosition = GetPortPositionByName(node, portName);
             _dragConnectionStartPoint = portPosition;
             _dragConnectionEndPoint = portPosition;
 
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ¶Ë¿ÚÎ»ÖÃ: ({portPosition.X:F1}, {portPosition.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ç«¯å£ä½ç½®: ({portPosition.X:F1}, {portPosition.Y:F1})");
 
-            // ÏÔÊ¾ÁÙÊ±Á¬½ÓÏß
+            // æ˜¾ç¤ºä¸´æ—¶è¿æ¥çº¿
             if (_tempConnectionLine != null && _tempConnectionGeometry != null)
             {
                 _tempConnectionLine.Visibility = Visibility.Visible;
                 UpdateTempConnectionPath(portPosition, portPosition);
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ÁÙÊ±Á¬½ÓÏßÒÑÏÔÊ¾");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ä¸´æ—¶è¿æ¥çº¿å·²æ˜¾ç¤º");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ÁÙÊ±Á¬½ÓÏßÎ´³õÊ¼»¯: _tempConnectionLine={_tempConnectionLine != null}, _tempConnectionGeometry={_tempConnectionGeometry != null}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ä¸´æ—¶è¿æ¥çº¿æœªåˆå§‹åŒ–: _tempConnectionLine={_tempConnectionLine != null}, _tempConnectionGeometry={_tempConnectionGeometry != null}");
             }
 
-            // ²¶»ñÊó±ê
+            // æ•è·é¼ æ ‡
             ellipse.CaptureMouse();
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? Êó±êÒÑ²¶»ñ");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? é¼ æ ‡å·²æ•è·");
 
-            // ×èÖ¹ÊÂ¼şÃ°Åİµ½BorderµÄNode_MouseLeftButtonDown
-            // ÕâÑù¿ÉÒÔ±ÜÃâÔÚÍÏ×§Á¬½ÓÊ±´íÎóµØ´¥·¢½ÚµãÒÆ¶¯
+            // é˜»æ­¢äº‹ä»¶å†’æ³¡åˆ°Borderçš„Node_MouseLeftButtonDown
+            // è¿™æ ·å¯ä»¥é¿å…åœ¨æ‹–æ‹½è¿æ¥æ—¶é”™è¯¯åœ°è§¦å‘èŠ‚ç‚¹ç§»åŠ¨
             e.Handled = true;
-            System.Diagnostics.Debug.WriteLine("¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
+            System.Diagnostics.Debug.WriteLine("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
         }
 
         /// <summary>
-        /// ¸üĞÂÁÙÊ±Á¬½ÓÏßÂ·¾¶
+        /// æ›´æ–°ä¸´æ—¶è¿æ¥çº¿è·¯å¾„
         /// </summary>
         private void UpdateTempConnectionPath(Point startPoint, Point endPoint)
         {
             if (_tempConnectionGeometry == null)
                 return;
 
-            // ´´½¨¼òµ¥µÄÖ±ÏßÂ·¾¶
+            // åˆ›å»ºç®€å•çš„ç›´çº¿è·¯å¾„
             var figure = new PathFigure
             {
                 StartPoint = startPoint,
@@ -973,46 +973,46 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ¶Ë¿ÚÊó±ê×ó¼üÊÍ·Å - ½áÊøÍÏ×§Á¬½ÓÏß
+        /// ç«¯å£é¼ æ ‡å·¦é”®é‡Šæ”¾ - ç»“æŸæ‹–æ‹½è¿æ¥çº¿
         /// </summary>
         private void Port_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ´¥·¢, _isDraggingConnection={_isDraggingConnection}");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? è§¦å‘, _isDraggingConnection={_isDraggingConnection}");
 
             if (!_isDraggingConnection || _dragConnectionSourceNode == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ÌáÇ°·µ»Ø: _isDraggingConnection={_isDraggingConnection}, _dragConnectionSourceNode={(_dragConnectionSourceNode?.Name ?? "null")}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? æå‰è¿”å›: _isDraggingConnection={_isDraggingConnection}, _dragConnectionSourceNode={(_dragConnectionSourceNode?.Name ?? "null")}");
                 return;
             }
 
-            // ÊÍ·ÅÊó±ê²¶»ñ
+            // é‡Šæ”¾é¼ æ ‡æ•è·
             if (sender is Ellipse ellipse)
             {
                 ellipse.ReleaseMouseCapture();
             }
 
-            // Ö´ĞĞÃüÖĞ²âÊÔÄ¿±ê¶Ë¿Ú
+            // æ‰§è¡Œå‘½ä¸­æµ‹è¯•ç›®æ ‡ç«¯å£
             var mousePos = e.GetPosition(WorkflowCanvas);
-            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] Êó±êÎ»ÖÃ: ({mousePos.X:F1}, {mousePos.Y:F1})");
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] é¼ æ ‡ä½ç½®: ({mousePos.X:F1}, {mousePos.Y:F1})");
 
             var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePos);
 
             if (hitTestResult?.VisualHit is not null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ÃüÖĞ²âÊÔ: VisualHitÀàĞÍ={hitTestResult.VisualHit.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] å‘½ä¸­æµ‹è¯•: VisualHitç±»å‹={hitTestResult.VisualHit.GetType().Name}");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ÃüÖĞ²âÊÔ: Î´ÃüÖĞÈÎºÎÊÓ¾õÔªËØ");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? å‘½ä¸­æµ‹è¯•: æœªå‘½ä¸­ä»»ä½•è§†è§‰å…ƒç´ ");
             }
 
             if (hitTestResult?.VisualHit is Ellipse targetEllipse &&
                 targetEllipse.Tag is string targetPortName &&
                 targetEllipse.Name.Contains("PortEllipse"))
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ä¿±êEllipse: Name={targetEllipse.Name}, Tag={targetPortName}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ç›®æ ‡Ellipse: Name={targetEllipse.Name}, Tag={targetPortName}");
 
-                // »ñÈ¡Ä¿±ê½Úµã - ÏòÉÏ±éÀúÊÓ¾õÊ÷ÕÒµ½ Border (Ellipse ¡ú Grid ¡ú Border)
+                // è·å–ç›®æ ‡èŠ‚ç‚¹ - å‘ä¸Šéå†è§†è§‰æ ‘æ‰¾åˆ° Border (Ellipse â†’ Grid â†’ Border)
                 Border? targetBorder = null;
                 DependencyObject? parent = VisualTreeHelper.GetParent(targetEllipse);
                 while (parent != null)
@@ -1028,10 +1028,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 if (targetBorder?.Tag is WorkflowNode targetNode &&
                     targetNode != _dragConnectionSourceNode)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ä¿±ê½Úµã: {targetNode.Name} (Id={targetNode.Id})");
-                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] Ô´½Úµã: {_dragConnectionSourceNode.Name}, Ô´¶Ë¿Ú: {_dragConnectionSourcePort ?? "RightPort"}, Ä¿±ê¶Ë¿Ú: {targetPortName}");
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ç›®æ ‡èŠ‚ç‚¹: {targetNode.Name} (Id={targetNode.Id})");
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] æºèŠ‚ç‚¹: {_dragConnectionSourceNode.Name}, æºç«¯å£: {_dragConnectionSourcePort ?? "RightPort"}, ç›®æ ‡ç«¯å£: {targetPortName}");
 
-                    // ´´½¨Á¬½Ó
+                    // åˆ›å»ºè¿æ¥
                     var connectionCreated = CreateConnectionBetweenPorts(
                         _dragConnectionSourceNode,
                         _dragConnectionSourcePort ?? "RightPort",
@@ -1039,9 +1039,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         targetPortName
                     );
 
-                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] Á¬½Ó´´½¨½á¹û: {connectionCreated}");
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] è¿æ¥åˆ›å»ºç»“æœ: {connectionCreated}");
 
-                    // Á¬½Ó´´½¨³É¹¦ºó£¬×èÖ¹ÊÂ¼şÃ°Åİ£¬±ÜÃâ´¥·¢½ÚµãÑ¡Ôñµ¼ÖÂÍ¼ÏñÔ¤ÀÀÆ÷±»Òş²Ø
+                    // è¿æ¥åˆ›å»ºæˆåŠŸåï¼Œé˜»æ­¢äº‹ä»¶å†’æ³¡ï¼Œé¿å…è§¦å‘èŠ‚ç‚¹é€‰æ‹©å¯¼è‡´å›¾åƒé¢„è§ˆå™¨è¢«éšè—
                     if (connectionCreated)
                     {
                         e.Handled = true;
@@ -1049,33 +1049,33 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ä¿±êBorder/NodeÎŞĞ§: targetBorder={targetBorder != null}, targetNode={(targetBorder?.Tag as WorkflowNode)?.Name ?? "null"}");
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ç›®æ ‡Border/Nodeæ— æ•ˆ: targetBorder={targetBorder != null}, targetNode={(targetBorder?.Tag as WorkflowNode)?.Name ?? "null"}");
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Î´ÃüÖĞÓĞĞ§µÄ¶Ë¿ÚEllipse: hitTestResult={hitTestResult != null}, isEllipse={hitTestResult?.VisualHit is Ellipse}, Name={(hitTestResult?.VisualHit as Ellipse)?.Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? æœªå‘½ä¸­æœ‰æ•ˆçš„ç«¯å£Ellipse: hitTestResult={hitTestResult != null}, isEllipse={hitTestResult?.VisualHit is Ellipse}, Name={(hitTestResult?.VisualHit as Ellipse)?.Name ?? "null"}");
             }
 
-            // ÖØÖÃÁ¬½ÓÍÏ×§×´Ì¬
+            // é‡ç½®è¿æ¥æ‹–æ‹½çŠ¶æ€
             _isDraggingConnection = false;
             _dragConnectionSourceNode = null;
             _dragConnectionSourcePort = null;
 
-            // ÇåÀíÔ´½ÚµãµÄ¶Ë¿Ú¿É¼ûĞÔ
+            // æ¸…ç†æºèŠ‚ç‚¹çš„ç«¯å£å¯è§æ€§
             if (_dragConnectionSourceBorder != null)
             {
                 SetPortsVisibility(_dragConnectionSourceBorder, false);
                 _dragConnectionSourceBorder = null;
             }
 
-            // Òş²ØÁÙÊ±Á¬½ÓÏß
+            // éšè—ä¸´æ—¶è¿æ¥çº¿
             if (_tempConnectionLine != null)
             {
                 var oldVisibility = _tempConnectionLine.Visibility;
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
 
-                // Çå³ı¼¸ºÎÊı¾İ£¬±ÜÃâ¾ÉÊı¾İ²ĞÁô
+                // æ¸…é™¤å‡ ä½•æ•°æ®ï¼Œé¿å…æ—§æ•°æ®æ®‹ç•™
                 if (_tempConnectionGeometry != null)
                 {
                     _tempConnectionGeometry.Figures.Clear();
@@ -1087,26 +1087,26 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
             }
 
-            // ÇåÀí¸ßÁÁµÄÄ¿±ê½Úµã
+            // æ¸…ç†é«˜äº®çš„ç›®æ ‡èŠ‚ç‚¹
             if (_highlightedTargetNodeBorder != null)
             {
                 SetPortsVisibility(_highlightedTargetNodeBorder, false);
                 _highlightedTargetNodeBorder = null;
             }
 
-            // ×¢Òâ£ºÔÚÁ¬½Ó´´½¨³É¹¦Ê±ÒÑÉèÖÃ e.Handled = true ×èÖ¹ÊÂ¼şÃ°Åİ
-            // Èç¹ûÃ»ÓĞ³É¹¦´´½¨Á¬½Ó£¬ÊÂ¼ş»á¼ÌĞøÃ°Åİ£¬ÔÊĞíÆäËû´¦ÀíÆ÷ÏìÓ¦
+            // æ³¨æ„ï¼šåœ¨è¿æ¥åˆ›å»ºæˆåŠŸæ—¶å·²è®¾ç½® e.Handled = true é˜»æ­¢äº‹ä»¶å†’æ³¡
+            // å¦‚æœæ²¡æœ‰æˆåŠŸåˆ›å»ºè¿æ¥ï¼Œäº‹ä»¶ä¼šç»§ç»­å†’æ³¡ï¼Œå…è®¸å…¶ä»–å¤„ç†å™¨å“åº”
         }
 
         /// <summary>
-        /// ¶Ë¿ÚÊó±êÒÆ¶¯ - ¸üĞÂÁÙÊ±Á¬½ÓÏß
+        /// ç«¯å£é¼ æ ‡ç§»åŠ¨ - æ›´æ–°ä¸´æ—¶è¿æ¥çº¿
         /// </summary>
         private void Port_MouseMove(object sender, MouseEventArgs e)
         {
             if (!_isDraggingConnection || e.LeftButton != MouseButtonState.Pressed)
                 return;
 
-            // ¸üĞÂÁÙÊ±Á¬½ÓÏßÖÕµã
+            // æ›´æ–°ä¸´æ—¶è¿æ¥çº¿ç»ˆç‚¹
             var currentPosition = e.GetPosition(WorkflowCanvas);
             _dragConnectionEndPoint = currentPosition;
 
@@ -1115,11 +1115,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 UpdateTempConnectionPath(_dragConnectionStartPoint, currentPosition);
             }
 
-            // HitTest ²éÕÒÊó±êÏÂµÄ½Úµã
+            // HitTest æŸ¥æ‰¾é¼ æ ‡ä¸‹çš„èŠ‚ç‚¹
             var hitResult = VisualTreeHelper.HitTest(WorkflowCanvas, currentPosition);
             if (hitResult?.VisualHit is DependencyObject obj)
             {
-                // ÏòÉÏ²éÕÒ Border£¨½ÚµãÈİÆ÷£©
+                // å‘ä¸ŠæŸ¥æ‰¾ Borderï¼ˆèŠ‚ç‚¹å®¹å™¨ï¼‰
                 Border? targetBorder = null;
                 while (obj != null)
                 {
@@ -1131,23 +1131,23 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     obj = VisualTreeHelper.GetParent(obj);
                 }
 
-                // Èç¹ûÄ¿±ê½Úµã¸Ä±ä£¬¸üĞÂ¶Ë¿Ú¿É¼ûĞÔ
+                // å¦‚æœç›®æ ‡èŠ‚ç‚¹æ”¹å˜ï¼Œæ›´æ–°ç«¯å£å¯è§æ€§
                 if (targetBorder != null && targetBorder != _highlightedTargetNodeBorder)
                 {
-                    // Òş²ØÖ®Ç°¸ßÁÁµÄ½Úµã¶Ë¿Ú
+                    // éšè—ä¹‹å‰é«˜äº®çš„èŠ‚ç‚¹ç«¯å£
                     if (_highlightedTargetNodeBorder != null)
                     {
                         SetPortsVisibility(_highlightedTargetNodeBorder, false);
                     }
 
-                    // ÏÔÊ¾ĞÂµÄÄ¿±ê½Úµã¶Ë¿Ú
+                    // æ˜¾ç¤ºæ–°çš„ç›®æ ‡èŠ‚ç‚¹ç«¯å£
                     _highlightedTargetNodeBorder = targetBorder;
                     SetPortsVisibility(_highlightedTargetNodeBorder, true);
                 }
             }
             else
             {
-                // Êó±ê²»ÔÚÈÎºÎ½ÚµãÉÏ£¬Òş²ØÖ®Ç°¸ßÁÁµÄ½Úµã¶Ë¿Ú
+                // é¼ æ ‡ä¸åœ¨ä»»ä½•èŠ‚ç‚¹ä¸Šï¼Œéšè—ä¹‹å‰é«˜äº®çš„èŠ‚ç‚¹ç«¯å£
                 if (_highlightedTargetNodeBorder != null)
                 {
                     SetPortsVisibility(_highlightedTargetNodeBorder, false);
@@ -1155,13 +1155,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
             }
 
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
         }
 
         /// <summary>
-        /// ¸ù¾İ¶Ë¿ÚÃû³Æ»ñÈ¡¶Ë¿ÚÎ»ÖÃ
+        /// æ ¹æ®ç«¯å£åç§°è·å–ç«¯å£ä½ç½®
         /// </summary>
         private Point GetPortPositionByName(WorkflowNode node, string portName)
         {
@@ -1176,24 +1176,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ÔÚÁ½¸ö¶Ë¿ÚÖ®¼ä´´½¨Á¬½Ó
+        /// åœ¨ä¸¤ä¸ªç«¯å£ä¹‹é—´åˆ›å»ºè¿æ¥
         /// </summary>
-        /// <returns>ÊÇ·ñ³É¹¦´´½¨Á¬½Ó</returns>
+        /// <returns>æ˜¯å¦æˆåŠŸåˆ›å»ºè¿æ¥</returns>
         private bool CreateConnectionBetweenPorts(WorkflowNode sourceNode, string sourcePort, 
             WorkflowNode targetNode, string targetPort)
         {
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? ¿ªÊ¼´´½¨Á¬½Ó");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - Ô´½Úµã: {sourceNode?.Name ?? "null"}, Ô´¶Ë¿Ú: {sourcePort}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - Ä¿±ê½Úµã: {targetNode?.Name ?? "null"}, Ä¿±ê¶Ë¿Ú: {targetPort}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? å¼€å§‹åˆ›å»ºè¿æ¥");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - æºèŠ‚ç‚¹: {sourceNode?.Name ?? "null"}, æºç«¯å£: {sourcePort}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - ç›®æ ‡èŠ‚ç‚¹: {targetNode?.Name ?? "null"}, ç›®æ ‡ç«¯å£: {targetPort}");
             
             var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
             if (selectedTab == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? selectedTab Îª null, _viewModel={(_viewModel != null ? "ÒÑÉèÖÃ" : "null")}");
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? selectedTab ä¸º null, _viewModel={(_viewModel != null ? "å·²è®¾ç½®" : "null")}");
                 return false;
             }
 
-            // ¼ì²éÊÇ·ñÒÑ´æÔÚÏàÍ¬Á¬½Ó£¨Í¬Ê±¼ì²é½ÚµãºÍ¶Ë¿Ú£©
+            // æ£€æŸ¥æ˜¯å¦å·²å­˜åœ¨ç›¸åŒè¿æ¥ï¼ˆåŒæ—¶æ£€æŸ¥èŠ‚ç‚¹å’Œç«¯å£ï¼‰
             var existingConnection = selectedTab.WorkflowConnections?.FirstOrDefault(
                 c => c.SourceNodeId == sourceNode.Id && 
                      c.TargetNodeId == targetNode.Id &&
@@ -1202,20 +1202,20 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             
             if (existingConnection != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? Á¬½ÓÒÑ´æÔÚ: {existingConnection.Id} (Ô´¶Ë¿Ú={sourcePort}, Ä¿±ê¶Ë¿Ú={targetPort})");
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? è¿æ¥å·²å­˜åœ¨: {existingConnection.Id} (æºç«¯å£={sourcePort}, ç›®æ ‡ç«¯å£={targetPort})");
                 return false;
             }
 
-            // ´´½¨ĞÂÁ¬½Ó
+            // åˆ›å»ºæ–°è¿æ¥
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
             newConnection.SourcePort = sourcePort;
             newConnection.TargetPort = targetPort;
 
-            // Ìí¼ÓÁ¬½Óµ½¼¯ºÏ
+            // æ·»åŠ è¿æ¥åˆ°é›†åˆ
             selectedTab.WorkflowConnections?.Add(newConnection);
 
-            // ±ê¼ÇÏà¹Ø½ÚµãÎªÔà£¬´¥·¢Á¬½ÓÏß¸üĞÂ
+            // æ ‡è®°ç›¸å…³èŠ‚ç‚¹ä¸ºè„ï¼Œè§¦å‘è¿æ¥çº¿æ›´æ–°
             if (_connectionPathCache != null)
             {
                 _connectionPathCache.MarkNodeDirty(sourceNode.Id);
@@ -1223,34 +1223,34 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
 
 
-            // Á¬½Ó´´½¨ºó£¬Ñ¡ÖĞÄ¿±ê½Úµã£¬ÈÃÍ¼ÏñÔ¤ÀÀÆ÷×Ô¶¯ÏÔÊ¾ÉÏÓÎÍ¼Ïñ²É¼¯½ÚµãµÄÍ¼Ïñ
-            // UpdateImagePreviewVisibility »á×Ô¶¯Í¨¹ı BFS ×·ËİÉÏÓÎÀ´¾ö¶¨ÊÇ·ñÏÔÊ¾Í¼ÏñÔ¤ÀÀÆ÷
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] Á¬½Ó´´½¨Íê³É: {sourceNode.Name} ¡ú {targetNode.Name}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] Ä¿±ê½ÚµãĞÅÏ¢: IsImageCaptureNode={targetNode.IsImageCaptureNode}");
-            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] _viewModel={(_viewModel == null ? "null" : "ÒÑÉèÖÃ")}");
+            // è¿æ¥åˆ›å»ºåï¼Œé€‰ä¸­ç›®æ ‡èŠ‚ç‚¹ï¼Œè®©å›¾åƒé¢„è§ˆå™¨è‡ªåŠ¨æ˜¾ç¤ºä¸Šæ¸¸å›¾åƒé‡‡é›†èŠ‚ç‚¹çš„å›¾åƒ
+            // UpdateImagePreviewVisibility ä¼šè‡ªåŠ¨é€šè¿‡ BFS è¿½æº¯ä¸Šæ¸¸æ¥å†³å®šæ˜¯å¦æ˜¾ç¤ºå›¾åƒé¢„è§ˆå™¨
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] è¿æ¥åˆ›å»ºå®Œæˆ: {sourceNode.Name} â†’ {targetNode.Name}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ç›®æ ‡èŠ‚ç‚¹ä¿¡æ¯: IsImageCaptureNode={targetNode.IsImageCaptureNode}");
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] _viewModel={(_viewModel == null ? "null" : "å·²è®¾ç½®")}");
             
             if (_viewModel != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] µ±Ç° SelectedNode={_viewModel.SelectedNode?.Name ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] å½“å‰ SelectedNode={_viewModel.SelectedNode?.Name ?? "null"}");
                 _viewModel.SelectedNode = targetNode;
-                // ¡ï Ç¿ÖÆË¢ĞÂÍ¼ÏñÔ¤ÀÀÆ÷£¬È·±£¼´Ê¹ SelectedNode ÖµÏàÍ¬Ò²»áÖØĞÂ¼ÆËã
+                // â˜… å¼ºåˆ¶åˆ·æ–°å›¾åƒé¢„è§ˆå™¨ï¼Œç¡®ä¿å³ä½¿ SelectedNode å€¼ç›¸åŒä¹Ÿä¼šé‡æ–°è®¡ç®—
                 _viewModel.ForceRefreshImagePreview();
-                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ÉèÖÃ SelectedNode={targetNode.Name} ºó, ShowImagePreview={_viewModel.ShowImagePreview}");
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] è®¾ç½® SelectedNode={targetNode.Name} å, ShowImagePreview={_viewModel.ShowImagePreview}");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ¾¯¸æ: _viewModel Îª null£¬ÎŞ·¨ÉèÖÃ SelectedNode");
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] è­¦å‘Š: _viewModel ä¸º nullï¼Œæ— æ³•è®¾ç½® SelectedNode");
             }
 
             return true;
         }
 
         /// <summary>
-        /// ½Úµãµã»÷ÊÂ¼ş - ÓÃÓÚÁ¬½Ó»òÑ¡ÖĞ
+        /// èŠ‚ç‚¹ç‚¹å‡»äº‹ä»¶ - ç”¨äºè¿æ¥æˆ–é€‰ä¸­
         /// </summary>
         private void Node_ClickForConnection(object sender, RoutedEventArgs e)
         {
-            // »ñÈ¡½Úµã¶ÔÏó£¨Ö§³Ö Border »ò Ellipse ×÷Îª sender£©
+            // è·å–èŠ‚ç‚¹å¯¹è±¡ï¼ˆæ”¯æŒ Border æˆ– Ellipse ä½œä¸º senderï¼‰
             WorkflowNode? targetNode = null;
 
             if (sender is Border border && border.Tag is WorkflowNode clickedNodeFromBorder)
@@ -1261,7 +1261,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
                 targetNode = clickedNodeFromEllipse;
 
-                // Ñ¡ÖĞµ±Ç°½Úµã£¨Á¬½Óµãµã»÷Ê±Ò²ĞèÒªÑ¡ÖĞ½Úµã£©
+                // é€‰ä¸­å½“å‰èŠ‚ç‚¹ï¼ˆè¿æ¥ç‚¹ç‚¹å‡»æ—¶ä¹Ÿéœ€è¦é€‰ä¸­èŠ‚ç‚¹ï¼‰
                 if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
                 {
                     foreach (var n in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
@@ -1279,37 +1279,37 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             if (targetNode == null)
                 return;
 
-            // ×èÖ¹ÊÂ¼şÃ°Åİµ½½ÚµãµÄµã»÷ÊÂ¼ş
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // é˜»æ­¢äº‹ä»¶å†’æ³¡åˆ°èŠ‚ç‚¹çš„ç‚¹å‡»äº‹ä»¶
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
 
-            // Ê¹ÓÃ SelectedTab µÄÁ¬½ÓÄ£Ê½×´Ì¬
+            // ä½¿ç”¨ SelectedTab çš„è¿æ¥æ¨¡å¼çŠ¶æ€
             var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
             if (selectedTab == null)
             {
                 return;
             }
 
-            // ¼ì²éÊÇ·ñÔÚÁ¬½ÓÄ£Ê½
+            // æ£€æŸ¥æ˜¯å¦åœ¨è¿æ¥æ¨¡å¼
             if (_connectionSourceNode == null)
             {
-                // ½øÈëÁ¬½ÓÄ£Ê½
+                // è¿›å…¥è¿æ¥æ¨¡å¼
                 _connectionSourceNode = targetNode;
-                _viewModel!.StatusText = $"ÇëÑ¡ÔñÄ¿±ê½Úµã½øĞĞÁ¬½Ó£¬´Ó: {targetNode.Name}";
+                _viewModel!.StatusText = $"è¯·é€‰æ‹©ç›®æ ‡èŠ‚ç‚¹è¿›è¡Œè¿æ¥ï¼Œä»: {targetNode.Name}";
             }
             else
             {
-                // ¼ì²éÊÇ·ñÊÇÍ¬Ò»¸ö½Úµã
+                // æ£€æŸ¥æ˜¯å¦æ˜¯åŒä¸€ä¸ªèŠ‚ç‚¹
                 if (_connectionSourceNode == targetNode)
                 {
-                    _viewModel!.StatusText = "ÎŞ·¨Á¬½Óµ½Í¬Ò»¸ö½Úµã";
-                    _viewModel.AddLog("[Connection] ? ÎŞ·¨Á¬½Óµ½Í¬Ò»¸ö½Úµã");
+                    _viewModel!.StatusText = "æ— æ³•è¿æ¥åˆ°åŒä¸€ä¸ªèŠ‚ç‚¹";
+                    _viewModel.AddLog("[Connection] ? æ— æ³•è¿æ¥åˆ°åŒä¸€ä¸ªèŠ‚ç‚¹");
                     _connectionSourceNode = null;
                     return;
                 }
 
-                // ¼ì²éÁ¬½ÓÊÇ·ñÒÑ´æÔÚ£¨½Úµãµã»÷Ä£Ê½Ê¹ÓÃÓ²±àÂëµÄ RightPort£©
+                // æ£€æŸ¥è¿æ¥æ˜¯å¦å·²å­˜åœ¨ï¼ˆèŠ‚ç‚¹ç‚¹å‡»æ¨¡å¼ä½¿ç”¨ç¡¬ç¼–ç çš„ RightPortï¼‰
                 var existingConnection = selectedTab.WorkflowConnections.FirstOrDefault(c =>
                     c.SourceNodeId == _connectionSourceNode!.Id && 
                     c.TargetNodeId == targetNode.Id &&
@@ -1318,49 +1318,49 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 if (existingConnection != null)
                 {
-                    _viewModel!.StatusText = "Á¬½ÓÒÑ´æÔÚ";
+                    _viewModel!.StatusText = "è¿æ¥å·²å­˜åœ¨";
                     _connectionSourceNode = null;
                     return;
                 }
 
-                // ´´½¨ĞÂÁ¬½Ó
+                // åˆ›å»ºæ–°è¿æ¥
                 _connectionCreator?.CreateConnection(_connectionSourceNode, targetNode, "RightPort", CurrentWorkflowTab);
 
-                // ÍË³öÁ¬½ÓÄ£Ê½
+                // é€€å‡ºè¿æ¥æ¨¡å¼
                 _connectionSourceNode = null;
             }
         }
 
         /// <summary>
-        /// Á¬½ÓµãÊó±ê°´ÏÂ - ¿ªÊ¼ÍÏ×§Á¬½Ó
+        /// è¿æ¥ç‚¹é¼ æ ‡æŒ‰ä¸‹ - å¼€å§‹æ‹–æ‹½è¿æ¥
         /// </summary>
         private void Port_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // ÒÆ³ı´Ë·½·¨£¬Í³Ò»Ê¹ÓÃ Port_MouseLeftButtonDown ºÍ Canvas ÊÂ¼ş´¦Àí
-            // ±ÜÃâÊÂ¼ş´¦ÀíÆ÷³åÍ»
+            // ç§»é™¤æ­¤æ–¹æ³•ï¼Œç»Ÿä¸€ä½¿ç”¨ Port_MouseLeftButtonDown å’Œ Canvas äº‹ä»¶å¤„ç†
+            // é¿å…äº‹ä»¶å¤„ç†å™¨å†²çª
         }
 
         /// <summary>
-        /// Á¬½ÓµãÊó±êÊÍ·Å - ½áÊøÍÏ×§²¢´´½¨Á¬½Ó
+        /// è¿æ¥ç‚¹é¼ æ ‡é‡Šæ”¾ - ç»“æŸæ‹–æ‹½å¹¶åˆ›å»ºè¿æ¥
         /// </summary>
         private void Port_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            // ÒÆ³ı´Ë·½·¨£¬Í³Ò»Ê¹ÓÃ Port_MouseLeftButtonUp ºÍ Canvas ÊÂ¼ş´¦Àí
-            // ±ÜÃâÊÂ¼ş´¦ÀíÆ÷³åÍ»
+            // ç§»é™¤æ­¤æ–¹æ³•ï¼Œç»Ÿä¸€ä½¿ç”¨ Port_MouseLeftButtonUp å’Œ Canvas äº‹ä»¶å¤„ç†
+            // é¿å…äº‹ä»¶å¤„ç†å™¨å†²çª
         }
 
         #endregion
 
-        #region ¿òÑ¡¹¦ÄÜ
+        #region æ¡†é€‰åŠŸèƒ½
 
         /// <summary>
-        /// Canvas Êó±ê×ó¼ü°´ÏÂ - ¿ªÊ¼¿òÑ¡»òÇå³ıÑ¡Ôñ
+        /// Canvas é¼ æ ‡å·¦é”®æŒ‰ä¸‹ - å¼€å§‹æ¡†é€‰æˆ–æ¸…é™¤é€‰æ‹©
         /// </summary>
         private void WorkflowCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var mousePos = e.GetPosition(WorkflowCanvas);
 
-            // ±£»¤£ºÈç¹û´¦ÓÚÍÏ×§Á¬½Ó×´Ì¬£¬ÏÈÖØÖÃ×´Ì¬
+            // ä¿æŠ¤ï¼šå¦‚æœå¤„äºæ‹–æ‹½è¿æ¥çŠ¶æ€ï¼Œå…ˆé‡ç½®çŠ¶æ€
             if (_isDraggingConnection)
             {
                 _isDraggingConnection = false;
@@ -1373,10 +1373,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
             }
 
-            // ¼ì²éµã»÷µÄÊÇ·ñÊÇ½Úµã»ò¶Ë¿Ú£¨Í¨¹ıÔ­Ê¼Ô´£©
+            // æ£€æŸ¥ç‚¹å‡»çš„æ˜¯å¦æ˜¯èŠ‚ç‚¹æˆ–ç«¯å£ï¼ˆé€šè¿‡åŸå§‹æºï¼‰
             var originalSource = e.OriginalSource as DependencyObject;
 
-            // ÊÖ¶¯²éÕÒ´ø WorkflowNode Tag µÄ Border »ò¶Ë¿Ú Ellipse
+            // æ‰‹åŠ¨æŸ¥æ‰¾å¸¦ WorkflowNode Tag çš„ Border æˆ–ç«¯å£ Ellipse
             WorkflowNode? clickedNode = null;
             bool clickedPort = false;
             DependencyObject? current = originalSource;
@@ -1388,7 +1388,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     clickedNode = node;
                     break;
                 }
-                // ¼ì²éÊÇ·ñµã»÷ÁË¶Ë¿Ú Ellipse
+                // æ£€æŸ¥æ˜¯å¦ç‚¹å‡»äº†ç«¯å£ Ellipse
                 if (current is Ellipse ellipse)
                 {
                     var ellipseName = ellipse.Name ?? "";
@@ -1401,48 +1401,48 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 current = VisualTreeHelper.GetParent(current);
             }
 
-            // Èç¹ûµã»÷µÄÊÇÓĞ WorkflowNode Tag µÄ Border »ò¶Ë¿Ú Ellipse£¬ÔòÓÉ½ÚµãµÄÊÂ¼ş´¦Àí£¬²»´¥·¢¿òÑ¡
+            // å¦‚æœç‚¹å‡»çš„æ˜¯æœ‰ WorkflowNode Tag çš„ Border æˆ–ç«¯å£ Ellipseï¼Œåˆ™ç”±èŠ‚ç‚¹çš„äº‹ä»¶å¤„ç†ï¼Œä¸è§¦å‘æ¡†é€‰
             if (clickedNode != null || clickedPort)
             {
                 return;
             }
 
-            // ¼ì²éÊÇ·ñ°´×¡ Shift »ò Ctrl ¼ü£¨¶àÑ¡Ä£Ê½£©
+            // æ£€æŸ¥æ˜¯å¦æŒ‰ä½ Shift æˆ– Ctrl é”®ï¼ˆå¤šé€‰æ¨¡å¼ï¼‰
             bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
                                (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
-            // ¿ªÊ¼¿òÑ¡
+            // å¼€å§‹æ¡†é€‰
             _isBoxSelecting = true;
             _boxSelectStart = e.GetPosition(WorkflowCanvas);
 
-            // Èç¹û²»ÊÇ¶àÑ¡Ä£Ê½£¬Çå³ıËùÓĞÑ¡Ôñ
+            // å¦‚æœä¸æ˜¯å¤šé€‰æ¨¡å¼ï¼Œæ¸…é™¤æ‰€æœ‰é€‰æ‹©
             if (!isMultiSelect)
             {
                 ClearAllSelections();
             }
 
-            // ¿ªÊ¼ÏÔÊ¾¿òÑ¡¿ò
+            // å¼€å§‹æ˜¾ç¤ºæ¡†é€‰æ¡†
             SelectionBox?.StartSelection(_boxSelectStart);
 
             WorkflowCanvas.CaptureMouse();
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
         }
 
         /// <summary>
-        /// Canvas Êó±êÒÆ¶¯ - ¸üĞÂ¿òÑ¡ÇøÓò
+        /// Canvas é¼ æ ‡ç§»åŠ¨ - æ›´æ–°æ¡†é€‰åŒºåŸŸ
         /// </summary>
         private void WorkflowCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             var mousePos = e.GetPosition(WorkflowCanvas);
 
-            // ´¦ÀíÍÏ×§Á¬½Ó
+            // å¤„ç†æ‹–æ‹½è¿æ¥
             if (_isDraggingConnection)
             {
                 _dragMoveCounter++;
 
-                // ±£»¤£ºÈç¹û×´Ì¬²»Ò»ÖÂ£¨_isDraggingConnection=true µ« _dragConnectionSourceNode=null£©£¬Á¢¼´ÖØÖÃ×´Ì¬
+                // ä¿æŠ¤ï¼šå¦‚æœçŠ¶æ€ä¸ä¸€è‡´ï¼ˆ_isDraggingConnection=true ä½† _dragConnectionSourceNode=nullï¼‰ï¼Œç«‹å³é‡ç½®çŠ¶æ€
                 if (_dragConnectionSourceNode == null)
                 {
                     _isDraggingConnection = false;
@@ -1454,25 +1454,25 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     return;
                 }
 
-                // ±£»¤£ºÈ·±£ÁÙÊ±Á¬½ÓÏßÃ»ÓĞÒâÍâÏÔÊ¾
+                // ä¿æŠ¤ï¼šç¡®ä¿ä¸´æ—¶è¿æ¥çº¿æ²¡æœ‰æ„å¤–æ˜¾ç¤º
                 if (_tempConnectionLine != null && _tempConnectionLine.Visibility != Visibility.Visible)
                 {
                     _tempConnectionLine.Visibility = Visibility.Collapsed;
                     return;
                 }
 
-                // È·±£Ô´½Úµã²»Îª¿Õ²Å¸üĞÂÁÙÊ±Á¬½ÓÏß
+                // ç¡®ä¿æºèŠ‚ç‚¹ä¸ä¸ºç©ºæ‰æ›´æ–°ä¸´æ—¶è¿æ¥çº¿
                 if (_tempConnectionGeometry != null && _dragConnectionSourceNode != null)
                 {
                     var currentPoint = e.GetPosition(WorkflowCanvas);
 
-                    // »ñÈ¡Ô´½ÚµãµÄÁ¬½ÓµãÎ»ÖÃ
+                    // è·å–æºèŠ‚ç‚¹çš„è¿æ¥ç‚¹ä½ç½®
                     var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
 
-                    // ¼ÆËãÖÇÄÜÖ±½ÇÕÛÏßÂ·¾¶
+                    // è®¡ç®—æ™ºèƒ½ç›´è§’æŠ˜çº¿è·¯å¾„
                     var pathPoints = CalculateSmartPath(sourcePort, currentPoint);
 
-                    // ¸üĞÂÁÙÊ±Á¬½ÓÏß
+                    // æ›´æ–°ä¸´æ—¶è¿æ¥çº¿
                     if (_tempConnectionGeometry != null)
                     {
                         _tempConnectionGeometry.Figures.Clear();
@@ -1482,7 +1482,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             IsClosed = false
                         };
 
-                        // Ìí¼ÓÂ·¾¶µã
+                        // æ·»åŠ è·¯å¾„ç‚¹
                         foreach (var point in pathPoints)
                         {
                             pathFigure.Segments.Add(new LineSegment(point, true));
@@ -1491,7 +1491,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         _tempConnectionGeometry.Figures.Add(pathFigure);
                     }
 
-                    // ¶¯Ì¬¸ßÁÁÄ¿±ê¶Ë¿Ú
+                    // åŠ¨æ€é«˜äº®ç›®æ ‡ç«¯å£
                     var hitNodes = new List<(WorkflowNode node, Border border, double distance)>();
                     var hitPorts = new List<(Ellipse port, string portName)>();
                     int hitTestCount = 0;
@@ -1501,7 +1501,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         {
                             hitTestCount++;
 
-                            // ¼ì²éÊÇ·ñÃüÖĞ¶Ë¿Ú
+                            // æ£€æŸ¥æ˜¯å¦å‘½ä¸­ç«¯å£
                             if (result.VisualHit is Ellipse hitEllipse)
                             {
                                 var ellipseName = hitEllipse.Name;
@@ -1517,7 +1517,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                         if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
                         {
-                            // ¶¯Ì¬¼ÆËã½ÚµãÖĞĞÄ£¨ÍêÈ«½âñî£©
+                            // åŠ¨æ€è®¡ç®—èŠ‚ç‚¹ä¸­å¿ƒï¼ˆå®Œå…¨è§£è€¦ï¼‰
                             var nodeCenter = hitNode.NodeCenter;
                             double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
                             hitNodes.Add((hitNode, hitBorder, distance));
@@ -1527,7 +1527,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             {
                                 if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
                                 {
-                                    // ¶¯Ì¬¼ÆËã½ÚµãÖĞĞÄ£¨ÍêÈ«½âñî£©
+                                    // åŠ¨æ€è®¡ç®—èŠ‚ç‚¹ä¸­å¿ƒï¼ˆå®Œå…¨è§£è€¦ï¼‰
                                     var nodeCenter = currentBorderNode.NodeCenter;
                                     double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
                                     hitNodes.Add((currentBorderNode, currentBorder, distance));
@@ -1543,12 +1543,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     {
                     }
 
-                    // ÓÅÏÈ´¦ÀíÃüÖĞµÄ¶Ë¿Ú£¨ĞèÒªÅÅ³ıÔ´½ÚµãµÄ¶Ë¿Ú£©
+                    // ä¼˜å…ˆå¤„ç†å‘½ä¸­çš„ç«¯å£ï¼ˆéœ€è¦æ’é™¤æºèŠ‚ç‚¹çš„ç«¯å£ï¼‰
                     if (hitPorts.Count > 0)
                     {
                         var targetPortName = hitPorts[0].portName;
 
-                        // ÕÒµ½¶Ë¿ÚËùÊôµÄ½Úµã
+                        // æ‰¾åˆ°ç«¯å£æ‰€å±çš„èŠ‚ç‚¹
                         Border? portBorder = null;
                         foreach (var hitPort in hitPorts)
                         {
@@ -1560,7 +1560,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                                     if (node != _dragConnectionSourceNode)
                                     {
                                         portBorder = border;
-                                        // Ö»ÔÚ¶Ë¿Ú±ä»¯Ê±²Å¸ßÁÁºÍ¼ÇÂ¼
+                                        // åªåœ¨ç«¯å£å˜åŒ–æ—¶æ‰é«˜äº®å’Œè®°å½•
                                         if (_lastHighlightedPort != targetPortName)
                                         {
                                             _portHighlighter?.HighlightSpecificPort(border, targetPortName);
@@ -1577,7 +1577,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                         if (portBorder == null)
                         {
-                            // ÃüÖĞµÄ¶¼ÊÇÔ´½ÚµãµÄ¶Ë¿Ú£¬Çå³ı¸ßÁÁ
+                            // å‘½ä¸­çš„éƒ½æ˜¯æºèŠ‚ç‚¹çš„ç«¯å£ï¼Œæ¸…é™¤é«˜äº®
                             if (_lastHighlightedPort != null)
                             {
                                 _portHighlighter?.ClearTargetPortHighlight();
@@ -1591,13 +1591,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         var nearest = hitNodes.OrderBy(n => n.distance).First();
                         if (nearest.node != _dragConnectionSourceNode)
                         {
-                            // ÏÔÊ¾Ä¿±ê½ÚµãµÄËùÓĞ¶Ë¿Ú£¨ÒòÎªÊó±êÃ»ÓĞÕæÕı½øÈëÄ¿±ê½Úµã£©
+                            // æ˜¾ç¤ºç›®æ ‡èŠ‚ç‚¹çš„æ‰€æœ‰ç«¯å£ï¼ˆå› ä¸ºé¼ æ ‡æ²¡æœ‰çœŸæ­£è¿›å…¥ç›®æ ‡èŠ‚ç‚¹ï¼‰
                             SetPortsVisibility(nearest.border, true);
 
-                            // ¸ßÁÁÄ¿±ê¶Ë¿Ú
+                            // é«˜äº®ç›®æ ‡ç«¯å£
                             _portHighlighter?.HighlightTargetPort(nearest.border, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
 
-                            // ±£´æ¸ßÁÁµÄ½ÚµãBorder£¬ÓÃÓÚºóĞøÇåÀí£¨¼´Ê¹Êó±êÀë¿ªÒ²±£³ÖÏÔÊ¾£©
+                            // ä¿å­˜é«˜äº®çš„èŠ‚ç‚¹Borderï¼Œç”¨äºåç»­æ¸…ç†ï¼ˆå³ä½¿é¼ æ ‡ç¦»å¼€ä¹Ÿä¿æŒæ˜¾ç¤ºï¼‰
                             if (_highlightedTargetNodeBorder != nearest.border)
                             {
                                 if (_highlightedTargetNodeBorder != null)
@@ -1612,79 +1612,79 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             _portHighlighter?.ClearTargetPortHighlight();
                         }
                     }
-                    // ×¢Òâ£ºÕâÀï²»ÔÙÒş²Ø¶Ë¿Ú£¬±£³ÖÄ¿±ê½ÚµãµÄ¶Ë¿Ú¿É¼ûÖ±µ½ÍÏ×§½áÊø
-                    // ÕâÑùÈ·±£ÍÏ×§½áÊøÊ±Ò²ÄÜÃüÖĞÄ¿±ê½ÚµãµÄ¶Ë¿Ú
+                    // æ³¨æ„ï¼šè¿™é‡Œä¸å†éšè—ç«¯å£ï¼Œä¿æŒç›®æ ‡èŠ‚ç‚¹çš„ç«¯å£å¯è§ç›´åˆ°æ‹–æ‹½ç»“æŸ
+                    // è¿™æ ·ç¡®ä¿æ‹–æ‹½ç»“æŸæ—¶ä¹Ÿèƒ½å‘½ä¸­ç›®æ ‡èŠ‚ç‚¹çš„ç«¯å£
                 }
                 return;
             }
 
-            // ´¦Àí¿òÑ¡
+            // å¤„ç†æ¡†é€‰
             if (!_isBoxSelecting) return;
 
-            // ¸üĞÂ¿òÑ¡¿ò
+            // æ›´æ–°æ¡†é€‰æ¡†
             var selectionPoint = e.GetPosition(WorkflowCanvas);
             SelectionBox?.UpdateSelection(selectionPoint);
 
-            // »ñÈ¡¿òÑ¡ÇøÓò
+            // è·å–æ¡†é€‰åŒºåŸŸ
             var selectionRect = SelectionBox?.GetSelectionRect() ?? new Rect();
 
-            // ¸üĞÂÑ¡ÖĞµÄ½Úµã
+            // æ›´æ–°é€‰ä¸­çš„èŠ‚ç‚¹
             if (_viewModel?.WorkflowTabViewModel.SelectedTab != null)
             {
                 int selectedCount = 0;
 
                 foreach (var node in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowNodes)
                 {
-                    // »ñÈ¡½Úµã±ß½ç£¨¶¯Ì¬¼ÆËã£¬ÍêÈ«½âñî£©
+                    // è·å–èŠ‚ç‚¹è¾¹ç•Œï¼ˆåŠ¨æ€è®¡ç®—ï¼Œå®Œå…¨è§£è€¦ï¼‰
                     var nodeRect = node.NodeRect;
 
-                    // ¼ì²é½ÚµãÊÇ·ñÓë¿òÑ¡ÇøÓòÏà½»
+                    // æ£€æŸ¥èŠ‚ç‚¹æ˜¯å¦ä¸æ¡†é€‰åŒºåŸŸç›¸äº¤
                     bool isSelected = selectionRect.IntersectsWith(nodeRect);
                     node.IsSelected = isSelected;
 
                     if (isSelected) selectedCount++;
                 }
 
-                // ¸üĞÂ¿òÑ¡ĞÅÏ¢ÏÔÊ¾
+                // æ›´æ–°æ¡†é€‰ä¿¡æ¯æ˜¾ç¤º
                 SelectionBox?.SetItemCount(selectedCount);
             }
         }
 
         /// <summary>
-        /// Canvas Êó±ê×ó¼üÊÍ·Å - ½áÊø¿òÑ¡»ò´´½¨Á¬½Ó
+        /// Canvas é¼ æ ‡å·¦é”®é‡Šæ”¾ - ç»“æŸæ¡†é€‰æˆ–åˆ›å»ºè¿æ¥
         /// </summary>
         private void WorkflowCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             var mousePos = e.GetPosition(WorkflowCanvas);
 
-            // Á¢¼´Òş²ØÁÙÊ±Á¬½ÓÏß£¨ÔÚÈÎºÎÂß¼­´¦ÀíÖ®Ç°£©
-            // ÕâÑù¿ÉÒÔÈ·±£ÎŞÂÛºóĞøÂß¼­ÈçºÎ£¬ÁÙÊ±Á¬½ÓÏß¶¼±»Òş²Ø
+            // ç«‹å³éšè—ä¸´æ—¶è¿æ¥çº¿ï¼ˆåœ¨ä»»ä½•é€»è¾‘å¤„ç†ä¹‹å‰ï¼‰
+            // è¿™æ ·å¯ä»¥ç¡®ä¿æ— è®ºåç»­é€»è¾‘å¦‚ä½•ï¼Œä¸´æ—¶è¿æ¥çº¿éƒ½è¢«éšè—
             if (_isDraggingConnection && _tempConnectionLine != null)
             {
                 var oldVisibility = _tempConnectionLine.Visibility;
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
 
-                // Çå³ı¼¸ºÎÊı¾İ£¬±ÜÃâ¾ÉÊı¾İ²ĞÁô
+                // æ¸…é™¤å‡ ä½•æ•°æ®ï¼Œé¿å…æ—§æ•°æ®æ®‹ç•™
                 if (_tempConnectionGeometry != null)
                 {
                     _tempConnectionGeometry.Figures.Clear();
                 }
 
-                // Ç¿ÖÆË¢ĞÂUI£¬È·±£ÁÙÊ±Á¬½ÓÏßÁ¢¼´±»Òş²Ø
+                // å¼ºåˆ¶åˆ·æ–°UIï¼Œç¡®ä¿ä¸´æ—¶è¿æ¥çº¿ç«‹å³è¢«éšè—
                 _tempConnectionLine.UpdateLayout();
             }
 
-            // Èç¹ûÕıÔÚÍÏ×§Á¬½Ó£¬³¢ÊÔ´´½¨Á¬½Ó
+            // å¦‚æœæ­£åœ¨æ‹–æ‹½è¿æ¥ï¼Œå°è¯•åˆ›å»ºè¿æ¥
             if (_isDraggingConnection)
             {
                 var mousePosition = e.GetPosition(WorkflowCanvas);
 
 
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
 
-            // Òş²ØÁÙÊ±Á¬½ÓÏß
+            // éšè—ä¸´æ—¶è¿æ¥çº¿
             if (_tempConnectionLine != null)
             {
                 _tempConnectionLine.Visibility = Visibility.Collapsed;
@@ -1693,7 +1693,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
             }
 
-                // Çå³ıÖ®Ç°µÄ¸ßÁÁ
+                // æ¸…é™¤ä¹‹å‰çš„é«˜äº®
                 if (_highlightedTargetBorder != null)
                 {
                     _highlightedTargetBorder.Background = new SolidColorBrush(Colors.White);
@@ -1702,12 +1702,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     _highlightedTargetBorder = null;
                 }
 
-                // ÊÕ¼¯ËùÓĞÃüÖĞµÄ½Úµã²¢Ñ¡Ôñ×î½üµÄÒ»¸ö
+                // æ”¶é›†æ‰€æœ‰å‘½ä¸­çš„èŠ‚ç‚¹å¹¶é€‰æ‹©æœ€è¿‘çš„ä¸€ä¸ª
                 var hitNodes = new List<(WorkflowNode node, Border border, double distance)>();
-                var hitPorts = new List<(Ellipse port, string portName, double distance)>(); // ĞÂÔö£ºÃüÖĞµÄ¶Ë¿ÚÁĞ±í
+                var hitPorts = new List<(Ellipse port, string portName, double distance)>(); // æ–°å¢ï¼šå‘½ä¸­çš„ç«¯å£åˆ—è¡¨
                 int hitTestCount = 0;
 
-                // Êä³öËùÓĞ½ÚµãµÄÎ»ÖÃĞÅÏ¢£¨ÓÃÓÚÕï¶Ï£©
+                // è¾“å‡ºæ‰€æœ‰èŠ‚ç‚¹çš„ä½ç½®ä¿¡æ¯ï¼ˆç”¨äºè¯Šæ–­ï¼‰
                 if (CurrentWorkflowTab?.WorkflowNodes != null)
                 {
                     foreach (var node in CurrentWorkflowTab.WorkflowNodes)
@@ -1715,13 +1715,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     }
                 }
 
-                // ¼ì²é½ÚµãÊÇ·ñ±»äÖÈ¾µ½Canvas£¨ÓÃÓÚÕï¶Ï£©
+                // æ£€æŸ¥èŠ‚ç‚¹æ˜¯å¦è¢«æ¸²æŸ“åˆ°Canvasï¼ˆç”¨äºè¯Šæ–­ï¼‰
                 var nodeBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
                 foreach (var border in nodeBorders)
                 {
                     if (border.Tag is WorkflowNode node)
                     {
-                        // ¼ì²éBorderµÄ¸¸ÔªËØContentPresenterµÄÎ»ÖÃ
+                        // æ£€æŸ¥Borderçš„çˆ¶å…ƒç´ ContentPresenterçš„ä½ç½®
                         var parent = VisualTreeHelper.GetParent(border);
                         if (parent is System.Windows.Controls.ContentPresenter cp)
                         {
@@ -1734,24 +1734,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     }
                 }
 
-                // Ê¹ÓÃ HitTest ²éÕÒÊó±êÎ»ÖÃÏÂµÄËùÓĞÔªËØ
+                // ä½¿ç”¨ HitTest æŸ¥æ‰¾é¼ æ ‡ä½ç½®ä¸‹çš„æ‰€æœ‰å…ƒç´ 
                 VisualTreeHelper.HitTest(WorkflowCanvas, null,
                     result =>
                     {
                         hitTestCount++;
 
-                        // ¼ì²éÊÇ·ñÃüÖĞÁË¶Ë¿Ú
+                        // æ£€æŸ¥æ˜¯å¦å‘½ä¸­äº†ç«¯å£
                         if (result.VisualHit is Ellipse hitEllipse)
                         {
                             var ellipseName = hitEllipse.Name;
 
-                            // ¼ì²éÊÇ·ñÊÇ¶Ë¿Ú
+                            // æ£€æŸ¥æ˜¯å¦æ˜¯ç«¯å£
                             if (!string.IsNullOrEmpty(ellipseName) && (ellipseName == "LeftPortEllipse" ||
                                 ellipseName == "RightPortEllipse" ||
                                 ellipseName == "TopPortEllipse" ||
                                 ellipseName == "BottomPortEllipse"))
                             {
-                                // ÌáÈ¡¶Ë¿ÚÃû³Æ
+                                // æå–ç«¯å£åç§°
                                 string portName = ellipseName.Replace("Ellipse", "");
                                 var portCenterX = hitEllipse.RenderSize.Width / 2;
                                 var portCenterY = hitEllipse.RenderSize.Height / 2;
@@ -1762,7 +1762,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                                 hitPorts.Add((hitEllipse, portName, portDistance));
 
-                                // ²éÕÒ¶Ë¿ÚËùÊôµÄ½Úµã
+                                // æŸ¥æ‰¾ç«¯å£æ‰€å±çš„èŠ‚ç‚¹
                                 DependencyObject? parent = hitEllipse;
                                 while (parent != null)
                                 {
@@ -1775,16 +1775,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             }
                         }
 
-                        // Èç¹ûÕÒµ½ Border ÇÒ´øÓĞ WorkflowNode Tag£¬¼ÆËã¾àÀë²¢¼ÇÂ¼
+                        // å¦‚æœæ‰¾åˆ° Border ä¸”å¸¦æœ‰ WorkflowNode Tagï¼Œè®¡ç®—è·ç¦»å¹¶è®°å½•
                         if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
                         {
-                            // ¶¯Ì¬¼ÆËã½ÚµãÖĞĞÄ£¨ÍêÈ«½âñî£©
+                            // åŠ¨æ€è®¡ç®—èŠ‚ç‚¹ä¸­å¿ƒï¼ˆå®Œå…¨è§£è€¦ï¼‰
                             var nodeCenter = hitNode.NodeCenter;
                             double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenter.X, 2) + Math.Pow(mousePosition.Y - nodeCenter.Y, 2));
                             hitNodes.Add((hitNode, hitBorder, distance));
                         }
 
-                        // ¶ÔÓÚÈÎºÎÃüÖĞµÄÔªËØ£¬¶¼ÏòÉÏ²éÕÒ´øÓĞWorkflowNode TagµÄBorder
+                        // å¯¹äºä»»ä½•å‘½ä¸­çš„å…ƒç´ ï¼Œéƒ½å‘ä¸ŠæŸ¥æ‰¾å¸¦æœ‰WorkflowNode Tagçš„Border
                         DependencyObject? current = result.VisualHit as DependencyObject;
                         int depth = 0;
                         while (current != null && depth < 30)
@@ -1792,7 +1792,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             depth++;
                             if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
                             {
-                                // ¶¯Ì¬¼ÆËã½ÚµãÖĞĞÄ£¨ÍêÈ«½âñî£©
+                                // åŠ¨æ€è®¡ç®—èŠ‚ç‚¹ä¸­å¿ƒï¼ˆå®Œå…¨è§£è€¦ï¼‰
                                 var nodeCenter = currentBorderNode.NodeCenter;
                                 double distance = Math.Sqrt(Math.Pow(mousePosition.X - nodeCenter.X, 2) + Math.Pow(mousePosition.Y - nodeCenter.Y, 2));
                                 hitNodes.Add((currentBorderNode, currentBorder, distance));
@@ -1824,14 +1824,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             {
             }
 
-                // Ñ¡Ôñ¾àÀëÊó±ê×î½üµÄ½Úµã
+                // é€‰æ‹©è·ç¦»é¼ æ ‡æœ€è¿‘çš„èŠ‚ç‚¹
                 WorkflowNode? targetNode = null;
                 Border? targetBorder = null;
 
-                // ÓÅÏÈÑ¡ÔñÃüÖĞµÄ¶Ë¿Ú£¨ÅÅ³ıÔ´½ÚµãµÄ¶Ë¿Ú£©
+                // ä¼˜å…ˆé€‰æ‹©å‘½ä¸­çš„ç«¯å£ï¼ˆæ’é™¤æºèŠ‚ç‚¹çš„ç«¯å£ï¼‰
                 if (hitPorts.Count > 0)
                 {
-                    // ÏÈ¹ıÂËµôÔ´½ÚµãµÄ¶Ë¿Ú
+                    // å…ˆè¿‡æ»¤æ‰æºèŠ‚ç‚¹çš„ç«¯å£
                     var validPorts = hitPorts.Where(p =>
                     {
                         DependencyObject? parent = p.port;
@@ -1851,7 +1851,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         var nearestPort = validPorts.OrderBy(p => p.distance).First();
                         var targetPortEllipse = nearestPort.port;
 
-                        // ÕÒµ½¶Ë¿ÚËùÊôµÄ½ÚµãBorder
+                        // æ‰¾åˆ°ç«¯å£æ‰€å±çš„èŠ‚ç‚¹Border
                         DependencyObject? parent = targetPortEllipse;
                         while (parent != null)
                         {
@@ -1878,24 +1878,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     }
                 }
 
-                // Èç¹ûÃ»ÓĞÃüÖĞÓĞĞ§µÄÄ¿±ê¶Ë¿Ú£¬ÔòÊ¹ÓÃ½ÚµãÑ¡ÔñÂß¼­
-                // Ôö¼ÓÈİ´í¾àÀë£º¼´Ê¹Êó±ê²»ÔÚ½ÚµãÉÏ£¬Èç¹û¾àÀë×ã¹»½ü£¨150pxÒÔÄÚ£©£¬Ò²ÈÏÎªÃüÖĞ¸Ã½Úµã
+                // å¦‚æœæ²¡æœ‰å‘½ä¸­æœ‰æ•ˆçš„ç›®æ ‡ç«¯å£ï¼Œåˆ™ä½¿ç”¨èŠ‚ç‚¹é€‰æ‹©é€»è¾‘
+                // å¢åŠ å®¹é”™è·ç¦»ï¼šå³ä½¿é¼ æ ‡ä¸åœ¨èŠ‚ç‚¹ä¸Šï¼Œå¦‚æœè·ç¦»è¶³å¤Ÿè¿‘ï¼ˆ150pxä»¥å†…ï¼‰ï¼Œä¹Ÿè®¤ä¸ºå‘½ä¸­è¯¥èŠ‚ç‚¹
                 if (targetNode == null && hitNodes.Count > 0)
                 {
-                    // ÏÈ¹ıÂËµôÔ´½Úµã£¬±ÜÃâ°Ñ×Ô¼ºµ±³ÉÄ¿±ê½Úµã
+                    // å…ˆè¿‡æ»¤æ‰æºèŠ‚ç‚¹ï¼Œé¿å…æŠŠè‡ªå·±å½“æˆç›®æ ‡èŠ‚ç‚¹
                     var validNodes = hitNodes.Where(n => n.node != _dragConnectionSourceNode).ToList();
                     
                     if (validNodes.Count > 0)
                     {
                         var nearest = validNodes.OrderBy(n => n.distance).First();
-                        const double MaxDistance = 150.0; // ×î´óÈİ´í¾àÀë150px
+                        const double MaxDistance = 150.0; // æœ€å¤§å®¹é”™è·ç¦»150px
 
                         if (nearest.distance <= MaxDistance)
                         {
                             targetNode = nearest.node;
                             targetBorder = nearest.border;
 
-                            // ¸ßÁÁÏÔÊ¾Ä¿±ê½ÚµãµÄ¶Ë¿Ú£¨Ê¹ÓÃÖÇÄÜÑ¡Ôñ£©
+                            // é«˜äº®æ˜¾ç¤ºç›®æ ‡èŠ‚ç‚¹çš„ç«¯å£ï¼ˆä½¿ç”¨æ™ºèƒ½é€‰æ‹©ï¼‰
                             _portHighlighter?.HighlightTargetPort(targetBorder, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
                         }
                         else
@@ -1907,24 +1907,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     }
                 }
 
-                // Ê×ÏÈ¼ì²éÊÇ·ñÃüÖĞÁËÈÎºÎ¶Ë¿Ú
-                // Èç¹ûÃüÖĞÁË¶Ë¿Ú£¨ÎŞÂÛÊÇÔ´¶Ë¿Ú×Ô¼º»¹ÊÇÆäËû½Úµã¶Ë¿Ú£©£¬ÈÃ Port_MouseLeftButtonUp ´¦Àí
-                // ÕâÑù±ÜÃâPreviewÊÂ¼şÌáÇ°ÖØÖÃÍÏ×§×´Ì¬
+                // é¦–å…ˆæ£€æŸ¥æ˜¯å¦å‘½ä¸­äº†ä»»ä½•ç«¯å£
+                // å¦‚æœå‘½ä¸­äº†ç«¯å£ï¼ˆæ— è®ºæ˜¯æºç«¯å£è‡ªå·±è¿˜æ˜¯å…¶ä»–èŠ‚ç‚¹ç«¯å£ï¼‰ï¼Œè®© Port_MouseLeftButtonUp å¤„ç†
+                // è¿™æ ·é¿å…Previewäº‹ä»¶æå‰é‡ç½®æ‹–æ‹½çŠ¶æ€
                 if (hitPorts.Count > 0)
                 {
-                    // ÃüÖĞÁË¶Ë¿Ú£¬ÈÃ Port_MouseLeftButtonUp ´¦ÀíÁ¬½Ó´´½¨»ò×´Ì¬ÇåÀí
-                    // °üÀ¨£ºÍÏµ½ÆäËû¶Ë¿Ú´´½¨Á¬½Ó£¬»òÍÏ»Ø×Ô¼º¶Ë¿ÚÈ¡ÏûÁ¬½Ó
+                    // å‘½ä¸­äº†ç«¯å£ï¼Œè®© Port_MouseLeftButtonUp å¤„ç†è¿æ¥åˆ›å»ºæˆ–çŠ¶æ€æ¸…ç†
+                    // åŒ…æ‹¬ï¼šæ‹–åˆ°å…¶ä»–ç«¯å£åˆ›å»ºè¿æ¥ï¼Œæˆ–æ‹–å›è‡ªå·±ç«¯å£å–æ¶ˆè¿æ¥
                     return;
                 }
 
-                // ¼ì²éÊÇ·ñÕÒµ½Ä¿±ê½Úµã£¨ÍÏ×§µ½½ÚµãÖ÷Ìå£¬¶ø·Ç¶Ë¿Ú£©
+                // æ£€æŸ¥æ˜¯å¦æ‰¾åˆ°ç›®æ ‡èŠ‚ç‚¹ï¼ˆæ‹–æ‹½åˆ°èŠ‚ç‚¹ä¸»ä½“ï¼Œè€Œéç«¯å£ï¼‰
                 if (targetNode != null && targetNode != _dragConnectionSourceNode)
                 {
-                    // È·¶¨Ô´¶Ë¿ÚºÍÄ¿±ê¶Ë¿Ú
+                    // ç¡®å®šæºç«¯å£å’Œç›®æ ‡ç«¯å£
                     string sourcePort = _dragConnectionSourcePort ?? "RightPort";
                     string targetPort = _directHitTargetPort ?? (hitPorts.Count > 0 ? hitPorts.OrderBy(p => p.distance).First().portName : null);
 
-                    // ¼ì²éÏàÍ¬Á¬½ÓµãÊÇ·ñÒÑ´æÔÚÁ¬½Ó
+                    // æ£€æŸ¥ç›¸åŒè¿æ¥ç‚¹æ˜¯å¦å·²å­˜åœ¨è¿æ¥
                     var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
                     if (selectedTab != null)
                     {
@@ -1948,21 +1948,21 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     }
                 }
 
-                // Ã»ÓĞÃüÖĞÓĞĞ§¶Ë¿Ú£¬ÖØÖÃÍÏ×§×´Ì¬
+                // æ²¡æœ‰å‘½ä¸­æœ‰æ•ˆç«¯å£ï¼Œé‡ç½®æ‹–æ‹½çŠ¶æ€
                 WorkflowCanvas.ReleaseMouseCapture();
                 IsDraggingConnection = false;
                 _dragConnectionSourceNode = null;
                 _dragConnectionSourcePort = null;
 
-                // ÇåÀíÔ´½ÚµãµÄ¶Ë¿Ú¿É¼ûĞÔ
+                // æ¸…ç†æºèŠ‚ç‚¹çš„ç«¯å£å¯è§æ€§
                 if (_dragConnectionSourceBorder != null)
                 {
                     SetPortsVisibility(_dragConnectionSourceBorder, false);
                     _dragConnectionSourceBorder = null;
                 }
 
-                _portHighlighter?.ClearTargetPortHighlight(); // Çå³ı¶Ë¿Ú¸ßÁÁ
-                SetPortsVisibility(false); // Òş²ØËùÓĞ¶Ë¿Ú
+                _portHighlighter?.ClearTargetPortHighlight(); // æ¸…é™¤ç«¯å£é«˜äº®
+                SetPortsVisibility(false); // éšè—æ‰€æœ‰ç«¯å£
 
                 return;
             }
@@ -1975,20 +1975,20 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             _isBoxSelecting = false;
 
 
-            // ½áÊø¿òÑ¡
+            // ç»“æŸæ¡†é€‰
             SelectionBox?.EndSelection();
             WorkflowCanvas.ReleaseMouseCapture();
 
-            // ¼ÇÂ¼Ñ¡ÖĞ½ÚµãµÄ³õÊ¼Î»ÖÃ£¨ÓÃÓÚÅúÁ¿ÒÆ¶¯£©
+            // è®°å½•é€‰ä¸­èŠ‚ç‚¹çš„åˆå§‹ä½ç½®ï¼ˆç”¨äºæ‰¹é‡ç§»åŠ¨ï¼‰
             RecordSelectedNodesPositions();
 
-            // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+            // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
         }
 
         /// <summary>
-        /// Çå³ıËùÓĞ½ÚµãµÄÑ¡ÖĞ×´Ì¬
+        /// æ¸…é™¤æ‰€æœ‰èŠ‚ç‚¹çš„é€‰ä¸­çŠ¶æ€
         /// </summary>
         private void ClearAllSelections()
         {
@@ -2002,7 +2002,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ¼ÇÂ¼Ñ¡ÖĞ½ÚµãµÄ³õÊ¼Î»ÖÃ
+        /// è®°å½•é€‰ä¸­èŠ‚ç‚¹çš„åˆå§‹ä½ç½®
         /// </summary>
         private void RecordSelectedNodesPositions()
         {
@@ -2019,7 +2019,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         #endregion
 
-        #region ÍÏ·ÅÊÂ¼ş
+        #region æ‹–æ”¾äº‹ä»¶
 
         private void WorkflowCanvas_DragEnter(object sender, DragEventArgs e)
         {
@@ -2043,12 +2043,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         #endregion
 
-        #region ¸¨Öú·½·¨
+        #region è¾…åŠ©æ–¹æ³•
 
-        #region ÖÇÄÜÂ·¾¶¼ÆËã
+        #region æ™ºèƒ½è·¯å¾„è®¡ç®—
 
         /// <summary>
-        /// ¼ÆËãÖÇÄÜÖ±½ÇÕÛÏßÂ·¾¶£¨ÓëÊµ¼ÊÁ¬½ÓÊ¹ÓÃÏàÍ¬µÄÂß¼­£©
+        /// è®¡ç®—æ™ºèƒ½ç›´è§’æŠ˜çº¿è·¯å¾„ï¼ˆä¸å®é™…è¿æ¥ä½¿ç”¨ç›¸åŒçš„é€»è¾‘ï¼‰
         /// </summary>
         private List<Point> CalculateSmartPath(Point start, Point end)
         {
@@ -2060,14 +2060,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             if (isHorizontal)
             {
-                // Ë®Æ½·½Ïò£ºÏÈË®Æ½ÒÆ¶¯µ½ÖĞ¼äµã£¬ÔÙ´¹Ö±ÒÆ¶¯µ½Ä¿±êY£¬×îºóË®Æ½ÒÆ¶¯µ½Ä¿±êX
+                // æ°´å¹³æ–¹å‘ï¼šå…ˆæ°´å¹³ç§»åŠ¨åˆ°ä¸­é—´ç‚¹ï¼Œå†å‚ç›´ç§»åŠ¨åˆ°ç›®æ ‡Yï¼Œæœ€åæ°´å¹³ç§»åŠ¨åˆ°ç›®æ ‡X
                 double midX = (start.X + end.X) / 2;
                 points.Add(new Point(midX, start.Y));
                 points.Add(new Point(midX, end.Y));
             }
             else
             {
-                // ´¹Ö±·½Ïò£ºÏÈ´¹Ö±ÒÆ¶¯µ½ÖĞ¼äµã£¬ÔÙË®Æ½ÒÆ¶¯µ½Ä¿±êX£¬×îºó´¹Ö±ÒÆ¶¯µ½Ä¿±êY
+                // å‚ç›´æ–¹å‘ï¼šå…ˆå‚ç›´ç§»åŠ¨åˆ°ä¸­é—´ç‚¹ï¼Œå†æ°´å¹³ç§»åŠ¨åˆ°ç›®æ ‡Xï¼Œæœ€åå‚ç›´ç§»åŠ¨åˆ°ç›®æ ‡Y
                 double midY = (start.Y + end.Y) / 2;
                 points.Add(new Point(start.X, midY));
                 points.Add(new Point(end.X, midY));
@@ -2078,7 +2078,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// ÅĞ¶Ïµã»÷µÄ¶Ë¿Ú²¢ÉèÖÃÆğÊ¼µã
+        /// åˆ¤æ–­ç‚¹å‡»çš„ç«¯å£å¹¶è®¾ç½®èµ·å§‹ç‚¹
         /// </summary>
         private string? DetermineClickedPort(WorkflowNode node, Point clickPoint)
         {
@@ -2120,21 +2120,21 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// »ñÈ¡½ÚµãµÄÁ¬½ÓµãÎ»ÖÃ
+        /// è·å–èŠ‚ç‚¹çš„è¿æ¥ç‚¹ä½ç½®
         /// </summary>
         private Point GetPortPosition(WorkflowNode node, Point clickPoint)
         {
-            // ¼ÆËãµã»÷µãÏà¶ÔÓÚ½ÚµãÖĞĞÄµÄÆ«ÒÆ
-            double nodeCenterX = node.Position.X + 70;  // ½Úµã¿í¶ÈµÄÒ»°ë
-            double nodeCenterY = node.Position.Y + 45;  // ½Úµã¸ß¶ÈµÄÒ»°ë
+            // è®¡ç®—ç‚¹å‡»ç‚¹ç›¸å¯¹äºèŠ‚ç‚¹ä¸­å¿ƒçš„åç§»
+            double nodeCenterX = node.Position.X + 70;  // èŠ‚ç‚¹å®½åº¦çš„ä¸€åŠ
+            double nodeCenterY = node.Position.Y + 45;  // èŠ‚ç‚¹é«˜åº¦çš„ä¸€åŠ
             double offsetX = clickPoint.X - nodeCenterX;
             double offsetY = clickPoint.Y - nodeCenterY;
 
-            // ÅĞ¶Ïµã»÷µÄÊÇÄÄ¸öÁ¬½Óµã
+            // åˆ¤æ–­ç‚¹å‡»çš„æ˜¯å“ªä¸ªè¿æ¥ç‚¹
             Point portPosition;
             if (Math.Abs(offsetX) > Math.Abs(offsetY))
             {
-                // Ë®Æ½·½Ïò£¨×óÓÒ£©
+                // æ°´å¹³æ–¹å‘ï¼ˆå·¦å³ï¼‰
                 if (offsetX > 0)
                 {
                     portPosition = node.RightPortPosition;
@@ -2146,7 +2146,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
             else
             {
-                // ´¹Ö±·½Ïò£¨ÉÏÏÂ£©
+                // å‚ç›´æ–¹å‘ï¼ˆä¸Šä¸‹ï¼‰
                 if (offsetY > 0)
                 {
                     portPosition = node.BottomPortPosition;
@@ -2157,26 +2157,26 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
             }
 
-            // ¸ù¾İµã»÷µÄÁ¬½ÓµãÈ·¶¨Êµ¼ÊÁ¬½ÓÎ»ÖÃ
+            // æ ¹æ®ç‚¹å‡»çš„è¿æ¥ç‚¹ç¡®å®šå®é™…è¿æ¥ä½ç½®
             return portPosition;
         }
 
         #endregion
 
         /// <summary>
-        /// »ñÈ¡½ÚµãÖ¸¶¨¶Ë¿ÚµÄEllipseÔªËØ
+        /// è·å–èŠ‚ç‚¹æŒ‡å®šç«¯å£çš„Ellipseå…ƒç´ 
         /// </summary>
         private Ellipse? GetPortElement(Border nodeBorder, string portName)
         {
             if (nodeBorder == null) return null;
 
-            // ¸ù¾İ¶Ë¿ÚÃû³Æ¹¹ÔìEllipseÃû³Æ£¨ÀıÈç£º"LeftPort" -> "LeftPortEllipse"£©
+            // æ ¹æ®ç«¯å£åç§°æ„é€ Ellipseåç§°ï¼ˆä¾‹å¦‚ï¼š"LeftPort" -> "LeftPortEllipse"ï¼‰
             string ellipseName = portName + "Ellipse";
 
-            // ÔÚ½ÚµãBorderµÄÊÓ¾õÊ÷ÖĞ²éÕÒÖ¸¶¨Ãû³ÆµÄ¶Ë¿Ú
+            // åœ¨èŠ‚ç‚¹Borderçš„è§†è§‰æ ‘ä¸­æŸ¥æ‰¾æŒ‡å®šåç§°çš„ç«¯å£
             var visualChildren = WorkflowVisualHelper.FindAllVisualChildren<DependencyObject>(nodeBorder);
 
-            // ²éÕÒ°üº¬¶Ë¿ÚÃû³ÆµÄÔªËØ£¨Í¨¹ıNameÊôĞÔ»òTag£©
+            // æŸ¥æ‰¾åŒ…å«ç«¯å£åç§°çš„å…ƒç´ ï¼ˆé€šè¿‡Nameå±æ€§æˆ–Tagï¼‰
             foreach (var child in visualChildren)
             {
                 if (child is FrameworkElement element && element.Name == ellipseName)
@@ -2189,7 +2189,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// PathÔªËØ¼ÓÔØÊÂ¼ş - ¼à¿ØÁ¬½ÓÏßÂ·¾¶´´½¨
+        /// Pathå…ƒç´ åŠ è½½äº‹ä»¶ - ç›‘æ§è¿æ¥çº¿è·¯å¾„åˆ›å»º
         /// </summary>
         private void Path_Loaded(object sender, RoutedEventArgs e)
         {
@@ -2206,7 +2206,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// PathµÄDataContext±ä»¯ÊÂ¼ş - ¼à¿ØÁ¬½ÓÊı¾İ¸üĞÂ
+        /// Pathçš„DataContextå˜åŒ–äº‹ä»¶ - ç›‘æ§è¿æ¥æ•°æ®æ›´æ–°
         /// </summary>
         private void Path_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -2219,36 +2219,36 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         }
 
         /// <summary>
-        /// Á¬½ÓÏßÊó±ê×ó¼üµã»÷ÊÂ¼ş - ÇĞ»»ÖĞ¼äµãµÄÏÔÊ¾/Òş²Ø
+        /// è¿æ¥çº¿é¼ æ ‡å·¦é”®ç‚¹å‡»äº‹ä»¶ - åˆ‡æ¢ä¸­é—´ç‚¹çš„æ˜¾ç¤º/éšè—
         /// </summary>
         private void ConnectionLine_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Path path && path.DataContext is WorkflowConnection connection)
             {
-                // ÇĞ»» ShowPathPoints ÊôĞÔ
+                // åˆ‡æ¢ ShowPathPoints å±æ€§
                 connection.ShowPathPoints = !connection.ShowPathPoints;
 
-                // ±ê¼ÇÊÂ¼şÒÑ´¦Àí£¬·ÀÖ¹ÊÂ¼ş¼ÌĞø´«²¥
-                // ²»ÉèÖÃ e.Handled£¬ÈÃÊÂ¼şÃ°Åİµ½ Port_MouseLeftButtonUp
-            // ÉèÖÃ e.Handled = true »áµ¼ÖÂ Port_MouseLeftButtonUp ÎŞ·¨±»´¥·¢£¬
-            // ´Ó¶øµ¼ÖÂÁÙÊ±Á¬½ÓÏßÎŞ·¨Òş²Ø
+                // æ ‡è®°äº‹ä»¶å·²å¤„ç†ï¼Œé˜²æ­¢äº‹ä»¶ç»§ç»­ä¼ æ’­
+                // ä¸è®¾ç½® e.Handledï¼Œè®©äº‹ä»¶å†’æ³¡åˆ° Port_MouseLeftButtonUp
+            // è®¾ç½® e.Handled = true ä¼šå¯¼è‡´ Port_MouseLeftButtonUp æ— æ³•è¢«è§¦å‘ï¼Œ
+            // ä»è€Œå¯¼è‡´ä¸´æ—¶è¿æ¥çº¿æ— æ³•éšè—
             }
         }
 
         /// <summary>
-        /// ¼ıÍ·Path¼ÓÔØÊÂ¼ş - ÉèÖÃ¼ıÍ·Ğı×ª½Ç¶È
+        /// ç®­å¤´PathåŠ è½½äº‹ä»¶ - è®¾ç½®ç®­å¤´æ—‹è½¬è§’åº¦
         /// </summary>
         private void ArrowPath_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is Path arrowPath && arrowPath.DataContext is WorkflowConnection connection)
             {
-                // ÉèÖÃ¼ıÍ·Ğı×ª½Ç¶È
+                // è®¾ç½®ç®­å¤´æ—‹è½¬è§’åº¦
                 var rotateTransform = new RotateTransform(connection.ArrowAngle);
                 arrowPath.RenderTransform = rotateTransform;
 
-                // ¹Ø¼üÈÕÖ¾£º¼ÇÂ¼¼ıÍ·äÖÈ¾
+                // å…³é”®æ—¥å¿—ï¼šè®°å½•ç®­å¤´æ¸²æŸ“
 
-                // ¼àÌıArrowAngle±ä»¯£¬¶¯Ì¬¸üĞÂĞı×ª½Ç¶È
+                // ç›‘å¬ArrowAngleå˜åŒ–ï¼ŒåŠ¨æ€æ›´æ–°æ—‹è½¬è§’åº¦
                 connection.PropertyChanged += (s, args) =>
                 {
                     if (args.PropertyName == nameof(WorkflowConnection.ArrowAngle))
@@ -2265,7 +2265,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         #endregion
 
         /// <summary>
-        /// ¸üĞÂ×î´óÍâ½Ó¾ØĞÎµÄÏÔÊ¾
+        /// æ›´æ–°æœ€å¤§å¤–æ¥çŸ©å½¢çš„æ˜¾ç¤º
         /// </summary>
         private void UpdateBoundingRectangle()
         {
@@ -2275,7 +2275,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 return;
             }
 
-            // ²éÕÒÔ´½ÚµãºÍÄ¿±ê½Úµã
+            // æŸ¥æ‰¾æºèŠ‚ç‚¹å’Œç›®æ ‡èŠ‚ç‚¹
             WorkflowNode? sourceNode = null;
             WorkflowNode? targetNode = null;
 
@@ -2292,7 +2292,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
             }
 
-            // Èç¹ûÕÒµ½ÁËÔ´½ÚµãºÍÄ¿±ê½Úµã£¬¼ÆËã²¢ÏÔÊ¾¾ØĞÎ
+            // å¦‚æœæ‰¾åˆ°äº†æºèŠ‚ç‚¹å’Œç›®æ ‡èŠ‚ç‚¹ï¼Œè®¡ç®—å¹¶æ˜¾ç¤ºçŸ©å½¢
             if (sourceNode != null && targetNode != null)
             {
                 double sourceLeft = sourceNode.Position.X;
@@ -2306,24 +2306,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 double targetBottom = targetNode.Position.Y + 90;
 
 
-                // ¼ÆËã°üÎ§Á½¸ö½ÚµãµÄÔ­Ê¼¾ØĞÎ
+                // è®¡ç®—åŒ…å›´ä¸¤ä¸ªèŠ‚ç‚¹çš„åŸå§‹çŸ©å½¢
                 double minX = Math.Min(sourceLeft, targetLeft);
                 double maxX = Math.Max(sourceRight, targetRight);
                 double minY = Math.Min(sourceTop, targetTop);
                 double maxY = Math.Max(sourceBottom, targetBottom);
 
-                // ¼ÆËã¾ØĞÎµÄ¿í¶ÈºÍ¸ß¶È
+                // è®¡ç®—çŸ©å½¢çš„å®½åº¦å’Œé«˜åº¦
                 double rectWidth = maxX - minX;
                 double rectHeight = maxY - minY;
 
-                // Ê¹ÓÃ×î´ó±ß³¤×÷ÎªÕı·½ĞÎµÄ±ß³¤,Ôö¼ÓËÑË÷·¶Î§
+                // ä½¿ç”¨æœ€å¤§è¾¹é•¿ä½œä¸ºæ­£æ–¹å½¢çš„è¾¹é•¿,å¢åŠ æœç´¢èŒƒå›´
                 double maxSide = Math.Max(rectWidth, rectHeight);
 
-                // ÒÔÔ´½ÚµãºÍÄ¿±ê½ÚµãµÄÖĞĞÄµãÎª»ù×¼,¹¹½¨Õı·½ĞÎËÑË÷ÇøÓò
+                // ä»¥æºèŠ‚ç‚¹å’Œç›®æ ‡èŠ‚ç‚¹çš„ä¸­å¿ƒç‚¹ä¸ºåŸºå‡†,æ„å»ºæ­£æ–¹å½¢æœç´¢åŒºåŸŸ
                 double centerX = (minX + maxX) / 2;
                 double centerY = (minY + maxY) / 2;
 
-                // ÉèÖÃÕı·½ĞÎµÄÎ»ÖÃºÍ´óĞ¡
+                // è®¾ç½®æ­£æ–¹å½¢çš„ä½ç½®å’Œå¤§å°
                 double rectX = centerX - maxSide / 2;
                 double rectY = centerY - maxSide / 2;
 

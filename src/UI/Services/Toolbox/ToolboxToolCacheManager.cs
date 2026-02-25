@@ -6,7 +6,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services.Toolbox
 {
     /// <summary>
-    /// 工具缓存管理�?- 缓存分类工具列表，避免频繁重新加�?
+    /// 工具缓存管理器 - 缓存分类工具列表，避免频繁重新加载
     /// </summary>
     public class ToolboxToolCacheManager
     {
@@ -18,7 +18,7 @@ namespace SunEyeVision.UI.Services.Toolbox
             _allTools = allTools;
             _toolCache = new System.Collections.Generic.Dictionary<string, ObservableCollection<ToolItem>>();
 
-            // 预缓存所有分�?
+            // 预缓存所有分组
             PreCacheCategories();
         }
 
@@ -61,7 +61,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 清除指定分类的缓�?
+        /// 清除指定分类的缓存
         /// </summary>
         public void ClearCache(string category)
         {
@@ -72,7 +72,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 清除所有缓�?
+        /// 清除所有缓存
         /// </summary>
         public void ClearAllCache()
         {
@@ -80,7 +80,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 重新构建指定分类的缓�?
+        /// 重新构建指定分类的缓存
         /// </summary>
         public void RebuildCache(string category)
         {
@@ -89,7 +89,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 重新构建所有缓�?
+        /// 重新构建所有缓存
         /// </summary>
         public void RebuildAllCache()
         {
@@ -106,7 +106,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 获取缓存的分类数�?
+        /// 获取缓存的分类数据
         /// </summary>
         public int CachedCategoryCount => _toolCache.Count;
 

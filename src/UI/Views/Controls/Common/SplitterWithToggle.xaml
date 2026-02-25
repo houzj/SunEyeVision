@@ -10,7 +10,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type local:SplitterWithToggle}">
                         <Grid Background="{TemplateBinding Background}">
-                            <!-- 透明覆盖层用于拖�?- 放在底层 -->
+                            <!-- 透明覆盖层用于拖拽 - 放在底层 -->
                             <Border Background="Transparent"
                                     x:Name="PART_SplitterBackground"
                                     IsHitTestVisible="True"
@@ -36,14 +36,14 @@
                         </Grid>
 
                     <ControlTemplate.Triggers>
-                        <!-- 垂直方向: 按钮在顶部中�?确保始终可见 -->
+                        <!-- 垂直方向: 按钮在顶部中间,确保始终可见 -->
                         <Trigger Property="ResizeDirection" Value="Columns">
                             <Setter TargetName="PART_ToggleButton" Property="HorizontalAlignment" Value="Center"/>
                             <Setter TargetName="PART_ToggleButton" Property="VerticalAlignment" Value="Top"/>
                             <Setter TargetName="PART_ToggleButton" Property="Margin" Value="0,4,0,0"/>
                         </Trigger>
 
-                        <!-- 水平方向: 按钮在左侧中�?确保始终可见 -->
+                        <!-- 水平方向: 按钮在左侧中间,确保始终可见 -->
                         <Trigger Property="ResizeDirection" Value="Rows">
                             <Setter TargetName="PART_ToggleButton" Property="HorizontalAlignment" Value="Left"/>
                             <Setter TargetName="PART_ToggleButton" Property="VerticalAlignment" Value="Center"/>

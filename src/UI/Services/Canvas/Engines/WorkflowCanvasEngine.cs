@@ -9,7 +9,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
 {
     /// <summary>
     /// WorkflowCanvas画布引擎
-    /// 包装现有的WorkflowCanvasControl，不修改其内部逻辑
+    /// 封装现有的WorkflowCanvasControl，不修改其内部逻辑
     /// </summary>
     public class WorkflowCanvasEngine : ICanvasEngine
     {
@@ -37,7 +37,7 @@ namespace SunEyeVision.UI.Services.Canvas.Engines
 
         public void SetPathCalculator(string pathCalculatorType)
         {
-            // 调用控件的SetPathCalculator方法，实现实际的路径计算器切�?
+            // 调用控件的SetPathCalculator方法，实现实际的路径计算器切换
             _control.SetPathCalculator(pathCalculatorType);
         }
 

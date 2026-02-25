@@ -55,7 +55,7 @@ namespace SunEyeVision.UI.Services.Toolbox
             // 取消关闭定时器，防止冲突
             _closeTimer.Stop();
 
-            // 重置并启动打开定时�?
+            // 重置并启动打开定时间?
             _openTimer.Interval = TimeSpan.FromMilliseconds(OpenDelay);
             _openTimer.Stop();
             _openTimer.Start();
@@ -85,7 +85,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 取消打开定时�?
+        /// 取消打开定时间?
         /// </summary>
         public void CancelOpen()
         {
@@ -93,7 +93,7 @@ namespace SunEyeVision.UI.Services.Toolbox
         }
 
         /// <summary>
-        /// 取消关闭定时�?
+        /// 取消关闭定时间?
         /// </summary>
         public void CancelClose()
         {

@@ -32,7 +32,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// 工作流执行请求事件参�?
+    /// 工作流执行请求事件参数
     /// </summary>
     public class WorkflowExecutionRequestEventArgs : EventArgs
     {
@@ -41,7 +41,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// 图像信息�?
+    /// 图像信息项
     /// </summary>
     public class ImageInfo : INotifyPropertyChanged
     {
@@ -96,7 +96,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 是否已加载全分辨率图�?
+        /// 是否已加载全分辨率图像
         /// </summary>
         public bool IsFullImageLoaded => _isFullImageLoaded && _fullImage != null;
 
@@ -153,11 +153,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 释放全分辨率图像以节省内�?
+        /// 释放全分辨率图像以节省内存
         /// </summary>
         public void ReleaseFullImage()
         {
-            // 只有当图像实际已加载时才触发属性变更事�?
+            // 只有当图像实际已加载时才触发属性变更事件
             bool wasLoaded = (_fullImage != null);
             _fullImage = null;
             _isFullImageLoaded = false;
@@ -204,13 +204,13 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 获取或添加缓�?
+        /// 获取或添加缓存
         /// </summary>
         public BitmapSource? GetOrAdd(string filePath, Func<string, BitmapSource?> loader)
         {
             if (_cacheMap.TryGetValue(filePath, out var node))
             {
-                // 命中缓存，移到最�?
+                // 命中缓存，移到最前
                 _lruList.Remove(node);
                 _lruList.AddFirst(node);
                 return node.Value.Bitmap;
@@ -220,7 +220,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             var bitmap = loader(filePath);
             if (bitmap == null) return null;
 
-            // 添加到缓�?
+            // 添加到缓存
             var entry = new CacheEntry(filePath, bitmap);
             var newNode = _lruList.AddFirst(entry);
             _cacheMap[filePath] = newNode;
@@ -240,7 +240,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 清除所有缓�?
+        /// 清除所有缓存
         /// </summary>
         public void Clear()
         {
@@ -275,9 +275,9 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             public const double ImageWidth = 60;           // Image的Width="60"
             public const double ImageHeight = 60;          // Image的Height="60"
             public const double PlaceholderWidth = 60;     // 占位符的Width
-            public const double PlaceholderHeight = 60;    // 占位符的Height（匹配Image�?
+            public const double PlaceholderHeight = 60;    // 占位符的Height（匹配Image）
 
-            // 布局间距（从XAML Margin="1"计算得出�?
+            // 布局间距（从XAML Margin="1"计算得出）
             public const double HorizontalMargin = 2;      // 左右各Margin 1
 
             // 计算属性（供算法使用）
@@ -285,36 +285,36 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             public static int ThumbnailLoadSize => (int)ImageWidth;             // 60
         }
 
-        // 图像缓存（LRU�?
+        // 图像缓存（LRU）
         private static readonly ImageCache s_fullImageCache = new ImageCache(maxCacheSize: 30);
 
-        // �?方案二：双解码器架构
-        // GPU解码�?- 高优先级任务专用（Critical/High优先级）
+        // ◆方案二：双解码器架构
+        // GPU解码器 - 高优先级任务专用（Critical/High优先级）
         private static readonly WicGpuDecoder s_gpuDecoder = new WicGpuDecoder();
-        // CPU解码�?- 普通任务专用（Medium/Low/Idle优先级）
+        // CPU解码器 - 普通任务专用（Medium/Low/Idle优先级）
         private static readonly ImageSharpDecoder s_cpuDecoder = new ImageSharpDecoder();
 
-        // 磁盘缓存管理器（60x60高质量缩略图�?
+        // 磁盘缓存管理器（60x60高质量缩略图）
         private static readonly ThumbnailCacheManager s_thumbnailCache = new ThumbnailCacheManager();
 
-        // 智能缩略图加载器（组合策略：L1内存 �?L2磁盘 �?Shell缓存 �?EXIF �?GPU/CPU解码�?
-        // �?方案二：传入双解码器，根据优先级自动选择
+        // 智能缩略图加载器（组合策略：L1内存 → L2磁盘 → Shell缓存 → EXIF → GPU/CPU解码）
+        // ◆方案二：传入双解码器，根据优先级自动选择
         private static readonly SmartThumbnailLoader s_smartLoader = new SmartThumbnailLoader(s_thumbnailCache, s_gpuDecoder, s_cpuDecoder);
 
-        // 内存压力监控器（响应系统内存压力�?
+        // 内存压力监控器（响应系统内存压力）
         private static readonly MemoryPressureMonitor s_memoryMonitor = new MemoryPressureMonitor();
 
         // ListBox控件引用（用于滚动监听）
         private ListBox? _thumbnailListBox;
 
-        // 取消令牌�?
+        // 取消令牌源
         private CancellationTokenSource? _loadingCancellationTokenSource;
 
-        // 预加载相�?
+        // 预加载相关
         private Task? _preloadTask;
         private int _lastPreloadIndex = -1;
 
-        // 滚动防抖定时�?
+        // 滚动防抖定时器
         private DispatcherTimer? _updateRangeTimer;
 
         // 性能日志统计
@@ -323,17 +323,17 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         // ===== P0优化: 滚动暂停加载 =====
         private double _lastScrollOffset = 0;
-        private double _scrollSpeed = 0; // 滚动速度（像�?秒）
+        private double _scrollSpeed = 0; // 滚动速度（像素/秒）
         private DateTime _lastScrollSpeedTime = DateTime.MinValue;
         private const double SCROLL_SPEED_THRESHOLD = 500; // 快速滚动阈值（像素/秒）
         private bool _isFastScrolling = false;
         private DispatcherTimer? _scrollStopTimer; // 滚动停止检测定时器
 
-        // ===== P0优化: 动态图像质�?=====
+        // ===== P0优化: 动态图像质量 =====
         private bool _useLowQuality = false; // 是否使用低质量缩略图
         private const int LOW_QUALITY_SIZE = 40; // 快速滚动时的缩略图尺寸
         private const int HIGH_QUALITY_SIZE = 60; // 正常的缩略图尺寸
-        private HashSet<int> _pendingHighQualityIndices = new HashSet<int>(); // 待加载高质量的索�?
+        private HashSet<int> _pendingHighQualityIndices = new HashSet<int>(); // 待加载高质量的索引
 
         // 优先级缩略图加载器（替代双系统）
         private readonly PriorityThumbnailLoader _priorityLoader = new PriorityThumbnailLoader();
@@ -364,7 +364,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 当前显示的图像索�?
+        /// 当前显示的图像索引
         /// </summary>
         public int CurrentImageIndex
         {
@@ -391,7 +391,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// 工作流执行请求事�?- 当用户点击图片请求执行工作流时触�?
+    /// 工作流执行请求事件 - 当用户点击图片请求执行工作流时触发
     /// </summary>
     public event EventHandler<WorkflowExecutionRequestEventArgs>? WorkflowExecutionRequested;
 
@@ -404,7 +404,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             {
                 int count = ImageCollection?.Count ?? 0;
                 int current = CurrentImageIndex >= 0 && CurrentImageIndex < count ? CurrentImageIndex + 1 : 0;
-                return count > 0 ? $"图像�?({current}/{count})" : "图像�?;
+                return count > 0 ? $"图像源 ({current}/{count})" : "图像源";
             }
         }
 
@@ -418,33 +418,33 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             InitializeComponent();
             ImageCollection = new BatchObservableCollection<ImageInfo>();
 
-            // 设置优先级加载器的委托（包含实时可视范围获取�?
+            // 设置优先级加载器的委托（包含实时可视范围获取）
             _priorityLoader.SetLoadThumbnailFunc(
                 (filePath, size, isHighPriority) => LoadThumbnailOptimized(filePath, size, isHighPriority), 
                 (filePath, thumbnail) => s_thumbnailCache?.AddToMemoryCache(filePath, thumbnail),
-                () => GetVisibleRange());  // �?实时获取可视范围
+                () => GetVisibleRange());  // ◆实时获取可视范围
 
             // 订阅可视区域加载完成事件
             _priorityLoader.VisibleAreaLoadingCompleted += OnVisibleAreaLoadingCompleted;
 
-            // ===== 内存压力监控初始�?=====
+            // ===== 内存压力监控初始化 =====
             s_memoryMonitor.MemoryPressureChanged += OnMemoryPressureChanged;
             s_memoryMonitor.Start();
-            Debug.WriteLine("[ImagePreviewControl] �?内存压力监控已启�?);
+            Debug.WriteLine("[ImagePreviewControl] ✓ 内存压力监控已启动");
 
-            // 订阅 Unloaded 事件以清理资�?
+            // 订阅 Unloaded 事件以清理资源
             Unloaded += (s, e) =>
             {
                 _priorityLoader.VisibleAreaLoadingCompleted -= OnVisibleAreaLoadingCompleted;
                 s_memoryMonitor.MemoryPressureChanged -= OnMemoryPressureChanged;
             };
 
-            // 输出加载器状�?
+            // 输出加载器状态
             Debug.WriteLine("========================================");
             Debug.WriteLine("   图像预览控件 - 智能缩略图加载器");
             Debug.WriteLine("========================================");
-            Debug.WriteLine("�?加载策略优先级（3层架构）�?);
-            Debug.WriteLine("  1. L1内存缓存 (0ms) - 强引�?0�?+ 弱引�?);
+            Debug.WriteLine("◆加载策略优先级（3层架构）：");
+            Debug.WriteLine("  1. L1内存缓存 (0ms) - 强引用10张 + 弱引用");
             Debug.WriteLine("  2. L2磁盘缓存 (5-80ms) - Shell缓存优先 + 自建缓存");
             Debug.WriteLine("  3. L3 GPU解码 (50-500ms) - 最终回退方案");
             Debug.WriteLine("========================================");
@@ -456,14 +456,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
             ImageCollection.CollectionChanged += (s, e) =>
             {
-                // UpdateDisplayIndices(); // 不再需要显示序号，移除此调�?
+                // UpdateDisplayIndices(); // 不再需要显示序号，移除此调用
                 OnPropertyChanged(nameof(ImageCountDisplay));
             };
 
             Loaded += OnControlLoaded;
             Unloaded += OnUnloaded;
 
-            // 初始化ListBox引用（需要在Loaded之后�?
+            // 初始化ListBox引用（需要在Loaded之后）
             this.Dispatcher.BeginInvoke(new Action(() =>
             {
                 _thumbnailListBox = FindName("ThumbnailListBox") as ListBox;
@@ -478,7 +478,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // ===== P2优化: GPU缓存预热 =====
             PreloadGPUCache();
             
-            // 延迟初始化，确保ListBox已完全加�?
+            // 延迟初始化，确保ListBox已完全加载
             this.Dispatcher.BeginInvoke(new Action(() =>
             {
                 _thumbnailListBox = FindName("ThumbnailListBox") as ListBox;
@@ -493,18 +493,18 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                         // 后续滚动会通过OnScrollChanged事件触发UpdateLoadRange
                     }
                     
-                    // ===== 容器回收事件监听已禁�?=====
+                    // ===== 容器回收事件监听已禁用 =====
                     // 原因：快速来回滚动时会频繁触发容器回收，导致性能下降
                     // 
-                    // 状态不一致问题已通过以下方式解决�?
+                    // 状态不一致问题已通过以下方式解决：
                     // 1. MemoryPressureMonitor.SyncLoadedIndicesWithActualThumbnails()
-                    //    在内存压力大时自动同步状�?
+                    //    在内存压力大时自动同步状态
                     // 2. 保留 Thumbnail 可以让滚回时即时显示
                     //
-                    // 优点�?
+                    // 优点：
                     // - 避免频繁加载/卸载循环
                     // - 滚动流畅，内存由压力机制自动管理
-                    // - 已加载的缩略图保留在内存中，滚回时即时显�?
+                    // - 已加载的缩略图保留在内存中，滚回时即时显示
                     // =====
                     // VirtualizingStackPanel.AddCleanUpVirtualizedItemHandler(
                     //     _thumbnailListBox, 
@@ -513,34 +513,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
         
-        // ===== 容器回收事件处理已禁用（原因见上�?====
-        // /// <summary>
-        // /// 虚拟化容器回收事件处�?
-        // /// </summary>
-        // private void OnCleanUpVirtualizedItem(object sender, CleanUpVirtualizedItemEventArgs e)
-        // {
-        //     if (e.Value is ImageInfo imageInfo && ImageCollection != null)
-        //     {
-        //         var index = ImageCollection.IndexOf(imageInfo);
-        //         if (index >= 0)
-        //         {
-        //             var (firstVisible, lastVisible) = GetVisibleRange();
-        //             int cleanupMargin = 30;
-        //             bool isFarFromVisible = (index < firstVisible - cleanupMargin) || 
-        //                                     (index > lastVisible + cleanupMargin);
-        //             if (isFarFromVisible)
-        //             {
-        //                 _priorityLoader.MarkAsUnloaded(index);
-        //                 imageInfo.Thumbnail = null;
-        //             }
-        //         }
-        //     }
-        // }
-
+        // ===== 容器回收事件处理已禁用（原因见上） ====
 
         /// <summary>
         /// P2优化: 解码器初始化（减少首次解码延迟）
-        /// �?方案二：同时初始化GPU和CPU解码�?
+        /// ◆方案二：同时初始化GPU和CPU解码器
         /// </summary>
         private void PreloadGPUCache()
         {
@@ -553,19 +530,19 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     s_gpuDecoder.Initialize();
                     s_cpuDecoder.Initialize();
                     sw.Stop();
-                    Debug.WriteLine($"[ImagePreviewControl] �?双解码器初始化完�?- 耗时:{sw.ElapsedMilliseconds}ms");
-                    Debug.WriteLine($"  GPU解码�? {s_gpuDecoder.GetType().Name} (硬件加�?{s_gpuDecoder.IsHardwareAccelerated})");
-                    Debug.WriteLine($"  CPU解码�? {s_cpuDecoder.GetType().Name} (硬件加�?{s_cpuDecoder.IsHardwareAccelerated})");
+                    Debug.WriteLine($"[ImagePreviewControl] ✓ 双解码器初始化完成 - 耗时:{sw.ElapsedMilliseconds}ms");
+                    Debug.WriteLine($"  GPU解码器: {s_gpuDecoder.GetType().Name} (硬件加速:{s_gpuDecoder.IsHardwareAccelerated})");
+                    Debug.WriteLine($"  CPU解码器: {s_cpuDecoder.GetType().Name} (硬件加速:{s_cpuDecoder.IsHardwareAccelerated})");
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[ImagePreviewControl] �?解码器初始化失败（非致命�? {ex.Message}");
+                    Debug.WriteLine($"[ImagePreviewControl] ⚠ 解码器初始化失败（非致命）: {ex.Message}");
                 }
             });
         }
 
         /// <summary>
-        /// 查找视觉子元�?
+        /// 查找视觉子元素
         /// </summary>
         private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -583,16 +560,16 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 控件卸载时清理资�?
+        /// 控件卸载时清理资源
         /// </summary>
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            // 取消正在进行的加载操�?
+            // 取消正在进行的加载操作
             _loadingCancellationTokenSource?.Cancel();
             _loadingCancellationTokenSource?.Dispose();
             _loadingCancellationTokenSource = null;
 
-            // 取消预加载任务（异步等待，不阻塞UI线程�?
+            // 取消预加载任务（异步等待，不阻塞UI线程）
             if (_preloadTask != null)
             {
                 // 不等待，直接取消，让任务自然完成
@@ -602,7 +579,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // 清理优先级加载器
             _priorityLoader.Dispose();
 
-            // 清理所有图像资�?
+            // 清理所有图像资源
             if (ImageCollection != null)
             {
                 foreach (var imageInfo in ImageCollection)
@@ -615,18 +592,18 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 优化的全分辨率图像加载（静态方法，可从ImageInfo调用�?
-        /// �?优化：使�?CleanupScheduler 保护 + StreamSource 立即加载
+        /// 优化的全分辨率图像加载（静态方法，可从ImageInfo调用）
+        /// ◆优化：使用 CleanupScheduler 保卫 + StreamSource 立即加载
         /// </summary>
         public static BitmapImage? LoadImageOptimized(string filePath)
         {
-            // �?修复：加载前检查文件是否存在，避免抛出 FileNotFoundException
+            // ◆修复：加载前检查文件是否存在，避免抛出 FileNotFoundException
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
                 return null;
             }
             
-            // �?核心修复：使�?CleanupScheduler 保护文件访问
+            // ◆核心修复：使用 CleanupScheduler 保卫文件访问
             CleanupScheduler.MarkFileInUse(filePath);
             
             try
@@ -641,7 +618,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     
                     try
                     {
-                        // �?优化：先读取文件到内存，避免 UriSource 延迟加载问题
+                        // ◆优化：先读取文件到内存，避免 UriSource 延迟加载问题
                         byte[] imageBytes;
                         using (var fs = new FileStream(fp, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.SequentialScan))
                         {
@@ -670,18 +647,18 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             finally
             {
-                // �?确保释放文件引用
+                // ◆确保释放文件引用
                 CleanupScheduler.ReleaseFile(filePath);
             }
         }
 
         /// <summary>
         /// 优化的缩略图加载（智能加载器 - 3层架构）
-        /// 加载策略优先级：L1内存 �?L2磁盘(Shell优先) �?GPU解码
+        /// 加载策略优先级：L1内存 → L2磁盘(Shell优先) → GPU解码
         /// </summary>
         private static BitmapImage? LoadThumbnailOptimized(string filePath, int size = -1, bool isHighPriority = false)
         {
-            // 如果size�?1，使用配置的缩略图尺�?
+            // 如果size为-1，使用配置的缩略图尺寸
             if (size < 0)
             {
                 size = ThumbnailSizes.ThumbnailLoadSize;
@@ -694,7 +671,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 异步加载缩略�?
+        /// 异步加载缩略图
         /// </summary>
         private static Task<BitmapImage?> LoadThumbnailAsync(string filePath, int size = 80)
         {
@@ -711,13 +688,13 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 return;
             }
 
-            // 检查是否正在加载缩略图（避免影响加载性能�?
+            // 检查是否正在加载缩略图（避免影响加载性能）
             if (_lastPreloadIndex == -999)
             {
                 return;
             }
 
-            // 避免重复预加�?
+            // 避免重复预加载
             if (_lastPreloadIndex == currentIndex)
             {
                 return;
@@ -746,7 +723,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 }
             }
 
-            // 启动新的预加载任务（在后台线程中加载图像�?
+            // 启动新的预加载任务（在后台线程中加载图像）
             _preloadTask = Task.Run(() =>
             {
                 int loadedCount = 0;
@@ -776,7 +753,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[ImagePreviewControl] �?后台预加载失�? 索引{index}, 错误:{ex.Message}");
+                        Debug.WriteLine($"[ImagePreviewControl] ✓ 后台预加载失败: 索引{index}, 错误:{ex.Message}");
                     }
                 }
 
@@ -785,7 +762,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 滚动变化事件处理（带防抖机制 + P0优化：滚动暂停加�?+ 动态质量）
+        /// 滚动变化事件处理（带防抖机制 + P0优化：滚动暂停加载 + 动态质量）
         /// </summary>
         private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
         {
@@ -794,11 +771,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             _lastScrollTime = now;
             _scrollEventCount++;
 
-            // ===== 滚动状态监控日�?=====
-            // �?0次事件更新一次状态（静默处理�?
+            // ===== 滚动状态监控日志 =====
+            // 每10次事件更新一次状态（静默处理）
             if (_scrollEventCount % 10 == 0)
             {
-                // �?关键修复：先检查集合是否有效，避免竞态条�?
+                // ◆关键修复：先检查集合是否有效，避免竞态条件
                 var collection = ImageCollection;
                 if (collection != null && collection.Count > 0)
                 {
@@ -818,14 +795,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 {
                     var currentOffset = scrollViewer.HorizontalOffset;
                     var offsetDelta = Math.Abs(currentOffset - _lastScrollOffset);
-                    _scrollSpeed = offsetDelta / timeSinceLast.TotalSeconds; // 像素/�?
+                    _scrollSpeed = offsetDelta / timeSinceLast.TotalSeconds; // 像素/秒
                     _lastScrollOffset = currentOffset;
 
-                    // 判断是否快速滚�?
+                    // 判断是否快速滚动
                     bool wasFastScrolling = _isFastScrolling;
                     _isFastScrolling = _scrollSpeed > SCROLL_SPEED_THRESHOLD;
 
-                    // 快速滚动开始：使用低质量模�?
+                    // 快速滚动开始：使用低质量模式
                     if (_isFastScrolling && !wasFastScrolling)
                     {
                         // 快速滚动不输出日志
@@ -836,22 +813,22 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     // 滚动停止：恢复高质量
                     if (!_isFastScrolling && wasFastScrolling)
                     {
-                        // 滚动停止不输出日�?
+                        // 滚动停止不输出日志
                         _useLowQuality = false;
                         _priorityLoader.UseLowQuality = false;
                         
-                        // �?关键修复：先检查集合是否有�?
+                        // ◆关键修复：先检查集合是否有效
                         var collection = ImageCollection;
                         if (collection != null && collection.Count > 0)
                         {
-                            // 立即触发加载新进入可视区域的缩略�?
+                            // 立即触发加载新进入可视区域的缩略图
                             try
                             {
                                 UpdateLoadRange();
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"[Scroll] �?UpdateLoadRange异常: {ex.Message}");
+                                Debug.WriteLine($"[Scroll] ✓ UpdateLoadRange异常: {ex.Message}");
                             }
                             
                             // 延迟加载高质量缩略图
@@ -859,7 +836,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                             {
                                 try
                                 {
-                                    // �?延迟回调中再次检查，因为集合可能在等待期间被清空
+                                    // ◆延迟回调中再次检查，因为集合可能在等待期间被清空
                                     var innerCollection = ImageCollection;
                                     if (innerCollection != null && innerCollection.Count > 0)
                                     {
@@ -868,7 +845,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                                 }
                                 catch (Exception ex)
                                 {
-                                    Debug.WriteLine($"[Scroll] �?UpgradeToHighQuality延迟调用异常: {ex.Message}");
+                                    Debug.WriteLine($"[Scroll] ✓ UpgradeToHighQuality延迟调用异常: {ex.Message}");
                                 }
                             }), DispatcherPriority.Background);
                         }
@@ -877,14 +854,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             _lastScrollSpeedTime = now;
 
-            // �?P0优化: 立即入队可视区域图片（不等防抖）
+            // ◆P0优化: 立即入队可视区域图片（不等防抖）
             try
             {
-                // �?关键修复：先检查集合是否有效，避免竞态条�?
+                // ◆关键修复：先检查集合是否有效，避免竞态条件
                 var collection = ImageCollection;
                 if (collection == null || collection.Count == 0)
                 {
-                    Debug.WriteLine("[Scroll] �?跳过UpdateVisibleRangeImmediate - ImageCollection为空");
+                    Debug.WriteLine("[Scroll] ⚠ 跳过UpdateVisibleRangeImmediate - ImageCollection为空");
                     return;
                 }
                 
@@ -896,10 +873,10 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Scroll] �?UpdateVisibleRangeImmediate异常: {ex.Message}");
+                Debug.WriteLine($"[Scroll] ✓ UpdateVisibleRangeImmediate异常: {ex.Message}");
             }
 
-            // 防抖：滚动停�?00ms后才触发清理和预加载范围调整
+            // 防抖：滚动停止200ms后才触发清理和预加载范围调整
             // 快速滚动时延长防抖时间
             var debounceTime = _isFastScrolling ? 400 : 200;
             
@@ -913,11 +890,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 {
                     try
                     {
-                        // �?关键修复：先检查集合是否有�?
+                        // ◆关键修复：先检查集合是否有效
                         var collection = ImageCollection;
                         if (collection == null || collection.Count == 0)
                         {
-                            Debug.WriteLine("[Scroll] �?跳过防抖UpdateLoadRange - ImageCollection为空");
+                            Debug.WriteLine("[Scroll] ⚠ 跳过防抖UpdateLoadRange - ImageCollection为空");
                             return;
                         }
                         
@@ -930,11 +907,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[Scroll] �?防抖UpdateLoadRange异常: {ex.Message}");
+                        Debug.WriteLine($"[Scroll] ✓ 防抖UpdateLoadRange异常: {ex.Message}");
                     }
                     _updateRangeTimer?.Stop();
                     
-                    // 滚动停止后升级到高质�?
+                    // 滚动停止后升级到高质量
                     if (_useLowQuality)
                     {
                         _useLowQuality = false;
@@ -942,7 +919,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                         {
                             try
                             {
-                                // �?关键修复：延迟回调中检查集合有效�?
+                                // ◆关键修复：延迟回调中检查集合有效性
                                 var collection = ImageCollection;
                                 if (collection != null && collection.Count > 0)
                                 {
@@ -951,7 +928,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"[Scroll] �?防抖UpgradeToHighQuality异常: {ex.Message}");
+                                Debug.WriteLine($"[Scroll] ✓ 防抖UpgradeToHighQuality异常: {ex.Message}");
                             }
                         }), DispatcherPriority.Background);
                     }
@@ -968,7 +945,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// <summary>
         /// P0优化: 将低质量缩略图升级为高质量（同时处理无缩略图的情况）
         /// 注意：必须在UI线程调用此方法，内部会切换到后台线程处理
-        /// �?虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
+        /// ◆虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
         /// </summary>
         private void UpgradeToHighQuality()
         {
@@ -977,22 +954,22 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // ===== 关键修复：在UI线程获取所有需要的数据 =====
             if (ImageCollection == null || _thumbnailListBox == null)
             {
-                Debug.WriteLine($"[UpgradeToHighQuality] �?跳过 - ImageCollection或ListBox为空");
+                Debug.WriteLine($"[UpgradeToHighQuality] ⚠ 跳过 - ImageCollection或ListBox为空");
                 return;
             }
 
-            // �?使用虚拟化安全的方法获取可视范围
+            // ◆使用虚拟化安全的方法获取可视范围
             var (firstVisible, lastVisible) = GetVisibleRange();
             
             if (firstVisible == -1 || lastVisible == -1)
             {
-                Debug.WriteLine($"[UpgradeToHighQuality] �?未找到可视项 - 可能正在快速滚动或布局未完�?);
+                Debug.WriteLine($"[UpgradeToHighQuality] ⚠ 未找到可视项 - 可能正在快速滚动或布局未完成");
                 return;
             }
 
             var totalCount = ImageCollection.Count;
 
-            // 在UI线程提取需要处理的�?
+            // 在UI线程提取需要处理的项
             var itemsToProcess = new List<(int Index, string FilePath, bool HasThumbnail, double ThumbnailWidth)>();
             for (int i = firstVisible; i <= lastVisible; i++)
             {
@@ -1015,7 +992,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 {
                     foreach (var item in itemsToProcess)
                     {
-                        // 情况1：无缩略�?- 直接加载高质�?
+                        // 情况1：无缩略图 - 直接加载高质量
                         if (!item.HasThumbnail)
                         {
                             try
@@ -1023,7 +1000,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                                 var highQuality = LoadThumbnailOptimized(item.FilePath, HIGH_QUALITY_SIZE);
                                 if (highQuality != null)
                                 {
-                                    // 使用BeginInvoke更新UI，并传递索�?
+                                    // 使用BeginInvoke更新UI，并传递索引
                                     int index = item.Index;
                                     Application.Current?.Dispatcher.BeginInvoke(() =>
                                     {
@@ -1038,10 +1015,10 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                             catch (Exception ex)
                             {
                                 errorCount++;
-                                Debug.WriteLine($"[UpgradeToHighQuality] �?加载失败 index={item.Index}: {ex.Message}");
+                                Debug.WriteLine($"[UpgradeToHighQuality] ✓ 加载失败 index={item.Index}: {ex.Message}");
                             }
                         }
-                        // 情况2：低质量缩略�?- 升级为高质量
+                        // 情况2：低质量缩略图 - 升级为高质量
                         else if (item.ThumbnailWidth < HIGH_QUALITY_SIZE)
                         {
                             try
@@ -1049,7 +1026,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                                 var highQuality = LoadThumbnailOptimized(item.FilePath, HIGH_QUALITY_SIZE);
                                 if (highQuality != null)
                                 {
-                                    // 使用BeginInvoke更新UI，并传递索�?
+                                    // 使用BeginInvoke更新UI，并传递索引
                                     int index = item.Index;
                                     Application.Current?.Dispatcher.BeginInvoke(() =>
                                     {
@@ -1064,14 +1041,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                             catch (Exception ex)
                             {
                                 errorCount++;
-                                Debug.WriteLine($"[UpgradeToHighQuality] �?升级失败 index={item.Index}: {ex.Message}");
+                                Debug.WriteLine($"[UpgradeToHighQuality] ✓ 升级失败 index={item.Index}: {ex.Message}");
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[UpgradeToHighQuality] �?严重错误: {ex.Message}\n{ex.StackTrace}");
+                    Debug.WriteLine($"[UpgradeToHighQuality] ✓ 严重错误: {ex.Message}\n{ex.StackTrace}");
                 }
                 
                 sw.Stop();
@@ -1088,13 +1065,13 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 return;
             }
 
-            // 动态计算保留范�?
+            // 动态计算保留范围
             var (immediateDisplayCount, _, _) = CalculateDynamicLoadCounts();
-            int keepRange = Math.Max(2, immediateDisplayCount / 10); // 保留范围为显示数量的10%，最�?�?
+            int keepRange = Math.Max(2, immediateDisplayCount / 10); // 保留范围为显示数量的10%，最小2张
 
             int releaseCount = 0;
 
-            // 只保留当前和相邻图像的全分辨率（距离<=keepRange�?
+            // 只保留当前和相邻图像的全分辨率（距离<=keepRange）
             for (int i = 0; i < ImageCollection.Count; i++)
             {
                 int distance = Math.Abs(i - currentIndex);
@@ -1149,7 +1126,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             catch (OperationCanceledException)
             {
-                // 用户取消了操�?
+                // 用户取消了操作
             }
             catch (Exception ex)
             {
@@ -1159,41 +1136,41 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 计算基于可视区域的动态加载数�?
-        /// �?虚拟化安全：使用 ItemContainerGenerator 精确计算
+        /// 计算基于可视区域的动态加载数量
+        /// ◆虚拟化安全：使用 ItemContainerGenerator 精确计算
         /// </summary>
         private (int immediateDisplayCount, int immediateThumbnailCount, int batchSize) CalculateDynamicLoadCounts()
         {
             if (_thumbnailListBox == null || ImageCollection == null)
             {
-                // 如果ListBox未初始化，使用默认�?
+                // 如果ListBox未初始化，使用默认值
                 return (20, 5, 10);
             }
 
-            // �?使用虚拟化安全的方法获取可视范围
+            // ◆使用虚拟化安全的方法获取可视范围
             var (firstVisible, lastVisible) = GetVisibleRange();
             
             if (firstVisible == -1 || lastVisible == -1)
             {
-                // 如果未找到可视项，使用默认�?
+                // 如果未找到可视项，使用默认值
                 return (20, 5, 10);
             }
 
-            // 计算可视区域能显示多少图�?
+            // 计算可视区域能显示多少图片
             int viewportCapacity = lastVisible - firstVisible + 1;
             int immediateDisplayCount = viewportCapacity;
 
-            // 缩略图数量为显示数量�?/4（最�?张）
+            // 缩略图数量为显示数量的1/4（最小3张）
             int immediateThumbnailCount = Math.Max(3, immediateDisplayCount / 4);
 
-            // 批次大小为显示数量的1/2（最�?张）
+            // 批次大小为显示数量的1/2（最小5张）
             int batchSize = Math.Max(5, immediateDisplayCount / 2);
 
             return (immediateDisplayCount, immediateThumbnailCount, batchSize);
         }
 
         /// <summary>
-        /// 计算最优并发数（动态并发数优化�?
+        /// 计算最优并发数（动态并发数优化）
         /// </summary>
         private int CalculateOptimalConcurrency()
         {
@@ -1205,21 +1182,21 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             {
                 // 双解码器模式：适中并发数，充分利用并行能力
                 int concurrency = Math.Min(6, Math.Max(3, (int)(cpuCount / 1.5)));
-                Debug.WriteLine($"[ImagePreviewControl] 动态并发数: {concurrency} (CPU核心�?{cpuCount})");
+                Debug.WriteLine($"[ImagePreviewControl] 动态并发数: {concurrency} (CPU核心数:{cpuCount})");
                 return concurrency;
             }
             else
             {
-                // CPU模式：充分利用多�?
+                // CPU模式：充分利用多核
                 int cpuConcurrency = Math.Max(2, (int)(cpuCount * 0.75));
-                Debug.WriteLine($"[ImagePreviewControl] 动态并发数（CPU模式�? {cpuConcurrency} (CPU核心�?{cpuCount})");
+                Debug.WriteLine($"[ImagePreviewControl] 动态并发数（CPU模式）: {cpuConcurrency} (CPU核心数:{cpuCount})");
                 return cpuConcurrency;
             }
         }
 
         /// <summary>
         /// 优化的图像加载方法（简化版：使用优先级加载器）
-        /// 优化：统一计时日志、文件预取、等待可视区域完�?
+        /// 优化：统一计时日志、文件预取、等待可视区域完成
         /// </summary>
         private async Task LoadImagesOptimizedAsync(
             string[] fileNames,
@@ -1233,16 +1210,16 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
             try
             {
-                // 清空优先级加载器的状�?
+                // 清空优先级加载器的状态
                 _priorityLoader.ClearState();
                 
-                // �?日志优化：重置首张图片追踪计数器
+                // ◆日志优化：重置首张图片追踪计数器
                 SmartThumbnailLoader.ResetLoadCounter();
 
                 Debug.WriteLine("");
                 Debug.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-                Debug.WriteLine("�?          图像加载 - 性能计时开�?                             �?);
-                Debug.WriteLine($"�? 图片数量: {fileNames.Length} �?);
+                Debug.WriteLine("║          图像加载 - 性能计时开始                             ║");
+                Debug.WriteLine($"║ 图片数量: {fileNames.Length} 张");
                 Debug.WriteLine("╚══════════════════════════════════════════════════════════════╝");
 
                 // ===== 步骤1：预创建所有ImageInfo对象 =====
@@ -1262,11 +1239,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 step1Sw.Stop();
                 Debug.WriteLine($"[LoadImages] 步骤1-创建对象: {step1Sw.ElapsedMilliseconds}ms");
 
-                // ===== 步骤2：更新UI（批量添加，性能优化�?=====
+                // ===== 步骤2：更新UI（批量添加，性能优化） =====
                 var step2Sw = Stopwatch.StartNew();
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    // 使用批量替换，只触发一次Reset事件，性能提升30-50�?
+                    // 使用批量替换，只触发一次Reset事件，性能提升30-50倍
                     ImageCollection.ReplaceRange(allImages);
 
                     if (ImageCollection.Count > 0)
@@ -1282,10 +1259,10 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 step2Sw.Stop();
                 Debug.WriteLine($"[LoadImages] 步骤2-更新UI(批量优化): {step2Sw.ElapsedMilliseconds}ms");
 
-                // ===== 步骤3：使用优先级加载器加载首�?=====
+                // ===== 步骤3：使用优先级加载器加载首页 =====
                 var step3Sw = Stopwatch.StartNew();
                 
-                // 设置首张图片加载完成的回�?
+                // 设置首张图片加载完成的回调
                 var firstImageTcs = new TaskCompletionSource<bool>();
                 
                 await _priorityLoader.LoadInitialScreenAsync(fileNames, ImageCollection, index =>
@@ -1293,7 +1270,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     // 首张图片加载完成
                     firstImageSw.Stop();
                     firstImageTime = firstImageSw.Elapsed;
-                    Debug.WriteLine($"[LoadImages] ★★�?首张缩略图显�?- 耗时: {firstImageTime.Value.TotalMilliseconds:F0}ms ★★�?);
+                    Debug.WriteLine($"[LoadImages] ★★★ 首张缩略图显示 - 耗时: {firstImageTime.Value.TotalMilliseconds:F0}ms ★★★");
                     firstImageTcs.TrySetResult(true);
                 });
                 step3Sw.Stop();
@@ -1301,7 +1278,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 // 等待首张图片加载完成
                 await firstImageTcs.Task;
 
-                // ===== 步骤4：文件预取（在首张显示后启动，避免I/O竞争�?=====
+                // ===== 步骤4：文件预取（在首张显示后启动，避免I/O竞争） =====
                 var prefetchSw = Stopwatch.StartNew();
                 int prefetchCount = Math.Min(20, fileNames.Length);
                 _ = Task.Run(() =>
@@ -1317,9 +1294,9 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     catch { }
                 }, cancellationToken);
                 prefetchSw.Stop();
-                Debug.WriteLine($"[LoadImages] 文件预取启动: {prefetchSw.ElapsedMilliseconds}ms (预取{prefetchCount}�?");
+                Debug.WriteLine($"[LoadImages] 文件预取启动: {prefetchSw.ElapsedMilliseconds}ms (预取{prefetchCount}张)");
 
-                // ===== 移除步骤4：等待可视区域加载完�?=====
+                // ===== 移除步骤4：等待可视区域加载完成 =====
                 // 原因：PriorityThumbnailLoader 已有完整的可视区域监控和报告
                 // 移除冗余逻辑，避免阻塞和错误计算
 
@@ -1355,32 +1332,32 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
                 totalSw.Stop();
 
-                // ===== 简化的性能报告 =====
+                // ===== 精简的性能报告 =====
                 Debug.WriteLine("");
                 Debug.WriteLine("╔══════════════════════════════════════════════════════════════╗");
-                Debug.WriteLine("�?          图像加载 - 性能报告                                  �?);
+                Debug.WriteLine("║          图像加载 - 性能报告                                  ║");
                 Debug.WriteLine("╠══════════════════════════════════════════════════════════════╣");
-                Debug.WriteLine($"�? 总图片数:      {fileNames.Length} �?);
-                Debug.WriteLine($"�? �?首张缩略�?   {firstImageTime?.TotalMilliseconds:F0}ms (用户首次看到图片)");
-                Debug.WriteLine($"�? 总耗时:        {totalSw.ElapsedMilliseconds}ms");
-                Debug.WriteLine("�? 可视区域加载报告 �?�?PriorityLoader 日志");
+                Debug.WriteLine($"║ 总图片数:      {fileNames.Length} 张");
+                Debug.WriteLine($"║ ◆ 首张缩略图   {firstImageTime?.TotalMilliseconds:F0}ms (用户首次看到图片)");
+                Debug.WriteLine($"║ 总耗时:        {totalSw.ElapsedMilliseconds}ms");
+                Debug.WriteLine("║ 可视区域加载报告 → 见PriorityLoader日志");
                 Debug.WriteLine("╚══════════════════════════════════════════════════════════════╝");
                 Debug.WriteLine("");
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine($"[LoadImages] �?加载被取�?);
+                Debug.WriteLine($"[LoadImages] ⚠ 加载被取消");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[LoadImages] �?加载异常: {ex.Message}");
+                Debug.WriteLine($"[LoadImages] ✓ 加载异常: {ex.Message}");
             }
         }
 
 
 
         /// <summary>
-        /// 添加文件�?
+        /// 添加文件夹
         /// </summary>
         private async void ExecuteAddFolder()
         {
@@ -1389,7 +1366,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp;*.tiff|所有文件|*.*",
-                    Title = "选择文件夹中的任意一个图像文�?,
+                    Title = "选择文件夹中的任意一个图像文件",
                     Multiselect = false
                 };
 
@@ -1400,7 +1377,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
                     if (string.IsNullOrEmpty(folderPath))
                     {
-                        MessageBox.Show("无法获取文件夹路�?, "错误",
+                        MessageBox.Show("无法获取文件夹路径", "错误",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
@@ -1414,7 +1391,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
                     if (imageFiles.Length == 0)
                     {
-                        MessageBox.Show("所选文件夹中没有找到图像文�?, "提示",
+                        MessageBox.Show("所选文件夹中没有找到图像文件", "提示",
                             MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
@@ -1431,11 +1408,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             catch (OperationCanceledException)
             {
-                // 用户取消了操�?
+                // 用户取消了操作
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加文件夹失�? {ex.Message}", "错误",
+                MessageBox.Show($"添加文件夹失败: {ex.Message}", "错误",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1445,29 +1422,29 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// </summary>
         private void ExecuteDeleteSingleImage(ImageInfo? imageInfo)
         {
-            Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage 被调�?- imageInfo: {imageInfo?.Name ?? "null"}");
+            Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage 被调用 - imageInfo: {imageInfo?.Name ?? "null"}");
 
             if (imageInfo == null)
             {
-                Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage - imageInfo �?null，返�?);
+                Debug.WriteLine($"[ImagePreviewControl] ExecuteDeleteSingleImage - imageInfo 为 null，返回");
                 return;
             }
 
             int index = ImageCollection.IndexOf(imageInfo);
             if (index >= 0)
             {
-                Debug.WriteLine($"[ImagePreviewControl] 准备删除索引 {index} 的图�?- {imageInfo.Name}");
-                Debug.WriteLine($"[ImagePreviewControl] 删除�?- ImageCollection.Count:{ImageCollection.Count}");
+                Debug.WriteLine($"[ImagePreviewControl] 准备删除索引 {index} 的图片 - {imageInfo.Name}");
+                Debug.WriteLine($"[ImagePreviewControl] 删除前 - ImageCollection.Count:{ImageCollection.Count}");
 
                 ImageCollection.RemoveAt(index);
 
-                Debug.WriteLine($"[ImagePreviewControl] 删除�?- ImageCollection.Count:{ImageCollection.Count}");
+                Debug.WriteLine($"[ImagePreviewControl] 删除后 - ImageCollection.Count:{ImageCollection.Count}");
 
                 // 关键修复：删除图片后，所有后续图片的索引都发生了错位
-                // 必须清除PriorityLoader的_loadedIndices缓存，否则会导致"假已加载"状�?
-                Debug.WriteLine($"[ImagePreviewControl] 清除PriorityLoader的缓存（修复索引错位问题�?..");
+                // 必须清除PriorityLoader的_loadedIndices缓存，否则会导致"假已加载"状态
+                Debug.WriteLine($"[ImagePreviewControl] 清除PriorityLoader的缓存（修复索引错位问题）...");
                 _priorityLoader.ClearState();
-                Debug.WriteLine($"[ImagePreviewControl] �?PriorityLoader缓存已清�?);
+                Debug.WriteLine($"[ImagePreviewControl] ✓ PriorityLoader缓存已清除");
 
                 // 调整当前索引
                 int oldIndex = CurrentImageIndex;
@@ -1485,15 +1462,15 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     CurrentImageIndex--;
                 }
 
-                Debug.WriteLine($"[ImagePreviewControl] 索引调整 - 旧索�?{oldIndex}, 新索�?{CurrentImageIndex}, 删除的索�?{index}");
+                Debug.WriteLine($"[ImagePreviewControl] 索引调整 - 旧索引:{oldIndex}, 新索引:{CurrentImageIndex}, 删除的索引:{index}");
 
-                // 无论索引是否变化，都强制刷新相关UI状�?
+                // 无论索引是否变化，都强制刷新相关UI状态
                 RefreshImageDisplayState();
             }
         }
 
         /// <summary>
-        /// 清除所有图�?
+        /// 清除所有图像
         /// </summary>
         private void ExecuteClearAll()
         {
@@ -1501,7 +1478,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 return;
 
             var result = MessageBox.Show(
-                $"确定要清除所�?{ImageCollection.Count} 张图像吗?",
+                $"确定要清除所有 {ImageCollection.Count} 张图像吗？",
                 "确认清除",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -1541,21 +1518,21 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 control._thumbnailListBox.SelectedItem = selectedImage;
             }
 
-            // �?关键修复：先检查集合是否有�?
+            // ◆关键修复：先检查集合是否有效
             var collection = control.ImageCollection;
             if (collection != null && collection.Count > 0 && control.CurrentImageIndex >= 0)
             {
-                // 智能预加载相邻图�?
+                // 智能预加载相邻图像
                 control.PreloadAdjacentImages(control.CurrentImageIndex);
 
-                // 释放远离当前索引的图�?
+                // 释放远离当前索引的图像
                 control.ReleaseDistantImages(control.CurrentImageIndex);
             }
         }
 
         /// <summary>
         /// 图像集合更改回调
-        /// 优化：延迟渲�?+ 占位符策略，避免切换节点时卡�?
+        /// 优化：延迟渲染 + 占位符策略，避免切换节点时卡顿
         /// </summary>
         private static void OnImageCollectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -1563,25 +1540,25 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             var oldCollection = e.OldValue as BatchObservableCollection<ImageInfo>;
             var newCollection = e.NewValue as BatchObservableCollection<ImageInfo>;
 
-            // �?优化：如果新旧集合引用相同，跳过处理
+            // ◆优化：如果新旧集合引用相同，跳过处理
             // 这避免了从非采集节点切回采集节点时不必要的缩略图清空
             if (oldCollection == newCollection && newCollection != null)
             {
-                Debug.WriteLine($"[OnImageCollectionChanged] 相同集合引用，跳过处�?);
+                Debug.WriteLine($"[OnImageCollectionChanged] 相同集合引用，跳过处理");
                 return;
             }
 
-            // 更新基本属�?
+            // 更新基本属性
             control.UpdateImageSelection();
             control.OnPropertyChanged(nameof(ImageCountDisplay));
 
-            // �?关键修复：当集合变为空或 null 时，必须清理加载器状�?
+            // ◆关键修复：当集合变为空或 null 时，必须清理加载器状态
             // 否则 _priorityLoader 仍持有旧集合引用，导致异步任务操作旧数据产生 NullReferenceException
             if (newCollection == null || newCollection.Count == 0)
             {
                 control._priorityLoader.ClearState();
                 control._priorityLoader.SetImageCollection(null);
-                Debug.WriteLine($"[OnImageCollectionChanged] 集合变为空，已清理加载器状�?);
+                Debug.WriteLine($"[OnImageCollectionChanged] 集合变为空，已清理加载器状态");
                 return;
             }
 
@@ -1599,25 +1576,25 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// </summary>
         private void ScheduleDeferredThumbnailLoading(BatchObservableCollection<ImageInfo> collection)
         {
-            Debug.WriteLine($"[ScheduleDeferred] 开始安排延迟加�? collection.Count={collection?.Count ?? -1}");
+            Debug.WriteLine($"[ScheduleDeferred] 开始安排延迟加载 collection.Count={collection?.Count ?? -1}");
             
-            // 取消之前的延迟加载任�?
+            // 取消之前的延迟加载任务
             _deferredLoadingTimer?.Stop();
             _priorityLoader.ClearState();
 
-            // �?关键修复：无论是否有缩略图，都必须设置新的图像集合引�?
-            // 否则 _priorityLoader �?_imageCollection 仍指向旧节点，导致索引越�?
+            // ◆关键修复：无论是否有缩略图，都必须设置新的图像集合引用
+            // 否则 _priorityLoader 的 _imageCollection 仍指向旧节点，导致索引越界
             _priorityLoader.SetImageCollection(collection);
 
-            // 如果集合中没有已加载的缩略图，需要主动触发加�?
+            // 如果集合中没有已加载的缩略图，需要主动触发加载
             bool hasAnyThumbnail = collection.Any(img => img.Thumbnail != null);
             Debug.WriteLine($"[ScheduleDeferred] hasAnyThumbnail={hasAnyThumbnail}");
             
-            // �?修复：无论是否有缩略图，都需要触发可视区域加�?
-            // 原问题：当没有缩略图时直接返回，依赖滚动事件触发，但切换节点后可能没有滚动事�?
+            // ◆修复：无论是否有缩略图，都需要触发可视区域加载
+            // 原问题：当没有缩略图时直接返回，依赖滚动事件触发，但切换节点后可能没有滚动事件
             if (!hasAnyThumbnail)
             {
-                // 没有已加载的缩略图，延迟后触发可视区域加�?
+                // 没有已加载的缩略图，延迟后触发可视区域加载
                 // 使用更长的延迟确保UI布局完成
                 _deferredLoadingTimer = new DispatcherTimer
                 {
@@ -1626,14 +1603,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 _deferredLoadingTimer.Tick += (s, args) =>
                 {
                     _deferredLoadingTimer?.Stop();
-                    // �?关键修复：重新验证集合是否仍然有�?
+                    // ◆关键修复：重新验证集合是否仍然有效
                     var currentCollection = ImageCollection;
                     if (currentCollection == null || currentCollection.Count == 0)
                     {
-                        Debug.WriteLine($"[DeferredLoading] �?定时器触发时集合已失效，跳过加载");
+                        Debug.WriteLine($"[DeferredLoading] ⚠ 定时器触发时集合已失效，跳过加载");
                         return;
                     }
-                    Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区�?);
+                    Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区域");
                     LoadVisibleRangeThumbnails(currentCollection);
                 };
                 _deferredLoadingTimer.Start();
@@ -1641,7 +1618,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
 
             // 情况2：集合中已有缩略图（从其他节点切换过来）
-            // 策略：先清空显示占位符，再异步加载可视区�?
+            // 策略：先清空显示占位符，再异步加载可视区域
             var sw = Stopwatch.StartNew();
 
             // 清空所有缩略图显示（保留文件路径数据）
@@ -1650,24 +1627,24 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 image.Thumbnail = null;
             }
             sw.Stop();
-            Debug.WriteLine($"[DeferredLoading] 清空缩略图显�? {collection.Count}�? 耗时:{sw.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"[DeferredLoading] 清空缩略图显示 {collection.Count}张 耗时:{sw.ElapsedMilliseconds}ms");
 
-            // 延迟一帧后开始加载可视区域（确保占位符已渲染�?
+            // 延迟一帧后开始加载可视区域（确保占位符已渲染）
             _deferredLoadingTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(50) // 50ms 延迟，确�?UI 更新完成
+                Interval = TimeSpan.FromMilliseconds(50) // 50ms 延迟，确保 UI 更新完成
             };
             _deferredLoadingTimer.Tick += (s, args) =>
             {
                 _deferredLoadingTimer?.Stop();
-                // �?关键修复：重新验证集合是否仍然有�?
+                // ◆关键修复：重新验证集合是否仍然有效
                 var currentCollection = ImageCollection;
                 if (currentCollection == null || currentCollection.Count == 0)
                 {
-                    Debug.WriteLine($"[DeferredLoading] �?定时器触发时集合已失效，跳过加载");
+                    Debug.WriteLine($"[DeferredLoading] ⚠ 定时器触发时集合已失效，跳过加载");
                     return;
                 }
-                Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区�?);
+                Debug.WriteLine($"[DeferredLoading] 定时器触发，开始加载可视区域");
                 LoadVisibleRangeThumbnails(currentCollection);
             };
             _deferredLoadingTimer.Start();
@@ -1675,7 +1652,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         /// <summary>
         /// 异步加载可视区域的缩略图
-        /// �?增强重试机制：当可视范围获取失败时自动重�?
+        /// ◆增强重试机制：当可视范围获取失败时自动重试
         /// </summary>
         private void LoadVisibleRangeThumbnails(BatchObservableCollection<ImageInfo> collection)
         {
@@ -1688,12 +1665,12 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // 获取可视范围
             var (firstVisible, lastVisible) = GetVisibleRange();
 
-            // �?增强重试：如果可视范围无效，延迟重试
+            // ◆增强重试：如果可视范围无效，延迟重试
             if (firstVisible == -1 || lastVisible == -1)
             {
-                Debug.WriteLine($"[DeferredLoading] �?可视范围无效，延迟重�?..");
+                Debug.WriteLine($"[DeferredLoading] ⚠ 可视范围无效，延迟重试...");
                 
-                // 延迟重试（最多重�?次）
+                // 延迟重试（最多重试2次）
                 _deferredLoadingTimer = new DispatcherTimer
                 {
                     Interval = TimeSpan.FromMilliseconds(100)
@@ -1707,15 +1684,15 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                     if (retryFirst >= 0 && retryLast >= 0)
                     {
                         _deferredLoadingTimer?.Stop();
-                        Debug.WriteLine($"[DeferredLoading] �?重试成功，可视范�? [{retryFirst}, {retryLast}]");
+                        Debug.WriteLine($"[DeferredLoading] ✓ 重试成功，可视范围 [{retryFirst}, {retryLast}]");
                         ExecuteLoadVisibleRange(collection, retryFirst, retryLast, sw);
                     }
                     else if (retryCount >= 2)
                     {
-                        // 重试失败，使用默认值强制加�?
+                        // 重试失败，使用默认值强制加载
                         _deferredLoadingTimer?.Stop();
                         int defaultLast = Math.Min(collection.Count - 1, 15);
-                        Debug.WriteLine($"[DeferredLoading] �?重试失败，使用默认范�? [0, {defaultLast}]");
+                        Debug.WriteLine($"[DeferredLoading] ⚠ 重试失败，使用默认范围 [0, {defaultLast}]");
                         ExecuteLoadVisibleRange(collection, 0, defaultLast, sw);
                     }
                 };
@@ -1744,7 +1721,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             {
                 // 首张图片加载完成
                 sw.Stop();
-                Debug.WriteLine($"[DeferredLoading] �?首张缩略图加载完�?- 耗时: {sw.ElapsedMilliseconds}ms");
+                Debug.WriteLine($"[DeferredLoading] ◆ 首张缩略图加载完成 - 耗时: {sw.ElapsedMilliseconds}ms");
             });
         }
 
@@ -1756,9 +1733,10 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             var control = (ImagePreviewControl)d;
             control.OnPropertyChanged(nameof(ImageRunMode));
             
-            // 刷新命令状�?
+            // 刷新命令状态
             CommandManager.InvalidateRequerySuggested();
         }
+
 
 
 
@@ -1768,13 +1746,13 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// </summary>
         private void RefreshImageDisplayState()
         {
-            // 强制刷新ImageCountDisplay（确保删除后总数正确更新�?
+            // 强制刷新ImageCountDisplay（确保删除后计数正确更新）
             OnPropertyChanged(nameof(ImageCountDisplay));
 
-            // 强制刷新缩略图选中状�?
+            // 强制刷新缩略图选中状态
             UpdateImageSelection();
 
-            // 确保触发预加载和释放机制（修复缩略图只显示占位图问题�?
+            // 确保触发预加载和释放机制（修复缩略图只显示占位图问题）
             if (CurrentImageIndex >= 0)
             {
                 PreloadAdjacentImages(CurrentImageIndex);
@@ -1793,7 +1771,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             else
             {
-                // 如果没有选中图像，清除ListBox选中�?
+                // 如果没有选中图像，清除ListBox选中项
                 if (_thumbnailListBox != null)
                 {
                     _thumbnailListBox.SelectedItem = null;
@@ -1802,7 +1780,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 更新图像选中状�?
+        /// 更新图像选中状态
         /// </summary>
         private void UpdateImageSelection()
         {
@@ -1815,19 +1793,19 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 缩略图点击事件处�?
+        /// 缩略图点击事件处理
         /// </summary>
         private void OnThumbnailClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick 触发 - e.Handled: {e.Handled}, OriginalSource: {e.OriginalSource?.GetType().Name}");
 
-            // 如果点击的是删除按钮或CheckBox，跳过处�?
+            // 如果点击的是删除按钮或CheckBox，跳过处理
             DependencyObject? current = e.OriginalSource as DependencyObject;
             while (current != null)
             {
                 if (current is Button || current is CheckBox)
                 {
-                    Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 点击的是按钮或CheckBox，跳过处�?);
+                    Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 点击的是按钮或CheckBox，跳过处理");
                     return;
                 }
                 current = VisualTreeHelper.GetParent(current);
@@ -1836,27 +1814,27 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             if (sender is Border border && border.Tag is ImageInfo imageInfo)
             {
                 int index = ImageCollection.IndexOf(imageInfo);
-                Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 图像索引: {index}, 文件�? {imageInfo.Name}");
+                Debug.WriteLine($"[ImagePreviewControl] OnThumbnailClick - 图像索引: {index}, 文件名: {imageInfo.Name}");
 
                 if (index >= 0)
                 {
                     if (ImageRunMode == ImageRunMode.运行选择)
                     {
-                        // �?运行选择模式：只有已勾选的图片才执行工作流
+                        // ◆运行选择模式：只有已勾选的图片才执行工作流
                         if (imageInfo.IsForRun)
                         {
-                            Debug.WriteLine($"[ImagePreviewControl] �?执行工作�?- 模式:运行选择, 图像:{imageInfo.Name}, 索引:{index}");
+                            Debug.WriteLine($"[ImagePreviewControl] ◆ 执行工作流 - 模式:运行选择, 图像:{imageInfo.Name}, 索引:{index}");
                             RequestWorkflowExecution(imageInfo, index);
                         }
                         else
                         {
-                            Debug.WriteLine($"[ImagePreviewControl] 图片未勾�?- 图像:{imageInfo.Name}，不执行工作�?);
+                            Debug.WriteLine($"[ImagePreviewControl] 图片未勾选 - 图像:{imageInfo.Name}，不执行工作流");
                         }
                     }
                     else
                     {
-                        // �?运行全部模式：点击任意图片执行工作流
-                        Debug.WriteLine($"[ImagePreviewControl] �?执行工作�?- 模式:运行全部, 图像:{imageInfo.Name}, 索引:{index}");
+                        // ◆运行全部模式：点击任意图片执行工作流
+                        Debug.WriteLine($"[ImagePreviewControl] ◆ 执行工作流 - 模式:运行全部, 图像:{imageInfo.Name}, 索引:{index}");
                         RequestWorkflowExecution(imageInfo, index);
                     }
                 }
@@ -1864,14 +1842,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 请求执行工作�?
+        /// 请求执行工作流
         /// </summary>
         private void RequestWorkflowExecution(ImageInfo imageInfo, int index)
         {
-            // 切换当前显示的图�?
+            // 切换当前显示的图像
             CurrentImageIndex = index;
             
-            // 触发工作流执行请求事�?
+            // 触发工作流执行请求事件
             WorkflowExecutionRequested?.Invoke(this, new WorkflowExecutionRequestEventArgs
             {
                 ImageInfo = imageInfo,
@@ -1880,14 +1858,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 删除按钮预点击事件处�?- 用于日志记录，不阻止事件传�?
+        /// 删除按钮预点击事件处理 - 用于日志记录，不阻止事件传递
         /// </summary>
         private void OnDeleteButtonPreview(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             Debug.WriteLine($"[ImagePreviewControl] OnDeleteButtonPreview 触发 - Sender: {sender?.GetType().Name}, OriginalSource: {e.OriginalSource?.GetType().Name}");
 
-            // 不设�?e.Handled = true，让事件继续传递到按钮�?Click 事件
-            // PreviewMouseLeftButtonDown 会先�?Click 事件触发
+            // 不设置 e.Handled = true，让事件继续传递到按钮的 Click 事件
+            // PreviewMouseLeftButtonDown 会先于 Click 事件触发
         }
 
         /// <summary>
@@ -1919,7 +1897,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         /// <summary>
         /// 运行模式下拉列表鼠标按下事件处理
-        /// 使用PreviewMouseDown确保在点击任意项时都能立即响�?
+        /// 使用PreviewMouseDown确保在点击任意项时都能立即响应
         /// </summary>
         private void OnRunModeListBoxPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -1936,7 +1914,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             if (listBoxItem == null)
                 return;
 
-            // 获取选中�?
+            // 获取选中项
             ImageRunMode? selectedMode = null;
             if (listBoxItem.Content is TextBlock textBlock && textBlock.DataContext is ImageRunMode mode1)
             {
@@ -1961,7 +1939,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 查找父元�?
+        /// 查找父元素
         /// </summary>
         private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
         {
@@ -1987,7 +1965,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         }
 
         /// <summary>
-        /// 加载图像（已废弃，请使用LoadImageOptimized�?
+        /// 加载图像（已废弃，请使用LoadImageOptimized）
         /// </summary>
         [System.Obsolete("请使用LoadImageOptimized代替")]
         private BitmapImage? LoadImage(string filePath)
@@ -1999,9 +1977,9 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
 
         /// <summary>
-        /// 更新加载范围（滚动时调用�?
+        /// 更新加载范围（滚动时调用）
         /// 使用优先级加载器
-        /// �?虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
+        /// ◆虚拟化安全：使用 ItemContainerGenerator 精确获取可视范围
         /// </summary>
         private void UpdateLoadRange()
         {
@@ -2009,22 +1987,22 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             
             if (_thumbnailListBox == null || ImageCollection == null || ImageCollection.Count == 0)
             {
-                Debug.WriteLine($"[UpdateLoadRange] �?跳过 - ListBox或集合为�?(listBox:{_thumbnailListBox != null} collection:{ImageCollection != null} count:{ImageCollection?.Count ?? 0})");
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 跳过 - ListBox或集合为空(listBox:{_thumbnailListBox != null} collection:{ImageCollection != null} count:{ImageCollection?.Count ?? 0})");
                 return;
             }
 
-            // �?使用虚拟化安全的方法获取可视范围
+            // ◆使用虚拟化安全的方法获取可视范围
             var (firstVisible, lastVisible) = GetVisibleRange();
             
             if (firstVisible == -1 || lastVisible == -1)
             {
-                Debug.WriteLine($"[UpdateLoadRange] �?未找到可视项 - GetVisibleRange返回(-1,-1)");
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 未找到可视项 - GetVisibleRange返回(-1,-1)");
                 return;
             }
 
             var viewportWidth = _thumbnailListBox.ActualWidth;
             
-            // ===== 缩略图显示状态监控（增强诊断�?=====
+            // ===== 缩略图显示状态监控（增强诊断） =====
             int loadedCount = 0, emptyCount = 0, validCount = 0, invalidCount = 0;
             var emptyIndices = new System.Text.StringBuilder();
             var invalidDetails = new System.Text.StringBuilder();
@@ -2035,7 +2013,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 if (item.Thumbnail != null)
                 {
                     loadedCount++;
-                    // �?诊断：检查缩略图是否真的有效（有宽高�?
+                    // ◆诊断：检查缩略图是否真的有效（有宽高）
                     if (item.Thumbnail.Width > 0 && item.Thumbnail.Height > 0)
                     {
                         validCount++;
@@ -2055,11 +2033,11 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 }
             }
             
-            // 缩略图有效性监控（静默处理�?
+            // 缩略图有效性监控（静默处理）
             
             if (invalidCount > 0)
             {
-                Debug.WriteLine($"[ThumbnailMonitor] �?无效缩略�? {invalidDetails}");
+                Debug.WriteLine($"[ThumbnailMonitor] ⚠ 无效缩略图: {invalidDetails}");
             }
             
             if (emptyCount > 0)
@@ -2067,7 +2045,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 Debug.WriteLine($"[ThumbnailMonitor] 空白索引:[{emptyIndices}]");
             }
 
-            // 委托给优先级加载器（�?关键修复：先检查集合是否有效）
+            // 委托给优先级加载器（◆关键修复：先检查集合是否有效）
             var collection = ImageCollection;
             if (collection != null && collection.Count > 0)
             {
@@ -2075,7 +2053,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             else
             {
-                Debug.WriteLine($"[UpdateLoadRange] �?跳过委托调用 - 集合已变为空");
+                Debug.WriteLine($"[UpdateLoadRange] ⚠ 跳过委托调用 - 集合已变为空");
             }
             
             sw.Stop();
@@ -2087,52 +2065,52 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         /// <summary>
         /// 获取当前可视区域内的数据项索引范围（虚拟化安全版本）
-        /// 核心原理：虚拟化模式�?ScrollViewer �?HorizontalOffset 返回的是"项索�?而非像素
+        /// 核心原理：虚拟化模式下 ScrollViewer 的 HorizontalOffset 返回的是"项索引"而非像素
         /// </summary>
         /// <returns>返回(firstVisible, lastVisible)，如果找不到返回(-1, -1)</returns>
         private (int firstVisible, int lastVisible) GetVisibleRange()
         {
-            // ===== 诊断日志：检查前置条�?=====
+            // ===== 诊断日志：检查前置条件 =====
             var callStack = new System.Diagnostics.StackTrace();
             var caller = callStack.GetFrame(1)?.GetMethod()?.Name ?? "unknown";
             
             if (_thumbnailListBox == null)
             {
-                Debug.WriteLine($"[GetVisibleRange] �?返回(-1,-1) - _thumbnailListBox为null, caller={caller}");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - _thumbnailListBox为null, caller={caller}");
                 return (-1, -1);
             }
             
             if (ImageCollection == null || ImageCollection.Count == 0)
             {
-                Debug.WriteLine($"[GetVisibleRange] �?返回(-1,-1) - ImageCollection为空 (null:{ImageCollection == null}, count:{ImageCollection?.Count ?? 0}), caller={caller}");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - ImageCollection为空 (null:{ImageCollection == null}, count:{ImageCollection?.Count ?? 0}), caller={caller}");
                 return (-1, -1);
             }
 
             var scrollViewer = FindVisualChild<ScrollViewer>(_thumbnailListBox);
             if (scrollViewer == null)
             {
-                Debug.WriteLine($"[GetVisibleRange] �?返回(-1,-1) - scrollViewer为null, caller={caller}");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - scrollViewer为null, caller={caller}");
                 return (-1, -1);
             }
 
             double itemWidth = ThumbnailSizes.ItemWidth;
             if (itemWidth <= 0)
             {
-                Debug.WriteLine($"[GetVisibleRange] �?返回(-1,-1) - itemWidth无效: {itemWidth}, caller={caller}");
+                Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - itemWidth无效: {itemWidth}, caller={caller}");
                 return (-1, -1);
             }
 
-            // ===== 关键修复：虚拟化模式�?ScrollViewer 的值含�?=====
-            // HorizontalOffset = 当前滚动位置（项索引，不是像素！�?
+            // ===== 关键修复：虚拟化模式下 ScrollViewer 的值含义 =====
+            // HorizontalOffset = 当前滚动位置（项索引，不是像素！）
             // ExtentWidth = 总项数（不是像素宽度！）
-            // ViewportWidth = 可见项数（不是像素宽度！�?
+            // ViewportWidth = 可见项数（不是像素宽度！）
             
             double offset = scrollViewer.HorizontalOffset;
             double extentWidth = scrollViewer.ExtentWidth;
             double scrollViewportWidth = scrollViewer.ViewportWidth;
             
-            // 判断 ScrollViewer 是否处于虚拟化模�?
-            // 如果 extentWidth �?图片数量，说明是虚拟化模式，offset 是项索引
+            // 判断 ScrollViewer 是否处于虚拟化模式
+            // 如果 extentWidth ≈ 图片数量，说明是虚拟化模式，offset 是项索引
             bool isVirtualizationMode = ImageCollection.Count > 0 && 
                                          Math.Abs(extentWidth - ImageCollection.Count) < ImageCollection.Count * 0.1;
             
@@ -2142,26 +2120,26 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             
             if (isVirtualizationMode && extentWidth > 0 && scrollViewportWidth > 0)
             {
-                // 虚拟化模式：直接使用 ScrollViewer 的值（已经是项索引�?
+                // 虚拟化模式：直接使用 ScrollViewer 的值（已经是项索引）
                 // ViewportWidth 已经是精确的可见项数
                 visibleCount = (int)Math.Ceiling(scrollViewportWidth);
                 firstVisible = Math.Max(0, (int)offset);
                 lastVisible = Math.Min(ImageCollection.Count - 1, firstVisible + visibleCount - 1);
                 
-                // �?仅添�?张缓冲（防止滚动时边缘白屏）
+                // ◆只添加1张缓冲（防止滚动时边缘白屏）
                 firstVisible = Math.Max(0, firstVisible - 1);
                 lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 1);
             }
             else
             {
-                // 非虚拟化模式或回退：基于像素宽度计�?
+                // 非虚拟化模式或回退：基于像素宽度计算
                 double viewportWidth = scrollViewportWidth > itemWidth ? scrollViewportWidth : 
                                        _thumbnailListBox.ActualWidth > itemWidth ? _thumbnailListBox.ActualWidth : 
                                        this.ActualWidth;
                 
                 if (viewportWidth < itemWidth)
                 {
-                    Debug.WriteLine($"[GetVisibleRange] �?返回(-1,-1) - 视口宽度无效: {viewportWidth:F1}");
+                    Debug.WriteLine($"[GetVisibleRange] ⚠ 返回(-1,-1) - 视口宽度无效: {viewportWidth:F1}");
                     return (-1, -1);
                 }
                 
@@ -2169,7 +2147,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 firstVisible = Math.Max(0, (int)(offset / itemWidth));
                 lastVisible = Math.Min(ImageCollection.Count - 1, (int)((offset + viewportWidth) / itemWidth));
                 
-                // �?仅添�?张缓�?
+                // ◆只添加1张缓冲
                 firstVisible = Math.Max(0, firstVisible - 1);
                 lastVisible = Math.Min(ImageCollection.Count - 1, lastVisible + 1);
             }
@@ -2186,49 +2164,49 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         {
             Debug.WriteLine("");
             Debug.WriteLine("========================================");
-            Debug.WriteLine("★★�?可视区域加载完成 ★★�?);
-            Debug.WriteLine($"  加载数量: {loadedCount} �?);
+            Debug.WriteLine("★★★ 可视区域加载完成 ★★★");
+            Debug.WriteLine($"  加载数量: {loadedCount} 张");
             Debug.WriteLine($"  总耗时: {totalDuration.TotalMilliseconds:F2}ms");
             Debug.WriteLine("========================================");
             Debug.WriteLine("");
         }
 
         /// <summary>
-        /// 内存压力变化事件处理（P0优化：自适应策略�?
+        /// 内存压力变化事件处理（P0优化：自适应策略）
         /// </summary>
         private void OnMemoryPressureChanged(object? sender, MemoryPressureMonitor.MemoryPressureEventArgs e)
         {
-            Debug.WriteLine($"[ImagePreviewControl] �?内存压力变化: {e.Level} (可用:{e.AvailableMemoryMB}MB, {e.AvailablePercent:F1}%)");
+            Debug.WriteLine($"[ImagePreviewControl] ⚠ 内存压力变化: {e.Level} (可用:{e.AvailableMemoryMB}MB, {e.AvailablePercent:F1}%)");
             Debug.WriteLine($"[ImagePreviewControl]   建议操作: {e.RecommendedAction}");
 
-            // �?P1优化：通知加载器调整并发度
+            // ◆P1优化：通知加载器调整并发度
             _priorityLoader.SetMemoryPressure(e.Level);
 
             // 根据压力级别自适应响应
             switch (e.Level)
             {
                 case MemoryPressureMonitor.PressureLevel.Moderate:
-                    // 中等压力：减少预读取，保持稳�?
-                    s_smartLoader.ClearPrefetchCache(); // 清除预读取缓�?
-                    // �?方案A: 同步状�?
+                    // 中等压力：减少预读取，保持稳定
+                    s_smartLoader.ClearPrefetchCache(); // 清除预读取缓存
+                    // ◆方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
-                    Debug.WriteLine("[ImagePreviewControl] �?中等压力响应：清除预读取缓存+状态同�?);
+                    Debug.WriteLine("[ImagePreviewControl] ← 中等压力响应：清除预读取缓存+状态同步");
                     break;
 
                 case MemoryPressureMonitor.PressureLevel.High:
-                    // 高压力：清理缓存，降低质�?
+                    // 高压力：清理缓存，降低质量
                     s_thumbnailCache.RespondToMemoryPressure(isCritical: false);
                     s_smartLoader.ClearPrefetchCache();
-                    // �?方案A: 同步状�?
+                    // ◆方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
-                    Debug.WriteLine("[ImagePreviewControl] �?高压力响应：清理缓存+低质量模�?状态同�?);
+                    Debug.WriteLine("[ImagePreviewControl] ← 高压力响应：清理缓存+低质量模式+状态同步");
                     break;
 
                 case MemoryPressureMonitor.PressureLevel.Critical:
-                    // 危险：强制GC，清空缓存，持续低质量模�?
+                    // 危险：强制GC，清空缓存，持续低质量模式
                     s_thumbnailCache.RespondToMemoryPressure(isCritical: true);
                     s_smartLoader.ClearPrefetchCache();
-                    // �?方案A: 同步状�?
+                    // ◆方案A: 同步状态
                     _priorityLoader.SyncLoadedIndicesWithActualThumbnails();
                     
                     // 触发GC回收
@@ -2238,12 +2216,12 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                         GC.WaitForPendingFinalizers();
                         GC.Collect();
                     });
-                    Debug.WriteLine("[ImagePreviewControl] �?危险压力响应：强制GC+清空缓存+低质量模�?状态同�?);
+                    Debug.WriteLine("[ImagePreviewControl] ← 危险压力响应：强制GC+清空缓存+低质量模式+状态同步");
                     break;
 
                 case MemoryPressureMonitor.PressureLevel.Normal:
                     // 恢复正常：恢复高质量模式
-                    Debug.WriteLine("[ImagePreviewControl] �?压力恢复：高质量模式");
+                    Debug.WriteLine("[ImagePreviewControl] ← 压力恢复：高质量模式");
                     break;
             }
         }
@@ -2263,7 +2241,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // 尝试从当前应用、窗口或控件资源中查�?
+            // 尝试从当前应用、窗口或控件资源中查找
             var currentApp = Application.Current;
             if (currentApp == null) return null!;
 
@@ -2282,7 +2260,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 else if (currentApp.TryFindResource("ThumbnailCardSelected") is Style style2)
                     selectedStyle = style2;
 
-                // 如果没有找到选中样式，返回普通样�?
+                // 如果没找到选中样式，返回普通样式
                 if (selectedStyle == null)
                 {
                     if (mainWindow.TryFindResource("ThumbnailCard") is Style normalStyle1)
@@ -2293,7 +2271,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
             else
             {
-                // 查找普通样�?
+                // 查找普通样式
                 if (mainWindow.TryFindResource("ThumbnailCard") is Style style1)
                     normalStyle = style1;
                 else
@@ -2309,7 +2287,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// 图像运行模式显示转换�?
+    /// 图像运行模式显示转换器
     /// </summary>
     public class ImageRunModeDisplayConverter : IValueConverter
     {
@@ -2349,7 +2327,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// Boolean到Brush转换器（用于自动切换按钮�?
+    /// Boolean到Brush转换器（用于自动切换按钮）
     /// </summary>
     public class BooleanToBrushConverter : IValueConverter
     {
@@ -2369,7 +2347,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// 反向布尔转换�?
+    /// 反向布尔转换器
     /// </summary>
     public class InverseBooleanConverter : IValueConverter
     {
@@ -2393,7 +2371,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
     }
 
     /// <summary>
-    /// Null到Opacity转换器（用于控制加载动画的显�?隐藏�?
+    /// Null到Opacity转换器（用于控制加载动画的显示/隐藏）
     /// </summary>
     public class NullToOpacityConverter : IValueConverter
     {

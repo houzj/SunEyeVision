@@ -62,7 +62,7 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "confThreshold",
-                            DisplayName = "置信度阈�?,
+                            DisplayName = "置信度阈值",
                             Description = "识别结果的最低置信度(0-100)",
                             Type = ParameterType.Double,
                             DefaultValue = 80.0,
@@ -75,8 +75,8 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "whitelist",
-                            DisplayName = "白名�?,
-                            Description = "允许的字符集(正则表达�?",
+                            DisplayName = "白名单",
+                            Description = "允许的字符集(正则表达式)",
                             Type = ParameterType.String,
                             DefaultValue = "",
                             Required = false,
@@ -86,11 +86,11 @@ namespace SunEyeVision.Tool.OCR
                         {
                             Name = "enableDenoise",
                             DisplayName = "启用降噪",
-                            Description = "是否对图像进行降噪处�?,
+                            Description = "是否对图像进行降噪处理",
                             Type = ParameterType.Bool,
                             DefaultValue = true,
                             Required = false,
-                            Category = "图像预处�?
+                            Category = "图像预处理"
                         }
                     },
                     OutputParameters = new List<ParameterMetadata>
@@ -105,7 +105,7 @@ namespace SunEyeVision.Tool.OCR
                         new ParameterMetadata
                         {
                             Name = "confidence",
-                            DisplayName = "置信�?,
+                            DisplayName = "置信度",
                             Description = "识别结果的整体置信度",
                             Type = ParameterType.Double
                         },
@@ -136,13 +136,11 @@ namespace SunEyeVision.Tool.OCR
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
             var result = new ValidationResult();
-
             var confThreshold = parameters.Get<double>("confThreshold");
             if (confThreshold != null && (confThreshold < 0 || confThreshold > 100))
             {
                 result.AddError("置信度阈值必须在0-100之间");
             }
-
             result.IsValid = result.Errors.Count == 0;
             return result;
         }
@@ -163,9 +161,7 @@ namespace SunEyeVision.Tool.OCR
             var confThreshold = GetParameter(parameters, "confThreshold", 80.0);
             var whitelist = GetParameter(parameters, "whitelist", "");
             var enableDenoise = GetParameter(parameters, "enableDenoise", true);
-
             // TODO: 实际OCR识别逻辑
-
             return ImageProcessResult.FromData(new
             {
                 Language = language,
@@ -175,7 +171,7 @@ namespace SunEyeVision.Tool.OCR
                 Text = "",
                 Confidence = 0.0,
                 CharCount = 0,
-                ProcessedAt = System.DateTime.Now
+                ProcessedAt = DateTime.Now
             });
         }
 
@@ -183,10 +179,8 @@ namespace SunEyeVision.Tool.OCR
         {
             var result = new ValidationResult();
             var confThreshold = GetParameter<double?>(parameters, "confThreshold", null);
-
             if (confThreshold.HasValue && (confThreshold.Value < 0 || confThreshold.Value > 100))
                 result.AddError("置信度阈值必须在0-100之间");
-
             return result;
         }
     }

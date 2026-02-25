@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 通用RelayCommand,简化参数处�?
+    /// 通用RelayCommand,简化参数处理?
     /// </summary>
     public class RelayCommand<T> : ICommand
     {

@@ -8,17 +8,17 @@ using SunEyeVision.UI.Services.Path;
 namespace SunEyeVision.UI.Services.PathCalculators
 {
     /// <summary>
-    /// 正交折线路径计算�?- 实现基于端口方向的智能正交路径算�?
+    /// 正交折线路径计算法?- 实现基于端口方向的智能正交路径算法?
     /// </summary>
     public class OrthogonalPathCalculator : IPathCalculator
     {
-        private const double MinSegmentLength = 0; // 最小线段长度，避免过短的折�?
+        private const double MinSegmentLength = 0; // 最小线段长度，避免过短的折叠?
         private const double ArrowLength = 15.0; // 箭头长度
-        private const double VeryCloseDistanceThreshold = 0; // 极近距离阈�?
+        private const double VeryCloseDistanceThreshold = 0; // 极近距离阈?
 
-        // 模块1：安全距离常量定�?
+        // 模块1：安全距离常量定?
         private const double NodeSafeDistance = 15.0; // 节点安全距离，确保路径不穿过节点
-        private const double PathClearanceDistance = 15.0; // 路径净空距离，路径与节点的最小安全距�?
+        private const double PathClearanceDistance = 15.0; // 路径净空距离，路径与节点的最小安全距?
 
         /// <summary>
         /// 路径策略枚举
@@ -26,38 +26,38 @@ namespace SunEyeVision.UI.Services.PathCalculators
         private enum PathStrategy
         {
             /// <summary>
-            /// 直接连接策略 - 极近距离时的直接连接（无拐点�?
+            /// 直接连接策略 - 极近距离时的直接连接（无拐点?
             /// </summary>
             Direct,
 
             /// <summary>
-            /// 水平优先策略 - 优先从源端口沿水平方向延�?
+            /// 水平优先策略 - 优先从源端口沿水平方向延?
             /// </summary>
             HorizontalFirst,
 
             /// <summary>
-            /// 垂直优先策略 - 优先从源端口沿垂直方向延�?
+            /// 垂直优先策略 - 优先从源端口沿垂直方向延?
             /// </summary>
             VerticalFirst,
 
             /// <summary>
-            /// 三段式策�?- 简单的三段折线（水�?垂直-水平或垂�?水平-垂直�?
+            /// 三段式策略?- 简单的三段折线（水平?垂直-水平或垂直?水平-垂直?
             /// </summary>
             ThreeSegment,
 
             /// <summary>
-            /// 相对方向策略 - 用于Top-Bottom, Bottom-Top等相对方向连�?
-            /// 先沿源端口方向延伸，再水平，再沿目标端口方向延伸�?段）
+            /// 相对方向策略 - 用于Top-Bottom, Bottom-Top等相对方向连接?
+            /// 先沿源端口方向延伸，再水平，再沿目标端口方向延伸?段）
             /// </summary>
             OppositeDirection,
 
             /// <summary>
-            /// 四段式策�?- 中等距离的四段折线，优化同向端口场景
+            /// 四段式策略?- 中等距离的四段折线，优化同向端口场景
             /// </summary>
             FourSegment,
 
             /// <summary>
-            /// 五段式策�?- 复杂的五段折线，适用于特殊场�?
+            /// 五段式策略?- 复杂的五段折线，适用于特殊场景?
             /// </summary>
             FiveSegment
         }
@@ -67,20 +67,20 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// </summary>
         private enum RectRelativePosition
         {
-            /// <summary>在左�?/summary>
+            /// <summary>在左?/summary>
             OnLeft,
-            /// <summary>在右�?/summary>
+            /// <summary>在右?/summary>
             OnRight,
-            /// <summary>在上�?/summary>
+            /// <summary>在上传?/summary>
             OnTop,
-            /// <summary>在下�?/summary>
+            /// <summary>在下载?/summary>
             OnBottom,
             /// <summary>重叠</summary>
             Overlapping
         }
 
         /// <summary>
-        /// 碰撞信息�?
+        /// 碰撞信息?
         /// </summary>
         private class CollisionInfo
         {
@@ -98,7 +98,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 计算正交折线路径点集合（基础方法，向后兼容）
-        /// 箭头尾部已经�?ConnectionPathCache 中计算并作为 targetPosition 传入
+        /// 箭头尾部已经?ConnectionPathCache 中计算并作为 targetPosition 传入
         /// 直接计算基本路径即可
         /// </summary>
         public Point[] CalculateOrthogonalPath(
@@ -107,7 +107,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             PortDirection sourceDirection,
             PortDirection targetDirection)
         {
-            // 调用增强方法，传入空的节点边�?
+            // 调用增强方法，传入空的节点边框?
             return CalculateOrthogonalPath(
                 sourcePosition,
                 targetPosition,
@@ -118,8 +118,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算正交折线路径点集合（增强方法，带节点边界信息�?
-        /// 箭头尾部已经�?ConnectionPathCache 中计算并作为 targetPosition 传入
+        /// 计算正交折线路径点集合（增强方法，带节点边界信息?
+        /// 箭头尾部已经?ConnectionPathCache 中计算并作为 targetPosition 传入
         /// 直接计算基本路径即可
         /// </summary>
         public Point[] CalculateOrthogonalPath(
@@ -138,7 +138,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             
             
 
-            // 直接计算基本路径（目标位置已经是箭头尾部�?
+            // 直接计算基本路径（目标位置已经是箭头尾部署?
             var pathPoints = CalculateBasicPath(
                 sourcePosition,
                 targetPosition,
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 计算基本路径（带节点边界信息和碰撞检测）
-        /// 目标位置已经是箭头尾部位置（由ConnectionPathCache计算�?
+        /// 目标位置已经是箭头尾部位置（由ConnectionPathCache计算法?
         /// </summary>
         private Point[] CalculateBasicPath(
             Point sourcePosition,
@@ -168,7 +168,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect targetNodeRect,
             Rect[] allNodeRects)
         {
-            // 1. 计算源节点和目标节点的相对位置关�?
+            // 1. 计算源节点和目标节点的相对位置关闭?
             var dx = targetPosition.X - sourcePosition.X;
             var dy = targetPosition.Y - sourcePosition.Y;
             var horizontalDistance = Math.Abs(dx);
@@ -198,7 +198,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 sourceNodeRect,
                 targetNodeRect);
 
-            // 4. 模块3：统一的节点避让后处理（确保路径不穿过任何节点�?
+            // 4. 模块3：统一的节点避让后处理（确保路径不穿过任何节点?
             var finalPath = ApplyNodeAvoidance(
                 basicPath,
                 sourcePosition,
@@ -214,17 +214,17 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
 
         /// <summary>
-        /// 场景复杂度枚�?
+        /// 场景复杂度枚举?
         /// </summary>
         private enum SceneComplexity
         {
-            /// <summary>极简场景：直接对齐，无障�?/summary>
+            /// <summary>极简场景：直接对齐，无障?/summary>
             Direct,
-            /// <summary>简单场景：无障碍或障碍很少，对齐良�?/summary>
+            /// <summary>简单场景：无障碍或障碍很少，对齐良?/summary>
             Simple,
-            /// <summary>中等场景：有少量障碍，需要简单避�?/summary>
+            /// <summary>中等场景：有少量障碍，需要简单避?/summary>
             Medium,
-            /// <summary>复杂场景：多障碍，需要复杂避�?/summary>
+            /// <summary>复杂场景：多障碍，需要复杂避?/summary>
             Complex
         }
 
@@ -237,7 +237,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             HorizontalAligned,
             /// <summary>垂直对齐</summary>
             VerticalAligned,
-            /// <summary>不对�?/summary>
+            /// <summary>不对象?/summary>
             NotAligned
         }
 
@@ -279,19 +279,19 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 sourceNodeRect, targetNodeRect);
             
 
-            // 检测几何对齐情�?
+            // 检测几何对齐情?
             var geometricAlignment = DetectGeometricAlignment(
                 sourceDirection, targetDirection, horizontalDistance, verticalDistance);
             
 
-            // Priority 1: 极简场景（直接对齐，距离极近�?
+            // Priority 1: 极简场景（直接对齐，距离极近?
             if (sceneComplexity == SceneComplexity.Direct)
             {
                 
                 return PathStrategy.Direct;
             }
 
-            // Priority 2: 相对方向（Left-Right, Right-Left, Top-Bottom, Bottom-Top�?
+            // Priority 2: 相对方向（Left-Right, Right-Left, Top-Bottom, Bottom-Top?
             if (IsOppositeDirection(sourceDirection, targetDirection))
             {
                 var strategy = SelectStrategyForOppositeDirection(
@@ -312,7 +312,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return strategy;
             }
 
-            // Priority 4: 同向（Left-Left, Right-Right, Top-Top, Bottom-Bottom�?
+            // Priority 4: 同向（Left-Left, Right-Right, Top-Top, Bottom-Bottom?
             if (IsSameDirection(sourceDirection, targetDirection))
             {
                 var strategy = SelectStrategyForSameDirectionSimple(
@@ -347,7 +347,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 检测场景复杂度（简化版本：不涉及碰撞检测）
-        /// 考虑因素：对齐程度、距�?
+        /// 考虑因素：对齐程度、距?
         /// </summary>
         private SceneComplexity DetectSceneComplexitySimple(Point sourcePosition, Point targetPosition,
             PortDirection sourceDirection,
@@ -372,12 +372,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return SceneComplexity.Direct;
             }
 
-            // 3. 检查对齐程�?
+            // 3. 检查对齐程序?
             bool horizontallyAligned = horizontalDistance < 20;
             bool verticallyAligned = verticalDistance < 20;
             
 
-            // 4. 根据对齐程度判断场景复杂�?
+            // 4. 根据对齐程度判断场景复杂?
             if (horizontallyAligned || verticallyAligned)
             {
                 
@@ -389,8 +389,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 检测几何对齐情�?
-        /// 考虑端口方向和位置对�?
+        /// 检测几何对齐情?
+        /// 考虑端口方向和位置对象?
         /// </summary>
         private GeometricAlignment DetectGeometricAlignment(
             PortDirection sourceDirection,
@@ -398,13 +398,13 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double horizontalDistance,
             double verticalDistance)
         {
-            // 对齐阈�?
+            // 对齐阈?
             double alignmentThreshold = MinSegmentLength * 2;
 
-            // 检查垂直对齐（水平方向接近�?
+            // 检查垂直对齐（水平方向接近?
             bool verticallyAligned = verticalDistance < alignmentThreshold;
 
-            // 检查水平对齐（垂直方向接近�?
+            // 检查水平对齐（垂直方向接近?
             bool horizontallyAligned = horizontalDistance < alignmentThreshold;
 
             if (verticallyAligned && horizontallyAligned)
@@ -448,7 +448,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             switch (sceneComplexity)
             {
                 case SceneComplexity.Direct:
-                    // 极简场景：直接连�?
+                    // 极简场景：直接连接?
                     
                     return PathStrategy.Direct;
 
@@ -483,7 +483,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             
             
 
-            // 简单或极简场景：选择简单策�?
+            // 简单或极简场景：选择简单策略?
             if (sceneComplexity == SceneComplexity.Simple || sceneComplexity == SceneComplexity.Direct)
             {
                 var simpleStrategy = SelectSimplestStrategy(
@@ -492,7 +492,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return simpleStrategy;
             }
 
-            // 计算节点之间的相对距�?
+            // 计算节点之间的相对距?
             double dx = targetNodeRect.X - sourceNodeRect.X;
             double dy = targetNodeRect.Y - sourceNodeRect.Y;
             
@@ -527,7 +527,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double horizontalDistance,
             double verticalDistance)
         {
-            // 1. 检查源端口朝向的自然延�?
+            // 1. 检查源端口朝向的自然延?
             bool sourceHorizontal = sourceDirection.IsHorizontal();
             bool sourceVertical = sourceDirection.IsVertical();
 
@@ -538,23 +538,23 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // 3. 分析相对位置和端口方向的语义关系
             if (sourceHorizontal)
             {
-                // 源端口是水平方向（Left/Right�?
+                // 源端口是水平方向（Left/Right?
 
                 // 情况A：目标端口是垂直方向
                 if (targetMoveVertical)
                 {
                     // 判断是否应该水平优先
 
-                    // 检查目标是否在端口朝向的同�?
+                    // 检查目标是否在端口朝向的同步?
                     bool targetInDirection = false;
                     if (sourceDirection == PortDirection.Right && dx > 0)
-                        targetInDirection = true;  // 右端口，目标在右�?
+                        targetInDirection = true;  // 右端口，目标在右?
                     else if (sourceDirection == PortDirection.Left && dx < 0)
-                        targetInDirection = true;  // 左端口，目标在左�?
+                        targetInDirection = true;  // 左端口，目标在左?
 
                     if (targetInDirection)
                     {
-                        // 目标在端口朝向的同侧：优先水平延伸（顺应端口方向�?
+                        // 目标在端口朝向的同侧：优先水平延伸（顺应端口方向?
                         
                         return true;
                     }
@@ -564,9 +564,9 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     // 检查垂直方向是否更自然
                     bool verticalNatural = false;
                     if (targetDirection == PortDirection.Top && dy < 0)
-                        verticalNatural = true;  // 目标在上端口，目标也在上�?
+                        verticalNatural = true;  // 目标在上端口，目标也在上传?
                     else if (targetDirection == PortDirection.Bottom && dy > 0)
-                        verticalNatural = true;  // 目标在下端口，目标也在下�?
+                        verticalNatural = true;  // 目标在下端口，目标也在下载?
 
                     if (verticalNatural && horizontalDistance <= verticalDistance)
                     {
@@ -575,14 +575,14 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         return false;
                     }
 
-                    // 默认：根据距离判�?
+                    // 默认：根据距离判?
                     bool result = horizontalDistance >= verticalDistance;
                     
                     return result;
                 }
                 else
                 {
-                    // 目标端口也是水平方向：根据距离判�?
+                    // 目标端口也是水平方向：根据距离判?
                     bool result = horizontalDistance >= verticalDistance;
                     
                     return result;
@@ -590,23 +590,23 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             else
             {
-                // 源端口是垂直方向（Top/Bottom�?
+                // 源端口是垂直方向（Top/Bottom?
 
                 // 情况B：目标端口是水平方向
                 if (targetMoveHorizontal)
                 {
                     // 判断是否应该垂直优先
 
-                    // 检查目标是否在端口朝向的同�?
+                    // 检查目标是否在端口朝向的同步?
                     bool targetInDirection = false;
                     if (sourceDirection == PortDirection.Bottom && dy > 0)
-                        targetInDirection = true;  // 下端口，目标在下�?
+                        targetInDirection = true;  // 下端口，目标在下载?
                     else if (sourceDirection == PortDirection.Top && dy < 0)
-                        targetInDirection = true;  // 上端口，目标在上�?
+                        targetInDirection = true;  // 上端口，目标在上传?
 
                     if (targetInDirection)
                     {
-                        // 目标在端口朝向的同侧：优先垂直延伸（顺应端口方向�?
+                        // 目标在端口朝向的同侧：优先垂直延伸（顺应端口方向?
                         
                         return false;
                     }
@@ -616,9 +616,9 @@ namespace SunEyeVision.UI.Services.PathCalculators
                     // 检查水平方向是否更自然
                     bool horizontalNatural = false;
                     if (targetDirection == PortDirection.Right && dx > 0)
-                        horizontalNatural = true;  // 目标在右端口，目标也在右�?
+                        horizontalNatural = true;  // 目标在右端口，目标也在右?
                     else if (targetDirection == PortDirection.Left && dx < 0)
-                        horizontalNatural = true;  // 目标在左端口，目标也在左�?
+                        horizontalNatural = true;  // 目标在左端口，目标也在左?
 
                     if (horizontalNatural && verticalDistance <= horizontalDistance)
                     {
@@ -627,14 +627,14 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         return true;
                     }
 
-                    // 默认：根据距离判�?
+                    // 默认：根据距离判?
                     bool result = horizontalDistance < verticalDistance;
                     
                     return result;
                 }
                 else
                 {
-                    // 目标端口也是垂直方向：根据距离判�?
+                    // 目标端口也是垂直方向：根据距离判?
                     bool result = horizontalDistance < verticalDistance;
                     
                     return result;
@@ -660,7 +660,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             
             
 
-            // 极简场景或简单场景：选择简单策�?
+            // 极简场景或简单场景：选择简单策略?
             if (sceneComplexity == SceneComplexity.Direct || sceneComplexity == SceneComplexity.Simple)
             {
                 var simpleStrategy = SelectSimplestStrategy(
@@ -683,7 +683,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             else
             {
-                // 不对齐：使用三段�?
+                // 不对齐：使用三段?
                 
                 return PathStrategy.ThreeSegment;
             }
@@ -700,23 +700,23 @@ namespace SunEyeVision.UI.Services.PathCalculators
         {
             
 
-            // 极近距离：直接连�?
+            // 极近距离：直接连接?
             if (IsVeryCloseDistance(horizontalDistance, verticalDistance))
             {
                 
                 return PathStrategy.Direct;
             }
 
-            // 根据端口方向选择简单策�?
+            // 根据端口方向选择简单策略?
             if (sourceDirection.IsHorizontal())
             {
-                // 水平端口：优先水平延�?
+                // 水平端口：优先水平延?
                 
                 return PathStrategy.HorizontalFirst;
             }
             else
             {
-                // 垂直端口：优先垂直延�?
+                // 垂直端口：优先垂直延?
                 
                 return PathStrategy.VerticalFirst;
             }
@@ -774,8 +774,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 检测线段是否与矩形相交（模�?：精确碰撞检测系统）
-        /// 使用三层检测机制：快速排�?+ 多采样点 + 线段相交检�?
+        /// 检测线段是否与矩形相交（模块?：精确碰撞检测系统）
+        /// 使用三层检测机制：快速排序?+ 多采样点 + 线段相交检查?
         /// </summary>
         private bool LineIntersectsRect(Point p1, Point p2, Rect rect)
         {
@@ -785,11 +785,11 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 检测两条线段是否相�?
+        /// 检测两条线段是否相对?
         /// </summary>
         private bool LineSegmentsIntersect(Point p1, Point p2, Point p3, Point p4)
         {
-            // 使用跨乘积判断线段相�?
+            // 使用跨乘积判断线段相对?
             var d1 = Direction(p3, p4, p1);
             var d2 = Direction(p3, p4, p2);
             var d3 = Direction(p1, p2, p3);
@@ -890,7 +890,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double dx,
             double dy)
         {
-            // 极近距离直接连接（无拐点�?
+            // 极近距离直接连接（无拐点?
             return new Point[]
             {
                 sourcePosition,
@@ -899,7 +899,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算水平优先路径（水�?垂直-水平�?
+        /// 计算水平优先路径（水平?垂直-水平?
         /// </summary>
         private Point[] CalculateHorizontalFirstPath(
             Point sourcePosition,
@@ -931,7 +931,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算垂直优先路径（垂�?水平-垂直�?
+        /// 计算垂直优先路径（垂直?水平-垂直?
         /// </summary>
         private Point[] CalculateVerticalFirstPath(
             Point sourcePosition,
@@ -960,7 +960,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算三段式路径（优化版本，确保中间点在节点外�?
+        /// 计算三段式路径（优化版本，确保中间点在节点外键?
         /// </summary>
         private Point[] CalculateThreeSegmentPath(
             Point sourcePosition,
@@ -972,7 +972,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect sourceNodeRect,
             Rect targetNodeRect)
         {
-            // 三段式路径：水平-垂直 �?垂直-水平
+            // 三段式路径：水平-垂直 ?垂直-水平
             var midPoint1 = new Point(sourcePosition.X, targetPosition.Y);
             var midPoint2 = new Point(targetPosition.X, sourcePosition.Y);
 
@@ -982,7 +982,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // 如果节点边界信息有效，检查中间点是否在节点内
             if (!sourceNodeRect.IsEmpty || !targetNodeRect.IsEmpty)
             {
-                // 如果选中的中间点在节点内，尝试另一�?
+                // 如果选中的中间点在节点内，尝试另一?
                 if (IsPointInRect(betterMidPoint, sourceNodeRect) || IsPointInRect(betterMidPoint, targetNodeRect))
                 {
                     betterMidPoint = sourceDirection.IsHorizontal() ? midPoint1 : midPoint2;
@@ -1009,7 +1009,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 计算相对方向路径（用于Top-Bottom, Bottom-Top, Left-Right, Right-Left等相对方向连接）
-        /// 路径模式：沿源方向延�?�?水平/垂直 �?到达目标
+        /// 路径模式：沿源方向延??水平/垂直 ?到达目标
         /// 简化版本：只负责基本路径计算，所有避让逻辑由ApplyNodeAvoidance统一处理
         /// </summary>
         private Point[] CalculateOppositeDirectionPath(
@@ -1032,7 +1032,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             if (sourceDirection.IsVertical())
             {
                 // 垂直相对：Top-Bottom, Bottom-Top
-                // 先垂直延伸（p1），再水平移动（p2�?
+                // 先垂直延伸（p1），再水平移动（p2?
                 // 使用目标位置和p1坐标计算拐点
                 var midX = (p1.X + targetPosition.X) / 2;
                 p2 = new Point(midX, p1.Y);
@@ -1040,7 +1040,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             else
             {
                 // 水平相对：Left-Right, Right-Left
-                // 先水平延伸（p1），再垂直移动（p2�?
+                // 先水平延伸（p1），再垂直移动（p2?
                 // 使用目标位置和p1坐标计算拐点
                 var midY = (p1.Y + targetPosition.Y) / 2;
                 p2 = new Point(p1.X, midY);
@@ -1056,7 +1056,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算四段式路径（用于同向端口中等距离场景�?
+        /// 计算四段式路径（用于同向端口中等距离场景?
         /// </summary>
         private Point[] CalculateFourSegmentPath(
             Point sourcePosition,
@@ -1067,8 +1067,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
             double dy,
             Rect sourceNodeRect,Rect targetNodeRect)
         {
-            // 四段式路径：源端口延�?�?垂直/水平 �?水平/垂直 �?到达目标
-            // 用于同向端口但距离不太远的场�?
+            // 四段式路径：源端口延??垂直/水平 ?水平/垂直 ?到达目标
+            // 用于同向端口但距离不太远的场景?
 
             var p1 = CalculateOptimizedFirstPoint(sourcePosition, targetPosition, sourceDirection, dx, dy, sourceNodeRect, targetNodeRect);
 
@@ -1077,14 +1077,14 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
             if (sourceDirection.IsHorizontal())
             {
-                // 水平端口：水�?�?垂直 �?水平 �?垂直
+                // 水平端口：水平??垂直 ?水平 ?垂直
                 var midY = (sourcePosition.Y + targetPosition.Y) / 2;
                 p2 = new Point(p1.X, midY);
                 p3 = new Point(targetPosition.X, midY);
             }
             else
             {
-                // 垂直端口：垂�?�?水平 �?垂直 �?水平
+                // 垂直端口：垂直??水平 ?垂直 ?水平
                 var midX = (sourcePosition.X + targetPosition.X) / 2;
                 p2 = new Point(midX, p1.Y);
                 p3 = new Point(midX, targetPosition.Y);
@@ -1102,7 +1102,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算五段式路径（用于复杂场景，特别是同向端口连接�?
+        /// 计算五段式路径（用于复杂场景，特别是同向端口连接收?
         /// </summary>
         private Point[] CalculateFiveSegmentPath(
             Point sourcePosition,
@@ -1115,7 +1115,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             var p1 = CalculateOptimizedFirstPoint(sourcePosition, targetPosition, sourceDirection, dx, dy, sourceNodeRect, targetNodeRect);
 
             // 中间段：使用与端口方向垂直的连接
-            // 对于水平端口，中间段在垂直方向；对于垂直端口，中间段在水平方�?
+            // 对于水平端口，中间段在垂直方向；对于垂直端口，中间段在水平方法?
             Point[] path;
             if (sourceDirection.IsHorizontal())
             {
@@ -1154,8 +1154,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算优化的第一个拐点（HorizontalFirst策略专用�?
-        /// 根据端口方向和节点相交情况动态调整延伸距�?
+        /// 计算优化的第一个拐点（HorizontalFirst策略专用?
+        /// 根据端口方向和节点相交情况动态调整延伸距?
         /// </summary>
         private Point CalculateOptimizedFirstPoint(
             Point sourcePosition,Point targetPosition,
@@ -1165,10 +1165,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect sourceNodeRect,
             Rect targetNodeRect)
         {
-            // 1. 基础偏移�?
+            // 1. 基础偏移动?
             var minOffset = NodeSafeDistance;
 
-            // 2. 根据端口方向和节点相交情况计�?requiredOffset
+            // 2. 根据端口方向和节点相交情况计算?requiredOffset
             var requiredOffset = minOffset;
 
             if (!sourceNodeRect.IsEmpty && !targetNodeRect.IsEmpty)
@@ -1176,10 +1176,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 switch (sourceDirection)
                 {
                     case PortDirection.Right:
-                        // 检查两个节点水平方向是否相�?
+                        // 检查两个节点水平方向是否相对?
                         if (sourcePosition.X > targetPosition.X )
                         {
-                            // 水平方向相交，使用最小安全距�?
+                            // 水平方向相交，使用最小安全距?
                             requiredOffset = NodeSafeDistance;
                         }
                         else
@@ -1190,10 +1190,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         break;
 
                     case PortDirection.Left:
-                        // 检查两个节点水平方向是否相�?
+                        // 检查两个节点水平方向是否相对?
                         if ( sourcePosition.X < targetPosition.X)
                         {
-                            // 水平方向相交，使用最小安全距�?
+                            // 水平方向相交，使用最小安全距?
                             requiredOffset = NodeSafeDistance;
                         }
                         else
@@ -1203,11 +1203,11 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         break;
 
                     case PortDirection.Bottom:
-                        // 检查两个节点垂直方向是否相�?
+                        // 检查两个节点垂直方向是否相对?
                         if (sourcePosition.Y > targetPosition.Y )
                             
                         {
-                            // 垂直方向相交，使用最小安全距�?
+                            // 垂直方向相交，使用最小安全距?
                             requiredOffset = NodeSafeDistance;
                         }
                         else
@@ -1218,10 +1218,10 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         break;
 
                     case PortDirection.Top:
-                        // 检查两个节点垂直方向是否相�?
+                        // 检查两个节点垂直方向是否相对?
                         if (sourcePosition.Y < targetPosition.Y)
                         {
-                            // 垂直方向相交，使用最小安全距�?
+                            // 垂直方向相交，使用最小安全距?
                             requiredOffset = NodeSafeDistance;
                         }
                         else
@@ -1233,7 +1233,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 }
             }
 
-            // 3. 计算最终偏移量（直接使�?requiredOffset�?
+            // 3. 计算最终偏移量（直接使?requiredOffset?
             return sourceDirection switch
             {
                 PortDirection.Right => new Point(sourcePosition.X + requiredOffset, sourcePosition.Y),
@@ -1245,7 +1245,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 根据路径点创建路径几�?
+        /// 根据路径点创建路径几?
         /// </summary>
         public PathGeometry CreatePathGeometry(Point[] pathPoints)
         {
@@ -1275,9 +1275,9 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
 
         /// <summary>
-        /// 计算箭头位置和角�?
-        /// 箭头尖端位于目标端口位置，角度基于目标端口方向固�?
-        /// 路径终点已经是箭头尾部位置（由ConnectionPathCache计算�?
+        /// 计算箭头位置和角?
+        /// 箭头尖端位于目标端口位置，角度基于目标端口方向固?
+        /// 路径终点已经是箭头尾部位置（由ConnectionPathCache计算法?
         /// </summary>
         /// <param name="pathPoints">路径点数组（终点是箭头尾部）</param>
         /// <param name="targetPosition">目标端口位置（箭头尖端位置）</param>
@@ -1296,7 +1296,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             // 箭头角度基于目标端口方向固定
             var arrowAngle = GetFixedArrowAngle(targetDirection);
 
-            // 获取路径最后一点用于调试（箭头尾部位置�?
+            // 获取路径最后一点用于调试（箭头尾部位设置?
             var lastPoint = pathPoints[pathPoints.Length - 1];
 
             return (arrowPosition, arrowAngle);
@@ -1304,23 +1304,23 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 获取固定箭头角度（基于目标端口方向）
-        /// 箭头角度不受源节点端口影响，固定为目标端口方�?
-        /// 角度定义�?度指向右�?0度指向下�?80度指向左�?70度指向上
+        /// 箭头角度不受源节点端口影响，固定为目标端口方法?
+        /// 角度定义?度指向右?0度指向下载?80度指向左?70度指向上
         /// </summary>
         private double GetFixedArrowAngle(PortDirection targetDirection)
         {
             return targetDirection switch
             {
-                PortDirection.Left => 0.0,     // 左边端口：箭头向�?
-                PortDirection.Right => 180.0,   // 右边端口：箭头向�?
-                PortDirection.Top => 90.0,      // 上边端口：箭头向�?
-                PortDirection.Bottom => 270.0,  // 下边端口：箭头向�?
+                PortDirection.Left => 0.0,     // 左边端口：箭头向?
+                PortDirection.Right => 180.0,   // 右边端口：箭头向?
+                PortDirection.Top => 90.0,      // 上边端口：箭头向?
+                PortDirection.Bottom => 270.0,  // 下边端口：箭头向?
                 _ => 0.0
             };
         }
 
         /// <summary>
-        /// 判断点是否在矩形�?
+        /// 判断点是否在矩形?
         /// </summary>
         private bool IsPointInRect(Point point, Rect rect)
         {
@@ -1334,7 +1334,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算安全的中点（确保在节点边界外�?
+        /// 计算安全的中点（确保在节点边界外键?
         /// </summary>
         private Point CalculateSafeMidPoint(
             Point sourcePosition,
@@ -1343,12 +1343,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
             Rect sourceNodeRect,
             Rect targetNodeRect)
         {
-            // 计算两个节点边界之间的安全区�?
+            // 计算两个节点边界之间的安全区域?
             double safeX, safeY;
 
             if (sourceDirection.IsHorizontal())
             {
-                // X坐标：在源节点右侧边界之�?
+                // X坐标：在源节点右侧边界之?
                 safeX = !sourceNodeRect.IsEmpty
                     ? sourceNodeRect.Right + MinSegmentLength
                     : sourcePosition.X + MinSegmentLength;
@@ -1361,7 +1361,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 // X坐标：在两个节点之间
                 safeX = (sourcePosition.X + targetPosition.X) / 2;
 
-                // Y坐标：在源节点下方边界之�?
+                // Y坐标：在源节点下方边界之?
                 safeY = !sourceNodeRect.IsEmpty
                     ? sourceNodeRect.Bottom + MinSegmentLength
                     : sourcePosition.Y + MinSegmentLength;
@@ -1374,8 +1374,8 @@ namespace SunEyeVision.UI.Services.PathCalculators
         /// 模块3：统一的节点避让后处理方法（双点避让策略）
         /// 对计算好的路径进行后处理，确保路径不穿过任何节点
         /// 每个碰撞添加两个避让点：
-        /// 1. shapePreservingPoint：保持原路径形状，使�?0.7 * NodeSafeDistance 的偏�?
-        /// 2. strategyPoint：基于策略的避让�?
+        /// 1. shapePreservingPoint：保持原路径形状，使?0.7 * NodeSafeDistance 的偏?
+        /// 2. strategyPoint：基于策略的避让?
         /// </summary>
         private Point[] ApplyNodeAvoidance(
             Point[] pathPoints,
@@ -1394,7 +1394,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
             var currentPath = pathPoints;
 
-            // 按顺序查找所有碰撞（不按严重程度排序�?
+            // 按顺序查找所有碰撞（不按严重程度排序?
             var collisions = FindCollisionsInOrder(currentPath, allNodeRects, sourceNodeRect, targetNodeRect);
 
             if (collisions == null || collisions.Count == 0)
@@ -1402,7 +1402,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return currentPath;
             }
 
-            // 按顺序处理每个碰�?
+            // 按顺序处理每个碰?
             foreach (var collision in collisions)
             {
                 // 生成双避让点
@@ -1416,7 +1416,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
                 if (avoidancePoints != null && avoidancePoints.Length > 0)
                 {
-                    // 插入避让点到路径�?
+                    // 插入避让点到路径?
                     currentPath = InsertAvoidancePoints(currentPath, collision.SegmentIndex, avoidancePoints);
                 }
             }
@@ -1425,7 +1425,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 按顺序查找所有碰撞（包括源节点和目标节点�?
+        /// 按顺序查找所有碰撞（包括源节点和目标节点?
         /// 统一由避障模块处理所有节点避让，包括源节点和目标节点
         /// </summary>
         private List<CollisionInfo> FindCollisionsInOrder(Point[] pathPoints, Rect[] allNodeRects, Rect excludeSource, Rect excludeTarget)
@@ -1461,11 +1461,11 @@ namespace SunEyeVision.UI.Services.PathCalculators
             if (sourceRect.IsEmpty || collidingRect.IsEmpty)
                 return RectRelativePosition.Overlapping;
 
-            // 检查水平方向关�?
+            // 检查水平方向关闭?
             bool isOnRight = collidingRect.X > sourceRect.Right;
             bool isOnLeft = collidingRect.Right < sourceRect.Left;
 
-            // 检查垂直方向关�?
+            // 检查垂直方向关闭?
             bool isBelow = collidingRect.Y > sourceRect.Bottom;
             bool isAbove = collidingRect.Bottom < sourceRect.Top;
 
@@ -1483,13 +1483,13 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 生成双避让点
-        /// 1. shapePreservingPoint：保持原路径形状，使用动态偏移距�?
-        /// 2. strategyPoint：基于策略的避让�?
+        /// 1. shapePreservingPoint：保持原路径形状，使用动态偏移距?
+        /// 2. strategyPoint：基于策略的避让?
         ///
         /// 智能处理源节点和目标节点的碰撞：
-        /// - 源节点碰撞：使用更大的避让距离（2.0 * NodeSafeDistance�?
-        /// - 目标节点碰撞：确保最后一个拐点接近目标端口方�?
-        /// - 普通节点碰撞：使用标准避让距离�?.7 * NodeSafeDistance�?
+        /// - 源节点碰撞：使用更大的避让距离（2.0 * NodeSafeDistance?
+        /// - 目标节点碰撞：确保最后一个拐点接近目标端口方法?
+        /// - 普通节点碰撞：使用标准避让距离?.7 * NodeSafeDistance?
         /// </summary>
         private Point[] GenerateDualAvoidancePoints(
             CollisionInfo collision,
@@ -1508,16 +1508,16 @@ namespace SunEyeVision.UI.Services.PathCalculators
             bool isTargetNode = collidingRect == targetNodeRect;
             bool isRegularNode = !isSourceNode && !isTargetNode;
 
-            // 判断线段是水平还是垂�?
+            // 判断线段是水平还是垂直?
             bool isHorizontal = Math.Abs(p1.Y - p2.Y) < 1.0;
 
 
 
-            // 计算形状保持点（shapePreservingPoint�?
+            // 计算形状保持点（shapePreservingPoint?
             Point shapePreservingPoint = CalculateShapePreservingPoint(
                 sourcePosition, p1, p2, collidingRect, isHorizontal, isSourceNode, isTargetNode);
 
-            // 计算策略避让点（strategyPoint�?
+            // 计算策略避让点（strategyPoint?
             Point strategyPoint = CalculateStrategyPoint(
                 p1, p2, collidingRect, isHorizontal, targetDirection, isSourceNode, isTargetNode);
 
@@ -1531,24 +1531,24 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return avoidancePoints;
             }
 
-            // 双点避让失败，尝试单点避�?
+            // 双点避让失败，尝试单点避?
             if (!HasCollision(new[] { p1, strategyPoint, p2 },
                 allNodeRects, Rect.Empty, Rect.Empty, excludeTargetNode: false))
             {
                 return new[] { strategyPoint };
             }
 
-            // 单点避让也失败，返回�?
+            // 单点避让也失败，返回调?
             return null;
         }
 
         /// <summary>
-        /// 计算形状保持点（shapePreservingPoint�?
+        /// 计算形状保持点（shapePreservingPoint?
         /// 使用动态偏移距离：
         /// - 源节点碰撞：使用 2.0 * NodeSafeDistance（更大避让）
-        /// - 目标节点碰撞：使�?1.5 * NodeSafeDistance（中等避让）
+        /// - 目标节点碰撞：使?1.5 * NodeSafeDistance（中等避让）
         /// - 普通节点碰撞：使用 0.7 * NodeSafeDistance（标准避让）
-        /// 根据相对位置动态计算避让方�?
+        /// 根据相对位置动态计算避让方法?
         /// </summary>
         private Point CalculateShapePreservingPoint(
             Point sourcePosition,
@@ -1571,7 +1571,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             else
             {
-                offset = NodeSafeDistance * 0.7;  // 普通节点使用标准避让距�?
+                offset = NodeSafeDistance * 0.7;  // 普通节点使用标准避让距?
             }
 
             if (isHorizontal)
@@ -1601,7 +1601,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         safeY = collidingRect.Bottom + offset;
                         break;
                     default:
-                        // 重叠情况，使用上方避�?
+                        // 重叠情况，使用上方避?
                         safeY = collidingRect.Top - offset;
                         break;
                 }
@@ -1635,7 +1635,7 @@ namespace SunEyeVision.UI.Services.PathCalculators
                         safeX = collidingRect.Left - offset;
                         break;
                     default:
-                        // 重叠情况，使用左侧避�?
+                        // 重叠情况，使用左侧避?
                         safeX = collidingRect.Left - offset;
                         break;
                 }
@@ -1645,13 +1645,13 @@ namespace SunEyeVision.UI.Services.PathCalculators
         }
 
         /// <summary>
-        /// 计算策略避让点（strategyPoint�?
-        /// 基于目标端口方向的策略避�?
+        /// 计算策略避让点（strategyPoint?
+        /// 基于目标端口方向的策略避?
         ///
-        /// 智能处理源节点和目标节点碰撞�?
+        /// 智能处理源节点和目标节点碰撞?
         /// - 源节点碰撞：使用 2.0 * NodeSafeDistance，确保从源节点出发的方向
-        /// - 目标节点碰撞：使�?1.5 * NodeSafeDistance，确保接近目标端口方�?
-        /// - 普通节点碰撞：使用标准�?NodeSafeDistance
+        /// - 目标节点碰撞：使?1.5 * NodeSafeDistance，确保接近目标端口方法?
+        /// - 普通节点碰撞：使用标准?NodeSafeDistance
         /// </summary>
         private Point CalculateStrategyPoint(
             Point p1,
@@ -1674,51 +1674,51 @@ namespace SunEyeVision.UI.Services.PathCalculators
             }
             else
             {
-                offset = NodeSafeDistance;  // 普通节点使用标准避让距�?
+                offset = NodeSafeDistance;  // 普通节点使用标准避让距?
             }
 
             if (isHorizontal)
             {
-                // 水平线段：垂直避�?
+                // 水平线段：垂直避?
                 if (targetDirection == PortDirection.Bottom)
                 {
-                    // 目标端口在下方，优先从上方接�?
+                    // 目标端口在下方，优先从上方接收?
                     return new Point(p1.X, collidingRect.Top - offset);
                 }
                 else if (targetDirection == PortDirection.Top)
                 {
-                    // 目标端口在上方，优先从下方接�?
+                    // 目标端口在上方，优先从下方接收?
                     return new Point(p1.X, collidingRect.Bottom + offset);
                 }
                 else
                 {
-                    // 其他方向，默认上方避�?
+                    // 其他方向，默认上方避?
                     return new Point(p1.X, collidingRect.Top - offset);
                 }
             }
             else
             {
-                // 垂直线段：水平避�?
+                // 垂直线段：水平避?
                 if (targetDirection == PortDirection.Right)
                 {
-                    // 目标端口在右方，优先从左方接�?
+                    // 目标端口在右方，优先从左方接收?
                     return new Point(collidingRect.Left - offset, p1.Y);
                 }
                 else if (targetDirection == PortDirection.Left)
                 {
-                    // 目标端口在左方，优先从右方接�?
+                    // 目标端口在左方，优先从右方接收?
                     return new Point(collidingRect.Right + offset, p1.Y);
                 }
                 else
                 {
-                    // 其他方向，默认左侧避�?
+                    // 其他方向，默认左侧避?
                     return new Point(collidingRect.Left - offset, p1.Y);
                 }
             }
         }
 
         /// <summary>
-        /// 将避让拐点插入到路径�?
+        /// 将避让拐点插入到路径?
         /// </summary>
         private Point[] InsertAvoidancePoints(Point[] pathPoints, int segmentIndex, Point[] avoidancePoints)
         {

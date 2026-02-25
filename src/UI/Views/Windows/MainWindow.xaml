@@ -17,7 +17,7 @@
         xmlns:panels="clr-namespace:SunEyeVision.UI.Views.Controls.Panels"
         xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
         mc:Ignorable="d"
-        Title="太阳眼视�?- 机器视觉平台" Height="900" Width="1600"
+        Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#FFFFFF"
@@ -39,20 +39,20 @@
     </Window.Resources>
 
     <DockPanel>
-        <!-- ========== 顶部菜单�?(28px) ========== -->
+        <!-- ========== 顶部菜单栏 (28px) ========== -->
         <Menu DockPanel.Dock="Top" Height="28" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <MenuItem Header="文件(_F)">
                 <MenuItem Header="新建方案(_N)" Command="{Binding NewWorkflowCommand}" InputGestureText="Ctrl+N"/>
                 <MenuItem Header="打开方案(_O)" Command="{Binding OpenWorkflowCommand}" InputGestureText="Ctrl+O"/>
                 <MenuItem Header="保存方案(_S)" Command="{Binding SaveWorkflowCommand}" InputGestureText="Ctrl+S"/>
-                <MenuItem Header="另存�?_A)" Command="{Binding SaveAsWorkflowCommand}" InputGestureText="Ctrl+Shift+S"/>
+                <MenuItem Header="另存为(_A)" Command="{Binding SaveAsWorkflowCommand}" InputGestureText="Ctrl+Shift+S"/>
                 <Separator/>
                 <MenuItem Header="导入(_I)" InputGestureText="Ctrl+I"/>
                 <MenuItem Header="导出(_E)" InputGestureText="Ctrl+E"/>
                 <Separator/>
-                <MenuItem Header="最近文�?/>
+                <MenuItem Header="最近文件"/>
                 <Separator/>
-                <MenuItem Header="退�?_X)" InputGestureText="Alt+F4"/>
+                <MenuItem Header="退出(_X)" InputGestureText="Alt+F4"/>
             </MenuItem>
             <MenuItem Header="编辑(_E)">
                 <MenuItem Header="撤销(_U)" InputGestureText="Ctrl+Z"/>
@@ -62,20 +62,20 @@
                 <MenuItem Header="粘贴(_V)" InputGestureText="Ctrl+V"/>
                 <MenuItem Header="删除(_D)" InputGestureText="Del"/>
                 <Separator/>
-                <MenuItem Header="全�?_A)" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="全选(_A)" InputGestureText="Ctrl+A"/>
                 <MenuItem Header="查找(_F)" InputGestureText="Ctrl+F"/>
                 <MenuItem Header="替换(_H)" InputGestureText="Ctrl+H"/>
             </MenuItem>
             <MenuItem Header="视图(_V)">
-                <MenuItem Header="方案�?_S)"/>
-                <MenuItem Header="工具�?_T)"/>
+                <MenuItem Header="方案树(_S)"/>
+                <MenuItem Header="工具箱(_T)"/>
                 <MenuItem Header="设备管理(_D)"/>
-                <MenuItem Header="属性面�?_P)"/>
+                <MenuItem Header="属性面板(_P)"/>
                 <MenuItem Header="日志窗口(_L)"/>
                 <MenuItem Header="结果预览(_R)"/>
                 <MenuItem Header="系统信息(_I)"/>
                 <Separator/>
-                <MenuItem Header="显示最大外接矩�?_B)" InputGestureText="Ctrl+B" Command="{Binding ToggleBoundingRectangleCommand}"/>
+                <MenuItem Header="显示最大外接矩形(_B)" InputGestureText="Ctrl+B" Command="{Binding ToggleBoundingRectangleCommand}"/>
                 <MenuItem Header="显示路径拐点(_P)" InputGestureText="Ctrl+P" Command="{Binding TogglePathPointsCommand}"/>
                 <Separator/>
                 <MenuItem Header="全屏(_F)" InputGestureText="F11"/>
@@ -95,7 +95,7 @@
                 <MenuItem Header="参数管理(_P)"/>
                 <MenuItem Header="插件管理(_L)"/>
                 <MenuItem Header="系统设置(_S)"/>
-                <MenuItem Header="快捷键设�?_K)"/>
+                <MenuItem Header="快捷键设置(_K)"/>
             </MenuItem>
             <MenuItem Header="插件(_P)">
                 <MenuItem Header="插件市场(_M)"/>
@@ -106,17 +106,17 @@
             <MenuItem Header="帮助(_H)">
                 <MenuItem Header="用户手册(_M)" InputGestureText="F1" Command="{Binding ShowHelpCommand}"/>
                 <MenuItem Header="API文档(_D)"/>
-                <MenuItem Header="快捷�?_K)" Command="{Binding ShowShortcutsCommand}"/>
+                <MenuItem Header="快捷键(_K)" Command="{Binding ShowShortcutsCommand}"/>
                 <MenuItem Header="关于(_A)" Command="{Binding ShowAboutCommand}"/>
             </MenuItem>
         </Menu>
 
-        <!-- ========== 工具�?(40px) ========== -->
+        <!-- ========== 工具栏 (40px) ========== -->
         <ToolBar DockPanel.Dock="Top" Height="40" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <!-- 文件操作�?-->
+            <!-- 文件操作组 -->
             <Button ToolTip="新建 (Ctrl+N)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding NewWorkflowCommand}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="📄" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="📁" FontSize="16" VerticalAlignment="Center"/>
                     <TextBlock Text="新建" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -135,8 +135,8 @@
 
             <Separator/>
 
-            <!-- 执行控制�?- 所有工作流控制 -->
-            <Button ToolTip="单次运行全部工作�?(Shift+F5)"
+            <!-- 执行控制组 - 所有工作流控制 -->
+            <Button ToolTip="单次运行全部工作流 (Shift+F5)"
                     Width="36"
                     Height="36"
                     Margin="2"
@@ -186,7 +186,7 @@
                       VerticalAlignment="Center"/>
             </Button>
 
-            <Button ToolTip="连续运行全部工作�?(Ctrl+Shift+F5)"
+            <Button ToolTip="连续运行全部工作流 (Ctrl+Shift+F5)"
                     Width="36"
                     Height="36"
                     Margin="2"
@@ -259,17 +259,17 @@
 
             <Separator/>
 
-            <!-- 调试工具�?-->
+            <!-- 调试工具组 -->
             <Button ToolTip="单步执行 (F10)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🔍" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="🔬" FontSize="16" VerticalAlignment="Center"/>
                     <TextBlock Text="调试" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
             <Separator/>
 
-            <!-- 编辑操作�?-->
+            <!-- 编辑操作组 -->
             <Button ToolTip="撤销 (Ctrl+Z)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}">
                 <TextBlock Text="↩️" FontSize="16" VerticalAlignment="Center"/>
             </Button>
@@ -279,15 +279,15 @@
 
             <Separator/>
 
-            <!-- 视图控制�?-->
+            <!-- 视图控制组 -->
             <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomIn_Click">
-                <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="🔍+" FontSize="14" VerticalAlignment="Center"/>
             </Button>
             <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomOut_Click">
-                <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="🔍-" FontSize="14" VerticalAlignment="Center"/>
             </Button>
             <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomFit_Click">
-                <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+                <TextBlock Text="🗂️" FontSize="16" VerticalAlignment="Center"/>
             </Button>
             <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomReset_Click">
                 <TextBlock Text="1:1" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
@@ -295,10 +295,10 @@
 
             <Separator/>
 
-            <!-- 画布切换�?- 已禁用，默认使用 WorkflowCanvasControl + BezierPathCalculator -->
+            <!-- 画布切换组 - 已禁用，默认使用 WorkflowCanvasControl + BezierPathCalculator -->
             <!--
-            <Button ToolTip="切换到正交折线画�? Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToWorkflowCanvas_Click">
-                <TextBlock Text="📐" FontSize="14" VerticalAlignment="Center"/>
+            <Button ToolTip="切换到正交折线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToWorkflowCanvas_Click">
+                <TextBlock Text="🗂️" FontSize="14" VerticalAlignment="Center"/>
             </Button>
             <Button ToolTip="切换到贝塞尔曲线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToNativeDiagram_Click">
                 <TextBlock Text="〰️" FontSize="14" VerticalAlignment="Center"/>
@@ -311,7 +311,7 @@
         </ToolBar>
 
 
-        <!-- ========== 主内容区�?========== -->
+        <!-- ========== 主内容区域 ========== -->
         <Grid x:Name="MainContentGrid" Loaded="MainContentGrid_Loaded">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" x:Name="ToolboxColumn" MinWidth="60" MaxWidth="260"/>
@@ -324,13 +324,13 @@
                 <RowDefinition Height="24"/>
             </Grid.RowDefinitions>
 
-            <!-- ========== 左侧工具�?- 使用双模ToolboxControl ========== -->
+            <!-- ========== 左侧工具箱 - 使用双模ToolboxControl ========== -->
             <Border Grid.Column="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
                 <toolbox:ToolboxControl DataContext="{Binding Toolbox}" x:Name="ToolboxContent"/>
             </Border>
 
 
-            <!-- ========== 中间工作�?- TabControl多流程编�?========== -->
+            <!-- ========== 中间工作区 - TabControl多流程编辑 ========== -->
             <Border Grid.Column="1" Background="#F5F5F5" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <TabControl x:Name="WorkflowTabControl"
                             Background="#F5F5F5"
@@ -351,7 +351,7 @@
                         <converters:ContinuousRunIconColorConverter x:Key="ContinuousRunIconColorConverter"/>
                     </TabControl.Resources>
 
-                    <!-- 自定义TabControl模板,将添加按钮放在TabPanel�?-->
+                    <!-- 自定义TabControl模板,将添加按钮放在TabPanel中 -->
                     <TabControl.Template>
                         <ControlTemplate TargetType="TabControl">
                             <Grid>
@@ -360,7 +360,7 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- TabPanel区域,分为两列:左侧TabItems可滚�?右侧添加按钮固定 -->
+                                <!-- TabPanel区域,分为两列:左侧TabItems可滚动,右侧添加按钮固定 -->
                                 <Border Grid.Row="0" Background="#F5F5F5" BorderThickness="0,0,0,1" BorderBrush="#E0E0E0"
                                         ClipToBounds="True">
                                     <Grid>
@@ -504,7 +504,7 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <!-- 工作流名�?-->
+                                                    <!-- 工作流名称 -->
                                                     <TextBlock Grid.Column="0"
                                                                Text="{Binding Name}"
                                                                FontSize="13"
@@ -513,10 +513,10 @@
                                                                VerticalAlignment="Center"
                                                                Margin="0,0,12,0"/>
 
-                                                    <!-- 单次运行按钮 - 仅在选中时显�?-->
+                                                    <!-- 单次运行按钮 - 仅在选中时显示 -->
                                                     <Button x:Name="SingleRunBtn"
                                                             Grid.Column="1"
-                                                            Content="�?
+                                                            Content="▶"
                                                             Padding="6,4"
                                                             Margin="0"
                                                             BorderThickness="0"
@@ -563,7 +563,7 @@
                                                         </Button.Style>
                                                     </Button>
 
-                                                    <!-- 连续运行/停止按钮 - 仅在选中时显�?-->
+                                                    <!-- 连续运行/停止按钮 - 仅在选中时显示 -->
                                                     <Button x:Name="ContinuousRunBtn"
                                                             Grid.Column="2"
                                                             Padding="6,4"
@@ -613,7 +613,7 @@
                                                         </Button.Style>
                                                     </Button>
 
-                                                    <!-- 状态指示器 - 仅在选中时显�?-->
+                                                    <!-- 状态指示器 - 仅在选中时显示 -->
                                                     <Ellipse x:Name="StateIndicator"
                                                              Grid.Column="3"
                                                              Width="12" Height="12"
@@ -627,10 +627,10 @@
                                                         </Ellipse.Effect>
                                                     </Ellipse>
 
-                                                    <!-- 删除按钮 - 仅在选中时显�?-->
+                                                    <!-- 删除按钮 - 仅在选中时显示 -->
                                                     <Button x:Name="DeleteBtn"
                                                             Grid.Column="4"
-                                                            Content="�?
+                                                            Content="✕"
                                                             Padding="0"
                                                             Margin="0"
                                                             Background="Transparent"
@@ -701,7 +701,7 @@
                         </Style>
                     </TabControl.ItemContainerStyle>
 
-                    <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控�?-->
+                    <!-- TabItem内容 - 使用CanvasTemplateSelector根据画布类型选择不同的控件 -->
                     <TabControl.ContentTemplate>
                         <DataTemplate>
                             <ContentControl Content="{Binding}">
@@ -741,7 +741,7 @@
                 </TabControl>
             </Border>
 
-            <!-- 右侧分割�?- 工作区和右侧面板之间 -->
+            <!-- 右侧分割器 - 工作区和右侧面板之间 -->
             <common:SplitterWithToggle Grid.Column="2" Width="8" MinWidth="8"
                                          ResizeDirection="Columns"
                                          ToggleDirection="Right"
@@ -752,17 +752,17 @@
             <Border Grid.Column="3" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <Grid x:Name="RightPanelGrid">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>  <!-- Row 0: 图像显示区域（自适应�?-->
+                        <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>  <!-- Row 0: 图像显示区域（自适应） -->
                         <RowDefinition Height="Auto" MinHeight="4" MaxHeight="4"/>  <!-- Row 1: 分隔条（可拖动） -->
-                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 属性面板（固定300px�?-->
+                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 属性面板（固定300px） -->
                     </Grid.RowDefinitions>
 
-                    <!-- 图像显示区域 - 包含图像显示模块和图像载入及预览模块 -->
+                    <!-- 图像显示区域 - 包含图像显示模块和图像加载及预览模块 -->
                     <Border Grid.Row="0" BorderThickness="0">
                         <Grid HorizontalAlignment="Stretch">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>  <!-- 图像显示模块 -->
-                                <RowDefinition Height="Auto"/>  <!-- 图像载入及预览模�?-->
+                                <RowDefinition Height="Auto"/>  <!-- 图像加载及预览模块 -->
                             </Grid.RowDefinitions>
 
                             <!-- 图像显示模块 - 使用TabControl -->
@@ -797,32 +797,32 @@
                                                                  ToolTip="选择要显示的图像类型"/>
                                                     </StackPanel>
 
-                                                    <!-- 右侧：图像控制按�?-->
+                                                    <!-- 右侧：图像控制按钮 -->
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                                         <Button ToolTip="放大 (Ctrl++)" Padding="8,4" Margin="2" 
                                                                 Style="{StaticResource SecondaryButton}"
                                                                 Command="{Binding ZoomInCommand}">
-                                                            <TextBlock Text="🔎+" FontSize="14" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="🔍+" FontSize="14" VerticalAlignment="Center"/>
                                                         </Button>
                                                         <Button ToolTip="缩小 (Ctrl+-)" Padding="8,4" Margin="2" 
                                                                 Style="{StaticResource SecondaryButton}"
                                                                 Command="{Binding ZoomOutCommand}">
-                                                            <TextBlock Text="🔎-" FontSize="14" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="🔍-" FontSize="14" VerticalAlignment="Center"/>
                                                         </Button>
                                                         <Button ToolTip="适应窗口 (Ctrl+0)" Padding="8,4" Margin="2" 
                                                                 Style="{StaticResource SecondaryButton}"
                                                                 Command="{Binding FitToWindowCommand}">
-                                                            <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="🗂️" FontSize="16" VerticalAlignment="Center"/>
                                                         </Button>
                                                         <Button ToolTip="重置视图 (R)" Padding="8,4" Margin="2" 
                                                                 Style="{StaticResource SecondaryButton}"
                                                                 Command="{Binding ResetViewCommand}">
-                                                            <TextBlock Text="�? FontSize="16" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="🔄" FontSize="16" VerticalAlignment="Center"/>
                                                         </Button>
                                                         <Button ToolTip="全屏显示 (F)" Padding="8,4" Margin="2" 
                                                                 Style="{StaticResource SecondaryButton}"
                                                                 Command="{Binding ToggleFullScreenCommand}">
-                                                            <TextBlock Text="�? FontSize="14" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="⛶" FontSize="14" VerticalAlignment="Center"/>
                                                         </Button>
                                                     </StackPanel>
                                                 </Grid>
@@ -837,7 +837,7 @@
                                                         Scale="{Binding ImageScale}"
                                                         x:Name="ImageDisplayContent"/>
 
-                                                    <!-- 缩放比例显示覆盖�?-->
+                                                    <!-- 缩放比例显示覆盖层 -->
                                                     <Border Background="#B3000000" Padding="8,4" CornerRadius="4"
                                                             HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                             Margin="10" Visibility="Visible">
@@ -857,10 +857,10 @@
                                                 <RowDefinition Height="*"/>
                                             </Grid.RowDefinitions>
 
-                                            <!-- 标题�?-->
+                                            <!-- 标题栏 -->
                                             <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" 
                                                     BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                                <TextBlock Text="选中节点的计算结�? 
+                                                <TextBlock Text="选中节点的计算结果" 
                                                           FontSize="12" FontWeight="SemiBold" 
                                                           Foreground="#333333"/>
                                             </Border>
@@ -886,7 +886,7 @@
                                                                                   FontWeight="SemiBold" FontSize="12"
                                                                                   Foreground="#333333" Margin="0,0,0,4"/>
 
-                                                                        <!-- 结果�?-->
+                                                                        <!-- 结果值 -->
                                                                         <TextBlock Grid.Row="1" Text="{Binding Value}"
                                                                                   FontSize="11" Foreground="#666666"
                                                                                   TextWrapping="Wrap"/>
@@ -897,7 +897,7 @@
                                                     </ItemsControl>
                                                 </ScrollViewer>
 
-                                                <!-- 空状态提�?-->
+                                                <!-- 空状态提示 -->
                                                 <TextBlock Text="📊"
                                                           FontSize="32"
                                                           HorizontalAlignment="Center"
@@ -924,8 +924,8 @@
                                 </TabControl>
                             </Border>
 
-                            <!-- 图像载入及预览模�?- 使用现代化的 ImagePreviewControl -->
-                            <!-- 绑定�?ActiveNodeImageData 实现每个采集节点独立的图像预览器 -->
+                            <!-- 图像加载及预览模块 - 使用现代化的 ImagePreviewControl -->
+                            <!-- 绑定到 ActiveNodeImageData 实现每个采集节点独立的图像预览器 -->
                             <Border Grid.Row="1"
                                     Background="#F8F9FA"
                                     BorderBrush="#E0E0E0"
@@ -942,7 +942,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- 右侧面板内部分隔�?- 支持拖动调整并保�?-->
+                    <!-- 右侧面板内部分隔器 - 支持拖动调整并保存 -->
                     <GridSplitter Grid.Row="1" Height="4" Width="Auto"
                                  ResizeDirection="Rows"
                                  Background="#DDDDDD"
@@ -964,11 +964,11 @@
                         </GridSplitter.Style>
                     </GridSplitter>
 
-                    <!-- 属性面�?- 使用PropertyPanelControl -->
+                    <!-- 属性面板 - 使用PropertyPanelControl -->
                     <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"
                             VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                         <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                            <!-- 属性内�?-->
+                            <!-- 属性内容 -->
                             <panels:PropertyPanelControl
                                 PropertyGroups="{Binding PropertyGroups}"
                                 LogText="{Binding LogText}"
@@ -984,7 +984,7 @@
             <StatusBar Grid.ColumnSpan="4" Grid.Row="1" Height="24" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
                 <StatusBarItem>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="�? Foreground="#00CC99" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="●" Foreground="#00CC99" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
                         <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StatusBarItem>

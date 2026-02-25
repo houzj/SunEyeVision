@@ -15,7 +15,7 @@ namespace SunEyeVision.UI.Shared.Controls.Common
         }
 
         /// <summary>
-        /// 进度值（0-100�?
+        /// 进度值（0-100）
         /// </summary>
         public double ProgressValue
         {

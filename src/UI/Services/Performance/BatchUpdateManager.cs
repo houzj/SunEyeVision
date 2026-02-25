@@ -7,7 +7,7 @@ using SunEyeVision.UI.Services.Performance;
 namespace SunEyeVision.UI.Services.Performance
 {
     /// <summary>
-    /// 批量更新作用�?- 暂停集合通知，批量操作完成后发送单个通知
+    /// 批量更新作用域 - 暂停集合通知，批量操作完成后发送单个通知
     /// </summary>
     public class BatchUpdateScope : IDisposable
     {
@@ -51,7 +51,7 @@ namespace SunEyeVision.UI.Services.Performance
     }
 
     /// <summary>
-    /// 批量更新集合 - 支持批量操作�?ObservableCollection
+    /// 批量更新集合 - 支持批量操作的ObservableCollection
     /// </summary>
     public class BatchUpdateCollection<T> : ObservableCollection<T>
     {
@@ -76,7 +76,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 开始批量更�?
+        /// 开始批量更新
         /// </summary>
         public IDisposable BeginBatchUpdate()
         {
@@ -122,7 +122,7 @@ namespace SunEyeVision.UI.Services.Performance
         }
 
         /// <summary>
-        /// 批量替换所有项�?
+        /// 批量替换所有项目
         /// </summary>
         public void ReplaceAll(IEnumerable<T> items)
         {
@@ -193,7 +193,7 @@ namespace SunEyeVision.UI.Services.Performance
     }
 
     /// <summary>
-    /// 批量更新管理�?- 管理多个集合的批量更�?
+    /// 批量更新管理器 - 管理多个集合的批量更新
     /// </summary>
     public class BatchUpdateManager
     {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using SunEyeVision.Core.Interfaces;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
-using SunEyeVision.Plugin.SDK;
+using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.Workflow
 {

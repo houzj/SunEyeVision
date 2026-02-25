@@ -8,12 +8,12 @@ using SunEyeVision.Plugin.SDK;
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// ¹¤×÷Á÷ÒýÇæ¹¤³§ - ÓÃÓÚ´´½¨ºÍ³õÊ¼»¯¹¤×÷Á÷Ïà¹Ø×é¼þ
+    /// æ¹¤ - Ú´Í³Ê¼
     /// </summary>
     public static class WorkflowEngineFactory
     {
         /// <summary>
-        /// ´´½¨ÍêÕûµÄ¹¤×÷Á÷ÒýÇæÌ×¼þ
+        /// Ä¹×¼
         /// </summary>
         public static (WorkflowEngine, WorkflowExecutionEngine, IPluginManager) CreateEngineSuite(ILogger logger)
         {
@@ -22,23 +22,23 @@ namespace SunEyeVision.Workflow
                 throw new ArgumentNullException(nameof(logger));
             }
 
-            // 1. ´´½¨²å¼þ¹ÜÀíÆ÷£¨´«µÝlogger£©
+            // 1. logger
             var pluginManager = new PluginManager(logger);
 
-            // 2. ´´½¨»ù´¡¹¤×÷Á÷ÒýÇæ
+            // 2. 
             var workflowEngine = new WorkflowEngine(logger);
 
-            // 3. ´´½¨Ö´ÐÐÒýÇæ
+            // 3. Ö´
             var executionEngine = new WorkflowExecutionEngine(workflowEngine, pluginManager, logger);
 
-            // 4. ¼ÓÔØ²¢×¢²á¹¤×÷Á÷¿ØÖÆ²å¼þ
+            // 4. Ø²×¢á¹¤Æ²
             RegisterWorkflowControlPlugin(workflowEngine, pluginManager, logger);
 
             return (workflowEngine, executionEngine, pluginManager);
         }
 
         /// <summary>
-        /// ×¢²á¹¤×÷Á÷¿ØÖÆ²å¼þ
+        /// ×¢á¹¤Æ²
         /// </summary>
         private static void RegisterWorkflowControlPlugin(
             WorkflowEngine workflowEngine,
@@ -47,21 +47,21 @@ namespace SunEyeVision.Workflow
         {
             try
             {
-                // ´´½¨¹¤×÷Á÷¿ØÖÆ²å¼þ
+                // Æ²
                 var controlPlugin = new SubroutinePlugin(workflowEngine);
                 pluginManager.RegisterPlugin(controlPlugin);
 
-                logger.LogInfo("¹¤×÷Á÷¿ØÖÆ²å¼þÒÑ×¢²á");
+                logger.LogInfo("Æ²×¢");
             }
             catch (Exception ex)
             {
-                logger.LogError($"×¢²á¹¤×÷Á÷¿ØÖÆ²å¼þÊ§°Ü: {ex.Message}", ex);
+                logger.LogError($"×¢á¹¤Æ²Ê§: {ex.Message}", ex);
                 throw;
             }
         }
 
         /// <summary>
-        /// ´´½¨¹¤×÷Á÷ÒýÇæ£¨½ö»ù´¡¹¦ÄÜ£©
+        /// æ£¨Ü£
         /// </summary>
         public static WorkflowEngine CreateBasicEngine(ILogger logger)
         {
@@ -74,7 +74,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// ´´½¨¹¤×÷Á÷Ö´ÐÐÒýÇæ
+        /// Ö´
         /// </summary>
         public static WorkflowExecutionEngine CreateExecutionEngine(
             WorkflowEngine workflowEngine,

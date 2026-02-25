@@ -7,7 +7,7 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// 工作流画布视图模�?
+    /// ͼģ?
     /// </summary>
     public class WorkflowViewModel : ViewModelBase
     {
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.ViewModels
 
         public event Action<WorkflowNode?>? SelectedNodeChanged;
 
-        // 连接模式相关
+        // 模式关
         public bool IsInConnectionMode { get; private set; }
         public WorkflowNode? ConnectionSourceNode { get; private set; }
 
@@ -70,10 +70,10 @@ namespace SunEyeVision.UI.ViewModels
             var node2 = new WorkflowNode("node2", "高斯模糊", "Preprocess");
             node2.Position = new Point(250, 50);
 
-            var node3 = new WorkflowNode("node3", "边缘检�?, "Detection");
+            var node3 = new WorkflowNode("node3", "Ե", "Detection");
             node3.Position = new Point(450, 50);
 
-            var node4 = new WorkflowNode("node4", "结果输出", "Output");
+            var node4 = new WorkflowNode("node4", "输出", "Output");
             node4.Position = new Point(650, 50);
 
             Nodes.Add(node1);
@@ -85,7 +85,7 @@ namespace SunEyeVision.UI.ViewModels
             var conn2 = new WorkflowConnection("conn2", "node2", "node3");
             var conn3 = new WorkflowConnection("conn3", "node3", "node4");
 
-            // 为初始连接设置位�?
+            // ΪʼY?
             conn1.SourcePosition = new Point(190, 95);
             conn1.TargetPosition = new Point(250, 95);
 
@@ -107,11 +107,11 @@ namespace SunEyeVision.UI.ViewModels
             var id = $"node{Nodes.Count + 1}";
             var name = type switch
             {
-                "Input" => "图像输入",
-                "Preprocess" => "高斯模糊",
-                "Detection" => "边缘检�?,
-                "Output" => "结果输出",
-                _ => "新节�?
+                "Input" => "ͼ",
+                "Preprocess" => "˹ģ",
+                "Detection" => "Ե",
+                "Output" => "",
+                _ => "½ڵ"
             };
 
             var newNode = new WorkflowNode(id, name, type);
@@ -177,7 +177,7 @@ namespace SunEyeVision.UI.ViewModels
         #region 连接模式
 
         /// <summary>
-        /// 执行连接节点命令
+        /// 
         /// </summary>
         public void ExecuteConnectNodes()
         {
@@ -189,29 +189,29 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 尝试连接到目标节�?
+        /// ԵĿ?
         /// </summary>
         public bool TryConnectNode(WorkflowNode targetNode)
         {
             if (ConnectionSourceNode == null || targetNode == null)
                 return false;
 
-            // 检查是否是同一个节�?
+            // Ƿͬһ?
             if (ConnectionSourceNode == targetNode)
                 return false;
 
-            // 检查连接是否已存在
+            // 连接是否已存在
             var existingConnection = Connections.FirstOrDefault(c =>
                 c.SourceNodeId == ConnectionSourceNode.Id && c.TargetNodeId == targetNode.Id);
 
             if (existingConnection != null)
                 return false;
 
-            // 创建新连�?
+            // 新连?
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, ConnectionSourceNode.Id, targetNode.Id);
 
-            // 计算连接点位置（节点右中心到左中心）
+            // λXĵģ
             var sourcePos = new Point(
                 ConnectionSourceNode.Position.X + 140,
                 ConnectionSourceNode.Position.Y + 35
@@ -226,7 +226,7 @@ namespace SunEyeVision.UI.ViewModels
 
             Connections.Add(newConnection);
 
-            // 退出连接模�?
+            // 出连接模?
             IsInConnectionMode = false;
             ConnectionSourceNode = null;
 

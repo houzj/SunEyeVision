@@ -25,7 +25,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 标题�?-->
+        <!-- 标题栏 -->
         <Border Grid.Row="0" Background="{StaticResource HeaderBrush}" Padding="12,8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="🔧" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -60,14 +60,14 @@
                         </Button>
                         <Button Name="btnProcessed" Click="btnProcessed_Click" Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="1" Padding="10,6" FontSize="11" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🔄" FontSize="10" VerticalAlignment="Center"/>
-                                <TextBlock Text="处理�? Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="🔧" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock Text="处理后" Margin="4,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Name="btnResult" Click="btnResult_Click" Background="Transparent" BorderBrush="#DDDDDD" BorderThickness="1" Padding="10,6" FontSize="11" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="📊" FontSize="10" VerticalAlignment="Center"/>
-                                <TextBlock Text="检测结�? Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="检测结果" Margin="4,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -97,7 +97,7 @@
                     <Border Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,0,8">
                         <StackPanel>
                             <Border Background="#F0F8FF" Padding="8" BorderBrush="#0066CC" BorderThickness="0,0,0,2">
-                                <TextBlock Text="📋 工具信息" FontWeight="Bold" FontSize="12" Foreground="#0066CC"/>
+                                <TextBlock Text="📖 工具信息" FontWeight="Bold" FontSize="12" Foreground="#0066CC"/>
                             </Border>
                             <StackPanel Margin="8">
                                 <Grid Margin="0,4">
@@ -121,14 +121,14 @@
                                         <ColumnDefinition Width="60"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="状�?" VerticalAlignment="Center" FontSize="11" Foreground="#666666"/>
+                                    <TextBlock Grid.Column="0" Text="状态:" VerticalAlignment="Center" FontSize="11" Foreground="#666666"/>
                                     <TextBlock Grid.Column="1" Text="{Binding ToolStatus}" VerticalAlignment="Center" FontSize="11" Foreground="#00CC99" FontWeight="SemiBold"/>
                                 </Grid>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <!-- 自定义控件容�?- 支持两种模式 -->
+                    <!-- 自定义控件容器 - 支持两种模式 -->
                     <Border Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,0,8">
                         <StackPanel>
                             <Border Background="#FFF8F0" Padding="8" BorderBrush="#FF9900" BorderThickness="0,0,0,2">

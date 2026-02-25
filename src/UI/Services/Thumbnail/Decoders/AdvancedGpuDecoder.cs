@@ -11,9 +11,9 @@ using SunEyeVision.UI.Services.Thumbnail.Decoders;
 namespace SunEyeVision.UI.Services.Thumbnail.Decoders
 {
     /// <summary>
-    /// 高级GPU解码�?- 多策略优�?
-    /// 实现真正的GPU硬件解码，预期性能提升7-10�?
-    /// �?支持 IThumbnailDecoder 接口，包含安全解码方�?
+    /// 高级GPU解码?- 多策略优?
+    /// 实现真正的GPU硬件解码，预期性能提升7-10?
+    /// ?支持 IThumbnailDecoder 接口，包含安全解码方法?
     /// </summary>
     public class AdvancedGpuDecoder : IThumbnailDecoder
     {
@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         public bool UseHardwareDecoding => _useHardwareDecoding;
 
         /// <summary>
-        /// 是否支持硬件加速（IThumbnailDecoder接口�?
+        /// 是否支持硬件加速（IThumbnailDecoder接口?
         /// </summary>
         public bool IsHardwareAccelerated => _useHardwareDecoding;
 
@@ -66,7 +66,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         }
 
         /// <summary>
-        /// 最小解码时间（毫秒�?
+        /// 最小解码时间（毫秒?
         /// </summary>
         public double MinDecodeTime
         {
@@ -81,7 +81,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         }
 
         /// <summary>
-        /// 最大解码时间（毫秒�?
+        /// 最大解码时间（毫秒?
         /// </summary>
         public double MaxDecodeTime
         {
@@ -101,7 +101,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         }
 
         /// <summary>
-        /// 初始化GPU解码�?
+        /// 初始化GPU解码?
         /// </summary>
         public bool Initialize()
         {
@@ -110,24 +110,24 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
 
             try
             {
-                Debug.WriteLine("[AdvancedGpuDecoder] 初始化高级GPU解码�?..");
+                Debug.WriteLine("[AdvancedGpuDecoder] 初始化高级GPU解码?..");
 
-                // 检测硬件渲染层�?
+                // 检测硬件渲染层?
                 int tier = System.Windows.Media.RenderCapability.Tier >> 16;
                 Debug.WriteLine($"  渲染层级: Tier {tier}");
 
-                // 初始化WIC解码�?
+                // 初始化WIC解码?
                 bool wicAvailable = _wicDecoder.Initialize();
                 _useHardwareDecoding = wicAvailable;
 
                 if (_useHardwareDecoding)
                 {
-                    Debug.WriteLine("[AdvancedGpuDecoder] �?GPU硬件解码已启�?);
-                    Debug.WriteLine($"  WIC硬件解码: {(wicAvailable ? "可用" : "不可�?)}");
+                    Debug.WriteLine("[AdvancedGpuDecoder] ✓ GPU硬件解码已启用");
+                    Debug.WriteLine($"  WIC硬件解码: {(wicAvailable ? "可用" : "不可用")}");
                 }
                 else
                 {
-                    Debug.WriteLine("[AdvancedGpuDecoder] �?使用优化CPU解码模式");
+                    Debug.WriteLine("[AdvancedGpuDecoder] ⚡ 使用优化CPU解码模式");
                 }
 
                 _isInitialized = true;
@@ -135,7 +135,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AdvancedGpuDecoder] �?初始化失�? {ex.Message}");
+                Debug.WriteLine($"[AdvancedGpuDecoder] ?初始化失? {ex.Message}");
                 _useHardwareDecoding = false;
                 _isInitialized = true;
                 return false;
@@ -143,17 +143,17 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         }
 
         /// <summary>
-        /// 解码缩略图（IThumbnailDecoder接口�?
+        /// 解码缩略图（IThumbnailDecoder接口?
         /// </summary>
         public BitmapImage? DecodeThumbnail(string filePath, int size, byte[]? prefetchedData = null, bool verboseLog = false, bool isHighPriority = false)
         {
-            // prefetchedData 参数在此实现中暂不使�?
+            // prefetchedData 参数在此实现中暂不使?
             return DecodeThumbnail(filePath, size, useGpu: true);
         }
 
         /// <summary>
-        /// �?安全解码缩略图（推荐使用�?
-        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文�?
+        /// ?安全解码缩略图（推荐使用?
+        /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文件夹?
         /// </summary>
         public BitmapImage? DecodeThumbnailSafe(
             IFileAccessManager? fileManager,
@@ -163,7 +163,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
             bool verboseLog = false,
             bool isHighPriority = false)
         {
-            // 如果没有 FileAccessManager，使用普通解�?
+            // 如果没有 FileAccessManager，使用普通解决方案?
             if (fileManager == null)
             {
                 return DecodeThumbnail(filePath, size, prefetchedData, verboseLog, isHighPriority);
@@ -174,7 +174,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
             
             if (!scope.IsGranted)
             {
-                Debug.WriteLine($"[AdvancedGpuDecoder] �?文件访问被拒�? {scope.ErrorMessage} file={System.IO.Path.GetFileName(filePath)}");
+                Debug.WriteLine($"[AdvancedGpuDecoder] ?文件访问被拒? {scope.ErrorMessage} file={System.IO.Path.GetFileName(filePath)}");
                 return null;
             }
 
@@ -227,8 +227,8 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                 // 2. 保留像素格式 - 减少格式转换
                 bitmap.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
 
-                // 3. 解码时缩�?- 比解码后缩放快得�?
-                // 这一步虽然仍在CPU上，但比完整解码�?-5�?
+                // 3. 解码时缩略?- 比解码后缩放快得?
+                // 这一步虽然仍在CPU上，但比完整解码?-5?
                 bitmap.DecodePixelWidth = size;
 
                 // 4. 直接设置URI - 避免流操作开销
@@ -247,15 +247,15 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                 // 记录性能指标
                 RecordMetric(filePath, size, sw.ElapsedMilliseconds, "Optimized");
 
-                // 根据性能判断是否为GPU加�?
-                bool isFast = sw.ElapsedMilliseconds < 50; // 如果小于50ms，可能是GPU加�?
-                string decodeType = isFast ? "GPU加�? : "优化CPU";
+                // 根据性能判断是否为GPU加?
+                bool isFast = sw.ElapsedMilliseconds < 50; // 如果小于50ms，可能是GPU加?
+                string decodeType = isFast ? "GPU加速" : "优化CPU";
 
                 return bitmap;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AdvancedGpuDecoder] �?解码失败: {ex.Message}");
+                Debug.WriteLine($"[AdvancedGpuDecoder] ?解码失败: {ex.Message}");
                 sw.Stop();
                 return null;
             }
@@ -289,7 +289,7 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AdvancedGpuDecoder] �?CPU解码失败: {ex.Message}");
+                Debug.WriteLine($"[AdvancedGpuDecoder] ?CPU解码失败: {ex.Message}");
                 sw.Stop();
                 return null;
             }
@@ -337,16 +337,16 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                 report.AppendLine($"  最小耗时: {MinDecodeTime:F2}ms");
                 report.AppendLine($"  最大耗时: {MaxDecodeTime:F2}ms");
 
-                // 按方法分组统�?
+                // 按方法分组统计?
                 var byMethod = _performanceMetrics.Values.GroupBy(m => m.Method);
                 foreach (var group in byMethod)
                 {
                     var avg = group.Average(m => m.ElapsedMs);
                     var count = group.Count();
-                    report.AppendLine($"  {group.Key}: {count}�? 平均{avg:F2}ms");
+                    report.AppendLine($"  {group.Key}: {count}? 平均{avg:F2}ms");
                 }
 
-                // 性能提升计算（假设CPU平均200ms�?
+                // 性能提升计算（假设CPU平均200ms?
                 double cpuBaseline = 200.0;
                 double improvement = ((cpuBaseline - AverageDecodeTime) / cpuBaseline) * 100;
                 report.AppendLine($"  性能提升: {improvement:F1}% (相比CPU基准)");

@@ -46,7 +46,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     return;
                 }
 
-                // 标记所有缓存为脏数�?
+                // 标记所有缓存为脏数据
                 if (_connectionPathCache != null)
                 {
                     _connectionPathCache.MarkAllDirty();
@@ -69,18 +69,18 @@ namespace SunEyeVision.UI.Services.Interaction
                     }
                     catch (Exception ex)
                     {
-    
+                        System.Diagnostics.Debug.WriteLine($"刷新连接路径失败: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                throw;
+                System.Diagnostics.Debug.WriteLine($"刷新所有连接路径失败: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 创建节点连接（使用指定的目标端口�?
+        /// 创建节点连接（使用指定的目标端口）
         /// </summary>
         public void CreateConnectionWithSpecificPort(WorkflowNode sourceNode, WorkflowNode targetNode, string targetPortName, string? sourcePortName)
         {
@@ -93,11 +93,10 @@ namespace SunEyeVision.UI.Services.Interaction
             var connectionId = $"conn_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
 
-            // 设置源端口名�?
+            // 设置源端口名
             newConnection.SourcePort = sourcePortName ?? "RightPort";
-            newConnection.TargetPort = targetPortName;
 
-            // 获取源端口位�?
+            // 获取源端口位置
             Point sourcePos;
             switch (sourcePortName)
             {
@@ -118,7 +117,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     break;
             }
 
-            // 获取目标端口位置（使用用户指定的端口�?
+            // 获取目标端口位置（使用用户指定的端口）
             Point targetPos;
             switch (targetPortName)
             {
@@ -163,13 +162,11 @@ namespace SunEyeVision.UI.Services.Interaction
 
             var connectionId = $"connId_{Guid.NewGuid().ToString("N")[..8]}";
             var newConnection = new WorkflowConnection(connectionId, sourceNode.Id, targetNode.Id);
-
-            // 智能选择连接点位�?
-            Point sourcePos, targetPos;
             string finalSourcePort, finalTargetPort;
 
             // 使用记录的源端口
             string initialSourcePort = sourcePortName ?? "RightPort";
+            Point sourcePos;
             switch (initialSourcePort)
             {
                 case "TopPort":
@@ -189,16 +186,17 @@ namespace SunEyeVision.UI.Services.Interaction
                     break;
             }
 
-            // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口�?
+            // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口）
             var deltaX = targetNode.Position.X - sourcePos.X;
             var deltaY = targetNode.Position.Y - sourcePos.Y;
 
             string direction = "";
             bool isVerticalDominant = initialSourcePort == "TopPort" || initialSourcePort == "BottomPort";
 
+            Point targetPos;
             if (isVerticalDominant)
             {
-                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端�?
+                // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端口
                 bool horizontalDominant = Math.Abs(deltaX) > 2 * Math.Abs(deltaY);
 
                 if (horizontalDominant)
@@ -208,39 +206,35 @@ namespace SunEyeVision.UI.Services.Interaction
                     {
                         finalSourcePort = "RightPort";
                         finalTargetPort = "LeftPort";
-                        sourcePos = sourceNode.RightPortPosition;
                         targetPos = targetNode.LeftPortPosition;
                     }
                     else
                     {
                         finalSourcePort = "LeftPort";
                         finalTargetPort = "RightPort";
-                        sourcePos = sourceNode.LeftPortPosition;
                         targetPos = targetNode.RightPortPosition;
                     }
                 }
                 else
                 {
-                    direction = "垂直（源端口主导�?;
+                    direction = "垂直主导";
                     if (deltaY > 0)
                     {
                         finalSourcePort = "BottomPort";
                         finalTargetPort = "TopPort";
-                        sourcePos = sourceNode.BottomPortPosition;
                         targetPos = targetNode.TopPortPosition;
                     }
                     else
                     {
                         finalSourcePort = "TopPort";
                         finalTargetPort = "BottomPort";
-                        sourcePos = sourceNode.TopPortPosition;
                         targetPos = targetNode.BottomPortPosition;
                     }
                 }
             }
             else
             {
-                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端�?
+                // 源端口是水平方向（Left/Right），优先选择水平方向的目标端口
                 bool verticalDominant = Math.Abs(deltaY) > 2 * Math.Abs(deltaX);
 
                 if (verticalDominant)
@@ -250,38 +244,34 @@ namespace SunEyeVision.UI.Services.Interaction
                     {
                         finalSourcePort = "BottomPort";
                         finalTargetPort = "TopPort";
-                        sourcePos = sourceNode.BottomPortPosition;
                         targetPos = targetNode.TopPortPosition;
                     }
                     else
                     {
                         finalSourcePort = "TopPort";
                         finalTargetPort = "BottomPort";
-                        sourcePos = sourceNode.TopPortPosition;
                         targetPos = targetNode.BottomPortPosition;
                     }
                 }
                 else
                 {
-                    direction = "水平（源端口主导�?;
+                    direction = "水平主导";
                     if (deltaX > 0)
                     {
                         finalSourcePort = "RightPort";
                         finalTargetPort = "LeftPort";
-                        sourcePos = sourceNode.RightPortPosition;
                         targetPos = targetNode.LeftPortPosition;
                     }
                     else
                     {
                         finalSourcePort = "LeftPort";
                         finalTargetPort = "RightPort";
-                        sourcePos = sourceNode.LeftPortPosition;
                         targetPos = targetNode.RightPortPosition;
                     }
                 }
             }
 
-            // 设置连接属�?
+            // 设置连接属性
             newConnection.SourcePort = finalSourcePort;
             newConnection.TargetPort = finalTargetPort;
             newConnection.SourcePosition = sourcePos;
@@ -289,19 +279,15 @@ namespace SunEyeVision.UI.Services.Interaction
 
             selectedTab.WorkflowConnections.Add(newConnection);
 
-            _viewModel!.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
+            if (_viewModel != null)
+            {
+                _viewModel.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
+            }
         }
 
-        /// <summary>
-        /// 获取当前工作流Tab
-        /// </summary>
-        private ViewModels.WorkflowTabViewModel? GetCurrentWorkflowTab()
+        private WorkflowTabViewModel? GetCurrentWorkflowTab()
         {
-            if (_viewModel != null && _viewModel.WorkflowTabViewModel != null)
-            {
-                return _viewModel.WorkflowTabViewModel.SelectedTab;
-            }
-            return null;
+            return _viewModel?.WorkflowTabViewModel?.SelectedTab;
         }
     }
 }

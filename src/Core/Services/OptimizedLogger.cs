@@ -7,7 +7,7 @@ using SunEyeVision.Core.Interfaces;
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
-    /// 优化的日志记录器 - 支持日志级别控制、采样日志、条件编�?
+    /// 优化的日志记录器 - 支持日志级别控制、采样日志、条件编辑?
     /// </summary>
     public class OptimizedLogger : ILogger
     {
@@ -101,7 +101,7 @@ namespace SunEyeVision.Core.Services
         /// <summary>
         /// 记录采样日志 - 高频事件使用
         /// </summary>
-        /// <param name="eventKey">事件标识�?/param>
+        /// <param name="eventKey">事件标识符</param>
         /// <param name="message">日志消息</param>
         public void LogSampled(string eventKey, string message)
         {
@@ -169,7 +169,7 @@ namespace SunEyeVision.Core.Services
         }
 
         /// <summary>
-        /// 计时作用�?
+        /// 计时作用域
         /// </summary>
         private class TimingScope : IDisposable
         {

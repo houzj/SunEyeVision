@@ -107,7 +107,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 工作流保存事�?
+        /// 工作流保存事件?
         /// </summary>
         public class WorkflowSavedEvent : EventBase
         {
@@ -122,7 +122,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 工作流加载事�?
+        /// 工作流加载事件?
         /// </summary>
         public class WorkflowLoadedEvent : EventBase
         {
@@ -137,7 +137,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 工作流清除事�?
+        /// 工作流清除事件?
         /// </summary>
         public class WorkflowClearedEvent : EventBase
         {
@@ -215,7 +215,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 状态更新事�?
+        /// 状态更新事件?
         /// </summary>
         public class StatusUpdateEvent : EventBase
         {
@@ -229,7 +229,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 工作流执行事件类�?
+        /// 工作流执行事件类型?
         /// </summary>
         public enum WorkflowExecutionType
         {
@@ -241,7 +241,7 @@ namespace SunEyeVision.UI.Events
         }
 
         /// <summary>
-        /// 工作流执行事�?
+        /// 工作流执行事件?
         /// </summary>
         public class WorkflowExecutionEvent : EventBase
         {

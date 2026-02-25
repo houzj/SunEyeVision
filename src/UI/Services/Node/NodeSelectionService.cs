@@ -16,12 +16,12 @@ namespace SunEyeVision.UI.Services.Node
     public interface INodeSelectionService
     {
         /// <summary>
-        /// 选中的节点集�?
+        /// 选中的节点集合
         /// </summary>
         ObservableCollection<WorkflowNode> SelectedNodes { get; }
 
         /// <summary>
-        /// 选中状态变化事�?
+        /// 选中状态变化事件
         /// </summary>
         event EventHandler<SelectionChangedEventArgs> SelectionChanged;
 
@@ -51,7 +51,7 @@ namespace SunEyeVision.UI.Services.Node
         bool IsNodeSelected(WorkflowNode node);
 
         /// <summary>
-        /// 获取选中节点的边界矩�?
+        /// 获取选中节点的边界矩形
         /// </summary>
         Rect GetSelectionBounds();
 
@@ -61,12 +61,12 @@ namespace SunEyeVision.UI.Services.Node
         void SelectNodesInRect(Rect selectionRect);
 
         /// <summary>
-        /// 记录选中节点的初始位�?
+        /// 记录选中节点的初始位置
         /// </summary>
         void RecordSelectedNodesPositions();
 
         /// <summary>
-        /// 获取选中节点的位置偏�?
+        /// 获取选中节点的位置偏移
         /// </summary>
         Dictionary<string, Vector> GetSelectedNodesOffsets();
     }
@@ -108,7 +108,7 @@ namespace SunEyeVision.UI.Services.Node
     }
 
     /// <summary>
-    /// 节点选择服务 - 管理节点的选择状�?
+    /// 节点选择服务 - 管理节点的选择状态
     /// </summary>
     public class NodeSelectionService : INodeSelectionService
     {
@@ -133,7 +133,7 @@ namespace SunEyeVision.UI.Services.Node
 
             if (addToSelection)
             {
-                // 切换选择状�?
+                // 切换选择状态
                 if (SelectedNodes.Contains(node))
                 {
                     DeselectNode(node);

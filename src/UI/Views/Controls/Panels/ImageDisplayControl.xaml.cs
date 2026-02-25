@@ -83,7 +83,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         private void SelectOriginal()
         {
-            // TODO: 切换到原图显�?
+            // TODO: 切换到原图显示?
         }
 
         private void SelectProcessed()
@@ -93,7 +93,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         private void SelectResult()
         {
-            // TODO: 切换到检测结果显�?
+            // TODO: 切换到检测结果显示?
         }
 
         private void ZoomIn()

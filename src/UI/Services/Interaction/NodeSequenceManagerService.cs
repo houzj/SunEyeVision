@@ -8,7 +8,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 namespace SunEyeVision.UI.Services.Interaction
 {
     /// <summary>
-    /// 节点序号管理器实�?
+    /// 节点序号管理器实例
     /// </summary>
     public class NodeSequenceManager : INodeSequenceManager
     {
@@ -40,7 +40,7 @@ namespace SunEyeVision.UI.Services.Interaction
                     workflowSequences[algorithmType] = localIndex;
                 }
 
-                // 递增并返回新的序�?
+                // 递增并返回新的序号
                 int newIndex = localIndex + 1;
                 workflowSequences[algorithmType] = newIndex;
                 return newIndex;

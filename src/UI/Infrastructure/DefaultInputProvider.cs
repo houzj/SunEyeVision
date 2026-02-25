@@ -5,7 +5,7 @@ using SunEyeVision.UI.Infrastructure;
 namespace SunEyeVision.UI.Infrastructure
 {
     /// <summary>
-    /// 默认输入图像提供�?
+    /// 默认输入图像提供器
     /// </summary>
     public class DefaultInputProvider : IInputProvider
     {
@@ -17,7 +17,7 @@ namespace SunEyeVision.UI.Infrastructure
         {
             await Task.Delay(10);
 
-            // 返回null，让执行引擎使用默认的测试图�?
+            // 返回null，让执行引擎使用默认的测试图表
             return null;
         }
     }

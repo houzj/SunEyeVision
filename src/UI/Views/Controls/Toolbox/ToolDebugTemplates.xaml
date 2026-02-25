@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- 字符串参数模�?-->
+    <!-- 字符串参数模板 -->
     <DataTemplate x:Key="StringParameterTemplate">
         <StackPanel Margin="0,0,0,8">
             <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#666666" Margin="0,0,0,4"/>
@@ -24,7 +24,7 @@
         </StackPanel>
     </DataTemplate>
 
-    <!-- 浮点数参数模�?-->
+    <!-- 浮点数参数模板 -->
     <DataTemplate x:Key="DoubleParameterTemplate">
         <StackPanel Margin="0,0,0,8">
             <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#666666" Margin="0,0,0,4"/>

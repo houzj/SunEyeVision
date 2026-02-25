@@ -1,0 +1,2826 @@
+﻿===============================================
+        SunEyeVision 缂栫爜闂鎵弿鎶ュ憡
+===============================================
+鐢熸垚鏃堕棿: 2026-02-25 10:48:54
+鎵弿鐩綍: src
+闂鏂囦欢鎬绘暟: 129
+鎬婚棶棰樿鏁? 2167
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Canvas\WorkflowCanvasControl.xaml.cs
+闂琛屾暟: 412
+----------------------------------------
+  琛?23: /// WorkflowCanvasControl.xaml �Ľ����߼�
+  琛?24: /// �������ؼ�������ڵ�����ߵ���ʾ����ק�����ӵȽ���
+  琛?30: // ������
+  琛?34: private PortPositionService? _portPositionService; // �˿�λ�ò�ѯ����
+  琛?41: // ��ѡ���
+  琛?46: // ����ģʽ���
+  琛?49: // ��ק�������
+  琛?52: private Border? _dragConnectionSourceBorder = null; // ��ק����ʱ��Դ�ڵ�Border
+  琛?55: private string? _dragConnectionSourcePort = null; // ��¼��ק��ʼʱ��Դ�˿�
+  琛?56: private Border? _highlightedTargetBorder = null; // ������Ŀ��ڵ�Border�����ڻָ�ԭʼ��ʽ��
+  琛?57: private Ellipse? _highlightedTargetPort = null; // ������Ŀ��˿ڣ�Ellipse��
+  琛?58: private int _dragMoveCounter = 0; // ��ק�ƶ������������ڼ�����־���Ƶ��
+  琛?59: private string? _lastHighlightedPort = null; // �ϴθ����Ķ˿�����
+  琛?60: private string? _directHitTargetPort = null; // �û�ֱ�����е�Ŀ��˿�����
+  琛?61: private Path? _tempConnectionLine = null; // ��ʱ�����ߣ�������קʱ��ʾ��
+  琛?62: private PathGeometry? _tempConnectionGeometry = null; // ��ʱ������·������
+  琛?63: private Border? _highlightedTargetNodeBorder = null; // ��קʱ������Ŀ��ڵ�Border��������ʾ�˿ڣ�
+  琛?65: // ������·������
+  琛?68: // �����ӳٸ��¹�����
+  琛?71: // λ�ý����Ż� - ֻ���ƶ�������ֵʱ�Ŵ��������߸���
+  琛?72: private const double PositionUpdateThreshold = 5.0; // 5px ��ֵ
+  琛?76: /// �Ƿ�������ק���ӣ����ڰ󶨣��������ӵ��Ƿ���ʾ��
+  琛?84: // ���ٿ������ж˿ڵĿɼ��ԣ���Ϊֻ�������ͣ�ڵ�ʱ��ʾ�ýڵ�Ķ˿�
+  琛?89: /// �Ƿ���ʾ�����Ӿ���
+  琛?113: /// �����Ӿ��ε�Դ�ڵ�ID
+  琛?129: /// �����Ӿ��ε�Ŀ��ڵ�ID
+  琛?153: /// ��ȡ��ǰ������Tab���� DataContext ��ȡ��
+  琛?158: /// ��ȡ��ǰ��������Ϣ������ת������
+  琛?171: /// DataContext�仯ʱ��ScaleTransform����ʼ��ConnectionPathCache
+  琛?177: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �T�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?178: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] DataContext������Ϊ: {wor...
+  琛?180: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged]   �ڵ���: {workflowTab.Wo...
+  琛?184: // ��WorkflowCanvas��RenderTransform�󶨵�ViewModel��ScaleTransform
+  琛?191: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? �Ѱ�ScaleTransform��Work...
+  琛?193: // ����SmartPathConverter�Ľڵ㼯�Ϻ����Ӽ���
+  琛?196: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? SmartPathConverter.Nod...
+  琛?200: // ?? �ؼ��޸���ǿ��ˢ������ ItemsControl �� ItemsSource ��
+  琛?201: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ?? ǿ��ˢ�� ItemsControl ��...
+  琛?204: // ÿ�� DataContext �仯ʱ�����´��� ConnectionPathCache��ȷ��ÿ��������������
+  琛?205: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �X�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?206: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �U      ���ڴ���·��������....
+  琛?207: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �^�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?212: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ��ǰ·������������: {calcu...
+  琛?215: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? ·��������ʵ�������ɹ�");
+  琛?217: // ÿ�ζ������µ� ConnectionPathCache��ȷ��ÿ������������
+  琛?222: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? ConnectionPathCache ���...
+  琛?224: // ����SmartPathConverter��PathCache����
+  琛?226: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? SmartPathConverter.Path...
+  琛?228: // ��ʼ�������ӳٸ��¹�����
+  琛?233: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? BatchUpdateManager�ѳ�ʼ�...
+  琛?236: // Ԥ�Ȼ���
+  琛?239: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ����Ԥ�����: {stats.Cache...
+  琛?241: // �������Ӽ��ϱ仯�¼�
+  琛?246: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ���Ӽ��ϱ仯: Added={args.Ne...
+  琛?255: // ���Ľڵ㼯�ϱ仯�¼�
+  琛?275: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �X�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?276: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �U  ? ·����������ʼ���ɹ���...
+  琛?277: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] �^�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?281: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? ·������������ʧ��: {ex....
+  琛?282: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ��Ϣ: {ex.Message}");
+  琛?284: // ���÷�����ʹ�� PathCalculatorFactory ������Ĭ�ϱ��������ߣ�
+  琛?290: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? OrthogonalPathCalculato...
+  琛?295: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] ? DataContext ���� Workf...
+  琛?300: /// ǿ��ˢ������ ItemsControl �� ItemsSource ��
+  琛?301: /// �����޸������� Tab ����ͬһ��������Ĺؼ�
+  琛?307: // ���� WorkflowCanvas �е����� ItemsControl
+  琛?313: // ��ȡ�󶨱��ʽ
+  琛?317: // ˢ�°󶨱��ʽ��ǿ�����´�DataContext��ȡ����
+  琛?322: // ���û�а󶨱��ʽ����������Ϊ�󶨻�û�н���
+  琛?323: // ������Ҫ�ֶ�����DataContextChanged�¼�
+  琛?334: // �����쳣
+  琛?339: /// ��������ָ�����͵���Ԫ��
+  琛?364: // ��֤BoundingRectangleԪ��
+  琛?366: // �����豸���ض��룬������������Ⱦ
+  琛?370: // ����DataContext�仯����ScaleTransform
+  琛?375: // ��ʼ����ʱ������
+  琛?383: // ��ʼ��������
+  琛?389: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] �T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?392: // ���DataContext
+  琛?411: // ��ӵ��ԣ���� ItemsControl �İ�
+  琛?412: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ?? ��� UI Ԫ�ذ�...");
+  琛?416: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded]   WorkflowCanvas Ԫ�ش���");
+  琛?419: // ��ȡ MainWindowViewModel
+  琛?425: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel ��ȡ�ɹ�");
+  琛?427: // ��ʼ�������ࣨ��ҪViewModel��
+  琛?431: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortHighlighter ��ʼ���ɹ�");
+  琛?436: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? ConnectionCreator ��ʼ���ɹ�");
+  琛?439: // ��ʼ���˿�λ�ò�ѯ������ȫ�������
+  琛?443: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortPositionService ��ʼ���ɹ�");
+  琛?448: // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? MainWindowViewModel ��ȡʧ��");
+  琛?452: // ע�⣺ConnectionPathCache �ĳ�ʼ�����Ƶ� OnDataContextChanged ������
+  琛?453: // ��������ȷ���� DataContext ���ú�������ʼ�������� PathCache Ϊ null ������
+  琛?455: // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] �T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�...
+  琛?459: /// ˢ���������ӵ�·�����������¼��㣩
+  琛?465: // ������л���Ϊ������
+  琛?471: // ʹ�� WorkflowPathCalculator ˢ����������·��
+  琛?476: /// ����·����������֧������ʱ�л���
+  琛?483: // ����·������������
+  琛?486: // �����µ�·��������ʵ��
+  琛?489: // �滻ConnectionPathCache
+  琛?497: // ����SmartPathConverter�Ļ�������
+  琛?500: // ˢ����������·��
+  琛?514: #region �ڵ㽻���¼�
+  琛?517: /// �ڵ��������¼�����ʾ���ӵ㣩
+  琛?528: /// �ڵ�����뿪�¼����������ӵ㣩
+  琛?534: // ���û��������ק���ӣ������ص�ǰ�ڵ�Ķ˿�
+  琛?543: /// ���ӵ��������¼�
+  琛?547: // ���ӵ���ʽ��ͨ�� XAML ����
+  琛?551: /// ���ӵ�����뿪�¼�
+  琛?555: // ���ӵ���ʽ��ͨ�� XAML ����
+  琛?559: /// �˿��������¼� - ������
+  琛?563: // �Ƴ���Ƶ��־
+  琛?567: /// �˿�����뿪�¼� - ������
+  琛?571: // �Ƴ���Ƶ��־
+  琛?575: /// �������нڵ�����ӵ�ɼ���
+  琛?582: // �������нڵ㲢�������ӵ�ɼ���
+  琛?596: /// ���õ����ڵ�����ӵ�ɼ���
+  琛?608: // ʹ�� Visibility.Collapsed ������ Opacity��ȷ���˿ڲ���Ӧ����¼�
+  琛?609: // Collapsed ��Ԫ�ز��ɼ��Ҳ���Ӧ����¼�
+  琛?619: /// �ڵ����������� - ��ʼ��ק
+  琛?626: // ˫���¼����򿪵��Դ���
+  琛?638: // �򿪵��Դ���
+  琛?640: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?641: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?642: // �Ӷ�������ʱ�������޷�����
+  琛?646: // ����Ƿ�ס Shift �� Ctrl ������ѡģʽ��
+  琛?650: // ����ڵ�δ��ѡ�У��Ҳ��Ƕ�ѡģʽ����ֻѡ�е�ǰ�ڵ�
+  琛?656: // ����Ƕ�ѡģʽ���л�ѡ��״̬
+  琛?664: // ��¼����ѡ�нڵ�ĳ�ʼλ��
+  琛?667: // �����¼�����ק׼��
+  琛?675: // ��ֹ�¼�ð�ݵ� Canvas�����ⴥ����ѡ
+  琛?676: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?677: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?678: // �Ӷ�������ʱ�������޷�����
+  琛?682: /// �ڵ��������ͷ� - ������ק
+  琛?688: // ?? ������־������������
+  琛?689: // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ========== �ڵ��ͷ� [{DateTime.Now:HH:mm:s...
+  琛?691: // ��ק����
+  琛?700: // ����ͳһ���ƶ�ƫ�������ӳ�ʼλ�õ���ǰλ�ã�
+  琛?709: // ?? �ؼ��޸�����Ҫ�ٴ�ִ�� BatchMoveNodesCommand
+  琛?710: // ��Ϊ�ڵ�λ���Ѿ��� Node_MouseMove �б�������
+  琛?711: // ���������ִ��һ�Σ��ᵼ�½ڵ㱻�ƶ�����
+  琛?713: // ��ק������ǿ�Ƹ�������������ӵĻ���
+  琛?719: // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   �ѱ�ǽڵ� {node.Name} Ϊ��");
+  琛?723: // ?? ʹ�������ӳٸ��¹�����������ִ�����д�����ĸ���
+  琛?727: // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp] ��ǿ��ִ�����д���������Ӹ���");
+  琛?730: // ?? TODO: �����Ҫ֧�ֳ���/��������Ҫ�����ﴴ����ִ������
+  琛?731: // ����Ҫȷ��������ظ��ƶ��ڵ�
+  琛?738: // System.Diagnostics.Debug.WriteLine($"[Node_LeftButtonUp]   ��ק�ѽ�����_isDragging={_isDragging}");
+  琛?740: // ���λ�ý�����¼��׼���´���ק
+  琛?746: /// �ڵ�����ƶ� - ִ����ק������5�Ż����ֲ���²��� - ʵʱλ��+�ӳ�·����
+  琛?750: // ���������ק���ӣ����ƶ��ڵ㣨�����ͻ��
+  琛?758: // ������϶���ʼ�����ڵ���ƫ����
+  琛?761: // 5A: ��ȡ����ѡ�нڵ�
+  琛?768: // ?? �ؼ��Ż����������½ڵ�λ�ã�ʵʱ�㣩����ʹ��������
+  琛?769: // λ�ø��±���ʵʱ��Ӧ����ƶ������������ӳٺ���˸
+  琛?777: // ֱ������λ�ã���������PropertyChanged
+  琛?778: // �����������Canvas�󶨣��ڵ�λ��ʵʱ�������
+  琛?782: // 5C: ·������ʹ��λ�ý��� + �����ӳٻ��ƣ�˫���Ż���
+  琛?783: // ·������ɱ��ߣ���ͨ������������ٸ��´�������ͨ�������ӳٺϲ����ٸ���
+  琛?786: // �ռ���Ҫ���µĽڵ�ID��ͨ��λ�ý������ˣ�
+  琛?796: // ֻ�е��нڵ���Ҫ����ʱ�ŵ����������¹�����
+  琛?805: // �����ڵ��ƶ��������ݣ�
+  琛?811: // ֱ������λ�ã���������PropertyChanged
+  琛?814: // 5C: �����ڵ��·������Ҳʹ��λ�ý�������
+  琛?827: /// �ж��Ƿ�Ӧ�ô��������߸��£�λ�ý�����
+  琛?828: /// ֻ�е��ڵ��ƶ����볬����ֵʱ�Ŵ�������
+  琛?832: // ���û�м�¼���ýڵ��λ�ã����¼������true���״θ��£�
+  琛?839: // ��������ϴα���λ�õ�ƫ��
+  琛?844: // ����Ƿ񳬹���ֵ
+  琛?855: /// ���λ�ý�����¼������ק����ʱ���ã�
+  琛?863: /// �˿����������� - ��ʼ��ק������
+  琛?867: System.Diagnostics.Debug.WriteLine("�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T...
+  琛?868: System.Diagnostics.Debug.WriteLine("[Port_MouseLeftButtonDown] ? ����");
+  琛?871: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ���λ��: ({mousePos.X:F1}, {mousePos....
+  琛?875: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ��ǰ����: sender����={sender?.GetTy...
+  琛?881: // ����������Ѿ�����ק״̬��ֱ�ӷ��أ�������µ���ק
+  琛?884: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ������ק״̬������");
+  琛?889: // ��ȡ���ڵ�Border�����ϱ������ң�
+  琛?907: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? δ�ҵ����ڵ�: border={border != null}...
+  琛?911: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? �ҵ����ڵ�: {node.Name} (Id={node.Id...
+  琛?913: // ����������ק״̬
+  琛?916: _dragConnectionSourceBorder = border; // ����Դ�ڵ��Border
+  琛?919: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ??? ��ק״̬������: _isDraggingConnecti...
+  琛?921: // ����Դ�ڵ�Ķ˿ڿɼ�
+  琛?924: // ��ȡ�˿�λ��
+  琛?929: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] �˿�λ��: ({portPosition.X:F1}, {portP...
+  琛?931: // ��ʾ��ʱ������
+  琛?936: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ��ʱ����������ʾ");
+  琛?940: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ��ʱ������δ��ʼ��: _tempConnectionLi...
+  琛?943: // �������
+  琛?945: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? ����Ѳ���");
+  琛?947: // ��ֹ�¼�ð�ݵ�Border��Node_MouseLeftButtonDown
+  琛?948: // �������Ա�������ק����ʱ����ش����ڵ��ƶ�
+  琛?950: System.Diagnostics.Debug.WriteLine("�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T�T...
+  琛?954: /// ������ʱ������·��
+  琛?961: // �����򵥵�ֱ��·��
+  琛?976: /// �˿��������ͷ� - ������ק������
+  琛?980: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ����, _isDraggingConnection={_isDrag...
+  琛?984: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ��ǰ����: _isDraggingConnection={_isD...
+  琛?988: // �ͷ���겶��
+  琛?994: // ִ�����в���Ŀ��˿�
+  琛?996: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ���λ��: ({mousePos.X:F1}, {mousePos.Y:...
+  琛?1002: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ���в���: VisualHit����={hitTestResult....
+  琛?1006: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? ���в���: δ�����κ��Ӿ�Ԫ��");
+  琛?1013: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ŀ��Ellipse: Name={targetEllipse.Name...
+  琛?1015: // ��ȡĿ��ڵ� - ���ϱ����Ӿ����ҵ� Border (Ellipse �� Grid �� Border)
+  琛?1031: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ŀ��ڵ�: {targetNode.Name} (Id={target...
+  琛?1032: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] Դ�ڵ�: {_dragConnectionSourceNode.Name}...
+  琛?1034: // ��������
+  琛?1042: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ���Ӵ������: {connectionCreated}");
+  琛?1044: // ���Ӵ����ɹ�����ֹ�¼�ð�ݣ����ⴥ���ڵ�ѡ����ͼ��Ԥ����������
+  琛?1052: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? Ŀ��Border/Node��Ч: targetBorder={tar...
+  琛?1057: System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ? δ������Ч�Ķ˿�Ellipse: hitTestResult={...
+  琛?1060: // ����������ק״̬
+  琛?1065: // ����Դ�ڵ�Ķ˿ڿɼ���
+  琛?1072: // ������ʱ������
+  琛?1078: // ����������ݣ���������ݲ���
+  琛?1090: // ���������Ŀ��ڵ�
+  琛?1097: // ע�⣺�����Ӵ����ɹ�ʱ������ e.Handled = true ��ֹ�¼�ð��
+  琛?1098: // ���û�гɹ��������ӣ��¼������ð�ݣ�����������������Ӧ
+  琛?1102: /// �˿�����ƶ� - ������ʱ������
+  琛?1109: // ������ʱ�������յ�
+  琛?1118: // HitTest ��������µĽڵ�
+  琛?1122: // ���ϲ��� Border���ڵ�������
+  琛?1134: // ���Ŀ��ڵ�ı䣬���¶˿ڿɼ���
+  琛?1137: // ����֮ǰ�����Ľڵ�˿�
+  琛?1143: // ��ʾ�µ�Ŀ��ڵ�˿�
+  琛?1150: // ��겻���κνڵ��ϣ�����֮ǰ�����Ľڵ�˿�
+  琛?1158: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?1159: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?1160: // �Ӷ�������ʱ�������޷�����
+  琛?1164: /// ���ݶ˿����ƻ�ȡ�˿�λ��
+  琛?1179: /// �������˿�֮�䴴������
+  琛?1181: /// <returns>�Ƿ�ɹ���������</returns>
+  琛?1185: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? ��ʼ��������");
+  琛?1186: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - Դ�ڵ�: {sourceNode?.Name ?? "...
+  琛?1187: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - Ŀ��ڵ�: {targetNode?.Name ?? ...
+  琛?1192: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? selectedTab Ϊ null, _viewModel...
+  琛?1196: // ����Ƿ��Ѵ�����ͬ���ӣ�ͬʱ���ڵ�Ͷ˿ڣ�
+  琛?1205: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ? �����Ѵ���: {existingConnection...
+  琛?1209: // ����������
+  琛?1215: // ������ӵ�����
+  琛?1218: // �����ؽڵ�Ϊ�࣬���������߸���
+  琛?1226: // ���Ӵ�����ѡ��Ŀ��ڵ㣬��ͼ��Ԥ�����Զ���ʾ����ͼ��ɼ��ڵ��ͼ��
+  琛?1227: // UpdateImagePreviewVisibility ���Զ�ͨ�� BFS ׷�������������Ƿ���ʾͼ��Ԥ����
+  琛?1228: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ���Ӵ������: {sourceNode.Name} ��...
+  琛?1229: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] Ŀ��ڵ���Ϣ: IsImageCaptureNode={ta...
+  琛?1230: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] _viewModel={(_viewModel == null ...
+  琛?1234: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ��ǰ SelectedNode={_viewModel.Sel...
+  琛?1236: // �� ǿ��ˢ��ͼ��Ԥ������ȷ����ʹ SelectedNode ֵ��ͬҲ�����¼���
+  琛?1238: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ���� SelectedNode={targetNode.Na...
+  琛?1242: System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ����: _viewModel Ϊ null���޷�����...
+  琛?1249: /// �ڵ����¼� - �������ӻ�ѡ��
+  琛?1253: // ��ȡ�ڵ����֧�� Border �� Ellipse ��Ϊ sender��
+  琛?1264: // ѡ�е�ǰ�ڵ㣨���ӵ���ʱҲ��Ҫѡ�нڵ㣩
+  琛?1282: // ��ֹ�¼�ð�ݵ��ڵ�ĵ���¼�
+  琛?1283: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?1284: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?1285: // �Ӷ�������ʱ�������޷�����
+  琛?1287: // ʹ�� SelectedTab ������ģʽ״̬
+  琛?1294: // ����Ƿ�������ģʽ
+  琛?1297: // ��������ģʽ
+  琛?1299: _viewModel!.StatusText = $"��ѡ��Ŀ��ڵ�������ӣ���: {targetNode.Name}";
+  琛?1303: // ����Ƿ���ͬһ���ڵ�
+  琛?1306: _viewModel!.StatusText = "�޷����ӵ�ͬһ���ڵ�";
+  琛?1307: _viewModel.AddLog("[Connection] ? �޷����ӵ�ͬһ���ڵ�");
+  琛?1312: // ��������Ƿ��Ѵ��ڣ��ڵ���ģʽʹ��Ӳ����� RightPort��
+  琛?1321: _viewModel!.StatusText = "�����Ѵ���";
+  琛?1326: // ����������
+  琛?1329: // �˳�����ģʽ
+  琛?1335: /// ���ӵ���갴�� - ��ʼ��ק����
+  琛?1339: // �Ƴ��˷�����ͳһʹ�� Port_MouseLeftButtonDown �� Canvas �¼�����
+  琛?1340: // �����¼���������ͻ
+  琛?1344: /// ���ӵ�����ͷ� - ������ק����������
+  琛?1348: // �Ƴ��˷�����ͳһʹ�� Port_MouseLeftButtonUp �� Canvas �¼�����
+  琛?1349: // �����¼���������ͻ
+  琛?1354: #region ��ѡ����
+  琛?1357: /// Canvas ���������� - ��ʼ��ѡ�����ѡ��
+  琛?1363: // ���������������ק����״̬��������״̬
+  琛?1376: // ��������Ƿ��ǽڵ��˿ڣ�ͨ��ԭʼԴ��
+  琛?1379: // �ֶ����Ҵ� WorkflowNode Tag �� Border ��˿� Ellipse
+  琛?1391: // ����Ƿ����˶˿� Ellipse
+  琛?1404: // ������������ WorkflowNode Tag �� Border ��˿� Ellipse�����ɽڵ���¼��������������ѡ
+  琛?1410: // ����Ƿ�ס Shift �� Ctrl ������ѡģʽ��
+  琛?1414: // ��ʼ��ѡ
+  琛?1418: // ������Ƕ�ѡģʽ���������ѡ��
+  琛?1424: // ��ʼ��ʾ��ѡ��
+  琛?1428: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?1429: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?1430: // �Ӷ�������ʱ�������޷�����
+  琛?1434: /// Canvas ����ƶ� - ���¿�ѡ����
+  琛?1440: // ������ק����
+  琛?1445: // ���������״̬��һ�£�_isDraggingConnection=true �� _dragConnectionSourceNode=null������������״̬
+  琛?1457: // ������ȷ����ʱ������û��������ʾ
+  琛?1464: // ȷ��Դ�ڵ㲻Ϊ�ղŸ�����ʱ������
+  琛?1469: // ��ȡԴ�ڵ�����ӵ�λ��
+  琛?1472: // ��������ֱ������·��
+  琛?1475: // ������ʱ������
+  琛?1485: // ���·����
+  琛?1494: // ��̬����Ŀ��˿�
+  琛?1504: // ����Ƿ����ж˿�
+  琛?1520: // ��̬����ڵ����ģ���ȫ���
+  琛?1530: // ��̬����ڵ����ģ���ȫ���
+  琛?1546: // ���ȴ������еĶ˿ڣ���Ҫ�ų�Դ�ڵ�Ķ˿ڣ�
+  琛?1551: // �ҵ��˿�����Ľڵ�
+  琛?1563: // ֻ�ڶ˿ڱ仯ʱ�Ÿ����ͼ�¼
+  琛?1580: // ���еĶ���Դ�ڵ�Ķ˿ڣ��������
+  琛?1594: // ��ʾĿ��ڵ�����ж˿ڣ���Ϊ���û����������Ŀ��ڵ㣩
+  琛?1597: // ����Ŀ��˿�
+  琛?1600: // ��������Ľڵ�Border�����ں����������ʹ����뿪Ҳ������ʾ��
+  琛?1615: // ע�⣺���ﲻ�����ض˿ڣ�����Ŀ��ڵ�Ķ˿ڿɼ�ֱ����ק����
+  琛?1616: // ����ȷ����ק����ʱҲ������Ŀ��ڵ�Ķ˿�
+  琛?1621: // �����ѡ
+  琛?1624: // ���¿�ѡ��
+  琛?1628: // ��ȡ��ѡ����
+  琛?1631: // ����ѡ�еĽڵ�
+  琛?1638: // ��ȡ�ڵ�߽磨��̬���㣬��ȫ���
+  琛?1641: // ���ڵ��Ƿ����ѡ�����ཻ
+  琛?1648: // ���¿�ѡ��Ϣ��ʾ
+  琛?1654: /// Canvas �������ͷ� - ������ѡ�򴴽�����
+  琛?1660: // ����������ʱ�����ߣ����κ��߼�����֮ǰ��
+  琛?1661: // ��������ȷ�����ۺ����߼���Σ���ʱ�����߶�������
+  琛?1667: // ����������ݣ���������ݲ���
+  琛?1673: // ǿ��ˢ��UI��ȷ����ʱ����������������
+  琛?1677: // ���������ק���ӣ����Դ�������
+  琛?1683: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?1684: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?1685: // �Ӷ�������ʱ�������޷�����
+  琛?1687: // ������ʱ������
+  琛?1696: // ���֮ǰ�ĸ���
+  琛?1705: // �ռ��������еĽڵ㲢ѡ�������һ��
+  琛?1707: var hitPorts = new List<(Ellipse port, string portName, double distance)>(); // ���������еĶ˿��б�
+  琛?1710: // ������нڵ��λ����Ϣ��������ϣ�
+  琛?1718: // ���ڵ��Ƿ���Ⱦ��Canvas��������ϣ�
+  琛?1724: // ���Border�ĸ�Ԫ��ContentPresenter��λ��
+  琛?1737: // ʹ�� HitTest �������λ���µ�����Ԫ��
+  琛?1743: // ����Ƿ������˶˿�
+  琛?1748: // ����Ƿ��Ƕ˿�
+  琛?1754: // ��ȡ�˿�����
+  琛?1765: // ���Ҷ˿�����Ľڵ�
+  琛?1778: // ����ҵ� Border �Ҵ��� WorkflowNode Tag��������벢��¼
+  琛?1781: // ��̬����ڵ����ģ���ȫ���
+  琛?1787: // �����κ����е�Ԫ�أ������ϲ��Ҵ���WorkflowNode Tag��Border
+  琛?1795: // ��̬����ڵ����ģ���ȫ���
+  琛?1827: // ѡ������������Ľڵ�
+  琛?1831: // ����ѡ�����еĶ˿ڣ��ų�Դ�ڵ�Ķ˿ڣ�
+  琛?1834: // �ȹ��˵�Դ�ڵ�Ķ˿�
+  琛?1854: // �ҵ��˿�����Ľڵ�Border
+  琛?1881: // ���û��������Ч��Ŀ��˿ڣ���ʹ�ýڵ�ѡ���߼�
+  琛?1882: // �����ݴ���룺��ʹ��겻�ڽڵ��ϣ���������㹻����150px���ڣ���Ҳ��Ϊ���иýڵ�
+  琛?1885: // �ȹ��˵�Դ�ڵ㣬������Լ�����Ŀ��ڵ�
+  琛?1891: const double MaxDistance = 150.0; // ����ݴ����150px
+  琛?1898: // ������ʾĿ��ڵ�Ķ˿ڣ�ʹ������ѡ��
+  琛?1910: // ���ȼ���Ƿ��������κζ˿�
+  琛?1911: // ��������˶˿ڣ�������Դ�˿��Լ����������ڵ�˿ڣ����� Port_MouseLeftButtonUp ����
+  琛?1912: // ��������Preview�¼���ǰ������ק״̬
+  琛?1915: // �����˶˿ڣ��� Port_MouseLeftButtonUp �������Ӵ�����״̬����
+  琛?1916: // �������ϵ������˿ڴ������ӣ����ϻ��Լ��˿�ȡ������
+  琛?1920: // ����Ƿ��ҵ�Ŀ��ڵ㣨��ק���ڵ����壬���Ƕ˿ڣ�
+  琛?1923: // ȷ��Դ�˿ں�Ŀ��˿�
+  琛?1927: // �����ͬ���ӵ��Ƿ��Ѵ�������
+  琛?1951: // û��������Ч�˿ڣ�������ק״̬
+  琛?1957: // ����Դ�ڵ�Ķ˿ڿɼ���
+  琛?1964: _portHighlighter?.ClearTargetPortHighlight(); // ����˿ڸ���
+  琛?1965: SetPortsVisibility(false); // �������ж˿�
+  琛?1978: // ������ѡ
+  琛?1982: // ��¼ѡ�нڵ�ĳ�ʼλ�ã����������ƶ���
+  琛?1985: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?1986: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?1987: // �Ӷ�������ʱ�������޷�����
+  琛?1991: /// ������нڵ��ѡ��״̬
+  琛?2005: /// ��¼ѡ�нڵ�ĳ�ʼλ��
+  琛?2022: #region �Ϸ��¼�
+  琛?2046: #region ��������
+  琛?2048: #region ����·������
+  琛?2051: /// ��������ֱ������·������ʵ������ʹ����ͬ���߼���
+  琛?2063: // ˮƽ������ˮƽ�ƶ����м�㣬�ٴ�ֱ�ƶ���Ŀ��Y�����ˮƽ�ƶ���Ŀ��X
+  琛?2070: // ��ֱ�����ȴ�ֱ�ƶ����м�㣬��ˮƽ�ƶ���Ŀ��X�����ֱ�ƶ���Ŀ��Y
+  琛?2081: /// �жϵ���Ķ˿ڲ�������ʼ��
+  琛?2123: /// ��ȡ�ڵ�����ӵ�λ��
+  琛?2127: // ������������ڽڵ����ĵ�ƫ��
+  琛?2128: double nodeCenterX = node.Position.X + 70;  // �ڵ��ȵ�һ��
+  琛?2129: double nodeCenterY = node.Position.Y + 45;  // �ڵ�߶ȵ�һ��
+  琛?2133: // �жϵ�������ĸ����ӵ�
+  琛?2137: // ˮƽ�������ң�
+  琛?2149: // ��ֱ�������£�
+  琛?2160: // ���ݵ�������ӵ�ȷ��ʵ������λ��
+  琛?2167: /// ��ȡ�ڵ�ָ���˿ڵ�EllipseԪ��
+  琛?2173: // ���ݶ˿����ƹ���Ellipse���ƣ����磺"LeftPort" -> "LeftPortEllipse"��
+  琛?2176: // �ڽڵ�Border���Ӿ����в���ָ�����ƵĶ˿�
+  琛?2179: // ���Ұ����˿����Ƶ�Ԫ�أ�ͨ��Name���Ի�Tag��
+  琛?2192: /// PathԪ�ؼ����¼� - ���������·������
+  琛?2209: /// Path��DataContext�仯�¼� - ����������ݸ���
+  琛?2222: /// ����������������¼� - �л��м�����ʾ/����
+  琛?2228: // �л� ShowPathPoints ����
+  琛?2231: // ����¼��Ѵ������ֹ�¼���������
+  琛?2232: // ������ e.Handled�����¼�ð�ݵ� Port_MouseLeftButtonUp
+  琛?2233: // ���� e.Handled = true �ᵼ�� Port_MouseLeftButtonUp �޷���������
+  琛?2234: // �Ӷ�������ʱ�������޷�����
+  琛?2239: /// ��ͷPath�����¼� - ���ü�ͷ��ת�Ƕ�
+  琛?2245: // ���ü�ͷ��ת�Ƕ�
+  琛?2249: // �ؼ���־����¼��ͷ��Ⱦ
+  琛?2251: // ����ArrowAngle�仯����̬������ת�Ƕ�
+  琛?2268: /// ���������Ӿ��ε���ʾ
+  琛?2278: // ����Դ�ڵ��Ŀ��ڵ�
+  琛?2295: // ����ҵ���Դ�ڵ��Ŀ��ڵ㣬���㲢��ʾ����
+  琛?2309: // �����Χ�����ڵ��ԭʼ����
+  琛?2315: // ������εĿ�Ⱥ͸߶�
+  琛?2319: // ʹ�����߳���Ϊ�����εı߳�,����������Χ
+  琛?2322: // ��Դ�ڵ��Ŀ��ڵ�����ĵ�Ϊ��׼,������������������
+  琛?2326: // ���������ε�λ�úʹ�С
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\PriorityThumbnailLoader.cs
+闂琛屾暟: 254
+----------------------------------------
+  琛?19: /// 加载优先级枚�?
+  琛?23: /// <summary>关键优先�?- 首张图片立即显示</summary>
+  琛?27: /// <summary>中等优先�?- 预加载区�?/summary>
+  琛?31: /// <summary>空闲优先�?- 仅在空闲时加载，可随时取�?/summary>
+  琛?42: /// <summary>预加载区�?- 可视范围边缘，中等优先级</summary>
+  琛?55: /// <summary>慢速滚�?/summary>
+  琛?57: /// <summary>快速滚�?/summary>
+  琛?59: /// <summary>超快滚动（跳过预加载�?/summary>
+  琛?64: /// 动态加载策略配�?
+  琛?65: /// �?单一数据源架构：所有值基于实际可视数量动态计�?
+  琛?67: /// 动态范�?= 可视区域 + 缓冲区域 + 预测区域
+  琛?71: /// <summary>实际可视区域大小（由外部设置，基于GetVisibleRange()�?/summary>
+  琛?72: public int ActualVisibleSize { get; private set; } = 10; // 默认值，首屏加载前会被更�?
+  琛?74: /// <summary>缓冲区域倍数（可视区�?× 此值）</summary>
+  琛?75: /// <remarks>�?方案B优化：从1.0降到0.5，减少首屏入队数�?/remarks>
+  琛?78: /// <summary>预测区域倍数（可视区�?× 此值）</summary>
+  琛?79: /// <remarks>�?方案B优化：从3.0降到1.0，大幅减少首屏入队数�?/remarks>
+  琛?82: /// <summary>快速滚动阈值（�?秒）</summary>
+  琛?85: /// <summary>超快滚动阈值（�?秒）</summary>
+  琛?92: /// �?单一数据源：设置实际可视数量，所有派生值自动更�?
+  琛?99: /// <summary>可视区域大小（派生自ActualVisibleSize�?/summary>
+  琛?102: /// <summary>缓冲区域大小（派生：可视区域 × BufferMultiplier�?/summary>
+  琛?105: /// <summary>预测区域大小（派生：可视区域 × PrefetchMultiplier�?/summary>
+  琛?110: /// 动态范�?= 可视区域 + 缓冲区域 + 预测区域
+  琛?132: /// �?单一数据源架构：所有值基于实际可视数量动态派�?
+  琛?136: private int _actualVisibleSize = 10; // 由外部设�?
+  琛?139: /// �?单一数据源：设置实际可视数量
+  琛?149: /// <summary>预加载区域大小（单侧，派生：可视区域�?0%�?/summary>
+  琛?158: /// <summary>静止时后备区域激活延�?ms)</summary>
+  琛?178: // 同优先级按索引排�?
+  琛?184: /// 优先级缩略图加载�?- 单一加载系统，消除双系统协调问题
+  琛?186: /// 核心设计�?
+  琛?188: /// 2. 无pause/resume机制，通过优先级自然调�?
+  琛?195: // 缩略图加载委�?
+  琛?199: // �?实时获取可视范围的委托（解决可视范围缓存过时问题�?
+  琛?202: // 优先级队列（线程安全�?
+  琛?204: private readonly HashSet<int> _queuedIndices = new HashSet<int>(); // 已入队索�?
+  琛?206: private readonly HashSet<int> _decodingIndices = new HashSet<int>(); // �?新增：正在解码中的索�?
+  琛?214: // �?P0优化：分离的高优先级线程�?
+  琛?217: private const int HIGH_PRIORITY_THREADS = 4; // �?协调GPU解码能力：与WicGpuDecoder并发限制(4)匹配，避免队列积�?
+  琛?227: private DateTime _startupTime = DateTime.MinValue; // �?新增：启动时间，用于首屏延迟调整
+  琛?228: private const int MIN_CONCURRENCY = 4; // �?优化：提高最小并发度，避免过�?
+  琛?230: private const int STARTUP_GRACE_PERIOD_MS = 3000; // �?新增：首屏并发调整延�?�?
+  琛?232: // �?P1优化：内存压力级�?
+  琛?235: // 滚动状态追�?
+  琛?239: private double _scrollVelocity = 0; // �?P1优化：滚动速度（项/秒）
+  琛?242: private ScrollType _currentScrollType = ScrollType.Stopped; // �?动态范围：滚动类型
+  琛?244: // �?动态范围加载策�?
+  琛?247: // �?P2优化：缓冲区域管�?
+  琛?264: // 动态质�?
+  琛?272: // 清理阈�?
+  琛?280: #region 属�?
+  琛?282: /// <summary>是否使用低质量缩略图（快速滚动时�?/summary>
+  琛?296: /// <summary>当前活动任务�?/summary>
+  琛?311: /// <summary>已加载数�?/summary>
+  琛?338: #region 构造函�?
+  琛?342: // �?P0+P2优化：计算总线程数并分离线程池
+  琛?346: // 初始化分离的线程�?
+  琛?350: Debug.WriteLine($"[PriorityLoader] �?线程池分�?- 高优先级:{HIGH_PRIORITY_THREADS}, 普�?{normalThreads}, 总计:{t...
+  琛?358: /// 取消并重置所有加载任�?
+  琛?359: /// �?首屏优化：在加载新目录前清理旧任务，防止资源竞争
+  琛?370: // 等待一小段时间让任务响应取�?
+  琛?394: // 重置状�?
+  琛?403: /// 首屏加载 - 单一数据源架�?
+  琛?404: /// �?核心优化：基于实际可视数量动态计算加载范�?
+  琛?407: /// 1. GetVisibleRange() �?实际可视数量（如10张）
+  琛?408: /// 2. 可视区域加载 �?入队10张（Critical/High�?
+  琛?409: /// 3. 可视区域完成判断 �?检�?0张是否全部加�?
+  琛?416: // ===== �?诊断计时：总计时开�?=====
+  琛?419: // ===== �?首屏优化：取消之前的所有加载任�?=====
+  琛?428: // �?新增：记录启动时间，用于首屏并发调整延迟
+  琛?431: // ===== �?内存预判：评估系统内存压�?=====
+  琛?442: Debug.WriteLine($"[PriorityLoader] �?内存紧张 - 可用:{availableMemoryMB}MB 负载:{memoryLoadPercent}% 启用保守策略"...
+  琛?445: // ===== �?单一数据源：获取实际可视数量 =====
+  琛?449: // �?如果委托返回无效值，等待UI布局完成后重�?
+  琛?452: // UI可能还没布局完成，延迟获�?
+  琛?459: // 确保至少加载1�?
+  琛?463: // �?内存预判：动态调整预加载数量
+  琛?485: // 设置可视区域范围（首屏加载时�?开始）
+  琛?489: _visibleAreaCount = loadCount;  // �?统一：使用实际可视数�?
+  琛?492: // ===== �?诊断日志：前置准备阶�?=====
+  琛?498: Debug.WriteLine($"[诊断] �?前置准备总计: {totalDiagSw.ElapsedMilliseconds}ms");
+  琛?500: // ===== �?P0优化：Critical任务直接同步执行，消除线程池冷启动开销 =====
+  琛?510: Debug.WriteLine($"[PriorityLoader] �?Critical同步加载开�?| file={firstFileName}");
+  琛?512: // �?P0优化：直接同步执行，无线程池调度开销
+  琛?513: // �?优先级感知：Critical任务使用高优先级GPU解码
+  琛?521: // �?关键优化：使用Normal优先级，避免被后台任务饿�?
+  琛?522: // Loaded优先级太低，在大量后台任务时会延�?-2�?
+  琛?531: // 添加到缓�?
+  琛?534: // 标记已加�?
+  琛?542: // �?修复：使用实际解码时间判断加载方�?
+  琛?544: Debug.WriteLine($"[PriorityLoader] �?Critical同步加载完成 | {loadMethod} | 解码耗时:{criticalDecodeMs}ms | fil...
+  琛?546: // 立即回调通知首张图片已加�?
+  琛?552: // ===== �?诊断日志：Critical阶段 =====
+  琛?559: Debug.WriteLine($"[PriorityLoader] �?Critical同步加载失败 | file={firstFileName}");
+  琛?563: // 第一批：可视区域剩余部分（High�? 从index=1开�?
+  琛?569: // 第二批：缓冲区域（Medium�? 预加载边�?
+  琛?575: // 第三批：预测区域（Low�? 后台预加�?
+  琛?581: Debug.WriteLine($"[PriorityLoader] �?单源数据架构 - 首屏加载:");
+  琛?582: Debug.WriteLine($"  实际可视数量: {visibleCount}�?(来自GetVisibleRange)");
+  琛?583: Debug.WriteLine($"  可视区域: [0同步] + [1-{visibleCount - 1}] ({visibleCount}�?");
+  琛?584: Debug.WriteLine($"  缓冲区域(Medium): [{visibleCount}-{visibleCount + bufferSize - 1}] ({bufferSize}�?")...
+  琛?585: Debug.WriteLine($"  预测区域(Low): [{visibleCount + bufferSize}-{totalEnqueueCount - 1}] ({prefetchSize}...
+  琛?586: Debug.WriteLine($"  �?入队总数: {totalEnqueueCount - 1} / {fileNames.Length} (首张已同步加�?");
+  琛?593: /// 更新可视区域 - 滚动时调�?
+  琛?594: /// �?单一数据源架构：使用实际可视数量进行判断
+  琛?602: // �?单一数据源：更新所有配置的实际可视数量
+  琛?607: // �?P2优化：更新滚动状态并计算缓冲区域
+  琛?610: // �?方案C：在检查可视区域状态前，先同步该区域内的状�?
+  琛?613: // �?单一数据源：使用实际可视数量进行状态监�?
+  琛?614: int visibleCount = actualVisibleCount;  // 统一使用实际�?
+  琛?632: // 可视区域加载状态监控（静默处理�?
+  琛?637: _visibleAreaCount = visibleCount;  // �?统一：使用实际可视数�?
+  琛?641: // �?关键日志：记录实际入队的索引
+  琛?644: // �?P2优化：根据缓冲区域入队任�?
+  琛?645: // 活跃区域（可视范围）- High/Critical优先�?
+  琛?659: // 预加载区�?- Medium优先�?
+  琛?660: // 根据滚动方向优先预加载一�?
+  琛?661: if (_scrollDirection >= 0) // 向右滚动或静�?
+  琛?672: if (_scrollDirection <= 0) // 向左滚动或静�?
+  琛?694: /// �?P0优化：立即更新可视区域（不等防抖�?
+  琛?695: /// �?动态范围：超快滚动时只入队可视区域，不预加�?
+  琛?701: // 同步可视区域状�?
+  琛?704: // �?动态范围：超快滚动时只入队可视区域
+  琛?707: // 超快滚动：只入队首张（Critical�?
+  琛?733: /// 同步可视区域内的状态（解决 _loadedIndices �?Thumbnail 不一致）
+  琛?734: /// �?方案C核心：滚动时主动修复状�?
+  琛?738: // �?修复竞态条件：捕获集合引用
+  琛?747: // 检查：_loadedIndices 标记已加载，�?Thumbnail 实际�?null
+  琛?752: _decodingIndices.Remove(i);  // �?新增：清理解码中索引
+  琛?756: // �?新增：检查解码超时（超过5秒仍在解码中，可能卡住）
+  琛?759: // 如果已经在解码中�?Thumbnail 为空，检查是否需要重新加�?
+  琛?778: _decodingIndices.Clear();  // �?新增：清理解码中索引
+  琛?794: /// �?关键：解决状态不一致问�?
+  琛?802: _decodingIndices.Remove(index);  // �?新增：清理解码中索引
+  琛?807: /// 同步已加载索引与实际缩略图状�?
+  琛?808: /// �?关键：解决缓存清理后状态不一致问�?
+  琛?809: /// 当内存压力导致缓存被清理时，_loadedIndices 可能与实�?Thumbnail 状态不同步
+  琛?813: // �?修复竞态条件：捕获集合引用
+  琛?837: _decodingIndices.Remove(index);  // �?新增：清理解码中索引
+  琛?854: // �?关键修复：当集合被清空时，同时清除委托引�?
+  琛?859: Debug.WriteLine("[SetImageCollection] �?集合已清空，同时清除_getVisibleRangeFunc委托");
+  琛?864: /// 设置缩略图加载函数（委托模式�?
+  琛?874: /// �?P1优化：根据内存压力动态调整并发度
+  琛?875: /// �?ImagePreviewControl 中连接内存监控事件时调用
+  琛?881: // 根据压力调整并发�?
+  琛?902: Debug.WriteLine($"[PriorityLoader] 内存压力:{level} �?并发�?{_dynamicConcurrency} 低质�?{_useLowQuality}");
+  琛?906: /// �?P1优化：取消低优先级任�?
+  琛?917: // 只保�?Critical、High、Medium 优先级任�?
+  琛?929: // 重新入队保留的任�?
+  琛?947: /// �?单一数据源：计算可视区域能显示多少图�?
+  琛?952: // �?优先使用委托获取实际可视范围
+  琛?961: // �?同步更新所有配置的单源数据
+  琛?969: Debug.WriteLine($"[PriorityLoader] �?GetVisibleRange委托异常: {ex.Message}");
+  琛?973: // 回退：使用当前配置值（可能过时�?
+  琛?978: /// �?P2优化：计算缓冲区域范�?
+  琛?979: /// �?动态范围：根据滚动类型动态调整各区域大小
+  琛?986: // �?动态范围：根据滚动类型动态调整预加载区域大小
+  琛?995: // 根据滚动方向优化预加载范�?
+  琛?1012: // 预加载区域（左右两侧�?
+  琛?1022: // 后备区域（预加载区域外）- 仅在静止时激�?
+  琛?1035: /// �?P2优化：获取索引所属的缓冲区域
+  琛?1043: // 预加载区�?
+  琛?1053: // 超出所有缓冲区�?
+  琛?1058: /// �?P2优化：根据缓冲区域获取加载优先级
+  琛?1066: BufferZone.Reserve => LoadPriority.Idle, // �?P3空闲优先�?
+  琛?1072: /// �?P2优化：更新滚动状态并触发缓冲区域更新
+  琛?1073: /// �?动态范围：根据滚动类型动态调整预加载范围
+  琛?1096: // �?动态范围：判断滚动类型
+  琛?1100: // 判断是否快速滚�?
+  琛?1117: // 快速滚动开�?停止处理
+  琛?1125: Debug.WriteLine($"[DynamicRange] 快速滚动停�?- 启动后备区域激活定时器");
+  琛?1129: // 静止状�?
+  琛?1137: // �?首屏加载保护：不在首屏加载期间更新计数范�?
+  琛?1138: // 防止ScrollViewer布局事件导致_lastLastVisible被扩大，从而产生计数溢�?
+  琛?1151: /// �?动态范围：根据滚动速度判断滚动类型
+  琛?1162: /// �?P2优化：启动后备区域激活定时器
+  琛?1167: // 停止现有定时�?
+  琛?1189: /// �?P2优化：加载后备区域的图片（空闲时�?
+  琛?1200: Debug.WriteLine($"[BufferZone] 后备区域激�?- �?[{_reserveZoneLeft.start}-{_reserveZoneLeft.end}] �?[{_res...
+  琛?1231: // �?优化：检查是否真正需要加载（Thumbnail 是否已存在）
+  琛?1251: /// �?诊断用：返回是否成功入队
+  琛?1257: // �?优化：检查是否真正需要加载（Thumbnail 是否已存在）
+  琛?1260: // 检查是否真的已加载（Thumbnail不为null�?
+  琛?1266: // �?状态不一致：_loadedIndices标记已加载，但实际Thumbnail为null
+  琛?1267: Debug.WriteLine($"[PriorityLoader] �?状态不一�?index={index} 在loadedIndices但Thumbnail=null，修复中...");
+  琛?1283: // �?新增：检查是否正在解码中
+  琛?1286: return false; // 正在解码，跳�?
+  琛?1319: // 启动UI更新定时�?
+  琛?1350: // 队列为空，等待一下再检�?
+  琛?1355: // �?P0优化：根据优先级选择线程�?
+  琛?1356: // �?P2优化：Idle优先级使用普通线程池，且检查是否有更高优先级任�?
+  琛?1372: // 调整并发�?
+  琛?1379: // 取消时不做处�?
+  琛?1392: // 进度不输出日�?
+  琛?1396: // 队列处理完成不输出日�?
+  琛?1400: /// 加载单个缩略�?
+  琛?1404: // �?修复竞态条件：在方法开始时捕获集合引用，避免在异步执行过程中集合被其他线程置空
+  琛?1408: Debug.WriteLine($"[PriorityLoader] �?跳过加载 - 无效参数 index={task.Index} collection={imageCollection != n...
+  琛?1412: // �?P2优化 - Idle优先级任务：可随时取�?
+  琛?1415: // 检查是否有更高优先级任�?
+  琛?1418: Debug.WriteLine($"[PriorityLoader] �?取消Idle任务 index={task.Index}（有更高优先级任务）");
+  琛?1426: // 仍在后备区域，继续加�?
+  琛?1431: Debug.WriteLine($"[PriorityLoader] �?Idle任务升级 index={task.Index} 移入{zone}区域");
+  琛?1436: // �?P0优化 - 阶段1：开始前检�?- 低优先级任务在高负载时放�?
+  琛?1445: // �?优化：检查是否真正需要加载（Thumbnail 是否已存在）
+  琛?1465: // �?关键修改：使�?_decodingIndices 标记正在解码，而不�?_loadedIndices
+  琛?1475: _loadedIndices.Add(task.Index); // 同步状�?
+  琛?1485: // �?P0优化 - 阶段2：解码前再次检查优先级（Idle任务再次检查）
+  琛?1488: Debug.WriteLine($"[PriorityLoader] �?中断Idle任务 index={task.Index}（有更高优先级任务）");
+  琛?1493: return; // 不重新入队，让更高优先级任务先执�?
+  琛?1496: // Medium/Low任务检�?
+  琛?1499: Debug.WriteLine($"[PriorityLoader] �?推迟Medium/Low任务 index={task.Index}（有更高优先级任务）");
+  琛?1503: // 重新入队，等待下次调�?
+  琛?1510: // �?优先级感知：Critical/High任务使用高优先级GPU解码
+  琛?1515: // �?P0优化 - 阶段3：UI更新前检查取�?
+  琛?1518: Debug.WriteLine($"[PriorityLoader] �?加载返回null index={task.Index} file={task.FilePath} 耗时:{sw.Elapsed...
+  琛?1526: // �?关键诊断：检查缩略图有效�?
+  琛?1529: Debug.WriteLine($"[PriorityLoader] �?无效缩略�?index={task.Index} size={thumbnail.Width}x{thumbnail.Heig...
+  琛?1544: DecodeSuccess = true  // �?标记解码成功
+  琛?1547: // �?方案B优化：移除提前计数，改为�?ProcessUIUpdates 中实际设置成功后计数
+  琛?1551: Debug.WriteLine($"[PriorityLoader] �?加载异常 index={task.Index}: {ex.Message}");
+  琛?1556: /// �?P0优化：检查是否有更高优先级任务等�?
+  琛?1557: /// �?P2优化：支持Idle优先级检�?
+  琛?1569: /// �?P2优化：检查是否有中高优先级任务（用于Idle任务判断�?
+  琛?1581: /// 加载缩略图（使用委托调用实际加载方法�?
+  琛?1595: Debug.WriteLine($"[PriorityLoader] 缩略图加载失�? {filePath} - {ex.Message}");
+  琛?1602: /// �?优化：首屏加载期间延�?秒调整，避免误降并发
+  琛?1618: // �?新增：首屏加载期间不调整并发，避免误�?
+  琛?1622: return; // 首屏3秒内不调整并�?
+  琛?1630: Debug.WriteLine($"[PriorityLoader] �?增加并发: {_dynamicConcurrency}");
+  琛?1635: Debug.WriteLine($"[PriorityLoader] �?减少并发: {_dynamicConcurrency}");
+  琛?1655: // 等待超时不输出日�?
+  琛?1698: // 清理不输出日�?
+  琛?1704: /// 初始化UI更新定时�?
+  琛?1724: // �?关键修复：捕获集合引用，防止委托调用后集合变为null
+  琛?1744: // �?获取实时可视范围（优先使用委托，否则使用缓存值）
+  琛?1760: // �?新增：如果可视范围无效，跳过本次更新
+  琛?1761: Debug.WriteLine($"[ProcessUIUpdates] �?可视范围无效({f}, {l})，跳过UI更新");
+  琛?1767: Debug.WriteLine($"[ProcessUIUpdates] �?GetVisibleRange委托异常: {ex.Message}");
+  琛?1772: // �?二次检查：委托调用后集合可能已变化
+  琛?1775: Debug.WriteLine($"[ProcessUIUpdates] �?委托调用后集合已为空，跳过UI更新");
+  琛?1779: // 分离可视区域和后台更�?
+  琛?1791: // 验证缩略图有效�?
+  琛?1798: // �?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
+  琛?1805: // �?方案B优化：实际设置成功后才计�?
+  琛?1841: // �?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
+  琛?1850: // �?方案B优化：使用实时可视范围判断完�?
+  琛?1851: // 检查可视区域是否加载完成（基于实时范围，而非预期数量�?
+  琛?1854: // 获取当前可视范围内的实际已加载数�?
+  琛?1891: _reserveActivationTimer?.Stop(); // �?P2优化：清理后备区域激活定时器
+  琛?1898: _decodingIndices.Clear();  // �?新增：清理解码中索引
+  琛?1907: #region 内部�?
+  琛?1915: public bool DecodeSuccess { get; set; }  // �?新增：标记解码是否成�?
+
+================================================================================
+鏂囦欢: src\UI\Views\Windows\MainWindow.xaml.cs
+闂琛屾暟: 248
+----------------------------------------
+  琛?25: /// MainWindow - ̫�����Ӿ����������洰��
+  琛?26: /// ʵ�������Ļ����Ӿ�ƽ̨�����棬���������������������䡢��������
+  琛?31: private bool _isTabItemClick = false;  // ����Ƿ���ͨ�����TabItem�������л�
+  琛?32: private WorkflowCanvasControl? _currentWorkflowCanvas = null;  // ��ǰ��ʾ��WorkflowCanvasControl
+  琛?33: private NativeDiagramControl? _currentNativeDiagram = null;  // ��ǰ��ʾ��NativeDiagramControl
+  琛?35: // �����������������
+  琛?38: // �������
+  琛?42: // ���������С
+  琛?48: /// ����־��ӵ�UI����
+  琛?54: // ����־��ӵ� LogText��������ڣ�
+  琛?57: // ֻ�������100��
+  琛?76: // ��ʼ��������������� - ����Ĭ������
+  琛?81: // ��̨�л���NativeDiagramControl��ʹ��ԭ��AIStudio.Wpf.DiagramDesigner�⣩
+  琛?86: /// �л���Ĭ�����ã�WorkflowCanvasControl���� + BezierPathCalculator·��������
+  琛?92: // �л�������WorkflowCanvasControl���Զ��廭����
+  琛?99: // ����·��������Ϊ Bezier�����������ߣ�
+  琛?104: // �����쳣
+  琛?109: /// �л���WorkflowCanvasControl������ʹ�ñ��������ߣ�
+  琛?115: // �л�������WorkflowCanvasControl���Զ��廭����
+  琛?121: // ʹ�� CanvasEngineManager ����·��������Ϊ����������
+  琛?127: // �����쳣
+  琛?132: /// NativeDiagramControl Loaded�¼�����
+  琛?136: // ���� NativeDiagramControl ����
+  琛?141: // �ӳٸ���������ʾ��ȷ��DiagramViewModel�ѳ�ʼ��
+  琛?150: /// ע���ݼ�
+  琛?154: // �ļ�������ݼ�
+  琛?159: // ���п��ƿ�ݼ�
+  琛?163: // ������ݼ�
+  琛?167: // �༭��ݼ�
+  琛?173: #region �����¼�
+  琛?177: // TODO: ������Դ
+  琛?186: // ���߲������ͨ��ToolboxViewModel�Զ�����
+  琛?188: _viewModel.StatusText = $"�Ѽ��� {toolCount} �����߲��";
+  琛?190: // ��ʼ������·��ת�����Ľڵ㼯�ϣ�ʹ�õ�ǰѡ�е� Tab �Ľڵ㼯�ϣ�
+  琛?197: // ��ʼ��������ʾ
+  琛?203: // ע�ͣ����´����ѷ�����������ָ�����ɾ����2026-02-10��
+  琛?205: // ͬ��������ָ��߼�ͷ����
+  琛?212: // TODO: ���ع�����
+  琛?217: $"���ع��߲��ʱ����: {ex.Message}",
+  琛?218: "����ʧ��",
+  琛?226: #region ��ʼ��
+  琛?229: /// ����������������
+  琛?233: // ��ʼ��������ʾ
+  琛?239: #region TabControl �����̹����¼�����
+  琛?242: /// WorkflowCanvasControl�����¼� - ��������
+  琛?246: // ��� NativeDiagram ���棨��ǰ���ص��� WorkflowCanvas��
+  琛?253: // ���DataContext
+  琛?256: // ���DataContextΪnull���ֶ�����Ϊ��ǰѡ�е�Tab
+  琛?263: // ����DataContextChanged�¼����Ա���CanvasType�仯ʱ����Visibility
+  琛?269: // ��������CanvasType����Visibility
+  琛?272: // �ӳٸ���������ʾ
+  琛?281: /// ����CanvasType���»�����Visibility
+  琛?295: // ��������������ScrollViewer
+  琛?299: // ����WorkflowCanvasControl�ĸ���ScrollViewer
+  琛?313: // �����쳣
+  琛?318: /// TabControl ������ɺ�,���ScrollViewer��ScrollableWidth�仯
+  琛?322: // �ҵ�ScrollViewer
+  琛?326: // ����ScrollViewer��SizeChanged�¼�
+  琛?329: // ��ʼ��� - ��Ҫ����TabControl���Ӿ�����Ԫ��������������ť
+  琛?335: /// ScrollViewer��С�仯�¼� - ������Ӱ�ťλ��
+  琛?341: // ��ScrollViewer�����ҵ�TabControl��Ȼ�����������ť
+  琛?351: /// ����ScrollableWidth�ж�TabItems�Ƿ񳬳�,��̬������Ӱ�ťλ��
+  琛?355: // �ҵ�ScrollViewer
+  琛?360: // �ҵ�������ť��Border���� - ��TabControl���Ӿ����в���
+  琛?367: // ScrollableWidth > 0 ��ʾ�й�����,��TabItems�����˿�������
+  琛?372: // ����ʱ:��ʾ�Ҳ�̶���ť,���ع��������ڵİ�ť
+  琛?378: // δ����ʱ:��ʾ���������ڵİ�ť(����TabItems),�����Ҳ�̶���ť
+  琛?385: /// ���Ӿ�����ͨ��Name����ָ�����͵���Ԫ��
+  琛?406: /// TabControl ѡ��仯�¼� - �����л���ʽ�����Ƿ����
+  琛?410: // ��ȡѡ�е�Tab
+  琛?413: // �Ż�������WorkflowCanvasControl��DataContext��ObservableCollection���Զ�֪ͨUI���£�
+  琛?419: // �Ż����ϲ�Dispatcher���ã�����UI�ػ����
+  琛?422: // ֻ��ͨ���������л�ʱ�Ź������м䣬���TabItemʱ������
+  琛?427: // ������Ӱ�ťλ��
+  琛?429: // ���ñ�־
+  琛?432: // Ӧ������
+  琛?438: // ����������ʾ
+  琛?444: /// TabControl Ԥ�������������¼� - ����Ƿ�����TabItem
+  琛?448: // ��������Ƿ���TabItem
+  琛?455: // ���ΪTabItem���
+  琛?462: /// ��ӹ���������¼�
+  琛?467: _viewModel.StatusText = "������¹�����";
+  琛?469: // �Զ�����������ӵ�TabItem��ʹ�������ʾ
+  琛?473: // �ȴ� Canvas ������ɺ�Ӧ�ó�ʼ����
+  琛?487: /// ������ѡ�е�TabItem��ʹ����ʾ�ڿɼ���Χ���м�
+  琛?494: // �ҵ�ScrollViewer
+  琛?498: // ��ȡTabPanel������������
+  琛?503: // ����TabItem�����TabPanel��λ�ã���������ľ���λ�ã�
+  琛?507: // ����ʹTabItem���еĹ���λ��
+  琛?508: // TabItem����λ�� = position.X + selectedTabItem.ActualWidth / 2
+  琛?509: // �ӿ�����λ�� = scrollViewer.ViewportWidth / 2
+  琛?510: // Ŀ�����λ�� = TabItem����λ�� - �ӿ�����λ��
+  琛?513: // ȷ������λ������Ч��Χ��
+  琛?516: // ������Ŀ��λ�ã�ʹTabItem������ʾ
+  琛?523: /// ���Ӿ����в���ָ�����͵ĵ�һ����Ԫ��
+  琛?544: /// ��ȡ��ǰ��ʾ��WorkflowCanvasControl
+  琛?552: /// ���Ӿ����в���ָ�����ݶ�Ӧ��TabItem
+  琛?559: // ��TabControl��Items�в���TabItem
+  琛?564: // ͨ������TabControl���Ӿ����ҵ�����TabItem
+  琛?572: /// ���Ӿ����в���ָ�����͵�������Ԫ��
+  琛?589: /// ���Ӿ����в���ָ�����͵�������Ԫ�أ�����IEnumerable�ı�ݷ�����
+  琛?599: /// ���Ӿ����в���ָ�����͵ĸ�Ԫ��
+  琛?615: /// ���Ӿ����в���ָ�����͵�������Ԫ��
+  琛?644: /// TabItem �������е���¼�
+  琛?650: // ����ѡ�еĹ�����
+  琛?653: // ���� RunWorkflowCommand �� Execute ����
+  琛?654: // RunWorkflowCommand ���첽���Execute ����������첽����
+  琛?657: _viewModel.StatusText = $"��������: {workflow.Name}";
+  琛?662: /// TabItem ��������/ֹͣ����¼�
+  琛?669: var action = workflow.IsRunning ? "��ʼ��������" : "ֹͣ";
+  琛?675: /// TabItem ɾ������¼�
+  琛?684: "����ֹͣ�ù�����",
+  琛?685: "��ʾ",
+  琛?692: $"ȷ��Ҫɾ�������� '{workflow.Name}' ��?",
+  琛?693: "ȷ��ɾ��",
+  琛?701: _viewModel.StatusText = $"��ɾ��������: {workflow.Name}";
+  琛?706: "������Ҫ����һ��������",
+  琛?707: "��ʾ",
+  琛?716: /// ������ִ�������¼�����
+  琛?722: _viewModel?.AddLog("? û��ѡ�еĹ��������޷�ִ��");
+  琛?727: _viewModel.AddLog($"? ִ�й����� - ͼ��: {e.ImageInfo.Name}");
+  琛?729: // ���õ�ǰͼ������
+  琛?732: // ����������ִ��
+  琛?735: _viewModel.StatusText = $"���й�����: {workflow.Name} - {e.ImageInfo.Name}";
+  琛?741: #region WorkflowCanvasControl �¼�����
+  琛?744: /// �ڵ�����¼�����
+  琛?748: _viewModel.StatusText = $"��ӽڵ�: {node.Name}";
+  琛?752: /// �ڵ�ѡ���¼�����
+  琛?756: // ͨ�����Է��ʣ��������Ա��֪ͨ�ͺ����߼�
+  琛?761: /// �ڵ�˫���¼�����
+  琛?770: #region �Ϸ��¼�
+  琛?807: // ��ѡ:����뿪����ʱ���Ӿ�Ч��
+  琛?818: // �����½ڵ㣬ʹ��ToolId��ΪAlgorithmType
+  琛?822: tool.ToolId  // ʹ��ToolId������AlgorithmType
+  琛?825: // �����Ϸ�λ��(���з���,�ڵ��С140x90)
+  琛?830: // ʹ������ģʽ��ӽڵ�
+  琛?836: System.Windows.MessageBox.Show($"��ӽڵ�ʱ����: {ex.Message}", "����",
+  琛?843: #region ���Ź���
+  琛?846: /// ��ȡ��ǰ���NativeDiagramControl
+  琛?858: // ֻ�е�ǰ����������NativeDiagramʱ�ŷ���
+  琛?864: // ֱ�ӷ��ػ�������ã�ͨ�� NativeDiagramControl_Loaded �¼����棩
+  琛?874: /// ��ȡNativeDiagramControl��DiagramViewModel
+  琛?885: // ʹ�ù����� GetDiagramViewModel ����
+  琛?900: /// NativeDiagramControl�ķŴ�
+  琛?921: /// NativeDiagramControl����С
+  琛?942: /// NativeDiagramControl������
+  琛?962: /// NativeDiagramControl����Ӧ����
+  琛?986: // ������10000x10000
+  琛?1003: /// ��Ϸ���:��ӡ�Ӿ�����νṹ
+  琛?1007: // ע�⣺�˷���δʹ�ã������Ҫ�����־��Ӧʹ�� _viewModel?.AddLog
+  琛?1019: /// �Ŵ󻭲�
+  琛?1033: // ԭ�е�WorkflowCanvas�����߼�
+  琛?1067: /// ��С����
+  琛?1079: // ԭ�е�WorkflowCanvas�����߼�
+  琛?1106: /// ��Ӧ����
+  琛?1118: // ԭ�е�WorkflowCanvas�����߼�
+  琛?1122: // �ӳ�ִ����ȷ�� UI �Ѹ���
+  琛?1133: // �����ʺϵ����ű��������10%�߾�
+  琛?1138: // �����ڷ�Χ��
+  琛?1148: /// ��������Ϊ100%
+  琛?1160: // ԭ�е�WorkflowCanvas�����߼�
+  琛?1165: // �ӳ�ִ����ȷ�� UI �Ѹ���
+  琛?1172: /// �л����������߻��� (WorkflowCanvas)
+  琛?1180: /// �л������������߻��� (NativeDiagram)
+  琛?1188: /// Ӧ�����ű任��֧��Χ��ָ��λ�����ţ�
+  琛?1190: /// <param name="oldScale">����ǰ������ֵ</param>
+  琛?1191: /// <param name="newScale">���ź������ֵ</param>
+  琛?1192: /// <param name="centerPosition">�������������ScrollViewer�����꣨��ѡ��</param>
+  琛?1193: /// <param name="scrollViewer">���õ�ScrollViewerʵ������ѡ������ṩ����Ҫ���²��ң�</param>
+  琛?1201: // ����CurrentScale
+  琛?1204: // ���û���ṩScrollViewer�����Բ���
+  琛?1210: // ����ṩ��������������ScrollViewer�����㲢��������ƫ��
+  琛?1213: // ��������ǰ��ı����仯
+  琛?1216: // �������ֵû�б仯��ֱ�ӷ���
+  琛?1222: // ��ȡ��ǰ����ƫ��
+  琛?1226: // �������������ڻ�������ϵ�е�λ�ã����ǵ�ǰ���ţ�
+  琛?1230: // Ӧ���µ�����ֵ����ʹ��CenterX/CenterY����Ϊ�����ڵ�������ƫ�ƣ�
+  琛?1236: // �����µĹ���ƫ�ƣ�������������ָ�������λ�ò���
+  琛?1237: // �µĹ���ƫ�� = ���������ڻ������� * �����ű��� - ����������ScrollViewerλ��
+  琛?1241: // Ӧ���µĹ���ƫ��
+  琛?1247: // û���������Ļ�û��ScrollViewerʱ��ֱ��Ӧ�����ţ����ڳ�ʼ���ػ����ã�
+  琛?1254: // ������ʾ
+  琛?1258: _viewModel.StatusText = $"��������: {Math.Round(workflow.CurrentScale * 100, 0)}%";
+  琛?1262: /// ��������ָʾ��
+  琛?1266: // �ڵ�ǰTab�в�������ָʾ��
+  琛?1278: // �������� TextBlock Ԫ��
+  琛?1296: /// �������Űٷֱ���ʾ
+  琛?1300: // ʹ�� Dispatcher �ӳ�ִ�У�ȷ�� TabItem ��������ȫ����
+  琛?1333: // ֱ��ʹ��������ZoomTextBlock�ؼ�
+  琛?1336: ZoomTextBlock.Text = $"����: {percentage}%";
+  琛?1346: /// �����������¼�
+  琛?1355: // ֱ��ʹ�ù��ֽ������ţ���Ҫ��Ctrl����
+  琛?1358: // sender ���� ScrollViewer
+  琛?1362: // ��ȡ���λ��
+  琛?1367: // ���Ϲ������Ŵ�
+  琛?1372: ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // ���λ����Ϊ��������
+  琛?1377: // ���¹�������С
+  琛?1382: ApplyZoom(oldScale, newScale, mousePositionInScrollViewer, scrollViewer); // ���λ����Ϊ��������
+  琛?1388: /// ��ȡ��ǰ���Canvas
+  琛?1400: // ������ TabItem �в������� Canvas
+  琛?1405: // �ҵ���Ϊ WorkflowCanvas �� Canvas
+  琛?1412: // ���û���ҵ���Ϊ WorkflowCanvas ��,���ص�һ�� Canvas
+  琛?1421: // ��Ĭ�����쳣
+  琛?1427: /// ��ȡ��ǰ���ScrollViewer
+  琛?1438: // TabControl������ͨ��ContentPresenter��ʾ��ģ����,��������TabItem���Ӿ�����
+  琛?1439: // ����ֱ�Ӵ�WorkflowTabControl���Ӿ����в���ScrollViewer
+  琛?1442: // ������Ϊ CanvasScrollViewer ��
+  琛?1451: // ����Ҳ���ָ�����Ƶ�,���ص�һ��
+  琛?1459: // ע�⣺�˴��޷����� _viewModel����Ϊ�˷����Ǹ�������
+  琛?1460: // �����¼������־�����Դ��� ViewModel ������ʹ��������־����
+  琛?1466: /// ��ȡ����������Canvas�ϵ�����
+  琛?1473: // �����ӿ����������ScrollViewer�����꣨��������ӿ����ĵ�λ�ã�
+  琛?1482: #region ��������
+  琛?1485: /// ���Ҹ���Canvas
+  琛?1504: #region SplitterWithToggle �¼�����
+  琛?1506: // ע�ͣ����´����ѷ�����������˫ģ�л���������ȫ��ToolboxControl�ڲ���ťʵ�֣�2026-02-10��
+  琛?1514: /// ͼ��-���Էָ�����ʼ�϶�
+  琛?1518: // ��¼�϶���ʼǰ��״̬
+  琛?1520: System.Diagnostics.Debug.WriteLine($"[�ָ����϶�] ��ʼ�϶�����ǰλ��: {_previousSplitterPosition}");
+  琛?1524: /// ͼ��-���Էָ����϶��� - ʵʱ���¸߶�
+  琛?1528: // ��ȡ��ǰͼ����ʾ����ĸ߶�
+  琛?1531: // ʵʱ��¼�϶������е�λ�ñ仯�����ڵ��ԣ�
+  琛?1532: System.Diagnostics.Debug.WriteLine($"[�ָ����϶���] ��ǰλ��: {currentImageHeight:F2}");
+  琛?1534: // ע�⣺����ShowsPreview="False"��GridSplitter���Զ���������Row�ĸ߶�
+  琛?1535: // ����Ҫ�ֶ�����Height��ֻ��Ҫ��¼״̬����
+  琛?1539: /// ͼ��-���Էָ����϶����
+  琛?1543: // �����µķָ���λ�õ�ViewModel
+  琛?1545: System.Diagnostics.Debug.WriteLine($"[�ָ����϶�] ����϶�����λ��: {newPosition}");
+  琛?1554: /// ������ָ������۵�/չ���¼����ѷ��� - �л���������ToolboxControl�ڲ���ťʵ�֣�
+  琛?1565: // չ�����л���չ��ģʽ��260px��
+  琛?1573: // �۵����л������ģʽ��60px��
+  琛?1584: /// ���¹�����ָ�����ͷ�����ѷ��� - ������ָ�����ɾ����
+  琛?1597: /// �Ҳ����ָ������۵�/չ���¼�
+  琛?1603: // չ�������Ҳ����
+  琛?1609: // �۵������Ҳ����
+  琛?1618: /// �����Ҳ����ָ�����ͷ����
+  琛?1630: #region �������������֧��
+  琛?1633: /// ͨ�������л��������ͣ����ڵ�Ԫ���Ժ����ⳡ����
+  琛?1639: throw new InvalidOperationException("����ѡ��һ����������ǩҳ");
+  琛?1648: /// ����·�����������ͣ����ڵ�Ԫ���ԣ�
+  琛?1653: // ��ȡ��ǰ��������
+  琛?1656: // ���ݻ������͵��ö�Ӧ�Ŀؼ�����
+  琛?1660: // ���ҵ�ǰ��ʾ��WorkflowCanvasControl
+  琛?1672: // ���ҵ�ǰ��ʾ��NativeDiagramControl
+  琛?1684: // ͬʱ����CanvasEngineManager�����ּ�����
+  琛?1689: /// ��ȡ��ǰ��������
+  琛?1697: /// ��ȡ��ǰ��������
+  琛?1706: #region �����װ����
+
+================================================================================
+鏂囦欢: src\UI\Services\PathCalculators\OrthogonalPathCalculator.cs
+闂琛屾暟: 160
+----------------------------------------
+  琛?11: /// 正交折线路径计算�?- 实现基于端口方向的智能正交路径算�?
+  琛?15: private const double MinSegmentLength = 0; // 最小线段长度，避免过短的折�?
+  琛?17: private const double VeryCloseDistanceThreshold = 0; // 极近距离阈�?
+  琛?19: // 模块1：安全距离常量定�?
+  琛?21: private const double PathClearanceDistance = 15.0; // 路径净空距离，路径与节点的最小安全距�?
+  琛?29: /// 直接连接策略 - 极近距离时的直接连接（无拐点�?
+  琛?34: /// 水平优先策略 - 优先从源端口沿水平方向延�?
+  琛?39: /// 垂直优先策略 - 优先从源端口沿垂直方向延�?
+  琛?44: /// 三段式策�?- 简单的三段折线（水�?垂直-水平或垂�?水平-垂直�?
+  琛?49: /// 相对方向策略 - 用于Top-Bottom, Bottom-Top等相对方向连�?
+  琛?50: /// 先沿源端口方向延伸，再水平，再沿目标端口方向延伸�?段）
+  琛?55: /// 四段式策�?- 中等距离的四段折线，优化同向端口场景
+  琛?60: /// 五段式策�?- 复杂的五段折线，适用于特殊场�?
+  琛?70: /// <summary>在左�?/summary>
+  琛?72: /// <summary>在右�?/summary>
+  琛?74: /// <summary>在上�?/summary>
+  琛?76: /// <summary>在下�?/summary>
+  琛?83: /// 碰撞信息�?
+  琛?101: /// 箭头尾部已经�?ConnectionPathCache 中计算并作为 targetPosition 传入
+  琛?110: // 调用增强方法，传入空的节点边�?
+  琛?121: /// 计算正交折线路径点集合（增强方法，带节点边界信息�?
+  琛?122: /// 箭头尾部已经�?ConnectionPathCache 中计算并作为 targetPosition 传入
+  琛?141: // 直接计算基本路径（目标位置已经是箭头尾部�?
+  琛?160: /// 目标位置已经是箭头尾部位置（由ConnectionPathCache计算�?
+  琛?171: // 1. 计算源节点和目标节点的相对位置关�?
+  琛?201: // 4. 模块3：统一的节点避让后处理（确保路径不穿过任何节点�?
+  琛?217: /// 场景复杂度枚�?
+  琛?221: /// <summary>极简场景：直接对齐，无障�?/summary>
+  琛?223: /// <summary>简单场景：无障碍或障碍很少，对齐良�?/summary>
+  琛?225: /// <summary>中等场景：有少量障碍，需要简单避�?/summary>
+  琛?227: /// <summary>复杂场景：多障碍，需要复杂避�?/summary>
+  琛?240: /// <summary>不对�?/summary>
+  琛?282: // 检测几何对齐情�?
+  琛?287: // Priority 1: 极简场景（直接对齐，距离极近�?
+  琛?294: // Priority 2: 相对方向（Left-Right, Right-Left, Top-Bottom, Bottom-Top�?
+  琛?315: // Priority 4: 同向（Left-Left, Right-Right, Top-Top, Bottom-Bottom�?
+  琛?350: /// 考虑因素：对齐程度、距�?
+  琛?375: // 3. 检查对齐程�?
+  琛?380: // 4. 根据对齐程度判断场景复杂�?
+  琛?392: /// 检测几何对齐情�?
+  琛?393: /// 考虑端口方向和位置对�?
+  琛?401: // 对齐阈�?
+  琛?404: // 检查垂直对齐（水平方向接近�?
+  琛?407: // 检查水平对齐（垂直方向接近�?
+  琛?451: // 极简场景：直接连�?
+  琛?486: // 简单或极简场景：选择简单策�?
+  琛?495: // 计算节点之间的相对距�?
+  琛?530: // 1. 检查源端口朝向的自然延�?
+  琛?541: // 源端口是水平方向（Left/Right�?
+  琛?548: // 检查目标是否在端口朝向的同�?
+  琛?551: targetInDirection = true;  // 右端口，目标在右�?
+  琛?553: targetInDirection = true;  // 左端口，目标在左�?
+  琛?557: // 目标在端口朝向的同侧：优先水平延伸（顺应端口方向�?
+  琛?567: verticalNatural = true;  // 目标在上端口，目标也在上�?
+  琛?569: verticalNatural = true;  // 目标在下端口，目标也在下�?
+  琛?578: // 默认：根据距离判�?
+  琛?585: // 目标端口也是水平方向：根据距离判�?
+  琛?593: // 源端口是垂直方向（Top/Bottom�?
+  琛?600: // 检查目标是否在端口朝向的同�?
+  琛?603: targetInDirection = true;  // 下端口，目标在下�?
+  琛?605: targetInDirection = true;  // 上端口，目标在上�?
+  琛?609: // 目标在端口朝向的同侧：优先垂直延伸（顺应端口方向�?
+  琛?619: horizontalNatural = true;  // 目标在右端口，目标也在右�?
+  琛?621: horizontalNatural = true;  // 目标在左端口，目标也在左�?
+  琛?630: // 默认：根据距离判�?
+  琛?637: // 目标端口也是垂直方向：根据距离判�?
+  琛?663: // 极简场景或简单场景：选择简单策�?
+  琛?686: // 不对齐：使用三段�?
+  琛?703: // 极近距离：直接连�?
+  琛?710: // 根据端口方向选择简单策�?
+  琛?713: // 水平端口：优先水平延�?
+  琛?719: // 垂直端口：优先垂直延�?
+  琛?777: /// 检测线段是否与矩形相交（模�?：精确碰撞检测系统）
+  琛?778: /// 使用三层检测机制：快速排�?+ 多采样点 + 线段相交检�?
+  琛?788: /// 检测两条线段是否相�?
+  琛?792: // 使用跨乘积判断线段相�?
+  琛?893: // 极近距离直接连接（无拐点�?
+  琛?902: /// 计算水平优先路径（水�?垂直-水平�?
+  琛?934: /// 计算垂直优先路径（垂�?水平-垂直�?
+  琛?963: /// 计算三段式路径（优化版本，确保中间点在节点外�?
+  琛?975: // 三段式路径：水平-垂直 �?垂直-水平
+  琛?985: // 如果选中的中间点在节点内，尝试另一�?
+  琛?1012: /// 路径模式：沿源方向延�?�?水平/垂直 �?到达目标
+  琛?1035: // 先垂直延伸（p1），再水平移动（p2�?
+  琛?1043: // 先水平延伸（p1），再垂直移动（p2�?
+  琛?1059: /// 计算四段式路径（用于同向端口中等距离场景�?
+  琛?1070: // 四段式路径：源端口延�?�?垂直/水平 �?水平/垂直 �?到达目标
+  琛?1071: // 用于同向端口但距离不太远的场�?
+  琛?1080: // 水平端口：水�?�?垂直 �?水平 �?垂直
+  琛?1087: // 垂直端口：垂�?�?水平 �?垂直 �?水平
+  琛?1105: /// 计算五段式路径（用于复杂场景，特别是同向端口连接�?
+  琛?1118: // 对于水平端口，中间段在垂直方向；对于垂直端口，中间段在水平方�?
+  琛?1157: /// 计算优化的第一个拐点（HorizontalFirst策略专用�?
+  琛?1158: /// 根据端口方向和节点相交情况动态调整延伸距�?
+  琛?1168: // 1. 基础偏移�?
+  琛?1171: // 2. 根据端口方向和节点相交情况计�?requiredOffset
+  琛?1179: // 检查两个节点水平方向是否相�?
+  琛?1182: // 水平方向相交，使用最小安全距�?
+  琛?1193: // 检查两个节点水平方向是否相�?
+  琛?1196: // 水平方向相交，使用最小安全距�?
+  琛?1206: // 检查两个节点垂直方向是否相�?
+  琛?1210: // 垂直方向相交，使用最小安全距�?
+  琛?1221: // 检查两个节点垂直方向是否相�?
+  琛?1224: // 垂直方向相交，使用最小安全距�?
+  琛?1236: // 3. 计算最终偏移量（直接使�?requiredOffset�?
+  琛?1248: /// 根据路径点创建路径几�?
+  琛?1278: /// 计算箭头位置和角�?
+  琛?1279: /// 箭头尖端位于目标端口位置，角度基于目标端口方向固�?
+  琛?1280: /// 路径终点已经是箭头尾部位置（由ConnectionPathCache计算�?
+  琛?1299: // 获取路径最后一点用于调试（箭头尾部位置�?
+  琛?1307: /// 箭头角度不受源节点端口影响，固定为目标端口方�?
+  琛?1308: /// 角度定义�?度指向右�?0度指向下�?80度指向左�?70度指向上
+  琛?1314: PortDirection.Left => 0.0,     // 左边端口：箭头向�?
+  琛?1315: PortDirection.Right => 180.0,   // 右边端口：箭头向�?
+  琛?1316: PortDirection.Top => 90.0,      // 上边端口：箭头向�?
+  琛?1317: PortDirection.Bottom => 270.0,  // 下边端口：箭头向�?
+  琛?1323: /// 判断点是否在矩形�?
+  琛?1337: /// 计算安全的中点（确保在节点边界外�?
+  琛?1346: // 计算两个节点边界之间的安全区�?
+  琛?1351: // X坐标：在源节点右侧边界之�?
+  琛?1364: // Y坐标：在源节点下方边界之�?
+  琛?1377: /// 1. shapePreservingPoint：保持原路径形状，使�?0.7 * NodeSafeDistance 的偏�?
+  琛?1378: /// 2. strategyPoint：基于策略的避让�?
+  琛?1397: // 按顺序查找所有碰撞（不按严重程度排序�?
+  琛?1405: // 按顺序处理每个碰�?
+  琛?1419: // 插入避让点到路径�?
+  琛?1428: /// 按顺序查找所有碰撞（包括源节点和目标节点�?
+  琛?1464: // 检查水平方向关�?
+  琛?1468: // 检查垂直方向关�?
+  琛?1486: /// 1. shapePreservingPoint：保持原路径形状，使用动态偏移距�?
+  琛?1487: /// 2. strategyPoint：基于策略的避让�?
+  琛?1490: /// - 源节点碰撞：使用更大的避让距离（2.0 * NodeSafeDistance�?
+  琛?1491: /// - 目标节点碰撞：确保最后一个拐点接近目标端口方�?
+  琛?1492: /// - 普通节点碰撞：使用标准避让距离�?.7 * NodeSafeDistance�?
+  琛?1511: // 判断线段是水平还是垂�?
+  琛?1516: // 计算形状保持点（shapePreservingPoint�?
+  琛?1520: // 计算策略避让点（strategyPoint�?
+  琛?1534: // 双点避让失败，尝试单点避�?
+  琛?1541: // 单点避让也失败，返回�?
+  琛?1546: /// 计算形状保持点（shapePreservingPoint�?
+  琛?1549: /// - 目标节点碰撞：使�?1.5 * NodeSafeDistance（中等避让）
+  琛?1551: /// 根据相对位置动态计算避让方�?
+  琛?1574: offset = NodeSafeDistance * 0.7;  // 普通节点使用标准避让距�?
+  琛?1604: // 重叠情况，使用上方避�?
+  琛?1638: // 重叠情况，使用左侧避�?
+  琛?1648: /// 计算策略避让点（strategyPoint�?
+  琛?1649: /// 基于目标端口方向的策略避�?
+  琛?1651: /// 智能处理源节点和目标节点碰撞�?
+  琛?1653: /// - 目标节点碰撞：使�?1.5 * NodeSafeDistance，确保接近目标端口方�?
+  琛?1654: /// - 普通节点碰撞：使用标准�?NodeSafeDistance
+  琛?1677: offset = NodeSafeDistance;  // 普通节点使用标准避让距�?
+  琛?1682: // 水平线段：垂直避�?
+  琛?1685: // 目标端口在下方，优先从上方接�?
+  琛?1690: // 目标端口在上方，优先从下方接�?
+  琛?1695: // 其他方向，默认上方避�?
+  琛?1701: // 垂直线段：水平避�?
+  琛?1704: // 目标端口在右方，优先从左方接�?
+  琛?1709: // 目标端口在左方，优先从右方接�?
+  琛?1714: // 其他方向，默认左侧避�?
+  琛?1721: /// 将避让拐点插入到路径�?
+
+================================================================================
+鏂囦欢: src\Workflow\WorkflowContext.cs
+闂琛屾暟: 91
+----------------------------------------
+  琛?8: /// �ӳ��������Ϣ
+  琛?13: /// �ӳ���ID
+  琛?18: /// �ڵ�ID
+  琛?23: /// �������
+  琛?28: /// ����ʱ��
+  琛?33: /// �������
+  琛?38: /// ������
+  琛?43: /// ����״̬
+  琛?48: /// ������Ϣ
+  琛?60: /// ����״̬
+  琛?65: /// ������
+  琛?70: /// ִ����
+  琛?75: /// ���
+  琛?80: /// ʧ��
+  琛?85: /// ��ֹͣ
+  琛?91: /// �ڵ�ִ��״̬���ڲ�ʹ�ã�
+  琛?101: /// ��ʼʱ��
+  琛?106: /// ����ʱ��
+  琛?111: /// ִ��ʱ��
+  琛?121: /// �ڵ�״̬
+  琛?126: /// �ȴ���
+  琛?131: /// ִ����
+  琛?136: /// �����
+  琛?141: /// ʧ��
+  琛?146: /// ������
+  琛?152: /// ִ��·����
+  琛?157: /// �ڵ�ID
+  琛?162: /// �ڵ�����
+  琛?167: /// ʱ���
+  琛?172: /// ִ��ʱ��
+  琛?177: /// �Ƿ�ɹ�
+  琛?182: /// �������ժҪ
+  琛?188: /// ������ִ��������
+  琛?193: /// ������ID
+  琛?198: /// ����������
+  琛?203: /// ִ��ID��Ψһ��ʶһ��ִ�У�
+  琛?208: /// ִ�п�ʼʱ��
+  琛?213: /// ȫ�ֱ���
+  琛?218: /// �ӳ������ջ
+  琛?223: /// ִ��·��
+  琛?228: /// �ڵ�ִ��״̬
+  琛?233: /// ���������Ʋ������
+  琛?238: /// ȡ������
+  琛?243: /// ���ȱ�����
+  琛?248: /// ִ����־
+  琛?253: /// ִ��Ԫ����
+  琛?258: /// �Ƿ����õ���
+  琛?263: /// �Ƿ��������ܷ���
+  琛?282: /// ���ñ���ֵ
+  琛?290: /// ��ȡ����ֵ
+  琛?298: /// ��ȡ����ֵ��ָ�����ͣ�
+  琛?311: /// �������Ƿ����
+  琛?319: /// �Ƴ�����
+  琛?327: /// ��ȡ��ǰ�������
+  琛?335: /// ���͵�����Ϣ��ջ
+  琛?343: /// ��ջ����������Ϣ
+  琛?351: /// ��ȡ��ǰ������Ϣ
+  琛?359: /// ���½ڵ�״̬
+  琛?382: // �ڵ�ִ��ʧ�ܣ�������Ϣ�Ѽ�¼��result.Errors��
+  琛?387: /// ���ִ����־
+  琛?401: /// ���ִ��·����
+  琛?409: /// �������
+  琛?417: /// ����Ƿ���ȡ��
+  琛?425: /// �����������ģ������ӳ���
+  琛?439: // ����ȫ�ֱ���
+  琛?445: // ����Ԫ����
+  琛?455: /// ��ȡִ��ͳ����Ϣ
+  琛?479: /// ִ����־
+  琛?484: /// ʱ���
+  琛?489: /// ��־����
+  琛?494: /// ��Ϣ
+  琛?499: /// ִ��ID
+  琛?504: /// �ڵ�ID
+  琛?510: /// ��־����
+  琛?515: /// ����
+  琛?520: /// ��Ϣ
+  琛?525: /// ����
+  琛?530: /// ����
+  琛?535: /// ��������
+  琛?541: /// ִ��ͳ����Ϣ
+  琛?546: /// ִ��ID
+  琛?551: /// ��ʼʱ��
+  琛?556: /// ����ʱ��
+  琛?561: /// ִ��ʱ��
+  琛?566: /// �ܽڵ���
+  琛?571: /// ����ɽڵ���
+  琛?576: /// ʧ�ܽڵ���
+  琛?581: /// �����ڵ���
+  琛?586: /// ����־��
+  琛?591: /// �������
+  琛?596: /// �ɹ���
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\SmartThumbnailLoader.cs
+闂琛屾暟: 69
+----------------------------------------
+  琛?15: /// 智能缩略图加载器 - 简化版4层架�?
+  琛?18: /// 1. L1内存缓存�?ms�?- 强引�?0�?+ 弱引�?
+  琛?19: /// 2. L2磁盘缓存�?-80ms�?- Shell缓存优先 + 自建缓存补充
+  琛?20: /// 3. L3 解码器解码（30-150ms�?- GPU或CPU解码
+  琛?21: /// 4. L4原图解码�?00-800ms�?- 最终回退方案
+  琛?23: /// 优化说明�?
+  琛?26: /// - �?支持多种解码器（IThumbnailDecoder接口�?
+  琛?27: /// - �?方案二优化：高优先级任务使用GPU解码器，普通任务使用CPU解码�?
+  琛?28: /// - �?文件生命周期管理：通过 FileAccessManager 防止竞态条�?
+  琛?33: private readonly IThumbnailDecoder _gpuDecoder;  // �?GPU解码器（高优先级任务�?
+  琛?34: private readonly IThumbnailDecoder _cpuDecoder;  // �?CPU解码器（普通任务）
+  琛?35: private readonly IFileAccessManager? _fileAccessManager; // �?文件访问管理�?
+  琛?42: private int _originalHits; // �?P1优化：新增原图加载统�?
+  琛?46: // �?日志优化：首张图片追踪（用于诊断日志�?
+  琛?48: private const int FIRST_IMAGE_LOG_COUNT = 3; // �?张图片输出详细日�?
+  琛?63: /// �?日志优化：重置加载计数器（新文件夹加载时调用�?
+  琛?71: /// 构造函�?- 方案二：双解码器架构
+  琛?72: /// 高优先级任务使用GPU解码器，普通任务使用CPU解码�?
+  琛?93: /// 兼容旧构造函�?- 单解码器（高优先级和普通任务共用同一解码器）
+  琛?103: /// 预读取文件数据（用于并行优化�?
+  琛?104: /// �?优化：使�?CleanupScheduler 保护文件访问
+  琛?118: // �?核心修复：使�?CleanupScheduler 保护预读取操�?
+  琛?138: // 限制预读取缓存大小（最多保�?0个文件）
+  琛?167: Debug.WriteLine("[SmartLoader] �?文件路径为空");
+  琛?173: Debug.WriteLine($"[SmartLoader] �?文件不存�? {filePath}");
+  琛?177: // �?日志优化：判断是否是前几张图片（输出详细日志�?
+  琛?186: // �?诊断计时变量
+  琛?194: // 内部流程：L1a强引�?�?L1b弱引�?�?L2a Shell缓存 �?L2b 自建磁盘缓存
+  琛?202: // �?关键诊断：检查缓存缩略图有效�?
+  琛?210: // �?日志优化：前几张图片输出日志
+  琛?214: Debug.WriteLine($"[SmartLoader] �?缓存命中 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.GetF...
+  琛?220: Debug.WriteLine($"[SmartLoader] �?缓存缩略图无�?size={cached.Width}x{cached.Height} file={System.IO.Path.G...
+  琛?224: // ===== L3: 解码器解�?=====
+  琛?225: // �?方案二：根据优先级选择解码�?
+  琛?227: // 普通任务使用CPU解码器（避免阻塞GPU队列�?
+  琛?235: // 检查解码结果有效�?
+  琛?240: // �?方案二日志：显示使用的解码器类型
+  琛?247: Debug.WriteLine($"[SmartLoader] �?解码器结果无�?size={result.Width}x{result.Height} file={System.IO.Path.G...
+  琛?252: // ===== L4: 原图解码回退（★ P1优化�?====
+  琛?260: // 检查原图解码结果有效�?
+  琛?268: Debug.WriteLine($"[SmartLoader] �?L4原图解码 | {totalSw.ElapsedMilliseconds}ms | file={System.IO.Path.Ge...
+  琛?274: Debug.WriteLine($"[SmartLoader] �?原图解码结果无效 size={result.Width}x{result.Height} file={System.IO.Path....
+  琛?283: Debug.WriteLine($"[SmartLoader] �?所有策略失�?file={System.IO.Path.GetFileName(filePath)}");
+  琛?287: // 添加到内存缓存（会自动保存到磁盘缓存�?
+  琛?301: Debug.WriteLine($"[SmartLoader] �?加载异常: {ex.Message} file={System.IO.Path.GetFileName(filePath)}");
+  琛?308: /// 异步加载缩略�?
+  琛?316: /// 尝试解码器解码（L3策略�?
+  琛?317: /// �?方案二：根据优先级选择GPU或CPU解码�?
+  琛?318: /// �?文件安全访问：通过 FileAccessManager 保护文件访问
+  琛?327: // �?方案二核心：根据优先级选择解码�?
+  琛?328: // 高优先级任务 �?GPU解码器（WicGpuDecoder�?槽位专用�?
+  琛?329: // 普通任�?�?CPU解码器（ImageSharpDecoder，不占用GPU资源�?
+  琛?332: // �?核心修复：始终使用安全解码方�?
+  琛?333: // DecodeThumbnailSafe 内部会使�?CleanupScheduler 保护文件
+  琛?334: // 无论是否�?FileAccessManager，都会调�?MarkFileInUse/ReleaseFile
+  琛?337: // 解码成功后异步保存到缓存（不阻塞显示�?
+  琛?352: /// �?P1优化：尝试从原图加载（L4最终回退方案�?
+  琛?354: /// �?文件安全访问：通过 FileAccessManager 保护文件访问
+  琛?358: // �?使用 FileAccessManager 保护文件访问（RAII模式�?
+  琛?364: Debug.WriteLine($"[SmartLoader] �?文件访问被拒�? {scope.ErrorMessage} file={System.IO.Path.GetFileName(fil...
+  琛?378: /// �?优化：使�?CleanupScheduler 保护 + StreamSource 立即加载
+  琛?382: // �?核心修复：使�?CleanupScheduler 保护文件访问
+  琛?389: // �?优化：先读取文件到内存，避免 UriSource 延迟加载问题
+  琛?406: bitmap.DecodePixelWidth = size; // �?解码时缩放，节省内存
+  琛?414: // 异步保存到缓存（L4解码较慢，值得缓存�?
+  琛?424: Debug.WriteLine($"[SmartLoader] �?L4原图解码失败: {ex.Message} file={System.IO.Path.GetFileName(filePath)}...
+  琛?429: // �?确保释放文件引用
+  琛?435: /// 批量加载缩略图（用于可视区域批量加载�?
+  琛?474: /// 清除预读取缓�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\Decoders\ImageSharpDecoder.cs
+闂琛屾暟: 51
+----------------------------------------
+  琛?18: /// ImageSharp解码�?- 高性能跨平台图像解�?
+  琛?20: /// 优势�?
+  琛?21: /// - 对所有格式统一优化（JPEG/PNG/BMP/GIF/TIFF/WebP�?
+  琛?22: /// - 更快的解码速度（比WIC�?0-50%�?
+  琛?23: /// - 更低的内存占�?
+  琛?24: /// - 高质量缩放算法（Lanczos3�?
+  琛?31: /// 解码并发限制信号�?
+  琛?32: /// CPU解码可充分利用多核优势，并发数设为CPU核心数（最�?个）
+  琛?39: /// 统计当前等待中的解码任务�?
+  琛?56: /// 是否支持硬件加速（CPU解码器始终返回false�?
+  琛?70: Debug.WriteLine("[ImageSharpDecoder] 初始�?ImageSharp 解码�?..");
+  琛?88: /// 解码缩略�?
+  琛?109: Debug.WriteLine($"[ImageSharpDecoder] �?文件不存�? {filePath}");
+  琛?113: // 并发限制：等待获取解码槽�?
+  琛?126: Debug.WriteLine($"[ImageSharpDecoder] �?等待超时({waitTimeout}ms)，跳过高优先级任�?| file={System.IO.Path.GetFil...
+  琛?130: Debug.WriteLine($"[ImageSharpDecoder] �?等待解码槽位超时(5s) file={System.IO.Path.GetFileName(filePath)}");
+  琛?140: Debug.WriteLine($"[ImageSharpDecoder] 排队等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms | 队列:等待{currentWa...
+  琛?171: Debug.WriteLine($"[ImageSharpDecoder] �?解码完成 | 等待:{waitSw.Elapsed.TotalMilliseconds:F0}ms 解码:{decode...
+  琛?186: Debug.WriteLine($"[ImageSharpDecoder] �?解码异常: {ex.Message} (耗时:{totalSw.Elapsed.TotalMilliseconds:F2...
+  琛?192: /// 从文件解�?
+  琛?193: /// �?竞态条件修复：等待解码槽位后再次检查文件是否存�?
+  琛?199: // �?关键日志：开始读取文件（等待解码槽位后）
+  琛?202: // �?核心修复：再次检查文件是否存在（等待解码槽位期间可能被删除）
+  琛?205: Debug.WriteLine($"[ImgSharp] �?FileDeletedDuringWait | {fileName}");
+  琛?213: // �?关键日志：读取成�?
+  琛?214: Debug.WriteLine($"[ImgSharp] �?ReadOK | {fileName}");
+  琛?220: // �?关键日志：文件未找到（竞态条件）
+  琛?221: Debug.WriteLine($"[ImgSharp] �?FileNotFound | {fileName}");
+  琛?226: // �?关键日志：IO异常（文件被锁定或删除）
+  琛?227: Debug.WriteLine($"[ImgSharp] �?IOError: {ioEx.Message} | {fileName}");
+  琛?232: Debug.WriteLine($"[ImgSharp] �?ReadError {ex.Message} | {fileName}");
+  琛?238: /// 从字节数组解�?
+  琛?249: Debug.WriteLine($"[ImageSharpDecoder] �?字节解码失败: {ex.Message} | file={System.IO.Path.GetFileName(file...
+  琛?261: // 计算缩放尺寸（保持宽高比�?
+  琛?277: // 确保最小尺�?
+  琛?281: // 高质量缩�?
+  琛?284: // 转换为BGRA格式（WPF兼容�?
+  琛?291: // 使用 ImageSharp 3.x 的方式复制像素数�?
+  琛?317: Debug.WriteLine($"[ImageSharpDecoder] �?转换失败: {ex.Message}");
+  琛?323: /// �?安全解码缩略图（推荐使用�?
+  琛?324: /// 通过 FileAccessManager �?CleanupScheduler 双重保护文件访问，防止清理器删除正在使用的文�?
+  琛?336: // �?关键日志：开始保�?
+  琛?342: // 如果�?FileAccessManager，额外使用它保护
+  琛?349: Debug.WriteLine($"[ImgSharp] �?AccessDenied: {scope.ErrorMessage} | {fileName}");
+  琛?355: // �?关键日志：解码完�?
+  琛?356: Debug.WriteLine($"[ImgSharp] �?SafeEnd OK={(result != null)} | {fileName}");
+  琛?363: // �?关键日志：解码完�?
+  琛?364: Debug.WriteLine($"[ImgSharp] �?SafeEnd OK={(result != null)} | {fileName}");
+  琛?370: // �?关键日志：解码异�?
+  琛?371: Debug.WriteLine($"[ImgSharp] �?SafeError {ex.GetType().Name} | {fileName}");
+  琛?376: // �?确保释放文件引用
+
+================================================================================
+鏂囦欢: src\UI\ViewModels\ToolboxViewModel.cs
+闂琛屾暟: 34
+----------------------------------------
+  琛?12: /// ��������ͼģ�� - ֧�ֶ�̬������غ�˫ģ��ʾ���Ż��棩
+  琛?27: /// �Ƿ�Ϊ���ģʽ��true: ��ղ����ģʽ, false: ��ͳչ��ģʽ��
+  琛?36: // �л�ģʽʱ���ѡ�з��ಢ�ر� Popup
+  琛?46: /// ���ģʽ�µ� Popup �Ƿ��
+  琛?55: /// Popup�Ĵ�ֱƫ�����������PlacementTarget��
+  琛?64: /// ����Popup�Ĵ�ֱƫ����
+  琛?72: /// ��ʾģʽͼ�꣨���Ǽ�ͷ��
+  琛?80: /// ��ʾģʽ��ʾ
+  琛?84: get => IsCompactMode ? "�л���չ��ģʽ" : "�л������ģʽ";
+  琛?98: // ���ģʽ������ Popup ��/�ر�
+  琛?142: // �������๤�߱仯�����û�й�����ر�Popup
+  琛?153: /// �Ӳ����ʼ��������
+  琛?157: // �����������
+  琛?161: // ע�⣺������� App.OnStartup ���� PluginManager ���ز�ע�ᵽ ToolRegistry
+  琛?162: // ����ֻ��Ҫ�� ToolRegistry ���ع��߼���
+  琛?165: // ���·���Ĺ�������
+  琛?170: /// �ӹ���ע�����ļ��ع���
+  琛?193: // ���������Ĺ���ID
+  琛?200: /// ��ȡ����ͼ��
+  琛?206: "�ɼ�" => "??",
+  琛?207: "��λ" => "??",
+  琛?208: "ͼ����" => "???",
+  琛?209: "ʶ��" => "??",
+  琛?210: "����" => "??",
+  琛?216: /// ��ȡ��������
+  琛?220: return category + "��ع���";
+  琛?228: // Ϊÿ���������ù����б�
+  琛?235: /// ����ѡ�з���Ĺ����б��ʹ�û����Ż���
+  琛?246: // ʹ�û����������ȡ�����б�
+  琛?255: /// ���·���ѡ��״̬
+  琛?269: SelectedCategory = null; // ȡ��ѡ��
+  琛?273: SelectedCategory = category.Name; // ѡ���·���
+  琛?279: // TODO: ʵ�ֹ���ʹ���¼�
+  琛?288: /// �л���ʾģʽ
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Canvas\NativeDiagramControl.xaml.cs
+闂琛屾暟: 34
+----------------------------------------
+  琛?17: /// NativeDiagramControl - 使用AIStudio.Wpf.DiagramDesigner原生�?
+  琛?49: /// 初始化控�?
+  琛?63: // 初始化适配�?
+  琛?171: // 同步节点（传�?DiagramViewModel�?
+  琛?174: // 同步连接（传�?DiagramViewModel�?
+  琛?177: // 更新空状�?
+  琛?189: /// 更新空状态显�?
+  琛?232: /// 订阅工作流变�?
+  琛?271: // 使用公开方法创建节点（不使用反射�?
+  琛?305: // 重新创建连接（传�?DiagramViewModel�?
+  琛?368: // 不设�?e.Handled，允�?Drop 事件触发
+  琛?372: /// NativeDiagramControl �?DragEnter 事件（作为备选方案）
+  琛?390: /// NativeDiagramControl �?PreviewDrop 事件（隧道事件，最先触发）
+  琛?404: // 去重检查：防止同一个拖放操作触发多�?
+  琛?418: // 获取放置位置（相对于 NativeDiagramControl�?
+  琛?438: // 清除其他节点的选中状�?
+  琛?444: // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+  琛?462: // 不要 throw，避免程序崩�?
+  琛?468: /// NativeDiagramControl �?DragOver 事件（作为备选方案）
+  琛?480: // 不设�?e.Handled，允�?Drop 事件触发
+  琛?484: /// NativeDiagramControl �?Drop 事件（作为备选方案）
+  琛?498: // 获取放置位置（相对于 NativeDiagramControl�?
+  琛?518: // 清除其他节点的选中状�?
+  琛?524: // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+  琛?530: // 添加新节点到工作�?
+  琛?533: // 创建原生节点（通过 DiagramAdapter�?
+  琛?548: // 不要 throw，避免程序崩�?
+  琛?554: /// 拖放放下事件 - 创建新节�?
+  琛?573: // 获取放置位置（相对于 DiagramControl�?
+  琛?593: // 清除其他节点的选中状�?
+  琛?599: // 使用 ViewModel �?CreateNode 方法创建节点，自动分配序�?
+  琛?605: // 添加新节点到工作�?
+  琛?608: // 创建原生节点（通过 DiagramAdapter�?
+  琛?623: // 不要 throw，避免程序崩�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Canvas\CanvasConfig.cs
+闂琛屾暟: 31
+----------------------------------------
+  琛?7: /// 画布配置 - 集中管理画布的配置参�?
+  琛?27: /// 节点最小宽�?
+  琛?32: /// 节点最小高�?
+  琛?37: /// 节点最大宽�?
+  琛?42: /// 节点最大高�?
+  琛?67: /// 节点默认背景�?
+  琛?72: /// 节点选中背景�?
+  琛?77: /// 节点悬停背景�?
+  琛?119: /// 端口可见�?
+  琛?135: /// 连接线配�?
+  琛?140: /// 连接线默认粗�?
+  琛?150: /// 连接线默认颜�?
+  琛?160: /// 连接线悬停颜�?
+  琛?180: /// 中间点大�?
+  琛?185: /// 中间点颜�?
+  琛?191: /// 框选配�?
+  琛?196: /// 框选矩形边框粗�?
+  琛?201: /// 框选矩形边框颜�?
+  琛?206: /// 框选矩形填充颜�?
+  琛?211: /// 框选矩形透明�?
+  琛?216: /// 最小框选区域大�?
+  琛?227: /// 拖拽阈值（像素�?
+  琛?232: /// 拖拽时节点透明�?
+  琛?263: /// 最小缩放比�?
+  琛?268: /// 最大缩放比�?
+  琛?288: /// 缩放中心�?
+  琛?309: /// 是否启用空格键平�?
+  琛?325: /// 路径缓存最大大�?
+  琛?351: /// 是否启用虚拟�?
+  琛?397: /// 是否显示连接线信�?
+  琛?402: // 向后兼容的属�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\Decoders\AdvancedGpuDecoder.cs
+闂琛屾暟: 26
+----------------------------------------
+  琛?14: /// 高级GPU解码�?- 多策略优�?
+  琛?15: /// 实现真正的GPU硬件解码，预期性能提升7-10�?
+  琛?16: /// �?支持 IThumbnailDecoder 接口，包含安全解码方�?
+  琛?49: /// 是否支持硬件加速（IThumbnailDecoder接口�?
+  琛?69: /// 最小解码时间（毫秒�?
+  琛?84: /// 最大解码时间（毫秒�?
+  琛?104: /// 初始化GPU解码�?
+  琛?113: Debug.WriteLine("[AdvancedGpuDecoder] 初始化高级GPU解码�?..");
+  琛?115: // 检测硬件渲染层�?
+  琛?119: // 初始化WIC解码�?
+  琛?138: Debug.WriteLine($"[AdvancedGpuDecoder] �?初始化失�? {ex.Message}");
+  琛?146: /// 解码缩略图（IThumbnailDecoder接口�?
+  琛?150: // prefetchedData 参数在此实现中暂不使�?
+  琛?155: /// �?安全解码缩略图（推荐使用�?
+  琛?156: /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文�?
+  琛?166: // 如果没有 FileAccessManager，使用普通解�?
+  琛?177: Debug.WriteLine($"[AdvancedGpuDecoder] �?文件访问被拒�? {scope.ErrorMessage} file={System.IO.Path.GetFileN...
+  琛?230: // 3. 解码时缩�?- 比解码后缩放快得�?
+  琛?231: // 这一步虽然仍在CPU上，但比完整解码�?-5�?
+  琛?250: // 根据性能判断是否为GPU加�?
+  琛?251: bool isFast = sw.ElapsedMilliseconds < 50; // 如果小于50ms，可能是GPU加�?
+  琛?258: Debug.WriteLine($"[AdvancedGpuDecoder] �?解码失败: {ex.Message}");
+  琛?292: Debug.WriteLine($"[AdvancedGpuDecoder] �?CPU解码失败: {ex.Message}");
+  琛?340: // 按方法分组统�?
+  琛?346: report.AppendLine($"  {group.Key}: {count}�? 平均{avg:F2}ms");
+  琛?349: // 性能提升计算（假设CPU平均200ms�?
+
+================================================================================
+鏂囦欢: src\UI\Services\PathCalculators\AIStudioPathCalculator.cs
+闂琛屾暟: 23
+----------------------------------------
+  琛?13: /// 本实现提供基于其设计理念的简化正交路径计�?
+  琛?21: /// 默认构造函�?
+  琛?29: /// 确保编辑器已初始�?
+  琛?45: // 检�?AIStudio.Wpf.DiagramDesigner 程序集是否可�?
+  琛?52: // 尝试加载 AIStudio.Wpf.DiagramDesigner 程序�?
+  琛?64: // 这不是致命错误，我们仍然可以使用简化实�?
+  琛?79: /// 计算正交路径（基础版本�?
+  琛?213: // 一个水平一个垂�?
+  琛?244: // 简化的避障算法：检查中间点是否在障碍物�?
+  琛?261: // 如果中间点在障碍物内，尝试绕�?
+  琛?262: // 简单策略：向上或向下绕�?
+  琛?313: /// 优化路径：移除共线的中间�?
+  琛?328: // 检查是否共�?
+  琛?340: // 检查线段长�?
+  琛?379: /// 箭头尖端位于目标端口位置，角度基于目标端口方向固�?
+  琛?380: /// 路径终点已经是箭头尾部位�?
+  琛?391: // 角度定义�?度指向右�?0度指向下�?80度指向左�?70度指向上
+  琛?394: PortDirection.Left => 0.0,     // 左边端口：箭头向�?
+  琛?395: PortDirection.Right => 180.0,   // 右边端口：箭头向�?
+  琛?396: PortDirection.Top => 90.0,      // 上边端口：箭头向�?
+  琛?397: PortDirection.Bottom => 270.0,  // 下边端口：箭头向�?
+  琛?401: // 获取路径最后一点用于调试（箭头尾部位置�?
+  琛?404: // 关键日志：记录箭头计算结�?
+
+================================================================================
+鏂囦欢: src\UI\Controls\Rendering\ExifThumbnailExtractor.cs
+闂琛屾暟: 21
+----------------------------------------
+  琛?9: /// EXIF嵌入式缩略图提取�?
+  琛?10: /// 从相机拍摄的照片中快速提取嵌入的缩略�?
+  琛?12: /// 性能特点�?
+  琛?13: /// - 有EXIF缩略图时�?-20ms（比完整解码�?0-100倍）
+  琛?14: /// - 无EXIF缩略图时�?-5ms（快速检测并返回�?
+  琛?16: /// 适用场景�?
+  琛?18: /// 2. 智能手机拍摄的照�?
+  琛?21: /// 注意事项�?
+  琛?22: /// - EXIF缩略图通常分辨率较低（160x120左右�?
+  琛?23: /// - 对于大尺寸预览需要回退到完整解�?
+  琛?29: /// 如果EXIF缩略图小于目标尺寸的一半，则认为质量不�?
+  琛?38: /// <returns>BitmapSource或null（无缩略图或质量不足�?/returns>
+  琛?53: // 使用FileStream而非File.Open，指定最优参�?
+  琛?62: // 使用BitmapDecoder的Thumbnail属�?
+  琛?63: // 这会尝试读取EXIF中的缩略图，而不是解码整个图�?
+  琛?83: Debug.WriteLine($"[EXIF] 缩略图太�?{thumbnail.PixelWidth}x{thumbnail.PixelHeight} < {targetSize}: {Path....
+  琛?101: // 冻结以便跨线程使�?
+  琛?143: // JPEG文件以FF D8开�?
+  琛?166: /// 调整缩略图尺�?
+  琛?170: // 计算目标尺寸（保持宽高比�?
+  琛?201: // 编码为PNG以保持质�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\DiagramAdapter.cs
+闂琛屾暟: 21
+----------------------------------------
+  琛?13: /// 图表适配器实�?
+  琛?30: /// 创建原生节点（DefaultDesignerItemViewModel�?
+  琛?37: return workflowNode; // 返回 WorkflowNode，稍后处�?
+  琛?48: // 设置属性：Left �?Top（不�?X �?Y�?
+  琛?69: /// 创建原生连接（ConnectionViewModel�?
+  琛?70: /// 使用贝塞尔曲线连�?
+  琛?74: // 暂时返回 null，实际创建在 SyncConnections 中完�?
+  琛?80: /// 使用贝塞尔曲线连�?
+  琛?92: throw new InvalidOperationException($"目标节点未找�? {workflowConnection.TargetNodeId}");
+  琛?123: /// 同步节点到原生图�?
+  琛?130: // 检查传入的 nativeDiagram 是否�?DiagramViewModel
+  琛?133: throw new InvalidOperationException("nativeDiagram 必须�?DiagramViewModel 类型");
+  琛?141: // 添加新节�?
+  琛?156: /// 同步连接到原生图�?
+  琛?163: // 检查传入的 nativeDiagram 是否�?DiagramViewModel
+  琛?166: throw new InvalidOperationException("nativeDiagram 必须�?DiagramViewModel 类型");
+  琛?169: // 添加新连�?
+  琛?196: /// 添加节点到原生图�?
+  琛?214: /// 添加连接到原生图�?
+  琛?274: /// 设置贝塞尔曲线样式（原生库默认使用贝塞尔曲线�?
+  琛?280: // �?CreateConnectionInternal 中已设置 DrawMode.ConnectingLineSmooth
+
+================================================================================
+鏂囦欢: src\UI\Services\PathCalculators\BezierPathCalculator.cs
+闂琛屾暟: 20
+----------------------------------------
+  琛?15: private const double MinCurveDistance = 30.0;         // 最小曲线距离，低于此距离使用直�?
+  琛?60: /// 计算贝塞尔曲线的控制�?
+  琛?72: // 如果距离太近，使用直�?
+  琛?81: // 确保控制点偏移量不小于最小�?
+  琛?84: // 计算控制�?（靠近源点）
+  琛?90: // 计算控制�?（靠近目标点�?
+  琛?121: /// 创建贝塞尔曲线路径几�?
+  琛?144: // 二次贝塞尔曲线（三点�?
+  琛?149: // 三次贝塞尔曲线（四点�?
+  琛?154: // 多点，使用直线连�?
+  琛?167: /// 箭头位于目标端口位置，角度基于曲线在该点的切线方�?
+  琛?225: // 计算角度（转换为度数�?
+  琛?228: // 转换为WPF坐标系角�?
+  琛?242: // 计算角度（转换为度数�?
+  琛?245: // 转换为WPF坐标系角�?
+  琛?251: /// 用于直线连接的情�?
+  琛?257: PortDirection.Left => 0.0,     // 左边端口：箭头向�?
+  琛?258: PortDirection.Right => 180.0,   // 右边端口：箭头向�?
+  琛?259: PortDirection.Top => 90.0,      // 上边端口：箭头向�?
+  琛?260: PortDirection.Bottom => 270.0,  // 下边端口：箭头向�?
+
+================================================================================
+鏂囦欢: src\UI\App.xaml.cs
+闂琛屾暟: 20
+----------------------------------------
+  琛?24: // 只显�?Warning 及以上级别，不显�?Information 级别的绑定信�?
+  琛?30: // 设置控制台编码为UTF-8，解决中文乱码问�?
+  琛?33: // �?P0优化：预热线程池，消除首次加载延�?
+  琛?43: // Debug.WriteLine("[App] 正在初始化服�?..");
+  琛?45: // Debug.WriteLine("[App] �?服务初始化完�?);
+  琛?50: // 工具插件目录：plugins/（相对于应用程序运行目录�?
+  琛?54: // Debug.WriteLine("[App] �?插件管理器初始化完成");
+  琛?56: // 显示主窗�?
+  琛?57: // Debug.WriteLine("[App] 正在创建主窗�?..");
+  琛?60: // Debug.WriteLine("[App] �?主窗口已显示");
+  琛?67: // Debug.WriteLine($"[App] �?全局未处理异�? {ex?.Message}");
+  琛?81: // Debug.WriteLine($"[App] 第二层内部异�? {ex.InnerException.InnerException.Message}");
+  琛?82: // Debug.WriteLine($"[App] 第二层内部异常类�? {ex.InnerException.InnerException.GetType().FullName}");
+  琛?86: // 保存到文�?
+  琛?113: // Debug.WriteLine($"[App] �?Dispatcher 未处理异�? {e.Exception.Message}");
+  琛?128: /// �?P0优化：预热线程池 - 消除首次Task.Run的冷启动延迟
+  琛?129: /// 预期效果：首张缩略图加载�?1783ms �?~50ms
+  琛?138: Math.Max(minWorker, 8),  // 至少8个工作线�?
+  琛?150: Debug.WriteLine("[App] �?线程池预热完�?- 工作线程:8, IO线程:4");
+  琛?154: Debug.WriteLine($"[App] �?线程池预热失�? {ex.Message}");
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\BoxSelectionHandler.cs
+闂琛屾暟: 19
+----------------------------------------
+  琛?19: /// 框选处理器 - 负责处理矩形框选功�?
+  琛?44: #region 属�?
+  琛?47: /// 是否正在框�?
+  琛?52: /// 框选区�?
+  琛?57: /// 选中的节点数�?
+  琛?63: #region 构造函�?
+  琛?80: /// 开始框�?
+  琛?83: /// <param name="isMultiSelectMode">是否多选模�?/param>
+  琛?105: /// 更新框选区�?
+  琛?126: /// 结束框�?
+  琛?145: /// 取消框�?
+  琛?178: /// 记录所有选中节点的初始位�?
+  琛?215: /// 更新节点选择状�?
+  琛?243: /// 触发框选开始事�?
+  琛?251: /// 触发框选更新事�?
+  琛?259: /// 触发框选结束事�?
+  琛?269: #region 框选事件参�?
+  琛?272: /// 框选事件参�?
+  琛?282: /// 框选区�?
+
+================================================================================
+鏂囦欢: src\UI\Controls\Rendering\DirectXGpuThumbnailLoader.cs
+闂琛屾暟: 18
+----------------------------------------
+  琛?9: /// 简化的DirectX GPU加速缩略图加载�?
+  琛?10: /// 使用WPF的内置GPU加速功�?+ 优化的加载策�?
+  琛?11: /// 相比纯CPU提升3-5�?
+  琛?39: // 检测硬件渲染层�?
+  琛?46: Debug.WriteLine("[DirectXGpuLoader] �?GPU硬件加速已启用");
+  琛?54: Debug.WriteLine("[DirectXGpuLoader] �?使用软件渲染");
+  琛?62: Debug.WriteLine($"[DirectXGpuLoader] �?初始化失�? {ex.Message}");
+  琛?71: /// 优化策略�?
+  琛?73: /// 2. 使用GPU硬件加速缩�?
+  琛?74: /// 3. 冻结位图以便跨线程访�?
+  琛?97: /// 1. DecodePixelWidth - GPU硬件解码到指定尺�?
+  琛?98: /// 2. BitmapCacheOption.OnLoad - 立即加载，避免延�?
+  琛?113: // 关键优化1: CacheOption.OnLoad - 立即加载，利用GPU加�?
+  琛?116: // 关键优化2: DecodePixelWidth - GPU硬件解码到指定尺�?
+  琛?117: // 这一步在GPU上完成，比CPU解码�?-5�?
+  琛?123: // 关键优化4: Rotation.Rotate0 - 确保不旋�?
+  琛?129: // 冻结后的位图可以在GPU上作为纹理使用，支持硬件加速渲�?
+  琛?133: // GPU加载完成不输出日志（高频操作�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Connection\ConnectionPathCache.cs
+闂琛屾暟: 18
+----------------------------------------
+  琛?15: /// 连接线路径缓�?- 避免重复计算连接线路�?
+  琛?35: /// 缓存未命中次�?
+  琛?45: /// 缓存命中�?
+  琛?63: /// 获取连接线路�?
+  琛?120: /// 标记所有连接为�?
+  琛?134: /// 标记节点相关的所有连接为�?
+  琛?151: /// 5C: 标记节点为脏（移除距离阈值，使用节流机制�?
+  琛?152: /// 路径更新的节流由ConnectionBatchUpdateManager控制�?ms延迟�?
+  琛?158: // 记录新位�?
+  琛?184: /// 4C: 智能清理缓存（基于使用频率和LRU策略�?
+  琛?210: /// 移除连接的缓�?
+  琛?266: // 根据端口名称获取端口方向和位�?
+  琛?298: // 使用箭头尾部作为路径终点，传递所有节点边界信息用于碰撞检�?
+  琛?304: sourceNodeRect,  // 源节点边�?
+  琛?314: // 计算箭头位置和角�?
+  琛?333: _ => node.RightPortPosition // 默认为右侧端�?
+  琛?414: /// 缓存的路�?
+  琛?437: return $"缓存大小: {CacheSize}, 命中: {CacheHits}, 未命�? {CacheMisses}, 命中�? {HitRate:P2}";
+
+================================================================================
+鏂囦欢: src\UI\Services\Performance\EnhancedBatchUpdateManager.cs
+闂琛屾暟: 18
+----------------------------------------
+  琛?21: // 待更新的节点和连�?
+  琛?58: /// 调度单个连接的更�?
+  琛?76: /// 调度节点相关的所有连接更�?
+  琛?94: /// 调度多个节点相关的所有连接更�?
+  琛?119: /// 立即执行所有待处理的更�?
+  琛?130: /// 清空所有待处理的更�?
+  琛?151: /// 定时器触�?- 批量执行更新
+  琛?160: // 获取需要更新的节点和连接列�?
+  琛?176: // 如果没有需要更新的，直接返�?
+  琛?223: // === 优化�?: 批量标记缓存为脏 ===
+  琛?224: // 一次性标记所有连接的缓存为脏，避免重复检�?
+  琛?236: // === 优化�?: 批量计算路径 ===
+  琛?237: // 批量预热缓存，利用缓存的批处理能�?
+  琛?243: // === 优化�?: 批量触发UI更新 ===
+  琛?264: //     $"{connectionsToRecalculate.Count}条连�? " +
+  琛?266: //     $"({stopwatch.ElapsedMilliseconds / connectionsToRecalculate.Count:F3}ms/�?");
+  琛?312: /// 销毁管理器，释放资�?
+  琛?337: // 统计信息打印（已禁用�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Path\IPathCalculator.cs
+闂琛屾暟: 18
+----------------------------------------
+  琛?9: /// 路径计算器接�?- 定义正交折线路径计算的契�?
+  琛?14: /// 计算正交折线路径点集合（基础方法�?
+  琛?16: /// <param name="sourcePosition">源端口位�?/param>
+  琛?18: /// <param name="sourceDirection">源端口方�?/param>
+  琛?28: /// 计算正交折线路径点集合（增强方法，带节点信息�?
+  琛?30: /// <param name="sourcePosition">源端口位�?/param>
+  琛?32: /// <param name="sourceDirection">源端口方�?/param>
+  琛?34: /// <param name="sourceNodeRect">源节点边界矩�?/param>
+  琛?48: /// 根据路径点创建路径几�?
+  琛?50: /// <param name="pathPoints">路径点集�?/param>
+  琛?55: /// 计算箭头位置和角�?
+  琛?57: /// <param name="pathPoints">路径点集�?/param>
+  琛?58: /// <param name="targetPosition">目标端口位置（箭头尖端应该到达的位置�?/param>
+  琛?106: _ => PortDirection.Right // 默认为右�?
+  琛?111: /// 获取端口的水平移动方向（1为正向，-1为反向，0为无移动�?
+  琛?124: /// 获取端口的垂直移动方向（1为正向，-1为反向，0为无移动�?
+  琛?137: /// 获取端口的主方向（水平或垂直�?
+  琛?145: /// 获取端口的主方向（水平或垂直�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\ConnectionDragHandler.cs
+闂琛屾暟: 17
+----------------------------------------
+  琛?19: /// 连接拖拽处理�?- 负责处理连接的创建和拖拽
+  琛?47: #region 属�?
+  琛?55: /// 源节�?
+  琛?60: /// 源端�?
+  琛?65: /// 临时连接线（用于显示拖拽预览�?
+  琛?71: #region 构造函�?
+  琛?88: /// 开始拖拽连�?
+  琛?90: /// <param name="sourceNode">源节�?/param>
+  琛?91: /// <param name="sourcePort">源端�?/param>
+  琛?140: /// 结束拖拽并创建连�?
+  琛?196: /// 显示临时连接�?
+  琛?221: /// 隐藏临时连接�?
+  琛?232: /// 重置拖拽状�?
+  琛?321: /// 触发拖拽开始事�?
+  琛?329: /// 触发拖拽中事�?
+  琛?355: #region 事件参数�?
+  琛?406: #region 验证结果�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\ConnectionCreator.cs
+闂琛屾暟: 16
+----------------------------------------
+  琛?25: /// 创建节点连接（使用指定的目标端口�?
+  琛?46: // 获取源端口位�?
+  琛?55: // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认�?
+  琛?56: newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位�?
+  琛?65: /// 创建节点连接（智能选择端口�?
+  琛?86: // 智能选择连接点位�?
+  琛?95: // 箭头位置和角度由 ConnectionPathCache 计算，这里先设置默认�?
+  琛?96: newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位�?
+  琛?115: // 获取初始源端口位�?
+  琛?118: // 选择目标端口（根据源端口方向和目标节点位置选择最近的端口�?
+  琛?127: // 源端口是垂直方向（Top/Bottom），优先选择垂直方向的目标端�?
+  琛?169: // 源端口是水平方向（Left/Right），优先选择水平方向的目标端�?
+  琛?240: /// 检查是否为自连�?
+  琛?248: /// 获取指定端口的位�?
+  琛?263: /// 计算箭头角度（度�?
+  琛?267: // 箭头默认指向右方�?度），根据端口方向旋�?
+
+================================================================================
+鏂囦欢: src\Core\Services\PluginManager.cs
+闂琛屾暟: 16
+----------------------------------------
+  琛?12: /// 插件管理�?
+  琛?13: /// 负责插件的加载、注册、生命周期管�?
+  琛?21: /// 从指定目录加载所有插�?
+  琛?80: // 加载插件元数�?
+  琛?88: /// 加载插件元数�?
+  琛?91: /// <returns>插件元数�?/returns>
+  琛?128: /// 获取所有插�?
+  琛?137: /// 获取插件元数�?
+  琛?140: /// <returns>插件元数�?/returns>
+  琛?148: /// 启动所有插�?
+  琛?165: /// 停止所有插�?
+  琛?182: /// 清理所有插�?
+  琛?203: /// 插件元数�?
+  琛?208: /// 依赖�?
+  琛?218: /// 最小框架版�?
+  琛?223: /// 自定义数�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\SelectionHandler.cs
+闂琛屾暟: 16
+----------------------------------------
+  琛?15: /// 工作流选择处理�?
+  琛?23: // 框选相�?
+  琛?36: /// Canvas 鼠标左键按下 - 开始框�?
+  琛?42: // 检查是否点击在节点�?
+  琛?50: // 点击在节点上，不触发框�?
+  琛?57: // 检查是否按�?Shift �?Ctrl 键（多选模式）
+  琛?61: // 如果不是多选模式，清除所有选中状�?
+  琛?67: // 开始框�?
+  琛?71: // 显示框选矩�?
+  琛?78: /// Canvas 鼠标移动 - 更新框选矩�?
+  琛?88: // 选中框选区域内的节�?
+  琛?95: /// Canvas 鼠标移动 - 更新框选矩�?
+  琛?104: // 更新框选矩�?
+  琛?111: /// 选中框选区域内的节�?
+  琛?144: /// 清除所有节点的选中状�?
+  琛?158: /// 记录选中节点的初始位�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\DragDropHandler.cs
+闂琛屾暟: 15
+----------------------------------------
+  琛?14: /// 负责从工具箱拖放节点到画�?
+  琛?20: // 性能优化：条件编译开关，设为 false 可禁用详细日�?
+  琛?70: /// 拖放放下事件 - 创建新节�?
+  琛?71: /// 性能优化：延迟设�?SelectedNode，让节点先渲染完�?
+  琛?77: // 检�?sender
+  琛?81: // 检查拖拽数�?
+  琛?92: // �?MainWindow 动态获取当前选中的工作流
+  琛?100: // 清除其他节点的选中状�?
+  琛?106: // 使用 ViewModel �?CreateNode 方法创建节点
+  琛?112: // 添加新节�?
+  琛?115: // �?关键优化：延迟设�?SelectedNode，让节点先渲染完�?
+  琛?116: // 使用 Dispatcher.Yield �?UI 线程先处理渲染，再触发属性面板更�?
+  琛?119: // 触发图像预览器显�?
+  琛?130: // 不要 throw，避免程序崩�?
+  琛?142: // �?MainWindow 获取当前选中的工作流
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\Caching\WeakReferenceCache.cs
+闂琛屾暟: 14
+----------------------------------------
+  琛?11: /// 弱引用缓�?- L2缓存�?
+  琛?14: /// 特点�?
+  琛?15: /// 1. 使用弱引用存储，GC可自动回�?
+  琛?17: /// 3. 自动清理死亡的引�?
+  琛?20: /// <typeparam name="TKey">键类�?/typeparam>
+  琛?27: private const int CLEANUP_INTERVAL = 100; // �?00次操作清理一次死引用
+  琛?37: public int WeakRefRevived { get; set; } // 弱引用复活次�?
+  琛?45: /// 尝试从缓存获取�?
+  琛?77: /// 添加到缓�?
+  琛?85: // 定期清理死引�?
+  琛?94: /// 移除缓存�?
+  琛?114: /// 清理已死亡的弱引�?
+  琛?137: Debug.WriteLine($"[WeakReferenceCache] �?已清�?{deadKeys.Count} 个死引用，剩�? {_cache.Count}");
+  琛?183: return $"弱引用缓�? 总条�?{TotalCount}, 存活:{AliveCount}, 命中�?{_statistics.HitRate:F1}%, 复活:{_statistics.We...
+
+================================================================================
+鏂囦欢: src\UI\Services\Connection\ConnectionService.cs
+闂琛屾暟: 14
+----------------------------------------
+  琛?54: /// 删除节点相关的所有连�?
+  琛?59: /// 检查连接是否存�?
+  琛?64: /// 获取节点的所有连�?
+  琛?69: /// 获取节点的输入连�?
+  琛?74: /// 获取节点的输出连�?
+  琛?147: // 自动选择最佳端�?
+  琛?189: // 添加到集�?
+  琛?281: // 不能连接到自�?
+  琛?337: /// 确定最佳端口组�?
+  琛?380: /// 检查端口是否兼�?
+  琛?384: // 相对的端口是兼容�?
+  琛?400: // 使用深度优先搜索检测循�?
+  琛?406: /// 检查是否存在从source到target的路�?
+  琛?422: // 获取所有从当前节点出发的连�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Path\SmartPathMultiConverter.cs
+闂琛屾暟: 13
+----------------------------------------
+  琛?19: // 4B: 绑定优先级控�?- 缓存和批处理
+  琛?34: Interval = TimeSpan.FromMilliseconds(8) // 8ms �?120FPS，比批量更新管理器的16ms更快
+  琛?47: // 4B: 检查缓�?
+  琛?50: // 如果计数器没有变化且缓存存在，直接返回缓�?
+  琛?58: // 使用原有�?SmartPathConverter 进行转换，获取字符串
+  琛?65: // 路径字符串未变化，直接返回现有缓�?
+  琛?73: // 6A: 将字符串转换�?StreamGeometry（比PathGeometry.Parse�?0-20倍）
+  琛?123: /// 4B: 清除指定连接的缓�?
+  琛?134: /// 支持命令：M (移动�?, L (直线�?, C (三次贝塞尔曲�?
+  琛?140: // 解析SVG路径字符串（支持M, L, C命令�?
+  琛?141: // 使用正则表达式分割路径命�?
+  琛?178: case 'C': // Cubic Bezier (三次贝塞尔曲�?
+  琛?205: /// 4B: 清除所有缓�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Toolbox\ToolboxPopupStateManager.cs
+闂琛屾暟: 13
+----------------------------------------
+  琛?6: /// Popup状态机管理�?- 管理Toolbox Popup的生命周期和状态转�?
+  琛?12: Idle,           // 空闲状�?
+  琛?13: Hovering,       // 悬停�?
+  琛?15: Dragging,       // 拖拽�?
+  琛?16: Closing         // 关闭�?
+  琛?53: /// 转换到悬停状�?
+  琛?64: /// 转换到打开状�?
+  琛?72: /// 转换到拖拽状�?
+  琛?80: /// 转换到关闭状�?
+  琛?91: /// 转换到空闲状�?
+  琛?99: /// 重置状态到初始状�?
+  琛?107: /// 从拖拽状态恢�?
+  琛?111: // 拖拽结束后，如果是打开状态，保持打开；否则进入空闲状�?
+
+================================================================================
+鏂囦欢: src\UI\Models\LayoutConfig.cs
+闂琛屾暟: 13
+----------------------------------------
+  琛?8: /// 布局配置模型 - 用于保存和恢复主窗口列宽度和面板折叠状�?
+  琛?12: // 默认�?
+  琛?25: /// 左侧列宽�?
+  琛?30: /// 右侧列宽�?
+  琛?45: /// 保存配置到文�?
+  琛?70: // 保存失败时静默处理，使用默认�?
+  琛?76: /// 从文件加载配�?
+  琛?78: /// <returns>配置对象，如果加载失败返回默认配�?/returns>
+  琛?98: // 验证并修正超出范围的�?
+  琛?105: // 加载失败时返回默认配�?
+  琛?111: /// 验证并修正超出范围的�?
+  琛?145: /// 获取分隔符宽�?
+  琛?150: /// 重置为默认配�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\LibraryValidator.cs
+闂琛屾暟: 13
+----------------------------------------
+  琛?8: /// 库验证器 - 验证AIStudio.Wpf.DiagramDesigner的API和连接算�?
+  琛?13: /// 验证库是否可用并输出支持的连接算�?
+  琛?20: // 加载程序�?
+  琛?29: // 检查连接算法枚�?
+  琛?46: // 检查关键属�?
+  琛?110: /// 检查DiagramControl的属�?
+  琛?119: // 检查SourceItemsContainer的详细信�?
+  琛?138: /// 检查BlockItemsContainer的创建问�?
+  琛?157: // 检查构造函�?
+  琛?174: // 检查实例的属�?
+  琛?218: // 获取SourceItemsContainer属�?
+  琛?222: // 尝试设置属�?
+  琛?238: // 检查属性是否可�?
+
+================================================================================
+鏂囦欢: src\Core\Interfaces\IConfigManager.cs
+闂琛屾暟: 13
+----------------------------------------
+  琛?8: /// 配置管理器接�?
+  琛?15: /// <param name="key">配置�?/param>
+  琛?16: /// <param name="value">配置�?/param>
+  琛?23: /// <param name="key">配置�?/param>
+  琛?24: /// <param name="value">配置�?/param>
+  琛?30: /// <param name="key">配置�?/param>
+  琛?31: /// <returns>配置�?/returns>
+  琛?38: /// <param name="key">配置�?/param>
+  琛?39: /// <returns>配置�?/returns>
+  琛?43: /// 加载所有配�?
+  琛?45: /// <returns>所有配�?/returns>
+  琛?49: /// 保存配置到文�?
+  琛?55: /// 从文件加载配�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\PortInteractionHandler2.cs
+闂琛屾暟: 12
+----------------------------------------
+  琛?18: /// 端口交互处理�?- 负责处理端口的高亮和交互
+  琛?46: #region 属�?
+  琛?49: /// 当前高亮的目标节�?
+  琛?54: /// 当前高亮的目标端�?
+  琛?60: #region 构造函�?
+  琛?79: /// 判断点击的端�?
+  琛?82: /// <param name="clickPoint">点击�?/param>
+  琛?121: /// <param name="sourceNode">源节�?/param>
+  琛?206: /// 设置直接命中的目标端�?
+  琛?245: /// <param name="point">测试�?/param>
+  琛?256: /// <param name="point">测试�?/param>
+  琛?258: /// <returns>端口名称和距�?/returns>
+
+================================================================================
+鏂囦欢: src\Workflow\WorkflowEngineFactory.cs
+闂琛屾暟: 12
+----------------------------------------
+  琛?11: /// ���������湤�� - ���ڴ����ͳ�ʼ��������������
+  琛?16: /// ���������Ĺ����������׼�
+  琛?25: // 1. �������������������logger��
+  琛?28: // 2. ������������������
+  琛?31: // 3. ����ִ������
+  琛?34: // 4. ���ز�ע�Ṥ�������Ʋ��
+  琛?41: /// ע�Ṥ�������Ʋ��
+  琛?50: // �������������Ʋ��
+  琛?54: logger.LogInfo("���������Ʋ����ע��");
+  琛?58: logger.LogError($"ע�Ṥ�������Ʋ��ʧ��: {ex.Message}", ex);
+  琛?64: /// �������������棨���������ܣ�
+  琛?77: /// ����������ִ������
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\IThumbnailDecoder.cs
+闂琛屾暟: 12
+----------------------------------------
+  琛?13: /// - ImageSharpDecoder: CPU软解码，跨平台稳�?
+  琛?17: /// �?文件安全访问�?
+  琛?18: /// - 使用 DecodeThumbnailSafe 方法确保文件访问期间不会被删�?
+  琛?29: /// 是否支持硬件加�?
+  琛?36: /// <returns>初始化是否成�?/returns>
+  琛?40: /// 解码缩略图（基础方法�?
+  琛?47: /// <returns>解码后的 BitmapImage，失败返�?null</returns>
+  琛?51: /// �?安全解码缩略图（推荐使用�?
+  琛?52: /// 通过 FileAccessManager 保护文件访问，防止清理器删除正在使用的文�?
+  琛?54: /// <param name="fileManager">文件访问管理�?/param>
+  琛?60: /// <returns>解码后的 BitmapImage，失败返�?null</returns>
+  琛?62: /// 使用 RAII 模式确保文件引用正确释放�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Connection\ConnectionBatchUpdateManager.cs
+闂琛屾暟: 12
+----------------------------------------
+  琛?12: /// 连接批量延迟更新管理�?
+  琛?25: /// 16ms �?60FPS, 既能保证流畅度又能合并快速连续的更新
+  琛?30: /// 当前活动的WorkflowTab，用于查找连�?
+  琛?53: /// 调度单个连接的更�?
+  琛?71: /// 调度节点相关的所有连接更�?
+  琛?89: /// 调度多个节点相关的所有连接更�?
+  琛?114: /// 立即执行所有待处理的更�?
+  琛?125: /// 清空所有待处理的更�?
+  琛?146: /// 定时器触�?- 批量执行更新
+  琛?155: // 获取需要更新的节点和连接列�?
+  琛?171: // 如果没有需要更新的，直接返�?
+  琛?256: /// 销毁管理器，释放资�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\NodeDisplayAdapterConfig.cs
+闂琛屾暟: 12
+----------------------------------------
+  琛?5: /// 用于注册和初始化所有节点显示适配�?
+  琛?12: /// 初始化所有节点显示适配�?
+  琛?21: // 注册图像源节点适配�?
+  琛?24: // 注册视频源节点适配�?
+  琛?27: // 注册多集合节点适配�?
+  琛?30: // 注册处理节点适配�?
+  琛?33: // 注册AI分析节点适配�?
+  琛?36: // 可以继续添加其他类型的适配�?..
+  琛?42: /// 重置适配器配�?
+  琛?52: /// 服务初始化扩展方�?
+  琛?57: /// 初始化所有服�?
+  琛?61: // 初始化显示适配器配�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Path\SmartPathConverter.cs
+闂琛屾暟: 10
+----------------------------------------
+  琛?17: /// 智能路径转换�?- �?WorkflowConnection 转换�?Path Data
+  琛?37: /// 控件偏移�?
+  琛?68: // 修复：优先使用PathCache获取路径数据（PathCache使用BezierPathCalculator�?
+  琛?78: // 降级方案：如果没有PathCache或缓存未命中，使用GeneratePathData生成简单路�?
+  琛?79: // 计算起点和终点（节点中心，假设节点大小为 180x80�?
+  琛?102: /// 生成路径数据（生成贝塞尔曲线�?
+  琛?123: // 计算控制�?（靠近源点）
+  琛?133: // 简化：控制�?使用与控制点1对称的位�?
+  琛?139: // 生成贝塞尔曲线路径数�?
+  琛?163: /// 判断两个点是否过�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\NodeDragHandler.cs
+闂琛屾暟: 10
+----------------------------------------
+  琛?16: /// 节点拖拽处理�?- 负责处理节点的拖拽操�?
+  琛?42: #region 属�?
+  琛?50: /// 当前拖拽的节�?
+  琛?56: #region 构造函�?
+  琛?73: /// 开始拖拽节�?
+  琛?222: /// 记录所有选中节点的初始位�?
+  琛?246: /// 触发拖拽开始事�?
+  琛?254: /// 触发拖拽中事�?
+  琛?280: /// 拖拽的节�?
+  琛?290: /// 偏移�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Path\WorkflowPathCalculator.cs
+闂琛屾暟: 9
+----------------------------------------
+  琛?10: /// 工作流路径计算器 - 负责连接线路径的计算和生�?
+  琛?41: // 根据源端口方向和相对位置选择中间点策�?
+  琛?49: // 水平偏移远大于垂直偏移，使用水平主导的路�?
+  琛?55: // 垂直主导，使用垂直路�?
+  琛?65: // 垂直偏移远大于水平偏移，使用垂直主导的路�?
+  琛?71: // 水平主导，使用水平路�?
+  琛?86: /// 计算箭头的旋转角�?
+  琛?96: // 转换为角�?
+  琛?103: /// 刷新所有连接路�?
+
+================================================================================
+鏂囦欢: src\UI\Models\NodeStyleConfig.cs
+闂琛屾暟: 9
+----------------------------------------
+  琛?47: /// 验证配置的有效�?
+  琛?62: /// 计算节点的边界矩�?
+  琛?70: /// 计算节点中心�?
+  琛?81: /// 计算上端口中心位�?
+  琛?92: /// 计算下端口中心位�?
+  琛?103: /// 计算左端口中心位�?
+  琛?114: /// 计算右端口中心位�?
+  琛?145: /// 紧凑节点样式（小尺寸�?
+  琛?159: /// 大型节点样式（大尺寸�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\PortInteractionHandler.cs
+闂琛屾暟: 9
+----------------------------------------
+  琛?48: /// 端口鼠标左键按下 - 开始拖拽连�?
+  琛?65: // 显示临时连接�?
+  琛?68: // 使用 PathGeometry 更新临时连接�?
+  琛?126: /// 端口鼠标移动 - 更新临时连接�?
+  琛?139: // 更新临时连接�?
+  琛?147: // 查找目标节点和端�?
+  琛?206: // 检查是否属于目标节�?
+  琛?232: // 获取目标节点的所有端�?
+  琛?258: // 如果没有找到对应方向的端口，选择第一个端�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\PortPositionService.cs
+闂琛屾暟: 9
+----------------------------------------
+  琛?14: /// 端口位置查询服务 - 基于视觉树查询，完全解耦样�?
+  琛?37: // 2. 找到对应节点的Border（通过Tag匹配�?
+  琛?47: // 3. 在Border中查找端口Ellipse（通过Name匹配�?
+  琛?58: // 4. 计算端口中心点（相对于Ellipse�?
+  琛?78: /// 通过节点Border查询所有端口位�?
+  琛?100: /// 降级方案：使用配置对象计算默认端口位�?
+  琛?119: // 1. 查询视觉树中的实际位�?
+  琛?124: // 2. 获取配置计算的期望位�?
+  琛?179: /// 查找指定类型的父级元�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Connection\ConnectionPathService.cs
+闂琛屾暟: 9
+----------------------------------------
+  琛?17: /// 计算两点之间的路�?
+  琛?22: /// 计算智能路径（带拐点�?
+  琛?32: /// 更新所有连接路�?
+  琛?42: /// 标记节点相关的所有连接为�?
+  琛?59: /// 连接路径服务 - 管理连接线路径的计算和更�?
+  琛?82: /// 自适应（根据偏移量自动选择�?
+  琛?195: /// 更新箭头位置和角�?
+  琛?216: /// 更新连接点列�?
+  琛?259: // 简单的路径解析（实际应该使用更完善的解析器�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Node\PortService.cs
+闂琛屾暟: 8
+----------------------------------------
+  琛?43: /// 获取指定节点的端口元�?
+  琛?53: /// 在指定位置查找端�?
+  琛?63: /// 清除所有端口高�?
+  琛?68: /// 确定最佳端口方�?
+  琛?103: /// 缓存未命中次�?
+  琛?153: // 从端口元素获取节点信�?
+  琛?283: /// 从端口名称确定端口方�?
+  琛?327: /// 查找所有指定类型的子元�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Toolbox\ToolboxToolCacheManager.cs
+闂琛屾暟: 7
+----------------------------------------
+  琛?9: /// 工具缓存管理�?- 缓存分类工具列表，避免频繁重新加�?
+  琛?21: // 预缓存所有分�?
+  琛?64: /// 清除指定分类的缓�?
+  琛?75: /// 清除所有缓�?
+  琛?83: /// 重新构建指定分类的缓�?
+  琛?92: /// 重新构建所有缓�?
+  琛?109: /// 获取缓存的分类数�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Canvas\CanvasEngineManager.cs
+闂琛屾暟: 7
+----------------------------------------
+  琛?12: /// 画布引擎管理�?
+  琛?22: /// 创建指定类型的画布引�?
+  琛?40: // 清理旧引�?
+  琛?43: // 创建新引�?
+  琛?46: // 如果有数据上下文，设置到新引�?
+  琛?72: /// 设置路径计算�?
+  琛?88: /// 重置管理�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\IDiagramAdapter.cs
+闂琛屾暟: 7
+----------------------------------------
+  琛?7: /// 图表适配器接�?
+  琛?9: /// 使用贝塞尔曲线连接算�?
+  琛?24: /// 同步节点到原生图�?
+  琛?29: /// 同步连接到原生图�?
+  琛?34: /// 设置贝塞尔曲线样�?
+  琛?39: /// 添加节点到原生图�?
+  琛?44: /// 添加连接到原生图�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Node\NodeSelectionService.cs
+闂琛屾暟: 7
+----------------------------------------
+  琛?19: /// 选中的节点集�?
+  琛?24: /// 选中状态变化事�?
+  琛?54: /// 获取选中节点的边界矩�?
+  琛?64: /// 记录选中节点的初始位�?
+  琛?69: /// 获取选中节点的位置偏�?
+  琛?111: /// 节点选择服务 - 管理节点的选择状�?
+  琛?136: // 切换选择状�?
+
+================================================================================
+鏂囦欢: src\Workflow\ExecutionResult.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?8: /// 工作流执行结�?
+  琛?33: /// 是否被停�?
+  琛?82: /// 合并另一个执行结�?
+  琛?125: /// 执行开始时�?
+  琛?167: /// 总迭代次�?
+  琛?172: /// 进度百分�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\NodeDisplayAdapterFactory.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?4: /// 节点显示适配器工�?
+  琛?12: /// 注册节点显示适配�?
+  琛?15: /// <param name="adapter">适配器实�?/param>
+  琛?22: /// 获取节点显示适配�?
+  琛?25: /// <returns>适配器实例，如果未找到则返回默认适配�?/returns>
+  琛?32: /// 清空所有已注册的适配�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\ValueConverters.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?11: /// 布尔值反转换转换�?    /// </summary>
+  琛?58: /// 分类可见性转换器 - 根据工具分类显示或隐藏工�?    /// </summary>
+  琛?65: // 显示属于当前分类�?                return toolCategory == category.Name ? System.Windows.Visibility.Visibl...
+  琛?105: // 支持两种模式：比�?WorkflowInfo 对象或比�?Id 字符�?            if (values.Length >= 2)
+  琛?114: // 模式2: 比较两个 Id 字符�?                    return workflowId == currentWorkflowId;
+  琛?127: /// 当前工作�?Id 转换�?- 判断当前工作�?Id 是否匹配
+
+================================================================================
+鏂囦欢: src\UI\Diagnostics\IDebugControlProvider.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?4: /// 调试控制提供者接�?
+  琛?5: /// 插件可实现此接口提供自定义调试控�?
+  琛?16: /// 开始调�?
+  琛?36: /// 检查是否有自定义调试控�?
+  琛?43: /// 创建自定义调试控�?
+  琛?46: /// <returns>自定义控件实�?/returns>
+
+================================================================================
+鏂囦欢: src\Plugin.Infrastructure\Infrastructure\IPluginManager.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?7: /// 插件管理器接�?- 提供插件加载和管理功�?    /// </summary>
+  琛?11: /// 加载所有插�?        /// </summary>
+  琛?15: /// 从指定目录加载所有插�?        /// </summary>
+  琛?20: /// 卸载所有插�?        /// </summary>
+  琛?24: /// 获取所有插�?        /// </summary>
+  琛?45: /// <returns>是否已加�?/returns>
+
+================================================================================
+鏂囦欢: src\UI\Diagnostics\DebugControlManager.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?8: /// 插件调试控制管理�?
+  琛?9: /// 管理插件的调试功�?
+  琛?16: /// 注册调试控制�?
+  琛?19: /// <param name="provider">调试控制提供�?/param>
+  琛?26: /// 获取调试控制�?
+  琛?29: /// <returns>调试控制提供�?/returns>
+
+================================================================================
+鏂囦欢: src\UI\Events\UIEvents.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?110: /// 工作流保存事�?
+  琛?125: /// 工作流加载事�?
+  琛?140: /// 工作流清除事�?
+  琛?218: /// 状态更新事�?
+  琛?232: /// 工作流执行事件类�?
+  琛?244: /// 工作流执行事�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Node\NodeIndexManager.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?11: /// 节点索引管理�?- 提供O(1)的节点查�?
+  琛?68: /// 检查节点是否存�?
+  琛?79: /// 获取节点的所有输出连�?
+  琛?92: /// 获取节点的所有输入连�?
+  琛?119: /// 检查是否存在反向连�?
+  琛?133: /// 获取连接�?
+
+================================================================================
+鏂囦欢: src\Core\Interfaces\Plugins\INodePlugin.cs
+闂琛屾暟: 6
+----------------------------------------
+  琛?35: /// 节点参数元数�?
+  琛?74: /// 参数元数�?
+  琛?94: /// 默认�?
+  琛?99: /// 最小�?
+  琛?104: /// 最大�?
+  琛?109: /// 可选值列�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Performance\BatchUpdateManager.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?10: /// 批量更新作用�?- 暂停集合通知，批量操作完成后发送单个通知
+  琛?54: /// 批量更新集合 - 支持批量操作�?ObservableCollection
+  琛?79: /// 开始批量更�?
+  琛?125: /// 批量替换所有项�?
+  琛?196: /// 批量更新管理�?- 管理多个集合的批量更�?
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Panels\PropertyPanelControl.xaml.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?131: new PropertyItem { Label = "状�?", Value = node.Status }
+  琛?160: /// 日志文本框加载事�?
+  琛?164: // 确保ScrollViewer滚动到底部（显示最新的日志�?
+  琛?176: // 如果是我们自己修改日志文本，不需要处�?
+  琛?187: /// TabControl 选中项变化事�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Performance\PerformanceMonitor.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?11: /// 性能监控�?- 用于监控和记录系统性能指标
+  琛?19: /// 开始测�?
+  琛?47: // 更新平均�?
+  琛?95: /// 性能测量辅助�?
+  琛?142: return $"性能统计 - 时间: {Timestamp:yyyy-MM-dd HH:mm:ss}, 操作�? {TotalOperations}";
+
+================================================================================
+鏂囦欢: src\UI\Core\Services\PluginUIAdapter.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?6: /// 插件UI适配�?
+  琛?7: /// 智能选择UI展示方式：自动、混合或自定�?
+  琛?21: /// 获取主界面控�?
+  琛?47: // Auto模式：无自定义面�?
+  琛?60: /// 是否需要属性面�?
+
+================================================================================
+鏂囦欢: src\Core\Services\LogManager.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?8: /// 日志管理�?- 全局单例，统一管理日志
+  琛?44: /// 获取优化的日志实�?
+  琛?49: /// 创建默认日志记录�?
+  琛?71: /// 设置采样�?
+  琛?77: // 需要重新创建实�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Thumbnail\BatchObservableCollection.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?9: /// 支持批量操作的ObservableCollection，显著提升批量添�?删除时的性能
+  琛?20: /// 性能提升�?000次Add从~1200ms降到~30ms
+  琛?44: // 只触发一次Reset事件，让UI一次性更�?
+  琛?83: /// 批量移除满足条件的元�?
+  琛?139: /// 强制触发Reset通知（用于手动控制UI更新�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Workflow\RunModeConverters.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?19: // 运行时显示浅绿色，停止时显示浅红�?                return isRunning ? new SolidColorBrush(Color.FromRgb(200, 255, ...
+  琛?39: // 运行时显示绿色边框，停止时显示红色边�?                return isRunning ? new SolidColorBrush(Color.FromRgb(76, 175,...
+  琛?51: /// 运行模式到颜色的转换�?    /// </summary>
+  琛?58: // 运行时显示绿色指示灯，停止时显示红色指示�?                return isRunning ? Brushes.Green : Brushes.Red;
+  琛?70: /// 运行模式到可见性的转换�?    /// </summary>
+
+================================================================================
+鏂囦欢: src\UI\Diagnostics\ConsoleLogger.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?13: // 注意：这是独立日志系统，不使�?ViewModel
+  琛?18: // 注意：这是独立日志系统，不使�?ViewModel
+  琛?23: // 注意：这是独立日志系统，不使�?ViewModel
+  琛?28: // 注意：这是独立日志系统，不使�?ViewModel
+  琛?33: // 注意：这是独立日志系统，不使�?ViewModel
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\UIEventPublisher.cs
+闂琛屾暟: 5
+----------------------------------------
+  琛?10: /// UI事件发布服务 - 负责发布UI相关的事�?
+  琛?85: /// 发布工作流保存事�?
+  琛?97: /// 发布工作流加载事�?
+  琛?109: /// 发布工作流清除事�?
+  琛?163: /// 发布状态更新事�?
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Canvas\CanvasTemplateSelector.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?11: /// 画布模板选择�?- 根据画布类型选择不同的模�?
+  琛?16: /// WorkflowCanvasControl的模�?
+  琛?21: /// NativeDiagramControl的模板（原生AIStudio.Wpf.DiagramDesigner控件�?
+  琛?42: // 尝试�?Application 获取 MainWindow，然后获取当前选中�?WorkflowTab
+
+================================================================================
+鏂囦欢: src\Core\IO\FileAccessScope.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?7: /// 确保 EndAccess 在作用域结束时自动调�?
+  琛?9: /// 使用示例�?
+  琛?41: /// <param name="manager">文件访问管理�?/param>
+  琛?64: // 只有访问成功时才需要释�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\ContinuousRunIconTriangleInLoopConverter.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?8: /// 连续运行图标转换�?- 运行状态显示停止图�?红色)，非运行状态显示循环图�?绿色)
+  琛?37: /// 连续运行图标颜色转换�?- 运行状态为红色，非运行状态为鲜艳的绿�?
+  琛?45: // 运行状态：红色 (#FF5252 - 更醒�?
+  琛?46: // 停止状态：绿色 (#4CAF50 - 更清晰可�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Node\NodeDisplayConverter.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?12: /// 节点显示文本转换�?- 使用适配器获取显示文�?
+  琛?33: /// 节点背景颜色转换�?- 使用适配器获取背景颜�?
+  琛?54: /// 节点边框颜色转换�?- 使用适配器获取边框颜�?
+  琛?75: /// 颜色到画刷转换器（通用�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Performance\PerformanceLogger.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?9: /// 性能日志记录�?    /// </summary>
+  琛?36: /// 执行并计�?        /// </summary>
+  琛?56: /// 异步执行并计�?        /// </summary>
+  琛?76: /// 重置计数�?        /// </summary>
+
+================================================================================
+鏂囦欢: src\Core\Interfaces\Plugins\IPlugin.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?4: /// 所有插件的基础接口，必须实�?
+  琛?9: /// 插件唯一标识�?
+  琛?29: /// 插件作�?
+  琛?34: /// 初始化插�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\ImageSourceNodeDisplayAdapter.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?8: /// 图像源节点显示适配�?
+  琛?14: return $"图像�?{node.Index}";
+  琛?24: return Color.FromRgb(240, 248, 255); // 淡蓝色背�?
+  琛?29: return Color.FromRgb(65, 105, 225); // 皇家�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\INodeSequenceManager.cs
+闂琛屾暟: 4
+----------------------------------------
+  琛?6: /// 节点序号管理器接口，用于管理节点的全局序号和局部序�?
+  琛?17: /// 获取指定工作流和算法类型的下一个局部序�?
+  琛?21: /// <returns>局部序�?/returns>
+  琛?25: /// 重置所有序�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\MultiCollectionNodeDisplayAdapter.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 多集合节点显示适配�?
+  琛?14: return $"多集�?{node.Index}";
+  琛?24: return Color.FromRgb(245, 245, 245); // 淡灰色背�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\PropertyGrid\PropertyItemPanel.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?7: /// 单个属性项的面�?
+  琛?33: // 根据类型创建编辑�?
+  琛?99: // 这里需要根据实际的NumericUpDown控件来设置属�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\ProcessingNodeDisplayAdapter.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 处理节点显示适配�?
+  琛?24: return Color.FromRgb(240, 255, 240); // 淡绿色背�?
+  琛?29: return Color.FromRgb(34, 139, 34); // 森林�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\VideoSourceNodeDisplayAdapter.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 视频源节点显示适配�?
+  琛?14: return $"视频�?{node.Index}";
+  琛?24: return Color.FromRgb(255, 240, 240); // 淡红色背�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\AIAnalysisNodeDisplayAdapter.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// AI分析节点显示适配�?
+  琛?24: return Color.FromRgb(240, 230, 255); // 淡紫色背�?
+  琛?29: return Color.FromRgb(138, 43, 226); // 蓝紫�?
+
+================================================================================
+鏂囦欢: src\Core\Services\OptimizedLogger.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?10: /// 优化的日志记录器 - 支持日志级别控制、采样日志、条件编�?
+  琛?104: /// <param name="eventKey">事件标识�?/param>
+  琛?172: /// 计时作用�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Rendering\GeometryOptimizer.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?12: /// 几何优化�?- 使用 StreamGeometry �?Freezable 优化渲染性能
+  琛?40: /// 获取或创建连接线�?StreamGeometry
+  琛?267: /// 几何优化器统计信�?
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\PanelManager.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?7: /// 面板管理�?
+  琛?8: /// 管理所有扩展面�?
+  琛?45: /// 获取所有面�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Canvas\ICanvasEngine.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 所有画布引擎都应实现此接口，提供统一的管理方�?
+  琛?23: /// 设置数据上下�?
+  琛?28: /// 设置路径计算�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Workflow\ContinuousRunButtonTextConverter.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 连续运行按钮文本转换�?
+  琛?16: return isRunning ? "�?停止" : "�?连续运行";
+  琛?18: return "�?连续运行";
+
+================================================================================
+鏂囦欢: src\UI\Services\Toolbox\ToolboxInteractionTimer.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?58: // 重置并启动打开定时�?
+  琛?88: /// 取消打开定时�?
+  琛?96: /// 取消关闭定时�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Rendering\VisualHelper.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?18: /// 在视觉树中查找指定类型的子元�?
+  琛?45: /// 在视觉树中查找所有指定类型的子元�?
+  琛?93: /// 获取元素的视觉父�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\Common\StatusIndicator.xaml.cs
+闂琛屾暟: 3
+----------------------------------------
+  琛?8: /// 用于显示运行状�?
+  琛?18: /// 状态文�?
+  琛?37: /// 是否运行�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\ParameterPanel\GenericParameterPanel.xaml.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?9: /// 用于展示插件运行时参�?
+  琛?52: /// 参数�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Rendering\CanvasRenderer.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?15: /// 画布渲染�?- 使用 DrawingContext 直接绘制，减少视觉树开销
+  琛?120: /// 标记为需要重新渲�?
+
+================================================================================
+鏂囦欢: src\Core\Enums\LogLevel.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?9: /// 调试信息 - 最详细的日志，用于开发调�?
+  琛?14: /// 信息 - 一般信�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\Visualization\ImageVisualizationPanel.xaml.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?8: /// 图像可视化面�?
+  琛?19: /// 图像�?
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Panels\ImageDisplayControl.xaml.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?86: // TODO: 切换到原图显�?
+  琛?96: // TODO: 切换到检测结果显�?
+
+================================================================================
+鏂囦欢: src\Core\Interfaces\Plugins\IAlgorithmPlugin.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?5: /// 定义图像处理算法的标准行�?
+  琛?25: /// 算法参数元数�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToActiveConverter.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?10: /// 用于显示运行状态的绿色指示�?
+  琛?18: // 运行时显示绿色，停止时显示灰�?
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\DefaultInputProvider.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?8: /// 默认输入图像提供�?
+  琛?20: // 返回null，让执行引擎使用默认的测试图�?
+
+================================================================================
+鏂囦欢: src\UI\Diagnostics\SharedDebugControl.xaml.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?7: /// 提供通用的调试控制功�?
+  琛?18: // 触发开始调试事�?
+
+================================================================================
+鏂囦欢: src\Core\Models\NodeType.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?11: /// 开始节�?- 执行链起点（如图像采集）
+  琛?25: /// 子程序节�?- 可复用的子工作流
+
+================================================================================
+鏂囦欢: src\Core\Interfaces\Plugins\IPluginUIProvider.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?9: /// 自动模式：使用框架提供的通用UI，插件只需提供元数�?
+  琛?14: /// 混合模式：使用框架共享UI组件，插件可自定义部分界�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Node\ImageAreaHeightConverter.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?10: /// 图像显示区域高度转换�?
+  琛?27: Debug.WriteLine($"[ImageAreaHeightConverter] value不是bool类型，返回默认高�?{defaultHeight.Value}");
+
+================================================================================
+鏂囦欢: src\Core\Services\JsonConfigManager.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?10: /// JSON配置管理器实�?
+  琛?97: throw new FileNotFoundException($"配置文件不存�? {filePath}");
+
+================================================================================
+鏂囦欢: src\UI\Services\Canvas\Engines\NativeDiagramEngine.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?10: /// 包装NativeDiagramControl，使用原生AIStudio.Wpf.DiagramDesigner�?
+  琛?40: // 此方法用于兼容�?
+
+================================================================================
+鏂囦欢: src\UI\Models\PropertyItem.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?16: /// 属性�?
+  琛?22: /// 属性分�?
+
+================================================================================
+鏂囦欢: src\UI\Models\WorkflowInfo.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?45: /// 工作流名�?
+  琛?77: /// 连接线集�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Interaction\NodeSequenceManagerService.cs
+闂琛屾暟: 2
+----------------------------------------
+  琛?11: /// 节点序号管理器实�?
+  琛?43: // 递增并返回新的序�?
+
+================================================================================
+鏂囦欢: src\UI\ViewModels\RelayCommand.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?49: /// 通用RelayCommand,简化参数处�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToContinuousTextConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?8: /// 布尔值转连续运行文本转换�?
+
+================================================================================
+鏂囦欢: src\UI\Models\ToolItem.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?32: /// 工具箱分类模�?
+
+================================================================================
+鏂囦欢: src\UI\Views\Controls\Canvas\CanvasType.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?17: /// 原生AIStudio.Wpf.DiagramDesigner控件（使用贝塞尔曲线连线�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Path\PointOffsetConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 点偏移转换器 - �?Point 进行偏移
+
+================================================================================
+鏂囦欢: src\Core\Models\DeviceInfo.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?24: /// 是否已连�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToSelectedBorderConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 布尔值转选中边框转换�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Canvas\Engines\WorkflowCanvasEngine.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?40: // 调用控件的SetPathCalculator方法，实现实际的路径计算器切�?
+
+================================================================================
+鏂囦欢: src\UI\Adapters\DefaultNodeDisplayAdapter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?8: /// 默认节点显示适配器实�?
+
+================================================================================
+鏂囦欢: src\Core\Services\FileLogger.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?7: /// 文件日志记录器实�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\ColorToBrushConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 颜色字符串到画笔转换�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\Workflow\RunModeButtonConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 运行模式到按钮文本的转换�?    /// </summary>
+
+================================================================================
+鏂囦欢: src\UI\Converters\Visibility\CanvasTypeVisibilityConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// CanvasType到WorkflowCanvas可见性的转换�?
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\IInputProvider.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?7: /// 图像输入提供者接�?
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\PanelExtension.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?7: /// 插件可通过此接口向面板系统注册自定义面�?
+
+================================================================================
+鏂囦欢: src\UI\Infrastructure\ServiceLocator.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?10: /// 简单的服务定位器（单例模式�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToSelectedBorderThicknessConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?8: /// 布尔值转选中边框粗细转换�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\PropertyGrid\GenericPropertyGrid.xaml.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?8: /// 通用属性网格控�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToRunningBorderConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 布尔值转运行边框转换�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToRunningBackgroundConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 布尔值转运行背景转换�?
+
+================================================================================
+鏂囦欢: src\UI\Services\Workflow\IWorkflowNodeFactory.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?6: /// 工作流节点工厂接�?
+
+================================================================================
+鏂囦欢: src\UI\Shared\Controls\Common\ProgressPanel.xaml.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?18: /// 进度值（0-100�?
+
+================================================================================
+鏂囦欢: src\UI\Converters\UI\BoolToSelectedBackgroundConverter.cs
+闂琛屾暟: 1
+----------------------------------------
+  琛?9: /// 布尔值转选中背景转换�?
+
+================================================================================
+缁熻鎽樿
+================================================================================
+
+鎸夌洰褰曞垎甯?
+  Adapters: 11 涓枃浠禶n  Interaction: 11 涓枃浠禶n  UI: 10 涓枃浠禶n  Infrastructure: 7 涓枃浠禶n  Canvas: 7 涓枃浠禶n  Workflow: 7 涓枃浠禶n  Models: 7 涓枃浠禶n  Services: 6 涓枃浠禶n  Path: 5 涓枃浠禶n  Rendering: 5 涓枃浠禶n  Node: 5 涓枃浠禶n  Connection: 4 涓枃浠禶n  Diagnostics: 4 涓枃浠禶n  Performance: 4 涓枃浠禶n  Plugins: 4 涓枃浠禶n  Thumbnail: 4 涓枃浠禶n  PathCalculators: 3 涓枃浠禶n  Toolbox: 3 涓枃浠禶n  ViewModels: 2 涓枃浠禶n  Common: 2 涓枃浠禶n  Decoders: 2 涓枃浠禶n  Panels: 2 涓枃浠禶n  PropertyGrid: 2 涓枃浠禶n  Engines: 2 涓枃浠禶n  Windows: 1 涓枃浠禶n  ParameterPanel: 1 涓枃浠禶n  Visualization: 1 涓枃浠禶n  IO: 1 涓枃浠禶n  Interfaces: 1 涓枃浠禶n  Enums: 1 涓枃浠禶n  Visibility: 1 涓枃浠禶n  Caching: 1 涓枃浠禶n  Events: 1 涓枃浠禶n  Converters: 1 涓枃浠禶n

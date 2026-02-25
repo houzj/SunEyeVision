@@ -2,21 +2,22 @@ using System;
 using System.Reflection;
 using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 绠楁硶鑺傜偣
+    /// 算法ڵ
     /// </summary>
     public class AlgorithmNode : WorkflowNode
     {
         /// <summary>
-        /// 鍥惧儚澶勭悊鍣?        /// </summary>
+        /// 图像?        /// </summary>
         public IImageProcessor Processor { get; set; }
 
         /// <summary>
-        /// 涓婃鎵ц缁撴灉
+        /// 上ִн
         /// </summary>
         public AlgorithmResult LastResult { get; private set; }
 
@@ -27,7 +28,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 鎵ц鑺傜偣
+        /// ִнڵ
         /// </summary>
         public AlgorithmResult Execute(Mat inputImage)
         {
@@ -40,7 +41,7 @@ namespace SunEyeVision.Workflow
 
             try
             {
-                // 灏濊瘯浣跨敤鍙嶅皠璋冪敤 Execute 鏂规硶锛堝鏋滃瓨鍦級
+                // ʹ÷ Execute [
                 var executeMethod = Processor.GetType().GetMethod("Execute", new[] { typeof(Mat), typeof(AlgorithmParameters) });
                 if (executeMethod != null)
                 {
@@ -48,7 +49,7 @@ namespace SunEyeVision.Workflow
                 }
                 else
                 {
-                    // 鍚﹀垯浣跨敤 Process 鏂规硶
+                    // 否则使用 Process 
                     var resultImage = Processor.Process(inputImage);
                     LastResult = AlgorithmResult.CreateSuccess(resultImage as Mat ?? inputImage, 0);
                 }
@@ -57,7 +58,7 @@ namespace SunEyeVision.Workflow
             }
             catch (Exception ex)
             {
-                var result = AlgorithmResult.CreateError($"鑺傜偣 {Name} 鎵ц澶辫触: {ex.Message}");
+                var result = AlgorithmResult.CreateError($"ڵ {Name} ִʧ: {ex.Message}");
                 OnAfterExecute(result);
                 return result;
             }
