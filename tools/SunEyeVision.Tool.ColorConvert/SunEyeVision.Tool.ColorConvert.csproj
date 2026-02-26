@@ -7,12 +7,10 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.ColorConvert</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.ColorConvert</AssemblyName>
-    <!-- 杈撳嚭鍒板簲鐢ㄧ▼搴忕洰褰曚笅鐨刾lugins瀛愮洰褰曪紝渚夸簬鍙戝竷 -->
     <OutDir>$(MSBuildProjectDirectory)\..\..\src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 鍙緷璧?Plugin.Abstractions锛堢函濂戠害灞傦紝闆朵緷璧栵級 -->
     <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
   </ItemGroup>
 </Project>

@@ -144,6 +144,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         private Dictionary<string, Point> _lastReportedNodePositions = new Dictionary<string, Point>();
 
+        // 性能优化组件
+        private NodeUIPool? _nodeUIPool;
+        private NodeRenderScheduler? _renderScheduler;
+
 
 
         /// <summary>
@@ -382,6 +386,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
+                // 初始化渲染调度器（用于异步节点渲染）
+
+                InitializeRenderScheduler(workflowTab);
+
+
+
                 // 设置SmartPathConverter的节点集合和连接集合
 
                 SmartPathConverter.Nodes = workflowTab.WorkflowNodes;
@@ -596,6 +606,50 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         /// <summary>
 
+        /// 初始化渲染调度器（异步节点渲染优化）
+
+        /// </summary>
+
+        private void InitializeRenderScheduler(WorkflowTabViewModel workflowTab)
+
+        {
+
+            if (_renderScheduler == null)
+
+                return;
+
+
+
+            // 设置节点渲染回调
+
+            _renderScheduler.OnNodeRendered = (node, element) =>
+
+            {
+
+                // 节点渲染完成回调 - 可以在这里添加额外的处理
+
+                // 当前版本使用XAML绑定，这个回调预留给未来扩展
+
+            };
+
+
+
+            _renderScheduler.OnNodeRemoved = (nodeId) =>
+
+            {
+
+                // 节点移除回调 - 清理资源
+
+                _nodeUIPool?.ReturnNodeUI(nodeId);
+
+            };
+
+        }
+
+
+
+        /// <summary>
+
         /// 强制刷新所有 ItemsControl 的 ItemsSource 绑定
 
         /// 这是修复工作流 Tab 共享同一画布问题的关键
@@ -765,6 +819,40 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             // 初始化辅助类
 
             _dragDropHandler = new WorkflowDragDropHandler(this);
+
+
+
+            // 初始化性能优化组件
+
+            InitializeOptimizedRendering();
+
+        }
+
+
+
+        /// <summary>
+
+        /// 初始化优化的渲染组件
+
+        /// </summary>
+
+        private void InitializeOptimizedRendering()
+
+        {
+
+            // 初始化节点UI池
+
+            _nodeUIPool = new NodeUIPool();
+
+            _nodeUIPool.Prewarm(10); // 预创建10个节点UI
+
+
+
+            // 初始化渲染调度器
+
+            _renderScheduler = new NodeRenderScheduler();
+
+            _renderScheduler.SetNodeUIPool(_nodeUIPool);
 
         }
 

@@ -16,7 +16,11 @@ namespace SunEyeVision.UI.Services.Interaction
     public class WorkflowDragDropHandler
     {
         private readonly WorkflowCanvasControl _canvasControl;
+
+#if DEBUG
         private static DateTime _lastLogTime = DateTime.Now;
+        private static DateTime _dropStartTime = DateTime.Now; // Drop 操作开始时间，用于累计时间计算
+#endif
 
         // 直接引用注入（优先使用，O(1) 访问）
         private WorkflowTabControlViewModel? _tabViewModel;
@@ -35,16 +39,19 @@ namespace SunEyeVision.UI.Services.Interaction
             set => _tabViewModel = value;
         }
 
+#if DEBUG
         /// <summary>
-        /// 带时间戳的调试日志
+        /// 带时间戳的调试日志（仅DEBUG模式）
         /// </summary>
         private static void LogTimestamp(string tag, string message)
         {
             var now = DateTime.Now;
             var elapsed = (now - _lastLogTime).TotalMilliseconds;
             _lastLogTime = now;
-            System.Diagnostics.Debug.WriteLine($"[{now:HH:mm:ss.fff}] [+{elapsed:F0}ms] [{tag}] {message}");
+            var totalElapsed = (now - _dropStartTime).TotalMilliseconds;
+            System.Diagnostics.Debug.WriteLine($"[{now:HH:mm:ss.fff}] [+{elapsed:F0}ms] [累计:{totalElapsed:F0}ms] [{tag}] {message}");
         }
+#endif
 
         /// <summary>
         /// 获取缓存的 MainWindowViewModel（带过期时间）
@@ -78,18 +85,23 @@ namespace SunEyeVision.UI.Services.Interaction
         /// </summary>
         public void Canvas_DragEnter(object sender, DragEventArgs e)
         {
+#if DEBUG
             System.Diagnostics.Debug.WriteLine("[DragEnter] ▶ 画布接收拖拽进入事件");
             System.Diagnostics.Debug.WriteLine($"[DragEnter]   - Data formats: {string.Join(", ", e.Data.GetFormats())}");
-
+#endif
             if (e.Data.GetDataPresent("ToolItem"))
             {
                 e.Effects = DragDropEffects.Copy;
+#if DEBUG
                 System.Diagnostics.Debug.WriteLine("[DragEnter] ✓ ToolItem 数据存在，允许复制");
+#endif
             }
             else
             {
                 e.Effects = DragDropEffects.None;
+#if DEBUG
                 System.Diagnostics.Debug.WriteLine("[DragEnter] ✗ ToolItem 数据不存在");
+#endif
             }
             e.Handled = true;
         }
@@ -123,74 +135,106 @@ namespace SunEyeVision.UI.Services.Interaction
         /// </summary>
         public void Canvas_Drop(object sender, DragEventArgs e)
         {
+#if DEBUG
             _lastLogTime = DateTime.Now; // 重置计时器
+            _dropStartTime = DateTime.Now; // 重置累计时间起点
             System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
             LogTimestamp("Drop", "▶ Canvas_Drop 开始执行");
             LogTimestamp("Drop", $"  Sender: {sender?.GetType().Name ?? "null"}");
+#endif
 
             try
             {
                 // 检查 sender
                 if (sender is not System.Windows.Controls.Canvas canvas)
                 {
+#if DEBUG
                     LogTimestamp("Drop", "✗ Sender 不是 Canvas 类型");
+#endif
                     return;
                 }
+#if DEBUG
                 LogTimestamp("Drop", "✓ Canvas 获取成功");
+#endif
 
                 // 检查拖拽数据
                 var toolItemData = e.Data.GetData("ToolItem");
+#if DEBUG
                 LogTimestamp("Drop", $"GetData(\"ToolItem\") 类型: {toolItemData?.GetType().Name ?? "null"}");
+#endif
 
                 if (toolItemData is not ToolItem item)
                 {
+#if DEBUG
                     LogTimestamp("Drop", "✗ 数据不是 ToolItem 类型");
+#endif
                     return;
                 }
 
                 // 获取放置位置
                 Point dropPosition = e.GetPosition(canvas);
+#if DEBUG
                 LogTimestamp("Drop", $"放置位置: ({dropPosition.X:F1}, {dropPosition.Y:F1})");
                 LogTimestamp("Drop", $"ToolItem: Name={item.Name}, ToolId={item.ToolId}");
+#endif
 
                 if (string.IsNullOrEmpty(item.ToolId))
                 {
+#if DEBUG
                     LogTimestamp("Drop", "✗ ToolId 为空");
+#endif
                     return;
                 }
 
                 // 从 MainWindow 动态获取当前选中的工作流
+#if DEBUG
                 LogTimestamp("Drop", "▶ 获取当前工作流 Tab...");
+#endif
                 WorkflowTabViewModel workflowTab = GetCurrentWorkflowTab();
                 if (workflowTab == null)
                 {
+#if DEBUG
                     LogTimestamp("Drop", "✗ 无法获取当前工作流Tab");
+#endif
                     MessageBox.Show("无法获取当前工作流，请确保已打开工作流标签页", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+#if DEBUG
                 LogTimestamp("Drop", $"✓ 工作流 Tab 获取成功: {workflowTab.Name}, 节点数={workflowTab.WorkflowNodes.Count}");
+#endif
 
                 // 注意：Drop 创建节点不计为选中节点，用户再次点击才算点击节点
                 // 因此不自动选中、不设置 IsSelected、不设置 SelectedNode
 
                 // 使用 ViewModel 的 CreateNode 方法创建节点
+#if DEBUG
                 LogTimestamp("Drop", "▶ 调用 WorkflowTabViewModel.CreateNode...");
+#endif
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
+#if DEBUG
                 LogTimestamp("Drop", $"✓ 节点创建完成: Id={newNode.Id}, Name={newNode.Name}");
+#endif
 
                 newNode.Position = dropPosition;
+#if DEBUG
                 LogTimestamp("Drop", "✓ 节点属性设置完成");
+#endif
 
                 // 添加新节点
+#if DEBUG
                 LogTimestamp("Drop", "▶ 添加节点到集合...");
+#endif
                 workflowTab.WorkflowNodes.Add(newNode);
+#if DEBUG
                 LogTimestamp("Drop", $"✓ 节点已添加, 当前节点数: {workflowTab.WorkflowNodes.Count}");
-
                 LogTimestamp("Drop", "═══ 节点添加完成 ═══");
+#endif
             }
             catch (Exception ex)
             {
+#if DEBUG
                 LogTimestamp("Drop", $"✗✗✗ 异常: {ex.Message}");
+#endif
                 MessageBox.Show($"拖放节点失败: {ex.Message}\n\n类型: {ex.GetType().Name}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -208,7 +252,9 @@ namespace SunEyeVision.UI.Services.Interaction
                     var selectedTab = _tabViewModel.SelectedTab;
                     if (selectedTab != null)
                     {
+#if DEBUG
                         LogTimestamp("GetTab", $"✓ 通过直接引用获取成功: {selectedTab.Name}");
+#endif
                         return selectedTab;
                     }
                 }
@@ -217,23 +263,31 @@ namespace SunEyeVision.UI.Services.Interaction
                 var viewModel = GetCachedViewModel();
                 if (viewModel == null)
                 {
+#if DEBUG
                     LogTimestamp("GetTab", "✗ 缓存的 ViewModel 为 null");
+#endif
                     return null;
                 }
 
                 var tab = viewModel.WorkflowTabViewModel?.SelectedTab;
                 if (tab != null)
                 {
+#if DEBUG
                     LogTimestamp("GetTab", $"✓ 通过缓存获取成功: {tab.Name}");
+#endif
                     return tab;
                 }
 
+#if DEBUG
                 LogTimestamp("GetTab", "✗ SelectedTab 为 null");
+#endif
                 return null;
             }
             catch (Exception ex)
             {
+#if DEBUG
                 LogTimestamp("GetTab", $"✗ 异常: {ex.Message}");
+#endif
                 return null;
             }
         }

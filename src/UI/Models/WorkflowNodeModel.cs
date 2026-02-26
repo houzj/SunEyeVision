@@ -320,14 +320,26 @@ namespace SunEyeVision.UI.Models
             GlobalIndex = globalIndex;
             Position = new Point(0, 0);
 
-            // 初始化批处理定时?16ms延迟)
-            _batchTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(16)
-            };
-            _batchTimer.Tick += OnBatchTimerTick;
+            // 延迟初始化批处理定时器 - 仅在需要时创建
+            // 这可以减少节点创建时的初始化开销
+            // _batchTimer将在EnsureTimerInitialized()中按需创建
 
-            // 图标由工厂设置，不再在这里设?
+            // 图标由工厂设置，不再在这里设置
+        }
+
+        /// <summary>
+        /// 确保Timer已初始化（延迟初始化模式）
+        /// </summary>
+        private void EnsureTimerInitialized()
+        {
+            if (_batchTimer == null)
+            {
+                _batchTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(16)
+                };
+                _batchTimer.Tick += OnBatchTimerTick;
+            }
         }
 
         /// <summary>
@@ -337,6 +349,7 @@ namespace SunEyeVision.UI.Models
         {
             _isBatchingProperties = true;
             _pendingPropertyChanges.Clear();
+            EnsureTimerInitialized();
             _batchTimer?.Stop();
         }
 
@@ -386,6 +399,7 @@ namespace SunEyeVision.UI.Models
                 _pendingPropertyChanges.Add(propertyName);
 
                 // 启动批处理定时器（如果尚未启动）
+                EnsureTimerInitialized();
                 if (_batchTimer != null && !_batchTimer.IsEnabled)
                 {
                     _batchTimer.Start();

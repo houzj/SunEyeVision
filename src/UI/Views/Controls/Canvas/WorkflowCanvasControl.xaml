@@ -10,6 +10,7 @@
              xmlns:convertersUI="clr-namespace:SunEyeVision.UI.Converters.UI"
              xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls"
              xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
+             xmlns:rendering="clr-namespace:SunEyeVision.UI.Services.Rendering"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1000">
 
@@ -18,9 +19,11 @@
         <convertersPath:SmartPathMultiConverter x:Key="SmartPathMultiConverter"/>
         <convertersUI:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <convertersPath:PointOffsetConverter x:Key="PointOffsetConverter"/>
-        <convertersNode:NodeDisplayTextConverter x:Key="NodeDisplayTextConverter"/>
-        <convertersNode:NodeBackgroundColorConverter x:Key="NodeBackgroundColorConverter"/>
-        <convertersNode:NodeBorderColorConverter x:Key="NodeBorderColorConverter"/>
+        
+        <!-- 使用缓存的节点转换器（性能优化） -->
+        <rendering:CachedNodeDisplayTextConverter x:Key="NodeDisplayTextConverter"/>
+        <rendering:CachedNodeBackgroundConverter x:Key="NodeBackgroundColorConverter"/>
+        <rendering:CachedNodeBorderConverter x:Key="NodeBorderColorConverter"/>
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
 
         <!-- 箭头标记 - 尖端指向右侧（度的方向），方便旋转 -->

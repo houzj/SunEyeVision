@@ -316,20 +316,20 @@
                             Margin="12,6,12,6"
                             VerticalAlignment="Stretch"/>
                     <!-- 添加图片 -->
-                    <Button Content="+"
+                    <Button Content="➕"
                             Command="{Binding AddImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Style="{StaticResource IconButton}"
                             ToolTip="添加图片"/>
 
                     <!-- 添加文件夹 -->
-                    <Button Content="F"
+                    <Button Content="📁"
                             Command="{Binding AddFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Style="{StaticResource IconButton}"
                             Margin="6,0,0,0"
                             ToolTip="添加文件夹"/>
 
                     <!-- 清除全部 -->
-                    <Button Content="X"
+                    <Button Content="🧹"
                             Command="{Binding ClearAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Style="{StaticResource IconButton}"
                             Margin="6,0,0,0"
