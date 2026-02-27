@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Models
@@ -295,6 +296,33 @@ namespace SunEyeVision.UI.Models
         public NodeImageData? ImageData { get; set; }
 
         /// <summary>
+        /// 最近一次执行结果（用于结果面板显示）
+        /// </summary>
+        private ToolResults? _lastResult;
+
+        /// <summary>
+        /// 最近一次执行结果
+        /// </summary>
+        public ToolResults? LastResult
+        {
+            get => _lastResult;
+            set
+            {
+                if (_lastResult != value)
+                {
+                    _lastResult = value;
+                    OnPropertyChanged();
+                    OnResultChanged?.Invoke(this, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 结果变更事件
+        /// </summary>
+        public event Action<WorkflowNode, ToolResults?>? OnResultChanged;
+
+        /// <summary>
         /// 参数绑定配置
         /// </summary>
         /// <remarks>
@@ -304,12 +332,20 @@ namespace SunEyeVision.UI.Models
         public ParameterBindingContainer? ParameterBindings { get; set; }
 
         /// <summary>
-        /// 判断是否为图像采集类节点
+        /// 判断是否为图像采集类节点（从相机实时采集）
         /// </summary>
         public bool IsImageCaptureNode =>
             AlgorithmType == "ImageCaptureTool" ||
             AlgorithmType == "image_capture" ||
             AlgorithmType == "ImageAcquisition";
+
+        /// <summary>
+        /// 判断是否为图像载入类节点（从本地文件加载）
+        /// </summary>
+        public bool IsImageLoadNode =>
+            AlgorithmType == "ImageLoadTool" ||
+            AlgorithmType == "image_load" ||
+            AlgorithmType == "ImageLoad";
 
         public WorkflowNode(string id, string name, string algorithmType, int index = 0, int globalIndex = 0)
         {

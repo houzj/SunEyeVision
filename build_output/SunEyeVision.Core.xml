@@ -1,0 +1,1564 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Core</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Core.LogLevel">
+            <summary>
+            日志级别
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.LogLevel.Debug">
+            <summary>
+            调试信息 - 最详细的日志，用于开发调试
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.LogLevel.Info">
+            <summary>
+            信息 - 一般信息
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.LogLevel.Warning">
+            <summary>
+            警告 - 警告信息
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.LogLevel.Error">
+            <summary>
+            错误 - 错误信息
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.LogLevel.Fatal">
+            <summary>
+            致命错误 - 致命错误信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.AsyncEventBus">
+            <summary>
+            Async event bus - provides decoupled async event-based communication between modules
+            Supports two publishing modes: fire-and-forget and wait-for-all
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.AsyncEventBus._handlers">
+            <summary>
+            Event subscriptions dictionary
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.AsyncEventBus._logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.AsyncEventBus._lock">
+            <summary>
+            Lock object for thread-safe operations
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.AsyncEventBus._cancellationTokenSource">
+            <summary>
+            Cancellation token source
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.AsyncEventBus._totalSubscriptions">
+            <summary>
+            Statistics fields (using long for thread-safe operations with Interlocked)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBus.Statistics">
+            <summary>
+            Event bus statistics
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.Subscribe``1(SunEyeVision.Core.Events.AsyncEventHandler{``0})">
+            <summary>
+            Subscribe to an async event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.Unsubscribe``1(SunEyeVision.Core.Events.AsyncEventHandler{``0})">
+            <summary>
+            Unsubscribe from an async event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.PublishAsync``1(``0)">
+            <summary>
+            Publish an event (fire-and-forget mode) - does not wait for handlers to complete
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.PublishAndWaitAsync``1(``0)">
+            <summary>
+            Publish an event and wait for all handlers to complete
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.Clear">
+            <summary>
+            Clear all subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.GetStatistics">
+            <summary>
+            Get statistics about event bus usage
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.GetActiveSubscriptionCount">
+            <summary>
+            Get the number of active subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.AsyncEventBus.Dispose">
+            <summary>
+            Dispose async event bus resources
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.AsyncEventBusStatistics">
+            <summary>
+            Async event bus statistics
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBusStatistics.TotalSubscriptions">
+            <summary>
+            Total number of subscriptions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBusStatistics.TotalUnsubscriptions">
+            <summary>
+            Total number of unsubscriptions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBusStatistics.TotalPublishedEvents">
+            <summary>
+            Total number of published events
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBusStatistics.TotalExecutedHandlers">
+            <summary>
+            Total number of successfully executed handlers
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AsyncEventBusStatistics.FailedHandlerExecutions">
+            <summary>
+            Total number of failed handler executions
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.WorkflowExecutedEvent">
+            <summary>
+            Workflow executed event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.WorkflowId">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.WorkflowName">
+            <summary>
+            Workflow name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.Success">
+            <summary>
+            Execution success
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.ExecutionDurationMs">
+            <summary>
+            Execution duration in milliseconds
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.NodesExecuted">
+            <summary>
+            Number of nodes executed
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowExecutedEvent.ErrorMessage">
+            <summary>
+            Error message (if failed)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent">
+            <summary>
+            Workflow node executed event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.WorkflowId">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.NodeId">
+            <summary>
+            Node ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.NodeName">
+            <summary>
+            Node name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.AlgorithmType">
+            <summary>
+            Algorithm type
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.Success">
+            <summary>
+            Execution success
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.ExecutionDurationMs">
+            <summary>
+            Execution duration in milliseconds
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.WorkflowNodeExecutedEvent.ErrorMessage">
+            <summary>
+            Error message (if failed)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.AlgorithmExecutionEvent">
+            <summary>
+            Algorithm execution event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AlgorithmExecutionEvent.AlgorithmName">
+            <summary>
+            Algorithm name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AlgorithmExecutionEvent.Success">
+            <summary>
+            Execution success
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AlgorithmExecutionEvent.ExecutionDurationMs">
+            <summary>
+            Execution duration in milliseconds
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.AlgorithmExecutionEvent.ErrorMessage">
+            <summary>
+            Error message (if failed)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.PluginLoadedEvent">
+            <summary>
+            Plugin loaded event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.PluginLoadedEvent.PluginId">
+            <summary>
+            Plugin ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.PluginLoadedEvent.PluginName">
+            <summary>
+            Plugin name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.PluginLoadedEvent.Version">
+            <summary>
+            Plugin version
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.PluginLoadedEvent.Success">
+            <summary>
+            Load success
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.PluginLoadedEvent.ErrorMessage">
+            <summary>
+            Error message (if failed)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.ConfigurationChangedEvent">
+            <summary>
+            Configuration changed event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ConfigurationChangedEvent.ConfigurationKey">
+            <summary>
+            Configuration key that changed
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ConfigurationChangedEvent.OldValue">
+            <summary>
+            Old value
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ConfigurationChangedEvent.NewValue">
+            <summary>
+            New value
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ConfigurationChangedEvent.Section">
+            <summary>
+            Configuration section
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.ErrorEvent">
+            <summary>
+            Error event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ErrorEvent.ErrorMessage">
+            <summary>
+            Error message
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ErrorEvent.ErrorType">
+            <summary>
+            Error type
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ErrorEvent.StackTrace">
+            <summary>
+            Stack trace
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.ErrorEvent.Severity">
+            <summary>
+            Severity level
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.ErrorSeverity">
+            <summary>
+            Error severity levels
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.ErrorSeverity.Warning">
+            <summary>
+            Warning level
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.ErrorSeverity.Error">
+            <summary>
+            Error level
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.ErrorSeverity.Critical">
+            <summary>
+            Critical level
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.LogEvent">
+            <summary>
+            Log event
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.LogEvent.Message">
+            <summary>
+            Log message
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.LogEvent.LogLevel">
+            <summary>
+            Log level
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.LogEvent.Category">
+            <summary>
+            Category
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.LogLevel">
+            <summary>
+            Log levels
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.LogLevel.Debug">
+            <summary>
+            Debug level
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.LogLevel.Info">
+            <summary>
+            Info level
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.LogLevel.Warning">
+            <summary>
+            Warning level
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.LogLevel.Error">
+            <summary>
+            Error level
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.EventBus">
+            <summary>
+            Event bus - provides decoupled event-based communication between modules
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.EventBus._handlers">
+            <summary>
+            Event subscriptions dictionary
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.EventBus._logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Events.EventBus._lock">
+            <summary>
+            Lock object for thread-safe operations
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBus.Statistics">
+            <summary>
+            Event bus statistics
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.Subscribe``1(SunEyeVision.Core.Events.EventHandler{``0})">
+            <summary>
+            Subscribe to an event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.Unsubscribe``1(SunEyeVision.Core.Events.EventHandler{``0})">
+            <summary>
+            Unsubscribe from an event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.Publish``1(``0)">
+            <summary>
+            Publish an event to all subscribers
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.Clear">
+            <summary>
+            Clear all subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.GetStatistics">
+            <summary>
+            Get statistics about event bus usage
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.GetActiveSubscriptionCount">
+            <summary>
+            Get the number of active subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.EventBus.Dispose">
+            <summary>
+            Dispose event bus resources
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.EventBusStatistics">
+            <summary>
+            Event bus statistics
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBusStatistics.TotalSubscriptions">
+            <summary>
+            Total number of subscriptions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBusStatistics.TotalUnsubscriptions">
+            <summary>
+            Total number of unsubscriptions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBusStatistics.TotalPublishedEvents">
+            <summary>
+            Total number of published events
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBusStatistics.TotalExecutedHandlers">
+            <summary>
+            Total number of successfully executed handlers
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBusStatistics.FailedHandlerExecutions">
+            <summary>
+            Total number of failed handler executions
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.AsyncEventHandler`1">
+            <summary>
+            Async event handler delegate
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.IAsyncEventBus">
+            <summary>
+            Async event bus interface
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.Subscribe``1(SunEyeVision.Core.Events.AsyncEventHandler{``0})">
+            <summary>
+            Subscribe to an async event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.Unsubscribe``1(SunEyeVision.Core.Events.AsyncEventHandler{``0})">
+            <summary>
+            Unsubscribe from an async event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.PublishAsync``1(``0)">
+            <summary>
+            Publish an event (fire-and-forget mode)
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.PublishAndWaitAsync``1(``0)">
+            <summary>
+            Publish an event and wait for all handlers to complete
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.Clear">
+            <summary>
+            Clear all subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IAsyncEventBus.GetStatistics">
+            <summary>
+            Get statistics about event bus usage
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.IEvent">
+            <summary>
+            Event interface - all events must implement this interface
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.IEvent.Timestamp">
+            <summary>
+            Event timestamp
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.IEvent.Source">
+            <summary>
+            Event source
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.EventBase">
+            <summary>
+            Base event class - provides common event functionality
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBase.Timestamp">
+            <summary>
+            Event timestamp
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Events.EventBase.Source">
+            <summary>
+            Event source
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.EventHandler`1">
+            <summary>
+            Event handler delegate
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="T:SunEyeVision.Core.Events.IEventBus">
+            <summary>
+            Event bus interface
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IEventBus.Subscribe``1(SunEyeVision.Core.Events.EventHandler{``0})">
+            <summary>
+            Subscribe to an event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IEventBus.Unsubscribe``1(SunEyeVision.Core.Events.EventHandler{``0})">
+            <summary>
+            Unsubscribe from an event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="handler">Event handler</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IEventBus.Publish``1(``0)">
+            <summary>
+            Publish an event
+            </summary>
+            <typeparam name="TEvent">Event type</typeparam>
+            <param name="eventData">Event data</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IEventBus.Clear">
+            <summary>
+            Clear all subscriptions
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Events.IEventBus.GetStatistics">
+            <summary>
+            Get statistics about event bus usage
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.IConfigManager">
+            <summary>
+            配置管理器接口。
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.SaveConfig(System.String,System.String)">
+            <summary>
+            保存配置
+            </summary>
+            <param name="key">配置键。</param>
+            <param name="value">配置值。</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.SaveConfig``1(System.String,``0)">
+            <summary>
+            保存配置
+            </summary>
+            <typeparam name="T">配置类型</typeparam>
+            <param name="key">配置键。</param>
+            <param name="value">配置值。</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.LoadConfig(System.String)">
+            <summary>
+            加载配置
+            </summary>
+            <param name="key">配置键。</param>
+            <returns>配置值。</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.LoadConfig``1(System.String)">
+            <summary>
+            加载配置
+            </summary>
+            <typeparam name="T">配置类型</typeparam>
+            <param name="key">配置键。</param>
+            <returns>配置值。</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.LoadAllConfigs">
+            <summary>
+            加载所有配置。
+            </summary>
+            <returns>所有配置。</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.SaveToFileAsync(System.String)">
+            <summary>
+            保存配置到文件夹
+            </summary>
+            <param name="filePath">文件路径</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IConfigManager.LoadFromFileAsync(System.String)">
+            <summary>
+            从文件加载配置
+            </summary>
+            <param name="filePath">文件路径</param>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.IDeviceManager">
+            <summary>
+            设备管理器接口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IDeviceManager.DetectDevicesAsync">
+            <summary>
+            检测设备
+            </summary>
+            <returns>设备列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IDeviceManager.ConnectDeviceAsync(System.String)">
+            <summary>
+            连接设备
+            </summary>
+            <param name="deviceId">设备ID</param>
+            <returns>连接结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IDeviceManager.DisconnectDeviceAsync(System.String)">
+            <summary>
+            断开设备
+            </summary>
+            <param name="deviceId">设备ID</param>
+            <returns>断开结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IDeviceManager.CaptureImageAsync(System.String)">
+            <summary>
+            从设备获取图像
+            </summary>
+            <param name="deviceId">设备ID</param>
+            <returns>获取的图像</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.IDeviceManager.GetConnectedDevices">
+            <summary>
+            获取已连接设备列表
+            </summary>
+            <returns>已连接设备列表</returns>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.ILogger">
+            <summary>
+            日志接口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.ILogger.LogDebug(System.String)">
+            <summary>
+            记录调试信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.ILogger.LogInfo(System.String)">
+            <summary>
+            记录信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.ILogger.LogWarning(System.String)">
+            <summary>
+            记录警告
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.ILogger.LogError(System.String,System.Exception)">
+            <summary>
+            记录错误
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin">
+            <summary>
+            算法插件接口
+            定义图像处理算法的标准行为
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.AlgorithmType">
+            <summary>
+            算法类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.Icon">
+            <summary>
+            算法图标
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.Category">
+            <summary>
+            算法分类
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.GetParameters">
+            <summary>
+            算法参数元数据
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.Execute(System.Object,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            执行算法
+            </summary>
+            <param name="inputImage">输入图像</param>
+            <param name="parameters">参数字典</param>
+            <returns>处理后的图像</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IAlgorithmPlugin.ValidateParameters(System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            验证参数
+            </summary>
+            <param name="parameters">参数字典</param>
+            <returns>验证结果</returns>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.INodePlugin">
+            <summary>
+            节点插件接口
+            定义工作流节点的标准行为
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.NodeType">
+            <summary>
+            节点类型标识
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.Icon">
+            <summary>
+            节点图标
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.Category">
+            <summary>
+            节点分类
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.InputPorts">
+            <summary>
+            节点输入端口定义
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.OutputPorts">
+            <summary>
+            节点输出端口定义
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.GetParameters">
+            <summary>
+            节点参数元数据
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.INodePlugin.Execute(System.Object[])">
+            <summary>
+            执行节点逻辑
+            </summary>
+            <param name="inputs">输入数据</param>
+            <returns>输出数据</returns>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.PortDefinition">
+            <summary>
+            端口定义
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.PortDefinition.Id">
+            <summary>
+            端口ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.PortDefinition.Name">
+            <summary>
+            端口名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.PortDefinition.DataType">
+            <summary>
+            端口数据类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.PortDefinition.IsRequired">
+            <summary>
+            是否必需
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata">
+            <summary>
+            参数元数据
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.Name">
+            <summary>
+            参数名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.DisplayName">
+            <summary>
+            参数显示名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.Type">
+            <summary>
+            参数类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.DefaultValue">
+            <summary>
+            默认值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.MinValue">
+            <summary>
+            最小值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.MaxValue">
+            <summary>
+            最大值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.Options">
+            <summary>
+            可选值列表
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.ParameterMetadata.Description">
+            <summary>
+            参数描述
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.IPlugin">
+            <summary>
+            所有插件的基础接口，必须实现
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPlugin.PluginId">
+            <summary>
+            插件唯一标识符
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPlugin.PluginName">
+            <summary>
+            插件显示名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Version">
+            <summary>
+            插件版本
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Description">
+            <summary>
+            插件描述
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Author">
+            <summary>
+            插件作者
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Initialize">
+            <summary>
+            初始化插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Start">
+            <summary>
+            启动插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Stop">
+            <summary>
+            停止插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPlugin.Cleanup">
+            <summary>
+            清理插件资源
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.UIProviderMode">
+            <summary>
+            UI提供模式
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Interfaces.Plugins.UIProviderMode.Auto">
+            <summary>
+            自动模式：使用框架提供的通用UI，插件只需提供元数据
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Interfaces.Plugins.UIProviderMode.Hybrid">
+            <summary>
+            混合模式：使用框架共享UI组件，插件可自定义部分界面
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Interfaces.Plugins.UIProviderMode.Custom">
+            <summary>
+            自定义模式：插件完全自定义UI界面
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Interfaces.Plugins.IPluginUIProvider">
+            <summary>
+            插件UI提供者接口（可选）
+            如果插件不实现此接口，框架将自动使用通用UI
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Interfaces.Plugins.IPluginUIProvider.Mode">
+            <summary>
+            UI提供模式
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPluginUIProvider.GetCustomControl">
+            <summary>
+            获取插件的自定义控件（仅在Custom模式下使用）
+            返回null表示使用框架通用UI
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Interfaces.Plugins.IPluginUIProvider.GetCustomPanel">
+            <summary>
+            获取插件的自定义面板（在Hybrid模式下使用）
+            返回null表示不添加自定义面板
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileTrackingInfo">
+            <summary>
+            文件跟踪信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileTrackingInfo.ReferenceCount">
+            <summary>引用计数</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileTrackingInfo.FileType">
+            <summary>文件类型</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileTrackingInfo.IsMarkedForDeletion">
+            <summary>是否标记删除</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileTrackingInfo.LastAccessTime">
+            <summary>最后访问时间</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileTrackingInfo.CreatedTime">
+            <summary>创建时间</summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessManager">
+            <summary>
+            文件访问管理器 - 核心实现
+            
+            核心功能：
+            1. 引用计数跟踪正在使用的文件
+            2. 延迟删除机制（文件使用中时标记为待删除）
+            3. 线程安全的并发访问控制
+            
+            设计原则：
+            - 统一的文件访问入口点
+            - RAII模式确保正确释放
+            - 最小化锁持有时间
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.#ctor">
+            <summary>
+            创建文件访问管理器
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessManager.InUseFileCount">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.TryBeginAccess(System.String,SunEyeVision.Core.IO.FileAccessIntent,SunEyeVision.Core.IO.FileType)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.EndAccess(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.CreateAccessScope(System.String,SunEyeVision.Core.IO.FileAccessIntent,SunEyeVision.Core.IO.FileType)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.IsFileInUse(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.IsFileMarkedDeleted(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.TrySafeDelete(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.GetInUseFiles">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.ClearDeletedRecords">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.ProcessPendingDeletions">
+            <summary>
+            处理延迟删除队列
+            定期检查待删除文件是否可以执行删除
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.TryMarkForDeletion(System.String)">
+            <summary>
+            尝试标记文件为删除状态
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.ExecuteDeletion(System.String)">
+            <summary>
+            执行文件删除
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.ExecuteDelayedDeletion(System.String)">
+            <summary>
+            执行延迟删除（引用计数归零时调用）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.MarkAsDeleted(System.String)">
+            <summary>
+            标记文件为已删除
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessManager.GetDiagnosticInfo">
+            <summary>
+            获取诊断信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessScope">
+            <summary>
+            文件访问范围 - RAII模式实现
+            确保 EndAccess 在作用域结束时自动调用
+            
+            使用示例：
+            <code>
+            using (var scope = fileAccessManager.CreateAccessScope(filePath, FileAccessIntent.Read))
+            {
+                if (scope.IsGranted)
+                {
+                    // 安全访问文件
+                }
+            }
+            // scope.Dispose() 自动调用 EndAccess
+            </code>
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessScope.FilePath">
+            <inheritdoc/>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessScope.Result">
+            <inheritdoc/>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessScope.IsGranted">
+            <inheritdoc/>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessScope.ErrorMessage">
+            <inheritdoc/>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessScope.#ctor(SunEyeVision.Core.IO.IFileAccessManager,System.String,SunEyeVision.Core.IO.FileAccessResult,System.String)">
+            <summary>
+            创建文件访问范围
+            </summary>
+            <param name="manager">文件访问管理器</param>
+            <param name="filePath">文件路径</param>
+            <param name="result">访问结果</param>
+            <param name="errorMessage">错误消息</param>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessScope.Dispose">
+            <summary>
+            释放资源 - 自动调用 EndAccess
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessScope.Finalize">
+            <summary>
+            析构函数 - 确保资源释放
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessServiceRegistration">
+            <summary>
+            文件访问服务注册扩展
+            提供简化的依赖注入配置
+            
+            使用方法：
+            <code>
+            var services = new ServiceCollection();
+            services.AddFileAccessServices();
+            
+            // 或者自定义配置
+            services.AddFileAccessServices(options => {
+                options.EnableVerboseLogging = true;
+            });
+            </code>
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessServiceRegistration.AddFileAccessServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册文件访问相关服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合（支持链式调用）</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.FileAccessServiceRegistration.AddFileAccessServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{SunEyeVision.Core.IO.FileAccessOptions})">
+            <summary>
+            注册文件访问相关服务（带配置选项）
+            </summary>
+            <param name="services">服务集合</param>
+            <param name="configure">配置回调</param>
+            <returns>服务集合（支持链式调用）</returns>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessOptions">
+            <summary>
+            文件访问服务配置选项
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessOptions.EnableVerboseLogging">
+            <summary>
+            是否启用详细日志（默认：false）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.FileAccessOptions.PendingDeletionTimeout">
+            <summary>
+            延迟删除超时时间（默认：5分钟）
+            超过此时间的待删除文件将被强制标记为已删除
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessIntent">
+            <summary>
+            文件访问意图
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessIntent.Read">
+            <summary>读取</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessIntent.Write">
+            <summary>写入</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessIntent.Delete">
+            <summary>删除</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessIntent.Query">
+            <summary>查询状态</summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileAccessResult">
+            <summary>
+            文件访问结果
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessResult.Granted">
+            <summary>获得权限</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessResult.FileDeleted">
+            <summary>文件已标记删除</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessResult.FileLocked">
+            <summary>文件被锁定</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileAccessResult.FileNotFound">
+            <summary>文件未找到</summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.FileType">
+            <summary>
+            文件类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileType.OriginalImage">
+            <summary>原始图像文件</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileType.CacheFile">
+            <summary>缓存文件</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileType.TemporaryFile">
+            <summary>临时文件</summary>
+        </member>
+        <member name="F:SunEyeVision.Core.IO.FileType.ConfigFile">
+            <summary>配置文件</summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.IFileAccessScope">
+            <summary>
+            文件访问范围接口 - RAII模式
+            使用using语句确保资源释放
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.IFileAccessScope.FilePath">
+            <summary>文件路径</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.IFileAccessScope.Result">
+            <summary>访问结果</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.IFileAccessScope.IsGranted">
+            <summary>访问是否成功</summary>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.IFileAccessScope.ErrorMessage">
+            <summary>错误信息（如果被拒绝）</summary>
+        </member>
+        <member name="T:SunEyeVision.Core.IO.IFileAccessManager">
+            <summary>
+            文件访问管理器接口
+            
+            核心原则：
+            1. 文件访问应尽可能短暂
+            2. 使用计数跟踪正在使用的文件
+            3. 删除正在使用的文件时标记为待删除
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.TryBeginAccess(System.String,SunEyeVision.Core.IO.FileAccessIntent,SunEyeVision.Core.IO.FileType)">
+            <summary>
+            开始文件访问
+            </summary>
+            <param name="filePath">文件路径</param>
+            <param name="intent">访问意图</param>
+            <param name="fileType">文件类型</param>
+            <returns>访问结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.EndAccess(System.String)">
+            <summary>
+            结束文件访问
+            </summary>
+            <param name="filePath">文件路径</param>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.CreateAccessScope(System.String,SunEyeVision.Core.IO.FileAccessIntent,SunEyeVision.Core.IO.FileType)">
+            <summary>
+            创建文件访问范围（RAII模式）
+            推荐使用方式：using (var scope = manager.CreateAccessScope(path, FileAccessIntent.Read)) { ... }
+            </summary>
+            <param name="filePath">文件路径</param>
+            <param name="intent">访问意图</param>
+            <param name="fileType">文件类型</param>
+            <returns>访问范围，使用using释放</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.IsFileInUse(System.String)">
+            <summary>
+            检查文件是否正在使用
+            </summary>
+            <param name="filePath">文件路径</param>
+            <returns>是否正在使用</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.IsFileMarkedDeleted(System.String)">
+            <summary>
+            检查文件是否已标记删除
+            </summary>
+            <param name="filePath">文件路径</param>
+            <returns>是否已标记删除</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.TrySafeDelete(System.String)">
+            <summary>
+            尝试安全删除文件
+            如果文件正在使用，标记为删除等待释放后删除
+            </summary>
+            <param name="filePath">文件路径</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="P:SunEyeVision.Core.IO.IFileAccessManager.InUseFileCount">
+            <summary>
+            当前使用的文件数量
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.GetInUseFiles">
+            <summary>
+            获取当前使用的文件路径列表
+            </summary>
+            <returns>文件路径列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.IO.IFileAccessManager.ClearDeletedRecords">
+            <summary>
+            清除已删除文件的记录（谨慎使用）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Models.DeviceInfo">
+            <summary>
+            设备信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.DeviceId">
+            <summary>
+            设备ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.DeviceName">
+            <summary>
+            设备名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.DeviceType">
+            <summary>
+            设备类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.IsConnected">
+            <summary>
+            是否已连接。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.Manufacturer">
+            <summary>
+            制造商
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.Model">
+            <summary>
+            型号
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Models.DeviceInfo.Description">
+            <summary>
+            设备描述
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Models.NodeType">
+            <summary>
+            统一的工作流节点类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Models.NodeType.Start">
+            <summary>
+            开始节点 - 执行链起点（如图像采集）。
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Models.NodeType.Algorithm">
+            <summary>
+            算法节点 - 图像处理节点（默认类型）
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Models.NodeType.Subroutine">
+            <summary>
+            子程序节点 - 可复用的子工作流。
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Models.NodeType.Condition">
+            <summary>
+            条件节点 - 条件分支控制
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Core.Models.NodeType.Switch">
+            <summary>
+            分支节点 - 多路分支
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.ConsoleLogger">
+            <summary>
+            控制台日志记录器实现
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.FileLogger">
+            <summary>
+            文件日志记录器实例。
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.JsonConfigManager">
+            <summary>
+            JSON配置管理器实例。
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.LogManager">
+            <summary>
+            日志管理器 - 全局单例，统一管理日志
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.LogManager.Instance">
+            <summary>
+            获取日志实例
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.LogManager.OptimizedInstance">
+            <summary>
+            获取优化的日志实例
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.LogManager.CreateDefaultLogger">
+            <summary>
+            创建默认日志记录器
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.LogManager.SetLogLevel(SunEyeVision.Core.LogLevel)">
+            <summary>
+            设置日志级别
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.LogManager.SetSampleRate(System.Int32)">
+            <summary>
+            设置采样率
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.OptimizedLogger">
+            <summary>
+            优化的日志记录器 - 支持日志级别控制、采样日志、条件编辑。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.OptimizedLogger.CurrentLevel">
+            <summary>
+            当前日志级别
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.OptimizedLogger.IsEnabled">
+            <summary>
+            是否启用日志（Release 模式可禁用）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.OptimizedLogger.LogSampled(System.String,System.String)">
+            <summary>
+            记录采样日志 - 高频事件使用
+            </summary>
+            <param name="eventKey">事件标识符</param>
+            <param name="message">日志消息</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.OptimizedLogger.LogIf(SunEyeVision.Core.LogLevel,System.Boolean,System.String)">
+            <summary>
+            记录带条件的日志
+            </summary>
+            <param name="level">日志级别</param>
+            <param name="condition">条件</param>
+            <param name="message">日志消息</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.OptimizedLogger.LogPerformance(System.String,System.Int64)">
+            <summary>
+            记录性能日志
+            </summary>
+            <param name="operation">操作名称</param>
+            <param name="duration">持续时间（毫秒）</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.OptimizedLogger.LogTiming(System.String)">
+            <summary>
+            记录带计时的操作
+            </summary>
+            <param name="operation">操作名称</param>
+            <returns>可释放对象，释放时记录耗时</returns>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.OptimizedLogger.TimingScope">
+            <summary>
+            计时作用域
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.PluginManager">
+            <summary>
+            插件管理器
+            负责插件的加载、注册、生命周期管理
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.LoadPlugins(System.String)">
+            <summary>
+            从指定目录加载所有插件
+            </summary>
+            <param name="pluginDirectory">插件目录</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.LoadPlugin(System.String)">
+            <summary>
+            加载单个插件
+            </summary>
+            <param name="dllPath">插件DLL路径</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.RegisterPlugin(SunEyeVision.Core.Interfaces.Plugins.IPlugin,System.String)">
+            <summary>
+            注册插件
+            </summary>
+            <param name="plugin">插件实例</param>
+            <param name="pluginPath">插件路径</param>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.LoadPluginMetadata(System.String)">
+            <summary>
+            加载插件元数据
+            </summary>
+            <param name="pluginPath">插件路径</param>
+            <returns>插件元数据</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.GetPlugin(System.String)">
+            <summary>
+            获取插件
+            </summary>
+            <param name="pluginId">插件ID</param>
+            <returns>插件实例</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.GetAllPlugins">
+            <summary>
+            获取所有插件
+            </summary>
+            <returns>插件列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.GetPluginMetadata(System.String)">
+            <summary>
+            获取插件元数据
+            </summary>
+            <param name="pluginId">插件ID</param>
+            <returns>插件元数据</returns>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.StartAllPlugins">
+            <summary>
+            启动所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.StopAllPlugins">
+            <summary>
+            停止所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Core.Services.PluginManager.CleanupAllPlugins">
+            <summary>
+            清理所有插件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Core.Services.PluginMetadata">
+            <summary>
+            插件元数据
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.PluginMetadata.Dependencies">
+            <summary>
+            依赖项
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.PluginMetadata.Permissions">
+            <summary>
+            权限要求
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.PluginMetadata.MinFrameworkVersion">
+            <summary>
+            最小框架版本。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Core.Services.PluginMetadata.CustomData">
+            <summary>
+            自定义数据。
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -20,7 +20,7 @@ namespace SunEyeVision.UI.ViewModels
     /// 4. 配置转换表达式
     /// 5. 验证绑定配置
     /// </remarks>
-    public class ParameterBindingViewModel : ViewModelBase
+    public class ParameterBindingViewModel : ParameterBindingViewModelBase
     {
         #region 字段
 
@@ -30,7 +30,7 @@ namespace SunEyeVision.UI.ViewModels
         private object? _constantValue;
         private AvailableDataSource? _selectedDataSource;
         private string? _transformExpression;
-        private bool _isValid;
+        private bool _isValid = true;
         private string _validationMessage = string.Empty;
 
         #endregion
@@ -40,12 +40,12 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 参数名称
         /// </summary>
-        public string ParameterName => _binding.ParameterName;
+        public override string ParameterName => _binding.ParameterName;
 
         /// <summary>
         /// 参数显示名称
         /// </summary>
-        public string DisplayName { get; }
+        public override string DisplayName { get; }
 
         /// <summary>
         /// 参数类型
@@ -185,7 +185,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 是否有效
         /// </summary>
-        public bool IsValid
+        public new bool IsValid
         {
             get => _isValid;
             private set => SetProperty(ref _isValid, value);
@@ -194,7 +194,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 验证消息
         /// </summary>
-        public string ValidationMessage
+        public new string ValidationMessage
         {
             get => _validationMessage;
             private set => SetProperty(ref _validationMessage, value);
@@ -232,11 +232,6 @@ namespace SunEyeVision.UI.ViewModels
         #endregion
 
         #region 事件
-
-        /// <summary>
-        /// 绑定变更事件
-        /// </summary>
-        public event EventHandler<ParameterBinding>? BindingChanged;
 
         /// <summary>
         /// 数据源选择请求事件
@@ -366,7 +361,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 获取当前绑定配置
         /// </summary>
-        public ParameterBinding GetBinding()
+        public override ParameterBinding GetBinding()
         {
             return _binding.Clone();
         }
@@ -376,7 +371,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void ApplyBinding()
         {
-            BindingChanged?.Invoke(this, _binding.Clone());
+            RaiseBindingChanged(_binding.Clone());
         }
 
         #endregion

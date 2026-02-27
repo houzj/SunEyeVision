@@ -67,14 +67,14 @@ public class CircleFindTool : ITool<CircleFindParams, CircleFindResult>
     public string Version => "1.0.0";
     public string Category => "鍑犱綍妫€娴?;
 
-    public CircleFindResult Execute(Mat image, CircleFindParams parameters)
+    public CircleFindResult Run(Mat image, CircleFindParams parameters)
     {
         // 实现算法逻辑
         return new CircleFindResult { /* ... */ };
     }
 
-    public Task<CircleFindResult> ExecuteAsync(Mat image, CircleFindParams parameters)
-        => Task.FromResult(Execute(image, parameters));
+    public Task<CircleFindResult> RunAsync(Mat image, CircleFindParams parameters)
+        => Task.FromResult(Run(image, parameters));
 
     public ValidationResult ValidateParameters(CircleFindParams parameters)
         => parameters.Validate();

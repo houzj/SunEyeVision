@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWPF>false</UseWPF>
+    <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>SunEyeVision.Plugin.SDK</RootNamespace>
     <AssemblyName>SunEyeVision.Plugin.SDK</AssemblyName>
@@ -13,13 +13,13 @@
 
     <!-- NuGet包配置 -->
     <PackageId>SunEyeVision.Plugin.SDK</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>SunEyeVision Team</Authors>
     <Company>SunEyeVision</Company>
     <Product>SunEyeVision Plugin SDK</Product>
-    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层，现代化架构，包含ITool、IToolPlugin等核心接口</Description>
+    <Description>SunEyeVision 插件开发SDK - 零依赖的纯契约层，现代化架构，包含ITool、IToolPlugin等核心接口，以及调试窗口基类和控件库</Description>
     <Copyright>Copyright (c) 2026 SunEyeVision</Copyright>
-    <PackageTags>vision;plugin;sdk;machine-vision;image-processing</PackageTags>
+    <PackageTags>vision;plugin;sdk;machine-vision;image-processing;wpf</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

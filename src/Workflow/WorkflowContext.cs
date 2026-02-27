@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Workflow
 {
@@ -187,8 +188,13 @@ namespace SunEyeVision.Workflow
     /// <summary>
     /// 工作流执行上下文
     /// </summary>
-    public class WorkflowContext
+    public class WorkflowContext : IRuntimeParameterProvider
     {
+        /// <summary>
+        /// 运行时参数存储
+        /// </summary>
+        private readonly Dictionary<string, object> _runtimeParameters = new();
+
         /// <summary>
         /// 工作流ID
         /// </summary>
@@ -473,6 +479,52 @@ namespace SunEyeVision.Workflow
 
             return stats;
         }
+
+        #region IRuntimeParameterProvider 实现
+
+        /// <summary>
+        /// 获取运行时参数值
+        /// </summary>
+        public T? GetRuntimeParameter<T>(string key)
+        {
+            if (_runtimeParameters.TryGetValue(key, out var value) && value is T typed)
+                return typed;
+            return default;
+        }
+
+        /// <summary>
+        /// 设置运行时参数值
+        /// </summary>
+        public void SetRuntimeParameter<T>(string key, T value)
+        {
+            _runtimeParameters[key] = value!;
+        }
+
+        /// <summary>
+        /// 检查运行时参数是否存在
+        /// </summary>
+        public bool HasRuntimeParameter(string key)
+        {
+            return _runtimeParameters.ContainsKey(key);
+        }
+
+        /// <summary>
+        /// 移除运行时参数
+        /// </summary>
+        public bool RemoveRuntimeParameter(string key)
+        {
+            return _runtimeParameters.Remove(key);
+        }
+
+        /// <summary>
+        /// 清除所有运行时参数
+        /// </summary>
+        public void ClearRuntimeParameters()
+        {
+            _runtimeParameters.Clear();
+        }
+
+        #endregion
     }
 
     /// <summary>

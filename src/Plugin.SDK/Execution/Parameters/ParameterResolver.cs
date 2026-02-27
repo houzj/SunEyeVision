@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,9 +18,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 支持功能：
     /// 1. 常量绑定解析
     /// 2. 动态绑定解析（从节点结果获取）
-    /// 3. 嵌套属性访问（如 Center.X）
-    /// 4. 简单表达式转换
-    /// 5. 类型转换
+    /// 3. 运行时注入解析（从运行时参数获取）
+    /// 4. 嵌套属性访问（如 Center.X）
+    /// 5. 简单表达式转换
+    /// 6. 类型转换
     /// </remarks>
     public class ParameterResolver : IParameterResolver
     {
@@ -33,6 +34,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 数据源查询服务（可选）
         /// </summary>
         private readonly IDataSourceQueryService? _dataQueryService;
+
+        /// <summary>
+        /// 运行时参数提供者（可选）
+        /// </summary>
+        private IRuntimeParameterProvider? _runtimeParameterProvider;
 
         /// <summary>
         /// 创建参数解析器
@@ -50,6 +56,15 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _dataQueryService = dataQueryService;
         }
 
+        /// <summary>
+        /// 设置运行时参数提供者
+        /// </summary>
+        /// <param name="provider">运行时参数提供者</param>
+        public void SetRuntimeParameterProvider(IRuntimeParameterProvider provider)
+        {
+            _runtimeParameterProvider = provider;
+        }
+
         /// <inheritdoc/>
         public ParameterResolveResult Resolve(
             ParameterBinding binding,
@@ -60,6 +75,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 BindingType.Constant => ResolveConstant(binding),
                 BindingType.DynamicBinding => ResolveDynamic(binding, nodeResults),
                 BindingType.Expression => ResolveExpression(binding, nodeResults),
+                BindingType.RuntimeInjection => ResolveRuntimeInjection(binding),
                 _ => ParameterResolveResult.Failure($"不支持的绑定类型: {binding.BindingType}")
             };
         }
@@ -239,6 +255,15 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                         }
                     }
                     break;
+
+                case BindingType.RuntimeInjection:
+                    // 检查运行时键是否有效
+                    if (string.IsNullOrWhiteSpace(binding.RuntimeSourceKey))
+                    {
+                        result.CanResolve = false;
+                        result.Errors.Add("运行时注入绑定必须指定 RuntimeSourceKey");
+                    }
+                    break;
             }
 
             return result;
@@ -338,6 +363,52 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             catch (Exception ex)
             {
                 return ParameterResolveResult.Failure($"表达式计算失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 解析运行时注入绑定
+        /// </summary>
+        private ParameterResolveResult ResolveRuntimeInjection(ParameterBinding binding)
+        {
+            if (string.IsNullOrEmpty(binding.RuntimeSourceKey))
+            {
+                return ParameterResolveResult.Failure("运行时注入绑定必须指定 RuntimeSourceKey");
+            }
+
+            if (_runtimeParameterProvider == null)
+            {
+                return ParameterResolveResult.Failure("未设置运行时参数提供者");
+            }
+
+            // 检查参数是否存在
+            if (!_runtimeParameterProvider.HasRuntimeParameter(binding.RuntimeSourceKey))
+            {
+                return ParameterResolveResult.Failure($"运行时参数 '{binding.RuntimeSourceKey}' 不存在");
+            }
+
+            try
+            {
+                // 获取运行时参数值
+                var value = _runtimeParameterProvider.GetRuntimeParameter<object>(binding.RuntimeSourceKey);
+
+                if (value == null)
+                {
+                    // null 值可能是合法的
+                    return ParameterResolveResult.Success(null, binding.TargetType);
+                }
+
+                // 应用转换表达式
+                if (!string.IsNullOrEmpty(binding.TransformExpression))
+                {
+                    value = EvaluateExpression(binding.TransformExpression!, value);
+                }
+
+                return ParameterResolveResult.Success(value, binding.TargetType);
+            }
+            catch (Exception ex)
+            {
+                return ParameterResolveResult.Failure($"获取运行时参数失败: {ex.Message}");
             }
         }
 

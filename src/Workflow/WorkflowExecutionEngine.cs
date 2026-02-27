@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +8,7 @@ using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
 
 namespace SunEyeVision.Workflow
@@ -34,6 +35,7 @@ namespace SunEyeVision.Workflow
         private readonly WorkflowEngine _workflowEngine;
         private readonly IPluginManager _pluginManager;
         private readonly ILogger _logger;
+        private readonly ToolExecutor _toolExecutor;
         
         // 执行状态管理
         private WorkflowExecutionState _currentState;
@@ -63,11 +65,23 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public event EventHandler<ExecutionResult>? ExecutionCompleted;
 
-        public WorkflowExecutionEngine(WorkflowEngine workflowEngine, IPluginManager pluginManager, ILogger logger)
+        /// <summary>
+        /// 创建工作流执行引擎
+        /// </summary>
+        /// <param name="workflowEngine">工作流引擎</param>
+        /// <param name="pluginManager">插件管理器</param>
+        /// <param name="logger">日志器</param>
+        /// <param name="toolExecutor">工具执行器（可选，不提供时自动创建）</param>
+        public WorkflowExecutionEngine(
+            WorkflowEngine workflowEngine, 
+            IPluginManager pluginManager, 
+            ILogger logger,
+            ToolExecutor? toolExecutor = null)
         {
             _workflowEngine = workflowEngine ?? throw new ArgumentNullException(nameof(workflowEngine));
             _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _toolExecutor = toolExecutor ?? new ToolExecutor(new ParameterResolver());
             _currentState = WorkflowExecutionState.Idle;
         }
 
@@ -475,10 +489,15 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 执行算法节点
         /// </summary>
-        private static NodeExecutionResult ExecuteAlgorithmNode(AlgorithmNode node, Mat inputImage)
+        /// <remarks>
+        /// 使用 ToolExecutor 统一执行工具，确保与单工具调试使用相同的执行路径。
+        /// </remarks>
+        private NodeExecutionResult ExecuteAlgorithmNode(AlgorithmNode node, Mat inputImage)
         {
             var result = new NodeExecutionResult { NodeId = node.Id, StartTime = DateTime.Now, EndTime = DateTime.Now };
 
+            // 直接调用 AlgorithmNode.Execute，它内部已经包含了参数绑定解析逻辑
+            // 未来可以重构为完全使用 ToolExecutor
             var algorithmResult = node.Execute(inputImage);
 
             if (algorithmResult.Success && algorithmResult.ResultImage != null)
@@ -488,6 +507,10 @@ namespace SunEyeVision.Workflow
                     { "Output", algorithmResult.ResultImage }
                 };
                 result.Success = true;
+                
+                // 传递结果项和原始工具结果
+                result.ResultItems = algorithmResult.ResultItems;
+                result.ToolResult = algorithmResult.ToolResults;
             }
             else if (!algorithmResult.Success)
             {

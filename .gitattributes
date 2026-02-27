@@ -1,39 +1,162 @@
 # Git Attributes - 文件编码和换行符配置
-# 确保所有文本文件使用 UTF-8 编码
+# SunEyeVision 项目 Git 属性配置
+# 版本: 2026.02
+#
+# 确保所有文本文件使用 UTF-8 编码，防止编码混乱
 
+#################################################
+# 基本设置
+#################################################
 # 自动检测文本文件并进行规范化
 * text=auto
 
-# C# 源代码强制 UTF-8
-*.cs text eol=crlf encoding=utf-8
+#################################################
+# C# 源代码 - 强制 UTF-8 BOM + CRLF
+#################################################
+*.cs text eol=crlf encoding=utf-8 diff=csharp
 
-# 项目文件强制 UTF-8
+#################################################
+# 项目和解决方案文件
+#################################################
 *.csproj text eol=crlf encoding=utf-8
-*.sln text eol=crlf encoding=utf-8
+*.sln text eol=crlf encoding=utf-8-sig
+*.vbproj text eol=crlf encoding=utf-8
+*.fsproj text eol=crlf encoding=utf-8
+*.props text eol=crlf encoding=utf-8
+*.targets text eol=crlf encoding=utf-8
 
-# XAML 文件
+#################################################
+# XAML 和 XML 文件
+#################################################
 *.xaml text eol=crlf encoding=utf-8
-
-# 配置文件
-*.json text eol=lf encoding=utf-8
+*.axaml text eol=crlf encoding=utf-8
 *.xml text eol=crlf encoding=utf-8
+*.resx text eol=crlf encoding=utf-8
 *.config text eol=crlf encoding=utf-8
 
-# 文档
+#################################################
+# JSON 文件
+#################################################
+*.json text eol=lf encoding=utf-8
+
+#################################################
+# Web 相关文件
+#################################################
+*.html text eol=lf encoding=utf-8
+*.css text eol=lf encoding=utf-8
+*.js text eol=lf encoding=utf-8
+*.ts text eol=lf encoding=utf-8
+*.vue text eol=lf encoding=utf-8
+
+#################################################
+# 文档文件
+#################################################
 *.md text eol=lf encoding=utf-8
+*.txt text eol=lf encoding=utf-8
+*.rst text eol=lf encoding=utf-8
 
-# 脚本
-*.ps1 text eol=lf encoding=utf-8
+#################################################
+# 脚本文件
+#################################################
+# PowerShell (Windows)
+*.ps1 text eol=crlf encoding=utf-8
+*.psm1 text eol=crlf encoding=utf-8
+*.psd1 text eol=crlf encoding=utf-8
+
+# Batch (Windows)
 *.bat text eol=crlf encoding=utf-8
+*.cmd text eol=crlf encoding=utf-8
 
+# Shell (Unix)
+*.sh text eol=lf encoding=utf-8
+*.bash text eol=lf encoding=utf-8
+
+# Python
+*.py text eol=lf encoding=utf-8
+*.pyw text eol=lf encoding=utf-8
+
+#################################################
+# YAML 文件
+#################################################
+*.yml text eol=lf encoding=utf-8
+*.yaml text eol=lf encoding=utf-8
+
+#################################################
+# 配置文件
+#################################################
+.editorconfig text eol=lf encoding=utf-8
+.gitattributes text eol=lf encoding=utf-8
+.gitignore text eol=lf encoding=utf-8
+.gitmodules text eol=lf encoding=utf-8
+
+#################################################
+# NuGet 相关
+#################################################
+*.nuspec text eol=lf encoding=utf-8
+nuget.config text eol=lf encoding=utf-8
+
+#################################################
+# Docker 相关
+#################################################
+Dockerfile text eol=lf encoding=utf-8
+docker-compose.yml text eol=lf encoding=utf-8
+.dockerignore text eol=lf encoding=utf-8
+
+#################################################
 # 二进制文件（不转换）
+#################################################
+# 图像文件
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
+*.bmp binary
 *.ico binary
+*.svg binary
+*.webp binary
+
+# 编译输出
 *.dll binary
 *.exe binary
+*.pdb binary
+*.ilk binary
+*.lib binary
+*.obj binary
+*.o binary
+*.a binary
+*.so binary
+*.dylib binary
+
+# NuGet 包
 *.nupkg binary
+*.snupkg binary
+
+# 签名和证书
 *.snk binary
 *.pfx binary
+*.cer binary
+*.crt binary
+*.key binary
+
+# 压缩文件
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+
+# 数据库文件
+*.mdf binary
+*.ldf binary
+*.sdf binary
+*.db binary
+*.sqlite binary
+
+# 其他二进制
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary

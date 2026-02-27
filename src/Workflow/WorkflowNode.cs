@@ -88,9 +88,9 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 创建算法实例（的初始化处理方法）
+        /// 创建工具实例（的初始化处理方法）
         /// </summary>
-        public virtual IImageProcessor CreateInstance()
+        public virtual ITool? CreateInstance()
         {
             throw new NotImplementedException($"Algorithm type '{AlgorithmType}' is not implemented.");
         }

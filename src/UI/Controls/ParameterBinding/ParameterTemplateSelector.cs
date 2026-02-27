@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using SunEyeVision.UI.Services.ParameterBinding;
 using SunEyeVision.UI.ViewModels;
 
 namespace SunEyeVision.UI.Controls.ParameterBinding
@@ -10,10 +11,26 @@ namespace SunEyeVision.UI.Controls.ParameterBinding
     /// </summary>
     /// <remarks>
     /// 根据参数类型选择合适的数据模板。
-    /// 支持常见类型：int, double, string, bool, enum, Point, Size 等。
+    /// 支持常见类型：int, double, string, bool, enum, Point, Size, Mat（图像）等。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// &lt;local:ParameterTemplateSelector x:Key="ParameterTemplateSelector"&gt;
+    ///     &lt;local:ParameterTemplateSelector.ImageTemplate&gt;
+    ///         &lt;DataTemplate&gt;
+    ///             &lt;local:ImageParameterBindingControl ViewModel="{Binding}"/&gt;
+    ///         &lt;/DataTemplate&gt;
+    ///     &lt;/local:ParameterTemplateSelector.ImageTemplate&gt;
+    /// &lt;/local:ParameterTemplateSelector&gt;
+    /// </code>
     /// </remarks>
     public class ParameterTemplateSelector : DataTemplateSelector
     {
+        /// <summary>
+        /// 图像类型模板（Mat, Bitmap, BitmapSource等）
+        /// </summary>
+        public DataTemplate? ImageTemplate { get; set; }
+
         /// <summary>
         /// 整数类型模板
         /// </summary>
@@ -77,6 +94,12 @@ namespace SunEyeVision.UI.Controls.ParameterBinding
             if (item is ParameterBindingViewModel viewModel)
             {
                 var type = viewModel.ParameterType;
+
+                // 图像类型（优先级最高）
+                if (ImageDataSourceService.IsImageType(type))
+                {
+                    return ImageTemplate ?? DefaultTemplate;
+                }
 
                 // 整数类型
                 if (type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte))

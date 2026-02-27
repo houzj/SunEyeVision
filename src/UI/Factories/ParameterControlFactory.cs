@@ -3,10 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.UI.Factories;
-
-using ParameterMetadata = SunEyeVision.Plugin.SDK.Metadata.ParameterMetadata;
-using ParameterType = SunEyeVision.Plugin.SDK.Metadata.ParameterType;
+using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.UI.Factories
 {
@@ -24,38 +21,38 @@ namespace SunEyeVision.UI.Factories
         {
             switch (metadata.Type)
             {
-                case ParameterType.Int:
-                case ParameterType.Double:
+                case ParamDataType.Int:
+                case ParamDataType.Double:
                     return CreateNumericControl(metadata);
 
-                case ParameterType.Bool:
+                case ParamDataType.Bool:
                     return CreateBoolControl(metadata);
 
-                case ParameterType.Enum:
+                case ParamDataType.Enum:
                     return CreateEnumControl(metadata);
 
-                case ParameterType.Color:
+                case ParamDataType.Color:
                     return CreateColorControl(metadata);
 
-                case ParameterType.Image:
+                case ParamDataType.Image:
                     return CreateImageControl(metadata);
 
-                case ParameterType.FilePath:
+                case ParamDataType.FilePath:
                     return CreateFilePathControl(metadata);
 
-                case ParameterType.String:
+                case ParamDataType.String:
                     return CreateStringControl(metadata);
 
-                case ParameterType.Point:
+                case ParamDataType.Point:
                     return CreatePointControl(metadata);
 
-                case ParameterType.Size:
+                case ParamDataType.Size:
                     return CreateSizeControl(metadata);
 
-                case ParameterType.Rect:
+                case ParamDataType.Rect:
                     return CreateRectControl(metadata);
 
-                case ParameterType.List:
+                case ParamDataType.List:
                     return CreateListControl(metadata);
 
                 default:

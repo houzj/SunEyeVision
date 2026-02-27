@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Workflow;
@@ -24,11 +26,21 @@ namespace SunEyeVision.UI.Services.Workflow
         private readonly object _lock = new object();
         private SynchronizationContext? _synchronizationContext;
 
+        /// <summary>
+        /// 当前运行时参数（从 MainWindowViewModel 设置）
+        /// </summary>
+        private Dictionary<string, object> _runtimeParameters = new();
+
         public event EventHandler<WorkflowExecutionEventArgs>? WorkflowExecutionStarted;
         public event EventHandler<WorkflowExecutionEventArgs>? WorkflowExecutionCompleted;
         public event EventHandler<WorkflowExecutionEventArgs>? WorkflowExecutionStopped;
         public event EventHandler<WorkflowExecutionEventArgs>? WorkflowExecutionError;
         public event EventHandler<WorkflowExecutionProgressEventArgs>? WorkflowExecutionProgress;
+
+        /// <summary>
+        /// 节点执行完成事件
+        /// </summary>
+        public event EventHandler<NodeExecutionResultEventArgs>? NodeExecutionCompleted;
 
         public WorkflowExecutionManager(IInputProvider inputProvider)
         {
@@ -36,6 +48,23 @@ namespace SunEyeVision.UI.Services.Workflow
             _cancellationTokens = new Dictionary<string, CancellationTokenSource>();
             _runningTasks = new Dictionary<string, Task>();
             _synchronizationContext = SynchronizationContext.Current;
+        }
+
+        /// <summary>
+        /// 设置运行时参数
+        /// </summary>
+        /// <param name="parameters">运行时参数字典</param>
+        public void SetRuntimeParameters(Dictionary<string, object> parameters)
+        {
+            _runtimeParameters = parameters ?? new Dictionary<string, object>();
+        }
+
+        /// <summary>
+        /// 获取运行时参数
+        /// </summary>
+        public Dictionary<string, object> GetRuntimeParameters()
+        {
+            return new Dictionary<string, object>(_runtimeParameters);
         }
 
         /// <summary>
@@ -249,11 +278,17 @@ namespace SunEyeVision.UI.Services.Workflow
                 };
 
                 InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建工作流引擎...")));
-                var (workflowEngine, executionEngine, context) = WorkflowEngineFactory.CreateEngineSuite(logger);
+                var (workflowEngine, executionEngine, pluginManager) = WorkflowEngineFactory.CreateEngineSuite(logger);
 
                 // 创建工作流
                 var suneyeWorkflow = workflowEngine.CreateWorkflow(workflow.Name, workflow.Name);
                 InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 工作流已创建, ID: {suneyeWorkflow.Id}")));
+
+                // 记录运行时参数
+                foreach (var param in _runtimeParameters)
+                {
+                    logger.LogInfo($"运行时参数: {param.Key} = {param.Value}");
+                }
 
                 // 从UI节点创建AlgorithmNode
                 InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[EXEC] 正在添加节点 (总数: {workflow.WorkflowNodes.Count})...")));
@@ -294,6 +329,21 @@ namespace SunEyeVision.UI.Services.Workflow
                 logger.LogInfo($"执行结果: {(result.Success ? "成功" : "失败")}");
                 logger.LogInfo($"执行时间: {result.ExecutionTime.TotalMilliseconds:F2} ms");
 
+                // 触发节点执行结果事件
+                if (result.NodeResults != null && result.NodeResults.Count > 0)
+                {
+                    foreach (var nodeResult in result.NodeResults)
+                    {
+                        var node = workflow.WorkflowNodes.FirstOrDefault(n => n.Id == nodeResult.Key);
+                        if (node != null)
+                        {
+                            // 创建一个包含结果的 ToolResults
+                            var toolResults = CreateToolResultsFromNodeResult(nodeResult.Value);
+                            OnNodeExecutionCompleted(node, toolResults);
+                        }
+                    }
+                }
+
                 if (!result.Success && result.Errors.Any())
                 {
                     InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, $"[ERROR] 工作流执行失败，错误数量: {result.Errors.Count}")));
@@ -328,7 +378,9 @@ namespace SunEyeVision.UI.Services.Workflow
         /// <summary>
         /// 从UI节点创建AlgorithmNode
         /// </summary>
-        private SunEyeVision.Workflow.AlgorithmNode? CreateAlgorithmNodeFromUiNode(Models.WorkflowNode uiNode, SunEyeVision.Core.Interfaces.ILogger logger)
+        private SunEyeVision.Workflow.AlgorithmNode? CreateAlgorithmNodeFromUiNode(
+            Models.WorkflowNode uiNode, 
+            SunEyeVision.Core.Interfaces.ILogger logger)
         {
             try
             {
@@ -345,18 +397,25 @@ namespace SunEyeVision.UI.Services.Workflow
                 if (node != null)
                 {
                     logger.LogInfo($"通过WorkflowNodeFactory创建节点: {uiNode.Name} (ToolId: {toolId})");
+
+                    // ★ 为图像源节点注入运行时参数
+                    if (IsImageSourceNode(toolId))
+                    {
+                        // 获取运行时图像路径
+                        if (_runtimeParameters.TryGetValue("CurrentImagePath", out var imagePath) && imagePath is string path && !string.IsNullOrEmpty(path))
+                        {
+                            node.Parameters.Set("FilePath", path);
+                            logger.LogInfo($"★ 注入图像路径到节点 {uiNode.Name}: {path}");
+                        }
+                    }
+
                     return node;
                 }
                 else
                 {
-                    // 工具不存在，使用测试处理器
-                    logger.LogWarning($"工具不存在: {toolId}, 使用测试处理器");
-                    var processor = new TestImageProcessor(toolId);
-                    return new SunEyeVision.Workflow.AlgorithmNode(
-                        uiNode.Id,
-                        uiNode.Name,
-                        processor
-                    );
+                    // 工具不存在
+                    logger.LogError($"工具不存在: {toolId}");
+                    return null;
                 }
             }
             catch (Exception ex)
@@ -364,6 +423,22 @@ namespace SunEyeVision.UI.Services.Workflow
                 logger.LogError($"创建AlgorithmNode失败: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 判断是否为图像源节点
+        /// </summary>
+        private bool IsImageSourceNode(string toolId)
+        {
+            if (string.IsNullOrEmpty(toolId)) return false;
+            
+            var lowerToolId = toolId.ToLowerInvariant();
+            return lowerToolId.Contains("imageload") ||
+                   lowerToolId.Contains("image_load") ||
+                   lowerToolId.Contains("imagecapture") ||
+                   lowerToolId.Contains("image_capture") ||
+                   lowerToolId.Contains("image_acquire") ||
+                   lowerToolId == "image_source";
         }
 
         private void OnWorkflowExecutionStarted(string workflowId)
@@ -384,6 +459,65 @@ namespace SunEyeVision.UI.Services.Workflow
         private void OnWorkflowExecutionError(string workflowId, string errorMessage)
         {
             InvokeOnUI(() => WorkflowExecutionError?.Invoke(this, new WorkflowExecutionEventArgs(workflowId, errorMessage)));
+        }
+
+        /// <summary>
+        /// 触发节点执行完成事件
+        /// </summary>
+        private void OnNodeExecutionCompleted(Models.WorkflowNode node, ToolResults result)
+        {
+            InvokeOnUI(() => NodeExecutionCompleted?.Invoke(this, new NodeExecutionResultEventArgs(node, result)));
+        }
+
+        /// <summary>
+        /// 从节点执行结果创建 ToolResults
+        /// </summary>
+        private ToolResults CreateToolResultsFromNodeResult(NodeExecutionResult nodeResult)
+        {
+            // 优先使用原始工具结果
+            if (nodeResult.ToolResult != null)
+            {
+                return nodeResult.ToolResult;
+            }
+
+            var results = new GenericToolResults
+            {
+                Status = nodeResult.Success ? ExecutionStatus.Success : ExecutionStatus.Failed,
+                ExecutionTimeMs = (long)(nodeResult.Duration?.TotalMilliseconds ?? 0),
+                Timestamp = DateTime.Now
+            };
+
+            // 优先使用结果项
+            if (nodeResult.ResultItems != null && nodeResult.ResultItems.Count > 0)
+            {
+                foreach (var item in nodeResult.ResultItems)
+                {
+                    results.AddResultItem(item.Name, item.Value, item.Type);
+                }
+            }
+            // 如果没有结果项，使用输出数据
+            else if (nodeResult.Outputs != null)
+            {
+                foreach (var output in nodeResult.Outputs)
+                {
+                    results.AddResultItem(output.Key, output.Value, ResultItemType.Object);
+                }
+            }
+
+            // 添加错误消息
+            if (nodeResult.ErrorMessages != null)
+            {
+                foreach (var error in nodeResult.ErrorMessages)
+                {
+                    results.AddWarning(error);
+                }
+                if (nodeResult.ErrorMessages.Count > 0)
+                {
+                    results.ErrorMessage = string.Join("; ", nodeResult.ErrorMessages);
+                }
+            }
+
+            return results;
         }
 
         private void InvokeOnUI(Action action)
@@ -458,59 +592,6 @@ namespace SunEyeVision.UI.Services.Workflow
     }
 
     /// <summary>
-    /// 测试图像处理器
-    /// </summary>
-    public class TestImageProcessor : SunEyeVision.Plugin.SDK.Core.IImageProcessor
-    {
-        private readonly string _algorithmType;
-
-        public TestImageProcessor(string algorithmType)
-        {
-            _algorithmType = algorithmType;
-        }
-
-        public string Name => $"Test_{_algorithmType}";
-
-        public string Description => $"{_algorithmType} 测试处理器";
-
-        public OpenCvSharp.Mat Process(OpenCvSharp.Mat input)
-        {
-            Console.WriteLine($"[TestImageProcessor] 处理 {_algorithmType}");
-            Console.WriteLine($"[TestImageProcessor] 输入: {input?.Width}x{input?.Height}");
-
-            // 模拟不同算法的处理时间
-            var delay = _algorithmType switch
-            {
-                "image_capture" => 10,
-                "gaussian_blur" => 20,
-                "edge_detection" => 30,
-                "gray_scale" => 15,
-                "threshold" => 10,
-                "morphology" => 25,
-                _ => 10
-            };
-
-            Console.WriteLine($"[TestImageProcessor] 模拟处理延迟 {delay}ms");
-            System.Threading.Thread.Sleep(delay);
-
-            Console.WriteLine($"[TestImageProcessor] 完成");
-            return input;
-        }
-
-        public OpenCvSharp.Mat Process(OpenCvSharp.Mat input, OpenCvSharp.Rect roi)
-        {
-            Console.WriteLine($"[TestImageProcessor] 处理 {_algorithmType} (ROI: {roi})");
-            return Process(input);
-        }
-
-        public OpenCvSharp.Mat Process(OpenCvSharp.Mat input, OpenCvSharp.Point2f center, float radius)
-        {
-            Console.WriteLine($"[TestImageProcessor] 处理 {_algorithmType} (圆形ROI: center={center}, radius={radius})");
-            return Process(input);
-        }
-    }
-
-    /// <summary>
     /// 工作流执行事件参数
     /// </summary>
     public class WorkflowExecutionEventArgs : EventArgs
@@ -540,6 +621,34 @@ namespace SunEyeVision.UI.Services.Workflow
         {
             WorkflowId = workflowId;
             Message = message;
+            Timestamp = DateTime.Now;
+        }
+    }
+
+    /// <summary>
+    /// 节点执行结果事件参数
+    /// </summary>
+    public class NodeExecutionResultEventArgs : EventArgs
+    {
+        /// <summary>
+        /// UI 节点模型
+        /// </summary>
+        public Models.WorkflowNode Node { get; }
+
+        /// <summary>
+        /// 执行结果
+        /// </summary>
+        public ToolResults Result { get; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        public DateTime Timestamp { get; }
+
+        public NodeExecutionResultEventArgs(Models.WorkflowNode node, ToolResults result)
+        {
+            Node = node;
+            Result = result;
             Timestamp = DateTime.Now;
         }
     }

@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Media.Imaging;
 using SunEyeVision.Core.IO;
@@ -17,6 +18,15 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
         private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(4, 4);
         private static int _waitingCount = 0;
         private static int _decodingCount = 0;
+        
+        // RPC失败计数器 - 用于自动降级
+        private static int _rpcFailureCount = 0;
+        private const int MAX_RPC_FAILURES = 3;
+        private static bool _rpcDisabled = false;
+        
+        // RPC_S_SERVER_UNAVAILABLE = 0x000006BA = 1722
+        private const int RPC_S_SERVER_UNAVAILABLE = 1722;
+        private const int HRESULT_RPC_UNAVAILABLE = unchecked((int)0x800706BA);
         
         private bool _isInitialized;
 
@@ -178,29 +188,78 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
                         : "";
 
                     var decodeSw = Stopwatch.StartNew();
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.DecodePixelWidth = size;
-                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-
-                    MemoryStream? decodeStream = null;
+                    
+                    // 检查RPC是否已被禁用
+                    if (_rpcDisabled)
+                    {
+                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
+                    }
+                    
+                    BitmapImage? bitmap = null;
+                    bool rpcFailed = false;
+                    
                     try
                     {
-                        decodeStream = new MemoryStream(imageBytes);
-                        bitmap.StreamSource = decodeStream;
-                        bitmap.Rotation = Rotation.Rotate0;
-                        bitmap.EndInit();
+                        bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.DecodePixelWidth = size;
+                        bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+
+                        MemoryStream? decodeStream = null;
+                        try
+                        {
+                            decodeStream = new MemoryStream(imageBytes);
+                            bitmap.StreamSource = decodeStream;
+                            bitmap.Rotation = Rotation.Rotate0;
+                            bitmap.EndInit();
+                        }
+                        finally
+                        {
+                            decodeStream?.Dispose();
+                        }
                     }
-                    finally
+                    catch (COMException comEx) when (comEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || 
+                                                      (comEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
                     {
-                        decodeStream?.Dispose();
+                        // RPC服务器不可用 - 记录失败并降级
+                        rpcFailed = true;
+                        int failures = System.Threading.Interlocked.Increment(ref _rpcFailureCount);
+                        Debug.WriteLine($"[WicGpu] RPC不可用，降级CPU解码 | 失败次数:{failures} | file={System.IO.Path.GetFileName(filePath)}");
+                        
+                        if (failures >= MAX_RPC_FAILURES)
+                        {
+                            _rpcDisabled = true;
+                            Debug.WriteLine($"[WicGpu] ⚠️ RPC连续失败{failures}次，已禁用GPU解码");
+                        }
+                        
+                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
                     }
+                    catch (Exception ex) when (ex.Message.Contains("RPC") || ex.Message.Contains("服务器不可用"))
+                    {
+                        // 其他可能的RPC相关异常
+                        rpcFailed = true;
+                        Debug.WriteLine($"[WicGpu] RPC相关异常: {ex.Message} | 降级CPU解码 | file={System.IO.Path.GetFileName(filePath)}");
+                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
+                    }
+                    
                     decodeSw.Stop();
 
                     var freezeSw = Stopwatch.StartNew();
-                    bitmap.Freeze();
+                    
+                    try
+                    {
+                        bitmap?.Freeze();
+                    }
+                    catch (COMException comEx) when (comEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || 
+                                                      (comEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
+                    {
+                        // Freeze时的RPC异常
+                        Debug.WriteLine($"[WicGpu] Freeze时RPC异常，降级CPU解码 | file={System.IO.Path.GetFileName(filePath)}");
+                        return DecodeWithCpu(filePath, size, prefetchedData, totalSw);
+                    }
+                    
                     freezeSw.Stop();
 
                     totalSw.Stop();

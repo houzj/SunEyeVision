@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using OpenCvSharp;
 using SunEyeVision.Core.Events;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Workflow
 {
@@ -148,8 +149,27 @@ namespace SunEyeVision.Workflow
             {
                 _eventPublisher.PublishNodeExecutionStarted(Id, node.Id, node.Name);
 
-                var algorithm = node.CreateInstance();
-                var resultImage = algorithm.Process(inputImage) as Mat;
+                var tool = node.CreateInstance();
+                Mat? resultImage = null;
+                
+                if (tool != null)
+                {
+                    // 使用反射创建默认参数实例
+                    var defaultParams = (ToolParameters?)Activator.CreateInstance(tool.ParamsType) 
+                        ?? new GenericToolParameters();
+                    var toolResult = tool.Run(inputImage, defaultParams);
+                    
+                    // 从结果中获取输出图像
+                    var resultItems = toolResult.GetResultItems();
+                    foreach (var item in resultItems)
+                    {
+                        if (item.Value is Mat mat)
+                        {
+                            resultImage = mat;
+                            break;
+                        }
+                    }
+                }
 
                 stopwatch.Stop();
                 _eventPublisher.PublishNodeExecuted(Id, node.Id, node.Name, node.AlgorithmType, success, stopwatch.ElapsedMilliseconds);

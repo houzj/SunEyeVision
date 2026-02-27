@@ -1,7 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 
@@ -15,7 +20,7 @@ namespace SunEyeVision.Tool.ColorConvert
     {
         #region 插件基本信息
         public string Name => "颜色空间转换";
-        public string Version => "1.0.0";
+        public string Version => "2.0.0";
         public string Author => "SunEyeVision";
         public string Description => "转换图像颜色空间";
         public string PluginId => "suneye.color_convert";
@@ -30,7 +35,7 @@ namespace SunEyeVision.Tool.ColorConvert
         #endregion
 
         #region 工具管理
-        public List<Type> GetAlgorithmNodes() => new List<Type> { typeof(ColorConvertAlgorithm) };
+        public List<Type> GetAlgorithmNodes() => new List<Type>();
 
         public List<ToolMetadata> GetToolMetadata()
         {
@@ -44,116 +49,136 @@ namespace SunEyeVision.Tool.ColorConvert
                     Icon = "🎨",
                     Category = "图像处理",
                     Description = "转换图像颜色空间",
-                    AlgorithmType = typeof(ColorConvertAlgorithm),
-                    Version = "1.0.0",
-                    Author = "SunEyeVision",
-                    HasDebugInterface = true,
+                    Version = Version,
+                    Author = Author,
                     InputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata
                         {
-                            Name = "targetColorSpace",
+                            Name = "TargetColorSpace",
                             DisplayName = "目标颜色空间",
                             Description = "要转换到的颜色空间",
-                            Type = ParameterType.Enum,
+                            Type = ParamDataType.Enum,
                             DefaultValue = "GRAY",
                             Options = new object[] { "GRAY", "RGB", "HSV", "Lab", "XYZ", "YCrCb" },
                             Required = true,
                             Category = "基本参数"
-                        },
-                        new ParameterMetadata
-                        {
-                            Name = "sourceColorSpace",
-                            DisplayName = "源颜色空间",
-                            Description = "源图像的颜色空间",
-                            Type = ParameterType.Enum,
-                            DefaultValue = "BGR",
-                            Options = new object[] { "BGR", "RGB", "GRAY", "HSV", "Lab" },
-                            Required = false,
-                            Category = "高级参数"
-                        },
-                        new ParameterMetadata
-                        {
-                            Name = "channels",
-                            DisplayName = "输出通道数",
-                            Description = "保留的通道数(仅对某些转换有效)",
-                            Type = ParameterType.Int,
-                            DefaultValue = 0,
-                            MinValue = 0,
-                            MaxValue = 4,
-                            Required = false,
-                            Category = "高级参数"
                         }
                     },
                     OutputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata
                         {
-                            Name = "outputImage",
+                            Name = "OutputImage",
                             DisplayName = "输出图像",
                             Description = "转换后的图像",
-                            Type = ParameterType.Image
-                        },
-                        new ParameterMetadata
-                        {
-                            Name = "channelCount",
-                            DisplayName = "通道数",
-                            Description = "输出图像的通道数",
-                            Type = ParameterType.Int
+                            Type = ParamDataType.Image
                         }
                     }
                 }
             };
         }
 
-        public IImageProcessor CreateToolInstance(string toolId) => new ColorConvertAlgorithm();
+        public ITool? CreateToolInstance(string toolId) => 
+            toolId == "color_convert" ? new ColorConvertTool() : null;
 
         public AlgorithmParameters GetDefaultParameters(string toolId)
         {
             var parameters = new AlgorithmParameters();
-            parameters.Set("targetColorSpace", "GRAY");
-            parameters.Set("sourceColorSpace", "BGR");
-            parameters.Set("channels", 0);
+            parameters.Set("TargetColorSpace", "GRAY");
             return parameters;
         }
 
-        public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
-        {
-            var result = new ValidationResult();
-            var channels = parameters.Get<int>("channels");
-            if (channels != null && channels > 4)
-            {
-                result.AddError("通道数不能超过4");
-            }
-            result.IsValid = result.Errors.Count == 0;
-            return result;
-        }
+        public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters) => new ValidationResult();
         #endregion
     }
 
-    /// <summary>
-    /// 颜色空间转换算法实现
-    /// </summary>
-    public class ColorConvertAlgorithm : ImageProcessorBase
+    #region 参数和结果定义
+
+    public class ColorConvertParameters : ToolParameters
     {
-        public override string Name => "颜色空间转换";
-        public override string Description => "转换图像颜色空间";
+        public string TargetColorSpace { get; set; } = "GRAY";
 
-        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
+        public override ValidationResult Validate()
         {
-            var targetColorSpace = GetParameter(parameters, "targetColorSpace", "GRAY");
-            var sourceColorSpace = GetParameter(parameters, "sourceColorSpace", "BGR");
-            var channels = GetParameter(parameters, "channels", 0);
-
-            // TODO: 实际图像处理逻辑
-
-            return ImageProcessResult.FromData(new
-            {
-                TargetColorSpace = targetColorSpace,
-                SourceColorSpace = sourceColorSpace,
-                Channels = channels,
-                ProcessedAt = DateTime.Now
-            });
+            var result = new ValidationResult();
+            var validSpaces = new[] { "GRAY", "RGB", "HSV", "Lab", "XYZ", "YCrCb" };
+            if (Array.IndexOf(validSpaces, TargetColorSpace) < 0)
+                result.AddError($"不支持的颜色空间: {TargetColorSpace}");
+            return result;
         }
     }
+
+    public class ColorConvertResults : ToolResults
+    {
+        public Mat? OutputImage { get; set; }
+        public string TargetColorSpaceUsed { get; set; } = "";
+        public int OutputChannels { get; set; }
+    }
+
+    #endregion
+
+    #region 工具实现
+
+    public class ColorConvertTool : ITool<ColorConvertParameters, ColorConvertResults>
+    {
+        public string Name => "颜色空间转换";
+        public string Description => "转换图像颜色空间";
+        public string Version => "2.0.0";
+        public string Category => "图像处理";
+
+        public ColorConvertResults Run(Mat image, ColorConvertParameters parameters)
+        {
+            var result = new ColorConvertResults();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                if (image == null || image.Empty())
+                {
+                    result.SetError("输入图像为空");
+                    return result;
+                }
+
+                var outputImage = new Mat();
+                var colorCode = GetColorConversionCode(parameters.TargetColorSpace, image.Channels());
+                Cv2.CvtColor(image, outputImage, colorCode);
+
+                result.OutputImage = outputImage;
+                result.TargetColorSpaceUsed = parameters.TargetColorSpace;
+                result.OutputChannels = outputImage.Channels();
+                result.SetSuccess(stopwatch.ElapsedMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                result.SetError($"处理失败: {ex.Message}");
+            }
+
+            return result;
+        }
+
+        public Task<ColorConvertResults> RunAsync(Mat image, ColorConvertParameters parameters)
+        {
+            return Task.Run(() => Run(image, parameters));
+        }
+
+        private ColorConversionCodes GetColorConversionCode(string targetSpace, int inputChannels)
+        {
+            return targetSpace.ToUpper() switch
+            {
+                "GRAY" => inputChannels == 4 ? ColorConversionCodes.BGRA2GRAY : ColorConversionCodes.BGR2GRAY,
+                "RGB" => inputChannels == 4 ? ColorConversionCodes.BGRA2RGB : ColorConversionCodes.BGR2RGB,
+                "HSV" => ColorConversionCodes.BGR2HSV,
+                "LAB" => ColorConversionCodes.BGR2Lab,
+                "XYZ" => ColorConversionCodes.BGR2XYZ,
+                "YCRCB" => ColorConversionCodes.BGR2YCrCb,
+                _ => ColorConversionCodes.BGR2GRAY
+            };
+        }
+
+        public ValidationResult ValidateParameters(ColorConvertParameters parameters) => parameters.Validate();
+        public ColorConvertParameters GetDefaultParameters() => new ColorConvertParameters();
+    }
+
+    #endregion
 }

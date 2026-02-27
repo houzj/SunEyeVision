@@ -473,35 +473,35 @@ namespace SunEyeVision.UI.Views.Windows
             {
                 switch (param.Type)
                 {
-                    case ParameterType.Int:
+                    case ParamDataType.Int:
                         if (control is TextBox textBox)
                         {
                             return int.TryParse(textBox.Text, out var intVal) ? intVal : (int?)null;
                         }
                         break;
 
-                    case ParameterType.Double:
+                    case ParamDataType.Double:
                         if (control is TextBox textBoxDbl)
                         {
                             return double.TryParse(textBoxDbl.Text, out var dblVal) ? dblVal : (double?)null;
                         }
                         break;
 
-                    case ParameterType.Bool:
+                    case ParamDataType.Bool:
                         if (control is CheckBox checkBox)
                         {
                             return checkBox.IsChecked;
                         }
                         break;
 
-                    case ParameterType.Enum:
+                    case ParamDataType.Enum:
                         if (control is ComboBox comboBox)
                         {
                             return comboBox.SelectedItem?.ToString();
                         }
                         break;
 
-                    case ParameterType.String:
+                    case ParamDataType.String:
                         if (control is TextBox textBoxStr)
                         {
                             return textBoxStr.Text;

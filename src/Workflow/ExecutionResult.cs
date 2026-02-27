@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 
 namespace SunEyeVision.Workflow
 {
@@ -145,6 +146,16 @@ namespace SunEyeVision.Workflow
         /// 错误消息
         /// </summary>
         public List<string> ErrorMessages { get; set; }
+
+        /// <summary>
+        /// 结果项列表（从工具结果传递）
+        /// </summary>
+        public IReadOnlyList<ResultItem>? ResultItems { get; set; }
+
+        /// <summary>
+        /// 原始工具结果引用（用于保留完整结果信息）
+        /// </summary>
+        public ToolResults? ToolResult { get; set; }
 
         public NodeExecutionResult()
         {

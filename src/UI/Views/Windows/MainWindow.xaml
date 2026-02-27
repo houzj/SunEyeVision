@@ -936,8 +936,7 @@
                                                              AutoSwitchEnabled="{Binding ActiveNodeImageData.AutoSwitchEnabled, Mode=TwoWay}"
                                                              CurrentImageIndex="{Binding ActiveNodeImageData.CurrentImageIndex, Mode=TwoWay}"
                                                              ImageCollection="{Binding ActiveNodeImageData.ImageCollection}"
-                                                             ImageRunMode="{Binding ActiveNodeImageData.ImageRunMode, Mode=TwoWay}"
-                                                             WorkflowExecutionRequested="OnWorkflowExecutionRequested"/>
+                                                             ImageRunMode="{Binding ActiveNodeImageData.ImageRunMode, Mode=TwoWay}"/>
                             </Border>
                         </Grid>
                     </Border>

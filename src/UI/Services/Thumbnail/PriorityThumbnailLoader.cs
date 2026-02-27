@@ -523,7 +523,15 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     stepSw.Restart();
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        imageCollection[0].Thumbnail = thumbnail;
+                        // ?修复：竞态条件防护 - 异步执行时集合可能已变化
+                        if (imageCollection.Count > 0)
+                        {
+                            imageCollection[0].Thumbnail = thumbnail;
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"[PriorityLoader] ⚠️ Critical加载时集合已清空 | file={firstFileName}");
+                        }
                     }, DispatcherPriority.Normal);
                     stepSw.Stop();
                     uiUpdateMs = stepSw.ElapsedMilliseconds;
@@ -561,19 +569,24 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
 
             // 第一批：可视区域剩余部分（High）从index=1开始
-            for (int i = 1; i < visibleCount; i++)
+            // ?修复：使用loadCount而非visibleCount，防止fileNames越界
+            for (int i = 1; i < loadCount; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.High);
             }
 
             // 第二批：缓冲区域（Medium）预加载边框
-            for (int i = visibleCount; i < visibleCount + bufferSize && i < fileNames.Length; i++)
+            // ?修复：添加fileNames边界检查
+            int bufferEnd = Math.Min(visibleCount + bufferSize, fileNames.Length);
+            for (int i = visibleCount; i < bufferEnd; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.Medium);
             }
 
             // 第三批：预测区域（Low）后台预加载
-            for (int i = visibleCount + bufferSize; i < totalEnqueueCount; i++)
+            // ?修复：添加fileNames边界检查
+            int prefetchEnd = Math.Min(totalEnqueueCount, fileNames.Length);
+            for (int i = visibleCount + bufferSize; i < prefetchEnd; i++)
             {
                 EnqueueLoadTask(i, fileNames[i], LoadPriority.Low);
             }
@@ -643,9 +656,12 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
             // ?P2优化：根据缓冲区域入队任务?
             // 活跃区域（可视范围）- High/Critical优先?
+            // ?修复：使用实际集合数量进行边界检查，防止竞态条件
+            int actualCount = _imageCollection?.Count ?? 0;
             for (int i = firstVisible; i <= lastVisible; i++)
             {
-                if (i >= 0 && i < totalCount)
+                // ?修复：使用actualCount而非totalCount，且添加双重检查
+                if (i >= 0 && i < actualCount && i < _imageCollection.Count)
                 {
                     var filePath = _imageCollection[i].FilePath;
                     var priority = i == firstVisible ? LoadPriority.Critical : LoadPriority.High;
@@ -658,11 +674,12 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
             // 预加载区域?- Medium优先?
             // 根据滚动方向优先预加载一?
+            // ?修复：使用actualCount而非totalCount
             if (_scrollDirection >= 0) // 向右滚动或静态?
             {
-                for (int i = _prefetchZoneRight.start; i <= _prefetchZoneRight.end && i < totalCount; i++)
+                for (int i = _prefetchZoneRight.start; i <= _prefetchZoneRight.end && i < actualCount; i++)
                 {
-                    if (i >= 0)
+                    if (i >= 0 && i < _imageCollection.Count)
                     {
                         var filePath = _imageCollection[i].FilePath;
                         EnqueueLoadTask(i, filePath, LoadPriority.Medium);
@@ -671,9 +688,9 @@ namespace SunEyeVision.UI.Services.Thumbnail
             }
             if (_scrollDirection <= 0) // 向左滚动或静态?
             {
-                for (int i = _prefetchZoneLeft.start; i <= _prefetchZoneLeft.end && i < totalCount; i++)
+                for (int i = _prefetchZoneLeft.start; i <= _prefetchZoneLeft.end && i < actualCount; i++)
                 {
-                    if (i >= 0)
+                    if (i >= 0 && i < _imageCollection.Count)
                     {
                         var filePath = _imageCollection[i].FilePath;
                         EnqueueLoadTask(i, filePath, LoadPriority.Medium);
@@ -702,10 +719,12 @@ namespace SunEyeVision.UI.Services.Thumbnail
             SyncVisibleAreaState(firstVisible, lastVisible);
 
             // ?动态范围：超快滚动时只入队可视区域
+            // ?修复：使用实际集合数量进行边界检查
+            int actualCount = _imageCollection?.Count ?? 0;
             if (_currentScrollType == ScrollType.UltraFast)
             {
                 // 超快滚动：只入队首张（Critical?
-                if (firstVisible >= 0 && firstVisible < totalCount)
+                if (firstVisible >= 0 && firstVisible < actualCount && firstVisible < _imageCollection.Count)
                 {
                     var filePath = _imageCollection[firstVisible].FilePath;
                     EnqueueLoadTask(firstVisible, filePath, LoadPriority.Critical);
@@ -716,7 +735,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 // 正常/快速滚动：入队可视区域（High优先级）
                 for (int i = firstVisible; i <= lastVisible; i++)
                 {
-                    if (i >= 0 && i < totalCount)
+                    // ?修复：使用actualCount并双重检查
+                    if (i >= 0 && i < actualCount && i < _imageCollection.Count)
                     {
                         var filePath = _imageCollection[i].FilePath;
                         var priority = i == firstVisible ? LoadPriority.Critical : LoadPriority.High;
@@ -1200,18 +1220,20 @@ namespace SunEyeVision.UI.Services.Thumbnail
             Debug.WriteLine($"[BufferZone] 后备区域激?- ?[{_reserveZoneLeft.start}-{_reserveZoneLeft.end}] ?[{_reserveZoneRight.start}-{_reserveZoneRight.end}]");
 
             // 入队后备区域图片（Idle优先级）
-            for (int i = _reserveZoneLeft.start; i <= _reserveZoneLeft.end && i < totalCount; i++)
+            // ?修复：使用实际集合数量进行边界检查
+            int actualCount = _imageCollection?.Count ?? 0;
+            for (int i = _reserveZoneLeft.start; i <= _reserveZoneLeft.end && i < actualCount; i++)
             {
-                if (i >= 0)
+                if (i >= 0 && i < _imageCollection.Count)
                 {
                     var filePath = _imageCollection[i].FilePath;
                     EnqueueLoadTask(i, filePath, LoadPriority.Idle);
                 }
             }
 
-            for (int i = _reserveZoneRight.start; i <= _reserveZoneRight.end && i < totalCount; i++)
+            for (int i = _reserveZoneRight.start; i <= _reserveZoneRight.end && i < actualCount; i++)
             {
-                if (i >= 0)
+                if (i >= 0 && i < _imageCollection.Count)
                 {
                     var filePath = _imageCollection[i].FilePath;
                     EnqueueLoadTask(i, filePath, LoadPriority.Idle);
@@ -1258,7 +1280,8 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 if (_loadedIndices.Contains(index))
                 {
                     // 检查是否真的已加载（Thumbnail不为null?
-                    if (_imageCollection != null && index < _imageCollection.Count)
+                    // ?修复：添加index >= 0检查
+                    if (_imageCollection != null && index >= 0 && index < _imageCollection.Count)
                     {
                         var thumbnail = _imageCollection[index].Thumbnail;
                         if (thumbnail == null)
@@ -1785,30 +1808,42 @@ namespace SunEyeVision.UI.Services.Thumbnail
             int skippedCount = 0;
             foreach (var update in visibleUpdates)
             {
-                if (update.Index < imageCollection.Count &&
-                    imageCollection[update.Index] == update.ImageInfo)
+                // ?关键修复：添加负索引检查
+                if (update.Index >= 0 && update.Index < imageCollection.Count)
                 {
-                    // 验证缩略图有效果?
-                    if (update.Thumbnail != null && update.Thumbnail.Width > 0 && update.Thumbnail.Height > 0)
+                    if (imageCollection[update.Index] == update.ImageInfo)
                     {
-                        update.ImageInfo.Thumbnail = update.Thumbnail;
-                        _addToCacheAction?.Invoke(update.FilePath, update.Thumbnail);
-                        updatedCount++;
-                        
-                        // ?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
-                        lock (_queueLock)
+                        // 验证缩略图有效果?
+                        if (update.Thumbnail != null && update.Thumbnail.Width > 0 && update.Thumbnail.Height > 0)
                         {
-                            _decodingIndices.Remove(update.Index);
-                            _loadedIndices.Add(update.Index);
+                            update.ImageInfo.Thumbnail = update.Thumbnail;
+                            _addToCacheAction?.Invoke(update.FilePath, update.Thumbnail);
+                            updatedCount++;
+                            
+                            // ?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
+                            lock (_queueLock)
+                            {
+                                _decodingIndices.Remove(update.Index);
+                                _loadedIndices.Add(update.Index);
+                            }
+                            
+                            // ?方案B优化：实际设置成功后才计算?
+                            Interlocked.Increment(ref _loadedInVisibleArea);
                         }
-                        
-                        // ?方案B优化：实际设置成功后才计算?
-                        Interlocked.Increment(ref _loadedInVisibleArea);
+                        else
+                        {
+                            skippedCount++;
+                            // 缩略图无效，从解码中移除
+                            lock (_queueLock)
+                            {
+                                _decodingIndices.Remove(update.Index);
+                            }
+                        }
                     }
                     else
                     {
                         skippedCount++;
-                        // 缩略图无效，从解码中移除
+                        // ImageInfo引用不匹配（可能已被替换）
                         lock (_queueLock)
                         {
                             _decodingIndices.Remove(update.Index);
@@ -1818,7 +1853,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 else
                 {
                     skippedCount++;
-                    // 索引不匹配，从解码中移除
+                    // ?关键日志：索引越界
+                    if (update.Index >= 0)
+                    {
+                        Debug.WriteLine($"[ProcessUIUpdates] ⚠️ 可视区域更新索引越界: index={update.Index}, collection.Count={imageCollection.Count}");
+                    }
                     lock (_queueLock)
                     {
                         _decodingIndices.Remove(update.Index);
@@ -1829,20 +1868,46 @@ namespace SunEyeVision.UI.Services.Thumbnail
             // 后台更新
             var backgroundUpdates = updates.Except(visibleUpdates).ToList();
             int bgUpdatedCount = 0;
+            int bgSkippedCount = 0;
             foreach (var update in backgroundUpdates)
             {
-                if (update.Index < imageCollection.Count &&
-                    imageCollection[update.Index] == update.ImageInfo)
+                // ?关键日志：记录边界检查过程
+                if (update.Index >= 0 && update.Index < imageCollection.Count)
                 {
-                    imageCollection[update.Index].Thumbnail = update.Thumbnail;
-                    _addToCacheAction?.Invoke(update.FilePath, update.Thumbnail);
-                    bgUpdatedCount++;
-                    
-                    // ?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
+                    if (imageCollection[update.Index] == update.ImageInfo)
+                    {
+                        imageCollection[update.Index].Thumbnail = update.Thumbnail;
+                        _addToCacheAction?.Invoke(update.FilePath, update.Thumbnail);
+                        bgUpdatedCount++;
+                        
+                        // ?关键修复：Thumbnail 成功设置后，才添加到 _loadedIndices
+                        lock (_queueLock)
+                        {
+                            _decodingIndices.Remove(update.Index);
+                            _loadedIndices.Add(update.Index);
+                        }
+                    }
+                    else
+                    {
+                        bgSkippedCount++;
+                        // ImageInfo引用不匹配（可能已被替换）
+                        lock (_queueLock)
+                        {
+                            _decodingIndices.Remove(update.Index);
+                        }
+                    }
+                }
+                else
+                {
+                    bgSkippedCount++;
+                    // ?关键日志：索引越界
+                    if (update.Index >= 0)
+                    {
+                        Debug.WriteLine($"[ProcessUIUpdates] ⚠️ 后台更新索引越界: index={update.Index}, collection.Count={imageCollection.Count}");
+                    }
                     lock (_queueLock)
                     {
                         _decodingIndices.Remove(update.Index);
-                        _loadedIndices.Add(update.Index);
                     }
                 }
             }

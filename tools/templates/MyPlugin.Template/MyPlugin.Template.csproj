@@ -5,56 +5,55 @@
     <RootNamespace>MyPlugin</RootNamespace>
     <AssemblyName>MyPlugin</AssemblyName>
     
-    <!-- 鎻掍欢杈撳嚭閰嶇疆 -->
+    <!-- 插件输出配置 -->
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     
-    <!-- 鐗堟湰淇℃伅 -->
+    <!-- 版本信息 -->
     <Version>1.0.0</Version>
     <Authors>Plugin Developer</Authors>
     <Description>SunEyeVision Plugin</Description>
   </PropertyGroup>
 
   <!-- ============================================ -->
-  <!-- 鏂瑰紡涓€锛氶」鐩紩鐢紙鍐呴儴寮€鍙戞ā寮忥級               -->
-  <!-- 閫傜敤鍦烘櫙锛氬湪涓婚」鐩В鍐虫柟妗堝唴寮€鍙戞彃浠?           -->
-  <!-- 浣跨敤鏂规硶锛氭敞閲婃帀涓嬮潰鐨凞LL寮曠敤                  -->
-  <!--           鍙栨秷娉ㄩ噴ProjectReference            -->
+  <!-- 方式一：项目引用（内部开发模式）☑ 默认启用 ☑  -->
+  <!-- 适用场景：在主项目解决方案内开发插件           -->
   <!-- ============================================ -->
-  <!--
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
+    <ProjectReference Include="..\..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
   </ItemGroup>
-  -->
 
   <!-- ============================================ -->
-  <!-- 鏂瑰紡浜岋細NuGet鍖呭紩鐢紙鍦ㄧ嚎鐙珛寮€鍙戞ā寮忥級        -->
-  <!-- 閫傜敤鍦烘櫙锛氭湁缃戠粶鐜锛屼娇鐢∟uGet鍖?             -->
-  <!-- 浣跨敤鏂规硶锛氭敞閲婃帀涓嬮潰鐨凞LL寮曠敤                  -->
-  <!--           鍙栨秷娉ㄩ噴PackageReference            -->
+  <!-- 方式二：NuGet包引用（在线独立开发模式）        -->
+  <!-- 适用场景：有网络环境，使用NuGet包             -->
+  <!-- 使用方法：注释掉上面的ProjectReference        -->
+  <!--           取消注释下面的PackageReference      -->
   <!-- ============================================ -->
-  <!--
+<!--
   <ItemGroup>
     <PackageReference Include="SunEyeVision.Plugin.SDK" Version="1.0.0" />
   </ItemGroup>
-  -->
+-->
 
   <!-- ============================================ -->
-  <!-- 鏂瑰紡涓夛細DLL寮曠敤锛堢绾垮紑鍙戞ā寮忥級鈽?榛樿鍚敤 鈽?  -->
-  <!-- 閫傜敤鍦烘櫙锛氭棤缃戠粶鐜鎴栧畬鍏ㄩ殧绂诲紑鍙?             -->
-  <!-- 鍓嶇疆鏉′欢锛氳繍琛?setup_sdk.bat 鐢熸垚lib鐩綍       -->
-  <!-- 浼樼偣锛氬畬鍏ㄧ嫭绔嬶紝鍙嫹璐濆埌浠绘剰浣嶇疆寮€鍙?           -->
+  <!-- 方式三：DLL引用（离线开发模式）               -->
+  <!-- 适用场景：无网络环境或完全隔离开发             -->
+  <!-- 前置条件：运行 setup_sdk.bat 生成lib目录      -->
+  <!-- 使用方法：注释掉上面的ProjectReference        -->
+  <!--           取消注释下面的Reference             -->
   <!-- ============================================ -->
+<!--
   <ItemGroup>
     <Reference Include="SunEyeVision.Plugin.SDK">
       <HintPath>lib\SunEyeVision.Plugin.SDK.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+-->
 
-  <!-- 澶嶅埗XML鏂囨。鍒拌緭鍑虹洰褰曪紙鏅鸿兘鎻愮ず鏀寔锛?-->
+  <!-- 复制XML文档到输出目录（智能提示支持）-->
 
-  <!-- 缂栬瘧閫夐」 -->
+  <!-- 编译选项 -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>

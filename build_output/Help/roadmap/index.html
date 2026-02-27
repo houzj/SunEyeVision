@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开发路线图 - SunEyeVision 帮助文档</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>SunEyeVision</h1>
+                <p>机器视觉算法平台</p>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-item">🏠 首页</a>
+                <a href="../features/index.html" class="nav-item">✨ 功能特性</a>
+                <a href="../usermanual/index.html" class="nav-item">📖 用户手册</a>
+                <a href="../architecture/index.html" class="nav-item">🏗️ 软件架构</a>
+                <a href="../roadmap/index.html" class="nav-item active">🗺️ 开发路线图</a>
+                <a href="../progress/index.html" class="nav-item">📊 开发进度</a>
+                <a href="../api/index.html" class="nav-item">🔧 API 文档</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>开发路线图</h1>
+                <div class="subtitle">SunEyeVision 未来发展方向和计划</div>
+            </header>
+
+            <section class="content-section">
+                <h2>开发路线总览</h2>
+                <p>SunEyeVision 采用分阶段开发策略，计划用 7 个月时间完成 V1.0 版本。</p>
+
+                <div style="margin: 20px 0;">
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 1: 核心功能完善</span>
+                            <span>90%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 90%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 2: 算法库扩展</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 3: 工作流优化</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 4: 设备驱动完善</span>
+                            <span>40%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 5: 插件系统完善</span>
+                            <span>75%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 6: UI 优化完善</span>
+                            <span>70%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 70%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>阶段 7: V1.0 发布准备</span>
+                            <span>10%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 10%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>阶段 1: 核心功能完善 (2026-02)</h2>
+
+                <h3>1.1 Core 模块完善</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>任务</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>完善 IConfigManager 实现类</td>
+                            <td>高</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>添加事件总线实现 (EventBus)</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实现依赖注入容器</td>
+                            <td>中</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>添加配置文件读写功能</td>
+                            <td>高</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>完善日志系统性能优化</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>1.2 Workflow 核心增强</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>任务</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>实现工作流序列化/反序列化</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>添加工作流版本管理</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实现工作流调试功能</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>添加工作流执行结果统计</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实现工作流模板系统</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>1.3 PluginSystem 基础实现</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>任务</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>实现 PluginLoader 加载器</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实现插件元数据管理</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>添加插件依赖解析</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实现插件生命周期管理</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="content-section">
+                <h2>阶段 2: 算法库扩展 (2026-03)</h2>
+
+                <h3>2.1 预处理算法</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>算法</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>高斯模糊 (GaussianBlur)</td>
+                            <td>高</td>
+                            <td>8h</td>
+                            <td><span class="status completed">已完成</span></td>
+                        </tr>
+                        <tr>
+                            <td>中值滤波 (MedianFilter)</td>
+                            <td>高</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>双边滤波 (BilateralFilter)</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>锐化 (Sharpen)</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>降噪 (Denoise)</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>2.2 特征提取算法</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>算法</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>边缘检测 (Canny, Sobel)</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status inprogress">部分完成</span></td>
+                        </tr>
+                        <tr>
+                            <td>角点检测 (Harris, FAST)</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>斑点分析 (Blob Analysis)</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status completed">已完成</span></td>
+                        </tr>
+                        <tr>
+                            <td>直线检测 (HoughLines)</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>圆检测 (HoughCircles)</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>2.3 测量算法</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>算法</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>距离测量</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>角度测量</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>圆测量</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>面积测量</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>周长测量</td>
+                            <td>中</td>
+                            <td>8h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>2.4 识别算法</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>算法</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>OCR (光学字符识别)</td>
+                            <td>高</td>
+                            <td>24h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>条形码识别 (Barcode)</td>
+                            <td>中</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>二维码识别 (QRCode)</td>
+                            <td>中</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>模板匹配 (Template Matching)</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="content-section">
+                <h2>阶段 3: 工作流优化 (2026-04)</h2>
+
+                <h3>3.1 工作流设计器</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>功能</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>可视化节点拖拽 (工具箱→画布)</td>
+                            <td>高</td>
+                            <td>20h</td>
+                            <td><span class="status completed">已完成</span></td>
+                        </tr>
+                        <tr>
+                            <td>节点连线功能</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status inprogress">进行中</span></td>
+                        </tr>
+                        <tr>
+                            <td>节点参数编辑 (双击打开调试界面)</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status completed">已完成</span></td>
+                        </tr>
+                        <tr>
+                            <td>工作流缩放和平移</td>
+                            <td>中</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>撤销/重做功能</td>
+                            <td>中</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>3.2 工作流执行优化</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>功能</th>
+                            <th>优先级</th>
+                            <th>预计工时</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>并行执行支持</td>
+                            <td>高</td>
+                            <td>20h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>条件分支执行</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>循环执行支持</td>
+                            <td>中</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>执行进度显示</td>
+                            <td>高</td>
+                            <td>12h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                        <tr>
+                            <td>实时结果预览</td>
+                            <td>高</td>
+                            <td>16h</td>
+                            <td><span class="status pending">计划中</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="content-section">
+                <h2>里程碑</h2>
+
+                <div class="module-list">
+                    <div class="module-item">
+                        <h3>M1: 核心功能完善</h3>
+                        <p><strong>目标：</strong> Core、Workflow、PluginSystem 基础功能完成</p>
+                        <p><strong>时间：</strong> 2026-02-28</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M2: 算法库扩展</h3>
+                        <p><strong>目标：</strong> 完成 20+ 算法，覆盖预处理、特征提取、测量、识别</p>
+                        <p><strong>时间：</strong> 2026-03-31</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M3: 工作流优化</h3>
+                        <p><strong>目标：</strong> 工作流设计器完成，支持可视化编辑</p>
+                        <p><strong>时间：</strong> 2026-04-30</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M4: 设备驱动完善</h3>
+                        <p><strong>目标：</strong> 支持主流相机和 I/O 设备</p>
+                        <p><strong>时间：</strong> 2026-05-31</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M5: 插件系统完善</h3>
+                        <p><strong>目标：</strong> 插件管理系统完成，支持热加载</p>
+                        <p><strong>时间：</strong> 2026-06-30</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M6: UI 优化完善</h3>
+                        <p><strong>目标：</strong> 用户体验优化，性能提升</p>
+                        <p><strong>时间：</strong> 2026-07-31</p>
+                    </div>
+                    <div class="module-item">
+                        <h3>M7: V1.0 发布</h3>
+                        <p><strong>目标：</strong> 正式版本发布，文档齐全</p>
+                        <p><strong>时间：</strong> 2026-08-31</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>质量标准</h2>
+
+                <h3>代码质量</h3>
+                <ul>
+                    <li>代码覆盖率 ≥ 80%</li>
+                    <li>代码审查通过率 100%</li>
+                    <li>每个方法不超过 50 行</li>
+                    <li>单元测试每个类 ≥ 80%</li>
+                </ul>
+
+                <h3>性能标准</h3>
+                <ul>
+                    <li>图像处理延迟 < 100ms (1920x1080)</li>
+                    <li>系统启动时间 < 5s</li>
+                    <li>内存占用 < 500MB</li>
+                    <li>工作流执行效率 ≥ 30fps</li>
+                </ul>
+
+                <h3>用户体验标准</h3>
+                <ul>
+                    <li>界面响应时间 < 200ms</li>
+                    <li>操作步骤数 ≤ 5 步完成主要功能</li>
+                    <li>错误提示准确率 ≥ 95%</li>
+                    <li>用户满意度 ≥ 4.5/5.0</li>
+                </ul>
+            </section>
+
+            <footer class="footer">
+                <p>&copy; 2026 SunEyeVision. 保留所有权利。</p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // 导航已通过 a 标签实现，无需额外脚本
+    </script>
+</body>
+</html>

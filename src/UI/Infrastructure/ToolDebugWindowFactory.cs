@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,15 +9,20 @@ using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI;
 using SunEyeVision.Plugin.SDK.Validation;
-using SunEyeVision.UI.Factories;
-using SunEyeVision.UI.Views.Windows;
 
 namespace SunEyeVision.UI.Factories
 {
     /// <summary>
-    /// 工具调试窗口工厂 - 动态从插件加载调试窗口
+    /// 工具调试窗口工厂 - 优先使用ITool.CreateDebugWindow()
     /// </summary>
+    /// <remarks>
+    /// 创建调试窗口的优先级：
+    /// 1. ITool.CreateDebugWindow() - 工具自己创建（推荐）
+    /// 2. 反射加载插件中的调试窗口类型（兼容旧版本）
+    /// 3. 抛出异常 - 不再提供UI层自动生成的调试窗口
+    /// </remarks>
     public static class ToolDebugWindowFactory
     {
         private static readonly Dictionary<string, Type> _debugWindowTypes = new Dictionary<string, Type>();
@@ -55,7 +60,6 @@ namespace SunEyeVision.UI.Factories
 
                                 foreach (var windowType in windowTypes)
                                 {
-                                    // ★ 修复：正确提取工具名称并生成多种匹配键
                                     RegisterDebugWindowType(windowType);
                                 }
                             }
@@ -80,35 +84,26 @@ namespace SunEyeVision.UI.Factories
         /// </summary>
         private static void RegisterDebugWindowType(Type windowType)
         {
-            // 从类型名称提取工具名称，如 "TemplateMatchingToolDebugWindow" -> "TemplateMatchingTool"
             var toolName = windowType.Name.Replace("DebugWindow", "");
             
-            // ★ 关键修复：移除 "Tool" 后缀（如果存在）
-            // "TemplateMatchingTool" -> "TemplateMatching"
             var toolNameWithoutToolSuffix = toolName;
             if (toolName.EndsWith("Tool"))
             {
                 toolNameWithoutToolSuffix = toolName.Substring(0, toolName.Length - 4);
             }
 
-            // 生成蛇形命名
-            // "TemplateMatchingTool" -> "template_matching_tool"
-            // "TemplateMatching" -> "template_matching"
             var toolIdWithToolSuffix = ConvertToSnakeCase(toolName);
             var toolIdWithoutToolSuffix = ConvertToSnakeCase(toolNameWithoutToolSuffix);
 
-            // 注册多种匹配键
-            _debugWindowTypes[toolName] = windowType;                          // "TemplateMatchingTool"
-            _debugWindowTypes[toolNameWithoutToolSuffix] = windowType;          // "TemplateMatching"
-            _debugWindowTypes[toolIdWithToolSuffix] = windowType;               // "template_matching_tool"
-            _debugWindowTypes[toolIdWithoutToolSuffix] = windowType;            // "template_matching" ★ 这是工具的真实ID
+            _debugWindowTypes[toolName] = windowType;
+            _debugWindowTypes[toolNameWithoutToolSuffix] = windowType;
+            _debugWindowTypes[toolIdWithToolSuffix] = windowType;
+            _debugWindowTypes[toolIdWithoutToolSuffix] = windowType;
             
-            // 也注册带 "Tool" 后缀的版本，以支持各种命名风格
-            _debugWindowTypes[toolName + "Tool"] = windowType;                  // "TemplateMatchingToolTool"
-            _debugWindowTypes[toolIdWithoutToolSuffix + "_tool"] = windowType;  // "template_matching_tool"
+            _debugWindowTypes[toolName + "Tool"] = windowType;
+            _debugWindowTypes[toolIdWithoutToolSuffix + "_tool"] = windowType;
 
             System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 注册调试窗口: {windowType.Name}");
-            System.Diagnostics.Debug.WriteLine($"  - 匹配键: {toolName}, {toolNameWithoutToolSuffix}, {toolIdWithToolSuffix}, {toolIdWithoutToolSuffix}");
         }
 
         /// <summary>
@@ -136,17 +131,46 @@ namespace SunEyeVision.UI.Factories
         }
 
         /// <summary>
-        /// 创建工具调试窗口
+        /// 创建工具调试窗口 - 优先使用ITool.CreateDebugWindow()
         /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <param name="toolPlugin">工具插件</param>
         /// <param name="toolMetadata">工具元数据</param>
-        /// <returns>调试窗口实例</returns>
-        public static Window CreateDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata toolMetadata)
+        /// <returns>调试窗口实例，无窗口工具返回 null</returns>
+        public static Window? CreateDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata toolMetadata)
         {
             Initialize();
 
-            // 尝试从缓存中查找调试窗口类型
+            // ★ 优先级1：使用 ITool.CreateDebugWindow()
+            if (toolPlugin != null)
+            {
+                var tool = toolPlugin.CreateToolInstance(toolId);
+                if (tool != null)
+                {
+                    // 检查工具是否支持调试窗口
+                    if (!tool.HasDebugWindow)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 工具 {toolId} 不支持调试窗口 (HasDebugWindow=false)");
+                        return null;
+                    }
+
+                    try
+                    {
+                        var window = tool.CreateDebugWindow();
+                        if (window != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 使用 ITool.CreateDebugWindow() 创建: {toolId}");
+                            return window;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"ITool.CreateDebugWindow() 失败: {toolId}, {ex.Message}");
+                    }
+                }
+            }
+
+            // ★ 优先级2：反射加载插件中的调试窗口类型（兼容旧版本）
             if (_debugWindowTypes.TryGetValue(toolId, out var windowType))
             {
                 try
@@ -157,7 +181,6 @@ namespace SunEyeVision.UI.Factories
                         return (Window)constructor.Invoke(new object?[] { toolId, toolPlugin, toolMetadata });
                     }
 
-                    // 尝试无参构造函数
                     constructor = windowType.GetConstructor(Type.EmptyTypes);
                     if (constructor != null)
                     {
@@ -170,15 +193,38 @@ namespace SunEyeVision.UI.Factories
                 }
             }
 
-            // 默认使用通用调试窗口
-            return new DebugWindow(toolId, toolPlugin ?? new DefaultToolPlugin(), toolMetadata);
+            // ★ 优先级3：返回 null（不再抛出异常）
+            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 工具 {toolId} 无调试窗口");
+            return null;
+        }
+
+        /// <summary>
+        /// 检查工具是否支持调试窗口（运行时检查）
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <param name="toolPlugin">工具插件</param>
+        /// <returns>是否支持调试窗口</returns>
+        public static bool HasDebugWindow(string toolId, IToolPlugin? toolPlugin)
+        {
+            Initialize();
+
+            // 运行时检查：使用 ITool.HasDebugWindow
+            if (toolPlugin != null)
+            {
+                var tool = toolPlugin.CreateToolInstance(toolId);
+                if (tool != null)
+                {
+                    return tool.HasDebugWindow;
+                }
+            }
+
+            // 兼容旧版本：检查是否有注册的调试窗口类型
+            return _debugWindowTypes.ContainsKey(toolId);
         }
 
         /// <summary>
         /// 检查工具是否有专用调试窗口
         /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <returns>是否有专用调试窗口</returns>
         public static bool HasCustomDebugWindow(string toolId)
         {
             Initialize();
@@ -209,7 +255,7 @@ namespace SunEyeVision.UI.Factories
 
         public List<SunEyeVision.Plugin.SDK.Metadata.ToolMetadata> GetToolMetadata() => new List<SunEyeVision.Plugin.SDK.Metadata.ToolMetadata>();
 
-        public SunEyeVision.Plugin.SDK.Core.IImageProcessor? CreateToolInstance(string toolId)
+        public SunEyeVision.Plugin.SDK.Core.ITool? CreateToolInstance(string toolId)
         {
             return null;
         }

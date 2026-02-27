@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -1198,7 +1198,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// 优化的图像加载方法（简化版：使用优先级加载器）
         /// 优化：统一计时日志、文件预取、等待可视区域完成
         /// </summary>
-        private async Task LoadImagesOptimizedAsync(
+        public async Task LoadImagesOptimizedAsync(
             string[] fileNames,
             CancellationToken cancellationToken)
         {
@@ -1317,10 +1317,19 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                                 {
                                     try
                                     {
-                                        if (i < ImageCollection.Count)
+                                        // 使用索引安全访问，避免竞态条件导致的 IndexOutOfRangeException
+                                        if (i >= 0 && i < ImageCollection.Count)
                                         {
-                                            ImageCollection[i].SetFullImage(fullImage);
+                                            var imageInfo = ImageCollection[i];
+                                            if (imageInfo != null)
+                                            {
+                                                imageInfo.SetFullImage(fullImage);
+                                            }
                                         }
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        // 集合已被修改，静默忽略
                                     }
                                     catch { }
                                 }), System.Windows.Threading.DispatcherPriority.Background);
@@ -1841,6 +1850,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             }
         }
 
+
         /// <summary>
         /// 请求执行工作流
         /// </summary>
@@ -1849,12 +1859,18 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // 切换当前显示的图像
             CurrentImageIndex = index;
             
+            // 调试：检查事件订阅者数量
+            var subscriberCount = WorkflowExecutionRequested?.GetInvocationList()?.Length ?? 0;
+            Debug.WriteLine($"[ImagePreviewControl] ★ RequestWorkflowExecution - 订阅者数量: {subscriberCount}");
+            
             // 触发工作流执行请求事件
             WorkflowExecutionRequested?.Invoke(this, new WorkflowExecutionRequestEventArgs
             {
                 ImageInfo = imageInfo,
                 Index = index
             });
+            
+            Debug.WriteLine($"[ImagePreviewControl] ★ 事件已触发 - 图像: {imageInfo.Name}");
         }
 
         /// <summary>

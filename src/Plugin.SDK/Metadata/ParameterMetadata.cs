@@ -1,9 +1,9 @@
 namespace SunEyeVision.Plugin.SDK.Metadata
 {
     /// <summary>
-    /// 参数类型枚举
+    /// 参数数据类型枚举
     /// </summary>
-    public enum ParameterType
+    public enum ParamDataType
     {
         /// <summary>
         /// 整数
@@ -92,9 +92,9 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// 参数类型
+        /// 参数数据类型
         /// </summary>
-        public ParameterType Type { get; set; }
+        public ParamDataType Type { get; set; }
 
         /// <summary>
         /// 默认值
@@ -135,5 +135,15 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         /// 是否支持调试模式下实时修改
         /// </summary>
         public bool EditableInDebug { get; set; } = true;
+
+        /// <summary>
+        /// 是否支持数据绑定
+        /// </summary>
+        public bool SupportsBinding { get; set; } = false;
+
+        /// <summary>
+        /// 绑定提示信息
+        /// </summary>
+        public string? BindingHint { get; set; }
     }
 }

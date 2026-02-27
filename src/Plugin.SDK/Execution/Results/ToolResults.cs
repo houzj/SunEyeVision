@@ -1,9 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Models.Geometry;
 using SunEyeVision.Plugin.SDK.Models.Visualization;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Results
@@ -456,6 +459,116 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
 
             return dict;
         }
+
+        #region 输出参数查询方法
+
+        /// <summary>
+        /// 获取所有输出参数属性
+        /// </summary>
+        public IEnumerable<PropertyInfo> GetOutputParameterProperties()
+        {
+            return GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p =>
+                {
+                    var paramAttr = p.GetCustomAttribute<ParamAttribute>();
+                    return paramAttr != null && paramAttr.Category == ParamCategory.Output;
+                });
+        }
+
+        /// <summary>
+        /// 获取可绑定的输出参数属性（供下游节点绑定）
+        /// </summary>
+        public IEnumerable<PropertyInfo> GetBindableOutputProperties()
+        {
+            return GetOutputParameterProperties()
+                .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)));
+        }
+
+        /// <summary>
+        /// 获取输出参数值
+        /// </summary>
+        public T? GetOutputValue<T>(string propertyName)
+        {
+            var prop = GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop == null) return default;
+
+            var value = prop.GetValue(this);
+            if (value is T typedValue)
+                return typedValue;
+
+            return default;
+        }
+
+        /// <summary>
+        /// 获取所有输出参数的名称和值
+        /// </summary>
+        public Dictionary<string, object?> GetOutputValues()
+        {
+            var result = new Dictionary<string, object?>();
+            foreach (var prop in GetOutputParameterProperties())
+            {
+                result[prop.Name] = prop.GetValue(this);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取输出参数的元数据
+        /// </summary>
+        public ParameterMetadata? GetOutputParameterMetadata(string propertyName)
+        {
+            var prop = GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop == null) return null;
+
+            var paramAttr = prop.GetCustomAttribute<ParamAttribute>();
+            if (paramAttr == null || paramAttr.Category != ParamCategory.Output)
+                return null;
+
+            return new ParameterMetadata
+            {
+                Name = prop.Name,
+                DisplayName = paramAttr.DisplayName ?? prop.Name,
+                Description = paramAttr.Description ?? string.Empty,
+                Type = DetermineParamDataType(prop.PropertyType),
+                DefaultValue = prop.GetValue(this),
+                Required = paramAttr.Required,
+                Category = paramAttr.Group ?? "输出参数",
+                SupportsBinding = !prop.IsDefined(typeof(IgnoreBindAttribute)),
+                BindingHint = "可供下游节点绑定"
+            };
+        }
+
+        /// <summary>
+        /// 根据CLR类型推断参数数据类型
+        /// </summary>
+        private static ParamDataType DetermineParamDataType(Type type)
+        {
+            if (type == typeof(int) || type == typeof(long))
+                return ParamDataType.Int;
+            if (type == typeof(double) || type == typeof(float) || type == typeof(decimal))
+                return ParamDataType.Double;
+            if (type == typeof(string))
+                return ParamDataType.String;
+            if (type == typeof(bool))
+                return ParamDataType.Bool;
+            if (type.IsEnum)
+                return ParamDataType.Enum;
+            if (type == typeof(Point) || type == typeof(Point2d) ||
+                type.FullName?.Contains("Point") == true)
+                return ParamDataType.Point;
+            if (type == typeof(Size) || type == typeof(Size2d) ||
+                type.FullName?.Contains("Size") == true)
+                return ParamDataType.Size;
+            if (type == typeof(Rect) || type == typeof(Rect2d) ||
+                type.FullName?.Contains("Rect") == true)
+                return ParamDataType.Rect;
+            if (type.Name.Contains("Image") || type.Name.Contains("Mat"))
+                return ParamDataType.Image;
+
+            return ParamDataType.Custom;
+        }
+
+        #endregion
     }
 
     /// <summary>
@@ -511,5 +624,29 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         {
             items.Add(ResultItem.Circle(name, circle));
         }
+    }
+
+    /// <summary>
+    /// 通用工具结果 - 用于兼容层的具体实现
+    /// </summary>
+    public class GenericToolResults : ToolResults
+    {
+        private readonly List<ResultItem> _resultItems = new();
+
+        /// <summary>
+        /// 添加结果项
+        /// </summary>
+        public void AddResultItem(string name, object? value, ResultItemType type = ResultItemType.Object)
+        {
+            _resultItems.Add(new ResultItem
+            {
+                Name = name,
+                Value = value,
+                Type = type
+            });
+        }
+
+        /// <inheritdoc />
+        public override IReadOnlyList<ResultItem> GetResultItems() => _resultItems.AsReadOnly();
     }
 }

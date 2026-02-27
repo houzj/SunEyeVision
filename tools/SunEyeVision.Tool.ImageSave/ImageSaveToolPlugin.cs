@@ -1,166 +1,131 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Tool.ImageSave
 {
-    /// <summary>
-    /// 图像保存工具插件
-    /// </summary>
     [ToolPlugin("image_save", "ImageSave")]
     public class ImageSaveToolPlugin : IToolPlugin
     {
-        #region 插件基本信息
         public string Name => "图像保存";
-        public string Version => "1.0.0";
+        public string Version => "2.0.0";
         public string Author => "SunEyeVision";
         public string Description => "保存图像到文件";
         public string PluginId => "suneye.image_save";
         public string Icon => "💾";
         public List<string> Dependencies => new List<string>();
         public bool IsLoaded { get; private set; }
-        #endregion
 
-        #region 生命周期管理
         public void Initialize() => IsLoaded = true;
         public void Unload() => IsLoaded = false;
-        #endregion
+        public List<Type> GetAlgorithmNodes() => new List<Type>();
 
-        #region 工具管理
-        public List<Type> GetAlgorithmNodes() => new List<Type> { typeof(ImageSaveAlgorithm) };
-
-        public List<ToolMetadata> GetToolMetadata()
+        public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>
         {
-            return new List<ToolMetadata>
+            new ToolMetadata
             {
-                new ToolMetadata
+                Id = "image_save",
+                Name = "ImageSave",
+                DisplayName = "图像保存",
+                Icon = "💾",
+                Category = "输出",
+                Description = "保存图像到文件",
+                Version = Version,
+                Author = Author,
+                InputParameters = new List<ParameterMetadata>
                 {
-                    Id = "image_save",
-                    Name = "ImageSave",
-                    DisplayName = "图像保存",
-                    Icon = "💾",
-                    Category = "输出",
-                    Description = "保存图像到文件",
-                    AlgorithmType = typeof(ImageSaveAlgorithm),
-                    Version = "1.0.0",
-                    Author = "SunEyeVision",
-                    HasDebugInterface = true,
-                    InputParameters = new List<ParameterMetadata>
-                    {
-                        new ParameterMetadata
-                        {
-                            Name = "outputPath",
-                            DisplayName = "输出路径",
-                            Description = "图像保存路径",
-                            Type = ParameterType.String,
-                            DefaultValue = "output/image",
-                            Required = true,
-                            Category = "基本参数"
-                        },
-                        new ParameterMetadata
-                        {
-                            Name = "outputFormat",
-                            DisplayName = "输出格式",
-                            Description = "图像保存格式",
-                            Type = ParameterType.Enum,
-                            DefaultValue = "png",
-                            Options = new object[] { "jpg", "jpeg", "png", "bmp", "tiff" },
-                            Required = true,
-                            Category = "基本参数"
-                        },
-                        new ParameterMetadata
-                        {
-                            Name = "overwrite",
-                            DisplayName = "覆盖已存在文件",
-                            Description = "如果文件已存在是否覆盖",
-                            Type = ParameterType.Bool,
-                            DefaultValue = true,
-                            Required = false,
-                            Category = "高级参数"
-                        }
-                    },
-                    OutputParameters = new List<ParameterMetadata>
-                    {
-                        new ParameterMetadata
-                        {
-                            Name = "savedPath",
-                            DisplayName = "保存路径",
-                            Description = "实际保存的文件路径",
-                            Type = ParameterType.String
-                        }
-                    },
-                    SideEffect = SideEffectType.Write,
-                    SupportCaching = false,
-                    MaxRetryCount = 2,
-                    RetryDelayMs = 500
+                    new ParameterMetadata { Name = "OutputPath", DisplayName = "输出路径", Type = ParamDataType.String, DefaultValue = "output/image.png" },
+                    new ParameterMetadata { Name = "OutputFormat", DisplayName = "输出格式", Type = ParamDataType.Enum, DefaultValue = "png", Options = new object[] { "jpg", "png", "bmp" } }
+                },
+                OutputParameters = new List<ParameterMetadata>
+                {
+                    new ParameterMetadata { Name = "SavedPath", DisplayName = "保存路径", Type = ParamDataType.String }
                 }
-            };
-        }
+            }
+        };
 
-        public IImageProcessor CreateToolInstance(string toolId) => new ImageSaveAlgorithm();
+        public ITool? CreateToolInstance(string toolId) => toolId == "image_save" ? new ImageSaveTool() : null;
 
         public AlgorithmParameters GetDefaultParameters(string toolId)
         {
-            var parameters = new AlgorithmParameters();
-            parameters.Set("outputPath", "output/image");
-            parameters.Set("outputFormat", "png");
-            parameters.Set("overwrite", true);
-            return parameters;
+            var p = new AlgorithmParameters();
+            p.Set("OutputPath", "output/image.png");
+            p.Set("OutputFormat", "png");
+            return p;
         }
 
         public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
         {
-            var result = new ValidationResult();
-            var outputPath = parameters.Get<string>("outputPath");
-            if (string.IsNullOrWhiteSpace(outputPath))
-                result.AddError("输出路径不能为空");
-            var outputFormat = parameters.Get<string>("outputFormat");
-            if (string.IsNullOrWhiteSpace(outputFormat))
-                result.AddError("输出格式不能为空");
-            result.IsValid = result.Errors.Count == 0;
-            return result;
+            var r = new ValidationResult();
+            var path = parameters.Get<string>("OutputPath");
+            if (string.IsNullOrWhiteSpace(path)) r.AddError("输出路径不能为空");
+            return r;
         }
-        #endregion
     }
 
-    /// <summary>
-    /// 图像保存算法实现
-    /// </summary>
-    public class ImageSaveAlgorithm : ImageProcessorBase
+    public class ImageSaveParameters : ToolParameters
     {
-        public override string Name => "图像保存";
-        public override string Description => "保存图像到文件";
-
-        protected override ImageProcessResult ProcessImage(object image, AlgorithmParameters parameters)
+        public string OutputPath { get; set; } = "output/image.png";
+        public string OutputFormat { get; set; } = "png";
+        public override ValidationResult Validate()
         {
-            var outputPath = GetParameter(parameters, "outputPath", "output/image");
-            var outputFormat = GetParameter(parameters, "outputFormat", "png");
-            var overwrite = GetParameter(parameters, "overwrite", true);
-            // TODO: 实际图像保存逻辑
-            return ImageProcessResult.FromData(new
-            {
-                OutputPath = outputPath,
-                OutputFormat = outputFormat,
-                Overwrite = overwrite,
-                SavedPath = $"{outputPath}.{outputFormat}",
-                Saved = true,
-                ProcessedAt = DateTime.Now
-            });
+            var r = new ValidationResult();
+            if (string.IsNullOrWhiteSpace(OutputPath)) r.AddError("输出路径不能为空");
+            return r;
         }
+    }
 
-        protected override ValidationResult ValidateParameters(AlgorithmParameters parameters)
+    public class ImageSaveResults : ToolResults
+    {
+        public string SavedPath { get; set; } = "";
+        public long FileSize { get; set; }
+    }
+
+    public class ImageSaveTool : ITool<ImageSaveParameters, ImageSaveResults>
+    {
+        public string Name => "图像保存";
+        public string Description => "保存图像到文件";
+        public string Version => "2.0.0";
+        public string Category => "输出";
+
+        public ImageSaveResults Run(Mat image, ImageSaveParameters parameters)
         {
-            var result = new ValidationResult();
-            var outputPath = GetParameter<string?>(parameters, "outputPath", null);
-            var outputFormat = GetParameter<string?>(parameters, "outputFormat", null);
-            if (string.IsNullOrWhiteSpace(outputPath))
-                result.AddError("输出路径不能为空");
-            if (string.IsNullOrWhiteSpace(outputFormat))
-                result.AddError("输出格式不能为空");
+            var result = new ImageSaveResults();
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                if (image == null || image.Empty()) { result.SetError("输入图像为空"); return result; }
+
+                var dir = Path.GetDirectoryName(parameters.OutputPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                var path = Path.ChangeExtension(parameters.OutputPath, $".{parameters.OutputFormat}");
+                Cv2.ImWrite(path, image);
+                
+                result.SavedPath = path;
+                result.FileSize = new FileInfo(path).Length;
+                result.SetSuccess(sw.ElapsedMilliseconds);
+            }
+            catch (Exception ex) { result.SetError($"保存失败: {ex.Message}"); }
             return result;
         }
+
+        public Task<ImageSaveResults> RunAsync(Mat image, ImageSaveParameters parameters)
+        {
+            return Task.Run(() => Run(image, parameters));
+        }
+
+        public ValidationResult ValidateParameters(ImageSaveParameters parameters) => parameters.Validate();
+        public ImageSaveParameters GetDefaultParameters() => new ImageSaveParameters();
     }
 }

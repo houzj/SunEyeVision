@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\SunEyeVision.Core.csproj" />
     <ProjectReference Include="..\..\src\Workflow\SunEyeVision.Workflow.csproj" />
+    <ProjectReference Include="..\..\tools\SunEyeVision.Tool.EdgeDetection\SunEyeVision.Tool.EdgeDetection.csproj" />
   </ItemGroup>
 
 </Project>

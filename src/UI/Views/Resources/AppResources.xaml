@@ -10,6 +10,10 @@
 
     <!-- ========== 转换器 ========== -->
     <converters:BoolToRunningTextConverter x:Key="BoolToRunningTextConverter"/>
+    <converters:BoolToVisibleConverter x:Key="BoolToVisibleConverter"/>
+    <converters:BoolToHiddenConverter x:Key="BoolToHiddenConverter"/>
+    <converters:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
+    <converters:NullToVisibleConverter x:Key="NullToVisibleConverter"/>
 
     <!-- ========== 颜色资源 ========== -->
     <Color x:Key="PrimaryColor">#0066CC</Color>

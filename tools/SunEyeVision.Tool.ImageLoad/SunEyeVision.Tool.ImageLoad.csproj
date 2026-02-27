@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SunEyeVision.Tool.ImageLoad</RootNamespace>
+    <AssemblyName>SunEyeVision.Tool.ImageLoad</AssemblyName>
+    <OutDir>$(MSBuildProjectDirectory)\..\..\src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
+    <ProjectReference Include="..\..\src\UI\SunEyeVision.UI.csproj" />
+    <PackageReference Include="OpenCvSharp4.WpfExtensions" Version="4.13.0.20260222" />
+  </ItemGroup>
+</Project>

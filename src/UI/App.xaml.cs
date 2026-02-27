@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.IO;
 using SunEyeVision.UI.Adapters;
@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using SunEyeVision.UI.Views.Windows;
+using System.Runtime.InteropServices;
 
 namespace SunEyeVision.UI;
 
@@ -17,6 +18,10 @@ namespace SunEyeVision.UI;
 /// </summary>
 public partial class App : Application
 {
+    // RPC_S_SERVER_UNAVAILABLE = 0x000006BA = 1722
+    private const int RPC_S_SERVER_UNAVAILABLE = 1722;
+    private const int HRESULT_RPC_UNAVAILABLE = unchecked((int)0x800706BA);
+    
     static App()
     {
         // 抑制 AIStudio.Wpf.DiagramDesigner 库内部的绑定警告
@@ -32,6 +37,9 @@ public partial class App : Application
 
         // P0优化：预热线程池，消除首次加载延迟
         PrewarmThreadPool();
+        
+        // 添加FirstChanceException处理 - 捕获RPC异常避免调试器中断
+        AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
 
         base.OnStartup(e);
 
@@ -122,6 +130,33 @@ public partial class App : Application
         e.Handled = true; // 防止应用程序崩溃
         MessageBox.Show($"UI 线程发生异常:\n{e.Exception.Message}",
             "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    /// <summary>
+    /// FirstChanceException处理 - 在异常被抛出但未被捕获时触发
+    /// 用于捕获并标记RPC异常，避免调试器中断
+    /// </summary>
+    private void OnFirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+    {
+        // 捕获RPC服务器不可用异常
+        if (e.Exception is COMException comEx)
+        {
+            if (comEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (comEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
+            {
+                // 标记为已知的非致命RPC异常
+                Debug.WriteLine($"[App] 捕获RPC异常(非致命): {comEx.Message}");
+                // 异常会被解码器的降级逻辑处理，此处仅记录
+            }
+        }
+        // 捕获WIC相关的内部异常
+        else if (e.Exception is System.Reflection.TargetInvocationException tie && 
+                 tie.InnerException is COMException innerComEx)
+        {
+            if (innerComEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (innerComEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
+            {
+                Debug.WriteLine($"[App] 捕获RPC内部异常(非致命): {innerComEx.Message}");
+            }
+        }
     }
 
     /// <summary>

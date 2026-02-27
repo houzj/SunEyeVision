@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.ObjectModel;
 
@@ -350,6 +350,12 @@ namespace SunEyeVision.UI.Views.Windows
 
         {
 
+            // 取消订阅事件，防止内存泄漏
+            if (ImagePreviewContent != null)
+            {
+                ImagePreviewContent.WorkflowExecutionRequested -= OnWorkflowExecutionRequested;
+            }
+
             // TODO: 清理资源
 
             _viewModel?.StopWorkflowCommand.Execute(null);
@@ -367,6 +373,30 @@ namespace SunEyeVision.UI.Views.Windows
             try
 
             {
+
+                // ★ 手动订阅ImagePreviewControl的工作流执行请求事件
+
+                // 注意：普通CLR事件不能通过XAML订阅，必须在代码后台手动订阅
+
+                if (ImagePreviewContent != null)
+
+                {
+
+                    ImagePreviewContent.WorkflowExecutionRequested += OnWorkflowExecutionRequested;
+
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ✓ 已订阅 ImagePreviewContent.WorkflowExecutionRequested 事件");
+
+                }
+
+                else
+
+                {
+
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ❌ ImagePreviewContent 为 null，无法订阅事件");
+
+                }
+
+
 
                 // 工具插件现在通过ToolboxViewModel自动加载
 
@@ -1426,6 +1456,8 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
+
+
         /// <summary>
 
         /// 工作流执行请求事件处理
@@ -1435,6 +1467,10 @@ namespace SunEyeVision.UI.Views.Windows
         private void OnWorkflowExecutionRequested(object sender, WorkflowExecutionRequestEventArgs e)
 
         {
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ★★★ OnWorkflowExecutionRequested 被调用 - 图像: {e.ImageInfo.Name}");
+
+
 
             if (_viewModel?.WorkflowTabViewModel?.SelectedTab == null)
 
@@ -1450,7 +1486,19 @@ namespace SunEyeVision.UI.Views.Windows
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
 
+
+
+            // ★ 注入当前图像路径到运行时参数
+
+            _viewModel.SetRuntimeParameter("CurrentImagePath", e.ImageInfo.FilePath);
+
+            _viewModel.SetRuntimeParameter("CurrentImageIndex", e.Index);
+
+
+
             _viewModel.AddLog($"▶ 执行工作流 - 图像: {e.ImageInfo.Name}");
+
+            _viewModel.AddLog($"   路径: {e.ImageInfo.FilePath}");
 
 
 

@@ -1,58 +1,188 @@
 # EditorConfig - 跨编辑器编码规范
 # https://editorconfig.org
+# SunEyeVision 项目编码规范配置
+# 版本: 2026.02
 
 root = true
 
+#################################################
 # 所有文件的默认设置
+#################################################
 [*]
-charset = utf-8
+charset = utf-8-bom
 end_of_line = crlf
 insert_final_newline = true
 trim_trailing_whitespace = true
+indent_style = space
 
+#################################################
 # C# 源代码文件
+#################################################
 [*.cs]
-charset = utf-8
+charset = utf-8-bom
 indent_style = space
 indent_size = 4
 
+# New line preferences
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_between_query_expression_clauses = true
+
+# Indentation preferences
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents_when_block = false
+
+# Space preferences
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_parentheses = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_around_binary_operators = before_and_after
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_after_comma = true
+csharp_space_before_comma = false
+csharp_space_after_dot = false
+csharp_space_before_dot = false
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_before_semicolon_in_for_statement = false
+csharp_space_around_declaration_statements = false
+csharp_space_before_open_square_brackets = false
+csharp_space_between_empty_square_brackets = false
+csharp_space_between_square_brackets = false
+
+# Wrapping preferences
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true
+
+# Using directives
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Pascal case for public members
+dotnet_naming_rule.public_members_should_be_pascal_case.severity = warning
+dotnet_naming_rule.public_members_should_be_pascal_case.symbols = public_symbols
+dotnet_naming_rule.public_members_should_be_pascal_case.style = pascal_case_style
+
+dotnet_naming_symbols.public_symbols.applicable_kinds = method, property, event, delegate
+dotnet_naming_symbols.public_symbols.applicable_accessibilities = public
+
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+#################################################
 # XML / XAML 文件
-[*.{xml,xaml,csproj,proj,props,targets}]
+#################################################
+[*.{xml,xaml,axaml,csproj,proj,props,targets}]
 charset = utf-8
 indent_style = space
 indent_size = 2
 
+#################################################
 # JSON 文件
+#################################################
 [*.json]
 charset = utf-8
 indent_style = space
 indent_size = 2
 
-# Markdown 文件
-[*.md]
-charset = utf-8
-trim_trailing_whitespace = false
-
+#################################################
 # YAML 文件
+#################################################
 [*.{yml,yaml}]
 charset = utf-8
 indent_style = space
 indent_size = 2
 
-# PowerShell 脚本
+#################################################
+# Markdown 文件
+#################################################
+[*.md]
+charset = utf-8
+trim_trailing_whitespace = false
+max_line_length = off
+
+#################################################
+# 配置文件
+#################################################
+[*.config]
+charset = utf-8
+
+[*.settings]
+charset = utf-8
+
+#################################################
+# 脚本文件
+#################################################
 [*.ps1]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+
+[*.bat]
+charset = utf-8
+end_of_line = crlf
+
+[*.cmd]
+charset = utf-8
+end_of_line = crlf
+
+[*.sh]
+charset = utf-8
+end_of_line = lf
+
+#################################################
+# Python 文件
+#################################################
+[*.py]
 charset = utf-8
 indent_style = space
 indent_size = 4
 
-# 批处理文件
-[*.bat]
-charset = utf-8
-
+#################################################
 # Git 配置
+#################################################
 [.git*]
 charset = utf-8
 
-# 配置文件
-[*.config]
+[.gitignore]
+end_of_line = lf
+
+[.gitattributes]
+end_of_line = lf
+
+#################################################
+# 解决方案文件
+#################################################
+[*.sln]
+charset = utf-8-sig
+end_of_line = crlf
+
+#################################################
+# ResX 资源文件
+#################################################
+[*.resx]
 charset = utf-8
+indent_style = space
+indent_size = 2
+
+#################################################
+# Protocol Buffer 文件
+#################################################
+[*.proto]
+charset = utf-8
+indent_style = space
+indent_size = 2

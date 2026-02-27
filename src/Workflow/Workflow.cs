@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenCvSharp;
 using SunEyeVision.Core.Interfaces;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Workflow
 {
@@ -622,9 +623,28 @@ namespace SunEyeVision.Workflow
             {
                 Logger.LogInfo($"Executing node: {node.Name} (ID: {node.Id})");
 
-                // 创建算法实例并执行
-                var algorithm = node.CreateInstance();
-                var resultImage = algorithm.Process(input) as Mat;
+                // 创建工具实例并执行
+                var tool = node.CreateInstance();
+                Mat? resultImage = null;
+                
+                if (tool != null)
+                {
+                    // 使用反射创建默认参数实例
+                    var defaultParams = (ToolParameters?)Activator.CreateInstance(tool.ParamsType) 
+                        ?? new GenericToolParameters();
+                    var toolResult = tool.Run(input, defaultParams);
+                    
+                    // 从结果中获取输出图像
+                    var resultItems = toolResult.GetResultItems();
+                    foreach (var item in resultItems)
+                    {
+                        if (item.Value is Mat mat)
+                        {
+                            resultImage = mat;
+                            break;
+                        }
+                    }
+                }
 
                 // 保存节点执行结果
                 nodeResults[node.Id] = resultImage ?? input;

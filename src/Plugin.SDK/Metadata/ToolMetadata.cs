@@ -167,6 +167,25 @@ namespace SunEyeVision.Plugin.SDK.Metadata
 
         #endregion
 
+        #region 数据绑定支持
+
+        /// <summary>
+        /// 是否支持数据绑定
+        /// </summary>
+        public bool SupportsDataBinding { get; set; } = false;
+
+        /// <summary>
+        /// 强类型参数类型
+        /// </summary>
+        public Type? ParameterType { get; set; }
+
+        /// <summary>
+        /// 强类型结果类型
+        /// </summary>
+        public Type? ResultType { get; set; }
+
+        #endregion
+
         #region 便捷方法
 
         /// <summary>

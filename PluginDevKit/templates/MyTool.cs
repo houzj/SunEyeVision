@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
+using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Validation;
 
 namespace MyPlugin
 {
@@ -11,17 +16,11 @@ namespace MyPlugin
     /// <remarks>
     /// 这是 SunEyeVision 插件开发的完整示例，包含：
     /// 1. IToolPlugin 接口的完整实现
-    /// 2. IImageProcessor 图像处理器的实现
+    /// 2. ITool&lt;TParams, TResult&gt; 强类型工具的实现
     /// 3. 参数定义、验证和处理逻辑
-    /// 
-    /// 开发步骤：
-    /// 1. 复制此文件并修改命名空间
-    /// 2. 修改 ToolPlugin 特性的 ToolId 和 Name
-    /// 3. 实现业务逻辑（ThresholdProcessor.Process 方法）
-    /// 4. 根据需要添加更多参数
     /// </remarks>
     [ToolPlugin("myplugin-threshold", "Threshold", Version = "1.0.0", Category = "图像处理")]
-    public class ThresholdTool : IToolPlugin
+    public class ThresholdToolPlugin : IToolPlugin
     {
         #region 插件基本信息
 
@@ -38,25 +37,13 @@ namespace MyPlugin
 
         #region 生命周期管理
 
-        public void Initialize()
-        {
-            // 插件初始化：加载资源、初始化状态等
-            IsLoaded = true;
-        }
-
-        public void Unload()
-        {
-            // 插件卸载：释放资源、清理状态等
-            IsLoaded = false;
-        }
+        public void Initialize() => IsLoaded = true;
+        public void Unload() => IsLoaded = false;
 
         #endregion
 
         #region 工具管理
 
-        /// <summary>
-        /// 定义工具的输入输出参数
-        /// </summary>
         public List<ToolMetadata> GetToolMetadata()
         {
             return new List<ToolMetadata>
@@ -71,161 +58,116 @@ namespace MyPlugin
                     Category = "图像处理",
                     Version = Version,
                     Author = Author,
-                    
-                    // 输入参数定义
                     InputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata
                         {
-                            Name = "InputImage",
-                            DisplayName = "输入图像",
-                            Description = "待处理的灰度图像",
-                            Type = ParameterType.Image,
-                            Required = true
-                        },
-                        new ParameterMetadata
-                        {
                             Name = "ThresholdValue",
                             DisplayName = "阈值",
-                            Description = "二值化的阈值(0-255)",
-                            Type = ParameterType.Int,
+                            Type = ParamDataType.Int,
                             DefaultValue = 128,
                             MinValue = 0,
-                            MaxValue = 255,
-                            Required = true
+                            MaxValue = 255
                         },
                         new ParameterMetadata
                         {
                             Name = "MaxValue",
                             DisplayName = "最大值",
-                            Description = "超过阈值时设置的值",
-                            Type = ParameterType.Int,
+                            Type = ParamDataType.Int,
                             DefaultValue = 255,
                             MinValue = 0,
-                            MaxValue = 255,
-                            Required = false
+                            MaxValue = 255
                         }
                     },
-                    
-                    // 输出参数定义
                     OutputParameters = new List<ParameterMetadata>
                     {
                         new ParameterMetadata
                         {
                             Name = "OutputImage",
                             DisplayName = "输出图像",
-                            Description = "二值化后的图像",
-                            Type = ParameterType.Image,
-                            Required = true
+                            Type = ParamDataType.Image
                         }
                     }
                 }
             };
         }
 
-        /// <summary>
-        /// 获取算法节点类型（可选）
-        /// </summary>
-        public List<Type> GetAlgorithmNodes()
+        public ITool? CreateToolInstance(string toolId)
         {
-            // 如果有自定义算法节点，返回其类型列表
-            return new List<Type>();
+            return toolId == PluginId ? new ThresholdTool() : null;
         }
 
-        /// <summary>
-        /// 创建图像处理器实例
-        /// </summary>
-        public IImageProcessor CreateToolInstance(string toolId)
-        {
-            if (toolId != PluginId)
-                throw new ArgumentException($"Unknown tool ID: {toolId}");
-            
-            return new ThresholdProcessor();
-        }
-
-        /// <summary>
-        /// 获取默认参数值
-        /// </summary>
         public AlgorithmParameters GetDefaultParameters(string toolId)
         {
-            if (toolId != PluginId)
-                throw new ArgumentException($"Unknown tool ID: {toolId}");
-
+            if (toolId != PluginId) return new AlgorithmParameters();
             var parameters = new AlgorithmParameters();
             parameters.Set("ThresholdValue", 128);
             parameters.Set("MaxValue", 255);
             return parameters;
         }
 
-        /// <summary>
-        /// 验证参数有效性
-        /// </summary>
-        public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters)
+        #endregion
+    }
+
+    #region 参数和结果定义
+
+    public class ThresholdToolParameters : ToolParameters
+    {
+        public int ThresholdValue { get; set; } = 128;
+        public int MaxValue { get; set; } = 255;
+
+        public override ValidationResult Validate()
         {
-            if (toolId != PluginId)
-                return ValidationResult.Failure($"Unknown tool ID: {toolId}");
-
             var result = new ValidationResult();
+            if (ThresholdValue < 0 || ThresholdValue > 255)
+                result.AddError($"阈值必须在 0-255 范围内，当前值: {ThresholdValue}");
+            if (MaxValue < 0 || MaxValue > 255)
+                result.AddError($"最大值必须在 0-255 范围内，当前值: {MaxValue}");
+            return result;
+        }
+    }
 
-            // 验证阈值范围
-            var threshold = parameters.Get<int>("ThresholdValue");
-            if (threshold < 0 || threshold > 255)
+    public class ThresholdToolResults : ToolResults
+    {
+        public Mat? OutputImage { get; set; }
+        public int ProcessedPixels { get; set; }
+    }
+
+    #endregion
+
+    #region 工具实现
+
+    public class ThresholdTool : ITool<ThresholdToolParameters, ThresholdToolResults>
+    {
+        public string Name => "阈值化处理";
+        public string Description => "将灰度图像转换为二值图像";
+        public string Version => "1.0.0";
+        public string Category => "图像处理";
+
+        public ThresholdToolResults Execute(Mat image, ThresholdToolParameters parameters)
+        {
+            var result = new ThresholdToolResults();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            try
             {
-                result.AddError($"阈值必须在 0-255 范围内，当前值: {threshold}");
+                var outputImage = new Mat();
+                Cv2.Threshold(image, outputImage, parameters.ThresholdValue, parameters.MaxValue, ThresholdTypes.Binary);
+                result.OutputImage = outputImage;
+                result.ProcessedPixels = image.Rows * image.Cols;
+                result.SetSuccess(stopwatch.ElapsedMilliseconds);
             }
-
-            // 验证最大值范围
-            var maxValue = parameters.Get<int>("MaxValue");
-            if (maxValue < 0 || maxValue > 255)
+            catch (Exception ex)
             {
-                result.AddError($"最大值必须在 0-255 范围内，当前值: {maxValue}");
+                result.SetError($"处理失败: {ex.Message}");
             }
 
             return result;
         }
 
-        #endregion
+        public ValidationResult ValidateParameters(ThresholdToolParameters parameters) => parameters.Validate();
+        public ThresholdToolParameters GetDefaultParameters() => new ThresholdToolParameters();
     }
 
-    /// <summary>
-    /// 阈值化图像处理器 - 实现实际的图像处理逻辑
-    /// </summary>
-    public class ThresholdProcessor : IImageProcessor
-    {
-        /// <summary>
-        /// 处理图像 - 实现二值化算法
-        /// </summary>
-        /// <param name="image">输入图像（具体类型取决于你的图像框架）</param>
-        /// <returns>处理后的二值图像</returns>
-        public object? Process(object image)
-        {
-            // TODO: 实现实际的图像处理逻辑
-            // 
-            // 示例伪代码（根据实际使用的图像库调整）：
-            // 
-            // var inputImage = image as YourImageType;
-            // if (inputImage == null) return null;
-            // 
-            // int threshold = GetParameter<int>("ThresholdValue");
-            // int maxValue = GetParameter<int>("MaxValue");
-            // 
-            // var outputImage = new YourImageType(inputImage.Width, inputImage.Height);
-            // 
-            // for (int y = 0; y < inputImage.Height; y++)
-            // {
-            //     for (int x = 0; x < inputImage.Width; x++)
-            //     {
-            //         var pixel = inputImage.GetPixel(x, y);
-            //         var gray = (pixel.R + pixel.G + pixel.B) / 3;
-            //         var newPixel = gray > threshold ? maxValue : 0;
-            //         outputImage.SetPixel(x, y, newPixel);
-            //     }
-            // }
-            // 
-            // return outputImage;
-
-            // 占位返回 - 替换为实际实现
-            return image;
-        }
-    }
+    #endregion
 }

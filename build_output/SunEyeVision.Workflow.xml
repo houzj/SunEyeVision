@@ -1,0 +1,2867 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Workflow</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Workflow.AlgorithmNode">
+            <summary>
+            算法节点
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmNode.Tool">
+            <summary>
+            工具实例
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmNode.LastResult">
+            <summary>
+            上次执行结果
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmNode.LastToolResult">
+            <summary>
+            上次工具执行结果（保留原始完整结果）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmNode.Execute(OpenCvSharp.Mat)">
+            <summary>
+            执行节点算法
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmNode.Execute(OpenCvSharp.Mat,System.Collections.Generic.IDictionary{System.String,SunEyeVision.Plugin.SDK.Execution.Results.ToolResults})">
+            <summary>
+            执行节点算法（带绑定解析）
+            </summary>
+            <param name="inputImage">输入图像</param>
+            <param name="nodeResults">其他节点的执行结果缓存（用于动态绑定解析）</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmNode.GetTypedParameters">
+            <summary>
+            获取强类型参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmNode.ConvertToAlgorithmResult(SunEyeVision.Plugin.SDK.Execution.Results.ToolResults)">
+            <summary>
+            将 ToolResults 转换为 AlgorithmResult
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.AlgorithmResult">
+            <summary>
+            算法执行结果
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.AlgorithmName">
+            <summary>
+            算法名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.Success">
+            <summary>
+            执行是否成功
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ResultImage">
+            <summary>
+            结果图像
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ErrorMessage">
+            <summary>
+            错误消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ExecutionTime">
+            <summary>
+            执行时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ExecutionDurationMs">
+            <summary>
+            执行耗时（毫秒）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ResultItems">
+            <summary>
+            结果项列表（从工具结果传递）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.AlgorithmResult.ToolResults">
+            <summary>
+            原始工具结果引用（用于保留完整结果信息）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmResult.CreateSuccess(OpenCvSharp.Mat,System.Double,System.String)">
+            <summary>
+            创建成功结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmResult.CreateFailure(System.String,System.String)">
+            <summary>
+            创建失败结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.AlgorithmResult.CreateError(System.String,System.String)">
+            <summary>
+            创建错误结果（CreateFailure的别名）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ConditionNode">
+            <summary>
+            条件判断节点
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.ConditionExpression">
+            <summary>
+            条件表达式
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.TrueBranchId">
+            <summary>
+            真分支ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.FalseBranchId">
+            <summary>
+            假分支ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.TrueBranchName">
+            <summary>
+            真分支节点名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.FalseBranchName">
+            <summary>
+            假分支节点名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.TrueValue">
+            <summary>
+            真分支返回值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.FalseValue">
+            <summary>
+            假分支返回值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.EvaluationResult">
+            <summary>
+            评估结果
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.IsEvaluated">
+            <summary>
+            是否已评估
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.EvaluationCount">
+            <summary>
+            评估次数统计
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.TrueBranchCount">
+            <summary>
+            真分支执行次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.FalseBranchCount">
+            <summary>
+            假分支执行次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.ConditionType">
+            <summary>
+            条件类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.Operator">
+            <summary>
+            比较操作符
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.LeftOperand">
+            <summary>
+            左操作数变量名
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.RightOperand">
+            <summary>
+            右操作数变量名或值
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionNode.RightOperandIsLiteral">
+            <summary>
+            右操作数是否为字面量值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.ExecuteControl(SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行条件判断控制逻辑
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.Validate">
+            <summary>
+            验证条件节点配置
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.ResetEvaluationState">
+            <summary>
+            重置评估状态
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.SetSimpleCondition(System.String,SunEyeVision.Workflow.ComparisonOperator,System.String,System.Boolean)">
+            <summary>
+            设置简单条件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.SetExpressionCondition(System.String)">
+            <summary>
+            设置表达式条件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ConditionNode.GetStatistics">
+            <summary>
+            获取统计信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ConditionType">
+            <summary>
+            条件类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ConditionType.Expression">
+            <summary>
+            表达式类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ConditionType.Simple">
+            <summary>
+            简单比较类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ConditionType.Compound">
+            <summary>
+            多条件组合类型
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ComparisonOperator">
+            <summary>
+            比较操作符
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.Equal">
+            <summary>
+            等于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.NotEqual">
+            <summary>
+            不等于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.GreaterThan">
+            <summary>
+            大于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.GreaterThanOrEqual">
+            <summary>
+            大于等于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.LessThan">
+            <summary>
+            小于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.LessThanOrEqual">
+            <summary>
+            小于等于
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.Contains">
+            <summary>
+            包含
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.NotContains">
+            <summary>
+            不包含
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ComparisonOperator.RegexMatch">
+            <summary>
+            正则匹配
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ConditionStatistics">
+            <summary>
+            条件统计信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionStatistics.TotalEvaluations">
+            <summary>
+            总评估次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionStatistics.TrueBranchCount">
+            <summary>
+            真分支执行次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionStatistics.FalseBranchCount">
+            <summary>
+            假分支执行次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionStatistics.TrueBranchPercentage">
+            <summary>
+            真分支百分比
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ConditionStatistics.FalseBranchPercentage">
+            <summary>
+            假分支百分比
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEventPublisher">
+            <summary>
+            Event bus integration for Workflow module
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishWorkflowStarted(System.String,System.String)">
+            <summary>
+            Publish workflow execution started event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishWorkflowExecuted(System.String,System.String,System.Boolean,System.Int64,System.Int32,System.String)">
+            <summary>
+            Publish workflow executed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishNodeExecutionStarted(System.String,System.String,System.String)">
+            <summary>
+            Publish node execution started event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishNodeExecuted(System.String,System.String,System.String,System.String,System.Boolean,System.Int64,System.String)">
+            <summary>
+            Publish node executed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventPublisher.PublishError(System.String,System.Exception,SunEyeVision.Core.Events.ErrorSeverity)">
+            <summary>
+            Publish error event
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.EventEnabledWorkflow">
+            <summary>
+            Example of extending Workflow class to use event bus
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventEnabledWorkflow.ExecuteWithEvents(OpenCvSharp.Mat)">
+            <summary>
+            Execute workflow with event publishing
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventEnabledWorkflow.ExecuteNode(SunEyeVision.Workflow.WorkflowNode,OpenCvSharp.Mat)">
+            <summary>
+            Execute a single node with event publishing
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEventBusSetup">
+            <summary>
+            Example of event bus usage in application startup
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEventBusSetup.SetupWorkflowMonitoring(SunEyeVision.Core.Events.IEventBus)">
+            <summary>
+            Setup event bus subscriptions for workflow monitoring
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.EventDrivenExecutor">
+            <summary>
+            Event-driven asynchronous workflow executor
+            Responds to triggers and processes images from the queue
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.IsRunning">
+            <summary>
+            Is executor running
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.CurrentWorkflowId">
+            <summary>
+            Current workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.TotalExecutions">
+            <summary>
+            Total executions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.SuccessfulExecutions">
+            <summary>
+            Successful executions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.FailedExecutions">
+            <summary>
+            Failed executions
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.EventDrivenExecutor.SuccessRate">
+            <summary>
+            Success rate
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.EventDrivenExecutor.ProcessingCompleted">
+            <summary>
+            Processing completed event
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.EventDrivenExecutor.StatusChanged">
+            <summary>
+            Executor status changed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.Start(System.String)">
+            <summary>
+            Start the executor
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.Stop">
+            <summary>
+            Stop the executor
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.ProcessingLoop(System.Threading.CancellationToken)">
+            <summary>
+            Processing loop - continuously dequeues and processes images
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.ProcessImageAsync(SunEyeVision.Workflow.ImageQueueEntry)">
+            <summary>
+            Process an image from the queue
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.OnWorkflowTrigger(SunEyeVision.Workflow.WorkflowTriggerEvent)">
+            <summary>
+            Handle workflow trigger event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.GetStatistics">
+            <summary>
+            Get executor statistics
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.EventDrivenExecutor.Dispose">
+            <summary>
+            Dispose resources
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ProcessingCompletedEventArgs">
+            <summary>
+            Processing completed event arguments
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutorStatusChangedEventArgs">
+            <summary>
+            Executor status changed event arguments
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutorStatistics">
+            <summary>
+            Executor statistics
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionResult">
+            <summary>
+            工作流执行结果。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.Success">
+            <summary>
+            是否成功
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.Outputs">
+            <summary>
+            输出数据
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.Errors">
+            <summary>
+            错误列表
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.ExecutionTime">
+            <summary>
+            执行时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.IsStopped">
+            <summary>
+            是否被停止。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionResult.NodeResults">
+            <summary>
+            节点执行结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ExecutionResult.CreateSuccess">
+            <summary>
+            创建成功结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ExecutionResult.CreateFailure(System.String)">
+            <summary>
+            创建失败结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ExecutionResult.AddError(System.String,System.String)">
+            <summary>
+            添加错误
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ExecutionResult.Merge(SunEyeVision.Workflow.ExecutionResult)">
+            <summary>
+            合并另一个执行结果。
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeExecutionResult">
+            <summary>
+            执行错误
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.NodeId">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.Success">
+            <summary>
+            是否成功
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.StartTime">
+            <summary>
+            执行开始时间。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.EndTime">
+            <summary>
+            执行结束时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.Duration">
+            <summary>
+            执行时长
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.Outputs">
+            <summary>
+            输出数据
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.ErrorMessages">
+            <summary>
+            错误消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.ResultItems">
+            <summary>
+            结果项列表（从工具结果传递）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionResult.ToolResult">
+            <summary>
+            原始工具结果引用（用于保留完整结果信息）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionProgress">
+            <summary>
+            执行进度
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionProgress.CurrentIteration">
+            <summary>
+            当前迭代次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionProgress.TotalIterations">
+            <summary>
+            总迭代次数。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionProgress.Progress">
+            <summary>
+            进度百分比。
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionProgress.Message">
+            <summary>
+            进度消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionProgress.CurrentNodeId">
+            <summary>
+            当前执行的节点ID
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.QueueOverflowStrategy">
+            <summary>
+            Queue overflow strategy
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.QueueOverflowStrategy.DropNewest">
+            <summary>
+            Drop newest image when queue is full
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.QueueOverflowStrategy.DropOldest">
+            <summary>
+            Drop oldest image when queue is full
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.QueueOverflowStrategy.Block">
+            <summary>
+            Block producer until space is available
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.QueueOverflowStrategy.Overwrite">
+            <summary>
+            Overwrite oldest image with newest
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ImageQueueEntry">
+            <summary>
+            Image queue entry with metadata
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueueEntry.Image">
+            <summary>
+            Image data
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueueEntry.EnqueueTime">
+            <summary>
+            Enqueue timestamp
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueueEntry.SequenceNumber">
+            <summary>
+            Sequence number
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueueEntry.Metadata">
+            <summary>
+            Metadata
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueueEntry.DeviceId">
+            <summary>
+            Device ID that captured the image
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ImageQueue">
+            <summary>
+            Thread-safe producer-consumer queue for images with configurable overflow strategy
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.MaxCapacity">
+            <summary>
+            Maximum queue capacity
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.Count">
+            <summary>
+            Current queue size
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.IsEmpty">
+            <summary>
+            Is queue empty
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.IsFull">
+            <summary>
+            Is queue full
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.OverflowStrategy">
+            <summary>
+            Overflow strategy
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.TotalEnqueued">
+            <summary>
+            Total enqueued count
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.TotalDequeued">
+            <summary>
+            Total dequeued count
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageQueue.TotalDropped">
+            <summary>
+            Total dropped count
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.ImageQueue.StatusChanged">
+            <summary>
+            Queue status changed event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.EnqueueAsync(OpenCvSharp.Mat,System.String,System.Object)">
+            <summary>
+            Enqueue an image (producer)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.DequeueAsync(System.Threading.CancellationToken)">
+            <summary>
+            Dequeue an image (consumer)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.TryDequeue(SunEyeVision.Workflow.ImageQueueEntry@)">
+            <summary>
+            Try to dequeue without blocking
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.TryPeek(SunEyeVision.Workflow.ImageQueueEntry@)">
+            <summary>
+            Peek at the next image without removing it
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.Clear">
+            <summary>
+            Clear all images from the queue
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.GetStatistics">
+            <summary>
+            Get queue statistics
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.NotifyStatusChanged">
+            <summary>
+            Notify subscribers of status change
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.ImageQueue.Dispose">
+            <summary>
+            Dispose resources
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.QueueStatusChangedEventArgs">
+            <summary>
+            Queue status changed event arguments
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.QueueStatistics">
+            <summary>
+            Queue statistics
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.IWorkflowControlPlugin">
+            <summary>
+            工作流控制插件接口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.GetMetadata">
+            <summary>
+            获取插件元数据
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.GetWorkflowControlNodes">
+            <summary>
+            获取工作流控制节点列表
+            </summary>
+            <returns>工作流控制节点列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.CreateSubroutineNode(System.String,System.String)">
+            <summary>
+            创建子程序节点
+            </summary>
+            <param name="name">节点名称</param>
+            <param name="workflowId">子程序工作流ID</param>
+            <returns>子程序节点实例</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.CreateConditionNode(System.String,System.String)">
+            <summary>
+            创建条件判断节点
+            </summary>
+            <param name="name">节点名称</param>
+            <param name="conditionExpression">条件表达式</param>
+            <returns>条件判断节点实例</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.ExecuteSubroutine(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行子程序
+            </summary>
+            <param name="node">子程序节点</param>
+            <param name="context">工作流执行上下文</param>
+            <returns>执行结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.IWorkflowControlPlugin.EvaluateCondition(SunEyeVision.Workflow.ConditionNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            评估条件表达式
+            </summary>
+            <param name="node">条件判断节点</param>
+            <param name="context">工作流执行上下文</param>
+            <returns>条件是否成立</returns>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeInterfaceFactory">
+            <summary>
+            节点界面工厂 - 根据节点类型决定打开哪个界面
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.NodeInterfaceFactory.GetInterfaceType(SunEyeVision.Workflow.WorkflowNode,SunEyeVision.Plugin.SDK.Metadata.ToolMetadata)">
+            <summary>
+            获取节点的界面类型
+            </summary>
+            <param name="node">工作流节点</param>
+            <param name="toolMetadata">工具元数据</param>
+            <returns>界面类型</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.NodeInterfaceFactory.CanOpenInterface(SunEyeVision.Workflow.WorkflowNode,SunEyeVision.Plugin.SDK.Metadata.ToolMetadata)">
+            <summary>
+            检查节点是否可以打开界面
+            </summary>
+            <param name="node">工作流节点</param>
+            <param name="toolMetadata">工具元数据</param>
+            <returns>是否可以打开界面</returns>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeInterfaceType">
+            <summary>
+            节点界面类型枚举
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeInterfaceType.None">
+            <summary>
+            无界面
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeInterfaceType.DebugWindow">
+            <summary>
+            调试窗口
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeInterfaceType.SubroutineEditor">
+            <summary>
+            子程序编辑器
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeInterfaceType.NewWorkflowCanvas">
+            <summary>
+            新工作流画布
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.LoopType">
+            <summary>
+            循环类型
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LoopType.FixedCount">
+            <summary>
+            固定次数循环
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LoopType.ConditionBased">
+            <summary>
+            条件循环（While）
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LoopType.DataDriven">
+            <summary>
+            数据驱动循环（For Each）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ParameterMapping">
+            <summary>
+            参数映射
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ParameterMapping.ExternalPortId">
+            <summary>
+            外部端口ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ParameterMapping.InternalPortId">
+            <summary>
+            子程序内部端口ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ParameterMapping.MappingName">
+            <summary>
+            映射名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ParameterMapping.DataType">
+            <summary>
+            数据类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ParameterMapping.DefaultValue">
+            <summary>
+            默认值
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.SubroutineNode">
+            <summary>
+            子程序节点
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.SubroutineId">
+            <summary>
+            子程序唯一标识
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.SubroutineName">
+            <summary>
+            子程序名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.Description">
+            <summary>
+            子程序描述
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.InputMappings">
+            <summary>
+            输入参数映射
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.OutputMappings">
+            <summary>
+            输出参数映射
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.IsLoop">
+            <summary>
+            是否启用循环
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.MaxIterations">
+            <summary>
+            最大迭代次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.LoopCondition">
+            <summary>
+            循环条件表达式
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.LoopType">
+            <summary>
+            循环类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.CurrentIteration">
+            <summary>
+            当前迭代次数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.TotalExecutionTime">
+            <summary>
+            总执行时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.EnableParallel">
+            <summary>
+            是否启用并行执行
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineNode.ExecutionCount">
+            <summary>
+            子程序执行计数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutineNode.ExecuteControl(SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行子程序控制逻辑
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutineNode.Validate">
+            <summary>
+            验证子程序节点配置
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutineNode.ResetExecutionState">
+            <summary>
+            重置执行状态
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutineNode.AddInputMapping(System.String,System.String,System.String,System.Type)">
+            <summary>
+            添加输入参数映射
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutineNode.AddOutputMapping(System.String,System.String,System.String,System.Type)">
+            <summary>
+            添加输出参数映射
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.SubroutinePlugin">
+            <summary>
+            子程序插件实现
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.GetMetadata">
+            <summary>
+            获取插件元数据
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.GetWorkflowControlNodes">
+            <summary>
+            获取工作流控制节点列表
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.CreateSubroutineNode(System.String,System.String)">
+            <summary>
+            创建子程序节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.CreateConditionNode(System.String,System.String)">
+            <summary>
+            创建条件判断节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.ExecuteSubroutine(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行子程序
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.EvaluateCondition(SunEyeVision.Workflow.ConditionNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            评估条件表达式
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.ExecuteSubroutineOnce(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.Workflow,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            单次执行子程序
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.ExecuteSubroutineWithLoop(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.Workflow,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            循环执行子程序
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.MapInputParameters(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            映射输入参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.MapOutputParameters(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.ExecutionResult,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            映射输出参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.EvaluateSimpleCondition(SunEyeVision.Workflow.ConditionNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            评估简单条件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.EvaluateExpressionCondition(SunEyeVision.Workflow.ConditionNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            评估表达式条件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.EvaluateLoopCondition(SunEyeVision.Workflow.SubroutineNode,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            评估循环条件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.GetOperandValue(System.String,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            获取操作数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.ParseLiteralValue(System.String)">
+            <summary>
+            解析字面量值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.CompareValues(System.Object,System.Object,SunEyeVision.Workflow.ComparisonOperator)">
+            <summary>
+            比较值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.CompareNumeric(System.Object,System.Object)">
+            <summary>
+            比较数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.FormatValue(System.Object)">
+            <summary>
+            格式化值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.EvaluateSimpleExpression(System.String)">
+            <summary>
+            评估简单表达式（简化实现）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.CompareExpressions(System.String,System.String)">
+            <summary>
+            比较表达式
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.ParseExpressionValue(System.String)">
+            <summary>
+            解析表达式值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.SubroutinePlugin.GetInputImageFromContext(SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            从上下文获取输入图像
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.HardwareTriggerConfig">
+            <summary>
+            Hardware trigger configuration
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.HardwareTriggerConfig.IoPin">
+            <summary>
+            IO pin number
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.HardwareTriggerConfig.Edge">
+            <summary>
+            Trigger edge (Rising, Falling, Both)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.HardwareTriggerConfig.DebounceMs">
+            <summary>
+            Debounce time in milliseconds
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.SoftwareTriggerConfig">
+            <summary>
+            Software trigger configuration
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SoftwareTriggerConfig.TriggerName">
+            <summary>
+            Trigger name/identifier
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SoftwareTriggerConfig.TriggerKey">
+            <summary>
+            Trigger key (for API calls)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TimerTriggerConfig">
+            <summary>
+            Timer trigger configuration
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.TimerTriggerConfig.IntervalMs">
+            <summary>
+            Interval in milliseconds
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.TimerTriggerConfig.InitialDelayMs">
+            <summary>
+            Initial delay in milliseconds
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TriggerEdge">
+            <summary>
+            Trigger edge enumeration
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TriggerManager">
+            <summary>
+            Unified trigger manager for hardware, software, and timer triggers
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.TriggerManager.TriggerFired">
+            <summary>
+            Trigger fired event
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.RegisterHardwareTrigger(System.String,SunEyeVision.Workflow.HardwareTriggerConfig)">
+            <summary>
+            Register a hardware trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.UnregisterHardwareTrigger(System.String)">
+            <summary>
+            Unregister a hardware trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.FireHardwareTrigger(System.String,OpenCvSharp.Mat,System.Object)">
+            <summary>
+            Fire a hardware trigger (called by device driver)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.RegisterSoftwareTrigger(System.String,SunEyeVision.Workflow.SoftwareTriggerConfig)">
+            <summary>
+            Register a software trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.UnregisterSoftwareTrigger(System.String)">
+            <summary>
+            Unregister a software trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.FireSoftwareTrigger(System.String,OpenCvSharp.Mat,System.Object)">
+            <summary>
+            Fire a software trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.RegisterTimerTrigger(System.String,SunEyeVision.Workflow.TimerTriggerConfig)">
+            <summary>
+            Register a timer trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.StartTimerTrigger(System.String)">
+            <summary>
+            Start a timer trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.StopTimerTrigger(System.String)">
+            <summary>
+            Stop a timer trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.UnregisterTimerTrigger(System.String)">
+            <summary>
+            Unregister a timer trigger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.GetAllTriggerIds">
+            <summary>
+            Get all registered trigger IDs
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.GetStatistics">
+            <summary>
+            Get trigger statistics
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.OnTriggerFired(SunEyeVision.Workflow.TriggerFiredEventArgs)">
+            <summary>
+            Trigger fired event handler
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.TriggerManager.Dispose">
+            <summary>
+            Dispose resources
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TriggerFiredEventArgs">
+            <summary>
+            Trigger fired event arguments
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TriggerManagerStatistics">
+            <summary>
+            Trigger manager statistics
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ImageCapturedEvent">
+            <summary>
+            Image captured event - raised when an image is captured from a camera
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageCapturedEvent.DeviceId">
+            <summary>
+            Device ID that captured the image
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageCapturedEvent.Image">
+            <summary>
+            Captured image
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageCapturedEvent.ImageTimestamp">
+            <summary>
+            Image timestamp
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageCapturedEvent.FrameNumber">
+            <summary>
+            Frame number (for continuous capture)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ImageCapturedEvent.Metadata">
+            <summary>
+            Image metadata
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowTriggerEvent">
+            <summary>
+            Workflow trigger event - raised when a workflow should be triggered
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowTriggerEvent.TriggerType">
+            <summary>
+            Trigger type (Hardware, Software, Timer)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowTriggerEvent.TriggerSource">
+            <summary>
+            Trigger source (device ID or other identifier)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowTriggerEvent.TriggerData">
+            <summary>
+            Trigger data (optional payload)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowTriggerEvent.Image">
+            <summary>
+            Image to process (if provided)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowTriggerEvent.ImageMetadata">
+            <summary>
+            Image metadata
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowExecutionStartedEvent">
+            <summary>
+            Workflow execution started event (async)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionStartedEvent.WorkflowId">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionStartedEvent.WorkflowName">
+            <summary>
+            Workflow name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionStartedEvent.ExecutionId">
+            <summary>
+            Execution ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionStartedEvent.ExecutionMode">
+            <summary>
+            Execution mode (Sync, Async)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowExecutionCompletedEvent">
+            <summary>
+            Workflow execution completed event (async)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionCompletedEvent.WorkflowId">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionCompletedEvent.WorkflowName">
+            <summary>
+            Workflow name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionCompletedEvent.ExecutionId">
+            <summary>
+            Execution ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionCompletedEvent.Result">
+            <summary>
+            Execution result
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ProcessingCompletedEvent">
+            <summary>
+            Processing completed event - raised when image processing is complete
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ProcessingCompletedEvent.WorkflowId">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ProcessingCompletedEvent.ExecutionId">
+            <summary>
+            Execution ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ProcessingCompletedEvent.InputImage">
+            <summary>
+            Input image
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ProcessingCompletedEvent.Result">
+            <summary>
+            Processing result
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ProcessingCompletedEvent.ProcessingDurationMs">
+            <summary>
+            Processing duration in milliseconds
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.QueueStatusChangedEvent">
+            <summary>
+            Queue status changed event - raised when image queue status changes
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.CurrentSize">
+            <summary>
+            Current queue size
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.MaxCapacity">
+            <summary>
+            Maximum queue capacity
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.IsFull">
+            <summary>
+            Queue full flag
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.IsEmpty">
+            <summary>
+            Queue empty flag
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.TotalEnqueued">
+            <summary>
+            Total images enqueued
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.TotalDequeued">
+            <summary>
+            Total images dequeued
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.QueueStatusChangedEvent.TotalDropped">
+            <summary>
+            Total images dropped
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.TriggerType">
+            <summary>
+            Trigger type enumeration
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.TriggerType.Hardware">
+            <summary>
+            Hardware trigger (e.g., GPIO, sensor)
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.TriggerType.Software">
+            <summary>
+            Software trigger (e.g., manual trigger, API call)
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.TriggerType.Timer">
+            <summary>
+            Timer trigger (e.g., periodic interval)
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.TriggerType.Queue">
+            <summary>
+            Queue trigger (triggered by image availability in queue)
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionMode">
+            <summary>
+            Execution mode enumeration
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ExecutionMode.Sync">
+            <summary>
+            Synchronous execution - process one image at a time
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.ExecutionMode.Async">
+            <summary>
+            Asynchronous execution - process images concurrently
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.VisionEventBase">
+            <summary>
+            Base class for vision events
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.PortConnection">
+            <summary>
+            端口连接 - 记录源节点端口到目标节点端口的连接
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.SourceNodeId">
+            <summary>
+            源节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.SourcePort">
+            <summary>
+            源端口 (如 "output", "left", "right", "top", "bottom")
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.TargetNodeId">
+            <summary>
+            目标节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.PortConnection.TargetPort">
+            <summary>
+            目标端口 (如 "input", "left", "right", "top", "bottom")
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionChain">
+            <summary>
+            执行链 - 由Start节点驱动的独立执行单元
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionChain.ChainId">
+            <summary>
+            执行链唯一标识
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionChain.StartNodeId">
+            <summary>
+            起始节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionChain.NodeIds">
+            <summary>
+            执行链中的节点ID列表（按拓扑顺序）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionChain.Dependencies">
+            <summary>
+            执行链中的所有依赖（用于跨链同步）
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ChainDependency">
+            <summary>
+            执行链依赖关系
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ChainDependency.SourceChainId">
+            <summary>
+            依赖的源链ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ChainDependency.SourceNodeId">
+            <summary>
+            源节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ChainDependency.TargetNodeId">
+            <summary>
+            本链中依赖该源的节点ID
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.Workflow">
+            <summary>
+            Workflow
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Id">
+            <summary>
+            Workflow ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Name">
+            <summary>
+            Workflow name
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Description">
+            <summary>
+            Workflow description
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Nodes">
+            <summary>
+            Node list
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Connections">
+            <summary>
+            Node connections (source node ID -> target node ID list)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.PortConnections">
+            <summary>
+            端口级连接列表 - 精确记录哪个端口连接到哪个端口
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.Workflow.Logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.SetLogger(SunEyeVision.Core.Interfaces.ILogger)">
+            <summary>
+            Set logger (internal use for deserialization)
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.AddNode(SunEyeVision.Workflow.WorkflowNode)">
+            <summary>
+            添加节点到工作流
+            </summary>
+            <param name="node">要添加的工作流节点</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.RemoveNode(System.String)">
+            <summary>
+            从工作流中移除节点
+            </summary>
+            <param name="nodeId">要移除的节点ID</param>
+            <remarks>
+            移除操作包括：
+            1. 从节点列表中移除
+            2. 移除该节点的所有输出连接
+            3. 移除其他节点到该节点的输入连接
+            4. 移除该节点的所有端口连接
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ConnectNodes(System.String,System.String)">
+            <summary>
+            连接两个节点（创建从源节点到目标节点的连接）
+            </summary>
+            <param name="sourceNodeId">源节点ID</param>
+            <param name="targetNodeId">目标节点ID</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ConnectNodesByPort(System.String,System.String,System.String,System.String)">
+            <summary>
+            Connect nodes by port - 精确指定源端口和目标端口
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DisconnectNodesByPort(System.String,System.String,System.String,System.String)">
+            <summary>
+            Disconnect nodes by port
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetParallelExecutionGroups">
+            <summary>
+            获取节点的并行执行分组（基于拓扑排序的分层）
+            </summary>
+            <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
+            <remarks>
+            算法说明：
+            1. 初始化：所有节点未处理，已处理集合为空
+            2. 迭代：在每轮中，找出所有依赖已满足的节点
+            3. 分组：将满足条件的节点加入当前分组
+            4. 更新：标记当前组为已处理，继续下一轮
+            5. 终止：所有节点处理完毕或无法继续（循环依赖）
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetExecutionOrder">
+            <summary>
+            获取节点的执行顺序（使用Kahn算法进行拓扑排序）
+            </summary>
+            <returns>按拓扑排序的节点ID列表</returns>
+            <remarks>
+            拓扑排序算法步骤：
+            1. 计算每个节点的入度（指向该节点的连接数量）
+            2. 将所有入度为0的节点加入队列
+            3. 从队列中取出节点并加入结果列表
+            4. 减少该节点所有后续节点的入度，如果入度变为0则加入队列
+            5. 重复步骤3-4直到队列为空
+            6. 如果处理的节点数不等于总节点数，说明存在循环依赖
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ProcessSuccessors(System.String,System.Collections.Generic.Dictionary{System.String,System.Int32},System.Collections.Generic.Queue{System.String})">
+            <summary>
+            处理指定节点的所有后续节点，减少它们的入度
+            </summary>
+            <param name="nodeId">源节点ID</param>
+            <param name="inDegree">节点入度字典</param>
+            <param name="queue">待处理节点队列</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DetectCycles">
+            <summary>
+            检测工作流中的循环依赖
+            </summary>
+            <returns>检测到的循环依赖路径列表</returns>
+            <remarks>
+            使用DFS深度优先搜索算法检测循环：
+            1. 访问节点时加入已访问集合和递归栈
+            2. 递归访问所有后续节点
+            3. 如果在递归栈中再次遇到某个节点，说明存在循环
+            4. 记录循环路径并返回
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DetectCycleDFS(System.String,System.String,System.Collections.Generic.List{System.String},System.Collections.Generic.HashSet{System.String},System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            使用深度优先搜索（DFS）检测循环依赖
+            </summary>
+            <param name="nodeId">当前节点ID</param>
+            <param name="path">当前路径</param>
+            <param name="cycles">循环列表（用于记录发现的循环）</param>
+            <param name="visited">已访问节点集合</param>
+            <param name="recursionStack">递归栈（用于检测回边）</param>
+            <returns>是否发现循环</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetNodePriority(System.String)">
+            <summary>
+            获取节点优先级（基于从该节点出发的最长路径长度）
+            </summary>
+            <param name="nodeId">节点ID</param>
+            <returns>节点优先级值（值越大表示该节点离出口越远）</returns>
+            <remarks>
+            优先级计算说明：
+            1. 出口节点（无后续节点）的优先级为0
+            2. 其他节点的优先级 = 1 + max(所有后续节点的优先级)
+            3. 优先级越高的节点应该越早执行
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CalculateNodePriority(System.String,System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            递归计算节点优先级
+            </summary>
+            <param name="nodeId">节点ID</param>
+            <param name="visited">已访问节点集合（用于避免循环导致的无限递归）</param>
+            <returns>节点优先级</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.DisconnectNodes(System.String,System.String)">
+            <summary>
+            Disconnect nodes
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.Execute(OpenCvSharp.Mat)">
+            <summary>
+            执行工作流
+            </summary>
+            <param name="inputImage">输入图像数据</param>
+            <returns>所有节点的执行结果列表</returns>
+            <remarks>
+            执行流程：
+            1. 创建执行计划（并行分组）
+            2. 获取拓扑排序的执行顺序
+            3. 按顺序依次执行每个节点
+            4. 节点的输出作为后续节点的输入
+            5. 记录所有节点的执行结果和执行时间
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CreateExecutionPlan">
+            <summary>
+            创建执行计划（基于并行执行分组）
+            </summary>
+            <returns>执行计划对象</returns>
+            <remarks>
+            执行计划包含：
+            1. 多个执行组，每个组包含可并行执行的节点
+            2. 执行组的序号和状态
+            3. 执行开始和结束时间
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ExecuteNode(SunEyeVision.Workflow.WorkflowNode,OpenCvSharp.Mat,System.Collections.Generic.Dictionary{System.String,OpenCvSharp.Mat},System.Collections.Generic.HashSet{System.String},System.Collections.Generic.List{SunEyeVision.Workflow.AlgorithmResult})">
+            <summary>
+            执行单个工作流节点
+            </summary>
+            <param name="node">要执行的节点</param>
+            <param name="inputImage">输入图像</param>
+            <param name="nodeResults">节点执行结果映射表（用于存储和获取中间结果）</param>
+            <param name="executedNodes">已执行节点集合（用于避免重复执行）</param>
+            <param name="results">算法结果列表（用于收集所有节点的执行结果）</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetInfo">
+            <summary>
+            获取工作流信息摘要
+            </summary>
+            <returns>工作流信息的格式化字符串</returns>
+            <remarks>
+            信息包含：
+            - 工作流名称和ID
+            - 工作流描述
+            - 节点总数
+            - 所有节点的详细列表（名称、ID、算法类型、启用状态）
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetAutoDetectExecutionChains">
+            <summary>
+            自动识别执行链（基于节点连接关系和入度）
+            </summary>
+            <returns>识别到的执行链列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetExecutionChains">
+            <summary>
+            获取执行链（基于连接关系自动识别入口节点）
+            </summary>
+            <returns>执行链列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CollectExecutionChain(System.String,System.Collections.Generic.List{System.String},System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            递归收集执行链中的所有节点（从指定节点开始）
+            </summary>
+            <param name="nodeId">起始节点ID</param>
+            <param name="chainNodes">执行链节点列表（用于收集节点）</param>
+            <param name="allVisitedNodes">全局已访问节点集合（用于避免跨链重复访问）</param>
+            <remarks>
+            算法说明：
+            1. 检查节点是否已访问（避免重复和循环）
+            2. 将节点加入执行链和全局访问集合
+            3. 递归收集所有下游节点
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.AnalyzeChainDependencies(SunEyeVision.Workflow.ExecutionChain,System.Collections.Generic.HashSet{System.String},System.Collections.Generic.List{SunEyeVision.Workflow.ExecutionChain})">
+            <summary>
+            分析并记录执行链的跨链依赖关系
+            </summary>
+            <param name="chain">目标执行链</param>
+            <param name="allVisitedNodes">全局已访问节点集合</param>
+            <param name="existingChains">已存在的执行链列表</param>
+            <remarks>
+            跨链依赖定义：
+            - 当执行链中的某个节点依赖于其他执行链中的节点时
+            - 需要记录源链ID、源节点ID和目标节点ID
+            - 用于执行时的同步和顺序控制
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetParallelExecutionGroupsByChains">
+            <summary>
+            基于执行链的并行执行分组（改进版 - 使用层级分组最大化并行度）
+            </summary>
+            <returns>并行执行组列表，每个组包含可并行执行的节点ID</returns>
+            <remarks>
+            算法特点：
+            1. 识别所有执行链（独立的执行单元）
+            2. 为每个执行链生成层级分组（BFS层级感知）
+            3. 将不同执行链中同一层级的节点合并到同一执行组
+            4. 确保不同执行链的节点不会被错误地混合到同一组
+            
+            优势：
+            - 最大化并行度：同一层级的所有节点可以并行执行
+            - 避免依赖冲突：通过层级分组保证执行顺序正确
+            - 支持跨链同步：不同执行链的同一层级节点可以同步执行
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetExecutionOrderForNodes(System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            获取指定节点集合的执行顺序（使用Kahn算法进行拓扑排序）
+            </summary>
+            <param name="nodeIds">节点ID集合</param>
+            <returns>按拓扑排序的节点ID列表</returns>
+            <remarks>
+            与GetExecutionOrder的区别：
+            - 仅考虑指定集合内的节点和连接
+            - 忽略集合外节点的依赖关系
+            - 用于子图或部分节点的执行排序
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetExecutionLevelsForNodes(System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            获取指定节点集合的执行层级（BFS层级感知分组）
+            </summary>
+            <param name="nodeIds">节点ID集合</param>
+            <returns>层级列表，每个层级包含可并行执行的节点ID</returns>
+            <remarks>
+            算法说明：
+            1. 计算节点集合内的入度（仅考虑集合内的连接）
+            2. BFS层级遍历，将同一层级的节点分组
+            3. 每层包含入度为0且未处理的节点
+            4. 处理后减少后续节点的入度，进入下一层
+            
+            优势：
+            - 最大化并行度：同一层级的所有节点可以并行执行
+            - 保证顺序正确：通过层级分组确保依赖关系
+            - 支持部分执行：仅处理指定集合内的节点
+            </remarks>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CalculateInDegreesForNodes(System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            计算指定节点集合中每个节点的入度
+            </summary>
+            <param name="nodeIds">节点ID集合</param>
+            <returns>节点入度字典</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.ProcessLevelSuccessors(System.Collections.Generic.List{System.String},System.Collections.Generic.HashSet{System.String},System.Collections.Generic.Dictionary{System.String,System.Int32})">
+            <summary>
+            处理当前层级的后续节点，减少它们的入度
+            </summary>
+            <param name="currentLevel">当前层级的节点列表</param>
+            <param name="nodeIds">节点ID集合（用于过滤）</param>
+            <param name="inDegree">节点入度字典</param>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GetNodeDisplayName(System.String)">
+            <summary>
+            获取节点的完整显示名称（格式：节点名称(ID: xxx)）
+            </summary>
+            <param name="nodeId">节点ID</param>
+            <returns>节点的完整显示名称，如果节点不存在则返回ID本身</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.PrepareNodeInput(SunEyeVision.Workflow.WorkflowNode,OpenCvSharp.Mat,System.Collections.Generic.Dictionary{System.String,OpenCvSharp.Mat})">
+            <summary>
+            为节点准备输入数据
+            如果节点有父节点，则使用父节点的输出作为输入；否则使用原始输入
+            </summary>
+            <param name="node">目标节点</param>
+            <param name="defaultInput">默认输入数据</param>
+            <param name="nodeResults">节点执行结果映射表</param>
+            <returns>节点的输入数据</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.FormatNodeListDisplay(System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            格式化节点ID列表为显示名称列表
+            </summary>
+            <param name="nodeIds">节点ID列表</param>
+            <returns>格式化后的节点显示名称列表字符串</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CalculateNodeInDegrees">
+            <summary>
+            计算所有节点的入度
+            </summary>
+            <returns>节点ID到入度的映射字典</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CalculateDownstreamNodes(System.Collections.Generic.List{SunEyeVision.Workflow.WorkflowNode})">
+            <summary>
+            计算指定节点组的所有下游节点
+            </summary>
+            <param name="nodes">节点列表</param>
+            <returns>下游节点ID集合</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.GroupEntryNodesByDownstream(System.Collections.Generic.List{SunEyeVision.Workflow.WorkflowNode})">
+            <summary>
+            根据下游节点重叠情况对入口节点进行分组
+            将共享下游节点的入口节点合并到同一组，以便构建单个执行链
+            </summary>
+            <param name="entryNodes">入口节点列表</param>
+            <returns>分组后的入口节点组列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CreateExecutionChain(System.Collections.Generic.List{SunEyeVision.Workflow.WorkflowNode},System.Int32,System.Collections.Generic.HashSet{System.String},System.Collections.Generic.List{SunEyeVision.Workflow.ExecutionChain})">
+            <summary>
+            为指定的入口节点组创建执行链
+            </summary>
+            <param name="entryGroup">入口节点组</param>
+            <param name="chainIndex">执行链索引</param>
+            <param name="allVisitedNodes">已访问的节点集合（用于标记已处理的节点）</param>
+            <param name="existingChains">已存在的执行链列表（用于分析跨链依赖）</param>
+            <returns>创建的执行链</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.Workflow.CreateIsolatedChains(System.Collections.Generic.HashSet{System.String},System.Int32@,System.Collections.Generic.List{SunEyeVision.Workflow.ExecutionChain})">
+            <summary>
+            为未访问的节点（孤岛节点）创建独立的执行链
+            </summary>
+            <param name="allVisitedNodes">已访问的节点集合</param>
+            <param name="chainCounter">执行链计数器（引用类型，用于递增索引）</param>
+            <param name="chains">执行链列表（用于添加新的孤岛链）</param>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionGroupStatus">
+            <summary>
+            执行组状态
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionGroup">
+            <summary>
+            执行组
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionPlan">
+            <summary>
+            执行计划
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.SubroutineCallInfo">
+            <summary>
+            子程序调用信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.SubroutineId">
+            <summary>
+            子程序ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.NodeId">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.CallDepth">
+            <summary>
+            调用深度
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.CallTime">
+            <summary>
+            调用时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.InputParameters">
+            <summary>
+            输入参数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.OutputResults">
+            <summary>
+            输出结果
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.Status">
+            <summary>
+            调用状态
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.SubroutineCallInfo.Error">
+            <summary>
+            错误信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.CallStatus">
+            <summary>
+            调用状态
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.CallStatus.Calling">
+            <summary>
+            调用中
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.CallStatus.Executing">
+            <summary>
+            执行中
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.CallStatus.Completed">
+            <summary>
+            完成
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.CallStatus.Failed">
+            <summary>
+            失败
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.CallStatus.Stopped">
+            <summary>
+            已停止
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeExecutionStatusInternal">
+            <summary>
+            节点执行状态（内部使用）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionStatusInternal.Status">
+            <summary>
+            状态
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionStatusInternal.StartTime">
+            <summary>
+            开始时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionStatusInternal.EndTime">
+            <summary>
+            结束时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.NodeExecutionStatusInternal.Duration">
+            <summary>
+            执行时长
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeStatus">
+            <summary>
+            节点状态
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeStatus.Pending">
+            <summary>
+            等待中
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeStatus.Running">
+            <summary>
+            执行中
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeStatus.Completed">
+            <summary>
+            已完成
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeStatus.Failed">
+            <summary>
+            失败
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.NodeStatus.Skipped">
+            <summary>
+            已跳过
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionPathItem">
+            <summary>
+            执行路径项
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.NodeId">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.NodeType">
+            <summary>
+            节点类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.Timestamp">
+            <summary>
+            时间戳
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.Duration">
+            <summary>
+            执行时长
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.Success">
+            <summary>
+            是否成功
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionPathItem.OutputSummary">
+            <summary>
+            输出数据摘要
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowContext">
+            <summary>
+            工作流执行上下文
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.WorkflowContext._runtimeParameters">
+            <summary>
+            运行时参数存储
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.WorkflowId">
+            <summary>
+            工作流ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.WorkflowName">
+            <summary>
+            工作流名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.ExecutionId">
+            <summary>
+            执行ID（唯一标识一次执行）
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.ExecutionStartTime">
+            <summary>
+            执行开始时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.Variables">
+            <summary>
+            全局变量
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.CallStack">
+            <summary>
+            子程序调用栈
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.ExecutionPath">
+            <summary>
+            执行路径
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.NodeStates">
+            <summary>
+            节点执行状态
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.WorkflowControlPlugin">
+            <summary>
+            工作流控制插件引用
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.CancellationToken">
+            <summary>
+            取消令牌
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.ProgressReporter">
+            <summary>
+            进度报告器
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.Logs">
+            <summary>
+            执行日志
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.Metadata">
+            <summary>
+            执行元数据
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.IsDebugMode">
+            <summary>
+            是否启用调试
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowContext.EnableProfiling">
+            <summary>
+            是否启用性能分析
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.SetVariable(System.String,System.Object)">
+            <summary>
+            设置变量值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetVariable(System.String)">
+            <summary>
+            获取变量值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetVariable``1(System.String)">
+            <summary>
+            获取变量值（指定类型）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.HasVariable(System.String)">
+            <summary>
+            检查变量是否存在
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.RemoveVariable(System.String)">
+            <summary>
+            移除变量
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetCurrentCallDepth">
+            <summary>
+            获取当前调用深度
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.PushCallInfo(SunEyeVision.Workflow.SubroutineCallInfo)">
+            <summary>
+            推送调用信息到栈
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.PopCallInfo">
+            <summary>
+            从栈弹出调用信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetCurrentCallInfo">
+            <summary>
+            获取当前调用信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.UpdateNodeStatus(System.String,SunEyeVision.Workflow.NodeStatus,SunEyeVision.Workflow.ExecutionResult)">
+            <summary>
+            更新节点状态
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.AddLog(System.String,SunEyeVision.Workflow.LogLevel)">
+            <summary>
+            添加执行日志
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.AddExecutionPathItem(SunEyeVision.Workflow.ExecutionPathItem)">
+            <summary>
+            添加执行路径项
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.ReportProgress(SunEyeVision.Workflow.ExecutionProgress)">
+            <summary>
+            报告进度
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.IsCancellationRequested">
+            <summary>
+            检查是否已取消
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.CreateSubContext(System.String)">
+            <summary>
+            创建子上下文（用于子程序）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetStatistics">
+            <summary>
+            获取执行统计信息
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.GetRuntimeParameter``1(System.String)">
+            <summary>
+            获取运行时参数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.SetRuntimeParameter``1(System.String,``0)">
+            <summary>
+            设置运行时参数值
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.HasRuntimeParameter(System.String)">
+            <summary>
+            检查运行时参数是否存在
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.RemoveRuntimeParameter(System.String)">
+            <summary>
+            移除运行时参数
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowContext.ClearRuntimeParameters">
+            <summary>
+            清除所有运行时参数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionLog">
+            <summary>
+            执行日志
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionLog.Timestamp">
+            <summary>
+            时间戳
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionLog.Level">
+            <summary>
+            日志级别
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionLog.Message">
+            <summary>
+            消息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionLog.ExecutionId">
+            <summary>
+            执行ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionLog.NodeId">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.LogLevel">
+            <summary>
+            日志级别
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LogLevel.Debug">
+            <summary>
+            调试
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LogLevel.Info">
+            <summary>
+            信息
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LogLevel.Warning">
+            <summary>
+            警告
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LogLevel.Error">
+            <summary>
+            错误
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.LogLevel.Fatal">
+            <summary>
+            致命错误
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ExecutionStatistics">
+            <summary>
+            执行统计信息
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.ExecutionId">
+            <summary>
+            执行ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.StartTime">
+            <summary>
+            开始时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.EndTime">
+            <summary>
+            结束时间
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.Duration">
+            <summary>
+            执行时长
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.TotalNodes">
+            <summary>
+            总节点数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.CompletedNodes">
+            <summary>
+            已完成节点数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.FailedNodes">
+            <summary>
+            失败节点数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.SkippedNodes">
+            <summary>
+            跳过节点数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.TotalLogs">
+            <summary>
+            总日志数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.CallDepth">
+            <summary>
+            调用深度
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ExecutionStatistics.SuccessRate">
+            <summary>
+            成功率
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowControlType">
+            <summary>
+            工作流控制类型（内部使用，用于控制节点分类）
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.WorkflowControlType.Subroutine">
+            <summary>
+            子程序调用
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.WorkflowControlType.Condition">
+            <summary>
+            条件判断
+            </summary>
+        </member>
+        <member name="F:SunEyeVision.Workflow.WorkflowControlType.Switch">
+            <summary>
+            多路分支
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowControlNode">
+            <summary>
+            工作流控制节点基类
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowControlNode.ControlType">
+            <summary>
+            控制类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowControlNode.EnableValidation">
+            <summary>
+            是否启用验证
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowControlNode.LastValidationResult">
+            <summary>
+            最后验证结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowControlNode.MapControlTypeToNodeType(SunEyeVision.Workflow.WorkflowControlType)">
+            <summary>
+            将WorkflowControlType映射到NodeType
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowControlNode.ExecuteControl(SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行控制逻辑（抽象方法）
+            </summary>
+            <param name="context">工作流执行上下文</param>
+            <returns>执行结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowControlNode.Validate">
+            <summary>
+            验证控制节点配置
+            </summary>
+            <returns>验证结果</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowControlNode.ValidateAndUpdate">
+            <summary>
+            执行验证并更新最后验证结果
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowControlNode.IsValid">
+            <summary>
+            验证控制节点是否配置正确
+            </summary>
+            <returns>是否验证通过</returns>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEngine">
+            <summary>
+            Workflow Engine
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.Workflows">
+            <summary>
+            Workflow list
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.CurrentWorkflow">
+            <summary>
+            Current active workflow
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowEngine.Logger">
+            <summary>
+            Logger
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.CreateWorkflow(System.String,System.String,System.String)">
+            <summary>
+            Create new workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.DeleteWorkflow(System.String)">
+            <summary>
+            Delete workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.SetCurrentWorkflow(System.String)">
+            <summary>
+            Set current workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.GetWorkflow(System.String)">
+            <summary>
+            Get workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.GetAllWorkflows">
+            <summary>
+            Get all workflows
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.ExecuteWorkflow(System.String,OpenCvSharp.Mat)">
+            <summary>
+            Execute workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.ExecuteCurrentWorkflow(OpenCvSharp.Mat)">
+            <summary>
+            Execute current workflow
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.SaveWorkflow(System.String,System.String)">
+            <summary>
+            Save workflow to file
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngine.LoadWorkflow(System.String)">
+            <summary>
+            Load workflow from file
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowEngineFactory">
+            <summary>
+            工作流引擎工厂 - 用于创建和初始化工作流引擎套件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngineFactory.CreateEngineSuite(SunEyeVision.Core.Interfaces.ILogger)">
+            <summary>
+            创建完整的工作流引擎套件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngineFactory.RegisterWorkflowControlPlugin(SunEyeVision.Workflow.WorkflowEngine,SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager,SunEyeVision.Core.Interfaces.ILogger)">
+            <summary>
+            注册工作流控制插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngineFactory.CreateBasicEngine(SunEyeVision.Core.Interfaces.ILogger)">
+            <summary>
+            创建基础工作流引擎（无插件功能）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowEngineFactory.CreateExecutionEngine(SunEyeVision.Workflow.WorkflowEngine,SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager,SunEyeVision.Core.Interfaces.ILogger)">
+            <summary>
+            创建执行引擎
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowExecutionState">
+            <summary>
+            工作流执行状态
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowExecutionEngine">
+            <summary>
+            工作流执行引擎 - 扩展WorkflowEngine以支持工作流控制节点
+            简化版本：使用基于拓扑排序的并行组执行
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionEngine.CurrentState">
+            <summary>
+            当前执行状态
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowExecutionEngine.CurrentContext">
+            <summary>
+            当前执行上下文
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowExecutionEngine.NodeStatusChanged">
+            <summary>
+            节点执行状态变化事件
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecutionCompleted">
+            <summary>
+            执行完成事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteWorkflowWithParallelGroups(SunEyeVision.Workflow.Workflow,OpenCvSharp.Mat,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            使用基于拓扑排序的并行组执行工作流（简化方案）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteNodesInParallel(SunEyeVision.Workflow.Workflow,System.Collections.Generic.List{System.String},OpenCvSharp.Mat,SunEyeVision.Workflow.WorkflowContext,System.Collections.Concurrent.ConcurrentDictionary{System.String,System.Object},System.Collections.Concurrent.ConcurrentDictionary{System.String,SunEyeVision.Workflow.NodeExecutionResult})">
+            <summary>
+            并行执行一组节点（同一组内节点无依赖关系）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteWorkflow(System.String,OpenCvSharp.Mat)">
+            <summary>
+            执行工作流（同步，支持工作流控制节点）
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:SunEyeVision.Workflow.WorkflowExecutionEngine.GetNodeInput(SunEyeVision.Workflow.Workflow,SunEyeVision.Workflow.WorkflowNode,System.Object,System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteNode(SunEyeVision.Workflow.WorkflowNode,System.Object,SunEyeVision.Workflow.WorkflowContext,SunEyeVision.Workflow.Workflow)">
+            <summary>
+            执行单个节点（支持多种节点类型）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteAlgorithmNode(SunEyeVision.Workflow.AlgorithmNode,OpenCvSharp.Mat)">
+            <summary>
+            执行算法节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteSubroutineNode(SunEyeVision.Workflow.SubroutineNode,OpenCvSharp.Mat,SunEyeVision.Workflow.WorkflowContext,SunEyeVision.Workflow.Workflow)">
+            <summary>
+            执行子程序节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteConditionNode(SunEyeVision.Workflow.ConditionNode,OpenCvSharp.Mat,SunEyeVision.Workflow.WorkflowContext)">
+            <summary>
+            执行条件节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ExecuteWorkflowAsync(System.String,OpenCvSharp.Mat)">
+            <summary>
+            异步执行工作流
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.PauseExecution">
+            <summary>
+            暂停执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.ResumeExecution">
+            <summary>
+            恢复执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.StopExecution">
+            <summary>
+            停止执行
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowExecutionEngine.GetExecutionStatistics">
+            <summary>
+            获取执行统计信息
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.NodeExecutionStatus">
+            <summary>
+            节点执行状态事件参数
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowNode">
+            <summary>
+            工作流节点
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Id">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Name">
+            <summary>
+            节点名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Type">
+            <summary>
+            节点类型
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.AlgorithmType">
+            <summary>
+            算法类型名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.Parameters">
+            <summary>
+            节点参数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.ParameterBindings">
+            <summary>
+            参数绑定配置
+            </summary>
+            <remarks>
+            支持参数与父节点输出的动态绑定。
+            用于在执行时自动从父节点获取参数值。
+            </remarks>
+        </member>
+        <member name="P:SunEyeVision.Workflow.WorkflowNode.IsEnabled">
+            <summary>
+            是否启用
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowNode.BeforeExecute">
+            <summary>
+            执行前事件
+            </summary>
+        </member>
+        <member name="E:SunEyeVision.Workflow.WorkflowNode.AfterExecute">
+            <summary>
+            执行后事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.OnBeforeExecute">
+            <summary>
+            触发执行前事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.OnAfterExecute(SunEyeVision.Workflow.AlgorithmResult)">
+            <summary>
+            触发执行后事件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.CreateInstance">
+            <summary>
+            创建工具实例（的初始化处理方法）
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.ToDictionary">
+            <summary>
+            获取节点的可序列化数据
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNode.FromDictionary(System.Collections.Generic.Dictionary{System.String,System.Object},SunEyeVision.Core.Models.NodeType)">
+            <summary>
+            从字典创建节点
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.WorkflowNodeFactory">
+            <summary>
+            工作流节点工厂 - 从ToolRegistry创建工作流节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.CreateNode(System.String,System.String,System.String,SunEyeVision.Plugin.SDK.Core.AlgorithmParameters,System.Boolean,System.Boolean)">
+            <summary>
+            从工具元数据创建算法节点
+            </summary>
+            <param name="toolId">工具ID(统一标识符)</param>
+            <param name="nodeId">节点ID</param>
+            <param name="nodeName">节点名称</param>
+            <param name="parameters">算法参数</param>
+            <param name="enableCaching">是否启用缓存</param>
+            <param name="enableRetry">是否启用重试</param>
+            <returns>创建的AlgorithmNode,如果工具不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.CreateAlgorithmNode(System.String,System.String,System.String,SunEyeVision.Plugin.SDK.Core.AlgorithmParameters,System.Boolean,System.Boolean)">
+            <summary>
+            从工具ID创建AlgorithmNode
+            </summary>
+            <param name="toolId">工具ID(统一标识符)</param>
+            <param name="nodeId">节点ID</param>
+            <param name="nodeName">节点名称</param>
+            <param name="parameters">算法参数</param>
+            <param name="enableCaching">是否启用缓存</param>
+            <param name="enableRetry">是否启用重试</param>
+            <returns>创建的AlgorithmNode,如果工具不存在则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.CreateAlgorithmNodes(System.Collections.Generic.IEnumerable{SunEyeVision.Workflow.ToolNodeConfig})">
+            <summary>
+            从工具ID批量创建AlgorithmNode
+            </summary>
+            <param name="toolConfig">工具配置列表</param>
+            <returns>创建的AlgorithmNode列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.CreateSubroutineNode(System.String,System.String,SunEyeVision.Plugin.SDK.Core.AlgorithmParameters)">
+            <summary>
+            创建子程序节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.CreateConditionNode(System.String,System.String,System.String,SunEyeVision.Plugin.SDK.Core.AlgorithmParameters)">
+            <summary>
+            创建条件节点
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.ValidateTool(System.String)">
+            <summary>
+            验证工具是否可用
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Workflow.WorkflowNodeFactory.GetToolMetadata(System.String)">
+            <summary>
+            获取工具元数据
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Workflow.ToolNodeConfig">
+            <summary>
+            工具节点配置
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.ToolId">
+            <summary>
+            工具ID(统一标识符)
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.NodeId">
+            <summary>
+            节点ID
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.NodeName">
+            <summary>
+            节点名称
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.Parameters">
+            <summary>
+            算法参数
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.EnableCaching">
+            <summary>
+            是否启用缓存
+            </summary>
+        </member>
+        <member name="P:SunEyeVision.Workflow.ToolNodeConfig.EnableRetry">
+            <summary>
+            是否启用重试
+            </summary>
+        </member>
+    </members>
+</doc>

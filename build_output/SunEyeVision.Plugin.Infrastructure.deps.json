@@ -1,0 +1,311 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "SunEyeVision.Plugin.Infrastructure/1.0.0": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260222",
+          "OpenCvSharp4.Extensions": "4.13.0.20260222",
+          "OpenCvSharp4.runtime.win": "4.13.0.20260222",
+          "SunEyeVision.Core": "1.0.0",
+          "SunEyeVision.Plugin.SDK": "1.0.2"
+        },
+        "runtime": {
+          "SunEyeVision.Plugin.Infrastructure.dll": {}
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces/11.0.0-preview.1.26104.118": {
+        "runtime": {
+          "lib/netstandard2.1/Microsoft.Bcl.AsyncInterfaces.dll": {
+            "assemblyVersion": "11.0.0.0",
+            "fileVersion": "11.0.26.10518"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/11.0.0-preview.1.26104.118": {
+        "runtime": {
+          "lib/netstandard2.1/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "11.0.0.0",
+            "fileVersion": "11.0.26.10518"
+          }
+        }
+      },
+      "Microsoft.Win32.SystemEvents/10.0.3": {
+        "runtime": {
+          "lib/net9.0/Microsoft.Win32.SystemEvents.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.326.7603"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net9.0/Microsoft.Win32.SystemEvents.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.326.7603"
+          }
+        }
+      },
+      "OpenCvSharp4/4.13.0.20260222": {
+        "dependencies": {
+          "System.Memory": "4.6.3"
+        },
+        "runtime": {
+          "lib/net8.0/OpenCvSharp.dll": {
+            "assemblyVersion": "4.13.0.0",
+            "fileVersion": "4.13.0.0"
+          }
+        }
+      },
+      "OpenCvSharp4.Extensions/4.13.0.20260222": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260222",
+          "System.Drawing.Common": "10.0.3"
+        },
+        "runtime": {
+          "lib/net8.0/OpenCvSharp.Extensions.dll": {
+            "assemblyVersion": "4.13.0.0",
+            "fileVersion": "4.13.0.0"
+          }
+        }
+      },
+      "OpenCvSharp4.runtime.win/4.13.0.20260222": {
+        "runtimeTargets": {
+          "runtimes/win-x64/native/OpenCvSharpExtern.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/opencv_videoio_ffmpeg4130_64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2025.12.0.0"
+          },
+          "runtimes/win-x86/native/OpenCvSharpExtern.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x86/native/opencv_videoio_ffmpeg4130.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "2025.12.0.0"
+          }
+        }
+      },
+      "System.Buffers/4.6.1": {},
+      "System.Drawing.Common/10.0.3": {
+        "dependencies": {
+          "Microsoft.Win32.SystemEvents": "10.0.3"
+        },
+        "runtime": {
+          "lib/net9.0/System.Drawing.Common.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.326.7603"
+          },
+          "lib/net9.0/System.Private.Windows.Core.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.326.7603"
+          },
+          "lib/net9.0/System.Private.Windows.GdiPlus.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.326.7603"
+          }
+        }
+      },
+      "System.IO.Pipelines/11.0.0-preview.1.26104.118": {
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Memory": "4.6.3",
+          "System.Threading.Tasks.Extensions": "4.6.3"
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.IO.Pipelines.dll": {
+            "assemblyVersion": "11.0.0.0",
+            "fileVersion": "11.0.26.10518"
+          }
+        }
+      },
+      "System.Memory/4.6.3": {},
+      "System.Runtime.CompilerServices.Unsafe/6.1.2": {},
+      "System.Text.Encodings.Web/11.0.0-preview.1.26104.118": {
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.Text.Encodings.Web.dll": {
+            "assemblyVersion": "11.0.0.0",
+            "fileVersion": "11.0.26.10518"
+          }
+        }
+      },
+      "System.Text.Json/11.0.0-preview.1.26104.118": {
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "11.0.0-preview.1.26104.118",
+          "System.Buffers": "4.6.1",
+          "System.IO.Pipelines": "11.0.0-preview.1.26104.118",
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2",
+          "System.Text.Encodings.Web": "11.0.0-preview.1.26104.118",
+          "System.Threading.Tasks.Extensions": "4.6.3"
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.Text.Json.dll": {
+            "assemblyVersion": "11.0.0.0",
+            "fileVersion": "11.0.26.10518"
+          }
+        }
+      },
+      "System.Threading.Tasks.Extensions/4.6.3": {},
+      "SunEyeVision.Core/1.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "11.0.0-preview.1.26104.118",
+          "OpenCvSharp4": "4.13.0.20260222",
+          "OpenCvSharp4.Extensions": "4.13.0.20260222",
+          "OpenCvSharp4.runtime.win": "4.13.0.20260222",
+          "SunEyeVision.Plugin.SDK": "1.0.2",
+          "System.Text.Json": "11.0.0-preview.1.26104.118"
+        },
+        "runtime": {
+          "SunEyeVision.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "SunEyeVision.Plugin.SDK/1.0.2": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260222",
+          "OpenCvSharp4.runtime.win": "4.13.0.20260222"
+        },
+        "runtime": {
+          "SunEyeVision.Plugin.SDK.dll": {
+            "assemblyVersion": "1.0.2.0",
+            "fileVersion": "1.0.2.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "SunEyeVision.Plugin.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Bcl.AsyncInterfaces/11.0.0-preview.1.26104.118": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-6+5AjGLW/ZanDgkdM9Kg+9QnwEDSK7ywq8DZnq/GiiY5wrGAldGzjYAReBNvdjfSTOAWXQwXA4rQpJv4p2jkJg==",
+      "path": "microsoft.bcl.asyncinterfaces/11.0.0-preview.1.26104.118",
+      "hashPath": "microsoft.bcl.asyncinterfaces.11.0.0-preview.1.26104.118.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/11.0.0-preview.1.26104.118": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-m42ZmEtgb8HrHCeOybwRC/0fXa14VA1EX7XXWzn5DWQ5ukP+ZwxyVYC9Z6UCoEm2jEYWPmz7sZmfCF8nRaocAw==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/11.0.0-preview.1.26104.118",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.11.0.0-preview.1.26104.118.nupkg.sha512"
+    },
+    "Microsoft.Win32.SystemEvents/10.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-gYpwz5Gl0rs9pEFHBKctLbSi7SUGR4L1uRjXkU488nizWd2hvo2JP2+ATUsv0th7v6LDiXfdlUsnTbvC2MauFA==",
+      "path": "microsoft.win32.systemevents/10.0.3",
+      "hashPath": "microsoft.win32.systemevents.10.0.3.nupkg.sha512"
+    },
+    "OpenCvSharp4/4.13.0.20260222": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-mf5PaHlhU/SnO5kWy7QqJnto4EEBVN0g7vQDMeCs4mkparaMUZKYSsnx22s7yLRsif0f7eYYVnViUqUDLA8Ymw==",
+      "path": "opencvsharp4/4.13.0.20260222",
+      "hashPath": "opencvsharp4.4.13.0.20260222.nupkg.sha512"
+    },
+    "OpenCvSharp4.Extensions/4.13.0.20260222": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-JUMwP4xf33gB2+cchZY2AFLwT6E7P/DK8xMD0dBMzNwZYsB6M2Sxl0/SD8ZwEmavT5mQEbGxozWNViWlYx1RBg==",
+      "path": "opencvsharp4.extensions/4.13.0.20260222",
+      "hashPath": "opencvsharp4.extensions.4.13.0.20260222.nupkg.sha512"
+    },
+    "OpenCvSharp4.runtime.win/4.13.0.20260222": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vaLtBrNb5Xnz7LlPuf8JP1Pj8n+xDoVnkcsApaqmcVz/ncuLQksLorqHRxwtlhrvRWQ7Edq8XPkx1IMWMLcFIA==",
+      "path": "opencvsharp4.runtime.win/4.13.0.20260222",
+      "hashPath": "opencvsharp4.runtime.win.4.13.0.20260222.nupkg.sha512"
+    },
+    "System.Buffers/4.6.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw==",
+      "path": "system.buffers/4.6.1",
+      "hashPath": "system.buffers.4.6.1.nupkg.sha512"
+    },
+    "System.Drawing.Common/10.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bJlT89G7EqMpiLCvIPmb7BHpcSxjVeFsahRyQk3/mrUt5YgHKiFcEv88db97gKcpRn5opxfBwI0ohUmJlxuGJg==",
+      "path": "system.drawing.common/10.0.3",
+      "hashPath": "system.drawing.common.10.0.3.nupkg.sha512"
+    },
+    "System.IO.Pipelines/11.0.0-preview.1.26104.118": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Wvv6VELrtkwl9V8k5DokoxTH1aTe2ot0/byLCPx4nN6DqFVIf/1jQHgXhf+4M9Gwza+stZguaFYq7fhjfZMWrQ==",
+      "path": "system.io.pipelines/11.0.0-preview.1.26104.118",
+      "hashPath": "system.io.pipelines.11.0.0-preview.1.26104.118.nupkg.sha512"
+    },
+    "System.Memory/4.6.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A==",
+      "path": "system.memory/4.6.3",
+      "hashPath": "system.memory.4.6.3.nupkg.sha512"
+    },
+    "System.Runtime.CompilerServices.Unsafe/6.1.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw==",
+      "path": "system.runtime.compilerservices.unsafe/6.1.2",
+      "hashPath": "system.runtime.compilerservices.unsafe.6.1.2.nupkg.sha512"
+    },
+    "System.Text.Encodings.Web/11.0.0-preview.1.26104.118": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-xwTSj+1YJPBjhkSUtn9GXRF4Af+T/pt2+TWeprNs1kJEBQCwJ/Sfn/soFeca4QV/D5uYr/YMRCezhbQZWToxKA==",
+      "path": "system.text.encodings.web/11.0.0-preview.1.26104.118",
+      "hashPath": "system.text.encodings.web.11.0.0-preview.1.26104.118.nupkg.sha512"
+    },
+    "System.Text.Json/11.0.0-preview.1.26104.118": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-soEmfTl30ipSF4oextg/gFKM4PQ2+llRYPQnZMUjTDzct1Lnw4fqUTw/PSSCsf9hkJ8DD+jvkfRfvaif689Nuw==",
+      "path": "system.text.json/11.0.0-preview.1.26104.118",
+      "hashPath": "system.text.json.11.0.0-preview.1.26104.118.nupkg.sha512"
+    },
+    "System.Threading.Tasks.Extensions/4.6.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-7sCiwilJLYbTZELaKnc7RecBBXWXA+xMLQWZKWawBxYjp6DBlSE3v9/UcvKBvr1vv2tTOhipiogM8rRmxlhrVA==",
+      "path": "system.threading.tasks.extensions/4.6.3",
+      "hashPath": "system.threading.tasks.extensions.4.6.3.nupkg.sha512"
+    },
+    "SunEyeVision.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SunEyeVision.Plugin.SDK/1.0.2": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

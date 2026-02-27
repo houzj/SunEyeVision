@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using OpenCvSharp;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 
 namespace SunEyeVision.Workflow
 {
@@ -37,6 +39,16 @@ namespace SunEyeVision.Workflow
         /// 执行耗时（毫秒）
         /// </summary>
         public double ExecutionDurationMs { get; set; }
+
+        /// <summary>
+        /// 结果项列表（从工具结果传递）
+        /// </summary>
+        public IReadOnlyList<ResultItem>? ResultItems { get; set; }
+
+        /// <summary>
+        /// 原始工具结果引用（用于保留完整结果信息）
+        /// </summary>
+        public ToolResults? ToolResults { get; set; }
 
         /// <summary>
         /// 创建成功结果

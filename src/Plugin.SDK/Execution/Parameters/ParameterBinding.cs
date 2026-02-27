@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -96,6 +96,25 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public Type? TargetType { get; set; }
 
         /// <summary>
+        /// 运行时数据源键名
+        /// </summary>
+        /// <remarks>
+        /// 当 BindingType 为 RuntimeInjection 时，指定从运行时参数中获取哪个键的值。
+        /// 预定义键: "CurrentImagePath", "CurrentImageIndex", "CurrentImage" 等。
+        /// 
+        /// 示例：
+        /// <code>
+        /// var binding = new ParameterBinding
+        /// {
+        ///     ParameterName = "FilePath",
+        ///     BindingType = BindingType.RuntimeInjection,
+        ///     RuntimeSourceKey = "CurrentImagePath"
+        /// };
+        /// </code>
+        /// </remarks>
+        public string? RuntimeSourceKey { get; set; }
+
+        /// <summary>
         /// 是否有效
         /// </summary>
         public bool IsValid => Validate().IsValid;
@@ -142,6 +161,27 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
+        /// 创建运行时注入绑定
+        /// </summary>
+        /// <param name="parameterName">参数名称</param>
+        /// <param name="runtimeSourceKey">运行时数据源键名</param>
+        /// <param name="targetType">目标类型（可选）</param>
+        /// <returns>参数绑定实例</returns>
+        public static ParameterBinding CreateRuntimeInjection(
+            string parameterName,
+            string runtimeSourceKey,
+            Type? targetType = null)
+        {
+            return new ParameterBinding
+            {
+                ParameterName = parameterName,
+                BindingType = BindingType.RuntimeInjection,
+                RuntimeSourceKey = runtimeSourceKey,
+                TargetType = targetType
+            };
+        }
+
+        /// <summary>
         /// 验证绑定配置
         /// </summary>
         /// <returns>验证结果</returns>
@@ -181,6 +221,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                         result.Errors.Add("表达式绑定必须指定转换表达式");
                     }
                     break;
+
+                case BindingType.RuntimeInjection:
+                    if (string.IsNullOrWhiteSpace(RuntimeSourceKey))
+                    {
+                        result.IsValid = false;
+                        result.Errors.Add("运行时注入绑定必须指定 RuntimeSourceKey");
+                    }
+                    break;
             }
 
             return result;
@@ -200,7 +248,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 SourceNodeId = SourceNodeId,
                 SourceProperty = SourceProperty,
                 TransformExpression = TransformExpression,
-                TargetType = TargetType
+                TargetType = TargetType,
+                RuntimeSourceKey = RuntimeSourceKey
             };
         }
 
@@ -229,6 +278,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (!string.IsNullOrEmpty(TransformExpression))
                 dict["TransformExpression"] = TransformExpression;
+
+            if (!string.IsNullOrEmpty(RuntimeSourceKey))
+                dict["RuntimeSourceKey"] = RuntimeSourceKey;
 
             if (TargetType != null)
                 dict["TargetType"] = TargetType.AssemblyQualifiedName ?? TargetType.FullName!;
@@ -283,6 +335,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (dict.TryGetValue("TransformExpression", out var expr))
                 binding.TransformExpression = expr?.ToString();
 
+            if (dict.TryGetValue("RuntimeSourceKey", out var runtimeKey))
+                binding.RuntimeSourceKey = runtimeKey?.ToString();
+
             if (dict.TryGetValue("TargetType", out var targetType))
             {
                 binding.TargetType = Type.GetType(targetType?.ToString() ?? string.Empty);
@@ -301,6 +356,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 BindingType.Constant => $"{ParameterName} = {ConstantValue ?? "null"}",
                 BindingType.DynamicBinding => $"{ParameterName} <- {SourceNodeId}.{SourceProperty}",
                 BindingType.Expression => $"{ParameterName} = {TransformExpression}",
+                BindingType.RuntimeInjection => $"{ParameterName} <- Runtime[{RuntimeSourceKey}]",
                 _ => $"{ParameterName} ({BindingType})"
             };
         }

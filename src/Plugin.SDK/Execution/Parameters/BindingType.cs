@@ -58,6 +58,30 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 支持简单的数学运算和属性访问。
         /// 示例: "$node1.Radius * 1.5" 或 "$node1.Center.X + 10"
         /// </remarks>
-        Expression = 2
+        Expression = 2,
+
+        /// <summary>
+        /// 运行时注入绑定
+        /// </summary>
+        /// <remarks>
+        /// 参数值从运行时上下文中动态获取，适用于外部系统在执行前注入参数值。
+        /// 典型应用场景：图像预览器点击图像时注入文件路径到 ImageLoad 节点。
+        /// 
+        /// 使用示例：
+        /// <code>
+        /// var binding = new ParameterBinding
+        /// {
+        ///     ParameterName = "FilePath",
+        ///     BindingType = BindingType.RuntimeInjection,
+        ///     RuntimeSourceKey = "CurrentImagePath"
+        /// };
+        /// </code>
+        /// 
+        /// 预定义键：
+        /// - CurrentImagePath: 当前执行图像的文件路径
+        /// - CurrentImageIndex: 当前图像在列表中的索引
+        /// - CurrentImage: 当前图像对象
+        /// </remarks>
+        RuntimeInjection = 3
     }
 }

@@ -15,15 +15,8 @@
     <PluginAuthor>SunEyeVision Team</PluginAuthor>
   </PropertyGroup>
 
-  <!-- 引用 SDK -->
-  <ItemGroup Condition="'$(UseNuGet)' != 'true'">
-    <Reference Include="SunEyeVision.Plugin.Abstractions">
-      <HintPath>$(SdkPath)SunEyeVision.Plugin.Abstractions.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UseNuGet)' == 'true'">
-    <PackageReference Include="SunEyeVision.Plugin.SDK" Version="1.0.0" />
+  <!-- 引用 SDK - 使用项目引用（内部开发模式） -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
   </ItemGroup>
 </Project>
