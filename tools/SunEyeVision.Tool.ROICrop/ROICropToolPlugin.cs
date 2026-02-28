@@ -116,11 +116,6 @@ namespace SunEyeVision.Tool.ROICrop
             return result;
         }
 
-        public Task<ROICropResults> RunAsync(Mat image, ROICropParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(ROICropParameters parameters) => parameters.Validate();
         public ROICropParameters GetDefaultParameters() => new ROICropParameters();
     }

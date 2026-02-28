@@ -1,11 +1,12 @@
-using SunEyeVision.Plugin.SDK;
+﻿using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.ImageCapture
 {
-    public class ImageCaptureToolViewModel : AutoToolDebugViewModelBase
+    public class ImageCaptureToolViewModel : ToolViewModelBase
     {
         private string _deviceId = "0";
         private int _width = 1920;
@@ -67,22 +68,21 @@ namespace SunEyeVision.Tool.ImageCapture
 
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "图像采集";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
         }
 
-        public override void RunTool()
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在从设备 {_deviceId} 采集图像 ({Width}x{Height})...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(200, 500));
-            ExecutionTime = $"{random.Next(150, 300)} ms";
-            StatusMessage = $"图像采集完成 - {Width}x{Height}";
-            ToolStatus = "就绪";
+            return new ImageCaptureParameters
+            {
+                CameraId = int.TryParse(DeviceId, out var id) ? id : 0,
+                Timeout = 5000
+            };
         }
     }
 }

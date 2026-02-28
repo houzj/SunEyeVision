@@ -1,16 +1,40 @@
+﻿using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.OCR
 {
-    public class OCRToolViewModel : AutoToolDebugViewModelBase
+    public class OCRToolViewModel : ToolViewModelBase
     {
         private string _language = "chi_sim+eng";
         private string _dataPath = "";
         private string _charWhitelist = "";
         private int _psm = 3;
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        #endregion
 
         public string Language
         {
@@ -52,29 +76,28 @@ namespace SunEyeVision.Tool.OCR
             }
         }
 
-        public string[] Languages { get; } = { 
-            "chi_sim", "chi_tra", "eng", "chi_sim+eng", 
-            "jpn", "kor", "fra", "deu", "spa" 
+        public string[] Languages { get; } = {
+            "chi_sim", "chi_tra", "eng", "chi_sim+eng",
+            "jpn", "kor", "fra", "deu", "spa"
         };
 
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "OCR识别";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
         }
 
-        public override void RunTool()
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行OCR识别（语言: {Language}）...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(300, 600));
-            ExecutionTime = $"{random.Next(200, 400)} ms";
-            StatusMessage = "OCR识别完成";
-            ToolStatus = "就绪";
+            return new OCRParameters
+            {
+                Language = this.Language,
+                ConfThreshold = 80.0
+            };
         }
     }
 }

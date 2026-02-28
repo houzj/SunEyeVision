@@ -1,6 +1,9 @@
+﻿using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.ImageSave
@@ -8,12 +11,33 @@ namespace SunEyeVision.Tool.ImageSave
     /// <summary>
     /// ImageSaveTool ViewModel - 图像保存工具的视图模型
     /// </summary>
-    public class ImageSaveToolViewModel : ToolDebugViewModelBase
+    public class ImageSaveToolViewModel : ToolViewModelBase
     {
         private string _filePath = "";
         private string _imageFormat = "PNG";
         private int _imageQuality = 95;
         private bool _overwriteExisting = false;
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        #endregion
 
         #region 属性
 
@@ -82,11 +106,21 @@ namespace SunEyeVision.Tool.ImageSave
         /// </summary>
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "图像保存";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
+        }
+
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
+        {
+            return new ImageSaveParameters
+            {
+                OutputPath = this.FilePath,
+                OutputFormat = this.ImageFormat.ToLower()
+            };
         }
 
         /// <summary>
@@ -152,26 +186,6 @@ namespace SunEyeVision.Tool.ImageSave
             ImageQuality = 95;
             OverwriteExisting = false;
             StatusMessage = "参数已重置为默认值";
-        }
-
-        /// <summary>
-        /// 运行工具
-        /// </summary>
-        public override void RunTool()
-        {
-            if (string.IsNullOrWhiteSpace(FilePath))
-            {
-                StatusMessage = "请先设置文件路径";
-                return;
-            }
-
-            ToolStatus = "运行中";
-            StatusMessage = $"正在保存图像到: {FilePath}";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(100, 500));
-            ExecutionTime = $"{random.Next(50, 200)} ms";
-            StatusMessage = $"图像保存成功: {System.IO.Path.GetFileName(FilePath)}";
-            ToolStatus = "就绪";
         }
 
         #endregion

@@ -244,14 +244,6 @@ namespace MyPlugin
         }
 
         /// <summary>
-        /// 异步执行工具
-        /// </summary>
-        public Task<ThresholdToolResults> RunAsync(Mat image, ThresholdToolParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
-        /// <summary>
         /// 验证参数
         /// </summary>
         public ValidationResult ValidateParameters(ThresholdToolParameters parameters)

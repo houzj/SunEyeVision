@@ -102,11 +102,6 @@ namespace SunEyeVision.Tool.OCR
             return result;
         }
 
-        public Task<OCRResults> RunAsync(Mat image, OCRParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(OCRParameters parameters) => parameters.Validate();
         public OCRParameters GetDefaultParameters() => new OCRParameters();
     }

@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Input;
 using Microsoft.Win32;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.ViewModels;
 using OpenCvSharp;
@@ -14,7 +15,7 @@ namespace SunEyeVision.Tool.ImageLoad
     /// 图像载入工具ViewModel - 简化版
     /// 只负责图像载入，不进行图像处理
     /// </summary>
-    public class ImageLoadToolViewModel : AutoToolDebugViewModelBase
+    public class ImageLoadToolViewModel : ToolViewModelBase
     {
         private readonly ImageLoadTool _tool;
         private ImageLoadParameters _parameters;
@@ -118,7 +119,7 @@ namespace SunEyeVision.Tool.ImageLoad
         /// <summary>
         /// 是否正在执行
         /// </summary>
-        public bool IsExecuting
+        public new bool IsExecuting
         {
             get => _isExecuting;
             private set
@@ -170,6 +171,17 @@ namespace SunEyeVision.Tool.ImageLoad
         {
             base.Initialize(toolId, toolPlugin, toolMetadata);
             _parameters = new ImageLoadParameters();
+        }
+
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
+        {
+            return new ImageLoadParameters
+            {
+                FilePath = this.FilePath
+            };
         }
 
         /// <summary>
@@ -235,14 +247,6 @@ namespace SunEyeVision.Tool.ImageLoad
             {
                 IsExecuting = false;
             }
-        }
-
-        /// <summary>
-        /// 运行工具（实现基类抽象方法）
-        /// </summary>
-        public override void RunTool()
-        {
-            Execute();
         }
 
         /// <summary>

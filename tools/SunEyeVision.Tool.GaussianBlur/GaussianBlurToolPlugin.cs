@@ -195,11 +195,6 @@ namespace SunEyeVision.Tool.GaussianBlur
             return result;
         }
 
-        public Task<GaussianBlurResults> RunAsync(Mat image, GaussianBlurParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(GaussianBlurParameters parameters) => parameters.Validate();
         public GaussianBlurParameters GetDefaultParameters() => new GaussianBlurParameters();
     }

@@ -120,11 +120,6 @@ namespace SunEyeVision.Tool.ImageSave
             return result;
         }
 
-        public Task<ImageSaveResults> RunAsync(Mat image, ImageSaveParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(ImageSaveParameters parameters) => parameters.Validate();
         public ImageSaveParameters GetDefaultParameters() => new ImageSaveParameters();
     }

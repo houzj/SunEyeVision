@@ -1,19 +1,47 @@
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.Threshold
 {
-    public class ThresholdToolViewModel : AutoToolDebugViewModelBase
+    public class ThresholdToolViewModel : ToolViewModelBase
     {
-        private string _thresholdType = "Otsu";
-        private int _threshold = 127;
+        private string _thresholdType = "Binary";
+        private int _threshold = 128;
         private int _maxValue = 255;
         private double _adaptiveBlockSize = 11;
         private double _adaptiveC = 2;
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        /// <summary>
+        /// 可用绑定源列表（用于参数绑定）
+        /// </summary>
+        public List<string> AvailableBindings { get; } = new List<string>();
+
+        #endregion
 
         #region 参数绑定支持
 
@@ -256,7 +284,7 @@ namespace SunEyeVision.Tool.Threshold
         }
 
         public string[] ThresholdTypes { get; } = { 
-            "Otsu", "Binary", "BinaryInv", 
+            "Binary", "BinaryInv", 
             "Trunc", "ToZero", "ToZeroInv",
             "AdaptiveMean", "AdaptiveGaussian"
         };
@@ -276,11 +304,56 @@ namespace SunEyeVision.Tool.Threshold
 
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "图像阈值化";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
+        }
+
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
+        {
+            return new ThresholdParameters
+            {
+                Threshold = this.Threshold,
+                MaxValue = this.MaxValue,
+                Type = ParseThresholdType(this.ThresholdType),
+                AdaptiveMethod = ParseAdaptiveMethod(this.ThresholdType),
+                BlockSize = (int)this.AdaptiveBlockSize,
+                Invert = false
+            };
+        }
+
+        /// <summary>
+        /// 解析阈值类型字符串
+        /// </summary>
+        private static global::SunEyeVision.Tool.Threshold.ThresholdType ParseThresholdType(string typeStr)
+        {
+            return typeStr switch
+            {
+                "Binary" => global::SunEyeVision.Tool.Threshold.ThresholdType.Binary,
+                "BinaryInv" => global::SunEyeVision.Tool.Threshold.ThresholdType.BinaryInv,
+                "Trunc" => global::SunEyeVision.Tool.Threshold.ThresholdType.Trunc,
+                "ToZero" => global::SunEyeVision.Tool.Threshold.ThresholdType.ToZero,
+                "ToZeroInv" => global::SunEyeVision.Tool.Threshold.ThresholdType.ToZeroInv,
+                "AdaptiveMean" => global::SunEyeVision.Tool.Threshold.ThresholdType.Binary,
+                "AdaptiveGaussian" => global::SunEyeVision.Tool.Threshold.ThresholdType.Binary,
+                _ => global::SunEyeVision.Tool.Threshold.ThresholdType.Binary
+            };
+        }
+
+        /// <summary>
+        /// 解析自适应方法字符串
+        /// </summary>
+        private static AdaptiveMethod ParseAdaptiveMethod(string typeStr)
+        {
+            return typeStr switch
+            {
+                "AdaptiveMean" => AdaptiveMethod.Mean,
+                "AdaptiveGaussian" => AdaptiveMethod.Gaussian,
+                _ => AdaptiveMethod.Mean
+            };
         }
 
         /// <summary>
@@ -338,17 +411,6 @@ namespace SunEyeVision.Tool.Threshold
             AvailableSourcesSummary = sources.Count > 0 
                 ? $"发现 {sources.Count} 个前驱节点可提供数据"
                 : "未找到前驱节点";
-        }
-
-        public override void RunTool()
-        {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行{ThresholdType}阈值化...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(50, 100));
-            ExecutionTime = $"{random.Next(30, 60)} ms";
-            StatusMessage = "阈值化完成";
-            ToolStatus = "就绪";
         }
     }
 

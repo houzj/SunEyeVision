@@ -157,11 +157,6 @@ namespace SunEyeVision.Tool.ColorConvert
             return result;
         }
 
-        public Task<ColorConvertResults> RunAsync(Mat image, ColorConvertParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         private ColorConversionCodes GetColorConversionCode(string targetSpace, int inputChannels)
         {
             return targetSpace.ToUpper() switch

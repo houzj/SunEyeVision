@@ -1,17 +1,41 @@
+﻿using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.ROICrop
 {
-    public class ROICropToolViewModel : AutoToolDebugViewModelBase
+    public class ROICropToolViewModel : ToolViewModelBase
     {
         private int _x = 0;
         private int _y = 0;
         private int _width = 100;
         private int _height = 100;
         private bool _normalize = false;
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        #endregion
 
         public int X
         {
@@ -65,22 +89,23 @@ namespace SunEyeVision.Tool.ROICrop
 
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "ROI裁剪";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
         }
 
-        public override void RunTool()
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在裁剪ROI({X},{Y},{Width}x{Height})...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(50, 100));
-            ExecutionTime = $"{random.Next(20, 50)} ms";
-            StatusMessage = $"ROI裁剪完成";
-            ToolStatus = "就绪";
+            return new ROICropParameters
+            {
+                X = this.X,
+                Y = this.Y,
+                Width = this.Width,
+                Height = this.Height
+            };
         }
     }
 }

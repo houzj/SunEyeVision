@@ -106,11 +106,6 @@ namespace SunEyeVision.Tool.ImageCapture
             return result;
         }
 
-        public Task<ImageCaptureResults> RunAsync(Mat image, ImageCaptureParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(ImageCaptureParameters parameters) => parameters.Validate();
         public ImageCaptureParameters GetDefaultParameters() => new ImageCaptureParameters();
     }

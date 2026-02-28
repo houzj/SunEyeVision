@@ -140,14 +140,6 @@ namespace SunEyeVision.Tool.Threshold
         }
 
         /// <summary>
-        /// 执行工具（异步）
-        /// </summary>
-        public Task<ThresholdResults> RunAsync(Mat image, ThresholdParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
-        /// <summary>
         /// 验证参数
         /// </summary>
         public ValidationResult ValidateParameters(ThresholdParameters parameters)

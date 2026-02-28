@@ -1,19 +1,73 @@
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
-using System.Collections.Generic;
 
 namespace SunEyeVision.Tool.GaussianBlur
 {
     /// <summary>
     /// 高斯模糊工具调试ViewModel
     /// </summary>
-    public class GaussianBlurToolViewModel : AutoToolDebugViewModelBase
+    public class GaussianBlurToolViewModel : ToolViewModelBase
     {
         private int _kernelSize = 5;
         private double _sigma = 1.5;
         private string _borderType = "Reflect";
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        #endregion
+
+        #region 参数绑定支持
+
+        private ParameterBindingMode _sigmaBindingMode = ParameterBindingMode.Constant;
+        private string _sigmaBindingSource = string.Empty;
+
+        /// <summary>
+        /// 可用绑定源列表（用于参数绑定）
+        /// </summary>
+        public List<string> AvailableBindings { get; } = new List<string>();
+
+        /// <summary>
+        /// Sigma绑定模式
+        /// </summary>
+        public ParameterBindingMode SigmaBindingMode
+        {
+            get => _sigmaBindingMode;
+            set => SetProperty(ref _sigmaBindingMode, value);
+        }
+
+        /// <summary>
+        /// Sigma绑定源
+        /// </summary>
+        public string SigmaBindingSource
+        {
+            get => _sigmaBindingSource;
+            set => SetProperty(ref _sigmaBindingSource, value);
+        }
+
+        #endregion
 
         /// <summary>
         /// 核大小（必须为奇数）
@@ -67,27 +121,15 @@ namespace SunEyeVision.Tool.GaussianBlur
         public string[] BorderTypes { get; } = { "Reflect", "Constant", "Replicate", "Default" };
 
         /// <summary>
-        /// 构建参数字典（供基类 Execute 使用）
+        /// 获取当前运行参数
         /// </summary>
-        protected override Dictionary<string, object> BuildParameterDictionary()
+        protected override ToolParameters GetRunParameters()
         {
-            return new Dictionary<string, object>
+            return new GaussianBlurParameters
             {
-                ["kernelSize"] = KernelSize,
-                ["sigma"] = Sigma,
-                ["borderType"] = BorderType
+                KernelSize = this.KernelSize,
+                Sigma = this.Sigma
             };
-        }
-
-        /// <summary>
-        /// 执行成功回调
-        /// </summary>
-        protected override void OnExecutionCompleted(AlgorithmResult result)
-        {
-            if (result.Data != null)
-            {
-                DebugMessage = $"处理参数: KernelSize={KernelSize}, Sigma={Sigma:F2}, BorderType={BorderType}";
-            }
         }
 
         /// <summary>
@@ -99,21 +141,6 @@ namespace SunEyeVision.Tool.GaussianBlur
             Sigma = 1.5;
             BorderType = "Reflect";
             base.ResetParameters();
-        }
-
-        /// <summary>
-        /// 运行工具
-        /// </summary>
-        public override void RunTool()
-        {
-            ToolStatus = "运行中";
-            StatusMessage = "正在执行高斯模糊...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(100, 200));
-            ExecutionTime = $"{random.Next(60, 120)} ms";
-            StatusMessage = "高斯模糊完成";
-            ToolStatus = "就绪";
-            DebugMessage = $"处理参数: KernelSize={KernelSize}, Sigma={Sigma:F2}, BorderType={BorderType}";
         }
     }
 }

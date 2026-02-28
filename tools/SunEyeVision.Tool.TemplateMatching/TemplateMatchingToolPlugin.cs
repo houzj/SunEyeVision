@@ -105,11 +105,6 @@ namespace SunEyeVision.Tool.TemplateMatching
             return result;
         }
 
-        public Task<TemplateMatchingResults> RunAsync(Mat image, TemplateMatchingParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(TemplateMatchingParameters parameters) => parameters.Validate();
         public TemplateMatchingParameters GetDefaultParameters() => new TemplateMatchingParameters();
     }

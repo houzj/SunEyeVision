@@ -327,11 +327,6 @@ namespace SunEyeVision.Tool.EdgeDetection
             return result;
         }
 
-        public Task<EdgeDetectionResults> RunAsync(Mat image, EdgeDetectionParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
         public ValidationResult ValidateParameters(EdgeDetectionParameters parameters) => parameters.Validate();
         public EdgeDetectionParameters GetDefaultParameters() => new EdgeDetectionParameters();
     }

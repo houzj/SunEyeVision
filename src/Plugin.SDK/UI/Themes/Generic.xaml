@@ -93,26 +93,45 @@
         </Setter>
     </Style>
 
-    <!-- ParamComboBox 样式 -->
+    <!-- ParamComboBox 样式 - 水平布局 -->
     <Style TargetType="{x:Type controls:ParamComboBox}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:ParamComboBox}">
-                    <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="{TemplateBinding Label}" 
-                                   Style="{StaticResource LabelStyle}"
-                                   Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{TemplateBinding ItemsSource}"
-                                  SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                  SelectedIndex="{Binding SelectedIndex, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                  SelectedValue="{Binding SelectedValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                  SelectedValuePath="{TemplateBinding SelectedValuePath}"
-                                  DisplayMemberPath="{TemplateBinding DisplayMemberPath}"
-                                  IsEditable="{TemplateBinding IsEditable}"
-                                  Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                  Style="{StaticResource BaseInputStyle}"
-                                  Height="32"/>
-                    </StackPanel>
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- 标签 -->
+                            <TextBlock Grid.Column="0"
+                                       Text="{TemplateBinding Label}"
+                                       Style="{StaticResource LabelStyle}"
+                                       MinWidth="60"
+                                       Margin="0,0,12,0"/>
+                            
+                            <!-- 下拉框 -->
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{TemplateBinding ItemsSource}"
+                                      SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                      SelectedIndex="{Binding SelectedIndex, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                      SelectedValue="{Binding SelectedValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                      SelectedValuePath="{TemplateBinding SelectedValuePath}"
+                                      DisplayMemberPath="{TemplateBinding DisplayMemberPath}"
+                                      IsEditable="{TemplateBinding IsEditable}"
+                                      Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                      Height="28"
+                                      VerticalContentAlignment="Center"
+                                      HorizontalAlignment="Stretch"/>
+                        </Grid>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -165,6 +184,277 @@
                         <!-- 内容 -->
                         <ContentPresenter/>
                     </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- BindableParameter 样式 -->
+    <Style TargetType="{x:Type controls:BindableParameter}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:BindableParameter}">
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 第一行：Label | TextBox | 箭头 | BindingButton | MinValueLabel -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*" MinWidth="60"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 标签 -->
+                                <TextBlock Grid.Column="0"
+                                           Text="{TemplateBinding Label}"
+                                           Style="{StaticResource LabelStyle}"
+                                           MinWidth="60"/>
+
+                                <!-- 值输入框 -->
+                                <TextBox x:Name="PART_ValueTextBox"
+                                         Grid.Column="1"
+                                         Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay, StringFormat={}{0:F0}}"
+                                         Style="{StaticResource BaseInputStyle}"
+                                         TextAlignment="Center"
+                                         Margin="8,0,0,0"/>
+
+                                <!-- 上下箭头（垂直排列） -->
+                                <StackPanel Grid.Column="2" Orientation="Vertical" Margin="2,0,8,0">
+                                    <RepeatButton x:Name="PART_IncreaseButton"
+                                                  Content="▲"
+                                                  Width="18" Height="14"
+                                                  FontSize="8"
+                                                  Background="{StaticResource BackgroundBrush}"
+                                                  BorderBrush="{StaticResource BorderBrush}"
+                                                  BorderThickness="1"
+                                                  Padding="0"
+                                                  Margin="0,0,0,1"/>
+                                    <RepeatButton x:Name="PART_DecreaseButton"
+                                                  Content="▼"
+                                                  Width="18" Height="14"
+                                                  FontSize="8"
+                                                  Background="{StaticResource BackgroundBrush}"
+                                                  BorderBrush="{StaticResource BorderBrush}"
+                                                  BorderThickness="1"
+                                                  Padding="0"/>
+                                </StackPanel>
+
+                                <!-- 绑定按钮 -->
+                                <Button x:Name="PART_BindingButton"
+                                        Grid.Column="3"
+                                        Content="⚡"
+                                        Width="28" Height="28"
+                                        FontSize="14"
+                                        Background="{StaticResource BackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Cursor="Hand"
+                                        ToolTip="点击绑定到其他节点输出"
+                                        Margin="0,0,8,0"/>
+
+                                <!-- 最小值标签 -->
+                                <TextBlock Grid.Column="4"
+                                           Text="{TemplateBinding MinValueLabel}"
+                                           Style="{StaticResource LabelSecondaryStyle}"
+                                           MinWidth="40"/>
+                            </Grid>
+
+                            <!-- 第二行：滑块（展开时显示） -->
+                            <Border x:Name="PART_ExpandPanel"
+                                    Grid.Row="1"
+                                    Visibility="Collapsed"
+                                    Margin="0,6,0,0">
+                                <Slider x:Name="PART_Slider"
+                                        Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                        Minimum="{TemplateBinding Minimum}"
+                                        Maximum="{TemplateBinding Maximum}"
+                                        SmallChange="{TemplateBinding SmallChange}"
+                                        LargeChange="{TemplateBinding LargeChange}"
+                                        VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ImageSourceSelector 样式 - 水平布局 -->
+    <Style TargetType="{x:Type controls:ImageSourceSelector}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ImageSourceSelector}">
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 标签 -->
+                            <TextBlock Grid.Column="0"
+                                       Text="{TemplateBinding Label}"
+                                       Style="{StaticResource LabelStyle}"
+                                       MinWidth="60"
+                                       Margin="0,0,12,0"/>
+
+                            <!-- 选择器按钮 -->
+                            <Button x:Name="PART_SelectorButton"
+                                    Grid.Column="1"
+                                    Height="28"
+                                    HorizontalContentAlignment="Left"
+                                    VerticalContentAlignment="Center"
+                                    Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    Padding="8,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding SelectedImageSource.DisplayName, RelativeSource={RelativeSource TemplatedParent}}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource LabelBrush}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedImageSource, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
+                                                        <Setter Property="Text" Value="{Binding PlaceholderText, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Grid.Column="1"
+                                               Text="▼"
+                                               FontSize="10"
+                                               Foreground="{StaticResource LabelSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0"/>
+                                </Grid>
+                            </Button>
+
+                            <!-- 下拉弹出面板 -->
+                            <Popup x:Name="PART_Popup"
+                                   PlacementTarget="{Binding ElementName=PART_SelectorButton}"
+                                   Placement="Bottom"
+                                   StaysOpen="False"
+                                   Width="{Binding ActualWidth, ElementName=PART_SelectorButton}"
+                                   MaxHeight="300"
+                                   AllowsTransparency="True">
+                                <Border Background="White"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Margin="0,2,0,0"
+                                        Padding="0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 标题栏 -->
+                                        <Border Grid.Row="0"
+                                                Background="{StaticResource BackgroundBrush}"
+                                                Padding="12,8">
+                                            <TextBlock Text="选择图像源"
+                                                       FontWeight="Medium"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource LabelBrush}"/>
+                                        </Border>
+
+                                        <!-- 图像源列表 -->
+                                        <ListBox x:Name="PART_ImageSourceList"
+                                                 Grid.Row="1"
+                                                 BorderThickness="0"
+                                                 MaxHeight="250"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="8,6">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- 缩略图 -->
+                                                        <Border Grid.Column="0"
+                                                                Width="48" Height="36"
+                                                                Background="#F5F5F5"
+                                                                CornerRadius="2"
+                                                                Margin="0,0,12,0">
+                                                            <Image Source="{Binding Thumbnail}"
+                                                                   Stretch="Uniform"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center">
+                                                                <Image.Style>
+                                                                    <Style TargetType="Image">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Thumbnail, Converter={x:Null}}" Value="{x:Null}">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Image.Style>
+                                                            </Image>
+                                                        </Border>
+
+                                                        <!-- 信息区 -->
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontWeight="Medium"
+                                                                       FontSize="13"
+                                                                       Foreground="{StaticResource LabelBrush}"/>
+                                                            <TextBlock Text="{Binding SizeDescription}"
+                                                                       FontSize="11"
+                                                                       Foreground="{StaticResource LabelSecondaryBrush}"
+                                                                       Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#F0F7FF"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter Property="Background" Value="#E6F7FF"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                    </Grid>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

@@ -9,15 +9,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 参数滑块控件 - 带标签和数值显示的滑块
     /// </summary>
     /// <remarks>
-    /// 用于数值参数配置，提供滑动和输入两种方式。
+    /// [已废弃] 请使用 BindableParameter 控件替代，提供更丰富的功能：
+    /// - 支持常量/绑定模式切换
+    /// - 支持节点输出绑定
+    /// - 更紧凑的水平布局
+    /// - 可展开的滑块面板
+    /// 
+    /// 此控件仅为向后兼容而保留，不建议在新代码中使用。
     /// 
     /// 使用示例：
     /// <code>
+    /// // 推荐：使用 BindableParameter
+    /// &lt;controls:BindableParameter Label="阈值" 
+    ///     Value="{Binding Threshold}" 
+    ///     Minimum="0" Maximum="255" /&gt;
+    /// 
+    /// // 旧方式（不推荐）
     /// &lt;controls:ParamSlider Label="阈值" 
     ///     Value="{Binding Threshold}" 
     ///     Minimum="0" Maximum="255" /&gt;
     /// </code>
     /// </remarks>
+    [Obsolete("请使用 BindableParameter 控件替代，支持常量/绑定模式切换和更丰富的功能。")]
     public class ParamSlider : Control
     {
         static ParamSlider()

@@ -109,14 +109,6 @@ namespace SunEyeVision.Tool.ImageLoad
         }
 
         /// <summary>
-        /// 执行工具（异步）
-        /// </summary>
-        public Task<ImageLoadResults> RunAsync(Mat image, ImageLoadParameters parameters)
-        {
-            return Task.Run(() => Run(image, parameters));
-        }
-
-        /// <summary>
         /// 验证参数
         /// </summary>
         public static ValidationResult ValidateParameters(ImageLoadParameters parameters)

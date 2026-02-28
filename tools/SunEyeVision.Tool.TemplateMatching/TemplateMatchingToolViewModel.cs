@@ -1,16 +1,71 @@
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.ViewModels;
 
 namespace SunEyeVision.Tool.TemplateMatching
 {
-    public class TemplateMatchingToolViewModel : AutoToolDebugViewModelBase
+    public class TemplateMatchingToolViewModel : ToolViewModelBase
     {
         private string _method = "TM_CCOEFF_NORMED";
         private double _threshold = 0.8;
         private int _maxMatches = 1;
         private bool _multiScale = false;
+
+        #region 图像源选择
+
+        private ImageSourceInfo? _selectedImageSource;
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource
+        {
+            get => _selectedImageSource;
+            set => SetProperty(ref _selectedImageSource, value);
+        }
+
+        /// <summary>
+        /// 可用图像源列表（由工作流上下文提供）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; }
+            = new ObservableCollection<ImageSourceInfo>();
+
+        #endregion
+
+        #region 参数绑定支持
+
+        private ParameterBindingMode _thresholdBindingMode = ParameterBindingMode.Constant;
+        private string _thresholdBindingSource = string.Empty;
+
+        /// <summary>
+        /// 可用绑定源列表（用于参数绑定）
+        /// </summary>
+        public List<string> AvailableBindings { get; } = new List<string>();
+
+        /// <summary>
+        /// 阈值绑定模式
+        /// </summary>
+        public ParameterBindingMode ThresholdBindingMode
+        {
+            get => _thresholdBindingMode;
+            set => SetProperty(ref _thresholdBindingMode, value);
+        }
+
+        /// <summary>
+        /// 阈值绑定源
+        /// </summary>
+        public string ThresholdBindingSource
+        {
+            get => _thresholdBindingSource;
+            set => SetProperty(ref _thresholdBindingSource, value);
+        }
+
+        #endregion
 
         public string Method
         {
@@ -52,30 +107,28 @@ namespace SunEyeVision.Tool.TemplateMatching
             }
         }
 
-        public string[] Methods { get; } = { 
-            "TM_CCOEFF_NORMED", "TM_CCOEFF", 
+        public string[] Methods { get; } = {
+            "TM_CCOEFF_NORMED", "TM_CCOEFF",
             "TM_SQDIFF", "TM_SQDIFF_NORMED",
             "TM_CCORR", "TM_CCORR_NORMED"
         };
 
         public override void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
         {
-            ToolId = toolId;
+            // 调用基类初始化（初始化 ToolRunner）
+            base.Initialize(toolId, toolPlugin, toolMetadata);
             ToolName = toolMetadata?.DisplayName ?? "模板匹配";
-            ToolStatus = "就绪";
-            StatusMessage = "准备就绪";
-            LoadParameters(toolMetadata);
         }
 
-        public override void RunTool()
+        /// <summary>
+        /// 获取当前运行参数
+        /// </summary>
+        protected override ToolParameters GetRunParameters()
         {
-            ToolStatus = "运行中";
-            StatusMessage = $"正在执行模板匹配（{Method}, 阈值: {Threshold:F2}）...";
-            var random = new System.Random();
-            System.Threading.Thread.Sleep(random.Next(200, 400));
-            ExecutionTime = $"{random.Next(100, 200)} ms";
-            StatusMessage = "模板匹配完成";
-            ToolStatus = "就绪";
+            return new TemplateMatchingParameters
+            {
+                Threshold = this.Threshold
+            };
         }
     }
 }
