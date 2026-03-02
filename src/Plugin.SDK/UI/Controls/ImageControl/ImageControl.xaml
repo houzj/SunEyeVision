@@ -1,0 +1,71 @@
+<UserControl x:Class="SunEyeVision.Plugin.SDK.UI.Controls.ImageControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <ToolBar x:Name="ToolBar" Grid.Row="0" Padding="4,2" Background="#F5F5F5">
+            <Button Content="适应窗口"
+                    Click="FitToWindow_Click"
+                    ToolTip="适应窗口大小"/>
+            <Button Content="实际大小"
+                    Click="ActualSize_Click"
+                    ToolTip="显示实际大小 (100%)"/>
+            <TextBlock x:Name="ZoomText"
+                       Text="100%"
+                       VerticalAlignment="Center"
+                       Margin="4,0"/>
+        </ToolBar>
+
+        <!-- 图像显示区域 - 使用Canvas实现平移缩放 -->
+        <Canvas x:Name="MainCanvas"
+                Grid.Row="1"
+                Background="Transparent"
+                ClipToBounds="True"
+                MouseWheel="MainCanvas_MouseWheel"
+                MouseLeftButtonDown="MainCanvas_MouseLeftButtonDown"
+                MouseMove="MainCanvas_MouseMove"
+                MouseLeftButtonUp="MainCanvas_MouseLeftButtonUp"
+                SizeChanged="MainCanvas_SizeChanged">
+
+            <!-- 图像容器 -->
+            <Grid x:Name="ImageContainer"
+                  Background="Transparent">
+                <Grid.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="ImageScaleTransform"/>
+                        <TranslateTransform x:Name="ImageTranslateTransform"/>
+                    </TransformGroup>
+                </Grid.RenderTransform>
+
+                <Image x:Name="DisplayImage"
+                       Stretch="None"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+
+                <!-- 叠加层Canvas - 供外部添加自定义元素 -->
+                <Canvas x:Name="OverlayCanvasControl"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+            </Grid>
+        </Canvas>
+
+        <!-- 状态栏 -->
+        <StatusBar x:Name="StatusBar" Grid.Row="2" Background="#F0F0F0" Padding="8,2">
+            <StatusBarItem>
+                <TextBlock x:Name="PositionText" Text="位置: (0, 0)"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock x:Name="ImageSizeText" Text="图像: -"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</UserControl>

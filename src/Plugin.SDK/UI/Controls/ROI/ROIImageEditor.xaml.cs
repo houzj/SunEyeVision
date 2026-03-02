@@ -14,7 +14,7 @@ using System.Windows.Shapes;
 namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 {
     /// <summary>
-    /// ROI图像编辑器控件
+    /// ROI图像编辑器控件 - 使用ImageControl作为图像显示基础
     /// </summary>
     public partial class ROIImageEditor : UserControl, INotifyPropertyChanged
     {
@@ -44,21 +44,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         private double _handleSize = 12;  // 增大手柄大小，提高可点击性
         private readonly List<EditHandle> _editHandles = new List<EditHandle>();
 
-        private double _zoom = 1.0;
-        private double _minZoom = 0.1;
-        private double _maxZoom = 10.0;
-        private double _zoomStep = 0.1;
-        private BitmapSource? _sourceImage;
-
-        // Canvas平移缩放相关
-        private bool _isPanning;
-        private Point _panStartPoint;
-        private double _offsetX;
-        private double _offsetY;
-
-        // 窗口自适应相关
-        private bool _autoFitOnResize = true;
-        private System.Windows.Threading.DispatcherTimer? _resizeTimer;
+        // ROI编辑层Canvas
+        private Canvas ROICanvas;
 
         #endregion
 
@@ -108,57 +95,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                                      CurrentTool == ROITool.Line;
 
         /// <summary>
-        /// 窗口调整时是否自动适应
-        /// </summary>
-        public bool AutoFitOnResize
-        {
-            get => _autoFitOnResize;
-            set => _autoFitOnResize = value;
-        }
-
-        /// <summary>
-        /// 缩放比例
-        /// </summary>
-        public double Zoom
-        {
-            get => _zoom;
-            set
-            {
-                value = Math.Max(_minZoom, Math.Min(_maxZoom, value));
-                if (SetProperty(ref _zoom, value))
-                {
-                    UpdateZoomText();
-                    ImageScaleTransform.ScaleX = value;
-                    ImageScaleTransform.ScaleY = value;
-                }
-            }
-        }
-
-        private void UpdateZoomText()
-        {
-            ZoomText.Text = $"{(int)(Zoom * 100)}%";
-        }
-
-        /// <summary>
         /// 源图像
         /// </summary>
         public BitmapSource? SourceImage
         {
-            get => _sourceImage;
+            get => ImageControl.SourceImage;
             set
             {
-                if (_sourceImage != value)
+                if (ImageControl.SourceImage != value)
                 {
-                    _sourceImage = value;
-                    ImageControl.Source = value;
+                    ImageControl.SourceImage = value;
 
-                    // 同步Canvas尺寸和ImageContainer尺寸
+                    // 同步Canvas尺寸
                     if (value != null)
                     {
                         ROICanvas.Width = value.PixelWidth;
                         ROICanvas.Height = value.PixelHeight;
-                        ImageContainer.Width = value.PixelWidth;
-                        ImageContainer.Height = value.PixelHeight;
                     }
 
                     OnPropertyChanged();
@@ -166,6 +118,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 }
             }
         }
+
+        /// <summary>
+        /// 缩放比例
+        /// </summary>
+        public double Zoom => ImageControl.Zoom;
 
         /// <summary>
         /// ROI集合
@@ -210,11 +167,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             InitializeComponent();
             DataContext = this;
 
+            // 创建ROI编辑层Canvas并添加到ImageControl的OverlayCanvas
+            ROICanvas = new Canvas
+            {
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
             _editHistory.HistoryChanged += OnHistoryChanged;
 
             // 绑定键盘快捷键
             KeyDown += OnKeyDown;
             Focusable = true;
+
+            // 订阅ImageControl事件
+            ImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
+            ImageControl.ViewTransformed += ImageControl_ViewTransformed;
+            ImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
+            ImageControl.CanvasMouseLeftButtonUp += ImageControl_CanvasMouseLeftButtonUp;
         }
 
         #endregion
@@ -227,21 +198,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         public void LoadImage(BitmapSource image)
         {
             SourceImage = image;
-
-            // 更新图像尺寸显示
-            ImageSizeText.Text = $"图像: {image.PixelWidth} x {image.PixelHeight}";
-
-            // 重置缩放和偏移
-            Zoom = 1.0;
-            _offsetX = 0;
-            _offsetY = 0;
-
-            // 确保在布局更新后执行自适应
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                FitToWindow();
-            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
-
             UpdateStatus("图像已加载");
         }
 
@@ -372,14 +328,61 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             UpdateROIOverlay();
         }
 
+        /// <summary>
+        /// 屏幕坐标转图像坐标
+        /// </summary>
+        public Point ScreenToImage(Point screenPoint)
+        {
+            return ImageControl.ScreenToImage(screenPoint);
+        }
+
+        /// <summary>
+        /// 图像坐标转屏幕坐标
+        /// </summary>
+        public Point ImageToScreen(Point imagePoint)
+        {
+            return ImageControl.ImageToScreen(imagePoint);
+        }
+
+        /// <summary>
+        /// 适应窗口大小
+        /// </summary>
+        public void FitToWindow()
+        {
+            ImageControl.FitToWindow();
+        }
+
+        /// <summary>
+        /// 显示实际大小
+        /// </summary>
+        public void ActualSize()
+        {
+            ImageControl.ActualSize();
+        }
+
         #endregion
 
         #region 私有方法
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            // 将ROICanvas添加到ImageControl的OverlayCanvas（防呆：检查是否已有父级）
+            if (ROICanvas.Parent == null)
+            {
+                ImageControl.OverlayCanvas.Children.Add(ROICanvas);
+            }
+
             UpdateModeButtons();
             UpdateToolButtons();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            // 从ImageControl的OverlayCanvas中移除ROICanvas，防止重复添加
+            if (ROICanvas.Parent is Canvas parentCanvas)
+            {
+                parentCanvas.Children.Remove(ROICanvas);
+            }
         }
 
         private void OnModeChanged()
@@ -1104,21 +1107,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             roi.Rotation = angle + 90; // 调整角度使手柄在顶部
         }
 
-        private void UpdateHandleCursor(HandleType handle)
-        {
-            // 设置 ImageContainer 的光标，确保在手柄区域正确显示
-            if (handle != HandleType.None)
-            {
-                var handleInfo = _editHandles.FirstOrDefault(h => h.Type == handle);
-                if (handleInfo != null)
-                {
-                    ImageContainer.Cursor = handleInfo.Cursor;
-                    return;
-                }
-            }
-            ImageContainer.Cursor = Cursors.Arrow;
-        }
-
         #endregion
 
         private Shape? CreateROIShape(ROI roi, bool isPreview = false)
@@ -1224,92 +1212,68 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             return null;
         }
 
-        /// <summary>
-        /// 设置缩放比例
-        /// </summary>
-        public void SetZoom(double zoom)
-        {
-            Zoom = zoom;
-        }
-
-        /// <summary>
-        /// 适应窗口大小
-        /// </summary>
-        public void FitToWindow()
-        {
-            if (SourceImage == null || MainCanvas == null) return;
-
-            var viewWidth = MainCanvas.ActualWidth;
-            var viewHeight = MainCanvas.ActualHeight;
-
-            if (viewWidth <= 0 || viewHeight <= 0) return;
-
-            var scaleX = viewWidth / SourceImage.PixelWidth;
-            var scaleY = viewHeight / SourceImage.PixelHeight;
-
-            var newZoom = Math.Min(scaleX, scaleY) * 0.95; // 留5%边距
-            Zoom = newZoom;
-
-            // 居中显示
-            CenterImage();
-
-            UpdateStatus($"已适应窗口: {(int)(Zoom * 100)}%");
-        }
-
-        /// <summary>
-        /// 显示实际大小
-        /// </summary>
-        public void ActualSize()
-        {
-            Zoom = 1.0;
-            CenterImage();
-            UpdateStatus("显示实际大小 (100%)");
-        }
-
-        /// <summary>
-        /// 居中图像
-        /// </summary>
-        private void CenterImage()
-        {
-            if (SourceImage == null || MainCanvas == null) return;
-
-            var viewWidth = MainCanvas.ActualWidth;
-            var viewHeight = MainCanvas.ActualHeight;
-            var imageWidth = SourceImage.PixelWidth * Zoom;
-            var imageHeight = SourceImage.PixelHeight * Zoom;
-
-            _offsetX = (viewWidth - imageWidth) / 2;
-            _offsetY = (viewHeight - imageHeight) / 2;
-
-            UpdateImageTransform();
-        }
-
-        /// <summary>
-        /// 更新图像变换
-        /// </summary>
-        private void UpdateImageTransform()
-        {
-            if (ImageScaleTransform == null || ImageTranslateTransform == null) return;
-
-            ImageScaleTransform.ScaleX = Zoom;
-            ImageScaleTransform.ScaleY = Zoom;
-            ImageTranslateTransform.X = _offsetX;
-            ImageTranslateTransform.Y = _offsetY;
-        }
-
-        /// <summary>
-        /// VisionMaster风格：完全不限制边界
-        /// 用户可以自由移动图像到任意位置，通过"适应窗口"按钮一键复原
-        /// </summary>
-        private void ClampImageToBounds()
-        {
-            // 完全不做限制，允许图像移动到任意位置
-            // 用户可以通过"适应窗口"按钮（FitToWindow）一键复原
-        }
-
         #endregion
 
         #region 事件处理
+
+        private void ImageControl_ImageMouseMove(object? sender, ImageMouseEventArgs e)
+        {
+            var position = e.ImagePosition;
+
+            // 手柄编辑模式
+            if (_activeHandle != HandleType.None && _selectedROI != null)
+            {
+                HandleResize(_selectedROI, position);
+                UpdateROIOverlay();
+                return;
+            }
+
+            // 拖动ROI
+            if (_isDragging && _selectedROI != null)
+            {
+                var offset = position - _dragStartPoint;
+                _selectedROI.Move(offset);
+                _dragStartPoint = position;
+                UpdateROIOverlay();
+                return;
+            }
+
+            // 绘制预览
+            if (_isDrawing && _currentDrawingROI != null)
+            {
+                var dx = position.X - _startPoint.X;
+                var dy = position.Y - _startPoint.Y;
+
+                switch (_currentDrawingROI.Type)
+                {
+                    case ROIType.Rectangle:
+                    case ROIType.RotatedRectangle:
+                        _currentDrawingROI.Position = new Point(
+                            _startPoint.X + dx / 2,
+                            _startPoint.Y + dy / 2);
+                        _currentDrawingROI.Size = new Size(Math.Abs(dx), Math.Abs(dy));
+                        break;
+
+                    case ROIType.Circle:
+                        var radius = Math.Sqrt(dx * dx + dy * dy);
+                        _currentDrawingROI.Position = _startPoint;
+                        _currentDrawingROI.Radius = radius;
+                        break;
+
+                    case ROIType.Line:
+                        _currentDrawingROI.EndPoint = position;
+                        break;
+                }
+
+                UpdateROIOverlay();
+            }
+        }
+
+        private void ImageControl_ViewTransformed(object? sender, ViewTransformEventArgs e)
+        {
+            // 视图变换时刷新ROI叠加层
+            UpdateROIOverlay();
+        }
 
         private void InheritModeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1340,26 +1304,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             }
         }
 
-        private void ImageContainer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void ImageControl_CanvasMouseLeftButtonDown(object? sender, ImageMouseEventArgs e)
         {
-            // 使用 MainCanvas 坐标并转换为图像坐标
-            var screenPoint = e.GetPosition(MainCanvas);
-            var position = ScreenToImage(screenPoint);
-            PositionText.Text = $"位置: ({(int)position.X}, {(int)position.Y})";
+            if (!IsEditMode) return;
 
-            // Space + 左键：启动平移（交由MainCanvas处理）
-            if (Keyboard.IsKeyDown(Key.Space))
-            {
-                e.Handled = false; // 让事件冒泡到MainCanvas
-                return;
-            }
-
-            // 继承模式下，不处理，让事件冒泡到MainCanvas进行平移
-            if (!IsEditMode)
-            {
-                e.Handled = false;
-                return;
-            }
+            var position = e.ImagePosition;
 
             // 绘制模式
             if (IsDrawingMode)
@@ -1435,103 +1384,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 // 点击空白区域：取消所有选中状态
                 DeselectAll();
-                // 让事件冒泡到MainCanvas进行平移
-                e.Handled = false;
             }
         }
 
-        private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
+        private void ImageControl_CanvasMouseLeftButtonUp(object? sender, ImageMouseEventArgs e)
         {
-            // 使用 MainCanvas 坐标并转换为图像坐标
-            var screenPoint = e.GetPosition(MainCanvas);
-            var position = ScreenToImage(screenPoint);
-            PositionText.Text = $"位置: ({(int)position.X}, {(int)position.Y})";
-
-            // 平移操作由MainCanvas处理
-            if (_isPanning)
-            {
-                ImageContainer.Cursor = Cursors.SizeAll;
-                return;
-            }
-
-            // 手柄编辑模式
-            if (_activeHandle != HandleType.None && _selectedROI != null)
-            {
-                HandleResize(_selectedROI, position);
-                UpdateROIOverlay();
-                // 保持当前手柄光标
-                return;
-            }
-
-            // 拖动ROI
-            if (_isDragging && _selectedROI != null)
-            {
-                var offset = position - _dragStartPoint;
-                _selectedROI.Move(offset);
-                _dragStartPoint = position;
-                UpdateROIOverlay();
-                ImageContainer.Cursor = Cursors.SizeAll;
-                return;
-            }
-
-            // 绘制预览
-            if (_isDrawing && _currentDrawingROI != null)
-            {
-                var dx = position.X - _startPoint.X;
-                var dy = position.Y - _startPoint.Y;
-
-                switch (_currentDrawingROI.Type)
-                {
-                    case ROIType.Rectangle:
-                    case ROIType.RotatedRectangle:
-                        _currentDrawingROI.Position = new Point(
-                            _startPoint.X + dx / 2,
-                            _startPoint.Y + dy / 2);
-                        _currentDrawingROI.Size = new Size(Math.Abs(dx), Math.Abs(dy));
-                        break;
-
-                    case ROIType.Circle:
-                        var radius = Math.Sqrt(dx * dx + dy * dy);
-                        _currentDrawingROI.Position = _startPoint;
-                        _currentDrawingROI.Radius = radius;
-                        break;
-
-                    case ROIType.Line:
-                        _currentDrawingROI.EndPoint = position;
-                        break;
-                }
-
-                UpdateROIOverlay();
-                ImageContainer.Cursor = Cursors.Cross;
-                return;
-            }
-
-            // ============ 光标更新逻辑（始终执行）============
-            // 检测手柄命中
-            var handle = HitTestHandle(position);
-            if (handle != HandleType.None)
-            {
-                UpdateHandleCursor(handle);
-                return;
-            }
-
-            // 检测 ROI 命中（无论是否选中ROI都检测）
-            var hitROI = HitTestROI(position);
-            if (hitROI != null)
-            {
-                // 命中ROI时显示小手光标（可点击选择）
-                ImageContainer.Cursor = Cursors.Hand;
-            }
-            else
-            {
-                ImageContainer.Cursor = Cursors.Arrow;
-            }
-        }
-
-        private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            // 平移操作由MainCanvas处理
-
             // 完成手柄编辑
             if (_activeHandle != HandleType.None && _selectedROI != null)
             {
@@ -1544,8 +1401,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             if (_isDragging && _selectedROI != null)
             {
                 // 完成拖动，添加到历史
-                var screenPoint = e.GetPosition(MainCanvas);
-                var position = ScreenToImage(screenPoint);
+                var position = e.ImagePosition;
                 var offset = position - _dragStartPoint;
                 if (offset.Length > 1)
                 {
@@ -1649,137 +1505,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 e.Handled = true;
             }
         }
-
-        private void FitToWindow_Click(object sender, RoutedEventArgs e)
-        {
-            FitToWindow();
-        }
-
-        private void ActualSize_Click(object sender, RoutedEventArgs e)
-        {
-            ActualSize();
-        }
-
-        #region Canvas 鼠标事件（平移和缩放）
-
-        private void MainCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            // 围绕鼠标位置缩放
-            var mousePos = e.GetPosition(MainCanvas);
-            ZoomAroundPoint(mousePos, e.Delta > 0 ? _zoomStep : -_zoomStep);
-            e.Handled = true;
-        }
-
-        /// <summary>
-        /// 围绕指定点缩放
-        /// </summary>
-        private void ZoomAroundPoint(Point center, double delta)
-        {
-            var oldZoom = Zoom;
-            var newZoom = Math.Max(_minZoom, Math.Min(_maxZoom, Zoom + delta));
-
-            if (Math.Abs(newZoom - oldZoom) < 0.001) return;
-
-            // 计算缩放前后鼠标在图像坐标系中的位置
-            var imagePosBefore = ScreenToImage(center);
-            Zoom = newZoom;
-            var imagePosAfter = ScreenToImage(center);
-
-            // 调整偏移以保持鼠标位置不变
-            _offsetX += (imagePosAfter.X - imagePosBefore.X) * Zoom;
-            _offsetY += (imagePosAfter.Y - imagePosBefore.Y) * Zoom;
-
-            // 限制图像不脱离画布边界
-            ClampImageToBounds();
-            UpdateImageTransform();
-        }
-
-        /// <summary>
-        /// 屏幕坐标转图像坐标
-        /// </summary>
-        private Point ScreenToImage(Point screenPoint)
-        {
-            return new Point(
-                (screenPoint.X - _offsetX) / Zoom,
-                (screenPoint.Y - _offsetY) / Zoom);
-        }
-
-        /// <summary>
-        /// 图像坐标转屏幕坐标
-        /// </summary>
-        private Point ImageToScreen(Point imagePoint)
-        {
-            return new Point(
-                imagePoint.X * Zoom + _offsetX,
-                imagePoint.Y * Zoom + _offsetY);
-        }
-
-        private void MainCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            // 如果事件已经被处理（ROI操作），则不处理
-            if (e.Handled) return;
-
-            // 启动平移
-            _isPanning = true;
-            _panStartPoint = e.GetPosition(MainCanvas);
-            MainCanvas.Cursor = Cursors.SizeAll;
-            MainCanvas.CaptureMouse();
-            e.Handled = true;
-        }
-
-        private void MainCanvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            // 更新位置显示
-            if (SourceImage != null)
-            {
-                var screenPoint = e.GetPosition(MainCanvas);
-                var imagePos = ScreenToImage(screenPoint);
-                PositionText.Text = $"位置: ({(int)imagePos.X}, {(int)imagePos.Y})";
-            }
-
-            if (_isPanning)
-            {
-                var currentPoint = e.GetPosition(MainCanvas);
-                var delta = currentPoint - _panStartPoint;
-                _offsetX += delta.X;
-                _offsetY += delta.Y;
-                _panStartPoint = currentPoint;
-
-                // 限制图像不脱离画布边界
-                ClampImageToBounds();
-                UpdateImageTransform();
-                e.Handled = true;
-            }
-        }
-
-        private void MainCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (_isPanning)
-            {
-                _isPanning = false;
-                MainCanvas.Cursor = Cursors.Arrow;
-                MainCanvas.ReleaseMouseCapture();
-                e.Handled = true;
-            }
-        }
-
-        private void MainCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (_autoFitOnResize && SourceImage != null)
-            {
-                // 延迟执行，避免频繁调用
-                _resizeTimer?.Stop();
-                _resizeTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-                _resizeTimer.Tick += (s, args) =>
-                {
-                    _resizeTimer.Stop();
-                    FitToWindow();
-                };
-                _resizeTimer.Start();
-            }
-        }
-
-        #endregion
 
         #endregion
 
