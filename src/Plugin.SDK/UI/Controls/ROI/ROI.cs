@@ -23,6 +23,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         Right,
         // 旋转手柄
         Rotate,
+        // 中心手柄（用于拖动）
+        Center,
         // 直线端点手柄
         LineStart,
         LineEnd
@@ -65,10 +67,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// </summary>
         public Size Size { get; set; }
 
+        private double _rotation;
+
         /// <summary>
         /// 旋转角度（度数，仅用于旋转矩形）
+        /// 使用数学角度定义：范围[-180°, 180°]，逆时针为正，0°表示矩形宽度方向与X轴平行
         /// </summary>
-        public double Rotation { get; set; }
+        public double Rotation
+        {
+            get => _rotation;
+            set
+            {
+                _rotation = NormalizeAngle(value);
+                ModifiedTime = DateTime.Now;
+            }
+        }
 
         /// <summary>
         /// 填充颜色
@@ -174,13 +187,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                         Radius * 2);
 
                 case ROIType.RotatedRectangle:
-                    // 简化处理，返回包围盒
-                    var diagonal = Math.Sqrt(Size.Width * Size.Width + Size.Height * Size.Height);
-                    return new Rect(
-                        Position.X - diagonal / 2,
-                        Position.Y - diagonal / 2,
-                        diagonal,
-                        diagonal);
+                    // 使用精确的旋转矩形包围盒计算
+                    return GetRotatedBoundingBox();
 
                 case ROIType.Line:
                     var minX = Math.Min(Position.X, EndPoint.X);
@@ -305,5 +313,125 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         {
             return $"{Type}: {Name} at {Position}";
         }
+
+        #region 数学角度系统支持
+
+        /// <summary>
+        /// 将角度规范化到数学角度范围[-180°, 180°]
+        /// 数学角度定义：逆时针为正，0°表示矩形宽度方向与X轴平行
+        /// </summary>
+        /// <param name="angle">任意角度值（度）</param>
+        /// <returns>规范化后的角度</returns>
+        public static double NormalizeAngle(double angle)
+        {
+            // 模360得到[0, 360)
+            angle = angle % 360;
+            if (angle < 0) angle += 360;
+
+            // 转换到[-180°, 180°]
+            if (angle > 180)
+                angle -= 360;
+
+            return angle;
+        }
+
+        /// <summary>
+        /// 获取旋转矩形的四个角点（世界坐标）
+        /// 角点顺序：TopLeft, TopRight, BottomRight, BottomLeft
+        /// </summary>
+        /// <returns>四个角点数组</returns>
+        public Point[] GetCorners()
+        {
+            if (Type != ROIType.RotatedRectangle)
+                return Array.Empty<Point>();
+
+            var center = Position;
+            var w = Size.Width;
+            var h = Size.Height;
+            var angleRad = Rotation * Math.PI / 180;
+            var cos = Math.Cos(angleRad);
+            var sin = Math.Sin(angleRad);
+
+            // 本地坐标（未旋转）的四个角点
+            var hw = w / 2;
+            var hh = h / 2;
+
+            // 应用旋转变换得到世界坐标
+            Point Transform(double localX, double localY)
+            {
+                return new Point(
+                    center.X + localX * cos - localY * sin,
+                    center.Y + localX * sin + localY * cos
+                );
+            }
+
+            return new Point[]
+            {
+                Transform(-hw, -hh),  // TopLeft
+                Transform( hw, -hh),  // TopRight
+                Transform( hw,  hh),  // BottomRight
+                Transform(-hw,  hh)   // BottomLeft
+            };
+        }
+
+        /// <summary>
+        /// 获取方向箭头几何数据
+        /// 箭头从中心指向顶边中点的方向（表示矩形的"上方"方向）
+        /// 使用数学角度系统：逆时针为正
+        /// </summary>
+        /// <returns>箭头起点和终点</returns>
+        public (Point Start, Point End) GetDirectionArrow()
+        {
+            if (Type != ROIType.RotatedRectangle)
+                return (Position, Position);
+
+            var center = Position;
+            var h = Size.Height;
+
+            // 数学角度（逆时针为正）
+            var mathAngleRad = Rotation * Math.PI / 180;
+            var sin = Math.Sin(mathAngleRad);
+            var cos = Math.Cos(mathAngleRad);
+
+            // 顶边中点：本地坐标 (0, -h/2)，应用逆时针旋转变换
+            // 旋转后世界坐标：
+            // x' = x*cos(θ) - y*sin(θ) = 0*cos - (-h/2)*sin = (h/2)*sin
+            // y' = x*sin(θ) + y*cos(θ) = 0*sin + (-h/2)*cos = -(h/2)*cos
+            var topCenterX = center.X + (h / 2) * sin;
+            var topCenterY = center.Y - (h / 2) * cos;
+
+            // 箭头从中心到顶边中点
+            return (center, new Point(topCenterX, topCenterY));
+        }
+
+        /// <summary>
+        /// 获取旋转矩形精确的轴对齐包围盒
+        /// </summary>
+        /// <returns>最小外接矩形</returns>
+        public Rect GetRotatedBoundingBox()
+        {
+            if (Type != ROIType.RotatedRectangle)
+                return GetBounds();
+
+            var corners = GetCorners();
+            if (corners.Length == 0) return GetBounds();
+
+            var minX = double.MaxValue;
+            var minY = double.MaxValue;
+            var maxX = double.MinValue;
+            var maxY = double.MinValue;
+
+            foreach (var corner in corners)
+            {
+                if (corner.X < minX) minX = corner.X;
+                if (corner.Y < minY) minY = corner.Y;
+                if (corner.X > maxX) maxX = corner.X;
+                if (corner.Y > maxY) maxY = corner.Y;
+            }
+
+            return new Rect(minX, minY, maxX - minX, maxY - minY);
+        }
+
+        #endregion
     }
 }

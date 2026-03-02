@@ -14,6 +14,17 @@ using System.Windows.Shapes;
 namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 {
     /// <summary>
+    /// 交互操作类型
+    /// </summary>
+    public enum InteractionType
+    {
+        None,           // 无操作
+        Drawing,        // 绘制中
+        Dragging,       // 拖动中
+        HandleEditing   // 手柄编辑中
+    }
+
+    /// <summary>
     /// ROI图像编辑器控件 - 使用ImageControl作为图像显示基础
     /// </summary>
     public partial class ROIImageEditor : UserControl, INotifyPropertyChanged
@@ -26,6 +37,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         private ROIMode _currentMode = ROIMode.Inherit;
         private ROITool _currentTool = ROITool.Select;
 
+        // 统一的交互状态管理
+        private InteractionType _currentInteraction = InteractionType.None;
+
+        // 保留原有布尔标志以兼容现有代码
         private bool _isDrawing;
         private Point _startPoint;
         private ROI? _currentDrawingROI;
@@ -43,13 +58,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         private double _originalRotation;
         private double _handleSize = 12;  // 增大手柄大小，提高可点击性
         private readonly List<EditHandle> _editHandles = new List<EditHandle>();
-
-        // ROI编辑层Canvas
-        private Canvas ROICanvas;
+        
+        // 旋转操作专用字段（解决角度跳变问题）
+        private double _rotateStartAngle;      // 旋转开始时的ROI角度
+        private double _rotateStartMouseAngle; // 旋转开始时鼠标相对于中心的角度
 
         #endregion
 
         #region 属性
+
+        /// <summary>
+        /// 获取OverlayCanvas（直接使用ImageControl的OverlayCanvas）
+        /// </summary>
+        private Canvas OverlayCanvas => ImageControl.OverlayCanvas;
 
         /// <summary>
         /// 当前编辑模式
@@ -106,11 +127,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 {
                     ImageControl.SourceImage = value;
 
-                    // 同步Canvas尺寸
+                    // OverlayCanvas的尺寸由ImageControl自动管理，不需要手动设置
+
+                    // 图像加载后自适应显示
                     if (value != null)
                     {
-                        ROICanvas.Width = value.PixelWidth;
-                        ROICanvas.Height = value.PixelHeight;
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            ImageControl.FitToWindow();
+                        }), System.Windows.Threading.DispatcherPriority.Loaded);
                     }
 
                     OnPropertyChanged();
@@ -167,13 +192,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             InitializeComponent();
             DataContext = this;
 
-            // 创建ROI编辑层Canvas并添加到ImageControl的OverlayCanvas
-            ROICanvas = new Canvas
-            {
-                IsHitTestVisible = false,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
+            // 直接使用ImageControl.OverlayCanvas，不再创建独立的ROICanvas
 
             _editHistory.HistoryChanged += OnHistoryChanged;
 
@@ -186,6 +205,206 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             ImageControl.ViewTransformed += ImageControl_ViewTransformed;
             ImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
             ImageControl.CanvasMouseLeftButtonUp += ImageControl_CanvasMouseLeftButtonUp;
+
+            // 添加自己的鼠标事件处理（当CaptureMouse时ImageControl不会收到事件）
+            MouseMove += ROIImageEditor_MouseMove;
+            MouseLeftButtonUp += ROIImageEditor_MouseLeftButtonUp;
+
+            // 添加鼠标离开处理作为安全机制
+            MouseLeave += ROIImageEditor_MouseLeave;
+
+            // 添加全局鼠标捕获丢失处理
+            LostMouseCapture += ROIImageEditor_LostMouseCapture;
+        }
+
+        /// <summary>
+        /// 鼠标离开控件时的处理（简化版 - CaptureMouse机制已覆盖大部分场景）
+        /// </summary>
+        private void ROIImageEditor_MouseLeave(object sender, MouseEventArgs e)
+        {
+            // 由于使用了 CaptureMouse 机制，鼠标离开控件时仍能收到 MouseUp 事件
+            // 这里只处理非交互状态下的清理，作为额外的安全措施
+            // 不需要额外处理，LostMouseCapture 会处理异常中断
+        }
+
+        /// <summary>
+        /// 鼠标移动处理（当CaptureMouse时使用此事件）
+        /// </summary>
+        private void ROIImageEditor_MouseMove(object sender, MouseEventArgs e)
+        {
+            // 只在捕获鼠标时处理（交互状态）
+            if (_currentInteraction == InteractionType.None)
+                return;
+
+            var screenPoint = e.GetPosition(ImageControl.MainCanvas);
+            var position = ImageControl.ScreenToImage(screenPoint);
+
+            // 手柄编辑模式
+            if (_currentInteraction == InteractionType.HandleEditing && _activeHandle != HandleType.None && _selectedROI != null)
+            {
+                HandleResize(_selectedROI, position);
+                UpdateROIOverlay();
+                return;
+            }
+
+            // 拖动ROI
+            if (_currentInteraction == InteractionType.Dragging && _isDragging && _selectedROI != null)
+            {
+                var offset = position - _dragStartPoint;
+
+                var tempROI = (ROI)_selectedROI.Clone();
+                tempROI.Move(offset);
+
+                if (IsROIInImageBounds(tempROI, SourceImage))
+                {
+                    _selectedROI.Move(offset);
+                    _dragStartPoint = position;
+                    UpdateROIOverlay();
+                }
+                else
+                {
+                    UpdateStatus("无法拖动到图像边界外");
+                }
+                return;
+            }
+
+            // 绘制预览
+            if (_currentInteraction == InteractionType.Drawing && _isDrawing && _currentDrawingROI != null)
+            {
+                var dx = position.X - _startPoint.X;
+                var dy = position.Y - _startPoint.Y;
+
+                var endPoint = new Point(_startPoint.X + dx, _startPoint.Y + dy);
+                if (IsPointInImageBounds(endPoint, SourceImage))
+                {
+                    switch (_currentDrawingROI.Type)
+                    {
+                        case ROIType.Rectangle:
+                        case ROIType.RotatedRectangle:
+                            _currentDrawingROI.Position = new Point(
+                                _startPoint.X + dx / 2,
+                                _startPoint.Y + dy / 2);
+                            _currentDrawingROI.Size = new Size(Math.Abs(dx), Math.Abs(dy));
+                            break;
+
+                        case ROIType.Circle:
+                            var radius = Math.Sqrt(dx * dx + dy * dy);
+                            _currentDrawingROI.Position = _startPoint;
+                            _currentDrawingROI.Radius = radius;
+                            break;
+
+                        case ROIType.Line:
+                            _currentDrawingROI.EndPoint = position;
+                            break;
+                    }
+
+                    UpdateROIOverlay();
+                }
+                else
+                {
+                    UpdateStatus("绘制超出图像范围");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 鼠标左键释放处理（当CaptureMouse时使用此事件）
+        /// </summary>
+        private void ROIImageEditor_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 只在捕获鼠标时处理
+            if (_currentInteraction == InteractionType.None)
+                return;
+
+            var screenPoint = e.GetPosition(ImageControl.MainCanvas);
+            var position = ImageControl.ScreenToImage(screenPoint);
+
+            // 完成手柄编辑
+            if (_currentInteraction == InteractionType.HandleEditing && _activeHandle != HandleType.None)
+            {
+                if (_selectedROI != null)
+                {
+                    if (!IsROIInImageBounds(_selectedROI, SourceImage))
+                    {
+                        _selectedROI.Position = _originalPosition;
+                        _selectedROI.Size = _originalSize;
+                        _selectedROI.Rotation = _originalRotation;
+                        UpdateStatus("调整超出图像边界，已回滚");
+                    }
+                    else
+                    {
+                        _editHistory.AddAction(new ModifyROIAction(_selectedROI, _originalBounds, _originalRotation));
+                        UpdateStatus("完成调整");
+                    }
+                }
+            }
+            // 完成拖动
+            else if (_currentInteraction == InteractionType.Dragging && _isDragging)
+            {
+                if (_selectedROI != null)
+                {
+                    var offset = position - _dragStartPoint;
+                    if (offset.Length > 1)
+                    {
+                        _editHistory.AddAction(new MoveROIAction(_selectedROI.ID, offset));
+                    }
+                }
+                UpdateStatus("完成拖动");
+            }
+            // 完成绘制
+            else if (_currentInteraction == InteractionType.Drawing && _isDrawing)
+            {
+                if (_currentDrawingROI != null)
+                {
+                    var roi = _currentDrawingROI;
+                    bool isWithinBounds = IsROIInImageBounds(roi, SourceImage);
+
+                    if (isWithinBounds &&
+                        (roi.Size.Width > 5 || roi.Size.Height > 5 ||
+                         roi.Radius > 5 || roi.Type == ROIType.Line))
+                    {
+                        _rois.Add(_currentDrawingROI);
+                        _editHistory.AddAction(new CreateROIAction(_currentDrawingROI));
+                        UpdateROIcount();
+                        ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Added, _currentDrawingROI));
+                        UpdateStatus("创建ROI成功");
+                    }
+                    else
+                    {
+                        UpdateStatus(isWithinBounds ? "ROI太小，已忽略" : "ROI超出图像范围，已忽略");
+                    }
+                }
+                else
+                {
+                    UpdateStatus("绘制取消");
+                }
+            }
+
+            // 统一结束交互
+            EndInteraction();
+            UpdateROIOverlay();
+        }
+
+        /// <summary>
+        /// 鼠标捕获丢失时的处理（关键安全后备）
+        /// </summary>
+        private void ROIImageEditor_LostMouseCapture(object sender, MouseEventArgs e)
+        {
+            // 如果是正常的操作结束，_currentInteraction 已经是 None
+            // 这里处理的是异常情况（如窗口切换、Alt+Tab等）
+
+            if (_currentInteraction == InteractionType.HandleEditing && _selectedROI != null)
+            {
+                // 手柄编辑被中断，回滚到原始状态
+                _selectedROI.Position = _originalPosition;
+                _selectedROI.Size = _originalSize;
+                _selectedROI.Rotation = _originalRotation;
+                UpdateStatus("操作被中断，已回滚");
+            }
+
+            // 统一重置所有状态
+            EndInteraction();
+            UpdateROIOverlay();
         }
 
         #endregion
@@ -290,6 +509,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     r.IsSelected = false;
                 }
                 _selectedROIs.Clear();
+                _selectedROI = roi; // 单选模式：设置当前选中ROI
+            }
+            else
+            {
+                // 多选模式：只有在只有一个ROI被选中时才设置 _selectedROI
+                // 多个ROI选中时不支持同时编辑手柄
+                if (_selectedROIs.Count == 0)
+                {
+                    _selectedROI = roi;
+                }
+                else
+                {
+                    _selectedROI = null; // 多选时清除单个选中
+                }
             }
 
             roi.IsSelected = true;
@@ -357,7 +590,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// </summary>
         public void ActualSize()
         {
-            ImageControl.ActualSize();
+            ImageControl.Zoom = 1.0;
+            ImageControl.CenterImage();
         }
 
         #endregion
@@ -366,11 +600,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            // 将ROICanvas添加到ImageControl的OverlayCanvas（防呆：检查是否已有父级）
-            if (ROICanvas.Parent == null)
-            {
-                ImageControl.OverlayCanvas.Children.Add(ROICanvas);
-            }
+            // 启用OverlayCanvas命中测试，让ROI形状可以被选中
+            ImageControl.OverlayHitTestVisible = true;
 
             UpdateModeButtons();
             UpdateToolButtons();
@@ -378,11 +609,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            // 从ImageControl的OverlayCanvas中移除ROICanvas，防止重复添加
-            if (ROICanvas.Parent is Canvas parentCanvas)
-            {
-                parentCanvas.Children.Remove(ROICanvas);
-            }
+            // 清除ROI元素（但保留OverlayCanvas本身）
+            OverlayCanvas.Children.Clear();
         }
 
         private void OnModeChanged()
@@ -399,6 +627,54 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 DeselectAll();
             }
         }
+
+        #region 交互操作管理
+
+        /// <summary>
+        /// 开始交互操作
+        /// </summary>
+        /// <param name="type">交互类型</param>
+        /// <returns>是否成功开始</returns>
+        private bool BeginInteraction(InteractionType type)
+        {
+            // 已有操作进行中，不允许开始新操作
+            if (_currentInteraction != InteractionType.None)
+                return false;
+
+            _currentInteraction = type;
+
+            // 关键：捕获鼠标，确保后续事件不会丢失
+            CaptureMouse();
+
+            return true;
+        }
+
+        /// <summary>
+        /// 结束交互操作
+        /// </summary>
+        private void EndInteraction()
+        {
+            if (_currentInteraction == InteractionType.None)
+                return;
+
+            _currentInteraction = InteractionType.None;
+
+            // 关键：释放鼠标捕获
+            ReleaseMouseCapture();
+
+            // 重置相关状态
+            _isDragging = false;
+            _isDrawing = false;
+            _activeHandle = HandleType.None;
+            _currentDrawingROI = null;
+        }
+
+        /// <summary>
+        /// 检查是否处于交互状态
+        /// </summary>
+        private bool IsInInteraction => _currentInteraction != InteractionType.None;
+
+        #endregion
 
         private void OnToolChanged()
         {
@@ -435,7 +711,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         private void UpdateROIOverlay()
         {
-            ROICanvas.Children.Clear();
+            OverlayCanvas.Children.Clear();
 
             if (SourceImage == null) return;
 
@@ -444,7 +720,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 var shape = CreateROIShape(roi);
                 if (shape != null)
                 {
-                    ROICanvas.Children.Add(shape);
+                    OverlayCanvas.Children.Add(shape);
+                }
+                // 为旋转矩形显示方向箭头（颜色与边框一致）
+                if (roi.Type == ROIType.RotatedRectangle)
+                {
+                    var arrowColor = roi.IsSelected ? Brushes.Blue : new SolidColorBrush(roi.StrokeColor);
+                    DrawDirectionArrow(roi, arrowColor);
                 }
             }
 
@@ -454,7 +736,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 var previewShape = CreateROIShape(_currentDrawingROI, true);
                 if (previewShape != null)
                 {
-                    ROICanvas.Children.Add(previewShape);
+                    OverlayCanvas.Children.Add(previewShape);
+                }
+                // 预览时也显示方向箭头（预览颜色：红色）
+                if (_currentDrawingROI.Type == ROIType.RotatedRectangle)
+                {
+                    DrawDirectionArrow(_currentDrawingROI, Brushes.Red);
                 }
             }
 
@@ -567,60 +854,98 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         }
 
         /// <summary>
-        /// 创建旋转矩形手柄（8个旋转手柄 + 1个旋转手柄）
+        /// 创建旋转矩形手柄（8个缩放手柄 + 1个旋转手柄 + 方向箭头）
         /// </summary>
         private void CreateRotatedRectangleHandles(ROI roi)
         {
-            var center = roi.Position;
-            var w = roi.Size.Width;
-            var h = roi.Size.Height;
-            var angle = roi.Rotation * Math.PI / 180;
-            var cos = Math.Cos(angle);
-            var sin = Math.Sin(angle);
+            // 使用ROI.GetCorners()获取精确角点
+            var corners = roi.GetCorners();
+            if (corners.Length != 4) return;
 
-            // 8个手柄相对于中心的位置（未旋转）
-            var handleOffsets = new (HandleType type, double dx, double dy)[]
+            // 角点顺序：TopLeft, TopRight, BottomRight, BottomLeft
+            var handleTypes = new HandleType[]
             {
-                (HandleType.TopLeft, -w/2, -h/2),
-                (HandleType.Top, 0, -h/2),
-                (HandleType.TopRight, w/2, -h/2),
-                (HandleType.Right, w/2, 0),
-                (HandleType.BottomRight, w/2, h/2),
-                (HandleType.Bottom, 0, h/2),
-                (HandleType.BottomLeft, -w/2, h/2),
-                (HandleType.Left, -w/2, 0)
+                HandleType.TopLeft, HandleType.Top, HandleType.TopRight,
+                HandleType.Right, HandleType.BottomRight, HandleType.Bottom,
+                HandleType.BottomLeft, HandleType.Left
             };
 
-            foreach (var (type, dx, dy) in handleOffsets)
-            {
-                // 旋转变换
-                var rotatedX = center.X + dx * cos - dy * sin;
-                var rotatedY = center.Y + dx * sin + dy * cos;
+            // 计算各边中点
+            var topCenter = new Point(
+                (corners[0].X + corners[1].X) / 2,
+                (corners[0].Y + corners[1].Y) / 2
+            );
+            var rightCenter = new Point(
+                (corners[1].X + corners[2].X) / 2,
+                (corners[1].Y + corners[2].Y) / 2
+            );
+            var bottomCenter = new Point(
+                (corners[2].X + corners[3].X) / 2,
+                (corners[2].Y + corners[3].Y) / 2
+            );
+            var leftCenter = new Point(
+                (corners[3].X + corners[0].X) / 2,
+                (corners[3].Y + corners[0].Y) / 2
+            );
 
+            // 按顺序添加手柄：角点 + 边中点
+            var handlePositions = new Point[]
+            {
+                corners[0],      // TopLeft
+                topCenter,       // Top
+                corners[1],      // TopRight
+                rightCenter,     // Right
+                corners[2],      // BottomRight
+                bottomCenter,    // Bottom
+                corners[3],      // BottomLeft
+                leftCenter       // Left
+            };
+
+            for (int i = 0; i < 8; i++)
+            {
+                var pos = handlePositions[i];
                 _editHandles.Add(new EditHandle
                 {
-                    Type = type,
-                    Position = new Point(rotatedX, rotatedY),
-                    Bounds = new Rect(rotatedX - _handleSize / 2, rotatedY - _handleSize / 2, _handleSize, _handleSize),
-                    Cursor = GetCursorForRotatedHandle(type, roi.Rotation)
+                    Type = handleTypes[i],
+                    Position = pos,
+                    Bounds = new Rect(pos.X - _handleSize / 2, pos.Y - _handleSize / 2, _handleSize, _handleSize),
+                    Cursor = GetCursorForRotatedHandle(handleTypes[i], roi.Rotation)
                 });
             }
 
-            // 旋转手柄（在"顶边"中点上方，考虑旋转角度）
-            // 顶边中点位置（旋转后）：未旋转时偏移为(0, -h/2)，旋转后为(+h/2*sin, -h/2*cos)
-            var topCenterX = center.X + (h/2) * sin;
-            var topCenterY = center.Y - (h/2) * cos;
-            // 旋转手柄在顶边中点上方20像素（沿法线方向向外）
-            var rotateHandleX = topCenterX + 20 * sin;
-            var rotateHandleY = topCenterY - 20 * cos;
+            // 获取中心点
+            var center = roi.Position;
 
+            // 中心手柄（用于拖动）
             _editHandles.Add(new EditHandle
             {
-                Type = HandleType.Rotate,
-                Position = new Point(rotateHandleX, rotateHandleY),
-                Bounds = new Rect(rotateHandleX - _handleSize / 2, rotateHandleY - _handleSize / 2, _handleSize, _handleSize),
-                Cursor = Cursors.Hand
+                Type = HandleType.Center,
+                Position = center,
+                Bounds = new Rect(center.X - _handleSize / 2, center.Y - _handleSize / 2, _handleSize, _handleSize),
+                Cursor = Cursors.SizeAll
             });
+
+            // 旋转手柄（在顶边中点上方）
+            // 方向：从中心指向顶边中点的方向（矩形的"上方"方向）
+            var direction = topCenter - center;
+            var length = direction.Length;
+            if (length > 0)
+            {
+                // 归一化方向向量并延伸20像素
+                var unitDir = direction / length;
+                var rotateHandlePos = new Point(
+                    topCenter.X + unitDir.X * 25,
+                    topCenter.Y + unitDir.Y * 25
+                );
+
+                _editHandles.Add(new EditHandle
+                {
+                    Type = HandleType.Rotate,
+                    Position = rotateHandlePos,
+                    Bounds = new Rect(rotateHandlePos.X - _handleSize / 2, rotateHandlePos.Y - _handleSize / 2, _handleSize, _handleSize),
+                    Cursor = Cursors.Hand
+                });
+            }
         }
 
         /// <summary>
@@ -747,7 +1072,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
                 Canvas.SetLeft(handleShape, handle.Position.X - _handleSize / 2);
                 Canvas.SetTop(handleShape, handle.Position.Y - _handleSize / 2);
-                ROICanvas.Children.Add(handleShape);
+                OverlayCanvas.Children.Add(handleShape);
             }
 
             // 绘制旋转手柄连接线
@@ -758,36 +1083,120 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         }
 
         /// <summary>
-        /// 绘制旋转手柄连接线
+        /// 绘制方向箭头（独立方法，可用于预览和编辑状态）
+        /// </summary>
+        /// <param name="roi">旋转矩形ROI</param>
+        /// <param name="strokeBrush">箭头颜色</param>
+        private void DrawDirectionArrow(ROI roi, Brush strokeBrush)
+        {
+            if (roi.Type != ROIType.RotatedRectangle) return;
+
+            var arrow = roi.GetDirectionArrow();
+            var center = arrow.Start;
+            var topCenter = arrow.End;
+
+            // 检查尺寸是否足够绘制箭头
+            if (center.X == topCenter.X && center.Y == topCenter.Y) return;
+
+            // 绘制主箭头线（从中心到顶边中点）
+            var arrowLine = new Line
+            {
+                X1 = center.X,
+                Y1 = center.Y,
+                X2 = topCenter.X,
+                Y2 = topCenter.Y,
+                Stroke = strokeBrush,
+                StrokeThickness = 2
+            };
+            OverlayCanvas.Children.Add(arrowLine);
+
+            // 计算箭头方向
+            var dx = topCenter.X - center.X;
+            var dy = topCenter.Y - center.Y;
+            var length = Math.Sqrt(dx * dx + dy * dy);
+            if (length < 5) return;
+
+            // 归一化方向向量
+            var ux = dx / length;
+            var uy = dy / length;
+
+            // 箭头参数
+            var arrowSize = 10;
+            var arrowAngle = 25 * Math.PI / 180; // 箭头夹角25°
+
+            // 计算箭头两翼的端点
+            var cosA = Math.Cos(arrowAngle);
+            var sinA = Math.Sin(arrowAngle);
+
+            // 左翼（逆时针旋转）
+            var leftX = topCenter.X - arrowSize * (ux * cosA + uy * sinA);
+            var leftY = topCenter.Y - arrowSize * (-ux * sinA + uy * cosA);
+
+            // 右翼（顺时针旋转）
+            var rightX = topCenter.X - arrowSize * (ux * cosA - uy * sinA);
+            var rightY = topCenter.Y - arrowSize * (ux * sinA + uy * cosA);
+
+            // 绘制箭头两翼
+            var leftWing = new Line
+            {
+                X1 = topCenter.X,
+                Y1 = topCenter.Y,
+                X2 = leftX,
+                Y2 = leftY,
+                Stroke = strokeBrush,
+                StrokeThickness = 2
+            };
+            OverlayCanvas.Children.Add(leftWing);
+
+            var rightWing = new Line
+            {
+                X1 = topCenter.X,
+                Y1 = topCenter.Y,
+                X2 = rightX,
+                Y2 = rightY,
+                Stroke = strokeBrush,
+                StrokeThickness = 2
+            };
+            OverlayCanvas.Children.Add(rightWing);
+        }
+
+        /// <summary>
+        /// 绘制旋转矩形的方向箭头和旋转手柄连接线
+        /// 箭头从中心指向顶边中点，直观显示矩形的"上方"方向
         /// </summary>
         private void DrawRotateHandleLine(ROI roi)
         {
-            var center = roi.Position;
-            var h = roi.Size.Height;
-            var angle = roi.Rotation * Math.PI / 180;
-            var sin = Math.Sin(angle);
-            var cos = Math.Cos(angle);
+            // 绘制方向箭头
+            DrawDirectionArrow(roi, Brushes.Blue);
 
-            // 顶边中点位置（旋转后）
-            var topCenterX = center.X + (h / 2) * sin;
-            var topCenterY = center.Y - (h / 2) * cos;
+            // 绘制从顶边中点到旋转手柄的连接线（虚线）
+            var arrow = roi.GetDirectionArrow();
+            var center = arrow.Start;
+            var topCenter = arrow.End;
 
-            // 旋转手柄位置
-            var rotateHandleX = topCenterX + 20 * sin;
-            var rotateHandleY = topCenterY - 20 * cos;
-
-            // 绘制连接线
-            var line = new Line
+            // 计算旋转手柄位置
+            var direction = topCenter - center;
+            var dirLength = direction.Length;
+            if (dirLength > 0)
             {
-                X1 = topCenterX,
-                Y1 = topCenterY,
-                X2 = rotateHandleX,
-                Y2 = rotateHandleY,
-                Stroke = Brushes.Green,
-                StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 3, 2 }
-            };
-            ROICanvas.Children.Add(line);
+                var unitDir = direction / dirLength;
+                var rotateHandlePos = new Point(
+                    topCenter.X + unitDir.X * 25,
+                    topCenter.Y + unitDir.Y * 25
+                );
+
+                var connectorLine = new Line
+                {
+                    X1 = topCenter.X,
+                    Y1 = topCenter.Y,
+                    X2 = rotateHandlePos.X,
+                    Y2 = rotateHandlePos.Y,
+                    Stroke = Brushes.Blue,
+                    StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 3, 2 }
+                };
+                OverlayCanvas.Children.Add(connectorLine);
+            }
         }
 
         private void HandleResize(ROI roi, Point currentPosition)
@@ -1103,8 +1512,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         private void HandleRotate(ROI roi, Point currentPosition)
         {
             var center = roi.Position;
-            var angle = Math.Atan2(currentPosition.Y - center.Y, currentPosition.X - center.X) * 180 / Math.PI;
-            roi.Rotation = angle + 90; // 调整角度使手柄在顶部
+
+            // 计算当前鼠标相对于中心的角度（数学坐标系，逆时针为正）
+            var currentMouseAngle = Math.Atan2(
+                currentPosition.Y - center.Y,
+                currentPosition.X - center.X
+            ) * 180 / Math.PI;
+
+            // 计算角度增量（当前鼠标角度 - 起始鼠标角度）
+            var deltaAngle = currentMouseAngle - _rotateStartMouseAngle;
+
+            // 应用角度增量到原始旋转角度
+            // 这样可以避免角度跳变问题，实现连续旋转
+            // ROI.Rotation的setter会自动规范化到[-180°, 180°]范围
+            roi.Rotation = _rotateStartAngle + deltaAngle;
         }
 
         #endregion
@@ -1214,14 +1635,66 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         #endregion
 
+        #region 辅助方法
+
+        /// <summary>
+        /// 检查点是否在图像范围内
+        /// </summary>
+        private bool IsPointInImageBounds(Point point, BitmapSource image)
+        {
+            if (image == null) return false;
+            return point.X >= 0 && point.X < image.PixelWidth && 
+                   point.Y >= 0 && point.Y < image.PixelHeight;
+        }
+
+        /// <summary>
+        /// 检查ROI是否在图像范围内（改进版 - 检查整个ROI边界）
+        /// </summary>
+        private bool IsROIInImageBounds(ROI roi, BitmapSource image)
+        {
+            if (image == null) return false;
+            
+            switch (roi.Type)
+            {
+                case ROIType.Rectangle:
+                    var rect = roi.GetBounds();
+                    // 检查矩形的四个角都在图像范围内
+                    return rect.Left >= 0 && rect.Right <= image.PixelWidth &&
+                           rect.Top >= 0 && rect.Bottom <= image.PixelHeight;
+                    
+                case ROIType.Circle:
+                    // 检查圆形的包围盒（圆心±半径）
+                    return roi.Position.X - roi.Radius >= 0 && 
+                           roi.Position.X + roi.Radius <= image.PixelWidth &&
+                           roi.Position.Y - roi.Radius >= 0 && 
+                           roi.Position.Y + roi.Radius <= image.PixelHeight;
+                    
+                case ROIType.RotatedRectangle:
+                    // 旋转矩形检查包围盒
+                    var bounds = roi.GetBounds();
+                    return bounds.Left >= 0 && bounds.Right <= image.PixelWidth &&
+                           bounds.Top >= 0 && bounds.Bottom <= image.PixelHeight;
+                    
+                case ROIType.Line:
+                    // 检查直线的两个端点
+                    return IsPointInImageBounds(roi.Position, image) && 
+                           IsPointInImageBounds(roi.EndPoint, image);
+                    
+                default:
+                    return true;
+            }
+        }
+
+        #endregion
+
         #region 事件处理
 
         private void ImageControl_ImageMouseMove(object? sender, ImageMouseEventArgs e)
         {
             var position = e.ImagePosition;
 
-            // 手柄编辑模式
-            if (_activeHandle != HandleType.None && _selectedROI != null)
+            // 手柄编辑模式（CaptureMouse机制已保证事件流程的正确性，无需检查鼠标状态）
+            if (_currentInteraction == InteractionType.HandleEditing && _activeHandle != HandleType.None && _selectedROI != null)
             {
                 HandleResize(_selectedROI, position);
                 UpdateROIOverlay();
@@ -1229,43 +1702,64 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             }
 
             // 拖动ROI
-            if (_isDragging && _selectedROI != null)
+            if (_currentInteraction == InteractionType.Dragging && _isDragging && _selectedROI != null)
             {
                 var offset = position - _dragStartPoint;
-                _selectedROI.Move(offset);
-                _dragStartPoint = position;
-                UpdateROIOverlay();
+
+                // 创建临时ROI用于边界检查（检查整个ROI是否在边界内）
+                var tempROI = (ROI)_selectedROI.Clone();
+                tempROI.Move(offset);
+
+                if (IsROIInImageBounds(tempROI, SourceImage))
+                {
+                    _selectedROI.Move(offset);
+                    _dragStartPoint = position;
+                    UpdateROIOverlay();
+                }
+                else
+                {
+                    UpdateStatus("无法拖动到图像边界外");
+                }
                 return;
             }
 
             // 绘制预览
-            if (_isDrawing && _currentDrawingROI != null)
+            if (_currentInteraction == InteractionType.Drawing && _isDrawing && _currentDrawingROI != null)
             {
                 var dx = position.X - _startPoint.X;
                 var dy = position.Y - _startPoint.Y;
 
-                switch (_currentDrawingROI.Type)
+                // 检查终点是否在图像范围内
+                var endPoint = new Point(_startPoint.X + dx, _startPoint.Y + dy);
+                if (IsPointInImageBounds(endPoint, SourceImage))
                 {
-                    case ROIType.Rectangle:
-                    case ROIType.RotatedRectangle:
-                        _currentDrawingROI.Position = new Point(
-                            _startPoint.X + dx / 2,
-                            _startPoint.Y + dy / 2);
-                        _currentDrawingROI.Size = new Size(Math.Abs(dx), Math.Abs(dy));
-                        break;
+                    switch (_currentDrawingROI.Type)
+                    {
+                        case ROIType.Rectangle:
+                        case ROIType.RotatedRectangle:
+                            _currentDrawingROI.Position = new Point(
+                                _startPoint.X + dx / 2,
+                                _startPoint.Y + dy / 2);
+                            _currentDrawingROI.Size = new Size(Math.Abs(dx), Math.Abs(dy));
+                            break;
 
-                    case ROIType.Circle:
-                        var radius = Math.Sqrt(dx * dx + dy * dy);
-                        _currentDrawingROI.Position = _startPoint;
-                        _currentDrawingROI.Radius = radius;
-                        break;
+                        case ROIType.Circle:
+                            var radius = Math.Sqrt(dx * dx + dy * dy);
+                            _currentDrawingROI.Position = _startPoint;
+                            _currentDrawingROI.Radius = radius;
+                            break;
 
-                    case ROIType.Line:
-                        _currentDrawingROI.EndPoint = position;
-                        break;
+                        case ROIType.Line:
+                            _currentDrawingROI.EndPoint = position;
+                            break;
+                    }
+                    
+                    UpdateROIOverlay();
                 }
-
-                UpdateROIOverlay();
+                else
+                {
+                    UpdateStatus("绘制超出图像范围");
+                }
             }
         }
 
@@ -1306,14 +1800,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         private void ImageControl_CanvasMouseLeftButtonDown(object? sender, ImageMouseEventArgs e)
         {
-            if (!IsEditMode) return;
-
             var position = e.ImagePosition;
+
+            // 继承模式：不处理任何交互，允许ImageControl平移
+            if (!IsEditMode) return;
 
             // 绘制模式
             if (IsDrawingMode)
             {
-                // 开始绘制
+                // 检查起点是否在图像范围内
+                if (!IsPointInImageBounds(position, SourceImage))
+                {
+                    UpdateStatus("起点超出图像范围，请重新选择");
+                    return;
+                }
+                
+                // 开始绘制 - 使用统一入口
+                if (!BeginInteraction(InteractionType.Drawing))
+                    return;
+                
                 _isDrawing = true;
                 _startPoint = position;
                 _currentDrawingROI = new ROI
@@ -1338,12 +1843,43 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 var hitHandle = HitTestHandle(position);
                 if (hitHandle != HandleType.None)
                 {
+                    // 中心手柄特殊处理：触发拖动模式
+                    if (hitHandle == HandleType.Center)
+                    {
+                        // 开始拖动 - 使用统一入口
+                        if (!BeginInteraction(InteractionType.Dragging))
+                            return;
+                        
+                        _selectedROI = _selectedROI;
+                        _isDragging = true;
+                        _dragStartPoint = position;
+                        UpdateStatus("拖动ROI");
+                        e.Handled = true;
+                        return;
+                    }
+                    
+                    // 其他手柄：开始手柄编辑 - 使用统一入口
+                    if (!BeginInteraction(InteractionType.HandleEditing))
+                        return;
+                    
                     _activeHandle = hitHandle;
                     _handleStartPoint = position;
                     _originalBounds = _selectedROI.GetBounds();
                     _originalPosition = _selectedROI.Position;
                     _originalSize = _selectedROI.Size;
                     _originalRotation = _selectedROI.Rotation;
+                    
+                    // 如果是旋转手柄，记录起始角度（解决角度跳变问题）
+                    if (hitHandle == HandleType.Rotate)
+                    {
+                        _rotateStartAngle = _selectedROI.Rotation;
+                        var center = _selectedROI.Position;
+                        _rotateStartMouseAngle = Math.Atan2(
+                            position.Y - center.Y,
+                            position.X - center.X
+                        ) * 180 / Math.PI;
+                    }
+                    
                     UpdateStatus($"手柄编辑: {hitHandle}");
                     e.Handled = true;
                     return;
@@ -1357,7 +1893,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 if (CurrentTool == ROITool.MultiSelect && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                 {
-                    // Ctrl+点击切换选择
+                    // Ctrl+点击切换选择（不需要捕获鼠标）
                     if (_selectedROIs.Contains(hitROI))
                     {
                         hitROI.IsSelected = false;
@@ -1372,58 +1908,106 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 }
                 else
                 {
+                    // 开始拖动 - 使用统一入口
+                    if (!BeginInteraction(InteractionType.Dragging))
+                        return;
+                    
                     SelectROI(hitROI);
                     _selectedROI = hitROI;
                     _isDragging = true;
                     _dragStartPoint = position;
                 }
                 UpdateROIOverlay();
+                // 命中ROI时阻止ImageControl平移
                 e.Handled = true;
             }
             else
             {
-                // 点击空白区域：取消所有选中状态
+                // 点击空白区域：取消所有选中状态，不设置e.Handled，允许ImageControl平移图像
                 DeselectAll();
             }
         }
 
         private void ImageControl_CanvasMouseLeftButtonUp(object? sender, ImageMouseEventArgs e)
         {
+            // 记录是否需要处理事件
+            bool handled = false;
+
             // 完成手柄编辑
-            if (_activeHandle != HandleType.None && _selectedROI != null)
+            if (_currentInteraction == InteractionType.HandleEditing && _activeHandle != HandleType.None)
             {
-                _editHistory.AddAction(new ModifyROIAction(_selectedROI, _originalBounds, _originalRotation));
-                _activeHandle = HandleType.None;
-                UpdateStatus("完成调整");
-                return;
+                if (_selectedROI != null)
+                {
+                    // 检查调整后的ROI是否在图像边界内
+                    if (!IsROIInImageBounds(_selectedROI, SourceImage))
+                    {
+                        // 回滚到原始状态
+                        _selectedROI.Position = _originalPosition;
+                        _selectedROI.Size = _originalSize;
+                        _selectedROI.Rotation = _originalRotation;
+                        UpdateStatus("调整超出图像边界，已回滚");
+                    }
+                    else
+                    {
+                        _editHistory.AddAction(new ModifyROIAction(_selectedROI, _originalBounds, _originalRotation));
+                        UpdateStatus("完成调整");
+                    }
+                }
+                handled = true;
+            }
+            // 完成拖动
+            else if (_currentInteraction == InteractionType.Dragging && _isDragging)
+            {
+                if (_selectedROI != null)
+                {
+                    var position = e.ImagePosition;
+                    var offset = position - _dragStartPoint;
+                    if (offset.Length > 1)
+                    {
+                        _editHistory.AddAction(new MoveROIAction(_selectedROI.ID, offset));
+                    }
+                }
+                UpdateStatus("完成拖动");
+                handled = true;
+            }
+            // 完成绘制
+            else if (_currentInteraction == InteractionType.Drawing && _isDrawing)
+            {
+                if (_currentDrawingROI != null)
+                {
+                    // 检查ROI是否完全在图像范围内（使用改进的边界检查）
+                    var roi = _currentDrawingROI;
+                    bool isWithinBounds = IsROIInImageBounds(roi, SourceImage);
+
+                    if (isWithinBounds && 
+                        (roi.Size.Width > 5 || roi.Size.Height > 5 ||
+                         roi.Radius > 5 || roi.Type == ROIType.Line))
+                    {
+                        _rois.Add(_currentDrawingROI);
+                        _editHistory.AddAction(new CreateROIAction(_currentDrawingROI));
+                        UpdateROIcount();
+                        ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Added, _currentDrawingROI));
+                        UpdateStatus("创建ROI成功");
+                    }
+                    else
+                    {
+                        UpdateStatus(isWithinBounds ? "ROI太小，已忽略" : "ROI超出图像范围，已忽略");
+                    }
+                }
+                else
+                {
+                    UpdateStatus("绘制取消");
+                }
+                handled = true;
             }
 
-            if (_isDragging && _selectedROI != null)
-            {
-                // 完成拖动，添加到历史
-                var position = e.ImagePosition;
-                var offset = position - _dragStartPoint;
-                if (offset.Length > 1)
-                {
-                    _editHistory.AddAction(new MoveROIAction(_selectedROI.ID, offset));
-                }
-                _isDragging = false;
-            }
-            else if (_isDrawing && _currentDrawingROI != null)
-            {
-                // 完成绘制
-                if (_currentDrawingROI.Size.Width > 5 || _currentDrawingROI.Size.Height > 5 ||
-                    _currentDrawingROI.Radius > 5 || _currentDrawingROI.Type == ROIType.Line)
-                {
-                    _rois.Add(_currentDrawingROI);
-                    _editHistory.AddAction(new CreateROIAction(_currentDrawingROI));
-                    UpdateROIcount();
-                    ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Added, _currentDrawingROI));
-                }
+            // 统一结束交互（释放鼠标捕获并重置状态）
+            EndInteraction();
+            UpdateROIOverlay();
 
-                _isDrawing = false;
-                _currentDrawingROI = null;
-                UpdateROIOverlay();
+            if (handled)
+            {
+                e.Handled = true;
             }
         }
 

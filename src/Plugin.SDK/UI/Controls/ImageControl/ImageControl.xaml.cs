@@ -22,7 +22,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private double _minZoom = 0.1;
         private double _maxZoom = 10.0;
         private double _zoomStep = 0.1;
-        private BitmapSource? _sourceImage;
 
         // Canvas平移缩放相关
         private bool _isPanning;
@@ -34,9 +33,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private bool _autoFitOnResize = true;
         private System.Windows.Threading.DispatcherTimer? _resizeTimer;
 
+        // 全屏相关
+        private bool _isFullscreen = false;
+        private Window? _fullscreenWindow;
+        private FrameworkElement? _originalParent;  // 改为 FrameworkElement 支持更多父容器类型
+        private int _originalIndex;
+        private bool _parentIsPanel;  // 标记父容器是否为 Panel
+
         #endregion
 
         #region 依赖属性
+
+        /// <summary>
+        /// 源图像依赖属性
+        /// </summary>
+        public static readonly DependencyProperty SourceImageProperty =
+            DependencyProperty.Register(nameof(SourceImage), typeof(BitmapSource), typeof(ImageControl),
+                new PropertyMetadata(null, OnSourceImageChanged));
 
         /// <summary>
         /// 是否显示工具栏
@@ -65,6 +78,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty EnableZoomProperty =
             DependencyProperty.Register(nameof(EnableZoom), typeof(bool), typeof(ImageControl),
                 new PropertyMetadata(true));
+
+        /// <summary>
+        /// 是否显示棋盘格背景（透明度指示）
+        /// </summary>
+        public static readonly DependencyProperty ShowChessboardBackgroundProperty =
+            DependencyProperty.Register(nameof(ShowChessboardBackground), typeof(bool), typeof(ImageControl),
+                new PropertyMetadata(true, OnShowChessboardBackgroundChanged));
 
         #endregion
 
@@ -107,6 +127,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
+        /// 是否显示棋盘格背景（透明度指示）
+        /// </summary>
+        public bool ShowChessboardBackground
+        {
+            get => (bool)GetValue(ShowChessboardBackgroundProperty);
+            set => SetValue(ShowChessboardBackgroundProperty, value);
+        }
+
+        /// <summary>
         /// 缩放比例
         /// </summary>
         public double Zoom
@@ -117,7 +146,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 value = Math.Max(_minZoom, Math.Min(_maxZoom, value));
                 if (SetProperty(ref _zoom, value))
                 {
-                    UpdateZoomText();
                     ImageScaleTransform.ScaleX = value;
                     ImageScaleTransform.ScaleY = value;
                     OnZoomChanged();
@@ -140,38 +168,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public BitmapSource? SourceImage
         {
-            get => _sourceImage;
-            set
-            {
-                if (_sourceImage != value)
-                {
-                    _sourceImage = value;
-                    DisplayImage.Source = value;
-
-                    // 同步Canvas尺寸和ImageContainer尺寸
-                    if (value != null)
-                    {
-                        OverlayCanvasControl.Width = value.PixelWidth;
-                        OverlayCanvasControl.Height = value.PixelHeight;
-                        ImageContainer.Width = value.PixelWidth;
-                        ImageContainer.Height = value.PixelHeight;
-                        ImageSizeText.Text = $"图像: {value.PixelWidth} x {value.PixelHeight}";
-                    }
-                    else
-                    {
-                        ImageSizeText.Text = "图像: -";
-                    }
-
-                    OnPropertyChanged();
-                    OnImageLoaded();
-                }
-            }
+            get => (BitmapSource?)GetValue(SourceImageProperty);
+            set => SetValue(SourceImageProperty, value);
         }
 
         /// <summary>
         /// 叠加层Canvas - 用于添加自定义元素
         /// </summary>
         public Canvas OverlayCanvas => OverlayCanvasControl;
+
+        /// <summary>
+        /// OverlayCanvas是否启用命中测试
+        /// 默认为false，允许ROI编辑器等控件根据需要启用
+        /// </summary>
+        public bool OverlayHitTestVisible
+        {
+            get => OverlayCanvasControl.IsHitTestVisible;
+            set => OverlayCanvasControl.IsHitTestVisible = value;
+        }
 
         /// <summary>
         /// 窗口调整时是否自动适应
@@ -268,19 +282,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var scaleX = viewWidth / SourceImage.PixelWidth;
             var scaleY = viewHeight / SourceImage.PixelHeight;
 
-            var newZoom = Math.Min(scaleX, scaleY) * 0.95; // 留5%边距
+            var newZoom = Math.Min(scaleX, scaleY); // 不留边距，完全适应
             Zoom = newZoom;
 
             // 居中显示
-            CenterImage();
-        }
-
-        /// <summary>
-        /// 显示实际大小
-        /// </summary>
-        public void ActualSize()
-        {
-            Zoom = 1.0;
             CenterImage();
         }
 
@@ -368,13 +373,51 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             OverlayCanvasControl.Children.Clear();
         }
 
+        /// <summary>
+        /// 切换全屏状态（公开方法）
+        /// </summary>
+        public void ToggleFullscreen()
+        {
+            if (!_isFullscreen)
+            {
+                EnterFullscreen();
+            }
+            else
+            {
+                ExitFullscreen();
+            }
+        }
+
+        /// <summary>
+        /// 进入全屏（公开方法）
+        /// </summary>
+        public void EnterFullscreenMode()
+        {
+            if (!_isFullscreen)
+            {
+                EnterFullscreen();
+            }
+        }
+
+        /// <summary>
+        /// 退出全屏（公开方法）
+        /// </summary>
+        public void ExitFullscreenMode()
+        {
+            ExitFullscreen();
+        }
+
+        /// <summary>
+        /// 获取当前是否处于全屏状态
+        /// </summary>
+        public bool IsFullscreen => _isFullscreen;
+
         #endregion
 
         #region 私有方法
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            UpdateZoomText();
         }
 
         private static void OnShowToolBarChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -393,9 +436,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
-        private void UpdateZoomText()
+        private static void OnShowChessboardBackgroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            ZoomText.Text = $"{(int)(Zoom * 100)}%";
+            if (d is ImageControl control && control.ChessboardLayer != null)
+            {
+                control.ChessboardLayer.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ImageControl control)
+            {
+                var newImage = e.NewValue as BitmapSource;
+                control.DisplayImage.Source = newImage;
+
+                // 同步Canvas尺寸和ImageContainer尺寸
+                if (newImage != null)
+                {
+                    control.OverlayCanvasControl.Width = newImage.PixelWidth;
+                    control.OverlayCanvasControl.Height = newImage.PixelHeight;
+                    control.ImageContainer.Width = newImage.PixelWidth;
+                    control.ImageContainer.Height = newImage.PixelHeight;
+                    control.ImageSizeText.Text = $"图像: {newImage.PixelWidth} x {newImage.PixelHeight}";
+                }
+                else
+                {
+                    control.ImageSizeText.Text = "图像: -";
+                }
+
+                control.OnImageLoaded();
+            }
         }
 
         private void UpdateImageTransform()
@@ -434,9 +505,144 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             FitToWindow();
         }
 
-        private void ActualSize_Click(object sender, RoutedEventArgs e)
+        private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            ActualSize();
+            Zoom = Math.Min(_maxZoom, Zoom + _zoomStep);
+        }
+
+        private void ZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            Zoom = Math.Max(_minZoom, Zoom - _zoomStep);
+        }
+
+        private void ToggleFullscreen_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isFullscreen)
+            {
+                EnterFullscreen();
+            }
+            else
+            {
+                ExitFullscreen();
+            }
+        }
+
+        private void EnterFullscreen()
+        {
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] EnterFullscreen 被调用");
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] Parent 类型: {Parent?.GetType().Name ?? "null"}");
+            
+            // 记录原父容器
+            _originalParent = Parent as FrameworkElement;
+            if (_originalParent == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 父容器为 null，无法进入全屏");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 父容器类型: {_originalParent.GetType().Name}");
+
+            // 判断父容器类型并保存状态
+            if (_originalParent is Panel panel)
+            {
+                _parentIsPanel = true;
+                _originalIndex = panel.Children.IndexOf(this);
+                panel.Children.Remove(this);
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 从 Panel 移除，索引: {_originalIndex}");
+            }
+            else if (_originalParent is Decorator decorator)
+            {
+                _parentIsPanel = false;
+                decorator.Child = null;
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 从 Decorator 移除");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 不支持的父容器类型: {_originalParent.GetType().Name}");
+                _originalParent = null;
+                return;
+            }
+
+            // 创建全屏窗口
+            _fullscreenWindow = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                WindowState = WindowState.Maximized,
+                Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)),
+                Content = this,
+                Title = "全屏预览"
+            };
+
+            _fullscreenWindow.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Escape)
+                {
+                    ExitFullscreen();
+                }
+            };
+
+            _fullscreenWindow.Closed += ExitFullscreen_Handler;
+
+            _isFullscreen = true;
+            _fullscreenWindow.Show();
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 全屏窗口已显示");
+        }
+
+        private void ExitFullscreen()
+        {
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] ExitFullscreen 被调用");
+            
+            if (!_isFullscreen || _originalParent == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 无法退出全屏: _isFullscreen={_isFullscreen}, _originalParent={_originalParent != null}");
+                return;
+            }
+
+            // 防止重复调用
+            _isFullscreen = false;
+
+            if (_fullscreenWindow != null)
+            {
+                // 先取消订阅事件，防止重复触发
+                _fullscreenWindow.Closed -= ExitFullscreen_Handler;
+                _fullscreenWindow.Content = null;
+                _fullscreenWindow.Close();
+                _fullscreenWindow = null;
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 全屏窗口已关闭");
+            }
+
+            // 检查控件是否已经有父容器
+            if (Parent != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ⚠ 控件已有父容器，不再插入");
+                return;
+            }
+
+            // 将控件返回到原来的父容器
+            if (_parentIsPanel && _originalParent is Panel panel)
+            {
+                panel.Children.Insert(_originalIndex, this);
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 已插入回 Panel，索引: {_originalIndex}");
+            }
+            else if (!_parentIsPanel && _originalParent is Decorator decorator)
+            {
+                decorator.Child = this;
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 已设置回 Decorator");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 无法恢复到父容器");
+            }
+        }
+
+        private void ExitFullscreen_Handler(object? sender, EventArgs e)
+        {
+            ExitFullscreen();
+        }
+
+        private void ImageSourceSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 图像源选择变更处理 - 由外部实现
         }
 
         private void MainCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -466,6 +672,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
 
             if (!EnablePanning) return;
+
+            // 只有点击位置在图像范围内才启动平移
+            if (SourceImage != null)
+            {
+                // 检查点击位置是否在图像范围内
+                if (imagePos.X < 0 || imagePos.X >= SourceImage.PixelWidth ||
+                    imagePos.Y < 0 || imagePos.Y >= SourceImage.PixelHeight)
+                {
+                    // 点击位置在图像外，不启动平移
+                    return;
+                }
+            }
 
             // 启动平移
             _isPanning = true;

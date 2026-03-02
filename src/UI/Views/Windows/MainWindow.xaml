@@ -11,11 +11,11 @@
         xmlns:convertersPath="clr-namespace:SunEyeVision.UI.Converters.Path"
         xmlns:convertersNode="clr-namespace:SunEyeVision.UI.Converters.Node"
         xmlns:convertersVisibility="clr-namespace:SunEyeVision.UI.Converters.Visibility"
-        xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls"
         xmlns:canvas="clr-namespace:SunEyeVision.UI.Views.Controls.Canvas"
         xmlns:toolbox="clr-namespace:SunEyeVision.UI.Views.Controls.Toolbox"
         xmlns:panels="clr-namespace:SunEyeVision.UI.Views.Controls.Panels"
         xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
+        xmlns:sdk="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
         mc:Ignorable="d"
         Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
         WindowStartupLocation="CenterScreen"
@@ -78,7 +78,7 @@
                 <MenuItem Header="显示最大外接矩形(_B)" InputGestureText="Ctrl+B" Command="{Binding ToggleBoundingRectangleCommand}"/>
                 <MenuItem Header="显示路径拐点(_P)" InputGestureText="Ctrl+P" Command="{Binding TogglePathPointsCommand}"/>
                 <Separator/>
-                <MenuItem Header="全屏(_F)" InputGestureText="F11"/>
+                <MenuItem Header="全屏(_F)" InputGestureText="F11" Click="ToggleFullscreen_Click"/>
                 <MenuItem Header="重置布局(_R)"/>
             </MenuItem>
             <MenuItem Header="运行(_R)">
@@ -772,81 +772,18 @@
                                             BorderThickness="0">
                                     <!-- 第一个TabItem: 图像结果 -->
                                     <TabItem Header="图像结果" Padding="12,6">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                            </Grid.RowDefinitions>
-
-                                            <!-- 第一行：图像类型切换（左侧）+ 控制按钮（右侧） -->
-                                            <Border Grid.Row="0" Background="#F8F9FA" Padding="8,6" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <!-- 左侧：图像类型下拉框 -->
-                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        
-                                                        <ComboBox Width="140" Height="30" VerticalAlignment="Center"
-                                                                 ItemsSource="{Binding ImageDisplayTypes}"
-                                                                 SelectedItem="{Binding SelectedImageType, Mode=TwoWay}"
-                                                                 DisplayMemberPath="DisplayName"
-                                                                 Style="{StaticResource StyledComboBox}"
-                                                                 ToolTip="选择要显示的图像类型"/>
-                                                    </StackPanel>
-
-                                                    <!-- 右侧：图像控制按钮 -->
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                        <Button ToolTip="放大 (Ctrl++)" Padding="8,4" Margin="2" 
-                                                                Style="{StaticResource SecondaryButton}"
-                                                                Command="{Binding ZoomInCommand}">
-                                                            <TextBlock Text="🔍+" FontSize="14" VerticalAlignment="Center"/>
-                                                        </Button>
-                                                        <Button ToolTip="缩小 (Ctrl+-)" Padding="8,4" Margin="2" 
-                                                                Style="{StaticResource SecondaryButton}"
-                                                                Command="{Binding ZoomOutCommand}">
-                                                            <TextBlock Text="🔍-" FontSize="14" VerticalAlignment="Center"/>
-                                                        </Button>
-                                                        <Button ToolTip="适应窗口 (Ctrl+0)" Padding="8,4" Margin="2" 
-                                                                Style="{StaticResource SecondaryButton}"
-                                                                Command="{Binding FitToWindowCommand}">
-                                                            <TextBlock Text="🗂️" FontSize="16" VerticalAlignment="Center"/>
-                                                        </Button>
-                                                        <Button ToolTip="重置视图 (R)" Padding="8,4" Margin="2" 
-                                                                Style="{StaticResource SecondaryButton}"
-                                                                Command="{Binding ResetViewCommand}">
-                                                            <TextBlock Text="🔄" FontSize="16" VerticalAlignment="Center"/>
-                                                        </Button>
-                                                        <Button ToolTip="全屏显示 (F)" Padding="8,4" Margin="2" 
-                                                                Style="{StaticResource SecondaryButton}"
-                                                                Command="{Binding ToggleFullScreenCommand}">
-                                                            <TextBlock Text="⛶" FontSize="14" VerticalAlignment="Center"/>
-                                                        </Button>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-
-                                            <!-- 第二行：图像显示区域 -->
-                                            <Border Grid.Row="1" Background="#333333">
-                                                <Grid>
-                                                    <!-- 图像显示控件 -->
-                                                    <panels:ImageDisplayControl
-                                                        ImageSource="{Binding DisplayImage}"
-                                                        Scale="{Binding ImageScale}"
-                                                        x:Name="ImageDisplayContent"/>
-
-                                                    <!-- 缩放比例显示覆盖层 -->
-                                                    <Border Background="#B3000000" Padding="8,4" CornerRadius="4"
-                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                            Margin="10" Visibility="Visible">
-                                                        <TextBlock Text="{Binding ImageScale, StringFormat='{}{0:P0}'}" 
-                                                                  FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </Grid>
+                                        <Border Background="Transparent">
+                                            <sdk:ImageControl x:Name="ImageDisplayContent"
+                                                              SourceImage="{Binding DisplayImage}"
+                                                              ShowToolBar="True"
+                                                              ShowStatusBar="True"
+                                                              ShowChessboardBackground="True"
+                                                              EnablePanning="True"
+                                                              EnableZoom="True"
+                                                              AutoFitOnResize="True"
+                                                              ImageLoaded="OnImageLoaded"
+                                                              ZoomChanged="OnZoomChanged"/>
+                                        </Border>
                                     </TabItem>
 
                                     <!-- 第二个TabItem: 模块结果 -->

@@ -137,6 +137,10 @@
         <ctrl:ImageControl x:Name="ImageControl"
                            Grid.Row="1"
                            ShowToolBar="True"
-                           ShowStatusBar="True"/>
+                           ShowStatusBar="True"
+                           ShowChessboardBackground="True"
+                           EnablePanning="True"
+                           EnableZoom="True"
+                           AutoFitOnResize="True"/>
     </Grid>
 </UserControl>

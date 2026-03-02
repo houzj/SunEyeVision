@@ -38,6 +38,8 @@ using SunEyeVision.UI.Services.Canvas;
 
 using SunEyeVision.UI.Converters.Path;
 
+using SunEyeVision.Plugin.SDK.UI.Controls;
+
 
 
 namespace SunEyeVision.UI.Views.Windows
@@ -3006,7 +3008,28 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
+        #region 全屏功能
 
+        /// <summary>
+        /// 切换图像区域全屏（调用 ImageControl 的全屏功能）
+        /// </summary>
+        private void ToggleFullscreen_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ToggleFullscreen_Click 被调用");
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] ImageDisplayContent 是否为 null: {ImageDisplayContent == null}");
+            
+            if (ImageDisplayContent != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ImageDisplayContent.IsFullscreen: {ImageDisplayContent.IsFullscreen}");
+                ImageDisplayContent.ToggleFullscreen();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] ❌ ImageDisplayContent 为 null");
+            }
+        }
+
+        #endregion
 
         #region 辅助方法
 
@@ -3302,6 +3325,35 @@ namespace SunEyeVision.UI.Views.Windows
 
         #endregion
 
+
+
+        #region SDK ImageControl 事件处理
+
+        /// <summary>
+        /// 图像加载完成事件
+        /// </summary>
+        private void OnImageLoaded(object sender, ImageLoadedEventArgs e)
+        {
+            // 图像加载完成，可触发后续操作
+            if (_viewModel != null && e.Image != null)
+            {
+                _viewModel.StatusText = $"图像加载完成: {e.Width}x{e.Height}";
+            }
+        }
+
+        /// <summary>
+        /// 缩放变化事件
+        /// </summary>
+        private void OnZoomChanged(object sender, ZoomChangedEventArgs e)
+        {
+            // 更新ViewModel中的缩放值
+            if (_viewModel != null)
+            {
+                _viewModel.ImageScale = e.Zoom;
+            }
+        }
+
+        #endregion
 
 
         #region 画布引擎管理器支持
