@@ -535,4 +535,82 @@
         </Setter>
     </Style>
 
+    <!-- NumericUpDown 样式 -->
+    <Style TargetType="{x:Type controls:NumericUpDown}">
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NumericUpDown}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 文本框 -->
+                            <TextBox x:Name="PART_TextBox"
+                                     Grid.Column="0"
+                                     BorderThickness="0"
+                                     Padding="8,0"
+                                     FontSize="{TemplateBinding FontSize}"
+                                     VerticalAlignment="Center"
+                                     VerticalContentAlignment="Center"
+                                     TextAlignment="Right"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     Background="Transparent"/>
+
+                            <!-- 上下按钮 -->
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource BackgroundBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1,0,1,1"
+                                    CornerRadius="0,4,4,0"
+                                    Visibility="{TemplateBinding ShowUpDownButtons, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel Orientation="Vertical">
+                                    <RepeatButton x:Name="PART_IncreaseButton"
+                                                  Content="▲"
+                                                  Width="18" Height="13"
+                                                  FontSize="8"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Padding="0"
+                                                  Cursor="Hand"/>
+                                    <RepeatButton x:Name="PART_DecreaseButton"
+                                                  Content="▼"
+                                                  Width="18" Height="13"
+                                                  FontSize="8"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Padding="0"
+                                                  Cursor="Hand"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

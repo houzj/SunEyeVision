@@ -134,13 +134,33 @@
         </ToolBar>
 
         <!-- 图像显示控件 -->
-        <ctrl:ImageControl x:Name="ImageControl"
-                           Grid.Row="1"
-                           ShowToolBar="True"
-                           ShowStatusBar="True"
-                           ShowChessboardBackground="True"
-                           EnablePanning="True"
-                           EnableZoom="True"
-                           AutoFitOnResize="True"/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <ctrl:ImageControl x:Name="ImageControl"
+                               ShowToolBar="True"
+                               ShowStatusBar="True"
+                               ShowChessboardBackground="True"
+                               EnablePanning="True"
+                               EnableZoom="True"
+                               AutoFitOnResize="True"/>
+
+            <!-- ROI信息面板 -->
+            <GridSplitter Grid.Column="1"
+                          Width="4"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Stretch"
+                          Background="#E0E0E0"/>
+
+            <local:ROIInfoPanel x:Name="InfoPanel"
+                                Grid.Column="1"
+                                Margin="4,0,0,0"
+                                Background="#FAFAFA"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1,0,0,0"/>
+        </Grid>
     </Grid>
 </UserControl>

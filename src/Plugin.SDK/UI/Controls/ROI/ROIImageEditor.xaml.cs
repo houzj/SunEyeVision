@@ -33,12 +33,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         private readonly List<ROI> _rois = new List<ROI>();
         private readonly EditHistory _editHistory = new EditHistory();
+        private ROIInfoViewModel? _infoViewModel;
 
         private ROIMode _currentMode = ROIMode.Inherit;
         private ROITool _currentTool = ROITool.Select;
 
         // 统一的交互状态管理
         private InteractionType _currentInteraction = InteractionType.None;
+
+        // ROI名称索引管理（全局索引 + 优先补充空缺）
+        private readonly HashSet<int> _usedIndices = new HashSet<int>();
+        private readonly SortedSet<int> _vacantIndices = new SortedSet<int>();
+        private int _maxIndex = 0;
+
+        // 编辑器设置
+        private ROIEditorSettings _settings = ROIEditorSettings.Default;
 
         // 保留原有布尔标志以兼容现有代码
         private bool _isDrawing;
@@ -164,6 +173,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// </summary>
         public int SelectedCount => _selectedROIs.Count;
 
+        /// <summary>
+        /// 编辑器显示设置
+        /// </summary>
+        public ROIEditorSettings Settings
+        {
+            get => _settings;
+            set
+            {
+                if (SetProperty(ref _settings, value))
+                {
+                    UpdateROIOverlay();
+                }
+            }
+        }
+
         #endregion
 
         #region 事件
@@ -191,6 +215,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         {
             InitializeComponent();
             DataContext = this;
+
+            // 初始化信息面板视图模型
+            _infoViewModel = new ROIInfoViewModel(this);
+            InfoPanel.ViewModel = _infoViewModel;
 
             // 直接使用ImageControl.OverlayCanvas，不再创建独立的ROICanvas
 
@@ -244,6 +272,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 HandleResize(_selectedROI, position);
                 UpdateROIOverlay();
+                // 通知ROI尺寸变化，用于更新信息面板
+                ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Modified, _selectedROI));
                 return;
             }
 
@@ -260,6 +290,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     _selectedROI.Move(offset);
                     _dragStartPoint = position;
                     UpdateROIOverlay();
+                    // 通知ROI位置变化，用于更新信息面板
+                    ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Modified, _selectedROI));
                 }
                 else
                 {
@@ -427,6 +459,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         {
             _rois.Clear();
             _rois.AddRange(rois);
+            UpdateROICountersFromExisting(); // 更新索引计数器
             UpdateROIOverlay();
             UpdateROIcount();
             UpdateStatus($"已加载 {rois.Count()} 个ROI");
@@ -462,6 +495,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             var roi = _rois.FirstOrDefault(r => r.ID == roiId);
             if (roi != null)
             {
+                // 释放索引
+                if (TryParseROIIndex(roi.Name, out int index))
+                {
+                    ReleaseIndex(index);
+                }
+
                 _rois.Remove(roi);
                 UpdateROIOverlay();
                 UpdateROIcount();
@@ -484,6 +523,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         {
             _rois.Clear();
             _selectedROIs.Clear();
+
+            // 重置索引状态
+            _usedIndices.Clear();
+            _vacantIndices.Clear();
+            _maxIndex = 0;
+
             UpdateROIOverlay();
             UpdateROIcount();
             ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Cleared, null));
@@ -598,6 +643,105 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         #region 私有方法
 
+        /// <summary>
+        /// 生成ROI名称（全局索引，优先补充空缺）
+        /// </summary>
+        private string GenerateROIName()
+        {
+            int index = AllocateNextIndex();
+            return $"区域_{index}";
+        }
+
+        /// <summary>
+        /// 分配下一个可用的ROI索引（优先填充空缺）
+        /// </summary>
+        private int AllocateNextIndex()
+        {
+            int index;
+
+            if (_vacantIndices.Count > 0)
+            {
+                // 优先从空缺池取最小索引
+                index = _vacantIndices.Min;
+                _vacantIndices.Remove(index);
+            }
+            else
+            {
+                // 无空缺，分配新索引
+                _maxIndex++;
+                index = _maxIndex;
+            }
+
+            _usedIndices.Add(index);
+            return index;
+        }
+
+        /// <summary>
+        /// 释放索引到空缺池
+        /// </summary>
+        private void ReleaseIndex(int index)
+        {
+            _usedIndices.Remove(index);
+            if (index > 0)
+            {
+                _vacantIndices.Add(index);
+            }
+        }
+
+        /// <summary>
+        /// 从ROI名称解析索引号
+        /// </summary>
+        private bool TryParseROIIndex(string name, out int index)
+        {
+            index = 0;
+            if (string.IsNullOrEmpty(name)) return false;
+
+            var parts = name.Split('_');
+            if (parts.Length == 2 && int.TryParse(parts[1], out index))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 重置ROI索引计数器
+        /// </summary>
+        public void ResetROICounters()
+        {
+            _usedIndices.Clear();
+            _vacantIndices.Clear();
+            _maxIndex = 0;
+        }
+
+        /// <summary>
+        /// 根据现有ROI重建索引状态
+        /// </summary>
+        private void UpdateROICountersFromExisting()
+        {
+            _usedIndices.Clear();
+            _vacantIndices.Clear();
+            _maxIndex = 0;
+
+            foreach (var roi in _rois)
+            {
+                if (TryParseROIIndex(roi.Name, out int index))
+                {
+                    _usedIndices.Add(index);
+                    _maxIndex = Math.Max(_maxIndex, index);
+                }
+            }
+
+            // 计算空缺索引
+            for (int i = 1; i <= _maxIndex; i++)
+            {
+                if (!_usedIndices.Contains(i))
+                {
+                    _vacantIndices.Add(i);
+                }
+            }
+        }
+
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             // 启用OverlayCanvas命中测试，让ROI形状可以被选中
@@ -605,12 +749,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
             UpdateModeButtons();
             UpdateToolButtons();
+
+            // 绑定设置到信息面板
+            InfoPanel.EditorSettings = Settings;
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             // 清除ROI元素（但保留OverlayCanvas本身）
             OverlayCanvas.Children.Clear();
+
+            // 清理信息面板视图模型
+            _infoViewModel?.Cleanup();
         }
 
         private void OnModeChanged()
@@ -722,6 +872,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 {
                     OverlayCanvas.Children.Add(shape);
                 }
+
+                // 绘制名称标签
+                DrawROILabel(roi);
+
                 // 为旋转矩形显示方向箭头（颜色与边框一致）
                 if (roi.Type == ROIType.RotatedRectangle)
                 {
@@ -738,6 +892,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 {
                     OverlayCanvas.Children.Add(previewShape);
                 }
+
+                // 预览时也显示名称标签
+                if (Settings.ShowLabelOnPreview && !string.IsNullOrEmpty(_currentDrawingROI.Name))
+                {
+                    DrawROILabel(_currentDrawingROI, true);
+                }
+
                 // 预览时也显示方向箭头（预览颜色：红色）
                 if (_currentDrawingROI.Type == ROIType.RotatedRectangle)
                 {
@@ -750,6 +911,52 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 DrawEditHandles(_selectedROI);
             }
+        }
+
+        /// <summary>
+        /// 绘制ROI名称标签
+        /// </summary>
+        private void DrawROILabel(ROI roi, bool isPreview = false)
+        {
+            if (string.IsNullOrEmpty(roi.Name)) return;
+
+            bool showLabel = isPreview ? Settings.ShowLabelOnPreview : Settings.ShowLabelOnEdit;
+            if (!showLabel) return;
+
+            var bounds = roi.GetBounds();
+            double labelTop = bounds.Top - Settings.LabelOffset - Settings.LabelFontSize - 4;
+
+            // 确保标签不会超出画布顶部
+            if (labelTop < 0) labelTop = bounds.Bottom + Settings.LabelOffset;
+
+            var label = new TextBlock
+            {
+                Text = roi.Name,
+                FontSize = Settings.LabelFontSize,
+                FontFamily = new FontFamily(Settings.LabelFontFamily),
+                Foreground = new SolidColorBrush(Settings.LabelForeground),
+                Background = new SolidColorBrush(Settings.LabelBackground),
+                Padding = new Thickness(4, 2, 4, 2),
+                Tag = roi.ID
+            };
+
+            // 测量文本宽度
+            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double labelWidth = label.DesiredSize.Width;
+            double labelHeight = label.DesiredSize.Height;
+
+            // 标签居中于ROI上方
+            double labelLeft = bounds.Left + (bounds.Width - labelWidth) / 2;
+
+            // 确保标签不会超出画布边界
+            if (labelLeft < 0) labelLeft = 0;
+            if (labelLeft + labelWidth > OverlayCanvas.ActualWidth && OverlayCanvas.ActualWidth > 0)
+                labelLeft = OverlayCanvas.ActualWidth - labelWidth;
+
+            Canvas.SetLeft(label, labelLeft);
+            Canvas.SetTop(label, labelTop);
+
+            OverlayCanvas.Children.Add(label);
         }
 
         #region 手柄编辑
@@ -1539,7 +1746,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 : new SolidColorBrush(roi.FillColor) { Opacity = roi.Opacity };
 
             var strokeColor = new SolidColorBrush(roi.IsSelected ? Colors.Blue : roi.StrokeColor);
-            var strokeThickness = roi.IsSelected ? 3 : roi.StrokeThickness;
+            var strokeThickness = roi.IsSelected ? Settings.SelectedStrokeThickness : Settings.DefaultStrokeThickness;
 
             switch (roi.Type)
             {
@@ -1602,6 +1809,54 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     break;
             }
 
+            return shape;
+        }
+
+        /// <summary>
+        /// 创建ROI名称标签
+        /// </summary>
+        private TextBlock CreateROILabel(ROI roi, double topPosition)
+        {
+            return new TextBlock
+            {
+                Text = roi.Name,
+                FontSize = Settings.LabelFontSize,
+                FontFamily = new FontFamily(Settings.LabelFontFamily),
+                Foreground = new SolidColorBrush(Settings.LabelForeground),
+                Background = new SolidColorBrush(Settings.LabelBackground),
+                Padding = new Thickness(4, 2, 4, 2),
+                Tag = roi.ID // 用于标识标签属于哪个ROI
+            };
+        }
+
+        /// <summary>
+        /// 创建带名称标签的ROI容器
+        /// </summary>
+        private FrameworkElement? CreateROIWithLabel(ROI roi, bool isPreview = false)
+        {
+            var shape = CreateROIShape(roi, isPreview);
+            if (shape == null) return null;
+
+            // 检查是否需要显示标签
+            bool showLabel = isPreview ? Settings.ShowLabelOnPreview : Settings.ShowLabelOnEdit;
+            if (!showLabel || string.IsNullOrEmpty(roi.Name))
+            {
+                return shape;
+            }
+
+            // 获取ROI的边界
+            var bounds = roi.GetBounds();
+            double labelTop = bounds.Top - Settings.LabelOffset - Settings.LabelFontSize - 4;
+            double labelLeft = bounds.Left + bounds.Width / 2;
+
+            // 创建标签
+            var label = CreateROILabel(roi, labelTop);
+
+            // 计算标签位置（居中于ROI上方）
+            Canvas.SetLeft(label, labelLeft);
+            Canvas.SetTop(label, labelTop);
+
+            // 返回形状，标签单独添加到Canvas
             return shape;
         }
 
@@ -1698,6 +1953,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 HandleResize(_selectedROI, position);
                 UpdateROIOverlay();
+                // 通知ROI尺寸变化，用于更新信息面板
+                ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Modified, _selectedROI));
                 return;
             }
 
@@ -1715,6 +1972,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     _selectedROI.Move(offset);
                     _dragStartPoint = position;
                     UpdateROIOverlay();
+                    // 通知ROI位置变化，用于更新信息面板
+                    ROIChanged?.Invoke(this, new ROIChangedEventArgs(ROIChangeType.Modified, _selectedROI));
                 }
                 else
                 {
@@ -1821,16 +2080,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 
                 _isDrawing = true;
                 _startPoint = position;
+                var roiType = CurrentTool == ROITool.Rectangle ? ROIType.Rectangle :
+                       CurrentTool == ROITool.Circle ? ROIType.Circle :
+                       CurrentTool == ROITool.RotatedRectangle ? ROIType.RotatedRectangle : ROIType.Line;
                 _currentDrawingROI = new ROI
                 {
-                    Type = CurrentTool == ROITool.Rectangle ? ROIType.Rectangle :
-                           CurrentTool == ROITool.Circle ? ROIType.Circle :
-                           CurrentTool == ROITool.RotatedRectangle ? ROIType.RotatedRectangle : ROIType.Line,
+                    Type = roiType,
                     Position = position,
                     Size = new Size(0, 0),
                     Radius = 0,
                     EndPoint = position,
-                    IsEditable = true
+                    IsEditable = true,
+                    Name = GenerateROIName() // 自动生成名称
                 };
                 e.Handled = true;
                 return;
@@ -2016,10 +2277,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             if (_selectedROIs.Count > 0)
             {
                 var action = new BatchDeleteAction(_selectedROIs);
+
+                // 释放所有选中ROI的索引
                 foreach (var roi in _selectedROIs.ToList())
                 {
+                    if (TryParseROIIndex(roi.Name, out int index))
+                    {
+                        ReleaseIndex(index);
+                    }
                     _rois.Remove(roi);
                 }
+
                 _editHistory.AddAction(action);
                 _selectedROIs.Clear();
                 UpdateROIOverlay();
