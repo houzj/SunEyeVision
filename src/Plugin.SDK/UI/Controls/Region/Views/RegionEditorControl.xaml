@@ -1,0 +1,164 @@
+<UserControl x:Class="SunEyeVision.Plugin.SDK.UI.Controls.Region.Views.RegionEditorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
+             xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Models"
+             Width="320"
+             Loaded="OnLoaded"
+             Unloaded="OnUnloaded">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- 模式颜色 -->
+        <SolidColorBrush x:Key="DrawingModeBrush" Color="#4CAF50"/>
+        <SolidColorBrush x:Key="SubscribeRegionBrush" Color="#2196F3"/>
+        <SolidColorBrush x:Key="SubscribeParameterBrush" Color="#FF9800"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 主内容区域 -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                <!-- 输入类型 -->
+                <GroupBox Header="输入类型" Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="绘制"
+                                     GroupName="InputType"
+                                     IsChecked="{Binding IsDrawingMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,16,0"
+                                     ToolTip="手动绘制区域形状"/>
+                        <RadioButton Content="订阅"
+                                     GroupName="InputType"
+                                     IsChecked="{Binding IsSubscribeMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="订阅其他节点输出的区域"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- 图形类型（绘制模式和按参数订阅模式显示） -->
+                <GroupBox Header="图形类型" Margin="0,0,0,8"
+                          Visibility="{Binding ShowShapeTypeSelector, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <WrapPanel>
+                        <RadioButton Content="矩形"
+                                     IsChecked="{Binding IsRectangleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,12,4"
+                                     ToolTip="矩形区域"/>
+                        <RadioButton Content="圆形"
+                                     IsChecked="{Binding IsCircleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,12,4"
+                                     ToolTip="圆形区域"/>
+                        <RadioButton Content="旋转矩形"
+                                     IsChecked="{Binding IsRotatedRectangleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,12,4"
+                                     ToolTip="旋转矩形区域"/>
+                        <RadioButton Content="直线"
+                                     IsChecked="{Binding IsLineSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,12,4"
+                                     ToolTip="直线区域"/>
+                    </WrapPanel>
+                </GroupBox>
+
+                <!-- 输入方式（仅订阅模式显示） -->
+                <GroupBox Header="输入方式" Margin="0,0,0,8"
+                          Visibility="{Binding IsSubscribeMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="按区域"
+                                     IsChecked="{Binding IsSubscribeByRegion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,16,0"
+                                     ToolTip="直接绑定其他节点输出的区域"/>
+                        <RadioButton Content="按参数"
+                                     IsChecked="{Binding IsSubscribeByParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="每个参数可单独绑定其他节点输出"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- 参数面板 - 绘制模式 -->
+                <Expander Header="绘制参数"
+                          Visibility="{Binding IsDrawingMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsExpanded="True"
+                          Margin="0,0,0,8">
+                    <local:DrawingParameterPanel DataContext="{Binding DrawingParameterPanel}"/>
+                </Expander>
+
+                <!-- 参数面板 - 订阅-按区域 -->
+                <Expander Header="区域订阅"
+                          Visibility="{Binding IsSubscribeByRegionMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsExpanded="True"
+                          Margin="0,0,0,8">
+                    <local:RegionSubscribePanel DataContext="{Binding RegionSubscribePanel}"/>
+                </Expander>
+
+                <!-- 参数面板 - 订阅-按参数 -->
+                <Expander Header="参数订阅"
+                          Visibility="{Binding IsSubscribeByParameterMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          IsExpanded="True"
+                          Margin="0,0,0,8">
+                    <local:ParameterPanel DataContext="{Binding ParameterPanel}"/>
+                </Expander>
+
+                <!-- 区域列表 -->
+                <GroupBox Header="区域列表" Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- 操作按钮 -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="添加"
+                                    Command="{Binding AddRegionCommand}"
+                                    CommandParameter="{Binding CurrentShapeType}"
+                                    Padding="8,4"
+                                    Margin="0,0,4,0"/>
+                            <Button Content="删除"
+                                    Command="{Binding RemoveRegionCommand}"
+                                    Padding="8,4"
+                                    Margin="0,0,4,0"/>
+                            <Button Content="清除"
+                                    Command="{Binding ClearAllCommand}"
+                                    Padding="8,4"/>
+                        </StackPanel>
+
+                        <!-- 区域列表 -->
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding Regions}"
+                                 SelectedItem="{Binding SelectedRegion}"
+                                 MinHeight="100"
+                                 MaxHeight="200">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding Mode}" Foreground="Gray" FontSize="11"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </GroupBox>
+
+                <!-- 选中区域详细信息 -->
+                <GroupBox Header="选中区域" Margin="0,0,0,8"
+                          Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <local:RegionInfoPanel DataContext="{Binding SelectedRegion}"/>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 底部提示栏 -->
+        <Border Grid.Row="1"
+                Background="#F0F8FF"
+                BorderBrush="#D0D0D0"
+                BorderThickness="0,1,0,0"
+                Padding="8,4">
+            <TextBlock Text="💡 实时编辑 | 关闭窗口自动保存"
+                       FontSize="11"
+                       Foreground="#666"/>
+        </Border>
+    </Grid>
+</UserControl>

@@ -312,7 +312,15 @@ namespace SunEyeVision.UI.Services.Interaction
             connection.SourcePosition = sourcePos;
             connection.TargetPosition = targetPos;
 
-            _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(connection);
+            // 通过 MainWindowViewModel 添加连接（记录日志）
+            if (_viewModel != null)
+            {
+                _viewModel.AddConnectionToWorkflow(connection);
+            }
+            else
+            {
+                _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(connection);
+            }
 
             return connection;
         }

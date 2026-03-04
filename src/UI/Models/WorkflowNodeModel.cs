@@ -290,10 +290,53 @@ namespace SunEyeVision.UI.Models
         public string LocalDisplayName => $"{_name} {_index}";
 
         /// <summary>
+        /// 图像输入源 - 用户选择的图像文件（只读语义）
+        /// </summary>
+        /// <remarks>
+        /// 设计原则：输入源是用户选择的原始数据，执行流程不应修改。
+        /// 与 OutputCache 分离，确保用户输入不被执行结果覆盖。
+        /// </remarks>
+        public ImageInputSource? InputSource { get; set; }
+
+        /// <summary>
+        /// 节点输出缓存 - 存储执行结果
+        /// </summary>
+        /// <remarks>
+        /// 设计原则：输出缓存是执行结果的容器，可被执行流程更新。
+        /// 与 InputSource 分离，确保输入数据不被修改。
+        /// </remarks>
+        public NodeOutputCache? OutputCache { get; set; }
+
+        /// <summary>
         /// 节点图像数据（仅图像采集类节点使用）
         /// 每个采集节点维护独立的图像集合，实现独立的图像预览器
         /// </summary>
+        /// <remarks>
+        /// [已过时] 请使用 InputSource 和 OutputCache 替代。
+        /// 此属性仅为向后兼容保留，将在未来版本移除。
+        /// - 输入功能迁移至 InputSource
+        /// - 输出功能迁移至 OutputCache
+        /// </remarks>
+        [Obsolete("请使用 InputSource 和 OutputCache 替代。此属性仅为向后兼容保留。")]
         public NodeImageData? ImageData { get; set; }
+
+        /// <summary>
+        /// 确保输入源已初始化（延迟创建）
+        /// </summary>
+        public ImageInputSource EnsureInputSource()
+        {
+            InputSource ??= new ImageInputSource(Id);
+            return InputSource;
+        }
+
+        /// <summary>
+        /// 确保输出缓存已初始化（延迟创建）
+        /// </summary>
+        public NodeOutputCache EnsureOutputCache()
+        {
+            OutputCache ??= new NodeOutputCache(Id);
+            return OutputCache;
+        }
 
         /// <summary>
         /// 最近一次执行结果（用于结果面板显示）

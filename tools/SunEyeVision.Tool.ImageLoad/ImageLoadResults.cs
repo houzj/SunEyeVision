@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Models.Visualization;
 
 namespace SunEyeVision.Tool.ImageLoad
@@ -15,21 +16,25 @@ namespace SunEyeVision.Tool.ImageLoad
         /// <summary>
         /// 载入的图像
         /// </summary>
+        [Param(DisplayName = "输出图像", Description = "载入的图像数据", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         /// <summary>
         /// 图像宽度
         /// </summary>
+        [Param(DisplayName = "宽度", Description = "图像宽度", Category = ParamCategory.Output)]
         public int Width { get; set; }
 
         /// <summary>
         /// 图像高度
         /// </summary>
+        [Param(DisplayName = "高度", Description = "图像高度", Category = ParamCategory.Output)]
         public int Height { get; set; }
 
         /// <summary>
         /// 通道数
         /// </summary>
+        [Param(DisplayName = "通道数", Description = "图像通道数", Category = ParamCategory.Output)]
         public int Channels { get; set; }
 
         /// <summary>

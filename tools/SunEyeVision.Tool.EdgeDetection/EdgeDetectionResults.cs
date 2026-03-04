@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Models.Visualization;
 
 namespace SunEyeVision.Tool.EdgeDetection
@@ -14,6 +15,7 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// 输出图像（边缘检测结果）
         /// </summary>
+        [Param(DisplayName = "输出图像", Description = "边缘检测处理后的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         /// <summary>

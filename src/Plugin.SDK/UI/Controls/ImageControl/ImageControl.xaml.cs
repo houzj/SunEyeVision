@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -39,6 +40,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private FrameworkElement? _originalParent;  // 改为 FrameworkElement 支持更多父容器类型
         private int _originalIndex;
         private bool _parentIsPanel;  // 标记父容器是否为 Panel
+        private BitmapSource? _savedSourceImage;  // 全屏前保存的图像引用
+
+        #endregion
+
+        #region 调试日志
+
+        /// <summary>
+        /// 添加调试日志（输出到调试窗口和Visual Studio输出）
+        /// </summary>
+        private void AddLog(string message)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ImageControl] {message}");
+        }
 
         #endregion
 
@@ -85,6 +99,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty ShowChessboardBackgroundProperty =
             DependencyProperty.Register(nameof(ShowChessboardBackground), typeof(bool), typeof(ImageControl),
                 new PropertyMetadata(true, OnShowChessboardBackgroundChanged));
+
+        /// <summary>
+        /// 图像源集合 - 用于图像显示选择器下拉框
+        /// </summary>
+        public static readonly DependencyProperty ImageSourcesProperty =
+            DependencyProperty.Register(nameof(ImageSources), typeof(ObservableCollection<ImageSourceInfo>), typeof(ImageControl),
+                new PropertyMetadata(null, OnImageSourcesChanged));
+
+        /// <summary>
+        /// 当前选中的图像源索引
+        /// </summary>
+        public static readonly DependencyProperty SelectedImageSourceIndexProperty =
+            DependencyProperty.Register(nameof(SelectedImageSourceIndex), typeof(int), typeof(ImageControl),
+                new PropertyMetadata(-1, OnSelectedImageSourceIndexChanged));
 
         #endregion
 
@@ -196,6 +224,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => _autoFitOnResize = value;
         }
 
+        /// <summary>
+        /// 图像源集合 - 用于图像显示选择器下拉框
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo>? ImageSources
+        {
+            get => (ObservableCollection<ImageSourceInfo>?)GetValue(ImageSourcesProperty);
+            set => SetValue(ImageSourcesProperty, value);
+        }
+
+        /// <summary>
+        /// 当前选中的图像源索引
+        /// </summary>
+        public int SelectedImageSourceIndex
+        {
+            get => (int)GetValue(SelectedImageSourceIndexProperty);
+            set => SetValue(SelectedImageSourceIndexProperty, value);
+        }
+
         #endregion
 
         #region 事件
@@ -235,6 +281,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public event EventHandler<ImageMouseEventArgs>? CanvasMouseLeftButtonUp;
 
+        /// <summary>
+        /// 图像源选择变更事件
+        /// </summary>
+        public event EventHandler<ImageSourceSelectionChangedEventArgs>? ImageSourceSelectionChanged;
+
         #endregion
 
         #region 构造函数
@@ -272,21 +323,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public void FitToWindow()
         {
-            if (SourceImage == null || MainCanvas == null) return;
+            AddLog($"[FitToWindow] 开始执行");
+            AddLog($"[FitToWindow] SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
+            AddLog($"[FitToWindow] MainCanvas: {(MainCanvas != null ? "存在" : "null")}");
+            
+            if (SourceImage == null || MainCanvas == null)
+            {
+                AddLog($"[FitToWindow] ❌ 提前返回: SourceImage或MainCanvas为null");
+                return;
+            }
 
             var viewWidth = MainCanvas.ActualWidth;
             var viewHeight = MainCanvas.ActualHeight;
+            AddLog($"[FitToWindow] MainCanvas尺寸: {viewWidth}x{viewHeight}");
 
-            if (viewWidth <= 0 || viewHeight <= 0) return;
+            if (viewWidth <= 0 || viewHeight <= 0)
+            {
+                AddLog($"[FitToWindow] ❌ 提前返回: MainCanvas尺寸无效");
+                return;
+            }
 
             var scaleX = viewWidth / SourceImage.PixelWidth;
             var scaleY = viewHeight / SourceImage.PixelHeight;
+            AddLog($"[FitToWindow] scaleX={scaleX:F4}, scaleY={scaleY:F4}");
 
             var newZoom = Math.Min(scaleX, scaleY); // 不留边距，完全适应
+            AddLog($"[FitToWindow] 计算newZoom={newZoom:F4}, 当前Zoom={Zoom:F4}");
             Zoom = newZoom;
 
             // 居中显示
             CenterImage();
+            AddLog($"[FitToWindow] ✓ 完成");
         }
 
         /// <summary>
@@ -444,6 +511,27 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
+        private static void OnImageSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ImageControl control)
+            {
+                // 更新 ComboBox 的 ItemsSource
+                control.ImageSourceSelector.ItemsSource = e.NewValue as ObservableCollection<ImageSourceInfo>;
+            }
+        }
+
+        private static void OnSelectedImageSourceIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ImageControl control)
+            {
+                var newIndex = (int)e.NewValue;
+                if (newIndex >= 0 && control.ImageSourceSelector.Items.Count > newIndex)
+                {
+                    control.ImageSourceSelector.SelectedIndex = newIndex;
+                }
+            }
+        }
+
         private static void OnSourceImageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is ImageControl control)
@@ -459,6 +547,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     control.ImageContainer.Width = newImage.PixelWidth;
                     control.ImageContainer.Height = newImage.PixelHeight;
                     control.ImageSizeText.Text = $"图像: {newImage.PixelWidth} x {newImage.PixelHeight}";
+                    
+                    // 图像加载后自动适应窗口 - 使用 Loaded 优先级确保布局完成
+                    if (control._autoFitOnResize)
+                    {
+                        control.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            control.FitToWindow();
+                        }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    }
                 }
                 else
                 {
@@ -529,18 +626,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void EnterFullscreen()
         {
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] EnterFullscreen 被调用");
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] Parent 类型: {Parent?.GetType().Name ?? "null"}");
+            AddLog($"EnterFullscreen 被调用");
+            AddLog($"Parent 类型: {Parent?.GetType().Name ?? "null"}");
+            
+            // ★ 在移动控件前保存图像引用（绑定可能会丢失）
+            _savedSourceImage = SourceImage;
+            AddLog($"保存图像引用: {(_savedSourceImage != null ? $"{_savedSourceImage.PixelWidth}x{_savedSourceImage.PixelHeight}" : "null")}");
             
             // 记录原父容器
             _originalParent = Parent as FrameworkElement;
             if (_originalParent == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 父容器为 null，无法进入全屏");
+                AddLog($"❌ 父容器为 null，无法进入全屏");
                 return;
             }
             
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 父容器类型: {_originalParent.GetType().Name}");
+            AddLog($"✓ 父容器类型: {_originalParent.GetType().Name}");
 
             // 判断父容器类型并保存状态
             if (_originalParent is Panel panel)
@@ -548,17 +649,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _parentIsPanel = true;
                 _originalIndex = panel.Children.IndexOf(this);
                 panel.Children.Remove(this);
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 从 Panel 移除，索引: {_originalIndex}");
+                AddLog($"✓ 从 Panel 移除，索引: {_originalIndex}");
             }
             else if (_originalParent is Decorator decorator)
             {
                 _parentIsPanel = false;
                 decorator.Child = null;
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 从 Decorator 移除");
+                AddLog($"✓ 从 Decorator 移除");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 不支持的父容器类型: {_originalParent.GetType().Name}");
+                AddLog($"❌ 不支持的父容器类型: {_originalParent.GetType().Name}");
                 _originalParent = null;
                 return;
             }
@@ -585,16 +686,35 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
             _isFullscreen = true;
             _fullscreenWindow.Show();
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 全屏窗口已显示");
+            AddLog($"[EnterFullscreen] ✓ 全屏窗口已显示");
+            AddLog($"[EnterFullscreen] 窗口尺寸: {_fullscreenWindow.ActualWidth}x{_fullscreenWindow.ActualHeight}");
+            AddLog($"[EnterFullscreen] MainCanvas尺寸: {MainCanvas.ActualWidth}x{MainCanvas.ActualHeight}");
+            
+            // 全屏窗口内容渲染完成后，自适应图像（确保窗口尺寸已确定）
+            _fullscreenWindow.ContentRendered += (s, args) =>
+            {
+                AddLog($"[ContentRendered] 触发，窗口尺寸: {_fullscreenWindow?.ActualWidth}x{_fullscreenWindow?.ActualHeight}");
+                AddLog($"[ContentRendered] MainCanvas尺寸: {MainCanvas.ActualWidth}x{MainCanvas.ActualHeight}");
+                AddLog($"[ContentRendered] 当前SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
+                
+                // ★ 如果绑定丢失，恢复保存的图像引用
+                if (SourceImage == null && _savedSourceImage != null)
+                {
+                    AddLog($"[ContentRendered] 恢复保存的图像引用");
+                    SourceImage = _savedSourceImage;
+                }
+                
+                FitToWindow();
+            };
         }
 
         private void ExitFullscreen()
         {
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] ExitFullscreen 被调用");
+            AddLog($"ExitFullscreen 被调用");
             
             if (!_isFullscreen || _originalParent == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 无法退出全屏: _isFullscreen={_isFullscreen}, _originalParent={_originalParent != null}");
+                AddLog($"❌ 无法退出全屏: _isFullscreen={_isFullscreen}, _originalParent={_originalParent != null}");
                 return;
             }
 
@@ -608,13 +728,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _fullscreenWindow.Content = null;
                 _fullscreenWindow.Close();
                 _fullscreenWindow = null;
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 全屏窗口已关闭");
+                AddLog($"✓ 全屏窗口已关闭");
             }
+
+            // 清理保存的图像引用
+            _savedSourceImage = null;
 
             // 检查控件是否已经有父容器
             if (Parent != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ⚠ 控件已有父容器，不再插入");
+                AddLog($"⚠ 控件已有父容器，不再插入");
                 return;
             }
 
@@ -633,6 +756,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 无法恢复到父容器");
             }
+            
+            // 返回原父容器后，自适应图像 - 使用 Loaded 优先级确保布局完成
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                FitToWindow();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void ExitFullscreen_Handler(object? sender, EventArgs e)
@@ -642,7 +771,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void ImageSourceSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // 图像源选择变更处理 - 由外部实现
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is ImageSourceInfo selectedSource)
+            {
+                // 更新选中索引
+                SelectedImageSourceIndex = ImageSourceSelector.SelectedIndex;
+                
+                // 触发事件
+                ImageSourceSelectionChanged?.Invoke(this, new ImageSourceSelectionChangedEventArgs(selectedSource));
+            }
         }
 
         private void MainCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -773,5 +909,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// 图像源选择变更事件参数
+    /// </summary>
+    public class ImageSourceSelectionChangedEventArgs : EventArgs
+    {
+        /// <summary>
+        /// 选中的图像源信息
+        /// </summary>
+        public ImageSourceInfo SelectedSource { get; }
+
+        public ImageSourceSelectionChangedEventArgs(ImageSourceInfo selectedSource)
+        {
+            SelectedSource = selectedSource;
+        }
     }
 }

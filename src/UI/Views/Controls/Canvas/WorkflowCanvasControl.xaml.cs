@@ -1362,7 +1362,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 }
 
-                _viewModel.SelectedNode = node;
+                // 使用 ForceSelectNode 强制更新显示（即使引用相同）
+
+                _viewModel.ForceSelectNode(node);
 
 
 

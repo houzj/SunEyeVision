@@ -112,15 +112,15 @@ namespace SunEyeVision.UI.Views.Windows
 
                 var newLog = $"{DateTime.Now:HH:mm:ss.fff} {message}\n";
 
-                // 只保留最后100行
+                // 只保留最后500行
 
                 var lines = (currentLog + newLog).Split('\n');
 
-                if (lines.Length > 100)
+                if (lines.Length > 500)
 
                 {
 
-                    _viewModel.LogText = string.Join("\n", lines.Skip(lines.Length - 100));
+                    _viewModel.LogText = string.Join("\n", lines.Skip(lines.Length - 500));
 
                 }
 
@@ -397,7 +397,27 @@ namespace SunEyeVision.UI.Views.Windows
                     System.Diagnostics.Debug.WriteLine("[MainWindow] ❌ ImagePreviewContent 为 null，无法订阅事件");
 
                 }
-
+                
+                // ★ 设置 OverlayCanvas 引用到 NodeResultManager
+                if (ImageDisplayContent != null)
+                {
+                    var overlayCanvas = ImageDisplayContent.OverlayCanvas;
+                    if (overlayCanvas != null)
+                    {
+                        // 通过 ViewModel 获取 NodeResultManager 并设置 OverlayCanvas
+                        var nodeResultManager = GetNodeResultManager(_viewModel);
+                        nodeResultManager?.SetOverlayCanvas(overlayCanvas);
+                        System.Diagnostics.Debug.WriteLine("[MainWindow] ✓ 已设置 OverlayCanvas 引用");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[MainWindow] ❌ OverlayCanvas 为 null");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] ❌ ImageDisplayContent 为 null");
+                }
 
 
                 // 工具插件现在通过ToolboxViewModel自动加载
@@ -472,6 +492,17 @@ namespace SunEyeVision.UI.Views.Windows
 
             }
 
+        }
+        
+        /// <summary>
+        /// 获取 MainWindowViewModel 中的 NodeResultManager
+        /// </summary>
+        private Services.Workflow.NodeResultManager? GetNodeResultManager(ViewModels.MainWindowViewModel viewModel)
+        {
+            // 通过反射获取私有字段
+            var field = typeof(ViewModels.MainWindowViewModel).GetField("_nodeResultManager", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field?.GetValue(viewModel) as Services.Workflow.NodeResultManager;
         }
 
 

@@ -338,6 +338,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// <summary>
         /// 获取旋转矩形的四个角点（世界坐标）
         /// 角点顺序：TopLeft, TopRight, BottomRight, BottomLeft
+        /// 使用数学角度系统：Rotation为正时逆时针旋转
         /// </summary>
         /// <returns>四个角点数组</returns>
         public Point[] GetCorners()
@@ -348,6 +349,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             var center = Position;
             var w = Size.Width;
             var h = Size.Height;
+            // 数学角度系统：正角度逆时针旋转
+            // 在屏幕坐标系（Y轴向下）中，需要使用修正后的旋转矩阵
             var angleRad = Rotation * Math.PI / 180;
             var cos = Math.Cos(angleRad);
             var sin = Math.Sin(angleRad);
@@ -357,11 +360,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             var hh = h / 2;
 
             // 应用旋转变换得到世界坐标
+            // 在屏幕坐标系中实现数学角度系统（逆时针为正）
             Point Transform(double localX, double localY)
             {
                 return new Point(
-                    center.X + localX * cos - localY * sin,
-                    center.Y + localX * sin + localY * cos
+                    center.X + localX * cos + localY * sin,
+                    center.Y - localX * sin + localY * cos
                 );
             }
 
@@ -376,8 +380,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         /// <summary>
         /// 获取方向箭头几何数据
-        /// 箭头从中心指向顶边中点的方向（表示矩形的"上方"方向）
-        /// 使用数学角度系统：逆时针为正
+        /// 箭头从中心指向右边中点的方向（表示矩形的"宽度方向"，与数学角度0°一致）
+        /// 使用数学角度系统：0°时箭头指向右方，逆时针为正
         /// </summary>
         /// <returns>箭头起点和终点</returns>
         public (Point Start, Point End) GetDirectionArrow()
@@ -386,22 +390,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 return (Position, Position);
 
             var center = Position;
-            var h = Size.Height;
+            var w = Size.Width;
 
             // 数学角度（逆时针为正）
             var mathAngleRad = Rotation * Math.PI / 180;
             var sin = Math.Sin(mathAngleRad);
             var cos = Math.Cos(mathAngleRad);
 
-            // 顶边中点：本地坐标 (0, -h/2)，应用逆时针旋转变换
-            // 旋转后世界坐标：
-            // x' = x*cos(θ) - y*sin(θ) = 0*cos - (-h/2)*sin = (h/2)*sin
-            // y' = x*sin(θ) + y*cos(θ) = 0*sin + (-h/2)*cos = -(h/2)*cos
-            var topCenterX = center.X + (h / 2) * sin;
-            var topCenterY = center.Y - (h / 2) * cos;
+            // 右边中点：本地坐标 (w/2, 0)
+            // 在屏幕坐标系中应用逆时针旋转变换：
+            // x' = x*cos(θ) + y*sin(θ) = (w/2)*cos + 0*sin = (w/2)*cos
+            // y' = -x*sin(θ) + y*cos(θ) = -(w/2)*sin + 0 = -(w/2)*sin
+            var rightCenterX = center.X + (w / 2) * cos;
+            var rightCenterY = center.Y - (w / 2) * sin;
 
-            // 箭头从中心到顶边中点
-            return (center, new Point(topCenterX, topCenterY));
+            // 箭头从中心到右边中点
+            return (center, new Point(rightCenterX, rightCenterY));
         }
 
         /// <summary>

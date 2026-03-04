@@ -85,6 +85,7 @@ namespace SunEyeVision.Tool.ROICrop
 
     public class ROICropResults : ToolResults
     {
+        [SunEyeVision.Plugin.SDK.Metadata.Param(DisplayName = "输出图像", Description = "裁剪后的图像", Category = SunEyeVision.Plugin.SDK.Metadata.ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public Rect CroppedArea { get; set; }
     }

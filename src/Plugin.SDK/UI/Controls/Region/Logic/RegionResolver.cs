@@ -1,0 +1,341 @@
+using System;
+using System.Collections.Generic;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+
+namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
+{
+    /// <summary>
+    /// 解析后的区域结果
+    /// </summary>
+    public class ResolvedRegion
+    {
+        /// <summary>
+        /// 形状类型
+        /// </summary>
+        public ShapeType ShapeType { get; set; }
+
+        /// <summary>
+        /// 是否有效
+        /// </summary>
+        public bool IsValid { get; set; }
+
+        /// <summary>
+        /// 错误信息
+        /// </summary>
+        public string? ErrorMessage { get; set; }
+
+        #region 几何参数
+
+        public double CenterX { get; set; }
+        public double CenterY { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Angle { get; set; }
+        public double Radius { get; set; }
+        public double OuterRadius { get; set; }
+        public double StartX { get; set; }
+        public double StartY { get; set; }
+        public double EndX { get; set; }
+        public double EndY { get; set; }
+        public double StartAngle { get; set; }
+        public double EndAngle { get; set; }
+        public List<Point2D> Points { get; set; } = new();
+
+        #endregion
+
+        /// <summary>
+        /// 原始区域数据
+        /// </summary>
+        public RegionData? SourceData { get; set; }
+
+        /// <summary>
+        /// 创建无效区域
+        /// </summary>
+        public static ResolvedRegion Invalid(string errorMessage)
+        {
+            return new ResolvedRegion
+            {
+                IsValid = false,
+                ErrorMessage = errorMessage
+            };
+        }
+    }
+
+    /// <summary>
+    /// 区域解析器 - 将抽象区域数据转换为几何参数
+    /// </summary>
+    public class RegionResolver
+    {
+        private readonly IParameterContext? _context;
+
+        public RegionResolver(IParameterContext? context = null)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// 解析区域数据
+        /// </summary>
+        public ResolvedRegion Resolve(RegionData? regionData)
+        {
+            if (regionData == null)
+                return ResolvedRegion.Invalid("区域数据为空");
+
+            if (regionData.Definition == null)
+                return ResolvedRegion.Invalid("区域定义为空");
+
+            return regionData.Definition switch
+            {
+                ShapeDefinition shapeDef => ResolveShapeDefinition(shapeDef, regionData),
+                FixedRegion fixedDef => ResolveFixedRegion(fixedDef, regionData),
+                ComputedRegion computedDef => ResolveComputedRegion(computedDef, regionData),
+                _ => ResolvedRegion.Invalid("未知的区域定义类型")
+            };
+        }
+
+        /// <summary>
+        /// 解析形状定义
+        /// </summary>
+        private ResolvedRegion ResolveShapeDefinition(ShapeDefinition shapeDef, RegionData sourceData)
+        {
+            var result = new ResolvedRegion
+            {
+                ShapeType = shapeDef.ShapeType,
+                IsValid = true,
+                SourceData = sourceData
+            };
+
+            // 复制几何参数
+            result.CenterX = shapeDef.CenterX;
+            result.CenterY = shapeDef.CenterY;
+            result.Width = shapeDef.Width;
+            result.Height = shapeDef.Height;
+            result.Angle = shapeDef.Angle;
+            result.Radius = shapeDef.Radius;
+            result.OuterRadius = shapeDef.OuterRadius;
+            result.StartX = shapeDef.StartX;
+            result.StartY = shapeDef.StartY;
+            result.EndX = shapeDef.EndX;
+            result.EndY = shapeDef.EndY;
+            result.StartAngle = shapeDef.StartAngle;
+            result.EndAngle = shapeDef.EndAngle;
+            result.Points = new List<Point2D>(shapeDef.Points);
+
+            // 验证参数
+            var validationError = ValidateShapeParameters(result);
+            if (validationError != null)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = validationError;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 解析固定区域定义
+        /// </summary>
+        private ResolvedRegion ResolveFixedRegion(FixedRegion fixedDef, RegionData sourceData)
+        {
+            if (_context == null)
+                return ResolvedRegion.Invalid("参数上下文为空，无法解析订阅区域");
+
+            var regionValue = _context.GetNodeOutputValue(
+                fixedDef.SourceNodeId,
+                fixedDef.OutputName,
+                fixedDef.RegionIndex);
+
+            if (regionValue == null)
+                return ResolvedRegion.Invalid($"无法获取节点 {fixedDef.SourceNodeId} 的输出 {fixedDef.OutputName}");
+
+            // 尝试将值转换为区域
+            return ConvertToResolvedRegion(regionValue, sourceData);
+        }
+
+        /// <summary>
+        /// 解析计算区域定义
+        /// </summary>
+        private ResolvedRegion ResolveComputedRegion(ComputedRegion computedDef, RegionData sourceData)
+        {
+            var result = new ResolvedRegion
+            {
+                ShapeType = computedDef.TargetShapeType,
+                IsValid = true,
+                SourceData = sourceData
+            };
+
+            // 解析每个参数
+            result.CenterX = ResolveParameter(computedDef, "CenterX", 0.0);
+            result.CenterY = ResolveParameter(computedDef, "CenterY", 0.0);
+            result.Width = ResolveParameter(computedDef, "Width", 100.0);
+            result.Height = ResolveParameter(computedDef, "Height", 100.0);
+            result.Angle = ResolveParameter(computedDef, "Angle", 0.0);
+            result.Radius = ResolveParameter(computedDef, "Radius", 50.0);
+            result.OuterRadius = ResolveParameter(computedDef, "OuterRadius", 100.0);
+            result.StartX = ResolveParameter(computedDef, "StartX", 0.0);
+            result.StartY = ResolveParameter(computedDef, "StartY", 0.0);
+            result.EndX = ResolveParameter(computedDef, "EndX", 100.0);
+            result.EndY = ResolveParameter(computedDef, "EndY", 0.0);
+            result.StartAngle = ResolveParameter(computedDef, "StartAngle", 0.0);
+            result.EndAngle = ResolveParameter(computedDef, "EndAngle", 360.0);
+
+            // 验证参数
+            var validationError = ValidateShapeParameters(result);
+            if (validationError != null)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = validationError;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 解析单个参数
+        /// </summary>
+        private double ResolveParameter(ComputedRegion computedDef, string parameterName, double defaultValue)
+        {
+            var source = computedDef.GetParameterBinding(parameterName);
+            if (source == null)
+                return defaultValue;
+
+            var value = source.GetValue(_context);
+            if (value == null)
+                return defaultValue;
+
+            // 尝试转换为double
+            return Convert.ToDouble(value);
+        }
+
+        /// <summary>
+        /// 验证形状参数
+        /// </summary>
+        private string? ValidateShapeParameters(ResolvedRegion region)
+        {
+            switch (region.ShapeType)
+            {
+                case ShapeType.Rectangle:
+                case ShapeType.RotatedRectangle:
+                    if (region.Width <= 0) return "宽度必须大于0";
+                    if (region.Height <= 0) return "高度必须大于0";
+                    break;
+
+                case ShapeType.Circle:
+                    if (region.Radius <= 0) return "半径必须大于0";
+                    break;
+
+                case ShapeType.Annulus:
+                    if (region.Radius <= 0) return "内半径必须大于0";
+                    if (region.OuterRadius <= region.Radius) return "外半径必须大于内半径";
+                    break;
+
+                case ShapeType.Line:
+                    var length = Math.Sqrt(
+                        Math.Pow(region.EndX - region.StartX, 2) +
+                        Math.Pow(region.EndY - region.StartY, 2));
+                    if (length < 1) return "直线长度太短";
+                    break;
+
+                case ShapeType.Polygon:
+                    if (region.Points.Count < 3) return "多边形至少需要3个顶点";
+                    break;
+
+                case ShapeType.Arc:
+                    if (region.Radius <= 0) return "半径必须大于0";
+                    break;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 将值转换为解析后的区域
+        /// </summary>
+        private ResolvedRegion ConvertToResolvedRegion(object value, RegionData sourceData)
+        {
+            // 处理常见的区域类型
+            // 这里可以根据实际需要扩展支持更多类型
+            
+            if (value is RegionData regionData)
+            {
+                return Resolve(regionData);
+            }
+
+            if (value is ResolvedRegion resolved)
+            {
+                return resolved;
+            }
+
+            // 尝试从字典或匿名对象解析
+            if (value is IDictionary<string, object> dict)
+            {
+                return ResolveFromDictionary(dict, sourceData);
+            }
+
+            return ResolvedRegion.Invalid($"无法将值类型 {value.GetType().Name} 转换为区域");
+        }
+
+        /// <summary>
+        /// 从字典解析区域
+        /// </summary>
+        private ResolvedRegion ResolveFromDictionary(IDictionary<string, object> dict, RegionData sourceData)
+        {
+            var result = new ResolvedRegion
+            {
+                SourceData = sourceData,
+                IsValid = true
+            };
+
+            // 解析形状类型
+            if (dict.TryGetValue("ShapeType", out var shapeTypeObj))
+            {
+                if (shapeTypeObj is ShapeType shapeType)
+                    result.ShapeType = shapeType;
+                else if (Enum.TryParse<ShapeType>(shapeTypeObj?.ToString(), out var parsed))
+                    result.ShapeType = parsed;
+            }
+
+            // 解析几何参数
+            if (dict.TryGetValue("CenterX", out var cx)) result.CenterX = Convert.ToDouble(cx);
+            if (dict.TryGetValue("CenterY", out var cy)) result.CenterY = Convert.ToDouble(cy);
+            if (dict.TryGetValue("Width", out var w)) result.Width = Convert.ToDouble(w);
+            if (dict.TryGetValue("Height", out var h)) result.Height = Convert.ToDouble(h);
+            if (dict.TryGetValue("Angle", out var a)) result.Angle = Convert.ToDouble(a);
+            if (dict.TryGetValue("Radius", out var r)) result.Radius = Convert.ToDouble(r);
+            if (dict.TryGetValue("OuterRadius", out var or)) result.OuterRadius = Convert.ToDouble(or);
+            if (dict.TryGetValue("StartX", out var sx)) result.StartX = Convert.ToDouble(sx);
+            if (dict.TryGetValue("StartY", out var sy)) result.StartY = Convert.ToDouble(sy);
+            if (dict.TryGetValue("EndX", out var ex)) result.EndX = Convert.ToDouble(ex);
+            if (dict.TryGetValue("EndY", out var ey)) result.EndY = Convert.ToDouble(ey);
+
+            // 验证参数
+            var validationError = ValidateShapeParameters(result);
+            if (validationError != null)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = validationError;
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// 区域解析器扩展方法
+    /// </summary>
+    public static class RegionResolverExtensions
+    {
+        /// <summary>
+        /// 批量解析区域
+        /// </summary>
+        public static List<ResolvedRegion> ResolveAll(this RegionResolver resolver, IEnumerable<RegionData> regions)
+        {
+            var results = new List<ResolvedRegion>();
+            foreach (var region in regions)
+            {
+                results.Add(resolver.Resolve(region));
+            }
+            return results;
+        }
+    }
+}

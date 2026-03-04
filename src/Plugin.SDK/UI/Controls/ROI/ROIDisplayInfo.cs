@@ -60,6 +60,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 {
                     OnPropertyChanged(nameof(PositionX));
                     OnPropertyChanged(nameof(PositionY));
+                    OnPropertyChanged(nameof(StartPointX));
+                    OnPropertyChanged(nameof(StartPointY));
                 }
             }
         }
@@ -248,8 +250,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             private set => SetProperty(ref _length, value);
         }
 
+        private double _lineAngle;
+
         /// <summary>
-        /// 更新直线长度
+        /// 直线角度（从起点到终点的方向角，数学角度系统，逆时针为正，范围[-180°, 180°]）
+        /// </summary>
+        public double LineAngle
+        {
+            get => _lineAngle;
+            private set => SetProperty(ref _lineAngle, value);
+        }
+
+        /// <summary>
+        /// 更新直线长度和角度
         /// </summary>
         private void UpdateLength()
         {
@@ -258,6 +271,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 var dx = _endPoint.X - _position.X;
                 var dy = _endPoint.Y - _position.Y;
                 Length = Math.Sqrt(dx * dx + dy * dy);
+
+                // 计算角度（数学角度系统：从X轴正方向逆时针旋转的角度）
+                // 屏幕坐标系Y轴向下，Atan2(dy,dx)返回的角度与数学角度符号相反
+                // 数学角度：逆时针为正，所以需要取负
+                // Atan2 返回 [-π, π]，转换为度数 [-180°, 180°]
+                LineAngle = -Math.Atan2(dy, dx) * 180 / Math.PI;
             }
         }
 

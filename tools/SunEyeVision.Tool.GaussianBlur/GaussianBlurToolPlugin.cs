@@ -150,6 +150,7 @@ namespace SunEyeVision.Tool.GaussianBlur
 
     public class GaussianBlurResults : ToolResults
     {
+        [SunEyeVision.Plugin.SDK.Metadata.Param(DisplayName = "输出图像", Description = "模糊处理后的图像", Category = SunEyeVision.Plugin.SDK.Metadata.ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public int KernelSizeUsed { get; set; }
         public double SigmaUsed { get; set; }

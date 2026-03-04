@@ -220,11 +220,20 @@ namespace SunEyeVision.UI.Services.Interaction
                 LogTimestamp("Drop", "✓ 节点属性设置完成");
 #endif
 
-                // 添加新节点
+                // 添加新节点（通过 MainWindowViewModel.AddNodeToWorkflow 以记录日志）
 #if DEBUG
                 LogTimestamp("Drop", "▶ 添加节点到集合...");
 #endif
-                workflowTab.WorkflowNodes.Add(newNode);
+                var viewModel = GetCachedViewModel();
+                if (viewModel != null)
+                {
+                    viewModel.AddNodeToWorkflow(newNode);
+                }
+                else
+                {
+                    // 回退方案：直接添加（不记录日志）
+                    workflowTab.WorkflowNodes.Add(newNode);
+                }
 #if DEBUG
                 LogTimestamp("Drop", $"✓ 节点已添加, 当前节点数: {workflowTab.WorkflowNodes.Count}");
                 LogTimestamp("Drop", "═══ 节点添加完成 ═══");

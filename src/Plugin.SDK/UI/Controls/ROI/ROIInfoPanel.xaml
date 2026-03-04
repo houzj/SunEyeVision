@@ -6,11 +6,7 @@
              Width="280"
              MinHeight="200">
     <UserControl.Resources>
-        <!-- 合并主题资源字典以获取 NumericUpDown 样式 -->
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="../../Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
             
             <!-- 数值输入框样式 -->
             <Style x:Key="NumericTextBox" TargetType="TextBox">
@@ -113,9 +109,11 @@
                                        Margin="4,2"
                                        Foreground="#333"/>
 
-                            <!-- 位置 -->
-                            <TextBlock Grid.Row="2" Text="中心:" Style="{StaticResource LabelStyle}"/>
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                            <!-- 位置（非直线类型显示"中心"，直线类型隐藏） -->
+                            <TextBlock Grid.Row="2" Text="中心:" Style="{StaticResource LabelStyle}"
+                                       Visibility="{Binding CurrentInfo.Type, Converter={StaticResource ROITypeToVisibilityConverter}, ConverterParameter=NotLine}"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal"
+                                        Visibility="{Binding CurrentInfo.Type, Converter={StaticResource ROITypeToVisibilityConverter}, ConverterParameter=NotLine}">
                                 <ctrl:NumericUpDown Value="{Binding CurrentInfo.PositionX, UpdateSourceTrigger=PropertyChanged}"
                                                     Minimum="0" Maximum="9999"
                                                     SmallChange="1" LargeChange="10"
@@ -224,6 +222,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- 起点 -->
@@ -267,6 +266,16 @@
                                        VerticalAlignment="Center"
                                        Margin="4,2"
                                        Foreground="#333"/>
+
+                            <!-- 角度 -->
+                            <TextBlock Grid.Row="3" Text="角度:" Style="{StaticResource LabelStyle}"/>
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="{Binding CurrentInfo.LineAngle, StringFormat=F1}"
+                                           VerticalAlignment="Center"
+                                           Margin="4,2"
+                                           Foreground="#333"/>
+                                <TextBlock Text="°" VerticalAlignment="Center" Margin="0,2"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 

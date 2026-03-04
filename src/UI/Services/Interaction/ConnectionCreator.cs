@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -56,7 +56,15 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
             newConnection.ArrowAngle = 0;
 
-            currentTab.WorkflowConnections.Add(newConnection);
+            // 通过 MainWindowViewModel 添加连接（记录日志）
+            if (_viewModel != null)
+            {
+                _viewModel.AddConnectionToWorkflow(newConnection);
+            }
+            else
+            {
+                currentTab.WorkflowConnections.Add(newConnection);
+            }
 
             return newConnection;
         }
@@ -96,7 +104,15 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.ArrowPosition = targetPos;  // 初始设置为目标端口位置
             newConnection.ArrowAngle = 0;
 
-            currentTab.WorkflowConnections.Add(newConnection);
+            // 通过 MainWindowViewModel 添加连接（记录日志）
+            if (_viewModel != null)
+            {
+                _viewModel.AddConnectionToWorkflow(newConnection);
+            }
+            else
+            {
+                currentTab.WorkflowConnections.Add(newConnection);
+            }
 
             _viewModel!.StatusText = $"成功连接: {sourceNode.Name} -> {targetNode.Name}";
 

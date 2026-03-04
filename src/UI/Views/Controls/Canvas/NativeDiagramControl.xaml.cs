@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -32,20 +32,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         // 拖放去重
         private string? _lastDragDropId = null;
         private DateTime _lastDropTime = DateTime.MinValue;
-
-        // 日志时间戳
-        private static DateTime _lastLogTime = DateTime.Now;
-
-        /// <summary>
-        /// 带时间戳的调试日志
-        /// </summary>
-        private static void LogTimestamp(string tag, string message)
-        {
-            var now = DateTime.Now;
-            var elapsed = (now - _lastLogTime).TotalMilliseconds;
-            _lastLogTime = now;
-            System.Diagnostics.Debug.WriteLine($"[{now:HH:mm:ss.fff}] [+{elapsed:F0}ms] [{tag}] {message}");
-        }
 
         public NativeDiagramControl()
         {
@@ -269,8 +255,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// </summary>
         private void OnNodesCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            LogTimestamp("NodeChange", $"OnNodesCollectionChanged 触发, Action={e.Action}");
-
             if (_adapter != null && _diagramViewModel != null)
             {
                 switch (e.Action)
@@ -278,20 +262,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
                         foreach (WorkflowNode node in e.NewItems!)
                         {
-                            LogTimestamp("NodeChange", $"  ▶ 创建原生节点: {node.Name}");
-                            var startTime = DateTime.Now;
-
                             // 使用公开方法创建节点（不使用反射。）
                             var nativeNode = _adapter.CreateNativeNode(node, _diagramViewModel);
-
-                            var createTime = (DateTime.Now - startTime).TotalMilliseconds;
-                            LogTimestamp("NodeChange", $"  ✓ CreateNativeNode 耗时: {createTime:F0}ms");
-
-                            startTime = DateTime.Now;
                             _diagramViewModel.Add(nativeNode);
-
-                            var addTime = (DateTime.Now - startTime).TotalMilliseconds;
-                            LogTimestamp("NodeChange", $"  ✓ diagramViewModel.Add 耗时: {addTime:F0}ms");
                         }
                         break;
                     case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
@@ -305,7 +278,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
 
             UpdateEmptyState();
-            LogTimestamp("NodeChange", "OnNodesCollectionChanged 完成");
         }
 
         /// <summary>
@@ -313,8 +285,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// </summary>
         private void OnConnectionsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            
-
             if (_adapter != null && _diagramViewModel != null)
             {
                 switch (e.Action)
@@ -336,7 +306,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             }
                             catch (Exception ex)
                             {
-                                
+                                System.Diagnostics.Debug.WriteLine($"连接创建失败: {ex.Message}");
                             }
                         }
                         break;
@@ -412,14 +382,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// </summary>
         private void NativeDiagramControl_PreviewDrop(object sender, DragEventArgs e)
         {
-            _lastLogTime = DateTime.Now; // 重置计时器
-            LogTimestamp("PreviewDrop", "═══ PreviewDrop 开始 ═══");
-
             try
             {
                 if (e.Data.GetData("ToolItem") is not ToolItem item)
                 {
-                    LogTimestamp("PreviewDrop", "✗ 无 ToolItem 数据");
                     return;
                 }
 
@@ -429,7 +395,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 if (_lastDragDropId != null && timeSinceLastDrop < 100)
                 {
-                    LogTimestamp("PreviewDrop", $"去重检查跳过 (间隔{timeSinceLastDrop:F0}ms)");
                     e.Handled = true;
                     return;
                 }
@@ -439,53 +404,45 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 // 获取放置位置（相对于 NativeDiagramControl。）
                 Point dropPosition = e.GetPosition(this);
-                LogTimestamp("PreviewDrop", $"ToolItem: {item.Name}, 位置: ({dropPosition.X:F0}, {dropPosition.Y:F0})");
 
                 // 验证数据
                 if (string.IsNullOrEmpty(item.ToolId))
                 {
-                    LogTimestamp("PreviewDrop", "✗ ToolId 为空");
                     return;
                 }
 
                 // 获取当前工作流标签页
                 if (_viewModel?.WorkflowTabViewModel?.SelectedTab is not WorkflowTabViewModel workflowTab)
                 {
-                    LogTimestamp("PreviewDrop", "✗ 无法获取当前工作流标签页");
                     return;
                 }
 
-                LogTimestamp("PreviewDrop", $"工作流: {workflowTab.Name}, 当前节点数: {workflowTab.WorkflowNodes.Count}");
-
                 // 清除其他节点的选中状态。
-                var startTime = DateTime.Now;
                 foreach (var node in workflowTab.WorkflowNodes)
                 {
                     node.IsSelected = false;
                 }
-                LogTimestamp("PreviewDrop", $"清除选中状态耗时: {(DateTime.Now - startTime).TotalMilliseconds:F0}ms");
 
                 // 使用 ViewModel 的CreateNode 方法创建节点，自动分配序号。
-                startTime = DateTime.Now;
                 var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
-                LogTimestamp("PreviewDrop", $"CreateNode 耗时: {(DateTime.Now - startTime).TotalMilliseconds:F0}ms, Id={newNode.Id}");
-
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
 
-                // 添加新节点到工作流（这会触发 OnNodesCollectionChanged，自动创建原生节点）
-                startTime = DateTime.Now;
-                workflowTab.WorkflowNodes.Add(newNode);
-                LogTimestamp("PreviewDrop", $"WorkflowNodes.Add 耗时: {(DateTime.Now - startTime).TotalMilliseconds:F0}ms");
-
-                LogTimestamp("PreviewDrop", "═══ PreviewDrop 完成 ═══");
+                // 添加新节点到工作流（通过 MainWindowViewModel 记录日志）
+                if (_viewModel != null)
+                {
+                    _viewModel.AddNodeToWorkflow(newNode);
+                }
+                else
+                {
+                    workflowTab.WorkflowNodes.Add(newNode);
+                }
 
                 // 标记为已处理，防止其他事件处理器再次处理
                 e.Handled = true;
             }
             catch (Exception ex)
             {
-                LogTimestamp("PreviewDrop", $"✗ 异常: {ex.Message}");
                 // 不要 throw，避免程序崩溃。
                 MessageBox.Show($"拖放节点失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -554,8 +511,15 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 newNode.IsSelected = true;
                 
 
-                // 添加新节点到工作流。
-                workflowTab.WorkflowNodes.Add(newNode);
+                // 添加新节点到工作流（通过 MainWindowViewModel 记录日志）
+                if (_viewModel != null)
+                {
+                    _viewModel.AddNodeToWorkflow(newNode);
+                }
+                else
+                {
+                    workflowTab.WorkflowNodes.Add(newNode);
+                }
 
                 // 创建原生节点（通过 DiagramAdapter。）
                 if (_adapter != null && _diagramViewModel != null)
@@ -629,8 +593,15 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 newNode.IsSelected = true;
                 
 
-                // 添加新节点到工作流。
-                workflowTab.WorkflowNodes.Add(newNode);
+                // 添加新节点到工作流（通过 MainWindowViewModel 记录日志）
+                if (_viewModel != null)
+                {
+                    _viewModel.AddNodeToWorkflow(newNode);
+                }
+                else
+                {
+                    workflowTab.WorkflowNodes.Add(newNode);
+                }
 
                 // 创建原生节点（通过 DiagramAdapter。）
                 if (_adapter != null && _diagramViewModel != null)

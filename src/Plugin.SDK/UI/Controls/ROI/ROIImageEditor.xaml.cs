@@ -64,6 +64,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         private Rect _originalBounds;
         private Size _originalSize;      // 旋转矩形的原始尺寸
         private Point _originalPosition; // 旋转矩形的原始中心
+        private Point _originalEndPoint; // 直线原始终点
         private double _originalRotation;
         private double _handleSize = 12;  // 增大手柄大小，提高可点击性
         private readonly List<EditHandle> _editHandles = new List<EditHandle>();
@@ -188,6 +189,45 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             }
         }
 
+        /// <summary>
+        /// 是否显示信息面板
+        /// </summary>
+        public static readonly DependencyProperty IsInfoPanelVisibleProperty =
+            DependencyProperty.Register(nameof(IsInfoPanelVisible), typeof(bool), typeof(ROIImageEditor),
+                new PropertyMetadata(false, OnIsInfoPanelVisibleChanged));
+
+        public bool IsInfoPanelVisible
+        {
+            get => (bool)GetValue(IsInfoPanelVisibleProperty);
+            set => SetValue(IsInfoPanelVisibleProperty, value);
+        }
+
+        private static void OnIsInfoPanelVisibleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ROIImageEditor editor)
+            {
+                editor.InfoPanelToggleButton.IsChecked = (bool)e.NewValue;
+            }
+        }
+
+        /// <summary>
+        /// 是否强制边界限制（默认为 true）
+        /// </summary>
+        public static readonly DependencyProperty EnforceBoundaryConstraintsProperty =
+            DependencyProperty.Register(nameof(EnforceBoundaryConstraints), typeof(bool), typeof(ROIImageEditor),
+                new PropertyMetadata(true, OnEnforceBoundaryConstraintsChanged));
+
+        public bool EnforceBoundaryConstraints
+        {
+            get => (bool)GetValue(EnforceBoundaryConstraintsProperty);
+            set => SetValue(EnforceBoundaryConstraintsProperty, value);
+        }
+
+        private static void OnEnforceBoundaryConstraintsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            // 边界限制变更 - 仅通过代码设置
+        }
+
         #endregion
 
         #region 事件
@@ -213,6 +253,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         public ROIImageEditor()
         {
+            // 设计时跳过初始化，避免设计器崩溃
+            if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
+            {
+                InitializeComponent();
+                return;
+            }
+
             InitializeComponent();
             DataContext = this;
 
@@ -359,6 +406,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     if (!IsROIInImageBounds(_selectedROI, SourceImage))
                     {
                         _selectedROI.Position = _originalPosition;
+                        _selectedROI.EndPoint = _originalEndPoint;
                         _selectedROI.Size = _originalSize;
                         _selectedROI.Rotation = _originalRotation;
                         UpdateStatus("调整超出图像边界，已回滚");
@@ -429,6 +477,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             {
                 // 手柄编辑被中断，回滚到原始状态
                 _selectedROI.Position = _originalPosition;
+                _selectedROI.EndPoint = _originalEndPoint;
                 _selectedROI.Size = _originalSize;
                 _selectedROI.Rotation = _originalRotation;
                 UpdateStatus("操作被中断，已回滚");
@@ -752,6 +801,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
             // 绑定设置到信息面板
             InfoPanel.EditorSettings = Settings;
+
+            // 恢复 ROI 渲染（解决 Tab 切换后 ROI 不显示的问题）
+            UpdateROIOverlay();
+
+            // 重新订阅信息面板事件（Cleanup 取消订阅后需要重新订阅）
+            if (_infoViewModel != null)
+            {
+                _infoViewModel.ReattachEvents();
+                _infoViewModel.RefreshDisplay();
+            }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -1788,7 +1847,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                         StrokeThickness = strokeThickness,
                         StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
                     };
-                    rect.RenderTransform = new RotateTransform(roi.Rotation, roi.Size.Width / 2, roi.Size.Height / 2);
+                    // WPF RotateTransform 使用顺时针为正
+                    // ROI.Rotation 使用数学角度系统（逆时针为正），所以需要取负
+                    rect.RenderTransform = new RotateTransform(-roi.Rotation, roi.Size.Width / 2, roi.Size.Height / 2);
                     Canvas.SetLeft(rect, roi.Position.X - roi.Size.Width / 2);
                     Canvas.SetTop(rect, roi.Position.Y - roi.Size.Height / 2);
                     shape = rect;
@@ -1893,20 +1954,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         #region 辅助方法
 
         /// <summary>
-        /// 检查点是否在图像范围内
+        /// 检查点是否在图像范围内（考虑边界限制开关）
         /// </summary>
         private bool IsPointInImageBounds(Point point, BitmapSource image)
         {
+            // 边界限制关闭时，始终返回 true
+            if (!EnforceBoundaryConstraints) return true;
+            
             if (image == null) return false;
             return point.X >= 0 && point.X < image.PixelWidth && 
                    point.Y >= 0 && point.Y < image.PixelHeight;
         }
 
         /// <summary>
-        /// 检查ROI是否在图像范围内（改进版 - 检查整个ROI边界）
+        /// 检查ROI是否在图像范围内（考虑边界限制开关）
         /// </summary>
         private bool IsROIInImageBounds(ROI roi, BitmapSource image)
         {
+            // 边界限制关闭时，始终返回 true
+            if (!EnforceBoundaryConstraints) return true;
+            
             if (image == null) return false;
             
             switch (roi.Type)
@@ -2127,6 +2194,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     _handleStartPoint = position;
                     _originalBounds = _selectedROI.GetBounds();
                     _originalPosition = _selectedROI.Position;
+                    _originalEndPoint = _selectedROI.EndPoint;
                     _originalSize = _selectedROI.Size;
                     _originalRotation = _selectedROI.Rotation;
                     
@@ -2204,6 +2272,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                     {
                         // 回滚到原始状态
                         _selectedROI.Position = _originalPosition;
+                        _selectedROI.EndPoint = _originalEndPoint;
                         _selectedROI.Size = _originalSize;
                         _selectedROI.Rotation = _originalRotation;
                         UpdateStatus("调整超出图像边界，已回滚");
@@ -2354,6 +2423,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 _currentDrawingROI = null;
                 DeselectAll();
                 UpdateROIOverlay();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.P)
+            {
+                // P 键切换参数面板显示/隐藏
+                IsInfoPanelVisible = !IsInfoPanelVisible;
                 e.Handled = true;
             }
         }

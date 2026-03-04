@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Models.Visualization;
 
 namespace SunEyeVision.Tool.Threshold
@@ -14,6 +15,7 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 输出图像（二值化后的图像）
         /// </summary>
+        [Param(DisplayName = "输出图像", Description = "二值化处理后的输出图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         /// <summary>
@@ -86,8 +88,33 @@ namespace SunEyeVision.Tool.Threshold
         /// </summary>
         public override IEnumerable<VisualElement> GetVisualElements()
         {
-            // 可以添加阈值信息的可视化标注
-            yield break;
+            // 在图像左上角添加阈值参数信息标注
+            if (InputSize.Width > 0 && InputSize.Height > 0)
+            {
+                // 背景矩形（半透明黑色）
+                yield return VisualElement.Rectangle(
+                    new OpenCvSharp.Rect2d(5, 5, 200, 55),
+                    color: 0x80000000,
+                    lineWidth: 0,
+                    filled: true
+                );
+
+                // 阈值信息文本（白色）
+                yield return VisualElement.Text(
+                    text: $"阈值: {ThresholdUsed:F0}  最大值: {MaxValueUsed}",
+                    position: new OpenCvSharp.Point2d(10, 22),
+                    color: 0xFFFFFFFF,
+                    fontSize: 12.0
+                );
+
+                // 阈值类型（绿色）
+                yield return VisualElement.Text(
+                    text: $"类型: {TypeUsed}",
+                    position: new OpenCvSharp.Point2d(10, 42),
+                    color: 0xFF00FF00,
+                    fontSize: 11.0
+                );
+            }
         }
 
         /// <summary>

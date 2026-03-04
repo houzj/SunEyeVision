@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
@@ -141,7 +141,15 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            selectedTab.WorkflowConnections.Add(newConnection);
+            // 通过 MainWindowViewModel 添加连接（记录日志）
+            if (_viewModel != null)
+            {
+                _viewModel.AddConnectionToWorkflow(newConnection);
+            }
+            else
+            {
+                selectedTab.WorkflowConnections.Add(newConnection);
+            }
         }
 
         /// <summary>
@@ -277,7 +285,15 @@ namespace SunEyeVision.UI.Services.Interaction
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            selectedTab.WorkflowConnections.Add(newConnection);
+            // 通过 MainWindowViewModel 添加连接（记录日志）
+            if (_viewModel != null)
+            {
+                _viewModel.AddConnectionToWorkflow(newConnection);
+            }
+            else
+            {
+                selectedTab.WorkflowConnections.Add(newConnection);
+            }
 
             if (_viewModel != null)
             {

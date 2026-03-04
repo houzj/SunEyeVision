@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunEyeVision.Plugin.Infrastructure</name>
+    </assembly>
+    <members>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager">
+            <summary>
+            插件管理器接口 - 提供插件加载和管理功能
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.LoadPlugins">
+            <summary>
+            加载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.LoadPlugins(System.String)">
+            <summary>
+            从指定目录加载所有插件
+            </summary>
+            <param name="pluginDirectory">插件目录路径</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.UnloadPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.GetPlugins``1">
+            <summary>
+            获取所有插件
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>插件列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.RegisterPlugin(System.Object)">
+            <summary>
+            注册插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.UnregisterPlugin(System.Object)">
+            <summary>
+            注销插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Infrastructure.IPluginManager.IsPluginLoaded``1">
+            <summary>
+            检查插件是否已加载
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>是否已加载</returns>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader">
+            <summary>
+            插件加载器 - 从目录加载插件程序集
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.LoadPluginsFromDirectory(System.String)">
+            <summary>
+            从目录加载所有插件
+            </summary>
+            <param name="pluginDirectory">插件目录</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.LoadPlugin(System.String)">
+            <summary>
+            加载单个插件
+            </summary>
+            <param name="pluginPath">插件DLL路径</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.UnloadPlugin(System.String)">
+            <summary>
+            卸载插件
+            </summary>
+            <param name="pluginId">插件ID</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.GetPlugin(System.String)">
+            <summary>
+            获取已加载的插件
+            </summary>
+            <param name="pluginId">插件ID</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.GetAllPlugins">
+            <summary>
+            获取所有已加载的插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginLoader.UnloadAllPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager">
+            <summary>
+            插件管理器实现
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.#ctor">
+            <summary>
+            无参构造函数 - 使用空日志器
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.LoadPlugins">
+            <summary>
+            加载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.LoadPlugins(System.String)">
+            <summary>
+            从指定目录加载所有插件
+            </summary>
+            <param name="pluginDirectory">插件目录路径</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.LoadPlugin(System.String)">
+            <summary>
+            加载单个插件DLL
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.UnloadPlugins">
+            <summary>
+            卸载所有插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.GetPlugins``1">
+            <summary>
+            获取所有插件
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>插件列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.RegisterPlugin(System.Object)">
+            <summary>
+            注册插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.UnregisterPlugin(System.Object)">
+            <summary>
+            注销插件
+            </summary>
+            <param name="plugin">插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.PluginManager.IsPluginLoaded``1">
+            <summary>
+            检查插件是否已加载
+            </summary>
+            <typeparam name="T">插件类型</typeparam>
+            <returns>是否已加载</returns>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Managers.Plugin.NullLogger">
+            <summary>
+            空日志器 - 不输出任何日志
+            </summary>
+        </member>
+        <member name="T:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry">
+            <summary>
+            工具注册中心 - 管理所有已注册的工具插件
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.RegisterTool(SunEyeVision.Plugin.SDK.Core.IToolPlugin)">
+            <summary>
+            注册工具插件
+            </summary>
+            <param name="toolPlugin">工具插件实例</param>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetToolPlugin(System.String)">
+            <summary>
+            获取工具插件
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具插件实例，未找到则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetToolMetadata(System.String)">
+            <summary>
+            获取工具元数据
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>工具元数据，未找到则返回null</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetAllToolMetadata">
+            <summary>
+            获取所有工具元数据
+            </summary>
+            <returns>所有工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetToolsByCategory(System.String)">
+            <summary>
+            获取指定分类的工具元数据
+            </summary>
+            <param name="category">分类名称</param>
+            <returns>该分类下的工具元数据列表</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.ToolExists(System.String)">
+            <summary>
+            检查工具是否存在
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否存在</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.UnregisterTool(System.String)">
+            <summary>
+            注销工具
+            </summary>
+            <param name="toolId">工具ID</param>
+            <returns>是否注销成功</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.ClearAll">
+            <summary>
+            清除所有已注册的工具
+            </summary>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetToolCount">
+            <summary>
+            获取已注册的工具数量
+            </summary>
+            <returns>工具数量</returns>
+        </member>
+        <member name="M:SunEyeVision.Plugin.Infrastructure.Managers.Tool.ToolRegistry.GetAllCategories">
+            <summary>
+            获取所有分类
+            </summary>
+            <returns>分类列表</returns>
+        </member>
+    </members>
+</doc>

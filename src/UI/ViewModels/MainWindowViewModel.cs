@@ -22,6 +22,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 using SunEyeVision.UI.Views.Controls.Panels;
 using SunEyeVision.UI.Views.Windows;
 using SunEyeVision.UI.Extensions;
+using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.UI.Converters.Path;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
@@ -96,6 +97,12 @@ namespace SunEyeVision.UI.ViewModels
         // 节点结果管理
         private readonly Services.Workflow.NodeResultManager _nodeResultManager;
 
+        // 已打开的调试窗口（全局单例）
+        private Window? _openDebugWindow;
+
+        // 数据提供者缓存（用于在节点执行完成后更新前置节点输出）
+        private readonly Dictionary<string, Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider> _nodeDataProviders = new();
+
         // 属性
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待中...\n";
@@ -167,12 +174,14 @@ namespace SunEyeVision.UI.ViewModels
         private Models.WorkflowNode? _selectedNode;
         private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
+        private Models.ImageInputSource? _activeInputSource; // 新增：活动输入源
         private string? _currentDisplayNodeId = null;  // 记录当前显示的采集节点ID，避免重复切换
 
         /// <summary>
         /// 当前活动节点图像数据，用于绑定到图像预览控件
         /// 每个采集节点维护自己的图像集
         /// </summary>
+        [Obsolete("请使用 ActiveInputSource 替代。此属性仅为向后兼容保留。")]
         public Models.NodeImageData? ActiveNodeImageData
         {
             get => _activeNodeImageData;
@@ -185,6 +194,42 @@ namespace SunEyeVision.UI.ViewModels
                 }
                 SetProperty(ref _activeNodeImageData, value);
             }
+        }
+
+        /// <summary>
+        /// 当前活动输入源，用于绑定到图像预览控件
+        /// 输入源存储用户选择的图像文件，执行流程不会修改
+        /// </summary>
+        public Models.ImageInputSource? ActiveInputSource
+        {
+            get => _activeInputSource;
+            private set
+            {
+                if (ReferenceEquals(_activeInputSource, value))
+                {
+                    return;
+                }
+                SetProperty(ref _activeInputSource, value);
+            }
+        }
+
+        /// <summary>
+        /// 图像显示控件的数据源（当前节点 + 所有父节点）
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> DisplayImageSources { get; }
+
+        /// <summary>
+        /// 当前选中的图像显示源索引
+        /// </summary>
+        private int _selectedDisplayImageSourceIndex = -1;
+
+        /// <summary>
+        /// 当前选中的图像显示源索引
+        /// </summary>
+        public int SelectedDisplayImageSourceIndex
+        {
+            get => _selectedDisplayImageSourceIndex;
+            set => SetProperty(ref _selectedDisplayImageSourceIndex, value);
         }
 
         public Models.WorkflowNode? SelectedNode
@@ -210,11 +255,39 @@ namespace SunEyeVision.UI.ViewModels
                         _nodeResultManager.ClearResultDisplay();
                     }
 
+                    // 更新图像显示数据源（当前节点 + 父节点）
+                    UpdateDisplayImageSources(value);
+
                     // 节点选中状态变化时更新图像预览（整合了 ActiveNodeImageData 更新逻辑）
                     UpdateImagePreviewVisibility(value);
                     // 加载节点属性
                     LoadNodeProperties(value);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 强制选中节点（即使引用相同也强制更新显示）
+        /// 用于双击节点时确保图像显示正确更新
+        /// </summary>
+        /// <param name="node">要选中的节点</param>
+        public void ForceSelectNode(Models.WorkflowNode node)
+        {
+            // 更新选中状态
+            if (_selectedNode != node)
+            {
+                SelectedNode = node;
+            }
+            else
+            {
+                // 即使引用相同，也强制更新显示
+                _nodeResultManager.ClearResultDisplay();
+                if (node?.LastResult != null)
+                {
+                    _nodeResultManager.RefreshResultDisplay(node, node.LastResult);
+                }
+                UpdateDisplayImageSources(node);
+                UpdateImagePreviewVisibility(node);
             }
         }
 
@@ -524,11 +597,11 @@ namespace SunEyeVision.UI.ViewModels
             // 将日志追加到末尾
             LogText += $"[{timestamp}] {message}\n";
 
-            // 日志条目最多保存100条
+            // 日志条目最多保存500条
             var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length > 100)
+            if (lines.Length > 500)
             {
-                LogText = string.Join("\n", lines.Skip(lines.Length - 100)) + "\n";
+                LogText = string.Join("\n", lines.Skip(lines.Length - 500)) + "\n";
             }
         }
 
@@ -597,6 +670,9 @@ namespace SunEyeVision.UI.ViewModels
 
             // 初始化图像集合（优化版）
             ImageCollection = new BatchObservableCollection<ImageInfo>();
+
+            // 初始化图像显示数据源
+            DisplayImageSources = new ObservableCollection<ImageSourceInfo>();
 
             // 初始化执行管理器
             _executionManager = new Services.Workflow.WorkflowExecutionManager(new Infrastructure.DefaultInputProvider());
@@ -1117,6 +1193,8 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
+            AddLog($"➕ 添加节点: {node.Name} (ID={node.Id}, 类型={node.AlgorithmType})");
+
             var command = new AppCommands.AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
@@ -1128,6 +1206,8 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
+
+            AddLog($"➖ 删除节点: {node.Name} (ID={node.Id})");
 
             var command = new AppCommands.DeleteNodeCommand(
                 WorkflowTabViewModel.SelectedTab.WorkflowNodes,
@@ -1156,6 +1236,11 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
+            // 获取节点名称用于日志
+            var sourceNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+            var targetNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
+            AddLog($"🔗 创建连接: {sourceNode?.Name ?? connection.SourceNodeId} → {targetNode?.Name ?? connection.TargetNodeId}");
+
             var command = new AppCommands.AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
         }
@@ -1166,7 +1251,14 @@ namespace SunEyeVision.UI.ViewModels
         public void DeleteConnectionFromWorkflow(WorkflowConnection connection)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
+            {
                 return;
+            }
+
+            // 获取节点名称用于日志
+            var sourceNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+            var targetNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
+            AddLog($"⛓️ 删除连接: {sourceNode?.Name ?? connection.SourceNodeId} → {targetNode?.Name ?? connection.TargetNodeId}");
 
             var command = new AppCommands.DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
@@ -1282,12 +1374,48 @@ namespace SunEyeVision.UI.ViewModels
                     switch (interfaceType)
                     {
                         case NodeInterfaceType.DebugWindow:
-                            // 使用工厂创建调试窗口
+                            // 全局单例模式：有且只能有一个调试窗口被打开
+                            if (_openDebugWindow != null && _openDebugWindow.IsLoaded)
+                            {
+                                // 已有窗口，询问用户是否切换
+                                var result = System.Windows.MessageBox.Show(
+                                    $"调试窗口已打开（{_openDebugWindow.Title}）\n\n是否关闭当前窗口并打开新的调试窗口？",
+                                    "调试窗口已存在",
+                                    System.Windows.MessageBoxButton.YesNo,
+                                    System.Windows.MessageBoxImage.Question);
+
+                                if (result != System.Windows.MessageBoxResult.Yes)
+                                {
+                                    // 用户选择不切换，激活现有窗口
+                                    _openDebugWindow.Activate();
+                                    _openDebugWindow.Focus();
+                                    break;
+                                }
+
+                                // 关闭现有窗口
+                                _openDebugWindow.Close();
+                                _openDebugWindow = null;
+                            }
+
+                            // 创建新的调试窗口
                             var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, toolPlugin, toolMetadata);
                             if (debugWindow != null)
                             {
                                 debugWindow.Owner = System.Windows.Application.Current.MainWindow;
-                                debugWindow.ShowDialog();
+                                debugWindow.Title = $"{node.Name} - 调试窗口";
+
+                                // 注入前驱节点数据
+                                InjectParentNodesToDebugWindow(debugWindow, node);
+
+                                // 注册关闭事件，窗口关闭时清理引用
+                                debugWindow.Closed += (s, e) =>
+                                {
+                                    _openDebugWindow = null;
+                                    AddLog($"🔧 关闭调试窗口: {node.Name}");
+                                };
+
+                                _openDebugWindow = debugWindow;
+                                debugWindow.Show();
                                 AddLog($"🔧 打开调试窗口: {node.Name}");
                             }
                             else
@@ -1379,6 +1507,422 @@ namespace SunEyeVision.UI.ViewModels
                     System.Windows.MessageBoxImage.Error);
                 AddLog($"❌ 创建子程序失败: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 使用 BFS 递归查找所有上游节点
+        /// </summary>
+        /// <param name="tab">当前工作流标签页</param>
+        /// <param name="nodeId">起始节点ID</param>
+        /// <returns>上游节点列表，按距离排序（最近的在前）</returns>
+        private List<(Models.WorkflowNode Node, int Distance)> FindAllUpstreamNodes(
+            ViewModels.WorkflowTabViewModel tab, string nodeId)
+        {
+            var result = new List<(Models.WorkflowNode Node, int Distance)>();
+            var visited = new HashSet<string>();
+            var queue = new Queue<(string NodeId, int Distance)>();
+            
+            // 从当前节点开始，查找所有前驱
+            queue.Enqueue((nodeId, 0));
+            visited.Add(nodeId);
+            
+            while (queue.Count > 0)
+            {
+                var (currentNodeId, distance) = queue.Dequeue();
+                
+                // 查找当前节点的所有直接前驱连接
+                var parentConnections = tab.WorkflowConnections
+                    .Where(conn => conn.TargetNodeId == currentNodeId)
+                    .ToList();
+                
+                foreach (var connection in parentConnections)
+                {
+                    if (!visited.Contains(connection.SourceNodeId))
+                    {
+                        visited.Add(connection.SourceNodeId);
+                        
+                        var parentNode = tab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+                        if (parentNode != null)
+                        {
+                            // 添加到结果（距离 +1）
+                            result.Add((parentNode, distance + 1));
+                            
+                            // 继续向上游查找
+                            queue.Enqueue((connection.SourceNodeId, distance + 1));
+                        }
+                    }
+                }
+            }
+            
+            // 按距离排序（最近的在前）
+            return result.OrderBy(x => x.Distance).ToList();
+        }
+
+        /// <summary>
+        /// 更新图像显示控件的数据源（当前节点 + 所有父节点）
+        /// </summary>
+        /// <param name="selectedNode">当前选中的节点</param>
+        private void UpdateDisplayImageSources(Models.WorkflowNode? selectedNode)
+        {
+            DisplayImageSources.Clear();
+
+            if (selectedNode == null)
+            {
+                SelectedDisplayImageSourceIndex = -1;
+                return;
+            }
+
+            // 获取当前工作流标签页
+            var selectedTab = WorkflowTabViewModel?.SelectedTab;
+            if (selectedTab == null)
+            {
+                SelectedDisplayImageSourceIndex = -1;
+                return;
+            }
+
+            // 1. 首先添加当前节点（距离=0）
+            if (selectedNode.OutputCache != null && selectedNode.OutputCache.HasOutput)
+            {
+                // 节点有输出，添加到列表
+                var outputCache = selectedNode.OutputCache;
+                foreach (var imageName in outputCache.GetImageNames())
+                {
+                    DisplayImageSources.Add(new ImageSourceInfo
+                    {
+                        NodeId = selectedNode.Id,
+                        NodeName = selectedNode.Name,
+                        OutputPortName = imageName,
+                        DataType = "Mat",
+                        Distance = 0,
+                        HasExecuted = true
+                    });
+                }
+            }
+            else if (selectedNode.LastResult != null && selectedNode.LastResult.IsSuccess)
+            {
+                // 从 LastResult 获取输出
+                var outputValues = selectedNode.LastResult.GetOutputValues();
+                if (outputValues != null)
+                {
+                    foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
+                    {
+                        DisplayImageSources.Add(new ImageSourceInfo
+                        {
+                            NodeId = selectedNode.Id,
+                            NodeName = selectedNode.Name,
+                            OutputPortName = kvp.Key,
+                            DataType = "Mat",
+                            Distance = 0,
+                            HasExecuted = true
+                        });
+                    }
+                }
+            }
+            else
+            {
+                // 节点未执行，清空图像显示并添加占位项
+                DisplayImage = null;
+                OriginalImage = null;
+                ProcessedImage = null;
+                ResultImage = null;
+                
+                DisplayImageSources.Add(new ImageSourceInfo
+                {
+                    NodeId = selectedNode.Id,
+                    NodeName = $"{selectedNode.Name} (未执行)",
+                    OutputPortName = "Output",
+                    DataType = InferNodeOutputType(selectedNode),
+                    Distance = 0,
+                    HasExecuted = false
+                });
+            }
+
+            // 2. 使用 BFS 查找所有父节点
+            var allUpstreamNodes = FindAllUpstreamNodes(selectedTab, selectedNode.Id);
+
+            // 3. 添加所有父节点
+            foreach (var (parentNode, distance) in allUpstreamNodes)
+            {
+                bool hasOutput = false;
+
+                // 检查节点是否有输出
+                if (parentNode.OutputCache != null && parentNode.OutputCache.HasOutput)
+                {
+                    var outputCache = parentNode.OutputCache;
+                    foreach (var imageName in outputCache.GetImageNames())
+                    {
+                        DisplayImageSources.Add(new ImageSourceInfo
+                        {
+                            NodeId = parentNode.Id,
+                            NodeName = parentNode.Name,
+                            OutputPortName = imageName,
+                            DataType = "Mat",
+                            Distance = distance,
+                            HasExecuted = true
+                        });
+                        hasOutput = true;
+                    }
+                }
+                else if (parentNode.LastResult != null && parentNode.LastResult.IsSuccess)
+                {
+                    var outputValues = parentNode.LastResult.GetOutputValues();
+                    if (outputValues != null)
+                    {
+                        foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
+                        {
+                            DisplayImageSources.Add(new ImageSourceInfo
+                            {
+                                NodeId = parentNode.Id,
+                                NodeName = parentNode.Name,
+                                OutputPortName = kvp.Key,
+                                DataType = "Mat",
+                                Distance = distance,
+                                HasExecuted = true
+                            });
+                            hasOutput = true;
+                        }
+                    }
+                }
+
+                // 如果没有输出，添加占位项
+                if (!hasOutput)
+                {
+                    DisplayImageSources.Add(new ImageSourceInfo
+                    {
+                        NodeId = parentNode.Id,
+                        NodeName = $"{parentNode.Name} (未执行)",
+                        OutputPortName = "Output",
+                        DataType = InferNodeOutputType(parentNode),
+                        Distance = distance,
+                        HasExecuted = false
+                    });
+                }
+            }
+
+            // 4. 默认选中第一项（当前节点的第一个输出）
+            if (DisplayImageSources.Count > 0)
+            {
+                SelectedDisplayImageSourceIndex = 0;
+                AddLog($"📷 已更新图像显示数据源，共 {DisplayImageSources.Count} 项");
+            }
+            else
+            {
+                SelectedDisplayImageSourceIndex = -1;
+            }
+        }
+
+        /// <summary>
+        /// 注入前驱节点数据到调试窗口
+        /// </summary>
+        /// <param name="debugWindow">调试窗口实例</param>
+        /// <param name="currentNode">当前节点</param>
+        private void InjectParentNodesToDebugWindow(System.Windows.Window debugWindow, Models.WorkflowNode currentNode)
+        {
+            try
+            {
+                // 检查窗口是否有 SetDataProvider 方法
+                var setDataProviderMethod = debugWindow.GetType().GetMethod("SetDataProvider");
+                if (setDataProviderMethod == null)
+                {
+                    AddLog($"⚠️ 调试窗口 '{currentNode.Name}' 不支持数据提供者注入");
+                    return;
+                }
+
+                // 获取当前工作流标签页
+                var selectedTab = WorkflowTabViewModel?.SelectedTab;
+                if (selectedTab == null)
+                {
+                    AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
+                    return;
+                }
+
+                // 创建数据提供者
+                var dataProvider = new SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider
+                {
+                    CurrentNodeId = currentNode.Id
+                };
+
+                // ★ 使用 BFS 递归查找所有上游节点（而不仅仅是直接父节点）
+                // 结果按距离排序：最近的父节点排在前面
+                var allUpstreamNodes = FindAllUpstreamNodes(selectedTab, currentNode.Id);
+                
+                AddLog($"📋 查找到 {allUpstreamNodes.Count} 个上游节点");
+
+                // 注册所有上游节点（按距离排序，最近的在前）
+                foreach (var (parentNode, distance) in allUpstreamNodes)
+                {
+                    // 根据节点类型推断输出类型
+                    string outputType = InferNodeOutputType(parentNode);
+
+                    // 注册前驱节点信息
+                    dataProvider.RegisterParentNode(parentNode.Id, parentNode.Name, outputType);
+                    AddLog($"  📌 注册上游节点: {parentNode.Name} (距离: {distance}, 类型: {outputType})");
+
+                    // 如果节点有执行结果，注入输出数据
+                    if (parentNode.LastResult != null && parentNode.LastResult.IsSuccess)
+                    {
+                        var outputValues = parentNode.LastResult.GetOutputValues();
+                        if (outputValues != null && outputValues.Count > 0)
+                        {
+                            // 尝试找到图像类型的输出（通常是第一个或名为 OutputImage 的属性）
+                            var imageOutput = outputValues.FirstOrDefault(kv => 
+                                kv.Value is OpenCvSharp.Mat || 
+                                kv.Key.Contains("Image", StringComparison.OrdinalIgnoreCase) ||
+                                kv.Key.Contains("Output", StringComparison.OrdinalIgnoreCase));
+
+                            if (imageOutput.Value != null)
+                            {
+                                dataProvider.UpdateNodeOutput(parentNode.Id, imageOutput.Value);
+                                AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{imageOutput.Key}");
+                            }
+                            else
+                            {
+                                // 使用第一个非空输出
+                                var firstOutput = outputValues.FirstOrDefault(kv => kv.Value != null);
+                                if (firstOutput.Value != null)
+                                {
+                                    dataProvider.UpdateNodeOutput(parentNode.Id, firstOutput.Value);
+                                    AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{firstOutput.Key}");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ★ 设置当前节点引用（用于配置持久化）- 必须在 SetDataProvider 之前调用！
+                // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
+                var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
+                setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
+
+                // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
+                setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
+                AddLog($"✅ 已注入 {allUpstreamNodes.Count} 个上游节点到调试窗口");
+
+                // ★ 缓存数据提供者（用于在节点执行完成后更新前置节点输出）
+                _nodeDataProviders[currentNode.Id] = dataProvider;
+
+                // ★ 订阅工具执行完成事件（用于更新图像显示）
+                SubscribeToolExecutionCompleted(debugWindow, currentNode, dataProvider);
+
+                // 窗口关闭时清理缓存
+                debugWindow.Closed += (s, e) =>
+                {
+                    _nodeDataProviders.Remove(currentNode.Id);
+                    AddLog($"🗑️ 已清理节点 {currentNode.Name} 的数据提供者缓存");
+                };
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 注入前驱节点失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 订阅调试窗口的执行完成事件
+        /// </summary>
+        private void SubscribeToolExecutionCompleted(System.Windows.Window debugWindow, Models.WorkflowNode node, 
+            SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider dataProvider)
+        {
+            var eventInfo = debugWindow.GetType().GetEvent("ToolExecutionCompleted");
+            if (eventInfo != null)
+            {
+                // 创建事件处理器（使用 Delegate.CreateDelegate 动态创建）
+                var eventHandlerType = eventInfo.EventHandlerType;
+                
+                // 创建委托方法
+                var invokeMethod = eventHandlerType.GetMethod("Invoke");
+                var parameters = invokeMethod?.GetParameters();
+                
+                if (parameters != null && parameters.Length == 2)
+                {
+                    // 创建通用的处理方法
+                    Action<object?, object?> handlerAction = (sender, result) =>
+                    {
+                        try
+                        {
+                            if (result is SunEyeVision.Plugin.SDK.Execution.Results.ToolResults toolResult)
+                            {
+                                // 更新节点结果
+                                node.LastResult = toolResult;
+
+                                // 获取输出图像（通过反射调用 GetOutputValue 方法）
+                                var getOutputMethod = toolResult.GetType().GetMethod("GetOutputValue");
+                                var outputImage = getOutputMethod?.MakeGenericMethod(typeof(OpenCvSharp.Mat))
+                                    .Invoke(toolResult, new object[] { "OutputImage" }) as OpenCvSharp.Mat;
+
+                                // 更新数据提供者中的节点输出
+                                if (outputImage != null)
+                                {
+                                    dataProvider.UpdateNodeOutput(node.Id, outputImage);
+                                }
+
+                                // 更新图像显示
+                                _nodeResultManager?.UpdateNodeResult(node, toolResult);
+
+                                AddLog($"✅ 调试窗口执行完成: {node.Name}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"⚠️ 处理执行结果失败: {ex.Message}");
+                        }
+                    };
+
+                    // 创建委托
+                    var handler = Delegate.CreateDelegate(eventHandlerType, handlerAction.Target, handlerAction.Method);
+                    
+                    // 订阅事件
+                    eventInfo.AddEventHandler(debugWindow, handler);
+
+                    // 窗口关闭时取消订阅（防止内存泄漏）
+                    debugWindow.Closed += (s, e) =>
+                    {
+                        eventInfo.RemoveEventHandler(debugWindow, handler);
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// 推断节点输出类型
+        /// </summary>
+        private string InferNodeOutputType(Models.WorkflowNode node)
+        {
+            // 根据算法类型推断
+            var algorithmType = node.AlgorithmType?.ToLower() ?? node.Name.ToLower();
+
+            if (algorithmType.Contains("image") || algorithmType.Contains("capture") || 
+                algorithmType.Contains("load") || algorithmType.Contains("采集") || algorithmType.Contains("载入"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("threshold") || algorithmType.Contains("阈值"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("gray") || algorithmType.Contains("灰度"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("blur") || algorithmType.Contains("模糊"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("edge") || algorithmType.Contains("边缘"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("morphology") || algorithmType.Contains("形态"))
+            {
+                return "Mat";
+            }
+            else if (algorithmType.Contains("region") || algorithmType.Contains("区域"))
+            {
+                return "RegionData";
+            }
+
+            // 默认返回 Mat 类型
+            return "Mat";
         }
 
         /// <summary>
@@ -1558,13 +2102,106 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                // 通过 NodeResultManager 更新节点结果
+                // ★ 关键日志：节点执行完成
+                var outputValues = e.Result?.GetOutputValues();
+                bool hasImageOutput = outputValues?.Any(kv => kv.Value is OpenCvSharp.Mat) ?? false;
+                AddLog($"✅ 节点执行完成: {e.Node.Name}, 成功={e.Result?.IsSuccess}, 有图像输出={hasImageOutput}");
+
+                // 通过 NodeResultManager 更新节点结果（更新 OutputCache，不修改 InputSource）
                 _nodeResultManager.UpdateNodeResult(e.Node, e.Result);
+
+                // ★ 更新所有依赖此节点的数据提供者（修复前置节点未执行问题）
+                UpdateDataProvidersForNode(e.Node, e.Result);
+
+                // 如果节点是当前显示节点，刷新输出缓存绑定（不刷新输入源）
+                // 新架构：OutputCache 存储执行结果，InputSource 保持不变
+                if (_currentDisplayNodeId == e.Node.Id)
+                {
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        // 新架构：刷新 OutputCache（如果有输出）
+                        var outputCache = e.Node.OutputCache;
+                        if (outputCache != null && outputCache.HasOutput)
+                        {
+                            AddLog($"📷 节点 {e.Node.Name} 输出已更新, 输出图像数={outputCache.Count}");
+                        }
+                        
+                        // 注意：不再刷新 ActiveInputSource，因为输入源不应该被执行结果修改
+                        // 向后兼容：刷新 ImageData（已过时）
+#pragma warning disable CS0618
+                        if (e.Node.ImageData != null)
+                        {
+                            var temp = e.Node.ImageData;
+                            ActiveNodeImageData = null;
+                            ActiveNodeImageData = temp;
+                            AddLog($"📷 [兼容] 已刷新节点 {e.Node.Name} 的图像预览, 图像数={temp.ImageCount}");
+                        }
+#pragma warning restore CS0618
+                    });
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[MainWindowViewModel] OnNodeExecutionCompleted异常: {ex.Message}");
                 AddLog($"⚠️ 节点结果更新异常: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 更新所有依赖此节点的数据提供者
+        /// </summary>
+        private void UpdateDataProvidersForNode(Models.WorkflowNode node, Plugin.SDK.Execution.Results.ToolResults? result)
+        {
+            if (result == null || !result.IsSuccess) return;
+
+            try
+            {
+                // 获取节点的输出图像
+                var outputValues = result.GetOutputValues();
+                if (outputValues == null || outputValues.Count == 0)
+                {
+                    AddLog($"⚠️ 节点 {node.Name} 无输出值");
+                    return;
+                }
+
+                // 尝试找到图像类型的输出
+                var imageOutput = outputValues.FirstOrDefault(kv =>
+                    kv.Value is OpenCvSharp.Mat ||
+                    kv.Key.Contains("Image", StringComparison.OrdinalIgnoreCase) ||
+                    kv.Key.Contains("Output", StringComparison.OrdinalIgnoreCase));
+
+                object? outputValue = imageOutput.Value ?? outputValues.FirstOrDefault(kv => kv.Value != null).Value;
+                if (outputValue == null)
+                {
+                    AddLog($"⚠️ 节点 {node.Name} 输出值为空");
+                    return;
+                }
+
+                // ★ 关键日志：输出值类型
+                AddLog($"📤 节点 {node.Name} 输出类型: {outputValue.GetType().Name}");
+
+                // 更新所有缓存的数据提供者
+                int updatedCount = 0;
+                foreach (var kvp in _nodeDataProviders.ToList())
+                {
+                    try
+                    {
+                        kvp.Value.UpdateNodeOutput(node.Id, outputValue);
+                        updatedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] 更新数据提供者失败: {ex.Message}");
+                    }
+                }
+                if (updatedCount > 0)
+                {
+                    AddLog($"🔄 已更新 {updatedCount} 个数据提供者");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainWindowViewModel] UpdateDataProvidersForNode异常: {ex.Message}");
             }
         }
 
@@ -1847,9 +2484,14 @@ namespace SunEyeVision.UI.ViewModels
         ///    (优化: 逆向追踪采集节点与当前显示同源则不更新)
         /// 3. 逆向追踪采集节点图像 -> 显示在图像预览中
         /// 
+        /// 重构说明:
+        /// - 新架构使用 InputSource（输入源）替代 ImageData
+        /// - 输入源存储用户选择的图像，执行流程不会修改
+        /// - 向后兼容：同时更新 ImageData
+        /// 
         /// 性能优化:
         /// - 只在状态真正变化时才更新属性，避免触发不必要的绑定刷新
-        /// - 引用相等检测在 ActiveNodeImageData setter 中处理
+        /// - 引用相等检测在 ActiveInputSource setter 中处理
         /// </remarks>
         public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
         {
@@ -1857,10 +2499,13 @@ namespace SunEyeVision.UI.ViewModels
             if (selectedNode == null)
             {
                 // 只在当前状态不一致时才更新
-                if (ShowImagePreview || ActiveNodeImageData != null || _currentDisplayNodeId != null)
+                if (ShowImagePreview || ActiveInputSource != null || _currentDisplayNodeId != null)
                 {
                     ShowImagePreview = false;
+                    ActiveInputSource = null;
+#pragma warning disable CS0618 // 向后兼容
                     ActiveNodeImageData = null;
+#pragma warning restore CS0618
                     _currentDisplayNodeId = null;
                 }
                 return;
@@ -1869,8 +2514,13 @@ namespace SunEyeVision.UI.ViewModels
             // 2.选中图像载入节点时，初始化显示图像预览（因为需要选择本地文件）
             if (selectedNode.IsImageLoadNode)
             {
-                // 确保节点图像已延迟初始化
+                // 新架构：确保 InputSource 已初始化
+                var inputSource = selectedNode.EnsureInputSource();
+                
+#pragma warning disable CS0618 // 向后兼容
+                // 向后兼容：确保 ImageData 已初始化
                 selectedNode.ImageData ??= new Models.NodeImageData(selectedNode.Id);
+#pragma warning restore CS0618
 
                 // 检查是否是同一节点
                 bool isSameNode = _currentDisplayNodeId == selectedNode.Id;
@@ -1879,8 +2529,12 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     // 不同节点才更新
                     _currentDisplayNodeId = selectedNode.Id;
+                    inputSource.PrepareForDisplay();
+                    ActiveInputSource = inputSource;
+#pragma warning disable CS0618 // 向后兼容
                     selectedNode.ImageData.PrepareForDisplay();
                     ActiveNodeImageData = selectedNode.ImageData;
+#pragma warning restore CS0618
                 }
 
                 // 只有真正变化时才设置
@@ -1894,39 +2548,61 @@ namespace SunEyeVision.UI.ViewModels
             // 2.5 选中图像采集节点时，隐藏图像预览（相机实时采集不需要预览器）
             if (selectedNode.IsImageCaptureNode)
             {
-                if (ShowImagePreview || ActiveNodeImageData != null || _currentDisplayNodeId != null)
+                if (ShowImagePreview || ActiveInputSource != null || _currentDisplayNodeId != null)
                 {
                     ShowImagePreview = false;
+                    ActiveInputSource = null;
+#pragma warning disable CS0618 // 向后兼容
                     ActiveNodeImageData = null;
+#pragma warning restore CS0618
                     _currentDisplayNodeId = null;
                 }
                 return;
             }
 
-            // 3.选中非图像采集节点时，BFS逆向追踪采集节点
-            // 快速检查：没有连接的孤立节点，直接隐藏
+            // 3.选中处理节点时，检查连接和上游图像载入节点
+            // 核心原则：预览器必须绑定到图像载入节点的InputSource
+            
             var connections = WorkflowTabViewModel?.SelectedTab?.WorkflowConnections;
-            if (connections == null || connections.Count == 0)
+            
+            // 3.1 检查当前节点是否有输入连接
+            bool hasInputConnection = connections?.Any(c => c.TargetNodeId == selectedNode.Id) ?? false;
+            
+            if (!hasInputConnection)
             {
-                if (ShowImagePreview || ActiveNodeImageData != null || _currentDisplayNodeId != null)
+                // 没有输入连接，隐藏预览器
+                if (ShowImagePreview || ActiveInputSource != null || _currentDisplayNodeId != null)
                 {
                     ShowImagePreview = false;
+                    ActiveInputSource = null;
+#pragma warning disable CS0618 // 向后兼容
                     ActiveNodeImageData = null;
+#pragma warning restore CS0618
                     _currentDisplayNodeId = null;
                 }
                 return;
             }
             
+            // 3.2 有输入连接，尝试逆向查找图像载入节点
             var sourceLoadNode = FindUpstreamImageLoadNode(selectedNode);
 
-            if (sourceLoadNode != null && sourceLoadNode.ImageData != null && sourceLoadNode.ImageData.ImageCount > 0)
+            if (sourceLoadNode != null)
             {
+                // 找到上游图像载入节点，显示预览器（绑定到该节点）
+                var sourceInputSource = sourceLoadNode.InputSource ?? sourceLoadNode.EnsureInputSource();
+                
                 bool isSameNode = _currentDisplayNodeId == sourceLoadNode.Id;
                 
                 if (!isSameNode)
                 {
                     _currentDisplayNodeId = sourceLoadNode.Id;
-                    ActiveNodeImageData = sourceLoadNode.ImageData;
+                    sourceInputSource.PrepareForDisplay();
+                    ActiveInputSource = sourceInputSource;
+#pragma warning disable CS0618 // 向后兼容
+                    var sourceImageData = sourceLoadNode.ImageData;
+                    sourceImageData?.PrepareForDisplay();
+                    ActiveNodeImageData = sourceImageData;
+#pragma warning restore CS0618
                 }
                 
                 if (!ShowImagePreview)
@@ -1936,11 +2612,14 @@ namespace SunEyeVision.UI.ViewModels
             }
             else
             {
-                // 逆向追踪失败或没有图像时隐藏
-                if (ShowImagePreview || ActiveNodeImageData != null || _currentDisplayNodeId != null)
+                // 找不到上游图像载入节点，隐藏预览器（没有数据源可绑定）
+                if (ShowImagePreview || ActiveInputSource != null || _currentDisplayNodeId != null)
                 {
                     ShowImagePreview = false;
+                    ActiveInputSource = null;
+#pragma warning disable CS0618 // 向后兼容
                     ActiveNodeImageData = null;
+#pragma warning restore CS0618
                     _currentDisplayNodeId = null;
                 }
             }

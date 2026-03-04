@@ -781,6 +781,8 @@
                                                               EnablePanning="True"
                                                               EnableZoom="True"
                                                               AutoFitOnResize="True"
+                                                              ImageSources="{Binding DisplayImageSources}"
+                                                              SelectedImageSourceIndex="{Binding SelectedDisplayImageSourceIndex, Mode=TwoWay}"
                                                               ImageLoaded="OnImageLoaded"
                                                               ZoomChanged="OnZoomChanged"/>
                                         </Border>
@@ -862,7 +864,8 @@
                             </Border>
 
                             <!-- 图像加载及预览模块 - 使用现代化的 ImagePreviewControl -->
-                            <!-- 绑定到 ActiveNodeImageData 实现每个采集节点独立的图像预览器 -->
+                            <!-- 绑定到 ActiveInputSource 实现每个采集节点独立的图像预览器 -->
+                            <!-- 新架构：使用 InputSource 替代 ImageData，输入源不被执行流程修改 -->
                             <Border Grid.Row="1"
                                     Background="#F8F9FA"
                                     BorderBrush="#E0E0E0"
@@ -870,10 +873,10 @@
                                     Padding="2"
                                     Visibility="{Binding ShowImagePreview, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <panels:ImagePreviewControl x:Name="ImagePreviewContent"
-                                                             AutoSwitchEnabled="{Binding ActiveNodeImageData.AutoSwitchEnabled, Mode=TwoWay}"
-                                                             CurrentImageIndex="{Binding ActiveNodeImageData.CurrentImageIndex, Mode=TwoWay}"
-                                                             ImageCollection="{Binding ActiveNodeImageData.ImageCollection}"
-                                                             ImageRunMode="{Binding ActiveNodeImageData.ImageRunMode, Mode=TwoWay}"/>
+                                                             AutoSwitchEnabled="{Binding ActiveInputSource.AutoSwitchEnabled, Mode=TwoWay}"
+                                                             CurrentImageIndex="{Binding ActiveInputSource.CurrentIndex, Mode=TwoWay}"
+                                                             ImageCollection="{Binding ActiveInputSource.Images}"
+                                                             ImageRunMode="{Binding ActiveInputSource.RunMode, Mode=TwoWay}"/>
                             </Border>
                         </Grid>
                     </Border>

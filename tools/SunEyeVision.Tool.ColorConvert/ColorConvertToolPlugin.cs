@@ -111,6 +111,7 @@ namespace SunEyeVision.Tool.ColorConvert
 
     public class ColorConvertResults : ToolResults
     {
+        [SunEyeVision.Plugin.SDK.Metadata.Param(DisplayName = "输出图像", Description = "颜色空间转换后的图像", Category = SunEyeVision.Plugin.SDK.Metadata.ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public string TargetColorSpaceUsed { get; set; } = "";
         public int OutputChannels { get; set; }

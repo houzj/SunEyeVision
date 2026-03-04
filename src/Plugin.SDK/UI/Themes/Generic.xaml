@@ -387,6 +387,7 @@
                                         <!-- 图像源列表 -->
                                         <ListBox x:Name="PART_ImageSourceList"
                                                  Grid.Row="1"
+                                                 ItemsSource="{Binding AvailableImageSources, RelativeSource={RelativeSource TemplatedParent}}"
                                                  BorderThickness="0"
                                                  MaxHeight="250"
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">

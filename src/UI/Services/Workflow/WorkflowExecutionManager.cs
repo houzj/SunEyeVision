@@ -474,9 +474,13 @@ namespace SunEyeVision.UI.Services.Workflow
         /// </summary>
         private ToolResults CreateToolResultsFromNodeResult(NodeExecutionResult nodeResult)
         {
+            // ★ 关键日志：节点执行结果状态
+            Console.WriteLine($"[WorkflowExecutionManager] CreateToolResultsFromNodeResult: Success={nodeResult.Success}, Outputs={nodeResult.Outputs?.Count ?? 0}, ResultItems={nodeResult.ResultItems?.Count ?? 0}");
+
             // 优先使用原始工具结果
             if (nodeResult.ToolResult != null)
             {
+                Console.WriteLine($"[WorkflowExecutionManager] 使用原始 ToolResult");
                 return nodeResult.ToolResult;
             }
 

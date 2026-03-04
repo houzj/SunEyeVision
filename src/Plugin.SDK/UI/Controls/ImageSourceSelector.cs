@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -60,6 +60,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 是否为空图像源
         /// </summary>
         public bool IsEmpty => string.IsNullOrEmpty(NodeId);
+
+        /// <summary>
+        /// 数据类型（如 "Mat", "Image" 等）
+        /// </summary>
+        public string DataType { get; set; } = "Mat";
+
+        /// <summary>
+        /// 距离当前节点的距离（0=当前节点，1=直接父节点，以此类推）
+        /// 用于图像显示控件的排序
+        /// </summary>
+        public int Distance { get; set; }
+
+        /// <summary>
+        /// 节点是否已执行
+        /// </summary>
+        public bool HasExecuted { get; set; } = true;
     }
 
     /// <summary>
@@ -243,7 +259,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (d is ImageSourceSelector selector)
             {
-                // 如果当前选中的源不在新列表中，清除选择
+                // 如果当前选中的源不在新列表中，清除选择2
                 if (selector.SelectedImageSource != null && selector.AvailableImageSources != null)
                 {
                     bool found = false;

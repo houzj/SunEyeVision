@@ -59,7 +59,7 @@
 
             <!-- ROI编辑Tab -->
             <TabItem Header="ROI编辑">
-                <roi:ROIImageEditor x:Name="RoiEditor" Margin="0"/>
+                <roi:ROIImageEditor x:Name="RoiEditor" Margin="0" EnforceBoundaryConstraints="False"/>
             </TabItem>
 
             <!-- 结果Tab -->
