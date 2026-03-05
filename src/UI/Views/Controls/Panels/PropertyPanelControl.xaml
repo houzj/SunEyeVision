@@ -102,12 +102,25 @@
                                      FontSize="10"
                                      Padding="8"
                                      TextWrapping="Wrap"
-                                     Text="{Binding LogText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     Text="{Binding LogText, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True"
                                      VerticalAlignment="Stretch"
                                      MinHeight="200"
                                      Loaded="LogTextBox_Loaded"
-                                     TextChanged="LogTextBox_TextChanged"/>
+                                     TextChanged="LogTextBox_TextChanged"
+                                     Tag="{Binding ClearLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <TextBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="🗑️ 清空日志"
+                                                  Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                        <Separator/>
+                                        <MenuItem Header="📋 复制"
+                                                  Command="Copy"/>
+                                        <MenuItem Header="🔍 全选"
+                                                  Command="SelectAll"/>
+                                    </ContextMenu>
+                                </TextBox.ContextMenu>
+                            </TextBox>
                         </ScrollViewer>
                     </Grid>
                 </TabItem>

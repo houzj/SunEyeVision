@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.UI.Models;
@@ -24,6 +24,10 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             DependencyProperty.Register("LogText", typeof(string), typeof(PropertyPanelControl),
                 new PropertyMetadata("", OnLogTextChanged));
 
+        public static readonly DependencyProperty ClearLogCommandProperty =
+            DependencyProperty.Register("ClearLogCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
+                new PropertyMetadata(null));
+
         public ObservableCollection<PropertyGroup> PropertyGroups
         {
             get => (ObservableCollection<PropertyGroup>)GetValue(PropertyGroupsProperty);
@@ -40,6 +44,12 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         {
             get => (string)GetValue(LogTextProperty);
             set => SetValue(LogTextProperty, value);
+        }
+
+        public System.Windows.Input.ICommand ClearLogCommand
+        {
+            get => (System.Windows.Input.ICommand)GetValue(ClearLogCommandProperty);
+            set => SetValue(ClearLogCommandProperty, value);
         }
 
         public PropertyPanelControl()
@@ -66,7 +76,14 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         private static void OnLogTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            // 日志文本变化时无需特殊处理
+            if (d is PropertyPanelControl control)
+            {
+                // 日志文本变化时自动滚动到底部
+                if (control.LogScrollViewer != null && !control._isUpdatingLogText)
+                {
+                    control.LogScrollViewer.ScrollToEnd();
+                }
+            }
         }
 
         private void UpdateNoSelectionTextVisibility()

@@ -9,6 +9,7 @@ using SunEyeVision.UI.Extensions;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.Images;
 using SunEyeVision.UI.Services.Visualization;
+using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Views.Controls.Panels;
 
 // 别名解决命名冲突
@@ -41,10 +42,14 @@ namespace SunEyeVision.UI.Services.Workflow
         // 当前显示可视化元素的 Canvas 引用
         private System.Windows.Controls.Canvas? _overlayCanvas;
 
+        // 图像转换器池（用于优化Mat到BitmapSource的转换）
+        private readonly ImageConverterPool _imageConverterPool;
+
         public NodeResultManager(ViewModels.MainWindowViewModel viewModel)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _renderer = new VisualElementRenderer();
+            _imageConverterPool = new ImageConverterPool(maxCacheSize: 10);
         }
         
         /// <summary>
@@ -67,6 +72,9 @@ namespace SunEyeVision.UI.Services.Workflow
             if (node == null || result == null)
                 return;
 
+            // ★ 诊断日志：节点选中状态
+            _viewModel.AddLog($"[UpdateNodeResult] 节点: {node.Name}, IsSelected={node.IsSelected}");
+
             // 1. 缓存结果到节点
             node.LastResult = result;
 
@@ -76,13 +84,21 @@ namespace SunEyeVision.UI.Services.Workflow
             // 3. 如果当前节点被选中，立即刷新UI
             if (node.IsSelected)
             {
+                _viewModel.AddLog($"[UpdateNodeResult] ✓ 节点已选中，准备刷新显示");
                 RefreshResultDisplay(node, result);
+            }
+            else
+            {
+                _viewModel.AddLog($"[UpdateNodeResult] ⚠️ 节点未选中，跳过刷新");
             }
         }
 
         /// <summary>
         /// 刷新结果显示（调用时节点已选中）
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：先准备新数据，再更新UI，避免空白间隙
+        /// </remarks>
         public void RefreshResultDisplay(WorkflowNode node, ToolResults result)
         {
             if (result == null)
@@ -91,30 +107,77 @@ namespace SunEyeVision.UI.Services.Workflow
                 return;
             }
 
-            // 更新模块结果
-            var resultItems = result.GetResultItems();
-            _viewModel.UpdateCalculationResults(resultItems);
+            _viewModel.AddLog($"[RefreshResultDisplay] 开始刷新显示: {node.Name}");
 
-            // 更新图像结果（如果结果包含图像）
-            UpdateDisplayImage(result);
+            // ★ Step 1: 先准备所有新数据（不触发UI更新）
+            var resultItems = result.GetResultItems();
             
-            // 更新可视化元素
+            // 获取输出图像并转换为 BitmapSource
+            var outputImage = GetOutputImage(result);
+            BitmapSource? newProcessedImage = null;
+            bool hasNewImage = false;
+            
+            if (outputImage != null)
+            {
+                try
+                {
+                    newProcessedImage = outputImage.ToBitmapSource();
+                    hasNewImage = true;
+                    _viewModel.AddLog($"[RefreshResultDisplay] ✓ 图像转换成功，尺寸: {newProcessedImage.PixelWidth}x{newProcessedImage.PixelHeight}");
+                }
+                catch (Exception ex)
+                {
+                    _viewModel.AddLog($"[RefreshResultDisplay] ❌ 图像转换失败: {ex.Message}");
+                }
+            }
+            else
+            {
+                _viewModel.AddLog($"[RefreshResultDisplay] ⚠️ 结果中无图像输出");
+            }
+
+            // ★ Step 2: 批量更新UI（减少刷新次数）
+            _viewModel.UpdateCalculationResults(resultItems);
+            
+            // ★ Step 3: 设置新图像并显式更新 DisplayImage
+            if (hasNewImage && newProcessedImage != null)
+            {
+                // 设置处理后图像
+                _viewModel.ProcessedImage = newProcessedImage;
+                
+                // ★ 关键修复：显式设置 DisplayImage，不依赖 SelectedImageType setter
+                _viewModel.DisplayImage = newProcessedImage;
+                _viewModel.AddLog($"[RefreshResultDisplay] ✓ 已设置 ProcessedImage 和 DisplayImage");
+                
+                // 确保显示类型为 Processed（如果当前不是）
+                var processedType = _viewModel.ImageDisplayTypes
+                    .FirstOrDefault(t => t.Type == ViewModels.ImageDisplayType.Processed);
+                if (processedType != null && _viewModel.SelectedImageType?.Type != ViewModels.ImageDisplayType.Processed)
+                {
+                    _viewModel.SelectedImageType = processedType;
+                    _viewModel.AddLog($"[RefreshResultDisplay] ✓ 已切换到 Processed 类型");
+                }
+            }
+            
+            // ★ Step 4: 更新可视化元素
             UpdateVisualElements(result);
+            
+            _viewModel.AddLog($"[RefreshResultDisplay] ✓ 刷新完成");
         }
 
         /// <summary>
         /// 清空结果显示
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：不再主动清空图像，由调用方控制
+        /// </remarks>
         public void ClearResultDisplay()
         {
             _viewModel.CalculationResults.Clear();
             ClearVisualElements();
             
-            // 清空所有图像显示，避免显示已删除节点的旧图像
-            _viewModel.DisplayImage = null;
-            _viewModel.OriginalImage = null;
-            _viewModel.ProcessedImage = null;
-            _viewModel.ResultImage = null;
+            // ★ 优化：不再清空图像，保留上一个图像直到新图像到来
+            // 这样可以避免节点切换时的闪烁
+            // 图像清空由 UpdateDisplayImageSources 或特定逻辑控制
         }
         
         /// <summary>
@@ -260,32 +323,6 @@ namespace SunEyeVision.UI.Services.Workflow
         }
 
         /// <summary>
-        /// 更新显示图像
-        /// </summary>
-        private void UpdateDisplayImage(ToolResults result)
-        {
-            var outputImage = GetOutputImage(result);
-            if (outputImage != null)
-            {
-                try
-                {
-                    _viewModel.ProcessedImage = outputImage.ToBitmapSource();
-                    // 自动切换到处理图
-                    var processedType = _viewModel.ImageDisplayTypes
-                        .FirstOrDefault(t => t.Type == ViewModels.ImageDisplayType.Processed);
-                    if (processedType != null)
-                    {
-                        _viewModel.SelectedImageType = processedType;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[NodeResultManager] 图像转换失败: {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
         /// 从结果中获取输出图像
         /// </summary>
         private Mat? GetOutputImage(ToolResults result)
@@ -306,6 +343,80 @@ namespace SunEyeVision.UI.Services.Workflow
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 从缓存更新节点图像（优化版本）
+        /// </summary>
+        /// <param name="node">工作流节点</param>
+        /// <param name="cachedResult">缓存的执行结果</param>
+        public void UpdateNodeImageFromCache(WorkflowNode node, CachedExecutionResult cachedResult)
+        {
+            if (node == null || cachedResult == null || cachedResult.ProcessedImage == null)
+                return;
+
+            try
+            {
+                // 直接使用缓存的BitmapSource，无需重新转换
+                var bitmapSource = cachedResult.ProcessedImage;
+
+                // 更新 OutputCache
+                var outputCache = node.EnsureOutputCache();
+                var outputImageInfo = new OutputImageInfo
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = $"Cached_{DateTime.Now:HHmmss}",
+                    SourceFilePath = "",
+                    Image = bitmapSource,
+                    ImageSourceId = cachedResult.ImageSourceId,
+                    Timestamp = DateTime.Now
+                };
+
+                outputCache.AddOutputImage(outputImageInfo);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NodeResultManager] ★ 缓存更新: 节点 {node.Name}, " +
+                    $"执行时间: {cachedResult.ExecutionTimeMs}ms, " +
+                    $"缓存命中");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] 缓存更新失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取节点的输出Mat（用于缓存）
+        /// </summary>
+        /// <param name="node">工作流节点</param>
+        /// <returns>输出Mat，如果无输出返回null</returns>
+        public Mat? GetNodeOutputMat(WorkflowNode node)
+        {
+            if (node?.LastResult == null)
+                return null;
+
+            return GetOutputImage(node.LastResult);
+        }
+
+        /// <summary>
+        /// 快速转换Mat到BitmapSource（使用图像转换池优化）
+        /// </summary>
+        /// <param name="mat">OpenCV Mat</param>
+        /// <returns>BitmapSource</returns>
+        public BitmapSource? ConvertMatToBitmapSource(Mat? mat)
+        {
+            if (mat == null || mat.Empty())
+                return null;
+
+            try
+            {
+                return _imageConverterPool.ConvertToBitmapSource(mat);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] 图像转换失败: {ex.Message}");
+                return null;
+            }
         }
     }
 }

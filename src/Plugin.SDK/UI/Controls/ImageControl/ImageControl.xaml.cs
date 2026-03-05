@@ -41,6 +41,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private int _originalIndex;
         private bool _parentIsPanel;  // 标记父容器是否为 Panel
         private BitmapSource? _savedSourceImage;  // 全屏前保存的图像引用
+        private object? _savedDataContext;  // 保存原 DataContext
 
         #endregion
 
@@ -642,6 +643,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
             
             AddLog($"✓ 父容器类型: {_originalParent.GetType().Name}");
+            
+            // ★★★ 关键修复：在移除父容器之前保存 DataContext ★★★
+            _savedDataContext = _originalParent.DataContext ?? this.DataContext;
+            AddLog($"保存 DataContext: {_savedDataContext?.GetType().Name ?? "null"}");
 
             // 判断父容器类型并保存状态
             if (_originalParent is Panel panel)
@@ -671,7 +676,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 WindowState = WindowState.Maximized,
                 Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)),
                 Content = this,
-                Title = "全屏预览"
+                Title = "全屏预览",
+                DataContext = _savedDataContext  // ★ 关键：设置 DataContext 保持绑定有效
             };
 
             _fullscreenWindow.KeyDown += (s, e) =>
@@ -721,6 +727,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             // 防止重复调用
             _isFullscreen = false;
 
+            // ★ 保存当前图像引用（如果绑定丢失时恢复用）
+            var imageToRestore = SourceImage ?? _savedSourceImage;
+            AddLog($"保存图像引用用于恢复: {(imageToRestore != null ? $"{imageToRestore.PixelWidth}x{imageToRestore.PixelHeight}" : "null")}");
+
             if (_fullscreenWindow != null)
             {
                 // 先取消订阅事件，防止重复触发
@@ -730,9 +740,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _fullscreenWindow = null;
                 AddLog($"✓ 全屏窗口已关闭");
             }
-
-            // 清理保存的图像引用
-            _savedSourceImage = null;
 
             // 检查控件是否已经有父容器
             if (Parent != null)
@@ -745,22 +752,46 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_parentIsPanel && _originalParent is Panel panel)
             {
                 panel.Children.Insert(_originalIndex, this);
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 已插入回 Panel，索引: {_originalIndex}");
+                AddLog($"✓ 已插入回 Panel，索引: {_originalIndex}");
             }
             else if (!_parentIsPanel && _originalParent is Decorator decorator)
             {
                 decorator.Child = this;
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ✓ 已设置回 Decorator");
+                AddLog($"✓ 已设置回 Decorator");
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[ImageControl] ❌ 无法恢复到父容器");
+                AddLog($"❌ 无法恢复到父容器");
             }
             
-            // 返回原父容器后，自适应图像 - 使用 Loaded 优先级确保布局完成
+            // ★★★ 关键修复：恢复父容器的 DataContext ★★★
+            if (_originalParent != null && _savedDataContext != null)
+            {
+                _originalParent.DataContext = _savedDataContext;
+                AddLog($"✓ 已恢复父容器 DataContext: {_savedDataContext?.GetType().Name ?? "null"}");
+            }
+            
+            // 返回原父容器后，检查绑定是否恢复并自适应图像
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                AddLog($"[延迟检查] SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
+                AddLog($"[延迟检查] this.DataContext: {this.DataContext?.GetType().Name ?? "null"}");
+                AddLog($"[延迟检查] _originalParent.DataContext: {(_originalParent as FrameworkElement)?.DataContext?.GetType().Name ?? "null"}");
+                
+                // ★ 关键修复：如果绑定未恢复，手动设置图像
+                if (SourceImage == null && imageToRestore != null)
+                {
+                    AddLog($"[延迟检查] ⚠ 绑定未恢复，手动设置图像");
+                    SourceImage = imageToRestore;
+                }
+                
+                // 清理保存的引用
+                _savedSourceImage = null;
+                _savedDataContext = null;
+                
+                // 自适应图像
                 FitToWindow();
+                AddLog($"[延迟检查] ✓ FitToWindow 完成");
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 

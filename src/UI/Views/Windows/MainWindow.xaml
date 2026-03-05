@@ -910,7 +910,8 @@
                             <!-- 属性内容 -->
                             <panels:PropertyPanelControl
                                 PropertyGroups="{Binding PropertyGroups}"
-                                LogText="{Binding LogText}"
+                                LogText="{Binding LogText, Mode=OneWay}"
+                                ClearLogCommand="{Binding ClearLogCommand}"
                                 VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
                                 x:Name="PropertyPanelContent"/>

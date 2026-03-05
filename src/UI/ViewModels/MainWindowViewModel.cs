@@ -24,6 +24,7 @@ using SunEyeVision.UI.Views.Windows;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.UI.Converters.Path;
+using SunEyeVision.UI.Services.Performance;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
@@ -96,6 +97,9 @@ namespace SunEyeVision.UI.ViewModels
 
         // 节点结果管理
         private readonly Services.Workflow.NodeResultManager _nodeResultManager;
+
+        // 工作流执行协调器（图像切换优化）
+        private WorkflowExecutionOrchestrator? _executionOrchestrator;
 
         // 已打开的调试窗口（全局单例）
         private Window? _openDebugWindow;
@@ -270,6 +274,9 @@ namespace SunEyeVision.UI.ViewModels
         /// 强制选中节点（即使引用相同也强制更新显示）
         /// 用于双击节点时确保图像显示正确更新
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：移除不必要的清空操作，直接刷新显示
+        /// </remarks>
         /// <param name="node">要选中的节点</param>
         public void ForceSelectNode(Models.WorkflowNode node)
         {
@@ -280,8 +287,7 @@ namespace SunEyeVision.UI.ViewModels
             }
             else
             {
-                // 即使引用相同，也强制更新显示
-                _nodeResultManager.ClearResultDisplay();
+                // ★ 优化：即使引用相同，也只刷新结果，不清空（防止闪烁）
                 if (node?.LastResult != null)
                 {
                     _nodeResultManager.RefreshResultDisplay(node, node.LastResult);
@@ -517,46 +523,37 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 原始图像
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：setter 不再自动更新 DisplayImage，由调用方显式控制
+        /// </remarks>
         public BitmapSource? OriginalImage
         {
             get => _originalImage;
-            set
-            {
-                if (SetProperty(ref _originalImage, value))
-                {
-                    UpdateDisplayImage();
-                }
-            }
+            set => SetProperty(ref _originalImage, value);
         }
 
         /// <summary>
         /// 处理后图像
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：setter 不再自动更新 DisplayImage，由调用方显式控制
+        /// </remarks>
         public BitmapSource? ProcessedImage
         {
             get => _processedImage;
-            set
-            {
-                if (SetProperty(ref _processedImage, value))
-                {
-                    UpdateDisplayImage();
-                }
-            }
+            set => SetProperty(ref _processedImage, value);
         }
 
         /// <summary>
         /// 结果图像
         /// </summary>
+        /// <remarks>
+        /// ★ 防闪烁优化：setter 不再自动更新 DisplayImage，由调用方显式控制
+        /// </remarks>
         public BitmapSource? ResultImage
         {
             get => _resultImage;
-            set
-            {
-                if (SetProperty(ref _resultImage, value))
-                {
-                    UpdateDisplayImage();
-                }
-            }
+            set => SetProperty(ref _resultImage, value);
         }
 
         /// <summary>
@@ -605,6 +602,41 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
+        /// <summary>
+        /// 清空日志
+        /// </summary>
+        public void ClearLog()
+        {
+            // 强制清空日志，确保绑定更新
+            _logText = string.Empty;
+            OnPropertyChanged(nameof(LogText));
+            
+            // 输出调试信息
+            System.Diagnostics.Debug.WriteLine($"[ClearLog] 日志已清空，LogText长度: {LogText?.Length ?? 0}");
+        }
+
+        /// <summary>
+        /// 获取工作流执行协调器
+        /// </summary>
+        public WorkflowExecutionOrchestrator? ExecutionOrchestrator => _executionOrchestrator;
+
+        /// <summary>
+        /// 获取缓存统计信息
+        /// </summary>
+        public (int Count, long MemoryBytes, double MemoryMB) GetCacheStatistics()
+        {
+            return _executionOrchestrator?.GetCacheStatistics() ?? (0, 0, 0);
+        }
+
+        /// <summary>
+        /// 清空执行缓存
+        /// </summary>
+        public void ClearExecutionCache()
+        {
+            _executionOrchestrator?.ClearCache();
+            AddLog("🗑️ 已清空执行缓存");
+        }
+
         public ICommand NewWorkflowCommand { get; }
         public ICommand OpenWorkflowCommand { get; }
         public ICommand SaveWorkflowCommand { get; }
@@ -638,6 +670,8 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand BrowseImageCommand { get; }
         public ICommand LoadImageCommand { get; }
         public ICommand ClearImageCommand { get; }
+
+        public ICommand ClearLogCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -679,6 +713,9 @@ namespace SunEyeVision.UI.ViewModels
 
             // 初始化节点结果管理器
             _nodeResultManager = new Services.Workflow.NodeResultManager(this);
+
+            // 初始化工作流执行协调器（图像切换优化）
+            _executionOrchestrator = new WorkflowExecutionOrchestrator(_nodeResultManager, maxCacheSize: 50, maxMemoryMB: 100);
 
             // 订阅执行管理器事件
             _executionManager.WorkflowExecutionStarted += OnWorkflowExecutionStarted;
@@ -737,6 +774,9 @@ namespace SunEyeVision.UI.ViewModels
             BrowseImageCommand = new RelayCommand(ExecuteBrowseImage);
             LoadImageCommand = new RelayCommand(ExecuteLoadImage);
             ClearImageCommand = new RelayCommand(ExecuteClearImage);
+
+            // 日志操作
+            ClearLogCommand = new RelayCommand(_ => ClearLog());
         }
 
         /// <summary>
@@ -2452,6 +2492,15 @@ namespace SunEyeVision.UI.ViewModels
                     Value = displayValue
                 });
             }
+        }
+
+        /// <summary>
+        /// 清空计算结果面板
+        /// </summary>
+        public void ClearCalculationResults()
+        {
+            CalculationResults.Clear();
+            AddLog("已清空信息面板");
         }
 
         /// <summary>
