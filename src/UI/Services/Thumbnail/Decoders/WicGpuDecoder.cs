@@ -15,7 +15,8 @@ namespace SunEyeVision.UI.Services.Thumbnail.Decoders
     /// </summary>
     public class WicGpuDecoder : IThumbnailDecoder
     {
-        private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(4, 4);
+        // 优化：提升并发限制到8，充分利用现代GPU解码能力
+        private static readonly SemaphoreSlim _gpuDecodeSemaphore = new SemaphoreSlim(8, 8);
         private static int _waitingCount = 0;
         private static int _decodingCount = 0;
         

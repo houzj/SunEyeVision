@@ -211,10 +211,9 @@ namespace SunEyeVision.UI.Services.Thumbnail
         private CancellationTokenSource? _cancellationTokenSource;
         private int _activeTaskCount = 0;
         
-        // ?P0优化：分离的高优先级线程序?
-        private readonly SemaphoreSlim _highPrioritySemaphore;
-        private readonly SemaphoreSlim _normalPrioritySemaphore;
-        private const int HIGH_PRIORITY_THREADS = 4; // ?协调GPU解码能力：与WicGpuDecoder并发限制(4)匹配，避免队列积?
+        // 简化架构：统一线程池，与 WicGpuDecoder 并发限制(8)匹配
+        private readonly SemaphoreSlim _loadSemaphore;
+        private const int MAX_CONCURRENT_LOADS = 8;
 
         // 集合引用（支持批量操作集合）
         private BatchObservableCollection<ImageInfo>? _imageCollection;
@@ -335,19 +334,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
         #endregion
 
-        #region 构造函?
+        #region 构造函数
 
         public PriorityThumbnailLoader()
         {
-            // ?P0+P2优化：计算总线程数并分离线程池
-            int totalThreads = Math.Max(8, Environment.ProcessorCount);
-            int normalThreads = Math.Max(4, totalThreads - HIGH_PRIORITY_THREADS);
+            // 简化架构：统一线程池，与 WicGpuDecoder 并发限制(8)匹配
+            _loadSemaphore = new SemaphoreSlim(MAX_CONCURRENT_LOADS);
             
-            // 初始化分离的线程序?
-            _highPrioritySemaphore = new SemaphoreSlim(HIGH_PRIORITY_THREADS);
-            _normalPrioritySemaphore = new SemaphoreSlim(normalThreads);
-            
-            Debug.WriteLine($"[PriorityLoader] 🔧线程池分组🔧 - 高优先级:{HIGH_PRIORITY_THREADS}, 普通:{normalThreads}, 总计:{totalThreads}");
+            Debug.WriteLine($"[PriorityLoader] 简化线程池配置 - 并发限制:{MAX_CONCURRENT_LOADS}");
         }
 
         #endregion
@@ -1370,18 +1364,13 @@ namespace SunEyeVision.UI.Services.Thumbnail
 
                 if (task == null)
                 {
-                    // 队列为空，等待一下再检查?
+                    // 队列为空，等待一下再检查
                     await Task.Delay(50, cancellationToken);
                     continue;
                 }
 
-                // ?P0优化：根据优先级选择线程序?
-                // ?P2优化：Idle优先级使用普通线程池，且检查是否有更高优先级任务?
-                var semaphore = task.Priority <= LoadPriority.High 
-                    ? _highPrioritySemaphore 
-                    : _normalPrioritySemaphore;
-                
-                await semaphore.WaitAsync(cancellationToken);
+                // 简化架构：统一信号量，不再区分高/普通优先级
+                await _loadSemaphore.WaitAsync(cancellationToken);
 
                 _ = Task.Run(async () =>
                 {
@@ -1392,14 +1381,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
                         await LoadSingleThumbnailAsync(task, cancellationToken);
                         taskSw.Stop();
 
-                        // 调整并发布?
+                        // 调整并发
                         AdjustConcurrencyIfNeeded(taskSw.ElapsedMilliseconds);
 
                         Interlocked.Increment(ref processedCount);
                     }
                     catch (OperationCanceledException)
                     {
-                        // 取消时不做处理?
+                        // 取消时不做处理
                     }
                     catch (Exception ex)
                     {
@@ -1407,7 +1396,7 @@ namespace SunEyeVision.UI.Services.Thumbnail
                     }
                     finally
                     {
-                        semaphore.Release();
+                        _loadSemaphore.Release();
                         Interlocked.Decrement(ref _activeTaskCount);
                     }
                 }, cancellationToken);
@@ -1950,17 +1939,16 @@ namespace SunEyeVision.UI.Services.Thumbnail
             {
                 _cancellationTokenSource?.Cancel();
                 _cancellationTokenSource?.Dispose();
-                _highPrioritySemaphore?.Dispose();
-                _normalPrioritySemaphore?.Dispose();
+                _loadSemaphore?.Dispose();
                 _uiUpdateTimer?.Stop();
-                _reserveActivationTimer?.Stop(); // ?P2优化：清理后备区域激活定时器
+                _reserveActivationTimer?.Stop();
 
                 lock (_queueLock)
                 {
                     _loadQueue.Clear();
                     _queuedIndices.Clear();
                     _loadedIndices.Clear();
-                    _decodingIndices.Clear();  // ?新增：清理解码中索引
+                    _decodingIndices.Clear();
                 }
 
                 _disposed = true;

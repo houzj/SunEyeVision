@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Media.Imaging;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Models.Imaging;
 using SunEyeVision.UI.Services.Thumbnail;
 using SunEyeVision.UI.Views.Controls.Panels;
 
@@ -264,6 +265,7 @@ namespace SunEyeVision.UI.Models
     public class OutputImageInfo : INotifyPropertyChanged
     {
         private BitmapSource? _image;
+        private string? _imageSourceId;
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
@@ -271,7 +273,23 @@ namespace SunEyeVision.UI.Models
         public DateTime Timestamp { get; set; } = DateTime.Now;
 
         /// <summary>
-        /// 输出图像
+        /// 关联的图像源ID（用于从ImageSourceManager获取图像）
+        /// </summary>
+        public string? ImageSourceId
+        {
+            get => _imageSourceId;
+            set
+            {
+                if (_imageSourceId != value)
+                {
+                    _imageSourceId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 输出图像（向后兼容，推荐使用ImageSourceId）
         /// </summary>
         public BitmapSource? Image
         {

@@ -7,8 +7,12 @@ using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services.Images;
 using SunEyeVision.UI.Services.Visualization;
 using SunEyeVision.UI.Views.Controls.Panels;
+
+// 别名解决命名冲突
+using IOPath = System.IO.Path;
 
 namespace SunEyeVision.UI.Services.Workflow
 {
@@ -167,6 +171,7 @@ namespace SunEyeVision.UI.Services.Workflow
         /// <remarks>
         /// 重构说明：
         /// - 新架构：更新 OutputCache（输出缓存），不修改 InputSource（输入源）
+        /// - ImageSource集成：创建MemoryImageSource并注册到ImageSourceManager
         /// - 向后兼容：同时更新 ImageData（已过时）
         /// - 设计原则：输入和输出分离，执行结果不应修改用户选择的输入数据
         /// </remarks>
@@ -190,12 +195,36 @@ namespace SunEyeVision.UI.Services.Workflow
                 // 转换为 BitmapSource
                 var bitmapSource = outputImage.ToBitmapSource();
 
+                // ========== 新架构：使用ImageSourceManager ==========
+                // 创建唯一ID
+                var imageSourceId = $"node_{node.Id}_output_{Guid.NewGuid():N}";
+                
+                // 通过ImageSourceManager创建内存图像源
+                var imageSource = ImageSourceManager.Instance.CreateFromMemory(
+                    outputImage.Clone(), // 克隆Mat，避免所有权问题
+                    imageSourceId
+                );
+                
+                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ ImageSource已创建: {imageSourceId}");
+
                 // ========== 新架构：更新 OutputCache ==========
                 var outputCache = node.EnsureOutputCache();
-                outputCache.Update(result, bitmapSource, filePath);
+                
+                // 创建输出图像信息
+                var outputImageInfo = new OutputImageInfo
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = !string.IsNullOrEmpty(filePath) ? IOPath.GetFileName(filePath) : $"Output_{DateTime.Now:HHmmss}",
+                    SourceFilePath = filePath,
+                    Image = bitmapSource,
+                    ImageSourceId = imageSourceId, // ★ 关联ImageSource
+                    Timestamp = DateTime.Now
+                };
+                
+                outputCache.AddOutputImage(outputImageInfo);
 
                 // ★ 关键日志：新架构更新成功
-                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ 新架构: 节点 {node.Name} OutputCache 已更新, 图像数={outputCache.Count}");
+                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ 新架构: 节点 {node.Name} OutputCache 已更新, 图像数={outputCache.Count}, ImageSourceId={imageSourceId}");
 
                 // ========== 向后兼容：更新 ImageData（已过时）==========
                 // 注意：这里不再清空 ImageData，而是追加图像
@@ -206,7 +235,7 @@ namespace SunEyeVision.UI.Services.Workflow
                 var imageInfo = new ImageInfo
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Name = !string.IsNullOrEmpty(filePath) ? System.IO.Path.GetFileName(filePath) : $"Image_{DateTime.Now:HHmmss}",
+                    Name = !string.IsNullOrEmpty(filePath) ? IOPath.GetFileName(filePath) : $"Image_{DateTime.Now:HHmmss}",
                     FilePath = filePath,
                     Thumbnail = bitmapSource,
                     FullImage = bitmapSource,

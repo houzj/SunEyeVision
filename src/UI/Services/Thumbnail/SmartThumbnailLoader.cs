@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
@@ -30,16 +30,15 @@ namespace SunEyeVision.UI.Services.Thumbnail
     public class SmartThumbnailLoader : IDisposable
     {
         private readonly ThumbnailCacheManager _cacheManager;
-        private readonly IThumbnailDecoder _gpuDecoder;  // ?GPU解码器（高优先级任务?
-        private readonly IThumbnailDecoder _cpuDecoder;  // ?CPU解码器（普通任务）
-        private readonly IFileAccessManager? _fileAccessManager; // ?文件访问管理?
+        private readonly IThumbnailDecoder _decoder;  // 单一解码器（GPU优先，自动降级CPU）
+        private readonly IFileAccessManager? _fileAccessManager; // 文件访问管理
         private readonly ConcurrentDictionary<string, byte[]> _prefetchCache;
         private bool _disposed;
 
         // 统计信息
         private int _cacheHits;
-        private int _gpuHits;
-        private int _originalHits; // ?P1优化：新增原图加载统计?
+        private int _decodeHits;  // 解码器命中统计
+        private int _originalHits; // 原图加载统计
         private int _misses;
         private long _totalLoadTimeMs;
         
@@ -52,11 +51,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
         /// </summary>
         public string GetStatistics()
         {
-            var total = _cacheHits + _gpuHits + _originalHits + _misses;
+            var total = _cacheHits + _decodeHits + _originalHits + _misses;
             if (total == 0) return "No load records";
 
             var avgTime = total > 0 ? (double)_totalLoadTimeMs / total : 0;
-            return $"Cache:{_cacheHits} GPU:{_gpuHits} Original:{_originalHits} Miss:{_misses} Avg:{avgTime:F1}ms";
+            return $"Cache:{_cacheHits} Decode:{_decodeHits} Original:{_originalHits} Miss:{_misses} Avg:{avgTime:F1}ms";
         }
 
         /// <summary>
@@ -68,35 +67,22 @@ namespace SunEyeVision.UI.Services.Thumbnail
         }
 
         /// <summary>
-        /// 构造函?- 方案二：双解码器架构
-        /// 高优先级任务使用GPU解码器，普通任务使用CPU解码?
+        /// 构造函数 - 简化单解码器架构
+        /// 使用单一解码器（WicGpuDecoder），GPU优先自动降级CPU
         /// </summary>
         public SmartThumbnailLoader(
             ThumbnailCacheManager cacheManager,
-            IThumbnailDecoder gpuDecoder,
-            IThumbnailDecoder cpuDecoder,
+            IThumbnailDecoder decoder,
             IFileAccessManager? fileAccessManager = null)
         {
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
-            _gpuDecoder = gpuDecoder ?? throw new ArgumentNullException(nameof(gpuDecoder));
-            _cpuDecoder = cpuDecoder ?? throw new ArgumentNullException(nameof(cpuDecoder));
+            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _fileAccessManager = fileAccessManager;
             _prefetchCache = new ConcurrentDictionary<string, byte[]>();
             
-            Debug.WriteLine("[SmartThumbnailLoader] Dual decoder init completed");
-            Debug.WriteLine($"  GPU Decoder: {_gpuDecoder.GetType().Name}");
-            Debug.WriteLine($"  CPU Decoder: {_cpuDecoder.GetType().Name}");
+            Debug.WriteLine("[SmartThumbnailLoader] 单解码器架构初始化完成");
+            Debug.WriteLine($"  Decoder: {_decoder.GetType().Name}");
             Debug.WriteLine($"  FileAccessManager: {(_fileAccessManager != null ? "Enabled" : "Disabled")}");
-        }
-        
-        /// <summary>
-        /// 兼容旧构造函?- 单解码器（高优先级和普通任务共用同一解码器）
-        /// </summary>
-        [Obsolete("建议使用双解码器构造函数以提高性能")]
-        public SmartThumbnailLoader(
-            ThumbnailCacheManager cacheManager,
-            IThumbnailDecoder decoder) : this(cacheManager, decoder, decoder, null)
-        {
         }
 
         /// <summary>
@@ -232,19 +218,18 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 
                 if (result != null)
                 {
-                    // 检查解码结果有效果?
+                    // 检查解码结果有效性
                     if (result.Width > 0 && result.Height > 0)
                     {
                         method = "Decoder";
-                        Interlocked.Increment(ref _gpuHits);
-                        // ?方案二日志：显示使用的解码器类型
-                        string decoderName = isHighPriority ? _gpuDecoder.GetType().Name : _cpuDecoder.GetType().Name;
-                        Debug.WriteLine($"[Diagnostics] LoadThumbnail details: CacheQuery={cacheQueryMs}ms, Decode={gpuDecodeMs}ms, Decoder={decoderName}, Priority={isHighPriority} | file={System.IO.Path.GetFileName(filePath)}");
+                        Interlocked.Increment(ref _decodeHits);
+                        // 单解码器架构日志
+                        Debug.WriteLine($"[Diagnostics] LoadThumbnail details: CacheQuery={cacheQueryMs}ms, Decode={gpuDecodeMs}ms, Decoder={_decoder.GetType().Name}, Priority={isHighPriority} | file={System.IO.Path.GetFileName(filePath)}");
                         goto SUCCESS;
                     }
                     else
                     {
-                        Debug.WriteLine($"[SmartLoader] ?解码器结果无?size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
+                        Debug.WriteLine($"[SmartLoader] 解码器结果无效 size={result.Width}x{result.Height} file={System.IO.Path.GetFileName(filePath)}");
                         result = null;
                     }
                 }
@@ -312,10 +297,11 @@ namespace SunEyeVision.UI.Services.Thumbnail
             return await Task.Run(() => LoadThumbnail(filePath, size, isHighPriority), cancellationToken);
         }
 
+
         /// <summary>
-        /// 尝试解码器解码（L3策略?
-        /// ?方案二：根据优先级选择GPU或CPU解码?
-        /// ?文件安全访问：通过 FileAccessManager 保护文件访问
+        /// 尝试解码器解码（L3策略）
+        /// 简化架构：单一解码器，GPU优先自动降级CPU
+        /// 文件安全访问：通过 FileAccessManager 保护文件访问
         /// </summary>
         private BitmapImage? TryLoadFromDecoder(string filePath, int size, bool verboseLog = false, bool isHighPriority = false)
         {
@@ -324,23 +310,17 @@ namespace SunEyeVision.UI.Services.Thumbnail
                 byte[]? prefetchedData = null;
                 _prefetchCache.TryRemove(filePath, out prefetchedData);
 
-                // ?方案二核心：根据优先级选择解码?
-                // 高优先级任务 ?GPU解码器（WicGpuDecoder?槽位专用?
-                // 普通任务??CPU解码器（ImageSharpDecoder，不占用GPU资源?
-                var decoder = isHighPriority ? _gpuDecoder : _cpuDecoder;
+                // 单一解码器架构：统一使用 WicGpuDecoder
+                // 内部已实现 GPU 优先 + 自动 CPU 降级
+                BitmapImage? result = _decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
                 
-                // ?核心修复：始终使用安全解码方法?
-                // DecodeThumbnailSafe 内部会使?CleanupScheduler 保护文件
-                // 无论是否?FileAccessManager，都会调试?MarkFileInUse/ReleaseFile
-                BitmapImage? result = decoder.DecodeThumbnailSafe(_fileAccessManager, filePath, size, prefetchedData, verboseLog, isHighPriority);
-                
-                // 解码成功后异步保存到缓存（不阻塞显示例?
+                // 解码成功后异步保存到缓存（不阻塞显示）
                 if (result != null)
                 {
                     _cacheManager.SaveToCacheNonBlocking(filePath, result);
                 }
                 
-                return result;  // 立即返回，不等待磁盘写入
+                return result;
             }
             catch
             {
@@ -478,13 +458,14 @@ namespace SunEyeVision.UI.Services.Thumbnail
             _prefetchCache.Clear();
         }
 
+
         /// <summary>
         /// 重置统计信息
         /// </summary>
         public void ResetStatistics()
         {
             _cacheHits = 0;
-            _gpuHits = 0;
+            _decodeHits = 0;
             _originalHits = 0;
             _misses = 0;
             _totalLoadTimeMs = 0;
