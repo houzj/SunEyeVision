@@ -63,7 +63,7 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="parameters">参数</param>
         /// <param name="inputImage">输入图像（可选）</param>
         /// <returns>运行结果</returns>
-        public RunResult Run(ITool tool, ToolParameters parameters, Mat? inputImage = null)
+        public RunResult Run(IToolPlugin tool, ToolParameters parameters, Mat? inputImage = null)
         {
             if (_isRunning)
             {
@@ -103,7 +103,7 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="parameters">参数</param>
         /// <param name="inputImage">输入图像（可选）</param>
         /// <returns>运行结果</returns>
-        public async Task<RunResult> RunAsync(ITool tool, ToolParameters parameters, Mat? inputImage = null)
+        public async Task<RunResult> RunAsync(IToolPlugin tool, ToolParameters parameters, Mat? inputImage = null)
         {
             if (_isRunning)
             {
@@ -158,7 +158,7 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="inputImage">输入图像（可选）</param>
         /// <returns>运行结果</returns>
         public RunResult<TResult> Run<TParams, TResult>(
-            ITool<TParams, TResult> tool,
+            IToolPlugin<TParams, TResult> tool,
             TParams parameters,
             Mat? inputImage = null)
             where TParams : ToolParameters, new()
@@ -201,7 +201,7 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="inputImage">输入图像（可选）</param>
         /// <returns>运行结果</returns>
         public async Task<RunResult<TResult>> RunAsync<TParams, TResult>(
-            ITool<TParams, TResult> tool,
+            IToolPlugin<TParams, TResult> tool,
             TParams parameters,
             Mat? inputImage = null)
             where TParams : ToolParameters, new()
@@ -259,7 +259,7 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="tool">工具实例</param>
         /// <param name="parameters">参数</param>
         /// <returns>验证结果</returns>
-        public bool Validate(ITool tool, ToolParameters parameters)
+        public bool Validate(IToolPlugin tool, ToolParameters parameters)
         {
             if (parameters == null)
                 return false;

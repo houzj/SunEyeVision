@@ -3,14 +3,59 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="ROI裁剪工具调试" Height="500" Width="450">
+        Title="ROI裁剪工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <TabItem Header="参数配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <TextBlock Text="ROI区域设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="XParam"
+                        Label="X坐标"
+                        DataType="Double"
+                        DoubleMinimum="0"
+                        DoubleMaximum="1000"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="YParam"
+                        Label="Y坐标"
+                        DataType="Double"
+                        DoubleMinimum="0"
+                        DoubleMaximum="1000"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="WidthParam"
+                        Label="宽度"
+                        DataType="Double"
+                        DoubleMinimum="1"
+                        DoubleMaximum="2000"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="HeightParam"
+                        Label="高度"
+                        DataType="Double"
+                        DoubleMinimum="1"
+                        DoubleMaximum="2000"
+                        ShowSlider="True"/>
+                    
+                    <controls:LabeledControl Label="归一化坐标">
+                        <CheckBox x:Name="NormalizeCheckBox" 
+                                  VerticalAlignment="Center"/>
+                    </controls:LabeledControl>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

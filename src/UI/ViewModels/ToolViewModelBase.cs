@@ -391,7 +391,11 @@ namespace SunEyeVision.UI.ViewModels
                 param.Type,
                 param.Value,
                 param.Description,
-                _dataSourceQueryService);
+                _dataSourceQueryService,
+                param.Min,
+                param.Max,
+                param.Step,
+                param.Unit);
         }
 
         #endregion

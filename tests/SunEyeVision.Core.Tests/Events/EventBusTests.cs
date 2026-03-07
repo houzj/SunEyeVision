@@ -1,7 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using SunEyeVision.Core.Events;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using Moq;
 
 namespace SunEyeVision.Core.Tests.Events;

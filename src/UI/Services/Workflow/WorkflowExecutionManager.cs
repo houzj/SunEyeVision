@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Infrastructure;
 using SunEyeVision.UI.Services.Workflow;
+using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.Services.Workflow
 {
@@ -268,14 +270,8 @@ namespace SunEyeVision.UI.Services.Workflow
                 }
 
                 InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建日志器...")));
-                // 创建简单的日志输出器
-                var logger = new SimpleLogger();
-
-                // 将日志转发到UI线程
-                logger.LogMessage += (sender, message) =>
-                {
-                    InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, message)));
-                };
+                // 使用全局日志器（自动转发到UILogWriter）
+                var logger = VisionLogger.Instance.ForSource(workflow.Name);
 
                 InvokeOnUI(() => WorkflowExecutionProgress?.Invoke(this, new WorkflowExecutionProgressEventArgs(workflow.Name, "[EXEC] 正在创建工作流引擎...")));
                 var (workflowEngine, executionEngine, pluginManager) = WorkflowEngineFactory.CreateEngineSuite(logger);
@@ -380,7 +376,7 @@ namespace SunEyeVision.UI.Services.Workflow
         /// </summary>
         private SunEyeVision.Workflow.AlgorithmNode? CreateAlgorithmNodeFromUiNode(
             Models.WorkflowNode uiNode, 
-            SunEyeVision.Core.Interfaces.ILogger logger)
+            SunEyeVision.Plugin.SDK.Logging.ILogger logger)
         {
             try
             {
@@ -404,8 +400,13 @@ namespace SunEyeVision.UI.Services.Workflow
                         // 获取运行时图像路径
                         if (_runtimeParameters.TryGetValue("CurrentImagePath", out var imagePath) && imagePath is string path && !string.IsNullOrEmpty(path))
                         {
-                            node.Parameters.Set("FilePath", path);
-                            logger.LogInfo($"★ 注入图像路径到节点 {uiNode.Name}: {path}");
+                            // 使用反射设置属性值
+                            var prop = node.Parameters.GetType().GetProperty("FilePath");
+                            if (prop != null && prop.CanWrite)
+                            {
+                                prop.SetValue(node.Parameters, path);
+                                logger.LogInfo($"★ 注入图像路径到节点 {uiNode.Name}: {path}");
+                            }
                         }
                     }
 
@@ -551,47 +552,6 @@ namespace SunEyeVision.UI.Services.Workflow
                 }
                 _cancellationTokens.Clear();
             }
-        }
-    }
-
-    /// <summary>
-    /// 简单的日志输出器
-    /// </summary>
-    public class SimpleLogger : SunEyeVision.Core.Interfaces.ILogger
-    {
-        public event EventHandler<string>? LogMessage;
-
-        public void LogDebug(string message)
-        {
-            var log = $"[DEBUG] {DateTime.Now:HH:mm:ss.fff} {message}";
-            Console.WriteLine(log);
-            LogMessage?.Invoke(this, log);
-        }
-
-        public void LogInfo(string message)
-        {
-            var log = $"[INFO] {DateTime.Now:HH:mm:ss.fff} {message}";
-            Console.WriteLine(log);
-            LogMessage?.Invoke(this, log);
-        }
-
-        public void LogWarning(string message)
-        {
-            var log = $"[WARN] {DateTime.Now:HH:mm:ss.fff} {message}";
-            Console.WriteLine(log);
-            LogMessage?.Invoke(this, log);
-        }
-
-        public void LogError(string message, Exception? exception = null)
-        {
-            var log = $"[ERROR] {DateTime.Now:HH:mm:ss.fff} {message}";
-            Console.WriteLine(log);
-            if (exception != null)
-            {
-                Console.WriteLine($"[ERROR] Exception: {exception.Message}");
-                log += $" | {exception.Message}";
-            }
-            LogMessage?.Invoke(this, log);
         }
     }
 

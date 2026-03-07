@@ -1,18 +1,21 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
     /// 参数项ViewModel - 支持数据绑定配置
     /// </summary>
+    /// <remarks>
+    /// 重构说明：已改用 RuntimeParameterMetadata 替代 ParameterMetadata。
+    /// 参数元数据直接从 ToolParameters 特性读取，避免冗余层。
+    /// </remarks>
     public class ParameterItemViewModel : INotifyPropertyChanged
     {
-        private readonly ParameterMetadata _metadata;
+        private readonly RuntimeParameterMetadata _metadata;
         private ParameterBinding _binding;
         private bool _isBindingPopupOpen;
 
@@ -31,17 +34,17 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 参数描述
         /// </summary>
-        public string Description => _metadata.Description;
+        public string? Description => _metadata.Description;
 
         /// <summary>
         /// 参数分类
         /// </summary>
-        public string Category => _metadata.Category;
+        public string? Category => _metadata.Group;
 
         /// <summary>
         /// 参数类型
         /// </summary>
-        public ParamDataType ParameterType => _metadata.Type;
+        public Type ParameterType => _metadata.Type;
 
         /// <summary>
         /// 是否支持数据绑定
@@ -140,7 +143,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 是否为动态绑定
         /// </summary>
-        public bool IsDynamicBinding => BindingType == BindingType.DynamicBinding;
+        public bool IsDynamicBinding => BindingType == BindingType.Binding;
 
         /// <summary>
         /// 绑定描述文本
@@ -152,8 +155,7 @@ namespace SunEyeVision.UI.ViewModels
                 return BindingType switch
                 {
                     BindingType.Constant => $"{ConstantValue?.ToString() ?? "null"}",
-                    BindingType.DynamicBinding => $"← {SourceNodeId}.{SourceProperty}",
-                    BindingType.Expression => "表达式",
+                    BindingType.Binding => $"← {SourceNodeId}.{SourceProperty}",
                     _ => "未知"
                 };
             }
@@ -211,42 +213,39 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 数值最小值
         /// </summary>
-        public double? MinValue => _metadata.MinValue as double?;
+        public double? MinValue => _metadata.Min;
 
         /// <summary>
         /// 数值最大值
         /// </summary>
-        public double? MaxValue => _metadata.MaxValue as double?;
-
-        /// <summary>
-        /// 枚举选项
-        /// </summary>
-        public object[]? Options => _metadata.Options;
+        public double? MaxValue => _metadata.Max;
 
         /// <summary>
         /// 是否只读
         /// </summary>
-        public bool IsReadOnly => _metadata.ReadOnly;
+        public bool IsReadOnly => _metadata.IsReadOnly;
 
         /// <summary>
         /// 是否为数值类型
         /// </summary>
-        public bool IsNumericType => ParameterType == ParamDataType.Int || ParameterType == ParamDataType.Double;
+        public bool IsNumericType => 
+            _metadata.Type == typeof(int) || _metadata.Type == typeof(long) ||
+            _metadata.Type == typeof(double) || _metadata.Type == typeof(float) || _metadata.Type == typeof(decimal);
 
         /// <summary>
         /// 是否为布尔类型
         /// </summary>
-        public bool IsBoolType => ParameterType == ParamDataType.Bool;
+        public bool IsBoolType => _metadata.Type == typeof(bool);
 
         /// <summary>
         /// 是否为枚举类型
         /// </summary>
-        public bool IsEnumType => ParameterType == ParamDataType.Enum;
+        public bool IsEnumType => _metadata.Type.IsEnum;
 
         /// <summary>
         /// 是否为字符串类型
         /// </summary>
-        public bool IsStringType => ParameterType == ParamDataType.String;
+        public bool IsStringType => _metadata.Type == typeof(string);
 
         #endregion
 
@@ -254,13 +253,13 @@ namespace SunEyeVision.UI.ViewModels
 
         #region 构造函数
 
-        public ParameterItemViewModel(ParameterMetadata metadata)
+        public ParameterItemViewModel(RuntimeParameterMetadata metadata)
         {
             _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
-            _binding = ParameterBinding.CreateConstant(metadata.Name, metadata.DefaultValue);
+            _binding = ParameterBinding.CreateConstant(metadata.Name, metadata.Value);
         }
 
-        public ParameterItemViewModel(ParameterMetadata metadata, ParameterBinding binding)
+        public ParameterItemViewModel(RuntimeParameterMetadata metadata, ParameterBinding binding)
         {
             _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
             _binding = binding ?? throw new ArgumentNullException(nameof(binding));
@@ -283,7 +282,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void SetDynamicBinding(string sourceNodeId, string sourceProperty, string? transformExpression = null)
         {
-            Binding = ParameterBinding.CreateDynamic(Name, sourceNodeId, sourceProperty, transformExpression);
+            Binding = ParameterBinding.CreateBinding(Name, sourceNodeId, sourceProperty, transformExpression);
         }
 
         /// <summary>

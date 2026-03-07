@@ -3,18 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
 {
     /// <summary>
-    /// 插件加载器 - 从目录加载插件程序集
+    /// 插件加载器 - 从目录加载工具并注册到 ToolRegistry
     /// </summary>
+    /// <remarks>
+    /// 简化后的设计：
+    /// - 扫描带有 [Tool] 特性的类
+    /// - 直接注册到 ToolRegistry
+    /// - 不再需要中间的 Plugin 包装类
+    /// </remarks>
     public class PluginLoader
     {
         private readonly ILogger _logger;
-        private readonly Dictionary<string, IToolPlugin> _loadedPlugins = new Dictionary<string, IToolPlugin>();
+        private readonly HashSet<string> _loadedAssemblies = new();
 
         public PluginLoader(ILogger logger)
         {
@@ -34,12 +41,16 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
             }
 
             var dllFiles = Directory.GetFiles(pluginDirectory, "*.dll", SearchOption.TopDirectoryOnly);
+            var loadedCount = 0;
 
             foreach (var dllFile in dllFiles)
             {
                 try
                 {
-                    LoadPlugin(dllFile);
+                    if (LoadPlugin(dllFile))
+                    {
+                        loadedCount++;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -47,99 +58,71 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
                 }
             }
 
-            _logger.LogInfo($"已加载 {_loadedPlugins.Count} 个插件");
+            _logger.LogInfo($"插件加载完成，共加载 {ToolRegistry.GetToolCount()} 个工具");
         }
 
         /// <summary>
         /// 加载单个插件
         /// </summary>
         /// <param name="pluginPath">插件DLL路径</param>
-        public void LoadPlugin(string pluginPath)
+        /// <returns>是否成功加载</returns>
+        public bool LoadPlugin(string pluginPath)
         {
+            if (_loadedAssemblies.Contains(pluginPath))
+            {
+                _logger.LogWarning($"插件已加载: {pluginPath}");
+                return false;
+            }
+
             _logger.LogInfo($"正在加载插件: {pluginPath}");
 
             var assembly = Assembly.LoadFrom(pluginPath);
-            var pluginTypes = assembly.GetTypes()
-                .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+            
+            // 扫描带有 [Tool] 特性的类
+            var toolTypes = assembly.GetTypes()
+                .Where(t => t.GetCustomAttribute<ToolAttribute>() != null && !t.IsAbstract);
 
-            foreach (var pluginType in pluginTypes)
+            var loaded = false;
+            foreach (var toolType in toolTypes)
             {
                 try
                 {
-                    var plugin = (IToolPlugin)Activator.CreateInstance(pluginType);
-
-                    if (_loadedPlugins.ContainsKey(plugin.PluginId))
+                    // 确保实现了 IToolPlugin 接口
+                    if (!typeof(IToolPlugin).IsAssignableFrom(toolType))
                     {
-                        _logger.LogWarning($"插件ID {plugin.PluginId} 已存在，跳过");
+                        _logger.LogWarning($"类型 {toolType.Name} 有 [Tool] 特性但未实现 IToolPlugin 接口");
                         continue;
                     }
 
-                    plugin.Initialize();
-                    _loadedPlugins[plugin.PluginId] = plugin;
-
-                    _logger.LogInfo($"插件加载成功: {plugin.Name} v{plugin.Version}");
+                    ToolRegistry.RegisterTool(toolType);
+                    _logger.LogInfo($"已注册工具: {toolType.Name}");
+                    loaded = true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"实例化插件失败: {pluginType.Name}", ex);
+                    _logger.LogError($"注册工具失败: {toolType.Name}", ex);
                 }
             }
+
+            if (loaded)
+            {
+                _loadedAssemblies.Add(pluginPath);
+            }
+
+            return loaded;
         }
 
         /// <summary>
-        /// 卸载插件
+        /// 获取已加载的工具数量
         /// </summary>
-        /// <param name="pluginId">插件ID</param>
-        public bool UnloadPlugin(string pluginId)
-        {
-            if (!_loadedPlugins.TryGetValue(pluginId, out var plugin))
-            {
-                _logger.LogWarning($"插件未找到: {pluginId}");
-                return false;
-            }
-
-            try
-            {
-                plugin.Unload();
-                _loadedPlugins.Remove(pluginId);
-                _logger.LogInfo($"插件卸载成功: {plugin.Name}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"卸载插件失败: {plugin.Name}", ex);
-                return false;
-            }
-        }
+        public int GetToolCount() => ToolRegistry.GetToolCount();
 
         /// <summary>
-        /// 获取已加载的插件
+        /// 获取所有工具元数据
         /// </summary>
-        /// <param name="pluginId">插件ID</param>
-        public IToolPlugin? GetPlugin(string pluginId)
+        public List<SunEyeVision.Plugin.SDK.Metadata.ToolMetadata> GetAllToolMetadata()
         {
-            _loadedPlugins.TryGetValue(pluginId, out var plugin);
-            return plugin;
-        }
-
-        /// <summary>
-        /// 获取所有已加载的插件
-        /// </summary>
-        public List<IToolPlugin> GetAllPlugins()
-        {
-            return _loadedPlugins.Values.ToList();
-        }
-
-        /// <summary>
-        /// 卸载所有插件
-        /// </summary>
-        public void UnloadAllPlugins()
-        {
-            var pluginIds = _loadedPlugins.Keys.ToList();
-            foreach (var pluginId in pluginIds)
-            {
-                UnloadPlugin(pluginId);
-            }
+            return ToolRegistry.GetAllToolMetadata();
         }
     }
 }

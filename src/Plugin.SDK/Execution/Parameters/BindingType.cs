@@ -6,82 +6,46 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 参数绑定类型
     /// </summary>
     /// <remarks>
-    /// 定义参数值的来源方式：
-    /// - Constant: 常量值，直接设置固定值
-    /// - DynamicBinding: 动态绑定，从父节点输出获取值
+    /// 定义参数值的来源方式，只有两种基本绑定类型：
+    /// - Constant: 常量绑定，使用固定值
+    /// - Binding: 动态绑定，从其他节点输出获取值
+    /// 
+    /// 注意：Expression（表达式）和 RuntimeInjection（运行时注入）是值获取方式，不是绑定类型。
+    /// 表达式是可选的值转换功能，两种绑定模式都可用。
+    /// 运行时注入通过执行前直接设置参数值实现，不需要单独的绑定类型。
     /// 
     /// 使用示例：
     /// <code>
     /// // 常量绑定
-    /// var constantBinding = new ParameterBinding
-    /// {
-    ///     ParameterName = "Threshold",
-    ///     BindingType = BindingType.Constant,
-    ///     ConstantValue = 128
-    /// };
+    /// var constantBinding = ParameterBinding.CreateConstant("Threshold", 128);
     /// 
     /// // 动态绑定
-    /// var dynamicBinding = new ParameterBinding
-    /// {
-    ///     ParameterName = "MinRadius",
-    ///     BindingType = BindingType.DynamicBinding,
-    ///     SourceNodeId = "node_001",
-    ///     SourceProperty = "DetectedRadius"
-    /// };
+    /// var dynamicBinding = ParameterBinding.CreateBinding("MinRadius", "node_001", "DetectedRadius");
+    /// 
+    /// // 带转换表达式的绑定
+    /// var bindingWithTransform = ParameterBinding.CreateBinding("Radius", "node_001", "Radius", "value * 0.9");
     /// </code>
     /// </remarks>
     public enum BindingType
     {
         /// <summary>
-        /// 常量值绑定
+        /// 常量绑定 - 使用固定值
         /// </summary>
         /// <remarks>
         /// 参数使用固定的常量值，不依赖其他节点的输出。
         /// 适用于需要手动设置参数值的场景。
+        /// 数据类型由 ParameterMetadata.DataType 或 BindableParameter.DataType 决定。
         /// </remarks>
         Constant = 0,
 
         /// <summary>
-        /// 动态绑定
+        /// 动态绑定 - 从其他节点输出获取值
         /// </summary>
         /// <remarks>
-        /// 参数值从父节点的输出属性动态获取。
+        /// 参数值从其他节点的输出属性动态获取。
         /// 支持运行时自动解析，实现节点间的数据传递。
+        /// 可选地使用 TransformExpression 进行值转换。
         /// </remarks>
-        DynamicBinding = 1,
-
-        /// <summary>
-        /// 表达式绑定（预留扩展）
-        /// </summary>
-        /// <remarks>
-        /// 参数值通过表达式计算得出。
-        /// 支持简单的数学运算和属性访问。
-        /// 示例: "$node1.Radius * 1.5" 或 "$node1.Center.X + 10"
-        /// </remarks>
-        Expression = 2,
-
-        /// <summary>
-        /// 运行时注入绑定
-        /// </summary>
-        /// <remarks>
-        /// 参数值从运行时上下文中动态获取，适用于外部系统在执行前注入参数值。
-        /// 典型应用场景：图像预览器点击图像时注入文件路径到 ImageLoad 节点。
-        /// 
-        /// 使用示例：
-        /// <code>
-        /// var binding = new ParameterBinding
-        /// {
-        ///     ParameterName = "FilePath",
-        ///     BindingType = BindingType.RuntimeInjection,
-        ///     RuntimeSourceKey = "CurrentImagePath"
-        /// };
-        /// </code>
-        /// 
-        /// 预定义键：
-        /// - CurrentImagePath: 当前执行图像的文件路径
-        /// - CurrentImageIndex: 当前图像在列表中的索引
-        /// - CurrentImage: 当前图像对象
-        /// </remarks>
-        RuntimeInjection = 3
+        Binding = 1
     }
 }

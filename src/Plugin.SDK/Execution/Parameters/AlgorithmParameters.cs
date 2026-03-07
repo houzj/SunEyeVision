@@ -10,6 +10,7 @@ namespace SunEyeVision.Plugin.SDK.Core
     /// 提供基于字典的参数存储，用于简化工具开发。
     /// 推荐使用强类型的 ToolParameters 派生类以获得更好的类型安全。
     /// </remarks>
+    [Obsolete("推荐使用强类型 ToolParameters，此类将在下个主版本移除。参见 IToolPlugin.CreateParameters。")]
     public class AlgorithmParameters
     {
         private readonly Dictionary<string, object?> _values = new();

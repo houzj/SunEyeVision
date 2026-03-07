@@ -36,8 +36,8 @@ namespace SunEyeVision.Tool.ROIEditor
             get => _mode;
             set
             {
-                SetProperty(ref _mode, value);
-                SetParamValue("Mode", value);
+                if (SetProperty(ref _mode, value, "编辑模式"))
+                    SetParamValue("Mode", value);
             }
         }
 
@@ -49,8 +49,8 @@ namespace SunEyeVision.Tool.ROIEditor
             get => _showGrid;
             set
             {
-                SetProperty(ref _showGrid, value);
-                SetParamValue("ShowGrid", value);
+                if (SetProperty(ref _showGrid, value, "显示网格"))
+                    SetParamValue("ShowGrid", value);
             }
         }
 
@@ -62,8 +62,8 @@ namespace SunEyeVision.Tool.ROIEditor
             get => _enableSnap;
             set
             {
-                SetProperty(ref _enableSnap, value);
-                SetParamValue("EnableSnap", value);
+                if (SetProperty(ref _enableSnap, value, "启用吸附"))
+                    SetParamValue("EnableSnap", value);
             }
         }
 
@@ -75,8 +75,8 @@ namespace SunEyeVision.Tool.ROIEditor
             get => _gridSize;
             set
             {
-                SetProperty(ref _gridSize, value);
-                SetParamValue("GridSize", value);
+                if (SetProperty(ref _gridSize, value, "网格大小"))
+                    SetParamValue("GridSize", value);
             }
         }
 

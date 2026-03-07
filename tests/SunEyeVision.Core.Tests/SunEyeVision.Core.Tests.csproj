@@ -8,7 +8,14 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>SunEyeVision.Core.Tests</RootNamespace>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\runsettings.xml</RunSettingsFilePath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
@@ -28,6 +35,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\SunEyeVision.Core.csproj" />
     <ProjectReference Include="..\..\src\Workflow\SunEyeVision.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
+    <ProjectReference Include="..\..\src\Plugin.Infrastructure\SunEyeVision.Plugin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\DeviceDriver\SunEyeVision.DeviceDriver.csproj" />
     <ProjectReference Include="..\..\tools\SunEyeVision.Tool.EdgeDetection\SunEyeVision.Tool.EdgeDetection.csproj" />
   </ItemGroup>
 

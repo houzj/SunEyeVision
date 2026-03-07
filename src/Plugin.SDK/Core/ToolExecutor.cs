@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Core
 {
+    // 使用别名避免与 System.Threading.ExecutionContext 冲突
+    using ToolExecutionContext = SunEyeVision.Plugin.SDK.Execution.Parameters.ExecutionContext;
+
     /// <summary>
     /// 工具执行器 - 统一所有工具执行的唯一入口
     /// </summary>
@@ -18,10 +23,11 @@ namespace SunEyeVision.Plugin.SDK.Core
     /// 2. 执行上下文管理
     /// 3. 结果缓存
     /// 4. 错误处理
+    /// 5. 日志记录注入
     /// 
     /// 使用示例：
     /// <code>
-    /// var executor = new ToolExecutor(new ParameterResolver());
+    /// var executor = new ToolExecutor(new ParameterResolver(), logger);
     /// 
     /// // 执行工具
     /// var result = executor.Run&lt;CircleFindResult&gt;(
@@ -29,20 +35,24 @@ namespace SunEyeVision.Plugin.SDK.Core
     ///     parameters, 
     ///     inputImage, 
     ///     bindings, 
-    ///     context);
+    ///     context,
+    ///     nodeName: "节点1");
     /// </code>
     /// </remarks>
     public class ToolExecutor
     {
         private readonly IParameterResolver _parameterResolver;
+        private readonly ILogger? _logger;
 
         /// <summary>
         /// 创建工具执行器
         /// </summary>
         /// <param name="parameterResolver">参数解析器</param>
-        public ToolExecutor(IParameterResolver parameterResolver)
+        /// <param name="logger">日志记录器（可选）</param>
+        public ToolExecutor(IParameterResolver parameterResolver, ILogger? logger = null)
         {
             _parameterResolver = parameterResolver ?? throw new ArgumentNullException(nameof(parameterResolver));
+            _logger = logger;
         }
 
         /// <summary>
@@ -54,13 +64,19 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="inputImage">输入图像</param>
         /// <param name="bindings">参数绑定列表（可选）</param>
         /// <param name="context">执行上下文（可选）</param>
+        /// <param name="nodeName">节点名称（可选，用于日志来源）</param>
+        /// <param name="nodeId">节点ID（可选）</param>
+        /// <param name="cancellationToken">取消令牌（可选）</param>
         /// <returns>执行结果</returns>
         public TResult Run<TResult>(
-            ITool tool,
+            IToolPlugin tool,
             ToolParameters parameters,
             Mat inputImage,
             IList<ParameterBinding>? bindings = null,
-            IDictionary<string, ToolResults>? context = null)
+            IDictionary<string, ToolResults>? context = null,
+            string? nodeName = null,
+            string? nodeId = null,
+            CancellationToken cancellationToken = default)
             where TResult : ToolResults, new()
         {
             if (tool == null)
@@ -71,6 +87,14 @@ namespace SunEyeVision.Plugin.SDK.Core
 
             var stopwatch = Stopwatch.StartNew();
 
+            // 注入执行上下文
+            parameters.Context = new ToolExecutionContext(
+                logger: _logger,
+                toolName: tool.ParamsType.Name.Replace("Parameters", ""),
+                nodeName: nodeName ?? tool.ParamsType.Name.Replace("Parameters", ""),
+                nodeId: nodeId,
+                cancellationToken: cancellationToken);
+
             try
             {
                 // 1. 应用参数绑定
@@ -79,22 +103,40 @@ namespace SunEyeVision.Plugin.SDK.Core
                     var applyResult = ApplyBindings(parameters, bindings, context);
                     if (!applyResult.IsSuccess)
                     {
+                        parameters.LogError($"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                         return ToolResults.CreateError<TResult>(
                             $"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                     }
                 }
 
                 // 2. 执行工具
+                parameters.LogInfo($"开始执行工具");
                 var result = tool.Run(inputImage, parameters);
 
                 stopwatch.Stop();
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
 
+                if (result.IsSuccess)
+                {
+                    parameters.LogSuccess($"工具执行成功，耗时: {stopwatch.ElapsedMilliseconds}ms");
+                }
+                else
+                {
+                    parameters.LogWarning($"工具执行失败: {result.ErrorMessage}");
+                }
+
                 return (TResult)result;
+            }
+            catch (OperationCanceledException)
+            {
+                stopwatch.Stop();
+                parameters.LogWarning("工具执行被取消");
+                return ToolResults.CreateError<TResult>("执行被取消");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                parameters.LogError($"工具执行异常: {ex.Message}", ex);
                 return ToolResults.CreateError<TResult>(ex.Message, ex);
             }
         }
@@ -107,13 +149,19 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="inputImage">输入图像</param>
         /// <param name="bindings">参数绑定列表（可选）</param>
         /// <param name="context">执行上下文（可选）</param>
+        /// <param name="nodeName">节点名称（可选，用于日志来源）</param>
+        /// <param name="nodeId">节点ID（可选）</param>
+        /// <param name="cancellationToken">取消令牌（可选）</param>
         /// <returns>执行结果</returns>
         public ToolResults Run(
-            ITool tool,
+            IToolPlugin tool,
             ToolParameters parameters,
             Mat inputImage,
             IList<ParameterBinding>? bindings = null,
-            IDictionary<string, ToolResults>? context = null)
+            IDictionary<string, ToolResults>? context = null,
+            string? nodeName = null,
+            string? nodeId = null,
+            CancellationToken cancellationToken = default)
         {
             if (tool == null)
                 throw new ArgumentNullException(nameof(tool));
@@ -123,6 +171,14 @@ namespace SunEyeVision.Plugin.SDK.Core
 
             var stopwatch = Stopwatch.StartNew();
 
+            // 注入执行上下文
+            parameters.Context = new ToolExecutionContext(
+                logger: _logger,
+                toolName: tool.ParamsType.Name.Replace("Parameters", ""),
+                nodeName: nodeName ?? tool.ParamsType.Name.Replace("Parameters", ""),
+                nodeId: nodeId,
+                cancellationToken: cancellationToken);
+
             try
             {
                 // 1. 应用参数绑定
@@ -131,22 +187,40 @@ namespace SunEyeVision.Plugin.SDK.Core
                     var applyResult = ApplyBindings(parameters, bindings, context);
                     if (!applyResult.IsSuccess)
                     {
+                        parameters.LogError($"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                         return ToolResults.CreateError<GenericToolResults>(
                             $"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                     }
                 }
 
                 // 2. 执行工具
+                parameters.LogInfo($"开始执行工具");
                 var result = tool.Run(inputImage, parameters);
 
                 stopwatch.Stop();
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
 
+                if (result.IsSuccess)
+                {
+                    parameters.LogSuccess($"工具执行成功，耗时: {stopwatch.ElapsedMilliseconds}ms");
+                }
+                else
+                {
+                    parameters.LogWarning($"工具执行失败: {result.ErrorMessage}");
+                }
+
                 return result;
+            }
+            catch (OperationCanceledException)
+            {
+                stopwatch.Stop();
+                parameters.LogWarning("工具执行被取消");
+                return ToolResults.CreateError<GenericToolResults>("执行被取消");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                parameters.LogError($"工具执行异常: {ex.Message}", ex);
                 return ToolResults.CreateError<GenericToolResults>(ex.Message, ex);
             }
         }
@@ -161,13 +235,19 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <param name="inputImage">输入图像</param>
         /// <param name="bindings">参数绑定列表（可选）</param>
         /// <param name="context">执行上下文（可选）</param>
+        /// <param name="nodeName">节点名称（可选，用于日志来源）</param>
+        /// <param name="nodeId">节点ID（可选）</param>
+        /// <param name="cancellationToken">取消令牌（可选）</param>
         /// <returns>执行结果</returns>
         public TResult Run<TParams, TResult>(
-            ITool<TParams, TResult> tool,
+            IToolPlugin<TParams, TResult> tool,
             TParams parameters,
             Mat inputImage,
             IList<ParameterBinding>? bindings = null,
-            IDictionary<string, ToolResults>? context = null)
+            IDictionary<string, ToolResults>? context = null,
+            string? nodeName = null,
+            string? nodeId = null,
+            CancellationToken cancellationToken = default)
             where TParams : ToolParameters, new()
             where TResult : ToolResults, new()
         {
@@ -179,6 +259,14 @@ namespace SunEyeVision.Plugin.SDK.Core
 
             var stopwatch = Stopwatch.StartNew();
 
+            // 注入执行上下文
+            parameters.Context = new ToolExecutionContext(
+                logger: _logger,
+                toolName: typeof(TParams).Name.Replace("Parameters", ""),
+                nodeName: nodeName ?? typeof(TParams).Name.Replace("Parameters", ""),
+                nodeId: nodeId,
+                cancellationToken: cancellationToken);
+
             try
             {
                 // 1. 应用参数绑定
@@ -187,22 +275,40 @@ namespace SunEyeVision.Plugin.SDK.Core
                     var applyResult = ApplyBindings(parameters, bindings, context);
                     if (!applyResult.IsSuccess)
                     {
+                        parameters.LogError($"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                         return ToolResults.CreateError<TResult>(
                             $"参数绑定失败: {string.Join("; ", applyResult.Errors)}");
                     }
                 }
 
                 // 2. 执行工具
+                parameters.LogInfo($"开始执行工具");
                 var result = tool.Run(inputImage, parameters);
 
                 stopwatch.Stop();
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
 
+                if (result.IsSuccess)
+                {
+                    parameters.LogSuccess($"工具执行成功，耗时: {stopwatch.ElapsedMilliseconds}ms");
+                }
+                else
+                {
+                    parameters.LogWarning($"工具执行失败: {result.ErrorMessage}");
+                }
+
                 return result;
+            }
+            catch (OperationCanceledException)
+            {
+                stopwatch.Stop();
+                parameters.LogWarning("工具执行被取消");
+                return ToolResults.CreateError<TResult>("执行被取消");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                parameters.LogError($"工具执行异常: {ex.Message}", ex);
                 return ToolResults.CreateError<TResult>(ex.Message, ex);
             }
         }

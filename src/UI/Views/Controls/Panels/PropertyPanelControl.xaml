@@ -3,10 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:SunEyeVision.UI.Models"
+             xmlns:converters="clr-namespace:SunEyeVision.UI.Converters.Visibility"
+             xmlns:logging="clr-namespace:SunEyeVision.Plugin.SDK.Logging;assembly=SunEyeVision.Plugin.SDK"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="500"
              VerticalAlignment="Stretch"
              HorizontalAlignment="Stretch">
+    
+    <UserControl.Resources>
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+    </UserControl.Resources>
 
     <Border Background="#FFFFFF" BorderBrush="#CCCCCC" BorderThickness="0"
             VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
@@ -84,44 +91,237 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 信息标签页 -->
-                <TabItem Header="📖 信息">
-                    <Grid Margin="4">
+                <!-- 日志标签页 - 高性能虚拟化渲染 -->
+                <TabItem Header="📋 日志">
+                    <Grid Margin="0">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <ScrollViewer Grid.Row="0"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Auto"
-                                      x:Name="LogScrollViewer">
-                            <TextBox x:Name="LogTextBox"
-                                     IsReadOnly="True"
-                                     Background="#F8F8F8"
-                                     BorderThickness="0"
-                                     FontFamily="Consolas, Courier New, monospace"
-                                     FontSize="10"
-                                     Padding="8"
-                                     TextWrapping="Wrap"
-                                     Text="{Binding LogText, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                     AcceptsReturn="True"
-                                     VerticalAlignment="Stretch"
-                                     MinHeight="200"
-                                     Loaded="LogTextBox_Loaded"
-                                     TextChanged="LogTextBox_TextChanged"
-                                     Tag="{Binding ClearLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                <TextBox.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="🗑️ 清空日志"
-                                                  Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                        <Separator/>
-                                        <MenuItem Header="📋 复制"
-                                                  Command="Copy"/>
-                                        <MenuItem Header="🔍 全选"
-                                                  Command="SelectAll"/>
-                                    </ContextMenu>
-                                </TextBox.ContextMenu>
-                            </TextBox>
-                        </ScrollViewer>
+
+                        <!-- 日志工具栏 -->
+                        <Border Grid.Row="0" Background="#F8F8F8" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 日志级别过滤器 -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,8,0">
+                                    <CheckBox Content="ℹ" IsChecked="{Binding ShowInfo, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" 
+                                              ToolTip="信息" Margin="2,0" Foreground="#2196F3" FontWeight="Bold"/>
+                                    <CheckBox Content="✓" IsChecked="{Binding ShowSuccess, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" 
+                                              ToolTip="成功" Margin="2,0" Foreground="#4CAF50" FontWeight="Bold"/>
+                                    <CheckBox Content="⚠" IsChecked="{Binding ShowWarning, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" 
+                                              ToolTip="警告" Margin="2,0" Foreground="#FF9800" FontWeight="Bold"/>
+                                    <CheckBox Content="✖" IsChecked="{Binding ShowError, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" 
+                                              ToolTip="错误" Margin="2,0" Foreground="#F44336" FontWeight="Bold"/>
+                                </StackPanel>
+
+                                <Separator Grid.Column="1" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0"/>
+
+                                <!-- 搜索框 -->
+                                <TextBox Grid.Column="2" 
+                                         Text="{Binding SearchText, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Width="120" 
+                                         VerticalContentAlignment="Center"
+                                         FontSize="11"
+                                         Margin="0,0,8,0">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="Tag" Value="搜索日志..."/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="">
+                                                    <Setter Property="Background">
+                                                        <Setter.Value>
+                                                            <VisualBrush Stretch="None" AlignmentX="Left">
+                                                                <VisualBrush.Visual>
+                                                                    <TextBlock Text="🔍 搜索..." Foreground="#999" FontSize="11" Margin="4,0"/>
+                                                                </VisualBrush.Visual>
+                                                            </VisualBrush>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+
+                                <!-- 操作按钮 -->
+                                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                    <Button Content="🗑️ 清空" 
+                                            Command="{Binding ClearLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            FontSize="10"
+                                            Padding="6,2"
+                                            Margin="2,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- 日志 DataGrid - 虚拟化渲染 -->
+                        <DataGrid x:Name="LogDataGrid"
+                                  Grid.Row="1"
+                                  Tag="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  ItemsSource="{Binding LogEntriesView, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  IsReadOnly="True"
+                                  SelectionMode="Extended"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#F0F0F0"
+                                  VerticalGridLinesBrush="Transparent"
+                                  BorderThickness="0"
+                                  Background="#FAFAFA"
+                                  AlternatingRowBackground="#FFFFFF"
+                                  RowBackground="#FAFAFA"
+                                  RowHeaderWidth="0"
+                                  EnableRowVirtualization="True"
+                                  EnableColumnVirtualization="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  ScrollViewer.CanContentScroll="True"
+                                  FontFamily="Consolas, Courier New, monospace"
+                                  FontSize="11"
+                                  Loaded="LogDataGrid_Loaded"
+                                  ScrollViewer.ScrollChanged="LogDataGrid_ScrollChanged">
+                            <DataGrid.Columns>
+                                <!-- 时间列 -->
+                                <DataGridTextColumn Header="时间" 
+                                                    Binding="{Binding FormattedTime}"
+                                                    Width="85"
+                                                    FontSize="10"
+                                                    Foreground="#888">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Padding" Value="4,2"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- 级别列 - 矢量图标 -->
+                                <DataGridTemplateColumn Header="级别" Width="40">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Width="22" Height="22" 
+                                                    CornerRadius="11" 
+                                                    Background="{Binding LevelIconBackground}"
+                                                    VerticalAlignment="Center" 
+                                                    HorizontalAlignment="Center">
+                                                <Path Width="14" Height="14"
+                                                      Data="{Binding LevelIconPath}"
+                                                      Fill="{Binding LevelIconFill}"
+                                                      Stretch="Uniform"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center"
+                                                      RenderOptions.EdgeMode="Aliased"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- 信息列 - 显示格式化消息（包含来源前缀） -->
+                                <DataGridTextColumn Header="信息" 
+                                                    Binding="{Binding DisplayMessage}"
+                                                    Width="*"
+                                                    FontSize="11">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Padding" Value="4,2"/>
+                                            <Setter Property="TextWrapping" Value="NoWrap"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+
+                            <!-- 行样式 -->
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Height" Value="Auto"/>
+                                    <Setter Property="MinHeight" Value="26"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Level}" Value="{x:Static logging:LogLevel.Error}">
+                                            <Setter Property="Background" Value="#FFF5F5"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Level}" Value="{x:Static logging:LogLevel.Warning}">
+                                            <Setter Property="Background" Value="#FFF8E5"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Level}" Value="{x:Static logging:LogLevel.Success}">
+                                            <Setter Property="Background" Value="#F5FFF5"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+
+                            <!-- 上下文菜单 -->
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📋 复制选中行" Command="Copy"/>
+                                    <MenuItem Header="📋 复制消息" Click="CopyMessage_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="🗑️ 清空日志" 
+                                              Command="{Binding PlacementTarget.Tag.ClearLogCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    <Separator/>
+                                    <MenuItem Header="🔍 全选" Command="SelectAll"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                        </DataGrid>
+
+                        <!-- 状态栏 -->
+                        <Border Grid.Row="2" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="8,2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           FontSize="10"
+                                           Foreground="#666">
+                                    <Run Text="已记录: "/>
+                                    <Run Text="{Binding TotalEnqueued, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" FontWeight="Bold"/>
+                                </TextBlock>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding TotalCount, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='显示: {0}', Mode=OneWay}"
+                                           FontSize="10"
+                                           Foreground="#888"
+                                           Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding ErrorCount, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='错误: {0}', Mode=OneWay}"
+                                           FontSize="10"
+                                           Foreground="#CC0000"
+                                           HorizontalAlignment="Center"
+                                           Visibility="{Binding ErrorCount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource IntToVisibilityConverter}}"/>
+
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding WarningCount, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='警告: {0}', Mode=OneWay}"
+                                           FontSize="10"
+                                           Foreground="#CC7700"
+                                           HorizontalAlignment="Center"
+                                           Margin="8,0"
+                                           Visibility="{Binding WarningCount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource IntToVisibilityConverter}}"/>
+
+                                <TextBlock Grid.Column="4"
+                                           FontSize="10"
+                                           Foreground="#666">
+                                    <Run Text="✅ 零阻塞"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="⚡ 批量更新"/>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </TabItem>
             </TabControl>

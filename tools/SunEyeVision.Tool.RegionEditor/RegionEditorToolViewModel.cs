@@ -35,8 +35,8 @@ namespace SunEyeVision.Tool.RegionEditor
             get => _enableRealtimePreview;
             set
             {
-                SetProperty(ref _enableRealtimePreview, value);
-                SetParamValue("EnableRealtimePreview", value);
+                if (SetProperty(ref _enableRealtimePreview, value, "实时预览"))
+                    SetParamValue("EnableRealtimePreview", value);
             }
         }
 
@@ -48,8 +48,8 @@ namespace SunEyeVision.Tool.RegionEditor
             get => _defaultDisplayColor;
             set
             {
-                SetProperty(ref _defaultDisplayColor, value);
-                SetParamValue("DefaultDisplayColor", (int)value);
+                if (SetProperty(ref _defaultDisplayColor, value, "显示颜色"))
+                    SetParamValue("DefaultDisplayColor", (int)value);
             }
         }
 
@@ -61,8 +61,8 @@ namespace SunEyeVision.Tool.RegionEditor
             get => _defaultOpacity;
             set
             {
-                SetProperty(ref _defaultOpacity, value);
-                SetParamValue("DefaultOpacity", value);
+                if (SetProperty(ref _defaultOpacity, value, "透明度"))
+                    SetParamValue("DefaultOpacity", value);
             }
         }
 

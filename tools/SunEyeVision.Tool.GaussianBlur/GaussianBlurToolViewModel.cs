@@ -41,7 +41,7 @@ namespace SunEyeVision.Tool.GaussianBlur
 
         #region 参数绑定支持
 
-        private ParameterBindingMode _sigmaBindingMode = ParameterBindingMode.Constant;
+        private BindingType _sigmaBindingMode = BindingType.Constant;
         private string _sigmaBindingSource = string.Empty;
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace SunEyeVision.Tool.GaussianBlur
         /// <summary>
         /// Sigma绑定模式
         /// </summary>
-        public ParameterBindingMode SigmaBindingMode
+        public BindingType SigmaBindingMode
         {
             get => _sigmaBindingMode;
             set => SetProperty(ref _sigmaBindingMode, value);
@@ -79,10 +79,8 @@ namespace SunEyeVision.Tool.GaussianBlur
             {
                 if (value % 2 == 0)
                     value = value + 1; // 确保为奇数
-                if (SetProperty(ref _kernelSize, value))
-                {
+                if (SetProperty(ref _kernelSize, value, "核大小"))
                     SetParamValue("KernelSize", value);
-                }
             }
         }
 
@@ -96,10 +94,8 @@ namespace SunEyeVision.Tool.GaussianBlur
             {
                 if (value < 0.1)
                     value = 0.1;
-                if (SetProperty(ref _sigma, value))
-                {
+                if (SetProperty(ref _sigma, value, "标准差"))
                     SetParamValue("Sigma", value);
-                }
             }
         }
 
@@ -111,10 +107,8 @@ namespace SunEyeVision.Tool.GaussianBlur
             get => _borderType;
             set
             {
-                if (SetProperty(ref _borderType, value))
-                {
+                if (SetProperty(ref _borderType, value, "边界类型"))
                     SetParamValue("BorderType", value);
-                }
             }
         }
 

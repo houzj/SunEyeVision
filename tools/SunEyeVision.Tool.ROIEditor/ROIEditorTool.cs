@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text.Json;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
-using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.ROIEditor.Views;
 
 namespace SunEyeVision.Tool.ROIEditor
@@ -14,18 +12,17 @@ namespace SunEyeVision.Tool.ROIEditor
     /// <summary>
     /// ROI编辑器工具
     /// </summary>
-    public class ROIEditorTool : ITool<ROIEditorParameters, ROIEditorResults>
+    [Tool("roi-editor", "ROI编辑器",
+        Description = "创建和编辑感兴趣区域（ROI）",
+        Icon = "📐",
+        Category = "图像处理",
+        Version = "1.0.0")]
+    public class ROIEditorTool : IToolPlugin<ROIEditorParameters, ROIEditorResults>
     {
-        public string Name => "ROI编辑器";
-        public string Description => "创建和编辑感兴趣区域（ROI）";
-        public string Version => "1.0.0";
-        public string Category => "图像处理";
-
-        // 显式实现 ITool.HasDebugWindow
-        bool ITool.HasDebugWindow => true;
-
-        // 显式实现 ITool.CreateDebugWindow
-        System.Windows.Window? ITool.CreateDebugWindow()
+        /// <summary>
+        /// 创建调试窗口
+        /// </summary>
+        public System.Windows.Window? CreateDebugWindow()
         {
             return new ROIEditorToolDebugWindow();
         }
@@ -37,8 +34,12 @@ namespace SunEyeVision.Tool.ROIEditor
             
             try
             {
+                parameters.LogInfo($"开始ROI编辑器处理");
+
                 result.ROIs = parameters?.ROIs ?? new List<ROIData>();
                 result.ROICount = result.ROIs.Count;
+
+                parameters.LogInfo($"ROI数量: {result.ROICount}");
 
                 if (image != null && !image.Empty())
                 {
@@ -49,12 +50,17 @@ namespace SunEyeVision.Tool.ROIEditor
                         DrawROI(outputImage, roi);
                     }
                     result.OutputImage = outputImage;
+                    parameters.LogInfo($"已在输出图像上绘制 {result.ROICount} 个ROI");
                 }
 
+                sw.Stop();
                 result.SetSuccess(sw.ElapsedMilliseconds);
+                parameters.LogInfo($"ROI编辑器处理完成，耗时: {sw.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
+                sw.Stop();
+                parameters.LogError($"ROI编辑器处理异常: {ex.Message}", ex);
                 result.SetError($"处理失败: {ex.Message}");
             }
 
@@ -97,8 +103,5 @@ namespace SunEyeVision.Tool.ROIEditor
             }
         }
 
-        public ValidationResult ValidateParameters(ROIEditorParameters parameters) => new ValidationResult();
-        
-        public ROIEditorParameters GetDefaultParameters() => new ROIEditorParameters();
     }
 }

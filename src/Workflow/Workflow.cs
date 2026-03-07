@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 

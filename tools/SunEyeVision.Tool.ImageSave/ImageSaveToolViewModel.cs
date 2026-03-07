@@ -49,10 +49,8 @@ namespace SunEyeVision.Tool.ImageSave
             get => _filePath;
             set
             {
-                if (SetProperty(ref _filePath, value))
-                {
-                    StatusMessage = $"文件路径已更新: {value}";
-                }
+                if (SetProperty(ref _filePath, value, "文件路径"))
+                    SetParamValue("FilePath", value);
             }
         }
 
@@ -62,7 +60,11 @@ namespace SunEyeVision.Tool.ImageSave
         public string ImageFormat
         {
             get => _imageFormat;
-            set => SetProperty(ref _imageFormat, value);
+            set
+            {
+                if (SetProperty(ref _imageFormat, value, "图像格式"))
+                    SetParamValue("ImageFormat", value);
+            }
         }
 
         /// <summary>
@@ -73,10 +75,8 @@ namespace SunEyeVision.Tool.ImageSave
             get => _imageQuality;
             set
             {
-                if (SetProperty(ref _imageQuality, value))
-                {
-                    StatusMessage = $"图像质量已更新: {value}";
-                }
+                if (SetProperty(ref _imageQuality, value, "图像质量"))
+                    SetParamValue("ImageQuality", value);
             }
         }
 
@@ -86,7 +86,11 @@ namespace SunEyeVision.Tool.ImageSave
         public bool OverwriteExisting
         {
             get => _overwriteExisting;
-            set => SetProperty(ref _overwriteExisting, value);
+            set
+            {
+                if (SetProperty(ref _overwriteExisting, value, "覆盖已有文件"))
+                    SetParamValue("OverwriteExisting", value);
+            }
         }
 
         /// <summary>
@@ -124,37 +128,16 @@ namespace SunEyeVision.Tool.ImageSave
         }
 
         /// <summary>
-        /// 加载参数
+        /// 加载参数 - 使用默认值
         /// </summary>
         protected override void LoadParameters(ToolMetadata? toolMetadata)
         {
-            if (toolMetadata?.InputParameters == null)
-                return;
-
-            foreach (var param in toolMetadata.InputParameters)
-            {
-                switch (param.Name)
-                {
-                    case "FilePath":
-                        FilePath = param.DefaultValue?.ToString() ?? string.Empty;
-                        break;
-                    case "ImageFormat":
-                        ImageFormat = param.DefaultValue?.ToString() ?? "PNG";
-                        break;
-                    case "ImageQuality":
-                        if (int.TryParse(param.DefaultValue?.ToString(), out int quality))
-                        {
-                            ImageQuality = quality;
-                        }
-                        break;
-                    case "OverwriteExisting":
-                        if (bool.TryParse(param.DefaultValue?.ToString(), out bool overwrite))
-                        {
-                            OverwriteExisting = overwrite;
-                        }
-                        break;
-                }
-            }
+            // 使用 ImageSaveParameters 的默认值
+            var defaultParams = new ImageSaveParameters();
+            FilePath = defaultParams.OutputPath;
+            ImageFormat = defaultParams.OutputFormat.ToUpper();
+            ImageQuality = 90;
+            OverwriteExisting = true;
             StatusMessage = "参数加载完成";
         }
 

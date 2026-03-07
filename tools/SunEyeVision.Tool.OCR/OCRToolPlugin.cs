@@ -9,63 +9,10 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
+using SunEyeVision.Tool.OCR.Views;
 
 namespace SunEyeVision.Tool.OCR
 {
-    [ToolPlugin("ocr_recognition", "OCR")]
-    public class OCRToolPlugin : IToolPlugin
-    {
-        public string Name => "OCR识别";
-        public string Version => "2.0.0";
-        public string Author => "SunEyeVision";
-        public string Description => "光学字符识别";
-        public string PluginId => "suneye.ocr";
-        public string Icon => "📝";
-        public List<string> Dependencies => new List<string>();
-        public bool IsLoaded { get; private set; }
-
-        public void Initialize() => IsLoaded = true;
-        public void Unload() => IsLoaded = false;
-        public List<Type> GetAlgorithmNodes() => new List<Type>();
-
-        public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>
-        {
-            new ToolMetadata
-            {
-                Id = "ocr_recognition",
-                Name = "OCR",
-                DisplayName = "OCR识别",
-                Icon = "📝",
-                Category = "识别",
-                Description = "光学字符识别",
-                Version = Version,
-                Author = Author,
-                InputParameters = new List<ParameterMetadata>
-                {
-                    new ParameterMetadata { Name = "Language", DisplayName = "识别语言", Type = ParamDataType.Enum, DefaultValue = "CN", Options = new object[] { "CN", "EN", "JP", "KR" } },
-                    new ParameterMetadata { Name = "ConfThreshold", DisplayName = "置信度阈值", Type = ParamDataType.Double, DefaultValue = 80.0 }
-                },
-                OutputParameters = new List<ParameterMetadata>
-                {
-                    new ParameterMetadata { Name = "Text", DisplayName = "识别文本", Type = ParamDataType.String },
-                    new ParameterMetadata { Name = "Confidence", DisplayName = "置信度", Type = ParamDataType.Double }
-                }
-            }
-        };
-
-        public ITool? CreateToolInstance(string toolId) => toolId == "ocr_recognition" ? new OCRTool() : null;
-
-        public AlgorithmParameters GetDefaultParameters(string toolId)
-        {
-            var p = new AlgorithmParameters();
-            p.Set("Language", "CN");
-            p.Set("ConfThreshold", 80.0);
-            return p;
-        }
-
-        public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters) => new ValidationResult();
-    }
-
     public class OCRParameters : ToolParameters
     {
         public string Language { get; set; } = "CN";
@@ -79,12 +26,15 @@ namespace SunEyeVision.Tool.OCR
         public double Confidence { get; set; }
     }
 
-    public class OCRTool : ITool<OCRParameters, OCRResults>
+    [Tool("ocr_recognition", "OCR识别", Description = "光学字符识别", Icon = "📝", Category = "识别")]
+    public class OCRTool : IToolPlugin<OCRParameters, OCRResults>
     {
-        public string Name => "OCR识别";
-        public string Description => "光学字符识别";
-        public string Version => "2.0.0";
-        public string Category => "识别";
+        public bool HasDebugWindow => true;
+
+        public System.Windows.Window? CreateDebugWindow()
+        {
+            return new OCRToolDebugWindow();
+        }
 
         public OCRResults Run(Mat image, OCRParameters parameters)
         {
@@ -101,8 +51,5 @@ namespace SunEyeVision.Tool.OCR
             catch (Exception ex) { result.SetError($"处理失败: {ex.Message}"); }
             return result;
         }
-
-        public ValidationResult ValidateParameters(OCRParameters parameters) => parameters.Validate();
-        public OCRParameters GetDefaultParameters() => new OCRParameters();
     }
 }

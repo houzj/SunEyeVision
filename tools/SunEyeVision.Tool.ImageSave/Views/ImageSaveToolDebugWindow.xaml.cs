@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI;
@@ -9,82 +8,70 @@ using SunEyeVision.Plugin.SDK.UI.Controls;
 namespace SunEyeVision.Tool.ImageSave.Views
 {
     /// <summary>
-    /// 图像保存工具调试窗口 - 继承非泛型基类
+    /// 图像保存工具调试窗口 - 使用XAML Tabs架构
     /// </summary>
     public partial class ImageSaveToolDebugWindow : BaseToolDebugWindow
     {
         private ImageSaveToolViewModel _viewModel = null!;
-        private ImageSourceSelector _imageSourceSelector = null!;
 
         public ImageSaveToolDebugWindow()
         {
             InitializeComponent();
             _viewModel = new ImageSaveToolViewModel();
             DataContext = _viewModel;
-            InitializeUI();
+            ResolveNamedControls();
+            SetupBindingsAndEvents();
         }
 
         public ImageSaveToolDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
             : this()
         {
             _viewModel.Initialize(toolId, toolPlugin, toolMetadata);
-            Title = $"{_viewModel.ToolName} - 调试窗口";
+            NodeName = _viewModel.ToolName;
         }
 
-        private void InitializeUI()
+        private void SetupBindingsAndEvents()
         {
-            // ===== 基本参数Tab =====
-            // 图像源选择 - 使用ImageSourceSelector控件
-            _imageSourceSelector = new ImageSourceSelector
+            if (ImageSourceSelector != null)
             {
-                Label = "输入图像",
-                SelectedImageSource = _viewModel.SelectedImageSource,
-                AvailableImageSources = _viewModel.AvailableImageSources,
-                ShowThumbnail = true,
-                ShowSizeInfo = true,
-                PlaceholderText = "选择图像源..."
-            };
-            _imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
-            AddToBasicParams(_imageSourceSelector);
-
-            AddToBasicParams(CreateSectionHeader("文件设置"));
-
-            AddToBasicParams(new ParamTextBox
+                ImageSourceSelector.SetBinding(ImageSourceSelector.SelectedImageSourceProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.SelectedImageSource)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+                ImageSourceSelector.SetBinding(ImageSourceSelector.AvailableImageSourcesProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.AvailableImageSources)) { Source = _viewModel });
+                ImageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
+            }
+            
+            if (FilePathTextBox != null)
             {
-                Label = "文件路径",
-                Text = _viewModel.FilePath,
-                Height = 32
-            });
-
-            AddToBasicParams(new ParamComboBox
+                FilePathTextBox.SetBinding(ParamTextBox.TextProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.FilePath)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (ImageFormatCombo != null)
             {
-                Label = "图像格式",
-                ItemsSource = _viewModel.ImageFormats,
-                SelectedItem = _viewModel.ImageFormat
-            });
-
-            AddToBasicParams(new ParamSlider
+                ImageFormatCombo.ItemsSource = _viewModel.ImageFormats;
+                ImageFormatCombo.SetBinding(ParamComboBox.SelectedItemProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.ImageFormat)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (QualityParam != null)
             {
-                Label = "图像质量",
-                Value = _viewModel.ImageQuality,
-                Minimum = 1,
-                Maximum = 100
-            });
-
-            AddToBasicParams(new LabeledControl
+                QualityParam.IntValue = _viewModel.ImageQuality;
+                QualityParam.SetBinding(BindableParameter.IntValueProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.ImageQuality)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (OverwriteCheckBox != null)
             {
-                Label = "覆盖已有文件",
-                Content = new CheckBox
-                {
-                    IsChecked = _viewModel.OverwriteExisting,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
-            });
+                OverwriteCheckBox.SetBinding(CheckBox.IsCheckedProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.OverwriteExisting)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
         }
 
         private void OnImageSourceChanged(object sender, RoutedEventArgs e)
         {
-            _viewModel.SelectedImageSource = _imageSourceSelector.SelectedImageSource;
+            if (ImageSourceSelector != null)
+                _viewModel.SelectedImageSource = ImageSourceSelector.SelectedImageSource;
         }
 
         protected override void OnExecuteRequested()
@@ -95,24 +82,8 @@ namespace SunEyeVision.Tool.ImageSave.Views
 
         protected override void OnResetRequested()
         {
-            if (_viewModel != null)
-            {
-                _viewModel.ResetParameters();
-            }
+            _viewModel?.ResetParameters();
             base.OnResetRequested();
-        }
-
-        private static TextBlock CreateSectionHeader(string text)
-        {
-            return new TextBlock
-            {
-                Text = text,
-                FontSize = 13,
-                FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString("#333333")),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
         }
     }
 }

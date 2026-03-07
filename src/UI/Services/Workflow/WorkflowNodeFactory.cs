@@ -1,7 +1,6 @@
-using SunEyeVision.UI.Adapters;
+﻿using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Services.Interaction;
-using SunEyeVision.UI.Services.Workflow;
 using NodeModel = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowModel = SunEyeVision.UI.Models;
 
@@ -53,9 +52,13 @@ namespace SunEyeVision.UI.Services.Workflow
 
             // 创建节点实例
             startTime = DateTime.Now;
+            
+            // 自动添加序号，格式："工具名称 局部序号"
+            string nodeName = name ?? $"{algorithmType} {localIndex}";
+            
             var node = new WorkflowModel.WorkflowNode(
                 Guid.NewGuid().ToString(),
-                name ?? algorithmType,
+                nodeName,
                 algorithmType,
                 localIndex,
                 globalIndex

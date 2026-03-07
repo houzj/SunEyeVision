@@ -16,6 +16,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     public class RegionEditorViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly Logic.RegionResolver _resolver;
+        private readonly EditHistory _editHistory;
         private RegionData? _selectedRegion;
         private ShapeDefinition? _editingShape;
         private bool _isEditing;
@@ -24,7 +25,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private RegionDefinitionMode _currentMode = RegionDefinitionMode.Drawing;
         private string _statusMessage = "就绪";
         private bool _isInfoPanelVisible = true;
-        
+
         // 新增：子ViewModel
         private ParameterPanelViewModel? _parameterPanel;
         private NodeSelectorViewModel? _nodeSelector;
@@ -87,6 +88,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 if (SetProperty(ref _isDrawing, value))
                 {
                     OnPropertyChanged(nameof(IsSelectMode));
+                    OnPropertyChanged(nameof(CurrentToolMode));
                 }
             }
         }
@@ -97,12 +99,51 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public bool IsSelectMode => !IsDrawing;
 
         /// <summary>
+        /// 当前工具模式描述（用于状态栏显示）
+        /// </summary>
+        public string CurrentToolMode
+        {
+            get
+            {
+                if (!IsDrawingMode)
+                    return "订阅模式";
+
+                return IsDrawing
+                    ? $"绘制{GetShapeTypeName(DrawingShapeType)}"
+                    : "选择模式";
+            }
+        }
+
+        /// <summary>
+        /// 获取形状类型的中文名称
+        /// </summary>
+        private static string GetShapeTypeName(ShapeType shapeType)
+        {
+            return shapeType switch
+            {
+                ShapeType.Rectangle => "矩形",
+                ShapeType.Circle => "圆形",
+                ShapeType.RotatedRectangle => "旋转矩形",
+                ShapeType.Line => "直线",
+                ShapeType.Point => "点",
+                ShapeType.Polygon => "多边形",
+                _ => shapeType.ToString()
+            };
+        }
+
+        /// <summary>
         /// 绘制的形状类型
         /// </summary>
         public ShapeType DrawingShapeType
         {
             get => _drawingShapeType;
-            set => SetProperty(ref _drawingShapeType, value);
+            set
+            {
+                if (SetProperty(ref _drawingShapeType, value))
+                {
+                    OnPropertyChanged(nameof(CurrentToolMode));
+                }
+            }
         }
 
         /// <summary>
@@ -122,6 +163,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                     OnPropertyChanged(nameof(IsSubscribeByRegion));
                     OnPropertyChanged(nameof(IsSubscribeByParameter));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
+                    OnPropertyChanged(nameof(CurrentToolMode));
                 }
             }
         }
@@ -333,6 +375,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         }
 
         /// <summary>
+        /// 编辑历史管理器
+        /// </summary>
+        public EditHistory EditHistory => _editHistory;
+
+        /// <summary>
+        /// 是否可撤销
+        /// </summary>
+        public bool CanUndo => _editHistory.CanUndo;
+
+        /// <summary>
+        /// 是否可重做
+        /// </summary>
+        public bool CanRedo => _editHistory.CanRedo;
+
+        /// <summary>
         /// 可用的形状类型列表
         /// </summary>
         public IReadOnlyList<ShapeType> AvailableShapeTypes { get; } = new[]
@@ -372,6 +429,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public ICommand SetSubscribeByRegionModeCommand { get; }
         public ICommand SetSubscribeByParameterModeCommand { get; }
         public ICommand ToggleInfoPanelCommand { get; }
+        public ICommand UndoCommand { get; }
+        public ICommand RedoCommand { get; }
 
         #endregion
 
@@ -388,6 +447,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public RegionEditorViewModel()
         {
             _resolver = new Logic.RegionResolver();
+            _editHistory = new EditHistory();
 
             AddRegionCommand = new RelayCommand<ShapeType>(AddRegion);
             RemoveRegionCommand = new RelayCommand(RemoveSelectedRegion, () => HasSelection);
@@ -396,6 +456,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             SetSubscribeByRegionModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.SubscribeByRegion);
             SetSubscribeByParameterModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.SubscribeByParameter);
             ToggleInfoPanelCommand = new RelayCommand(() => IsInfoPanelVisible = !IsInfoPanelVisible);
+            UndoCommand = new RelayCommand(Undo, () => CanUndo);
+            RedoCommand = new RelayCommand(Redo, () => CanRedo);
+
+            // 订阅编辑历史变更事件
+            _editHistory.HistoryChanged += OnEditHistoryChanged;
         }
 
         /// <summary>
@@ -454,7 +519,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public void AddRegion(ShapeType shapeType)
         {
             var region = RegionData.CreateDrawingRegion($"区域_{Regions.Count + 1}", shapeType);
-            
+
             // 设置默认参数
             if (region.Definition is ShapeDefinition shapeDef)
             {
@@ -464,6 +529,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 shapeDef.Height = 100;
                 shapeDef.Radius = 50;
             }
+
+            // 记录编辑历史
+            _editHistory.ExecuteAction(new CreateRegionAction(region, this));
 
             Regions.Add(region);
             SelectedRegion = region;
@@ -480,6 +548,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             if (SelectedRegion == null) return;
 
             var region = SelectedRegion;
+
+            // 记录编辑历史
+            _editHistory.ExecuteAction(new DeleteRegionAction(region, this));
+
             Regions.Remove(region);
             SelectedRegion = Regions.FirstOrDefault();
             StatusMessage = $"已移除区域 {region.Name}";
@@ -492,11 +564,86 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public void ClearAllRegions()
         {
+            if (Regions.Count == 0) return;
+
             var count = Regions.Count;
+            var deletedRegions = Regions.ToList();
+
+            // 记录编辑历史
+            _editHistory.ExecuteAction(new ClearAllAction(deletedRegions, this));
+
             Regions.Clear();
             SelectedRegion = null;
             StatusMessage = $"已清除 {count} 个区域";
 
+            RegionChanged?.Invoke(this, new RegionChangedEventArgs(null, RegionChangeType.Cleared));
+        }
+
+        /// <summary>
+        /// 撤销操作
+        /// </summary>
+        public void Undo()
+        {
+            if (_editHistory.CanUndo)
+            {
+                _editHistory.Undo();
+                StatusMessage = "已撤销";
+            }
+        }
+
+        /// <summary>
+        /// 重做操作
+        /// </summary>
+        public void Redo()
+        {
+            if (_editHistory.CanRedo)
+            {
+                _editHistory.Redo();
+                StatusMessage = "已重做";
+            }
+        }
+
+        /// <summary>
+        /// 编辑历史变更处理
+        /// </summary>
+        private void OnEditHistoryChanged(object? sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(CanRedo));
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        /// <summary>
+        /// 内部添加区域（用于撤销/重做）
+        /// </summary>
+        internal void AddRegionInternal(RegionData region)
+        {
+            Regions.Add(region);
+            RegionChanged?.Invoke(this, new RegionChangedEventArgs(region, RegionChangeType.Added));
+        }
+
+        /// <summary>
+        /// 内部移除区域（用于撤销/重做）
+        /// </summary>
+        internal void RemoveRegionInternal(RegionData region)
+        {
+            Regions.Remove(region);
+            if (SelectedRegion == region)
+                SelectedRegion = null;
+            RegionChanged?.Invoke(this, new RegionChangedEventArgs(region, RegionChangeType.Removed));
+        }
+
+        /// <summary>
+        /// 内部设置区域列表（用于撤销/重做）
+        /// </summary>
+        internal void SetRegionsInternal(IEnumerable<RegionData> regions)
+        {
+            Regions.Clear();
+            foreach (var region in regions)
+            {
+                Regions.Add(region);
+            }
+            SelectedRegion = null;
             RegionChanged?.Invoke(this, new RegionChangedEventArgs(null, RegionChangeType.Cleared));
         }
 
@@ -611,6 +758,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public void Dispose()
         {
             // 清理资源
+            _editHistory.HistoryChanged -= OnEditHistoryChanged;
+
             if (_parameterPanel != null)
             {
                 _parameterPanel.ParameterBindingChanged -= OnParameterBindingChanged;

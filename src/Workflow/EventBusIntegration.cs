@@ -5,6 +5,7 @@ using OpenCvSharp;
 using SunEyeVision.Core.Events;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Workflow
 {
@@ -95,7 +96,7 @@ namespace SunEyeVision.Workflow
     {
         private readonly WorkflowEventPublisher _eventPublisher;
 
-        public EventEnabledWorkflow(string id, string name, SunEyeVision.Core.Interfaces.ILogger logger, IEventBus eventBus)
+        public EventEnabledWorkflow(string id, string name, ILogger logger, IEventBus eventBus)
             : base(id, name, logger)
         {
             _eventPublisher = new WorkflowEventPublisher(eventBus);

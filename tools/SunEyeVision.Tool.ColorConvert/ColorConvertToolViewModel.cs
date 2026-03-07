@@ -43,8 +43,8 @@ namespace SunEyeVision.Tool.ColorConvert
             get => _targetColorSpace;
             set
             {
-                SetProperty(ref _targetColorSpace, value);
-                SetParamValue("TargetColorSpace", value);
+                if (SetProperty(ref _targetColorSpace, value, "目标色彩空间"))
+                    SetParamValue("TargetColorSpace", value);
             }
         }
 
@@ -53,8 +53,8 @@ namespace SunEyeVision.Tool.ColorConvert
             get => _sourceColorSpace;
             set
             {
-                SetProperty(ref _sourceColorSpace, value);
-                SetParamValue("SourceColorSpace", value);
+                if (SetProperty(ref _sourceColorSpace, value, "源色彩空间"))
+                    SetParamValue("SourceColorSpace", value);
             }
         }
 
@@ -63,8 +63,8 @@ namespace SunEyeVision.Tool.ColorConvert
             get => _channels;
             set
             {
-                SetProperty(ref _channels, value);
-                SetParamValue("Channels", value);
+                if (SetProperty(ref _channels, value, "通道数"))
+                    SetParamValue("Channels", value);
             }
         }
 

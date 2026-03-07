@@ -72,8 +72,8 @@ namespace SunEyeVision.UI.Services.Workflow
             if (node == null || result == null)
                 return;
 
-            // ★ 诊断日志：节点选中状态
-            _viewModel.AddLog($"[UpdateNodeResult] 节点: {node.Name}, IsSelected={node.IsSelected}");
+            // 诊断日志已移至Debug输出
+            System.Diagnostics.Debug.WriteLine($"[UpdateNodeResult] 节点: {node.Name}, IsSelected={node.IsSelected}");
 
             // 1. 缓存结果到节点
             node.LastResult = result;
@@ -84,12 +84,7 @@ namespace SunEyeVision.UI.Services.Workflow
             // 3. 如果当前节点被选中，立即刷新UI
             if (node.IsSelected)
             {
-                _viewModel.AddLog($"[UpdateNodeResult] ✓ 节点已选中，准备刷新显示");
                 RefreshResultDisplay(node, result);
-            }
-            else
-            {
-                _viewModel.AddLog($"[UpdateNodeResult] ⚠️ 节点未选中，跳过刷新");
             }
         }
 
@@ -107,7 +102,7 @@ namespace SunEyeVision.UI.Services.Workflow
                 return;
             }
 
-            _viewModel.AddLog($"[RefreshResultDisplay] 开始刷新显示: {node.Name}");
+            System.Diagnostics.Debug.WriteLine($"[RefreshResultDisplay] 开始刷新显示: {node.Name}");
 
             // ★ Step 1: 先准备所有新数据（不触发UI更新）
             var resultItems = result.GetResultItems();
@@ -123,16 +118,11 @@ namespace SunEyeVision.UI.Services.Workflow
                 {
                     newProcessedImage = outputImage.ToBitmapSource();
                     hasNewImage = true;
-                    _viewModel.AddLog($"[RefreshResultDisplay] ✓ 图像转换成功，尺寸: {newProcessedImage.PixelWidth}x{newProcessedImage.PixelHeight}");
                 }
                 catch (Exception ex)
                 {
-                    _viewModel.AddLog($"[RefreshResultDisplay] ❌ 图像转换失败: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[RefreshResultDisplay] 图像转换失败: {ex.Message}");
                 }
-            }
-            else
-            {
-                _viewModel.AddLog($"[RefreshResultDisplay] ⚠️ 结果中无图像输出");
             }
 
             // ★ Step 2: 批量更新UI（减少刷新次数）
@@ -146,7 +136,6 @@ namespace SunEyeVision.UI.Services.Workflow
                 
                 // ★ 关键修复：显式设置 DisplayImage，不依赖 SelectedImageType setter
                 _viewModel.DisplayImage = newProcessedImage;
-                _viewModel.AddLog($"[RefreshResultDisplay] ✓ 已设置 ProcessedImage 和 DisplayImage");
                 
                 // 确保显示类型为 Processed（如果当前不是）
                 var processedType = _viewModel.ImageDisplayTypes
@@ -154,14 +143,11 @@ namespace SunEyeVision.UI.Services.Workflow
                 if (processedType != null && _viewModel.SelectedImageType?.Type != ViewModels.ImageDisplayType.Processed)
                 {
                     _viewModel.SelectedImageType = processedType;
-                    _viewModel.AddLog($"[RefreshResultDisplay] ✓ 已切换到 Processed 类型");
                 }
             }
             
             // ★ Step 4: 更新可视化元素
             UpdateVisualElements(result);
-            
-            _viewModel.AddLog($"[RefreshResultDisplay] ✓ 刷新完成");
         }
 
         /// <summary>

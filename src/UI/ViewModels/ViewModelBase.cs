@@ -1,35 +1,31 @@
-using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
-    /// ViewModel基类,实现INotifyPropertyChanged接口
+    /// UI层 ViewModel 基类 - 继承 SDK 的 ObservableObject
     /// </summary>
-    public abstract class ViewModelBase : INotifyPropertyChanged
+    /// <remarks>
+    /// 所有属性变化通知功能继承自 Plugin.SDK.Models.ObservableObject。
+    /// 使用 SetProperty 方法设置属性值，支持自动日志记录：
+    /// 
+    /// <code>
+    /// // 不记录日志
+    /// public string Name
+    /// {
+    ///     get => _name;
+    ///     set => SetProperty(ref _name, value);
+    /// }
+    /// 
+    /// // 自动记录日志
+    /// public int Threshold
+    /// {
+    ///     get => _threshold;
+    ///     set => SetProperty(ref _threshold, value, "阈值");
+    /// }
+    /// </code>
+    /// </remarks>
+    public abstract class ViewModelBase : ObservableObject
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        /// <summary>
-        /// 触发属性变更通知
-        /// </summary>
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// 设置属性值并触发通知
-        /// </summary>
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
-        {
-            if (Equals(field, value))
-                return false;
-
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
     }
 }

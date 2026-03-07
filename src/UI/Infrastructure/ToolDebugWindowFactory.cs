@@ -8,9 +8,12 @@ using SunEyeVision.Plugin.Infrastructure;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI;
 using SunEyeVision.Plugin.SDK.Validation;
+using SunEyeVision.Plugin.SDK.UI.Controls;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 
 namespace SunEyeVision.UI.Factories
 {
@@ -131,42 +134,49 @@ namespace SunEyeVision.UI.Factories
         }
 
         /// <summary>
-        /// 创建工具调试窗口 - 优先使用ITool.CreateDebugWindow()
+        /// 创建工具调试窗口 - 优先使用IToolPlugin.CreateDebugWindow()
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <param name="toolPlugin">工具插件</param>
+        /// <param name="toolPlugin">工具插件（可选，用于兼容旧版本）</param>
         /// <param name="toolMetadata">工具元数据</param>
+        /// <param name="mainImageControl">主窗口的ImageControl（用于区域编辑器绑定）</param>
         /// <returns>调试窗口实例，无窗口工具返回 null</returns>
-        public static Window? CreateDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata toolMetadata)
+        public static Window? CreateDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata toolMetadata, ImageControl? mainImageControl = null)
         {
             Initialize();
 
-            // ★ 优先级1：使用 ITool.CreateDebugWindow()
-            if (toolPlugin != null)
+            // ★ 优先级1：通过 ToolRegistry 创建工具实例
+            var tool = ToolRegistry.CreateToolInstance(toolId);
+            if (tool != null)
             {
-                var tool = toolPlugin.CreateToolInstance(toolId);
-                if (tool != null)
+                // 检查工具是否支持调试窗口
+                if (!tool.HasDebugWindow)
                 {
-                    // 检查工具是否支持调试窗口
-                    if (!tool.HasDebugWindow)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 工具 {toolId} 不支持调试窗口 (HasDebugWindow=false)");
-                        return null;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 工具 {toolId} 不支持调试窗口 (HasDebugWindow=false)");
+                    return null;
+                }
 
-                    try
+                try
+                {
+                    var window = tool.CreateDebugWindow();
+                    if (window != null)
                     {
-                        var window = tool.CreateDebugWindow();
-                        if (window != null)
+                        // ★ 初始化调试窗口（传递 toolId, toolPlugin, toolMetadata）
+                        InitializeDebugWindow(window, toolId, toolPlugin, toolMetadata);
+                        
+                        // ★ 绑定主窗口的ImageControl（用于区域编辑器）
+                        if (window is BaseToolDebugWindow baseDebugWindow && mainImageControl != null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 使用 ITool.CreateDebugWindow() 创建: {toolId}");
-                            return window;
+                            baseDebugWindow.SetMainImageControl(mainImageControl);
                         }
+                        
+                        System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 使用 IToolPlugin.CreateDebugWindow() 创建: {toolId}");
+                        return window;
                     }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"ITool.CreateDebugWindow() 失败: {toolId}, {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"IToolPlugin.CreateDebugWindow() 失败: {toolId}, {ex.Message}");
                 }
             }
 
@@ -202,20 +212,17 @@ namespace SunEyeVision.UI.Factories
         /// 检查工具是否支持调试窗口（运行时检查）
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <param name="toolPlugin">工具插件</param>
+        /// <param name="toolPlugin">工具插件（可选）</param>
         /// <returns>是否支持调试窗口</returns>
         public static bool HasDebugWindow(string toolId, IToolPlugin? toolPlugin)
         {
             Initialize();
 
-            // 运行时检查：使用 ITool.HasDebugWindow
-            if (toolPlugin != null)
+            // 运行时检查：使用 ToolRegistry 创建工具实例检查
+            var tool = ToolRegistry.CreateToolInstance(toolId);
+            if (tool != null)
             {
-                var tool = toolPlugin.CreateToolInstance(toolId);
-                if (tool != null)
-                {
-                    return tool.HasDebugWindow;
-                }
+                return tool.HasDebugWindow;
             }
 
             // 兼容旧版本：检查是否有注册的调试窗口类型
@@ -230,6 +237,48 @@ namespace SunEyeVision.UI.Factories
             Initialize();
             return _debugWindowTypes.ContainsKey(toolId);
         }
+
+        /// <summary>
+        /// 初始化调试窗口及其 ViewModel
+        /// </summary>
+        private static void InitializeDebugWindow(Window window, string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
+        {
+            // 尝试调用窗口的 Initialize 方法
+            var windowInitMethod = window.GetType().GetMethod("Initialize",
+                new[] { typeof(string), typeof(IToolPlugin), typeof(ToolMetadata) });
+            if (windowInitMethod != null)
+            {
+                try
+                {
+                    windowInitMethod.Invoke(window, new object?[] { toolId, toolPlugin, toolMetadata });
+                    System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 已初始化窗口: {window.GetType().Name}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 初始化窗口失败: {ex.Message}");
+                }
+            }
+
+            // 尝试初始化 DataContext (ViewModel)
+            var dataContext = window.DataContext;
+            if (dataContext != null)
+            {
+                var vmInitMethod = dataContext.GetType().GetMethod("Initialize",
+                    new[] { typeof(string), typeof(IToolPlugin), typeof(ToolMetadata) });
+                if (vmInitMethod != null)
+                {
+                    try
+                    {
+                        vmInitMethod.Invoke(dataContext, new object?[] { toolId, toolPlugin, toolMetadata });
+                        System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 已初始化 ViewModel: {dataContext.GetType().Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 初始化 ViewModel 失败: {ex.Message}");
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -237,32 +286,16 @@ namespace SunEyeVision.UI.Factories
     /// </summary>
     internal class DefaultToolPlugin : IToolPlugin
     {
-        public string Name => "Default Tool";
-        public string Version => "1.0.0";
-        public string Author => "SunEyeVision";
-        public string Description => "Default tool plugin";
-        public string PluginId => "default.tool";
-        public List<string> Dependencies => new List<string>();
-        public string Icon => "🔧";
+        public Type ParamsType => typeof(GenericToolParameters);
+        public Type ResultType => typeof(GenericToolResults);
 
-        private bool _isLoaded = true;
-        public bool IsLoaded => _isLoaded;
-
-        public void Initialize() { }
-        public void Unload() { }
-
-        public List<Type> GetAlgorithmNodes() => new List<Type>();
-
-        public List<SunEyeVision.Plugin.SDK.Metadata.ToolMetadata> GetToolMetadata() => new List<SunEyeVision.Plugin.SDK.Metadata.ToolMetadata>();
-
-        public SunEyeVision.Plugin.SDK.Core.ITool? CreateToolInstance(string toolId)
+        public ToolResults Run(OpenCvSharp.Mat image, ToolParameters parameters)
         {
-            return null;
+            return new GenericToolResults();
         }
 
-        public AlgorithmParameters GetDefaultParameters(string toolId)
-        {
-            return new AlgorithmParameters();
-        }
+        public bool HasDebugWindow => false;
+        public System.Windows.Window? CreateDebugWindow() => null;
+        public ToolParameters GetDefaultParameters() => new GenericToolParameters();
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using OpenCvSharp;
@@ -7,7 +7,6 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
-using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.RegionEditor.Views;
 
 namespace SunEyeVision.Tool.RegionEditor
@@ -15,18 +14,17 @@ namespace SunEyeVision.Tool.RegionEditor
     /// <summary>
     /// 区域编辑器工具
     /// </summary>
-    public class RegionEditorTool : ITool<RegionEditorParameters, RegionEditorResults>
+    [Tool("region-editor", "区域编辑器",
+        Description = "创建和编辑检测区域",
+        Icon = "🔲",
+        Category = "图像处理",
+        Version = "1.0.0")]
+    public class RegionEditorTool : IToolPlugin<RegionEditorParameters, RegionEditorResults>
     {
-        public string Name => "区域编辑器";
-        public string Description => "创建和编辑检测区域";
-        public string Version => "1.0.0";
-        public string Category => "图像处理";
-
-        // 显式实现 ITool.HasDebugWindow
-        bool ITool.HasDebugWindow => true;
-
-        // 显式实现 ITool.CreateDebugWindow
-        System.Windows.Window? ITool.CreateDebugWindow()
+        /// <summary>
+        /// 创建调试窗口
+        /// </summary>
+        public System.Windows.Window? CreateDebugWindow()
         {
             return new RegionEditorToolDebugWindow();
         }
@@ -38,12 +36,17 @@ namespace SunEyeVision.Tool.RegionEditor
 
             try
             {
+                parameters.LogInfo($"开始区域编辑器处理");
+
                 result.Regions = parameters?.Regions ?? new List<RegionData>();
                 result.RegionCount = result.Regions.Count;
+
+                parameters.LogInfo($"区域数量: {result.RegionCount}");
 
                 // 解析所有区域
                 var resolver = new RegionResolver();
                 result.ResolvedRegions = resolver.ResolveAll(result.Regions);
+                parameters.LogInfo($"已解析 {result.ResolvedRegions.Count} 个区域");
 
                 if (image != null && !image.Empty())
                 {
@@ -57,12 +60,17 @@ namespace SunEyeVision.Tool.RegionEditor
                         }
                     }
                     result.OutputImage = outputImage;
+                    parameters.LogInfo($"已在输出图像上绘制区域");
                 }
 
+                sw.Stop();
                 result.SetSuccess(sw.ElapsedMilliseconds);
+                parameters.LogInfo($"区域编辑器处理完成，耗时: {sw.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
+                sw.Stop();
+                parameters.LogError($"区域编辑器处理异常: {ex.Message}", ex);
                 result.SetError($"处理失败: {ex.Message}");
             }
 
@@ -182,14 +190,5 @@ namespace SunEyeVision.Tool.RegionEditor
             return new Scalar(b, g, r, a);
         }
 
-        public ValidationResult ValidateParameters(RegionEditorParameters parameters)
-        {
-            return parameters?.Validate() ?? new ValidationResult();
-        }
-
-        public RegionEditorParameters GetDefaultParameters()
-        {
-            return new RegionEditorParameters();
-        }
     }
 }

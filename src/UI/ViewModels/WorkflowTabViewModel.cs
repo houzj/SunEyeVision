@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using AppCommands = SunEyeVision.UI.Commands;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Services.Canvas;

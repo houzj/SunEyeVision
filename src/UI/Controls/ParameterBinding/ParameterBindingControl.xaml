@@ -136,17 +136,68 @@
                 <Grid Grid.Row="2">
                     <!-- 常量值输入 -->
                     <Grid Visibility="{Binding IsConstantMode, Converter={StaticResource BoolToVisibility}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Column="0" Text="值:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="1" 
-                                 Text="{Binding ConstantValueString, UpdateSourceTrigger=PropertyChanged}"
-                                 Height="24"
-                                 VerticalContentAlignment="Center"
-                                 IsReadOnly="{Binding IsReadOnly}"/>
+                        <!-- 数值类型且有范围：显示 Slider + TextBox -->
+                        <Grid Visibility="{Binding HasRange, Converter={StaticResource BoolToVisibility}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Slider 行 -->
+                            <Grid Grid.Row="0" Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="值:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Slider Grid.Column="1"
+                                        Minimum="{Binding Min, FallbackValue=0}"
+                                        Maximum="{Binding Max, FallbackValue=100}"
+                                        Value="{Binding NumericValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        TickFrequency="{Binding Step}"
+                                        IsSnapToTickEnabled="True"
+                                        VerticalAlignment="Center"
+                                        SmallChange="{Binding Step}"
+                                        LargeChange="{Binding Step}"
+                                        IsEnabled="{Binding IsReadOnly, Converter={StaticResource InverseBooleanConverter}, FallbackValue=True}"/>
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding NumericValue, StringFormat={}{0:F0}}"
+                                           Width="50"
+                                           TextAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <!-- 范围提示和单位 -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="{Binding Min, StringFormat='范围: {0}'}" FontSize="10" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Max, StringFormat=' - {0}'}" FontSize="10" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Unit, StringFormat=' {0}'}" FontSize="10" Foreground="Gray" Visibility="{Binding Unit, Converter={StaticResource StringToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 无范围或非数值：显示 TextBox -->
+                        <Grid Visibility="{Binding HasRange, Converter={StaticResource InverseBooleanToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="值:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ConstantValueString, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="24"
+                                     VerticalContentAlignment="Center"
+                                     IsReadOnly="{Binding IsReadOnly}"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Unit}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,0,0"
+                                       Visibility="{Binding Unit, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        </Grid>
                     </Grid>
                     
                     <!-- 动态绑定选择 -->

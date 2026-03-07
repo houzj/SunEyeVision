@@ -28,15 +28,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     [TemplatePart(Name = PART_TextBox, Type = typeof(TextBox))]
     [TemplatePart(Name = PART_IncreaseButton, Type = typeof(RepeatButton))]
     [TemplatePart(Name = PART_DecreaseButton, Type = typeof(RepeatButton))]
+    [TemplatePart(Name = PART_Slider, Type = typeof(Slider))]
     public class NumericUpDown : Control
     {
         private const string PART_TextBox = "PART_TextBox";
         private const string PART_IncreaseButton = "PART_IncreaseButton";
         private const string PART_DecreaseButton = "PART_DecreaseButton";
+        private const string PART_Slider = "PART_Slider";
 
         private TextBox _textBox;
         private RepeatButton _increaseButton;
         private RepeatButton _decreaseButton;
+        private Slider _slider;
         private bool _isUpdatingText;
         private bool _isSyncingValues; // 防止 Value 和 IntValue 循环更新
 
@@ -85,6 +88,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(IntValue), typeof(int), typeof(NumericUpDown),
                 new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     OnIntValueChanged, CoerceIntValue));
+
+        public static readonly DependencyProperty ShowSliderProperty =
+            DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(NumericUpDown),
+                new PropertyMetadata(false, OnShowSliderChanged));
+
+        public static readonly DependencyProperty IsSliderExpandedProperty =
+            DependencyProperty.Register(nameof(IsSliderExpanded), typeof(bool), typeof(NumericUpDown),
+                new PropertyMetadata(false));
 
         #endregion
 
@@ -162,6 +173,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(IntValueProperty, value);
         }
 
+        /// <summary>
+        /// 是否显示滑块
+        /// </summary>
+        public bool ShowSlider
+        {
+            get => (bool)GetValue(ShowSliderProperty);
+            set => SetValue(ShowSliderProperty, value);
+        }
+
+        /// <summary>
+        /// 滑块是否展开（仅在 ShowSlider=true 时有效）
+        /// </summary>
+        public bool IsSliderExpanded
+        {
+            get => (bool)GetValue(IsSliderExpandedProperty);
+            set => SetValue(IsSliderExpandedProperty, value);
+        }
+
         #endregion
 
         #region 重写方法
@@ -186,6 +215,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             _textBox = GetTemplateChild(PART_TextBox) as TextBox;
             _increaseButton = GetTemplateChild(PART_IncreaseButton) as RepeatButton;
             _decreaseButton = GetTemplateChild(PART_DecreaseButton) as RepeatButton;
+            _slider = GetTemplateChild(PART_Slider) as Slider;
 
             // 订阅新事件
             if (_textBox != null)
@@ -199,6 +229,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _increaseButton.Click += OnIncreaseButtonClick;
             if (_decreaseButton != null)
                 _decreaseButton.Click += OnDecreaseButtonClick;
+        }
+
+        protected override void OnGotFocus(RoutedEventArgs e)
+        {
+            base.OnGotFocus(e);
+            // 聚焦时自动展开滑块
+            if (ShowSlider)
+            {
+                IsSliderExpanded = true;
+            }
+        }
+
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            base.OnLostFocus(e);
+            // 失去焦点时自动折叠滑块
+            if (ShowSlider)
+            {
+                IsSliderExpanded = false;
+            }
         }
 
         protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
@@ -359,6 +409,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var value = (int)baseValue;
             var clamped = control.Clamp(value);
             return (int)Math.Round(clamped);
+        }
+
+        private static void OnShowSliderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (NumericUpDown)d;
+            // 当关闭滑块时，自动折叠
+            if (!(bool)e.NewValue)
+            {
+                control.IsSliderExpanded = false;
+            }
         }
 
         #endregion

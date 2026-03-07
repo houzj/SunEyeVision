@@ -40,6 +40,8 @@ using SunEyeVision.UI.Converters.Path;
 
 using SunEyeVision.Plugin.SDK.UI.Controls;
 
+using SunEyeVision.Plugin.SDK.Logging;
+
 
 
 namespace SunEyeVision.UI.Views.Windows
@@ -147,6 +149,9 @@ namespace SunEyeVision.UI.Views.Windows
             _viewModel = new MainWindowViewModel();
 
             DataContext = _viewModel;
+
+            // ★ 设置获取主窗口 ImageControl 的委托
+            _viewModel.GetMainImageControl = () => ImageDisplayContent;
 
 
 
@@ -1509,7 +1514,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             {
 
-                _viewModel?.AddLog("❌ 没有选中的工作流，无法执行");
+                _viewModel?.AddLog(LogLevel.Error, "没有选中的工作流，无法执行", LogSource.UIOperation);
 
                 return;
 
@@ -1529,9 +1534,10 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
-            _viewModel.AddLog($"▶ 执行工作流 - 图像: {e.ImageInfo.Name}");
+            var workflowName = workflow.Name ?? "未知工作流";
+            _viewModel.AddLog(LogLevel.Info, $"执行工作流 - 图像: {e.ImageInfo.Name}", LogSource.Runtime(workflowName));
 
-            _viewModel.AddLog($"   路径: {e.ImageInfo.FilePath}");
+            _viewModel.AddLog(LogLevel.Info, $"路径: {e.ImageInfo.FilePath}", LogSource.Runtime(workflowName));
 
 
 

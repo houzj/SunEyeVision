@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -33,9 +33,14 @@ namespace SunEyeVision.Workflow
         public string AlgorithmType { get; set; }
 
         /// <summary>
+        /// 参数类型程序集限定名（用于反序列化）
+        /// </summary>
+        public string? ParametersTypeName { get; set; }
+
+        /// <summary>
         /// 节点参数
         /// </summary>
-        public AlgorithmParameters Parameters { get; set; }
+        public ToolParameters Parameters { get; set; }
 
         /// <summary>
         /// 参数绑定配置
@@ -67,7 +72,7 @@ namespace SunEyeVision.Workflow
             Name = name;
             Type = type;
             AlgorithmType = string.Empty;
-            Parameters = new AlgorithmParameters();
+            Parameters = new GenericToolParameters();
             ParameterBindings = new ParameterBindingContainer();
         }
 
@@ -90,7 +95,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 创建工具实例（的初始化处理方法）
         /// </summary>
-        public virtual ITool? CreateInstance()
+        public virtual IToolPlugin? CreateInstance()
         {
             throw new NotImplementedException($"Algorithm type '{AlgorithmType}' is not implemented.");
         }
@@ -107,8 +112,14 @@ namespace SunEyeVision.Workflow
                 ["Type"] = (int)Type,
                 ["AlgorithmType"] = AlgorithmType,
                 ["IsEnabled"] = IsEnabled,
-                ["Parameters"] = Parameters.ToDictionary()
+                ["Parameters"] = Parameters.ToSerializableDictionary()
             };
+
+            // 保存参数类型名称用于反序列化
+            if (Parameters.GetType() != typeof(GenericToolParameters))
+            {
+                dict["ParametersTypeName"] = Parameters.GetType().AssemblyQualifiedName ?? string.Empty;
+            }
 
             if (ParameterBindings != null && ParameterBindings.Count > 0)
             {
@@ -127,6 +138,7 @@ namespace SunEyeVision.Workflow
             var name = dict.TryGetValue("Name", out var nameVal) ? nameVal?.ToString() ?? "Node" : "Node";
             var algorithmType = dict.TryGetValue("AlgorithmType", out var algoVal) ? algoVal?.ToString() ?? string.Empty : string.Empty;
             var isEnabled = dict.TryGetValue("IsEnabled", out var enabledVal) && Convert.ToBoolean(enabledVal);
+            var parametersTypeName = dict.TryGetValue("ParametersTypeName", out var ptnVal) ? ptnVal?.ToString() : null;
 
             var node = new WorkflowNode(id, name, type)
             {
@@ -135,9 +147,28 @@ namespace SunEyeVision.Workflow
             };
 
             // 恢复参数
-            if (dict.TryGetValue("Parameters", out var paramsVal) && paramsVal is Dictionary<string, object> paramsDict)
+            if (dict.TryGetValue("Parameters", out var paramsVal) && paramsVal is Dictionary<string, object?> paramsDict)
             {
-                node.Parameters = AlgorithmParameters.FromDictionary(paramsDict);
+                // 尝试使用类型名称创建强类型参数
+                if (!string.IsNullOrEmpty(parametersTypeName))
+                {
+                    var paramsType = System.Type.GetType(parametersTypeName);
+                    if (paramsType != null && typeof(ToolParameters).IsAssignableFrom(paramsType))
+                    {
+                        var instance = Activator.CreateInstance(paramsType) as ToolParameters;
+                        instance?.LoadFromDictionary(paramsDict);
+                        if (instance != null)
+                            node.Parameters = instance;
+                    }
+                }
+
+                // 回退到字典创建
+                if (node.Parameters is GenericToolParameters)
+                {
+                    var restored = ToolParameters.CreateFromDictionary(paramsDict);
+                    if (restored != null)
+                        node.Parameters = restored;
+                }
             }
 
             // 恢复参数绑定

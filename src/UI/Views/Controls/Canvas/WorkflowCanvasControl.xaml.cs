@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -31,6 +31,8 @@ using SunEyeVision.UI.Services.Path;
 using SunEyeVision.UI.Converters.Path;
 
 using SunEyeVision.UI.Views.Windows;
+
+using SunEyeVision.Plugin.SDK.Logging;
 
 using WpfCanvas = System.Windows.Controls.Canvas;
 
@@ -2706,7 +2708,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     _viewModel!.StatusText = "无法连接到同一个节点";
 
-                    _viewModel.AddLog("[Connection] ⚠️ 无法连接到同一个节点");
+                    _viewModel.AddLog(LogLevel.Warning, "无法连接到同一个节点", LogSource.UIConnection);
 
                     _connectionSourceNode = null;
 

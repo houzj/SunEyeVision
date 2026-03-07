@@ -28,8 +28,23 @@ namespace SunEyeVision.Tool.Threshold
     /// <summary>
     /// 图像阈值化工具参数
     /// </summary>
+    /// <remarks>
+    /// 参数类继承 ObservableObject，自带属性变化通知，UI 可直接绑定。
+    /// 使用 SetProperty 实现属性，自动触发 PropertyChanged 事件和日志记录。
+    /// </remarks>
     public class ThresholdParameters : ToolParameters
     {
+        #region 私有字段
+
+        private int _threshold = 128;
+        private int _maxValue = 255;
+        private ThresholdType _type = ThresholdType.Binary;
+        private bool _invert = false;
+        private AdaptiveMethod _adaptiveMethod = AdaptiveMethod.Mean;
+        private int _blockSize = 11;
+
+        #endregion
+
         #region 基本参数
 
         /// <summary>
@@ -37,26 +52,42 @@ namespace SunEyeVision.Tool.Threshold
         /// </summary>
         [ParameterRange(0, 255, Step = 1)]
         [ParameterDisplay(DisplayName = "阈值", Description = "二值化的阈值", Group = "基本参数", Order = 1)]
-        public int Threshold { get; set; } = 128;
+        public int Threshold
+        {
+            get => _threshold;
+            set => SetProperty(ref _threshold, value, "阈值");
+        }
 
         /// <summary>
         /// 超过阈值时使用的最大值(0-255)
         /// </summary>
         [ParameterRange(0, 255, Step = 1)]
         [ParameterDisplay(DisplayName = "最大值", Description = "超过阈值时使用的最大值", Group = "基本参数", Order = 2)]
-        public int MaxValue { get; set; } = 255;
+        public int MaxValue
+        {
+            get => _maxValue;
+            set => SetProperty(ref _maxValue, value, "最大值");
+        }
 
         /// <summary>
         /// 二值化方法
         /// </summary>
         [ParameterDisplay(DisplayName = "阈值类型", Description = "二值化方法", Group = "基本参数", Order = 3)]
-        public ThresholdType Type { get; set; } = ThresholdType.Binary;
+        public ThresholdType Type
+        {
+            get => _type;
+            set => SetProperty(ref _type, value, "阈值类型");
+        }
 
         /// <summary>
         /// 是否反转二值化结果
         /// </summary>
         [ParameterDisplay(DisplayName = "反转结果", Description = "是否反转二值化结果", Group = "基本参数", Order = 6)]
-        public bool Invert { get; set; } = false;
+        public bool Invert
+        {
+            get => _invert;
+            set => SetProperty(ref _invert, value, "反转结果");
+        }
 
         #endregion
 
@@ -66,14 +97,27 @@ namespace SunEyeVision.Tool.Threshold
         /// 自适应阈值方法
         /// </summary>
         [ParameterDisplay(DisplayName = "自适应方法", Description = "自适应阈值方法", Group = "高级参数", Order = 4, IsAdvanced = true)]
-        public AdaptiveMethod AdaptiveMethod { get; set; } = AdaptiveMethod.Mean;
+        public AdaptiveMethod AdaptiveMethod
+        {
+            get => _adaptiveMethod;
+            set => SetProperty(ref _adaptiveMethod, value, "自适应方法");
+        }
 
         /// <summary>
         /// 计算阈值的邻域大小(奇数, 3-31)
         /// </summary>
         [ParameterRange(3, 31, Step = 2)]
         [ParameterDisplay(DisplayName = "块大小", Description = "计算阈值的邻域大小(奇数)", Group = "高级参数", Order = 5, IsAdvanced = true)]
-        public int BlockSize { get; set; } = 11;
+        public int BlockSize
+        {
+            get => _blockSize;
+            set
+            {
+                // 确保块大小为奇数
+                if (value % 2 == 0) value++;
+                SetProperty(ref _blockSize, value, "块大小");
+            }
+        }
 
         #endregion
 

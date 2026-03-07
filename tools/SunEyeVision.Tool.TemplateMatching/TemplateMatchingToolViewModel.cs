@@ -39,7 +39,7 @@ namespace SunEyeVision.Tool.TemplateMatching
 
         #region 参数绑定支持
 
-        private ParameterBindingMode _thresholdBindingMode = ParameterBindingMode.Constant;
+        private BindingType _thresholdBindingMode = BindingType.Constant;
         private string _thresholdBindingSource = string.Empty;
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace SunEyeVision.Tool.TemplateMatching
         /// <summary>
         /// 阈值绑定模式
         /// </summary>
-        public ParameterBindingMode ThresholdBindingMode
+        public BindingType ThresholdBindingMode
         {
             get => _thresholdBindingMode;
             set => SetProperty(ref _thresholdBindingMode, value);
@@ -72,8 +72,8 @@ namespace SunEyeVision.Tool.TemplateMatching
             get => _method;
             set
             {
-                SetProperty(ref _method, value);
-                SetParamValue("Method", value);
+                if (SetProperty(ref _method, value, "匹配方法"))
+                    SetParamValue("Method", value);
             }
         }
 
@@ -82,8 +82,8 @@ namespace SunEyeVision.Tool.TemplateMatching
             get => _threshold;
             set
             {
-                SetProperty(ref _threshold, value);
-                SetParamValue("Threshold", value);
+                if (SetProperty(ref _threshold, value, "匹配阈值"))
+                    SetParamValue("Threshold", value);
             }
         }
 
@@ -92,8 +92,8 @@ namespace SunEyeVision.Tool.TemplateMatching
             get => _maxMatches;
             set
             {
-                SetProperty(ref _maxMatches, value);
-                SetParamValue("MaxMatches", value);
+                if (SetProperty(ref _maxMatches, value, "最大匹配数"))
+                    SetParamValue("MaxMatches", value);
             }
         }
 
@@ -102,8 +102,8 @@ namespace SunEyeVision.Tool.TemplateMatching
             get => _multiScale;
             set
             {
-                SetProperty(ref _multiScale, value);
-                SetParamValue("MultiScale", value);
+                if (SetProperty(ref _multiScale, value, "多尺度匹配"))
+                    SetParamValue("MultiScale", value);
             }
         }
 

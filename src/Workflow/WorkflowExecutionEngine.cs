@@ -5,12 +5,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 
 namespace SunEyeVision.Workflow
@@ -225,7 +226,7 @@ namespace SunEyeVision.Workflow
                 var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeIds[0]);
                 if (node != null && node.IsEnabled)
                 {
-                    _logger.LogInfo($"  执行节点: {node.Name} (ID: {nodeIds[0]})");
+                    _logger.Info($"开始执行", node.Name);
                     
                     // 准备数据源
                     var parentIds = workflow.Connections
@@ -241,7 +242,7 @@ namespace SunEyeVision.Workflow
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow, toolResultsCache);
 
                     var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms");
+                    _logger.Info($"执行完成, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms", node.Name);
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {
@@ -297,7 +298,7 @@ namespace SunEyeVision.Workflow
                     var nodeResult = await ExecuteNode(node, nodeInput, context, workflow, toolResultsCache);
 
                     var duration = nodeResult.Duration?.TotalMilliseconds ?? 0;
-                    _logger.LogInfo($"  节点执行完成: {node.Name}, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms");
+                    _logger.Info($"执行完成, 状态: {(nodeResult.Success ? "✅ 成功" : "❌ 失败")}, 耗时: {duration:F2}ms", node.Name);
 
                     if (nodeResult.Success && nodeResult.Outputs?.Any() == true)
                     {
@@ -830,18 +831,20 @@ namespace SunEyeVision.Workflow
             var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
             if (node == null) return;
             
-            // 获取工具插件（通过 AlgorithmType 匹配工具名称）
-            var toolPlugins = _pluginManager.GetPlugins<IToolPlugin>();
-            var toolPlugin = toolPlugins.FirstOrDefault(p => 
-                p.GetToolMetadata().Any(m => m.Name == node.AlgorithmType || m.DisplayName == node.AlgorithmType));
-            if (toolPlugin == null) return;
+            // 通过 ToolRegistry 查找工具（通过 AlgorithmType 匹配工具名称或显示名称）
+            var allMetadata = ToolRegistry.GetAllToolMetadata();
+            var toolMetadata = allMetadata.FirstOrDefault(m => 
+                m.Name == node.AlgorithmType || 
+                m.DisplayName == node.AlgorithmType ||
+                m.Id == node.AlgorithmType);
+            if (toolMetadata == null) return;
             
-            // 获取工具元数据
-            var toolMetadata = toolPlugin.GetToolMetadata().FirstOrDefault();
+            // 创建工具实例
+            var tool = ToolRegistry.CreateToolInstance(toolMetadata.Id);
+            if (tool == null) return;
             
             // 创建调试窗口
-            var debugWindow = toolPlugin.CreateToolInstance(node.Id)?.CreateDebugWindow();
-            
+            var debugWindow = tool.CreateDebugWindow();
             if (debugWindow == null) return;
             
             // 注入数据提供者（支持 SetDataProvider 方法的窗口）

@@ -1,10 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
@@ -13,6 +11,7 @@ using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.ViewModels
 {
@@ -28,9 +27,13 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
     /// 2. 可选重写 UpdateResultItems() 处理特定结果
     /// 3. 可选重写 OnExecutionCompleted() 处理执行完成回调
     /// 
+    /// 属性日志记录：
+    /// 使用 SetProperty(ref _field, value, "显示名称") 自动记录参数变化日志
+    /// 使用 SetProperty(ref _field, value) 不记录日志
+    /// 
     /// 命名参考 VisionPro 等视觉软件的 Tool 概念。
     /// </remarks>
-    public abstract class ToolViewModelBase : INotifyPropertyChanged
+    public abstract class ToolViewModelBase : ObservableObject
     {
         #region 私有字段
 
@@ -40,12 +43,11 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         private string _statusMessage = "准备就绪";
         private string _debugMessage = string.Empty;
         private string _executionTime = "0 ms";
-        private IToolPlugin? _toolPlugin;
         private ToolMetadata? _toolMetadata;
 
         // 工具执行相关
         private ToolRunner? _runner;
-        private ITool? _tool;
+        private IToolPlugin? _tool;
         private Mat? _currentImage;
         private bool _isExecuting;
 
@@ -127,9 +129,9 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         public bool CanExecute => !IsExecuting && CurrentImage != null && !CurrentImage.Empty();
 
         /// <summary>
-        /// 工具插件实例
+        /// 工具实例
         /// </summary>
-        public IToolPlugin? ToolPlugin => _toolPlugin;
+        public IToolPlugin? Tool => _tool;
 
         /// <summary>
         /// 工具元数据
@@ -164,11 +166,6 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         #region 事件
 
         /// <summary>
-        /// 属性变更事件
-        /// </summary>
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        /// <summary>
         /// 执行完成事件
         /// </summary>
         public event EventHandler<RunResult>? ExecutionCompleted;
@@ -180,17 +177,17 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         /// <summary>
         /// 初始化 ViewModel
         /// </summary>
-        public virtual void Initialize(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
+        /// <remarks>
+        /// 工具实例由外部创建并传入，避免 SDK 层对 Infrastructure 层的依赖。
+        /// </remarks>
+        public virtual void Initialize(string toolId, IToolPlugin? toolInstance, ToolMetadata? toolMetadata)
         {
             _toolId = toolId;
-            _toolPlugin = toolPlugin;
+            _tool = toolInstance;
             _toolMetadata = toolMetadata;
             ToolName = toolMetadata?.DisplayName ?? "未知工具";
             ToolStatus = "就绪";
             StatusMessage = "准备就绪";
-
-            // 初始化工具实例
-            _tool = toolPlugin?.CreateToolInstance(toolId);
 
             // 初始化 ToolRunner
             if (_tool != null)
@@ -204,18 +201,35 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         }
 
         /// <summary>
-        /// 从元数据加载参数
+        /// 从元数据加载参数 - 通过反射从 ToolParameters 特性读取
         /// </summary>
         protected virtual void LoadParameters(ToolMetadata? metadata)
         {
-            if (metadata?.InputParameters == null)
+            if (metadata?.ParamsType == null)
                 return;
 
-            foreach (var param in metadata.InputParameters)
+            // 直接从元数据获取参数类型
+            if (typeof(ToolParameters).IsAssignableFrom(metadata.ParamsType))
             {
-                if (param.DefaultValue != null)
+                var defaultParams = Activator.CreateInstance(metadata.ParamsType) as ToolParameters;
+                if (defaultParams != null)
                 {
-                    ParamValues[param.Name] = param.DefaultValue;
+                    LoadFromToolParameters(defaultParams);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从 ToolParameters 实例加载参数
+        /// </summary>
+        private void LoadFromToolParameters(ToolParameters parameters)
+        {
+            var metadata = parameters.GetRuntimeParameterMetadata();
+            foreach (var param in metadata)
+            {
+                if (param.Value != null)
+                {
+                    ParamValues[param.Name] = param.Value;
                 }
             }
         }
@@ -516,27 +530,7 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
 
         #endregion
 
-        #region 属性通知
-
-        /// <summary>
-        /// 触发属性变更通知
-        /// </summary>
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// 设置属性值并触发通知
-        /// </summary>
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
+        #region 参数管理
 
         /// <summary>
         /// 设置参数值
@@ -573,6 +567,15 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         public Dictionary<string, object> GetParameters()
         {
             return new Dictionary<string, object>(ParamValues);
+        }
+
+        /// <summary>
+        /// 获取日志来源（返回工具名称）
+        /// </summary>
+        protected override string? GetLogSource()
+        {
+            System.Diagnostics.Debug.WriteLine($"[ToolViewModelBase.GetLogSource] 返回 ToolName={_toolName}");
+            return ToolName;
         }
 
         #endregion

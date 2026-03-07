@@ -51,7 +51,7 @@ namespace SunEyeVision.Workflow
         /// <param name="toolMetadata">工具元数据</param>
         /// <param name="tool">工具实例（用于运行时检查）</param>
         /// <returns>界面类型</returns>
-        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata, ITool? tool)
+        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata, IToolPlugin? tool)
         {
             if (node == null)
             {
@@ -102,7 +102,7 @@ namespace SunEyeVision.Workflow
         /// <param name="toolMetadata">工具元数据</param>
         /// <param name="tool">工具实例</param>
         /// <returns>是否可以打开界面</returns>
-        public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata, ITool? tool)
+        public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata, IToolPlugin? tool)
         {
             return GetInterfaceType(node, toolMetadata, tool) != NodeInterfaceType.None;
         }

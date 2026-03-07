@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
 
 namespace SunEyeVision.Workflow
@@ -210,7 +210,7 @@ namespace SunEyeVision.Workflow
                 _semaphore.Release();
                 enqueued = true;
 
-                _logger.LogDebug($"Image enqueued: Seq={entry.SequenceNumber}, QueueSize={_queue.Count}, TotalEnqueued={_totalEnqueued}");
+                _logger.Info($"Image enqueued: Seq={entry.SequenceNumber}, QueueSize={_queue.Count}, TotalEnqueued={_totalEnqueued}");
             }
 
             NotifyStatusChanged();
@@ -257,7 +257,7 @@ namespace SunEyeVision.Workflow
             {
                 Interlocked.Increment(ref _totalDequeued);
                 var waitTime = (DateTime.Now - entry.EnqueueTime).TotalMilliseconds;
-                _logger.LogDebug($"Image dequeued: Seq={entry.SequenceNumber}, WaitTime={waitTime:F2}ms, QueueSize={_queue.Count}, TotalDequeued={_totalDequeued}");
+                _logger.Info($"Image dequeued: Seq={entry.SequenceNumber}, WaitTime={waitTime:F2}ms, QueueSize={_queue.Count}, TotalDequeued={_totalDequeued}");
                 NotifyStatusChanged();
             }
 
@@ -280,7 +280,7 @@ namespace SunEyeVision.Workflow
             {
                 Interlocked.Increment(ref _totalDequeued);
                 var waitTime = (DateTime.Now - entry.EnqueueTime).TotalMilliseconds;
-                _logger.LogDebug($"Image dequeued (non-blocking): Seq={entry.SequenceNumber}, WaitTime={waitTime:F2}ms, QueueSize={_queue.Count}, TotalDequeued={_totalDequeued}");
+                _logger.Info($"Image dequeued (non-blocking): Seq={entry.SequenceNumber}, WaitTime={waitTime:F2}ms, QueueSize={_queue.Count}, TotalDequeued={_totalDequeued}");
                 NotifyStatusChanged();
             }
 

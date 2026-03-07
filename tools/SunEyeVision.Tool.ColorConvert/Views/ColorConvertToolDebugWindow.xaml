@@ -5,12 +5,27 @@
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
         Title="颜色空间转换工具调试" Height="400" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <TabItem Header="参数配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <TextBlock Text="颜色空间设置" 
+                               FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamComboBox x:Name="SourceColorSpaceCombo"
+                                            Label="源颜色空间"/>
+                    
+                    <controls:ParamComboBox x:Name="TargetColorSpaceCombo"
+                                            Label="目标颜色空间"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

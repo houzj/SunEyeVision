@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -19,7 +19,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 工具实例
         /// </summary>
-        public ITool? Tool { get; set; }
+        public IToolPlugin? Tool { get; set; }
 
         /// <summary>
         /// 上次执行结果
@@ -31,7 +31,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public ToolResults? LastToolResult { get; private set; }
 
-        public AlgorithmNode(string id, string name, ITool tool)
+        public AlgorithmNode(string id, string name, IToolPlugin tool)
             : base(id, name, NodeType.Algorithm)
         {
             Tool = tool;
@@ -104,47 +104,41 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 获取强类型参数
         /// </summary>
+        /// <remarks>
+        /// 直接返回节点的 Parameters 属性，避免反射转换开销。
+        /// 参数已由工作流引擎在创建节点时设置正确的类型。
+        /// </remarks>
         private ToolParameters GetTypedParameters()
         {
-            if (Tool == null)
-                return new GenericToolParameters();
+            // 如果参数已经是正确的类型，直接返回
+            if (Tool != null && Parameters.GetType() == Tool.ParamsType)
+                return Parameters;
 
-            // 使用反射创建默认参数实例
-            var defaultParams = (ToolParameters?)Activator.CreateInstance(Tool.ParamsType) 
-                ?? new GenericToolParameters();
-            
-            // 如果 Parameters 为空，返回默认参数
-            if (Parameters == null || Parameters.Values.Count == 0)
-                return defaultParams;
-
-            // 从 AlgorithmParameters 复制值到强类型参数
-            var props = defaultParams.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var prop in props)
+            // 如果参数类型不匹配，需要创建正确类型并复制值
+            if (Tool != null && Parameters is GenericToolParameters)
             {
-                if (!prop.CanWrite) continue;
-                if (prop.Name == "Version") continue;
+                var defaultParams = (ToolParameters?)Activator.CreateInstance(Tool.ParamsType)
+                    ?? new GenericToolParameters();
 
-                // 尝试从 Parameters 获取值
-                var getMethod = typeof(AlgorithmParameters).GetMethod("TryGet")?.MakeGenericMethod(prop.PropertyType);
-                if (getMethod != null)
+                // 从 GenericToolParameters 复制值
+                if (Parameters is GenericToolParameters genericParams)
                 {
-                    var parameters = new object[] { prop.Name, null };
-                    var found = (bool?)getMethod.Invoke(Parameters, parameters);
-                    if (found == true && parameters[1] != null)
+                    var props = defaultParams.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (var prop in props)
                     {
-                        try
+                        if (!prop.CanWrite || prop.Name == "Version") continue;
+                        var value = genericParams.GetValue<object?>(prop.Name);
+                        if (value != null)
                         {
-                            prop.SetValue(defaultParams, parameters[1]);
-                        }
-                        catch
-                        {
-                            // 转换失败时使用默认值
+                            try { prop.SetValue(defaultParams, value); } catch { }
                         }
                     }
                 }
+
+                return defaultParams;
             }
 
-            return defaultParams;
+            return Parameters;
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using SunEyeVision.Core.Events;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.ViewModels

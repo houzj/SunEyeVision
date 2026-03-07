@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -119,7 +119,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             string sourceProperty,
             string? transformExpression = null)
         {
-            SetBinding(ParameterBinding.CreateDynamic(parameterName, sourceNodeId, sourceProperty, transformExpression));
+            SetBinding(ParameterBinding.CreateBinding(parameterName, sourceNodeId, sourceProperty, transformExpression));
         }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <returns>动态绑定列表</returns>
         public IEnumerable<ParameterBinding> GetDynamicBindings()
         {
-            return _bindings.Values.Where(b => b.BindingType == BindingType.DynamicBinding);
+            return _bindings.Values.Where(b => b.BindingType == BindingType.Binding);
         }
 
         /// <summary>

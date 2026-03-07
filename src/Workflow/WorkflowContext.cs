@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Logging;
+using LogLevel = SunEyeVision.Plugin.SDK.Logging.LogLevel;
 
 namespace SunEyeVision.Workflow
 {
@@ -394,13 +397,59 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public void AddLog(string message, LogLevel level = LogLevel.Info)
         {
+            // 构建层级来源
+            var source = GetDefaultLogSource();
+
+            // 同步到VisionLogger（全局日志系统）
+            VisionLogger.Instance.Log(level, message, source);
+
+            // 同时保留执行日志（用于工作流执行追踪）
             Logs.Add(new ExecutionLog
             {
                 Timestamp = DateTime.Now,
                 Message = message,
                 Level = level,
-                ExecutionId = ExecutionId
+                ExecutionId = ExecutionId,
+                Source = source
             });
+        }
+
+        /// <summary>
+        /// 添加执行日志（带来源参数）
+        /// </summary>
+        public void AddLog(string message, LogLevel level, string? source)
+        {
+            var actualSource = source ?? GetDefaultLogSource();
+
+            // 同步到VisionLogger
+            VisionLogger.Instance.Log(level, message, actualSource);
+
+            // 保留执行日志
+            Logs.Add(new ExecutionLog
+            {
+                Timestamp = DateTime.Now,
+                Message = message,
+                Level = level,
+                ExecutionId = ExecutionId,
+                Source = actualSource
+            });
+        }
+
+        /// <summary>
+        /// 获取默认日志来源
+        /// </summary>
+        private string GetDefaultLogSource()
+        {
+            var workflowName = WorkflowName ?? WorkflowId ?? "未知工作流";
+
+            // 尝试获取当前节点名称
+            var currentCall = GetCurrentCallInfo();
+            if (currentCall != null && !string.IsNullOrEmpty(currentCall.NodeId))
+            {
+                return LogSource.Runtime(workflowName, currentCall.NodeId);
+            }
+
+            return LogSource.Runtime(workflowName);
         }
 
         /// <summary>
@@ -556,37 +605,11 @@ namespace SunEyeVision.Workflow
         /// 节点ID
         /// </summary>
         public string NodeId { get; set; }
-    }
-
-    /// <summary>
-    /// 日志级别
-    /// </summary>
-    public enum LogLevel
-    {
-        /// <summary>
-        /// 调试
-        /// </summary>
-        Debug,
 
         /// <summary>
-        /// 信息
+        /// 日志来源（层级格式，如"运行.检测流程.边缘检测"）
         /// </summary>
-        Info,
-
-        /// <summary>
-        /// 警告
-        /// </summary>
-        Warning,
-
-        /// <summary>
-        /// 错误
-        /// </summary>
-        Error,
-
-        /// <summary>
-        /// 致命错误
-        /// </summary>
-        Fatal
+        public string? Source { get; set; }
     }
 
     /// <summary>

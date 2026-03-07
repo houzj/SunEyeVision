@@ -3,14 +3,44 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="OCR识别工具调试" Height="500" Width="450">
+        Title="OCR识别工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <TabItem Header="参数配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <TextBlock Text="OCR设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamComboBox x:Name="LanguageCombo"
+                                            Label="识别语言"/>
+                    
+                    <TextBlock Text="Tessdata路径" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamTextBox x:Name="DataPathTextBox"
+                                           Label="数据路径"
+                                           Height="32"/>
+                    
+                    <TextBlock Text="高级设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamTextBox x:Name="CharWhitelistTextBox"
+                                           Label="字符白名单"
+                                           Height="60"
+                                           AcceptsReturn="True"
+                                           TextWrapping="Wrap"/>
+                    
+                    <controls:ParamComboBox x:Name="PsmModeCombo"
+                                            Label="页面分割模式 (PSM)"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

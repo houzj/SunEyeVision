@@ -3,14 +3,100 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="图像阈值化工具调试" Height="600" Width="450">
+        xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
+        Title="阈值化工具调试" Height="700" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <!-- Tab1: 输入配置 -->
+        <TabItem Header="输入配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="请选择输入图像源"/>
+                    
+                    <TextBlock Text="ROI区域" 
+                               FontSize="13" 
+                               FontWeight="Medium" 
+                               Margin="0,16,0,4"
+                               Foreground="#333333"/>
+                    <region:RegionEditorControl x:Name="RegionEditor" Height="300"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        
+        <!-- Tab2: 阈值参数 -->
+        <TabItem Header="阈值参数">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:BindableParameter 
+                        x:Name="ThresholdParam"
+                        Label="阈值"
+                        DataType="Int"
+                        IntMinimum="0"
+                        IntMaximum="255"
+                        SmallChange="1"
+                        LargeChange="10"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="MaxValueParam"
+                        Label="最大值"
+                        DataType="Int"
+                        IntMinimum="0"
+                        IntMaximum="255"
+                        SmallChange="1"
+                        LargeChange="10"
+                        ShowSlider="True"/>
+                    
+                    <TextBlock Text="阈值类型" 
+                               FontSize="13" 
+                               FontWeight="Medium" 
+                               Margin="0,16,0,8"
+                               Foreground="#333333"/>
+                    <ComboBox x:Name="ThresholdTypeComboBox" Height="32" VerticalContentAlignment="Center">
+                        <ComboBoxItem Content="Binary" IsSelected="True"/>
+                        <ComboBoxItem Content="BinaryInv"/>
+                        <ComboBoxItem Content="Trunc"/>
+                        <ComboBoxItem Content="ToZero"/>
+                        <ComboBoxItem Content="ToZeroInv"/>
+                    </ComboBox>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        
+        <!-- Tab3: 执行结果 -->
+        <TabItem Header="执行结果">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="输出图像" 
+                               FontSize="13" 
+                               FontWeight="Medium" 
+                               Margin="0,0,0,8"
+                               Foreground="#333333"/>
+                    <Border Background="#F5F5F5" 
+                            Height="200" 
+                            CornerRadius="4"
+                            Margin="0,0,0,16">
+                        <Image x:Name="OutputImage"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    </Border>
+                    
+                    <TextBlock Text="执行状态" 
+                               FontSize="13" 
+                               FontWeight="Medium" 
+                               Margin="0,0,0,8"
+                               Foreground="#333333"/>
+                    <TextBlock x:Name="StatusText"
+                               FontSize="12"
+                               Foreground="#666666"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

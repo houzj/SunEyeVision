@@ -10,9 +10,9 @@
             <GroupBox Header="源节点" Margin="0,0,0,8">
                 <StackPanel>
                     <Button Content="选择节点..."
-                            Command="{Binding SelectNodeCommand}"
+                            Command="{Binding OpenPopupCommand}"
                             Margin="0,0,0,4"/>
-                    <TextBlock Text="{Binding SelectedNodePath, Mode=OneWay}"
+                    <TextBlock Text="{Binding SelectionDisplayPath, Mode=OneWay}"
                               FontSize="11"
                               Foreground="Gray"/>
                 </StackPanel>
@@ -20,8 +20,8 @@
 
             <!-- 输出端口选择 -->
             <GroupBox Header="输出端口" Margin="0,0,0,8">
-                <ComboBox ItemsSource="{Binding AvailableOutputs}"
-                         SelectedItem="{Binding SelectedOutput, Mode=TwoWay}"
+                <ComboBox ItemsSource="{Binding FilteredNodes}"
+                         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                          DisplayMemberPath="Name"/>
             </GroupBox>
 

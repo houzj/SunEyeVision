@@ -1,8 +1,9 @@
 using System;
 using SunEyeVision.Core.Events;
 using SunEyeVision.UI.Services;
-using SunEyeVision.UI.Diagnostics;
 using SunEyeVision.UI.Infrastructure;
+using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.UI.Services.Logging;
 
 namespace SunEyeVision.UI.Infrastructure
 {
@@ -19,8 +20,9 @@ namespace SunEyeVision.UI.Infrastructure
         private ServiceLocator()
         {
             // 注册默认服务
-            Register<IEventBus>(new EventBus(new ConsoleLogger()));
+            Register<IEventBus>(new EventBus(VisionLogger.Instance));
             Register<UIEventPublisher>(new UIEventPublisher(GetService<IEventBus>()));
+            Register<IParameterChangeLogger>(new ParameterChangeLogger(VisionLogger.Instance));
         }
 
         public void Register<T>(T service) where T : class

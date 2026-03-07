@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Infrastructure;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
@@ -13,10 +13,16 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
     /// <summary>
     /// 插件管理器实现
     /// </summary>
+    /// <remarks>
+    /// 简化后的设计：
+    /// - 扫描带有 [Tool] 特性的类
+    /// - 直接注册到 ToolRegistry
+    /// - 不再需要中间的 Plugin 包装类
+    /// </remarks>
     public class PluginManager : IPluginManager
     {
         private readonly ILogger _logger;
-        private readonly Dictionary<Type, List<object>> _plugins = new Dictionary<Type, List<object>>();
+        private readonly Dictionary<Type, List<object>> _plugins = new();
 
         public PluginManager(ILogger logger)
         {
@@ -75,26 +81,27 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
             {
                 var assembly = Assembly.LoadFrom(dllPath);
                 
-                // 加载 IToolPlugin 类型插件并注册到 ToolRegistry
-                var toolPluginTypes = assembly.GetTypes()
-                    .Where(t => typeof(IToolPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+                // 扫描带有 [Tool] 特性的类
+                var toolTypes = assembly.GetTypes()
+                    .Where(t => t.GetCustomAttribute<ToolAttribute>() != null && !t.IsAbstract);
 
-                foreach (var toolPluginType in toolPluginTypes)
+                foreach (var toolType in toolTypes)
                 {
                     try
                     {
-                        var toolPlugin = (IToolPlugin?)Activator.CreateInstance(toolPluginType);
-                        if (toolPlugin != null)
+                        // 确保实现了 IToolPlugin 接口
+                        if (!typeof(IToolPlugin).IsAssignableFrom(toolType))
                         {
-                            toolPlugin.Initialize();
-                            ToolRegistry.RegisterTool(toolPlugin);
-                            RegisterPlugin(toolPlugin);
-                            _logger.LogInfo($"已加载工具插件: {toolPlugin.Name}");
+                            _logger.LogWarning($"类型 {toolType.Name} 有 [Tool] 特性但未实现 IToolPlugin 接口");
+                            continue;
                         }
+
+                        ToolRegistry.RegisterTool(toolType);
+                        _logger.LogInfo($"已加载工具: {toolType.Name}");
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError($"加载工具插件失败: {toolPluginType.Name} - {ex.Message}");
+                        _logger.LogError($"加载工具失败: {toolType.Name} - {ex.Message}");
                     }
                 }
             }
@@ -197,9 +204,13 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Plugin
     /// </summary>
     internal class NullLogger : ILogger
     {
+        public void Log(LogLevel level, string message, string? source = null, Exception? exception = null) { }
+        
         public void LogDebug(string message) { }
         public void LogInfo(string message) { }
         public void LogWarning(string message) { }
         public void LogError(string message, Exception? exception = null) { }
+        
+        public ILogger ForSource(string source) => this;
     }
 }

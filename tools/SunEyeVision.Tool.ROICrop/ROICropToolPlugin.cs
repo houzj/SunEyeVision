@@ -9,66 +9,10 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
+using SunEyeVision.Tool.ROICrop.Views;
 
 namespace SunEyeVision.Tool.ROICrop
 {
-    [ToolPlugin("roi_crop", "ROICrop")]
-    public class ROICropToolPlugin : IToolPlugin
-    {
-        public string Name => "ROI裁剪";
-        public string Version => "2.0.0";
-        public string Author => "SunEyeVision";
-        public string Description => "裁剪指定矩形区域";
-        public string PluginId => "suneye.roi_crop";
-        public string Icon => "✂️";
-        public List<string> Dependencies => new List<string>();
-        public bool IsLoaded { get; private set; }
-
-        public void Initialize() => IsLoaded = true;
-        public void Unload() => IsLoaded = false;
-        public List<Type> GetAlgorithmNodes() => new List<Type>();
-
-        public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>
-        {
-            new ToolMetadata
-            {
-                Id = "roi_crop",
-                Name = "ROICrop",
-                DisplayName = "ROI裁剪",
-                Icon = "✂️",
-                Category = "图像处理",
-                Description = "裁剪指定的矩形感兴趣区域",
-                Version = Version,
-                Author = Author,
-                InputParameters = new List<ParameterMetadata>
-                {
-                    new ParameterMetadata { Name = "X", DisplayName = "X", Type = ParamDataType.Int, DefaultValue = 0 },
-                    new ParameterMetadata { Name = "Y", DisplayName = "Y", Type = ParamDataType.Int, DefaultValue = 0 },
-                    new ParameterMetadata { Name = "Width", DisplayName = "宽度", Type = ParamDataType.Int, DefaultValue = 100 },
-                    new ParameterMetadata { Name = "Height", DisplayName = "高度", Type = ParamDataType.Int, DefaultValue = 100 }
-                },
-                OutputParameters = new List<ParameterMetadata>
-                {
-                    new ParameterMetadata { Name = "OutputImage", DisplayName = "输出图像", Type = ParamDataType.Image }
-                }
-            }
-        };
-
-        public ITool? CreateToolInstance(string toolId) => toolId == "roi_crop" ? new ROICropTool() : null;
-
-        public AlgorithmParameters GetDefaultParameters(string toolId)
-        {
-            var p = new AlgorithmParameters();
-            p.Set("X", 0);
-            p.Set("Y", 0);
-            p.Set("Width", 100);
-            p.Set("Height", 100);
-            return p;
-        }
-
-        public ValidationResult ValidateParameters(string toolId, AlgorithmParameters parameters) => new ValidationResult();
-    }
-
     public class ROICropParameters : ToolParameters
     {
         public int X { get; set; }
@@ -85,17 +29,20 @@ namespace SunEyeVision.Tool.ROICrop
 
     public class ROICropResults : ToolResults
     {
-        [SunEyeVision.Plugin.SDK.Metadata.Param(DisplayName = "输出图像", Description = "裁剪后的图像", Category = SunEyeVision.Plugin.SDK.Metadata.ParamCategory.Output)]
+        [Param(DisplayName = "输出图像", Description = "裁剪后的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public Rect CroppedArea { get; set; }
     }
 
-    public class ROICropTool : ITool<ROICropParameters, ROICropResults>
+    [Tool("roi_crop", "ROI裁剪", Description = "裁剪指定的矩形感兴趣区域", Icon = "✂️", Category = "图像处理")]
+    public class ROICropTool : IToolPlugin<ROICropParameters, ROICropResults>
     {
-        public string Name => "ROI裁剪";
-        public string Description => "裁剪指定矩形区域";
-        public string Version => "2.0.0";
-        public string Category => "图像处理";
+        public bool HasDebugWindow => true;
+
+        public System.Windows.Window? CreateDebugWindow()
+        {
+            return new ROICropToolDebugWindow();
+        }
 
         public ROICropResults Run(Mat image, ROICropParameters parameters)
         {
@@ -116,8 +63,5 @@ namespace SunEyeVision.Tool.ROICrop
             catch (Exception ex) { result.SetError($"处理失败: {ex.Message}"); }
             return result;
         }
-
-        public ValidationResult ValidateParameters(ROICropParameters parameters) => parameters.Validate();
-        public ROICropParameters GetDefaultParameters() => new ROICropParameters();
     }
 }

@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Threading;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using Events = SunEyeVision.Core.Events;
 
@@ -73,7 +73,7 @@ namespace SunEyeVision.DeviceDriver
 
             try
             {
-                Logger.LogDebug($"Capturing image from device: {DeviceName}");
+                Logger.Info($"Capturing image from device: {DeviceName}");
 
                 // Generate simulated image data
                 var width = 640;
@@ -87,7 +87,7 @@ namespace SunEyeVision.DeviceDriver
                 // Create OpenCvSharp.Mat from byte array
                 var image = new Mat(height, width, MatType.CV_8UC(channels));
                 System.Runtime.InteropServices.Marshal.Copy(data, 0, image.Data, data.Length);
-                Logger.LogDebug($"Image captured successfully: {width}x{height}");
+                Logger.Info($"Image captured successfully: {width}x{height}");
                 return image;
             }
             catch (Exception ex)

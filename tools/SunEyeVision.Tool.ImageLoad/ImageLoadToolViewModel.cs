@@ -37,13 +37,18 @@ namespace SunEyeVision.Tool.ImageLoad
                 if (_parameters.FilePath != value)
                 {
                     _parameters.FilePath = value;
-                    OnPropertyChanged(nameof(FilePath));
-                    OnPropertyChanged(nameof(FileName));
-                    OnPropertyChanged(nameof(HasValidFile));
-                    SetParamValue("FilePath", value);
+                    if (SetProperty(ref _filePathCache, value, "文件路径"))
+                    {
+                        OnPropertyChanged(nameof(FileName));
+                        OnPropertyChanged(nameof(HasValidFile));
+                        SetParamValue("FilePath", value);
+                    }
                 }
             }
         }
+
+        // 用于属性变化通知的缓存字段
+        private string _filePathCache = string.Empty;
 
         /// <summary>
         /// 文件名（不含路径）

@@ -36,11 +36,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         private readonly IDataSourceQueryService? _dataQueryService;
 
         /// <summary>
-        /// 运行时参数提供者（可选）
-        /// </summary>
-        private IRuntimeParameterProvider? _runtimeParameterProvider;
-
-        /// <summary>
         /// 创建参数解析器
         /// </summary>
         public ParameterResolver()
@@ -56,15 +51,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _dataQueryService = dataQueryService;
         }
 
-        /// <summary>
-        /// 设置运行时参数提供者
-        /// </summary>
-        /// <param name="provider">运行时参数提供者</param>
-        public void SetRuntimeParameterProvider(IRuntimeParameterProvider provider)
-        {
-            _runtimeParameterProvider = provider;
-        }
-
         /// <inheritdoc/>
         public ParameterResolveResult Resolve(
             ParameterBinding binding,
@@ -73,9 +59,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             return binding.BindingType switch
             {
                 BindingType.Constant => ResolveConstant(binding),
-                BindingType.DynamicBinding => ResolveDynamic(binding, nodeResults),
-                BindingType.Expression => ResolveExpression(binding, nodeResults),
-                BindingType.RuntimeInjection => ResolveRuntimeInjection(binding),
+                BindingType.Binding => ResolveDynamic(binding, nodeResults),
                 _ => ParameterResolveResult.Failure($"不支持的绑定类型: {binding.BindingType}")
             };
         }
@@ -220,7 +204,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     // 常量绑定始终可解析
                     break;
 
-                case BindingType.DynamicBinding:
+                case BindingType.Binding:
                     // 检查源节点是否存在
                     if (!nodeResults.ContainsKey(binding.SourceNodeId!))
                     {
@@ -236,32 +220,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                             result.HasWarnings = true;
                             result.Warnings.Add($"源节点 {binding.SourceNodeId} 执行未成功: {nodeResult.ErrorMessage}");
                         }
-                    }
-                    break;
-
-                case BindingType.Expression:
-                    // 检查表达式语法
-                    if (!string.IsNullOrEmpty(binding.TransformExpression))
-                    {
-                        try
-                        {
-                            // 尝试编译表达式
-                            CompileExpression(binding.TransformExpression!);
-                        }
-                        catch (Exception ex)
-                        {
-                            result.CanResolve = false;
-                            result.Errors.Add($"表达式编译失败: {ex.Message}");
-                        }
-                    }
-                    break;
-
-                case BindingType.RuntimeInjection:
-                    // 检查运行时键是否有效
-                    if (string.IsNullOrWhiteSpace(binding.RuntimeSourceKey))
-                    {
-                        result.CanResolve = false;
-                        result.Errors.Add("运行时注入绑定必须指定 RuntimeSourceKey");
                     }
                     break;
             }
@@ -363,52 +321,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             catch (Exception ex)
             {
                 return ParameterResolveResult.Failure($"表达式计算失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 解析运行时注入绑定
-        /// </summary>
-        private ParameterResolveResult ResolveRuntimeInjection(ParameterBinding binding)
-        {
-            if (string.IsNullOrEmpty(binding.RuntimeSourceKey))
-            {
-                return ParameterResolveResult.Failure("运行时注入绑定必须指定 RuntimeSourceKey");
-            }
-
-            if (_runtimeParameterProvider == null)
-            {
-                return ParameterResolveResult.Failure("未设置运行时参数提供者");
-            }
-
-            // 检查参数是否存在
-            if (!_runtimeParameterProvider.HasRuntimeParameter(binding.RuntimeSourceKey))
-            {
-                return ParameterResolveResult.Failure($"运行时参数 '{binding.RuntimeSourceKey}' 不存在");
-            }
-
-            try
-            {
-                // 获取运行时参数值
-                var value = _runtimeParameterProvider.GetRuntimeParameter<object>(binding.RuntimeSourceKey);
-
-                if (value == null)
-                {
-                    // null 值可能是合法的
-                    return ParameterResolveResult.Success(null, binding.TargetType);
-                }
-
-                // 应用转换表达式
-                if (!string.IsNullOrEmpty(binding.TransformExpression))
-                {
-                    value = EvaluateExpression(binding.TransformExpression!, value);
-                }
-
-                return ParameterResolveResult.Success(value, binding.TargetType);
-            }
-            catch (Exception ex)
-            {
-                return ParameterResolveResult.Failure($"获取运行时参数失败: {ex.Message}");
             }
         }
 

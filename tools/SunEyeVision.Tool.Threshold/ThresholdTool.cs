@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Windows;
+using System.Reflection;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -11,20 +10,25 @@ using SunEyeVision.Tool.Threshold.Views;
 namespace SunEyeVision.Tool.Threshold
 {
     /// <summary>
-    /// 图像阈值化工具 - 实现ITool接口
+    /// 图像阈值化工具 - 使用 [Tool] 特性作为元数据单一数据源
     /// </summary>
-    public class ThresholdTool : ITool<ThresholdParameters, ThresholdResults>
+    [Tool(
+        id: "threshold",
+        displayName: "图像阈值化",
+        Description = "将灰度图像转换为二值图像",
+        Icon = "📷",
+        Category = "图像处理",
+        Version = "2.0.0",
+        HasDebugWindow = true
+    )]
+    public class ThresholdTool : IToolPlugin<ThresholdParameters, ThresholdResults>
     {
-        #region ITool 基本信息
+        private readonly ToolAttribute? _attribute;
 
-        public string Name => "Threshold";
-        public string Description => "将灰度图像转换为二值图像";
-        public string Version => "2.0.0";
-        public string Category => "图像处理";
-
-        #endregion
-
-        #region ITool<ThresholdParameters, ThresholdResults> 实现
+        public ThresholdTool()
+        {
+            _attribute = GetType().GetCustomAttribute<ToolAttribute>();
+        }
 
         /// <summary>
         /// 执行工具（同步）
@@ -33,8 +37,8 @@ namespace SunEyeVision.Tool.Threshold
         {
             var result = new ThresholdResults
             {
-                ToolName = Name,
-                ToolId = "threshold",
+                ToolName = _attribute?.DisplayName ?? "Threshold",
+                ToolId = _attribute?.Id ?? "threshold",
                 Timestamp = DateTime.Now
             };
 
@@ -46,6 +50,7 @@ namespace SunEyeVision.Tool.Threshold
                 var validationResult = ValidateParameters(parameters);
                 if (!validationResult.IsValid)
                 {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
                     result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
                     return result;
                 }
@@ -53,9 +58,12 @@ namespace SunEyeVision.Tool.Threshold
                 // 验证输入图像
                 if (image == null || image.Empty())
                 {
+                    parameters.LogWarning("输入图像为空");
                     result.SetError("输入图像为空");
                     return result;
                 }
+
+                parameters.LogInfo($"开始阈值化处理: 图像尺寸 {image.Width}x{image.Height}");
 
                 // 记录输入尺寸
                 result.InputSize = image.Size();
@@ -78,6 +86,7 @@ namespace SunEyeVision.Tool.Threshold
                 {
                     grayImage = new Mat();
                     Cv2.CvtColor(image, grayImage, ColorConversionCodes.BGR2GRAY);
+                    parameters.LogInfo($"已将图像转换为灰度，原图通道数: {image.Channels()}");
                 }
 
                 // 转换OpenCvSharp的阈值类型
@@ -88,6 +97,7 @@ namespace SunEyeVision.Tool.Threshold
                     // 普通阈值化
                     outputImage = new Mat();
                     actualThreshold = Cv2.Threshold(grayImage, outputImage, threshold, maxValue, thresholdType);
+                    parameters.LogInfo($"使用固定阈值: {actualThreshold}");
                 }
                 else
                 {
@@ -99,6 +109,7 @@ namespace SunEyeVision.Tool.Threshold
 
                     Cv2.AdaptiveThreshold(grayImage, outputImage, maxValue, adaptiveType, thresholdType, blockSize, 5);
                     actualThreshold = threshold; // 自适应阈值无法直接获取
+                    parameters.LogInfo($"使用自适应阈值，块大小: {blockSize}");
                 }
 
                 // 如果需要反转
@@ -108,6 +119,7 @@ namespace SunEyeVision.Tool.Threshold
                     Cv2.BitwiseNot(outputImage, inverted);
                     outputImage.Dispose();
                     outputImage = inverted;
+                    parameters.LogInfo("已反转输出图像");
                 }
 
                 // 设置结果
@@ -123,6 +135,9 @@ namespace SunEyeVision.Tool.Threshold
                 stopwatch.Stop();
                 result.SetSuccess(stopwatch.ElapsedMilliseconds);
 
+                parameters.LogInfo($"阈值化处理完成: 使用阈值 {actualThreshold}, " +
+                                  $"类型 {type}, 耗时 {stopwatch.ElapsedMilliseconds}ms");
+
                 // 释放临时灰度图
                 if (grayImage != image)
                 {
@@ -132,6 +147,7 @@ namespace SunEyeVision.Tool.Threshold
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                parameters.LogError($"阈值化处理异常: {ex.Message}", ex);
                 result.SetError($"处理失败: {ex.Message}", ex);
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
             }
@@ -152,22 +168,12 @@ namespace SunEyeVision.Tool.Threshold
         }
 
         /// <summary>
-        /// 获取默认参数
-        /// </summary>
-        public ThresholdParameters GetDefaultParameters()
-        {
-            return new ThresholdParameters();
-        }
-
-        /// <summary>
         /// 创建调试窗口
         /// </summary>
-        public System.Windows.Window CreateDebugWindow()
+        public System.Windows.Window? CreateDebugWindow()
         {
             return new ThresholdToolDebugWindow();
         }
-
-        #endregion
 
         #region 私有方法
 

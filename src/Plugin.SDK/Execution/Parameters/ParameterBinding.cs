@@ -9,31 +9,28 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// <remarks>
     /// 定义单个参数的绑定配置，支持常量值和动态绑定两种模式。
     /// 
-    /// 核心功能：
-    /// 1. 支持常量值绑定（Constant）
-    /// 2. 支持动态绑定到父节点输出（DynamicBinding）
-    /// 3. 支持简单的值转换表达式
-    /// 4. 支持序列化和反序列化
+    /// 核心概念：
+    /// 1. 绑定类型（BindingType）：回答"值从哪里来"
+    ///    - Constant: 固定常量值
+    ///    - Binding: 从其他节点输出获取
+    /// 
+    /// 2. 数据类型（DataType）：回答"值是什么类型"
+    ///    - 由 ParamDataType 枚举定义，与绑定类型正交
+    /// 
+    /// 3. 值转换（TransformExpression）：可选的表达式转换
+    ///    - 两种绑定模式都可用
+    ///    - 示例: "value * 1.5", "Math.Max(value, 10)"
     /// 
     /// 使用示例：
     /// <code>
     /// // 创建常量绑定
-    /// var thresholdBinding = new ParameterBinding
-    /// {
-    ///     ParameterName = "Threshold",
-    ///     BindingType = BindingType.Constant,
-    ///     ConstantValue = 128
-    /// };
+    /// var thresholdBinding = ParameterBinding.CreateConstant("Threshold", 128);
     /// 
     /// // 创建动态绑定
-    /// var radiusBinding = new ParameterBinding
-    /// {
-    ///     ParameterName = "MinRadius",
-    ///     BindingType = BindingType.DynamicBinding,
-    ///     SourceNodeId = "circle_find_001",
-    ///     SourceProperty = "Radius",
-    ///     TransformExpression = "value * 0.9"  // 取90%的值
-    /// };
+    /// var radiusBinding = ParameterBinding.CreateBinding("MinRadius", "circle_find_001", "Radius");
+    /// 
+    /// // 创建带转换表达式的绑定
+    /// var bindingWithTransform = ParameterBinding.CreateBinding("Radius", "node_001", "Radius", "value * 0.9");
     /// </code>
     /// </remarks>
     public class ParameterBinding
@@ -49,6 +46,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 绑定类型
         /// </summary>
+        /// <remarks>
+        /// 只有两种基本绑定类型：Constant（常量）和 Binding（动态绑定）。
+        /// </remarks>
         public BindingType BindingType { get; set; } = BindingType.Constant;
 
         /// <summary>
@@ -57,6 +57,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <remarks>
         /// 当 BindingType 为 Constant 时使用此值。
         /// 可以是任意类型：int、double、string、bool、Point等。
+        /// 数据类型由 ParameterMetadata.DataType 或 BindableParameter.DataType 决定。
         /// </remarks>
         public object? ConstantValue { get; set; }
 
@@ -64,7 +65,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 源节点ID
         /// </summary>
         /// <remarks>
-        /// 当 BindingType 为 DynamicBinding 时，指定数据来源的节点ID。
+        /// 当 BindingType 为 Binding 时，指定数据来源的节点ID。
         /// </remarks>
         public string? SourceNodeId { get; set; }
 
@@ -72,7 +73,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 源属性名称
         /// </summary>
         /// <remarks>
-        /// 当 BindingType 为 DynamicBinding 时，指定从源节点结果的哪个属性获取值。
+        /// 当 BindingType 为 Binding 时，指定从源节点结果的哪个属性获取值。
         /// 示例: "Radius", "Center.X", "CircleFound.Radius"
         /// </remarks>
         public string? SourceProperty { get; set; }
@@ -81,9 +82,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 转换表达式
         /// </summary>
         /// <remarks>
-        /// 可选的值转换表达式，用于对获取的值进行简单转换。
+        /// 可选的值转换表达式，两种绑定模式都可用。
         /// 示例: "value * 1.5", "Math.Max(value, 10)", "value.ToString()"
-        /// 变量 'value' 代表从源属性获取的原始值。
+        /// 变量 'value' 代表获取的原始值。
         /// </remarks>
         public string? TransformExpression { get; set; }
 
@@ -94,25 +95,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 参数的目标类型，用于类型转换和验证。
         /// </remarks>
         public Type? TargetType { get; set; }
-
-        /// <summary>
-        /// 运行时数据源键名
-        /// </summary>
-        /// <remarks>
-        /// 当 BindingType 为 RuntimeInjection 时，指定从运行时参数中获取哪个键的值。
-        /// 预定义键: "CurrentImagePath", "CurrentImageIndex", "CurrentImage" 等。
-        /// 
-        /// 示例：
-        /// <code>
-        /// var binding = new ParameterBinding
-        /// {
-        ///     ParameterName = "FilePath",
-        ///     BindingType = BindingType.RuntimeInjection,
-        ///     RuntimeSourceKey = "CurrentImagePath"
-        /// };
-        /// </code>
-        /// </remarks>
-        public string? RuntimeSourceKey { get; set; }
 
         /// <summary>
         /// 是否有效
@@ -144,7 +126,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="sourceProperty">源属性名称</param>
         /// <param name="transformExpression">转换表达式（可选）</param>
         /// <returns>参数绑定实例</returns>
-        public static ParameterBinding CreateDynamic(
+        public static ParameterBinding CreateBinding(
             string parameterName,
             string sourceNodeId,
             string sourceProperty,
@@ -153,31 +135,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             return new ParameterBinding
             {
                 ParameterName = parameterName,
-                BindingType = BindingType.DynamicBinding,
+                BindingType = BindingType.Binding,
                 SourceNodeId = sourceNodeId,
                 SourceProperty = sourceProperty,
                 TransformExpression = transformExpression
-            };
-        }
-
-        /// <summary>
-        /// 创建运行时注入绑定
-        /// </summary>
-        /// <param name="parameterName">参数名称</param>
-        /// <param name="runtimeSourceKey">运行时数据源键名</param>
-        /// <param name="targetType">目标类型（可选）</param>
-        /// <returns>参数绑定实例</returns>
-        public static ParameterBinding CreateRuntimeInjection(
-            string parameterName,
-            string runtimeSourceKey,
-            Type? targetType = null)
-        {
-            return new ParameterBinding
-            {
-                ParameterName = parameterName,
-                BindingType = BindingType.RuntimeInjection,
-                RuntimeSourceKey = runtimeSourceKey,
-                TargetType = targetType
             };
         }
 
@@ -201,7 +162,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     // 常量值可以为null，某些参数可能接受null
                     break;
 
-                case BindingType.DynamicBinding:
+                case BindingType.Binding:
                     if (string.IsNullOrWhiteSpace(SourceNodeId))
                     {
                         result.IsValid = false;
@@ -211,22 +172,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     {
                         result.IsValid = false;
                         result.Errors.Add("动态绑定必须指定源属性名称");
-                    }
-                    break;
-
-                case BindingType.Expression:
-                    if (string.IsNullOrWhiteSpace(TransformExpression))
-                    {
-                        result.IsValid = false;
-                        result.Errors.Add("表达式绑定必须指定转换表达式");
-                    }
-                    break;
-
-                case BindingType.RuntimeInjection:
-                    if (string.IsNullOrWhiteSpace(RuntimeSourceKey))
-                    {
-                        result.IsValid = false;
-                        result.Errors.Add("运行时注入绑定必须指定 RuntimeSourceKey");
                     }
                     break;
             }
@@ -248,8 +193,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 SourceNodeId = SourceNodeId,
                 SourceProperty = SourceProperty,
                 TransformExpression = TransformExpression,
-                TargetType = TargetType,
-                RuntimeSourceKey = RuntimeSourceKey
+                TargetType = TargetType
             };
         }
 
@@ -278,9 +222,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (!string.IsNullOrEmpty(TransformExpression))
                 dict["TransformExpression"] = TransformExpression;
-
-            if (!string.IsNullOrEmpty(RuntimeSourceKey))
-                dict["RuntimeSourceKey"] = RuntimeSourceKey;
 
             if (TargetType != null)
                 dict["TargetType"] = TargetType.AssemblyQualifiedName ?? TargetType.FullName!;
@@ -335,13 +276,15 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (dict.TryGetValue("TransformExpression", out var expr))
                 binding.TransformExpression = expr?.ToString();
 
-            if (dict.TryGetValue("RuntimeSourceKey", out var runtimeKey))
-                binding.RuntimeSourceKey = runtimeKey?.ToString();
-
             if (dict.TryGetValue("TargetType", out var targetType))
             {
                 binding.TargetType = Type.GetType(targetType?.ToString() ?? string.Empty);
             }
+
+            // 兼容旧版本数据：如果 BindingType 是已废弃的值，转换为合适的类型
+            // DynamicBinding(1) -> Binding(1) 已自动兼容
+            // Expression(2) -> 转换为 Binding 并保留 TransformExpression
+            // RuntimeInjection(3) -> 需要特殊处理，这里暂不自动转换
 
             return binding;
         }
@@ -353,10 +296,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             return BindingType switch
             {
-                BindingType.Constant => $"{ParameterName} = {ConstantValue ?? "null"}",
-                BindingType.DynamicBinding => $"{ParameterName} <- {SourceNodeId}.{SourceProperty}",
-                BindingType.Expression => $"{ParameterName} = {TransformExpression}",
-                BindingType.RuntimeInjection => $"{ParameterName} <- Runtime[{RuntimeSourceKey}]",
+                BindingType.Constant => string.IsNullOrEmpty(TransformExpression)
+                    ? $"{ParameterName} = {ConstantValue ?? "null"}"
+                    : $"{ParameterName} = {ConstantValue ?? "null"} ({TransformExpression})",
+                BindingType.Binding => string.IsNullOrEmpty(TransformExpression)
+                    ? $"{ParameterName} <- {SourceNodeId}.{SourceProperty}"
+                    : $"{ParameterName} <- {SourceNodeId}.{SourceProperty} ({TransformExpression})",
                 _ => $"{ParameterName} ({BindingType})"
             };
         }

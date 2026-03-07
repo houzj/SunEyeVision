@@ -2,7 +2,7 @@ using Xunit;
 using FluentAssertions;
 using SunEyeVision.Workflow;
 using SunEyeVision.Core.Models;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using Moq;
 
 namespace SunEyeVision.Core.Tests.Workflow;

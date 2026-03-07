@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 
@@ -161,7 +161,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <returns>是否可用</returns>
         public static bool IsBindingAvailable(this IDataSourceQueryService service, ParameterBinding binding)
         {
-            if (binding.BindingType != BindingType.DynamicBinding)
+            if (binding.BindingType != BindingType.Binding)
                 return true;
 
             if (string.IsNullOrEmpty(binding.SourceNodeId) || string.IsNullOrEmpty(binding.SourceProperty))
@@ -180,7 +180,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             var result = binding.Validate();
 
-            if (binding.BindingType == BindingType.DynamicBinding &&
+            if (binding.BindingType == BindingType.Binding &&
                 !string.IsNullOrEmpty(binding.SourceNodeId) &&
                 !string.IsNullOrEmpty(binding.SourceProperty))
             {

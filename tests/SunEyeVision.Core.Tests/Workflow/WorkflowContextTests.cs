@@ -1,11 +1,9 @@
 using Xunit;
 using FluentAssertions;
 using SunEyeVision.Workflow;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Core.Tests.Workflow;
-
-// 使用别名解决LogLevel命名冲突
-using WorkflowLogLevel = SunEyeVision.Workflow.LogLevel;
 
 /// <summary>
 /// WorkflowContext单元测试
@@ -119,13 +117,13 @@ public class WorkflowContextTests
         var context = new WorkflowContext();
 
         // Act
-        context.AddLog("Test message", WorkflowLogLevel.Info);
-        context.AddLog("Warning message", WorkflowLogLevel.Warning);
+        context.AddLog("Test message", LogLevel.Info);
+        context.AddLog("Warning message", LogLevel.Warning);
 
         // Assert
         context.Logs.Should().HaveCount(2);
         context.Logs[0].Message.Should().Be("Test message");
-        context.Logs[0].Level.Should().Be(WorkflowLogLevel.Info);
+        context.Logs[0].Level.Should().Be(LogLevel.Info);
     }
 
     [Fact]
@@ -150,7 +148,7 @@ public class WorkflowContextTests
         var context = new WorkflowContext();
         context.UpdateNodeStatus("node1", NodeStatus.Completed);
         context.UpdateNodeStatus("node2", NodeStatus.Failed);
-        context.AddLog("Test log", WorkflowLogLevel.Info);
+        context.AddLog("Test log", LogLevel.Info);
 
         // Act
         var stats = context.GetStatistics();

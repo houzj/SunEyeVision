@@ -12,6 +12,8 @@ using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Services.Thumbnail;
@@ -25,6 +27,9 @@ using SunEyeVision.UI.Extensions;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.UI.Converters.Path;
 using SunEyeVision.UI.Services.Performance;
+using SunEyeVision.UI.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Logging;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
@@ -586,20 +591,91 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 添加日志
+        /// 添加日志（智能迁移版本 - 自动解析Emoji和来源）
         /// </summary>
         public void AddLog(string message)
         {
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            // 将日志追加到末尾
-            LogText += $"[{timestamp}] {message}\n";
+            var (level, cleanMessage, source) = ParseLegacyLogMessage(message);
+            VisionLogger.Instance.Log(level, cleanMessage, source);
+        }
 
-            // 日志条目最多保存500条
-            var lines = LogText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length > 500)
+        /// <summary>
+        /// 添加带级别的日志
+        /// </summary>
+        public void AddLog(LogLevel level, string message, string? source = null)
+        {
+            VisionLogger.Instance.Log(level, message, source);
+        }
+
+        /// <summary>
+        /// 解析遗留日志消息，提取级别、来源和纯净消息
+        /// </summary>
+        private static (LogLevel level, string message, string source) ParseLegacyLogMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return (LogLevel.Info, message ?? string.Empty, LogSource.UI("默认"));
+
+            var level = LogLevel.Info;
+            var source = LogSource.UI("默认");
+            var cleanMessage = message;
+
+            // 解析Emoji前缀确定日志级别
+            if (message.StartsWith("✅") || message.StartsWith("✓") || message.StartsWith("✔"))
             {
-                LogText = string.Join("\n", lines.Skip(lines.Length - 500)) + "\n";
+                level = LogLevel.Success;
+                cleanMessage = message.Substring(1).TrimStart();
             }
+            else if (message.StartsWith("❌") || message.StartsWith("✖") || message.StartsWith("✗"))
+            {
+                level = LogLevel.Error;
+                cleanMessage = message.Substring(1).TrimStart();
+            }
+            else if (message.StartsWith("⚠️") || message.StartsWith("⚠"))
+            {
+                level = LogLevel.Warning;
+                cleanMessage = message.Substring(message.StartsWith("⚠️") ? 2 : 1).TrimStart();
+            }
+            else if (message.StartsWith("🗑️") || message.StartsWith("🔧") || message.StartsWith("📝"))
+            {
+                level = LogLevel.Info;
+                cleanMessage = message.Substring(message.StartsWith("🗑️") ? 2 : 1).TrimStart();
+            }
+
+            // 解析[来源]标记
+            var sourceMatch = System.Text.RegularExpressions.Regex.Match(cleanMessage, @"^\[([^\]]+)\]\s*");
+            if (sourceMatch.Success)
+            {
+                var sourceTag = sourceMatch.Groups[1].Value;
+                cleanMessage = cleanMessage.Substring(sourceMatch.Length);
+
+                // 映射来源标签到LogSource
+                source = sourceTag switch
+                {
+                    "系统" => LogSource.SystemCore,
+                    "设备" => LogSource.DeviceCamera,
+                    "运行" => LogSource.UIOperation,
+                    "Connection" => LogSource.UIConnection,
+                    _ => LogSource.UI(sourceTag)
+                };
+            }
+
+            // 根据消息内容推断来源
+            if (cleanMessage.Contains("节点"))
+                source = LogSource.UINode;
+            else if (cleanMessage.Contains("连接"))
+                source = LogSource.UIConnection;
+            else if (cleanMessage.Contains("工作流"))
+                source = LogSource.UIOperation;
+            else if (cleanMessage.Contains("撤销") || cleanMessage.Contains("重做"))
+                source = LogSource.UIEdit;
+            else if (cleanMessage.Contains("调试窗口"))
+                source = LogSource.UIDebug;
+            else if (cleanMessage.Contains("运行时参数"))
+                source = LogSource.UIConfig;
+            else if (cleanMessage.Contains("缓存"))
+                source = LogSource.UIOperation;
+
+            return (level, cleanMessage, source);
         }
 
         /// <summary>
@@ -607,12 +683,9 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void ClearLog()
         {
-            // 强制清空日志，确保绑定更新
-            _logText = string.Empty;
-            OnPropertyChanged(nameof(LogText));
-            
-            // 输出调试信息
-            System.Diagnostics.Debug.WriteLine($"[ClearLog] 日志已清空，LogText长度: {LogText?.Length ?? 0}");
+            // 使用日志管理器清空
+            // 注意：VisionLogger 不支持直接清空，这里仅作标记
+            System.Diagnostics.Debug.WriteLine($"[ClearLog] 日志清空请求已记录");
         }
 
         /// <summary>
@@ -672,6 +745,15 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ClearImageCommand { get; }
 
         public ICommand ClearLogCommand { get; }
+
+        // 主窗口 ImageControl 获取委托 - 用于区域编辑器绑定
+        /// <summary>
+        /// 获取主窗口 ImageControl 的委托 - 用于区域编辑器绑定
+        /// </summary>
+        /// <remarks>
+        /// 由 MainWindow 在初始化时设置，用于在调试窗口创建时传递 ImageControl 引用
+        /// </remarks>
+        public Func<ImageControl?>? GetMainImageControl { get; set; }
 
         public MainWindowViewModel()
         {
@@ -1390,10 +1472,9 @@ namespace SunEyeVision.UI.ViewModels
             {
                 try
                 {
-                    // 从 ToolRegistry 获取元数据和插件
+                    // 从 ToolRegistry 获取元数据
                     var toolId = node.AlgorithmType ?? node.Name;
                     var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
-                    var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
 
                     if (toolMetadata == null)
                     {
@@ -1406,7 +1487,7 @@ namespace SunEyeVision.UI.ViewModels
                     }
 
                     // 获取工具实例用于运行时检查
-                    ITool? tool = toolPlugin?.CreateToolInstance(toolId);
+                    var tool = ToolRegistry.CreateToolInstance(toolId);
 
                     // 使用 NodeInterfaceFactory 获取界面类型（运行时检查版本）
                     var interfaceType = NodeInterfaceFactory.GetInterfaceType(node.ToWorkflowNode(), toolMetadata, tool);
@@ -1438,7 +1519,8 @@ namespace SunEyeVision.UI.ViewModels
                             }
 
                             // 创建新的调试窗口
-                            var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, toolPlugin, toolMetadata);
+                            var mainImageControl = GetMainImageControl?.Invoke();
+                            var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, tool, toolMetadata, mainImageControl);
                             if (debugWindow != null)
                             {
                                 debugWindow.Owner = System.Windows.Application.Current.MainWindow;
@@ -2746,6 +2828,7 @@ namespace SunEyeVision.UI.ViewModels
             return null;
         }
 
+
         #endregion
 
         #endregion // 显示
@@ -2755,33 +2838,17 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private class DefaultToolPlugin : IToolPlugin
         {
-            public string Name => "Default Tool";
-            public string Version => "1.0.0";
-            public string Author => "SunEyeVision";
-            public string Description => "Default tool plugin";
-            public string PluginId => "default.tool";
-            public List<string> Dependencies => new List<string>();
-            public string Icon => "🔧";
+            public Type ParamsType => typeof(GenericToolParameters);
+            public Type ResultType => typeof(GenericToolResults);
 
-            private bool _isLoaded = true;
-            public bool IsLoaded => _isLoaded;
-
-            public void Initialize() { }
-            public void Unload() { }
-
-            public List<System.Type> GetAlgorithmNodes() => new List<System.Type>();
-
-            public List<ToolMetadata> GetToolMetadata() => new List<ToolMetadata>();
-
-            public SunEyeVision.Plugin.SDK.Core.ITool? CreateToolInstance(string toolId)
+            public ToolResults Run(OpenCvSharp.Mat image, ToolParameters parameters)
             {
-                return null;
+                return new GenericToolResults();
             }
 
-            public AlgorithmParameters GetDefaultParameters(string toolId)
-            {
-                return new AlgorithmParameters();
-            }
+            public bool HasDebugWindow => false;
+            public System.Windows.Window? CreateDebugWindow() => null;
+            public ToolParameters GetDefaultParameters() => new GenericToolParameters();
         }
     }
 }

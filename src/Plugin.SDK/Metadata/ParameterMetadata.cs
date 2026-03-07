@@ -1,3 +1,5 @@
+﻿using System;
+
 namespace SunEyeVision.Plugin.SDK.Metadata
 {
     /// <summary>
@@ -72,8 +74,16 @@ namespace SunEyeVision.Plugin.SDK.Metadata
     }
 
     /// <summary>
-    /// 参数元数据 - 描述工具参数的完整信息
+    /// 参数元数据 - 已弃用，请使用 RuntimeParameterMetadata
     /// </summary>
+    /// <remarks>
+    /// 此类已被标记为过时。请改用以下方式获取参数元数据：
+    /// <code>
+    /// var metadata = toolParameters.GetRuntimeParameterMetadata();
+    /// </code>
+    /// 参数定义现在直接通过 ToolParameters 属性上的特性标注。
+    /// </remarks>
+    [Obsolete("此类已弃用。请使用 RuntimeParameterMetadata 通过 ToolParameters.GetRuntimeParameterMetadata() 获取参数元数据。")]
     public class ParameterMetadata
     {
         /// <summary>

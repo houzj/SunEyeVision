@@ -1,12 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Logging;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
+using LogLevel = SunEyeVision.Plugin.SDK.Logging.LogLevel;
 
 namespace SunEyeVision.Workflow
 {
@@ -220,7 +222,8 @@ namespace SunEyeVision.Workflow
             Workflow subroutineWorkflow,
             WorkflowContext context)
         {
-            context.AddLog($"执行子程序: {node.SubroutineName}", LogLevel.Info);
+            var source = LogSource.Runtime(context.WorkflowName ?? "未知", node.SubroutineName);
+            context.AddLog($"执行子程序", LogLevel.Info, source);
 
             // 简化实现：直接执行工作流
             var inputImage = GetInputImageFromContext(context);
@@ -257,7 +260,8 @@ namespace SunEyeVision.Workflow
             var result = new ExecutionResult();
             node.CurrentIteration = 0;
 
-            context.AddLog($"开始循环执行子程序: {node.SubroutineName}, 最大次数: {node.MaxIterations}", LogLevel.Info);
+            var source = LogSource.Runtime(context.WorkflowName ?? "未知", node.SubroutineName);
+            context.AddLog($"开始循环执行, 最大次数: {node.MaxIterations}", LogLevel.Info, source);
 
             for (node.CurrentIteration = 0;
                  node.CurrentIteration < node.MaxIterations;
@@ -275,7 +279,7 @@ namespace SunEyeVision.Workflow
                 {
                     if (!EvaluateLoopCondition(node, context))
                     {
-                        context.AddLog($"循环条件不满足，终止循环 (迭代次数: {node.CurrentIteration})", LogLevel.Info);
+                        context.AddLog($"循环条件不满足，终止 (迭代: {node.CurrentIteration})", LogLevel.Info, source);
                         break;
                     }
                 }
@@ -303,7 +307,7 @@ namespace SunEyeVision.Workflow
             }
 
             node.TotalExecutionTime = result.ExecutionTime;
-            context.AddLog($"循环执行完成，总迭代次数: {node.CurrentIteration}", LogLevel.Info);
+            context.AddLog($"循环完成，总迭代: {node.CurrentIteration}", LogLevel.Success, source);
 
             return result;
         }

@@ -3,14 +3,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="图像保存 - 调试窗口" Height="500" Width="450">
+        Title="图像保存工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <TabItem Header="参数配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <TextBlock Text="文件设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamTextBox x:Name="FilePathTextBox"
+                                           Label="文件路径"
+                                           Height="32"/>
+                    
+                    <controls:ParamComboBox x:Name="ImageFormatCombo"
+                                            Label="图像格式"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="QualityParam"
+                        Label="图像质量"
+                        DataType="Int"
+                        IntMinimum="1"
+                        IntMaximum="100"
+                        ShowSlider="True"/>
+                    
+                    <controls:LabeledControl Label="覆盖已有文件">
+                        <CheckBox x:Name="OverwriteCheckBox" 
+                                  VerticalAlignment="Center"/>
+                    </controls:LabeledControl>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

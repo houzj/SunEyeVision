@@ -8,11 +8,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// </summary>
     /// <remarks>
     /// 用于参数分组显示，提供可折叠的容器。
-    /// 
+    ///
     /// 使用示例：
     /// <code>
     /// &lt;controls:ParamGroup Header="高级设置" IsExpanded="False"&gt;
-    ///     &lt;controls:ParamSlider Label="精度" Value="{Binding Precision}"/&gt;
+    ///     &lt;controls:BindableParameter Label="精度" DoubleValue="{Binding Precision}"/&gt;
     ///     &lt;controls:ParamComboBox Label="模式" ItemsSource="{Binding Modes}"/&gt;
     /// &lt;/controls:ParamGroup&gt;
     /// </code>

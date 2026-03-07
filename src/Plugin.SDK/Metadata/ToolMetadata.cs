@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Plugin.SDK.Metadata
@@ -32,8 +30,17 @@ namespace SunEyeVision.Plugin.SDK.Metadata
     }
 
     /// <summary>
-    /// 工具元数据 - 描述工具的完整信息
+    /// 工具元数据 - 描述工具的核心信息
     /// </summary>
+    /// <remarks>
+    /// 重构说明：
+    /// - 已移除 InputParameters/OutputParameters：参数定义直接从 ToolParameters 特性读取
+    /// - 已移除 ParameterType/ResultType：可从 AlgorithmType 推断
+    /// - 参数元数据使用 RuntimeParameterMetadata，通过 ToolParameters.GetRuntimeParameterMetadata() 获取
+    /// 
+    /// Single Source of Truth 原则：
+    /// 参数定义唯一来源是 ToolParameters 类的属性特性标注。
+    /// </remarks>
     public class ToolMetadata
     {
         #region 基本信息
@@ -88,28 +95,27 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         #region 算法信息
 
         /// <summary>
-        /// 算法类型
+        /// 算法类型 - 工具实现类
         /// </summary>
+        /// <remarks>
+        /// 算法类型必须实现 IToolPlugin 接口。
+        /// </remarks>
         public Type? AlgorithmType { get; set; }
+
+        /// <summary>
+        /// 参数类型 - 直接存储，避免每次反射
+        /// </summary>
+        public Type? ParamsType { get; set; }
+
+        /// <summary>
+        /// 结果类型 - 直接存储，避免每次反射
+        /// </summary>
+        public Type? ResultType { get; set; }
 
         /// <summary>
         /// 是否有调试界面
         /// </summary>
         public bool HasDebugInterface { get; set; } = true;
-
-        #endregion
-
-        #region 参数定义
-
-        /// <summary>
-        /// 输入参数列表
-        /// </summary>
-        public List<ParameterMetadata> InputParameters { get; set; } = [];
-
-        /// <summary>
-        /// 输出参数列表
-        /// </summary>
-        public List<ParameterMetadata> OutputParameters { get; set; } = [];
 
         #endregion
 
@@ -167,49 +173,6 @@ namespace SunEyeVision.Plugin.SDK.Metadata
 
         #endregion
 
-        #region 数据绑定支持
-
-        /// <summary>
-        /// 是否支持数据绑定
-        /// </summary>
-        public bool SupportsDataBinding { get; set; } = false;
-
-        /// <summary>
-        /// 强类型参数类型
-        /// </summary>
-        public Type? ParameterType { get; set; }
-
-        /// <summary>
-        /// 强类型结果类型
-        /// </summary>
-        public Type? ResultType { get; set; }
-
-        #endregion
-
-        #region 便捷方法
-
-        /// <summary>
-        /// 获取输入参数数量
-        /// </summary>
-        public int InputCount => InputParameters.Count;
-
-        /// <summary>
-        /// 获取输出参数数量
-        /// </summary>
-        public int OutputCount => OutputParameters.Count;
-
-        /// <summary>
-        /// 获取必填输入参数
-        /// </summary>
-        public IEnumerable<ParameterMetadata> RequiredInputs => InputParameters.Where(p => p.Required);
-
-        /// <summary>
-        /// 获取可选输入参数
-        /// </summary>
-        public IEnumerable<ParameterMetadata> OptionalInputs => InputParameters.Where(p => !p.Required);
-
-        #endregion
-
         #region 验证与克隆
 
         /// <summary>
@@ -217,7 +180,7 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         /// </summary>
         public ValidationResult Validate()
         {
-            var errors = new List<string>();
+            var errors = new System.Collections.Generic.List<string>();
 
             if (string.IsNullOrWhiteSpace(Id))
                 errors.Add("工具ID不能为空");
@@ -236,13 +199,6 @@ namespace SunEyeVision.Plugin.SDK.Metadata
 
             if (MaxRetryCount < 0)
                 errors.Add("最大重试次数不能为负数");
-
-            // 验证参数元数据
-            foreach (var param in InputParameters.Concat(OutputParameters))
-            {
-                if (string.IsNullOrWhiteSpace(param.Name))
-                    errors.Add("参数名称不能为空");
-            }
 
             return errors.Count == 0
                 ? ValidationResult.Success()
@@ -266,9 +222,9 @@ namespace SunEyeVision.Plugin.SDK.Metadata
                 Author = Author,
                 IsEnabled = IsEnabled,
                 AlgorithmType = AlgorithmType,
+                ParamsType = ParamsType,
+                ResultType = ResultType,
                 HasDebugInterface = HasDebugInterface,
-                InputParameters = [.. InputParameters],
-                OutputParameters = [.. OutputParameters],
                 SupportParallel = SupportParallel,
                 SideEffect = SideEffect,
                 EstimatedExecutionTimeMs = EstimatedExecutionTimeMs,

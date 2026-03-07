@@ -41,8 +41,8 @@ namespace SunEyeVision.Tool.OCR
             get => _language;
             set
             {
-                SetProperty(ref _language, value);
-                SetParamValue("Language", value);
+                if (SetProperty(ref _language, value, "语言"))
+                    SetParamValue("Language", value);
             }
         }
 
@@ -51,8 +51,8 @@ namespace SunEyeVision.Tool.OCR
             get => _dataPath;
             set
             {
-                SetProperty(ref _dataPath, value);
-                SetParamValue("DataPath", value);
+                if (SetProperty(ref _dataPath, value, "数据路径"))
+                    SetParamValue("DataPath", value);
             }
         }
 
@@ -61,8 +61,8 @@ namespace SunEyeVision.Tool.OCR
             get => _charWhitelist;
             set
             {
-                SetProperty(ref _charWhitelist, value);
-                SetParamValue("CharWhitelist", value);
+                if (SetProperty(ref _charWhitelist, value, "字符白名单"))
+                    SetParamValue("CharWhitelist", value);
             }
         }
 
@@ -71,8 +71,8 @@ namespace SunEyeVision.Tool.OCR
             get => _psm;
             set
             {
-                SetProperty(ref _psm, value);
-                SetParamValue("Psm", value);
+                if (SetProperty(ref _psm, value, "页面分割模式"))
+                    SetParamValue("Psm", value);
             }
         }
 

@@ -3,14 +3,62 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="图像采集工具调试" Height="600" Width="450">
+        Title="图像采集工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <TabItem Header="参数配置" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="设备设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,0,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamComboBox x:Name="DeviceIdCombo"
+                                            Label="设备ID"/>
+                    
+                    <TextBlock Text="分辨率设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="WidthParam"
+                        Label="宽度"
+                        DataType="Int"
+                        IntMinimum="640"
+                        IntMaximum="3840"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="HeightParam"
+                        Label="高度"
+                        DataType="Int"
+                        IntMinimum="480"
+                        IntMaximum="2160"
+                        ShowSlider="True"/>
+                    
+                    <TextBlock Text="相机参数" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="ExposureParam"
+                        Label="曝光时间 (ms)"
+                        DataType="Double"
+                        DoubleMinimum="0.1"
+                        DoubleMaximum="1000"
+                        SmallChange="0.1"
+                        LargeChange="10"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="GainParam"
+                        Label="增益"
+                        DataType="Double"
+                        DoubleMinimum="0"
+                        DoubleMaximum="16"
+                        SmallChange="0.1"
+                        LargeChange="1"
+                        ShowSlider="True"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

@@ -19,8 +19,8 @@ namespace SunEyeVision.Tool.ImageCapture
             get => _deviceId;
             set
             {
-                SetProperty(ref _deviceId, value);
-                SetParamValue("DeviceId", value);
+                if (SetProperty(ref _deviceId, value, "设备ID"))
+                    SetParamValue("DeviceId", value);
             }
         }
 
@@ -29,8 +29,8 @@ namespace SunEyeVision.Tool.ImageCapture
             get => _width;
             set
             {
-                SetProperty(ref _width, value);
-                SetParamValue("Width", value);
+                if (SetProperty(ref _width, value, "宽度"))
+                    SetParamValue("Width", value);
             }
         }
 
@@ -39,8 +39,8 @@ namespace SunEyeVision.Tool.ImageCapture
             get => _height;
             set
             {
-                SetProperty(ref _height, value);
-                SetParamValue("Height", value);
+                if (SetProperty(ref _height, value, "高度"))
+                    SetParamValue("Height", value);
             }
         }
 
@@ -49,8 +49,8 @@ namespace SunEyeVision.Tool.ImageCapture
             get => _exposureTime;
             set
             {
-                SetProperty(ref _exposureTime, value);
-                SetParamValue("ExposureTime", value);
+                if (SetProperty(ref _exposureTime, value, "曝光时间"))
+                    SetParamValue("ExposureTime", value);
             }
         }
 
@@ -59,8 +59,8 @@ namespace SunEyeVision.Tool.ImageCapture
             get => _gain;
             set
             {
-                SetProperty(ref _gain, value);
-                SetParamValue("Gain", value);
+                if (SetProperty(ref _gain, value, "增益"))
+                    SetParamValue("Gain", value);
             }
         }
 

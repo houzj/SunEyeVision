@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
 using Events = SunEyeVision.Core.Events;
 
@@ -312,7 +312,7 @@ namespace SunEyeVision.Workflow
                     while (!existingCts.Token.IsCancellationRequested)
                     {
                         tickCount++;
-                        _logger.LogDebug($"Timer trigger tick: {triggerId}, Count={tickCount}");
+                        _logger.Info($"Timer trigger tick: {triggerId}, Count={tickCount}");
 
                         // Trigger the workflow
                         OnTriggerFired(new TriggerFiredEventArgs

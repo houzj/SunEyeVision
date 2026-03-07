@@ -1,3 +1,6 @@
+﻿using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.UI.Services.Logging;
+
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
@@ -53,6 +56,16 @@ namespace SunEyeVision.UI.Adapters
     /// </summary>
     public static class ServiceInitializer
     {
+        private static UILogWriter? _uiLogWriter;
+
+        /// <summary>
+        /// 获取 UI 日志写入器（供 LogPanelViewModel 使用）
+        /// </summary>
+        /// <remarks>
+        /// 在应用启动时预创建，确保日志从一开始就能显示到UI。
+        /// </remarks>
+        public static UILogWriter UILogWriter => _uiLogWriter ?? throw new InvalidOperationException("UILogWriter 未初始化，请先调用 InitializeServices()");
+
         /// <summary>
         /// 初始化所有服务。
         /// </summary>
@@ -60,6 +73,44 @@ namespace SunEyeVision.UI.Adapters
         {
             // 初始化显示适配器配置。
             NodeDisplayAdapterConfig.Initialize();
+
+            // 初始化插件日志器 - 让工具项目可以访问全局日志器
+            InitializePluginLogger();
+        }
+
+        /// <summary>
+        /// 初始化插件日志器
+        /// </summary>
+        private static void InitializePluginLogger()
+        {
+            System.Diagnostics.Debug.WriteLine("[ServiceInitializer] InitializePluginLogger 开始...");
+
+            var logger = VisionLogger.Instance;
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] VisionLogger.Instance 获取成功, WriterCount={logger.WriterCount}");
+
+            // 添加默认日志写入器（确保日志从一开始就有输出）
+            // 1. Debug写入器 - 输出到VS调试窗口
+            var debugWriter = new DebugLogWriter();
+            logger.AddWriter(debugWriter);
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] DebugLogWriter 已添加");
+
+            // 2. 文件写入器 - 持久化到文件
+            var fileWriter = new FileLogWriter();
+            logger.AddWriter(fileWriter);
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] FileLogWriter 已添加, 日志目录: {fileWriter.CurrentLogFile}");
+
+            // 3. UI写入器 - 提前创建，确保日志从启动开始就能显示到UI
+            _uiLogWriter = new UILogWriter();
+            logger.AddWriter(_uiLogWriter);
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] UILogWriter 已添加");
+
+            // 设置 PluginLogger 的提供者
+            Plugin.SDK.Logging.PluginLogger.SetProvider(logger);
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] PluginLogger.SetProvider 已调用");
+
+            // 测试日志
+            logger.Info("日志系统初始化完成", "ServiceInitializer");
+            System.Diagnostics.Debug.WriteLine($"[ServiceInitializer] 测试日志已发送, WriterCount={logger.WriterCount}");
         }
     }
 }

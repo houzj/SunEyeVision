@@ -1,14 +1,17 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Input;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI.Controls.ParameterBinding;
+using SunEyeVision.UI.Events;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Services.Logging;
 
 using WorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 
@@ -26,7 +29,7 @@ namespace SunEyeVision.UI.ViewModels
     /// 3. 管理参数绑定
     /// 4. 提供数据源查询服务
     /// </remarks>
-    public class PropertyPanelViewModel : ViewModelBase
+    public class PropertyPanelViewModel : ViewModelBase, IDisposable
     {
         #region 字段
 
@@ -34,7 +37,9 @@ namespace SunEyeVision.UI.ViewModels
         private ObservableCollection<PropertyItem> _properties;
         private ObservableCollection<ParameterBindingViewModel> _parameterBindings;
         private readonly IDataSourceQueryService? _dataSourceQueryService;
+        private readonly IParameterChangeLogger? _parameterLogger;
         private string _currentNodeId = string.Empty;
+        private bool _disposed;
 
         #endregion
 
@@ -125,18 +130,28 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 创建属性面板视图模型
         /// </summary>
-        public PropertyPanelViewModel() : this(null)
+        public PropertyPanelViewModel() : this(null, null)
         {
         }
 
         /// <summary>
         /// 创建属性面板视图模型（带数据源查询服务）
         /// </summary>
-        public PropertyPanelViewModel(IDataSourceQueryService? dataSourceQueryService)
+        public PropertyPanelViewModel(IDataSourceQueryService? dataSourceQueryService) : this(dataSourceQueryService, null)
+        {
+        }
+
+        /// <summary>
+        /// 创建属性面板视图模型（带数据源查询服务和参数变更日志记录器）
+        /// </summary>
+        public PropertyPanelViewModel(
+            IDataSourceQueryService? dataSourceQueryService,
+            IParameterChangeLogger? parameterLogger)
         {
             _properties = new ObservableCollection<PropertyItem>();
             _parameterBindings = new ObservableCollection<ParameterBindingViewModel>();
             _dataSourceQueryService = dataSourceQueryService;
+            _parameterLogger = parameterLogger;
 
             UpdatePropertyCommand = new RelayCommand<PropertyItem>(ExecuteUpdateProperty);
             ResetPropertyCommand = new RelayCommand<PropertyItem>(ExecuteResetProperty);
@@ -195,9 +210,22 @@ namespace SunEyeVision.UI.ViewModels
                 return;
 
             var bindings = GetAllBindings();
+            var changeCount = 0;
+
             foreach (var kvp in bindings)
             {
-                SelectedNode.ParameterBindings.SetBinding(kvp.Value);
+                var existingBinding = SelectedNode.ParameterBindings?.GetBinding(kvp.Key);
+                if (existingBinding == null || !existingBinding.Equals(kvp.Value))
+                {
+                    SelectedNode.ParameterBindings.SetBinding(kvp.Value);
+                    changeCount++;
+                }
+            }
+
+            // 记录批量变更日志
+            if (changeCount > 0)
+            {
+                _parameterLogger?.LogBatchParameterChange(SelectedNode.Name, changeCount);
             }
         }
 
@@ -270,7 +298,11 @@ namespace SunEyeVision.UI.ViewModels
                         paramDef.Type,
                         paramDef.DefaultValue,
                         paramDef.Description,
-                        _dataSourceQueryService);
+                        _dataSourceQueryService,
+                        paramDef.Min,
+                        paramDef.Max,
+                        paramDef.Step,
+                        paramDef.Unit);
                 }
                 else
                 {
@@ -281,12 +313,17 @@ namespace SunEyeVision.UI.ViewModels
                         paramDef.Type,
                         paramDef.DefaultValue,
                         paramDef.Description,
-                        _dataSourceQueryService);
+                        _dataSourceQueryService,
+                        paramDef.Min,
+                        paramDef.Max,
+                        paramDef.Step,
+                        paramDef.Unit);
                 }
 
                 // 订阅绑定变更事件
                 bindingVm.BindingChanged += OnBindingChanged;
                 bindingVm.DataSourceSelectionRequested += OnDataSourceSelectionRequested;
+                bindingVm.ParameterChanged += OnParameterChanged;
 
                 // 刷新可用数据源
                 if (!string.IsNullOrEmpty(_currentNodeId))
@@ -304,49 +341,69 @@ namespace SunEyeVision.UI.ViewModels
         {
             var definitions = new List<ParameterDefinition>();
 
-            // 尝试从ITool接口获取参数定义
+            // 尝试从工具注册表获取参数定义
             try
             {
-                // 这里需要从插件管理器或工具注册表获取工具类型
-                // 简化实现：返回常见参数
-                definitions = GetDefaultParameterDefinitions(algorithmType);
+                var toolMetadata = ToolRegistry.GetToolMetadata(algorithmType);
+                if (toolMetadata?.AlgorithmType != null)
+                {
+                    // 从 AlgorithmType 获取参数类型并反射获取范围信息
+                    var toolType = toolMetadata.AlgorithmType;
+                    var interfaces = toolType.GetInterfaces();
+                    
+                    foreach (var iface in interfaces)
+                    {
+                        if (iface.IsGenericType && iface.GetGenericTypeDefinition().Name.StartsWith("IToolPlugin"))
+                        {
+                            var genericArgs = iface.GetGenericArguments();
+                            if (genericArgs.Length >= 1 && typeof(ToolParameters).IsAssignableFrom(genericArgs[0]))
+                            {
+                                var paramsType = genericArgs[0];
+                                var defaultParams = Activator.CreateInstance(paramsType) as ToolParameters;
+                                if (defaultParams != null)
+                                {
+                                    var runtimeMetadata = defaultParams.GetRuntimeParameterMetadata();
+                                    foreach (var meta in runtimeMetadata)
+                                    {
+                                        definitions.Add(new ParameterDefinition(
+                                            meta.Name,
+                                            meta.DisplayName,
+                                            meta.Type,
+                                            meta.Value,
+                                            meta.Description)
+                                        {
+                                            Min = meta.Min,
+                                            Max = meta.Max,
+                                            Step = meta.Step,
+                                            Unit = meta.Unit
+                                        });
+                                    }
+                                    return definitions;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
             }
             catch (Exception)
             {
-                // 如果获取失败，返回默认参数
-                definitions = GetDefaultParameterDefinitions(algorithmType);
+                // 如果获取失败，使用默认参数
             }
 
-            return definitions;
+            // 回退到硬编码默认参数
+            return GetDefaultParameterDefinitions(algorithmType);
         }
 
         private List<ParameterDefinition> GetDefaultParameterDefinitions(string algorithmType)
         {
-            return algorithmType.ToLower() switch
-            {
-                "preprocess" => new List<ParameterDefinition>
-                {
-                    new ParameterDefinition("KernelSize", "核大小", typeof(int), 5, "卷积核大小"),
-                    new ParameterDefinition("Sigma", "Sigma值", typeof(double), 1.4, "高斯滤波参数")
-                },
-                "detection" => new List<ParameterDefinition>
-                {
-                    new ParameterDefinition("Threshold", "阈值", typeof(int), 128, "检测阈值"),
-                    new ParameterDefinition("Method", "方法", typeof(string), "Canny", "边缘检测方法")
-                },
-                "circlefind" => new List<ParameterDefinition>
-                {
-                    new ParameterDefinition("MinRadius", "最小半径", typeof(int), 10, "圆的最小半径"),
-                    new ParameterDefinition("MaxRadius", "最大半径", typeof(int), 100, "圆的最大半径"),
-                    new ParameterDefinition("MinDistance", "最小间距", typeof(int), 20, "圆心之间的最小距离")
-                },
-                "output" => new List<ParameterDefinition>
-                {
-                    new ParameterDefinition("SavePath", "保存路径", typeof(string), "", "输出文件路径"),
-                    new ParameterDefinition("Format", "格式", typeof(string), "PNG", "输出图像格式")
-                },
-                _ => new List<ParameterDefinition>()
-            };
+            // 工具应通过 ToolMetadata.AlgorithmType 自描述参数
+            // 如果执行到这里，说明工具未正确配置元数据
+            System.Diagnostics.Debug.WriteLine(
+                $"[警告] 工具 '{algorithmType}' 未正确配置参数元数据。" +
+                $"请确保工具实现了 ITool<TParams, TResult> 接口。");
+
+            return new List<ParameterDefinition>();
         }
 
         private void ExecuteUpdateProperty(PropertyItem? property)
@@ -445,6 +502,60 @@ namespace SunEyeVision.UI.ViewModels
             // window.ShowDialog();
         }
 
+        /// <summary>
+        /// 处理参数变更事件
+        /// </summary>
+        private void OnParameterChanged(object? sender, ParameterChangeEventArgs e)
+        {
+            if (_parameterLogger == null)
+                return;
+
+            // 补充节点信息
+            var enrichedArgs = new ParameterChangeEventArgs
+            {
+                ParameterName = e.ParameterName,
+                DisplayName = e.DisplayName,
+                ChangeType = e.ChangeType,
+                OldValue = e.OldValue,
+                NewValue = e.NewValue,
+                NodeName = SelectedNode?.Name,
+                NodeId = SelectedNode?.Id,
+                Timestamp = e.Timestamp,
+                AdditionalInfo = e.AdditionalInfo
+            };
+
+            _parameterLogger.LogParameterChange(enrichedArgs);
+        }
+
+        /// <summary>
+        /// 取消订阅所有参数事件
+        /// </summary>
+        private void UnsubscribeParameterEvents()
+        {
+            foreach (var binding in ParameterBindings)
+            {
+                binding.BindingChanged -= OnBindingChanged;
+                binding.DataSourceSelectionRequested -= OnDataSourceSelectionRequested;
+                binding.ParameterChanged -= OnParameterChanged;
+            }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                UnsubscribeParameterEvents();
+                _disposed = true;
+            }
+        }
+
         #endregion
     }
 
@@ -486,12 +597,22 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 最小值（用于数值类型）
         /// </summary>
-        public object? MinValue { get; set; }
+        public double? Min { get; set; }
 
         /// <summary>
         /// 最大值（用于数值类型）
         /// </summary>
-        public object? MaxValue { get; set; }
+        public double? Max { get; set; }
+
+        /// <summary>
+        /// 步进值
+        /// </summary>
+        public double Step { get; set; } = 1.0;
+
+        /// <summary>
+        /// 单位
+        /// </summary>
+        public string? Unit { get; set; }
 
         /// <summary>
         /// 可选值列表（用于枚举类型）

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Workflow
 {
@@ -25,7 +26,7 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
-            AlgorithmParameters? parameters = null,
+            ToolParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
         {
@@ -46,7 +47,7 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
-            AlgorithmParameters? parameters = null,
+            ToolParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
         {
@@ -60,28 +61,22 @@ namespace SunEyeVision.Workflow
                     return null;
                 }
 
-                // 获取工具插件
-                var toolPlugin = ToolRegistry.GetToolPlugin(toolId);
-                if (toolPlugin == null)
+                // 创建工具实例
+                var tool = ToolRegistry.CreateToolInstance(toolId);
+                if (tool == null)
                 {
-                    Console.WriteLine($"[WorkflowNodeFactory] 无法获取工具插件: {toolId}");
+                    Console.WriteLine($"[WorkflowNodeFactory] 无法创建工具实例: {toolId}");
                     return null;
                 }
-
-                // 使用原始工具插件
-                var decoratedPlugin = toolPlugin;
-
-                // 创建处理器实例
-                var processor = decoratedPlugin.CreateToolInstance(toolId);
 
                 // 设置参数
                 if (parameters == null)
                 {
-                    parameters = toolPlugin.GetDefaultParameters(toolId);
+                    parameters = ToolRegistry.CreateParameters(toolId);
                 }
 
                 // 创建AlgorithmNode
-                var algorithmNode = new AlgorithmNode(nodeId, nodeName, processor)
+                var algorithmNode = new AlgorithmNode(nodeId, nodeName, tool)
                 {
                     Parameters = parameters
                 };
@@ -134,7 +129,7 @@ namespace SunEyeVision.Workflow
         public static SubroutineNode CreateSubroutineNode(
             string nodeId,
             string nodeName,
-            AlgorithmParameters? parameters = null)
+            ToolParameters? parameters = null)
         {
             var node = new SubroutineNode(nodeId, nodeName);
             if (parameters != null)
@@ -151,7 +146,7 @@ namespace SunEyeVision.Workflow
             string nodeId,
             string nodeName,
             string conditionExpression,
-            AlgorithmParameters? parameters = null)
+            ToolParameters? parameters = null)
         {
             var node = new ConditionNode(nodeId, nodeName);
             node.SetExpressionCondition(conditionExpression);
@@ -204,7 +199,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 算法参数
         /// </summary>
-        public AlgorithmParameters? Parameters { get; set; }
+        public ToolParameters? Parameters { get; set; }
 
         /// <summary>
         /// 是否启用缓存

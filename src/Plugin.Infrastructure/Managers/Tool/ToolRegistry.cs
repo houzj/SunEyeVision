@@ -1,71 +1,141 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
 {
     /// <summary>
-    /// 工具注册中心 - 管理所有已注册的工具插件
+    /// 工具注册中心 - 管理所有已注册的工具
     /// </summary>
+    /// <remarks>
+    /// 简化后的设计：
+    /// - 直接管理工具类型，不再需要中间的 Plugin 层
+    /// - 元数据从 [Tool] 特性自动提取
+    /// - 支持按需创建工具实例
+    /// </remarks>
     public static class ToolRegistry
     {
-        private static readonly Dictionary<string, IToolPlugin> _toolPlugins = new Dictionary<string, IToolPlugin>();
-        private static readonly Dictionary<string, ToolMetadata> _toolMetadata = new Dictionary<string, ToolMetadata>();
-        private static readonly object _lock = new object();
+        private static readonly Dictionary<string, Type> _toolTypes = new();
+        private static readonly Dictionary<string, ToolMetadata> _toolMetadata = new();
+        private static readonly object _lock = new();
 
         /// <summary>
-        /// 注册工具插件
+        /// 注册工具类型
         /// </summary>
-        /// <param name="toolPlugin">工具插件实例</param>
-        public static void RegisterTool(IToolPlugin toolPlugin)
+        /// <param name="toolType">工具类型（必须实现 IToolPlugin）</param>
+        /// <param name="metadata">工具元数据</param>
+        public static void Register(Type toolType, ToolMetadata metadata)
         {
-            if (toolPlugin == null)
-                throw new ArgumentNullException(nameof(toolPlugin));
+            if (toolType == null)
+                throw new ArgumentNullException(nameof(toolType));
+            if (metadata == null)
+                throw new ArgumentNullException(nameof(metadata));
 
             lock (_lock)
             {
-                var metadataList = toolPlugin.GetToolMetadata();
-                if (metadataList == null || metadataList.Count == 0)
-                    return;
-
-                _toolPlugins[toolPlugin.PluginId] = toolPlugin;
-
-                foreach (var metadata in metadataList)
-                {
-                    _toolMetadata[metadata.Id] = metadata;
-                }
+                _toolTypes[metadata.Id] = toolType;
+                _toolMetadata[metadata.Id] = metadata;
             }
         }
 
         /// <summary>
-        /// 获取工具插件
+        /// 自动注册工具类型（从 [Tool] 特性提取元数据）
+        /// </summary>
+        /// <param name="toolType">工具类型</param>
+        public static void RegisterTool(Type toolType)
+        {
+            if (toolType == null)
+                throw new ArgumentNullException(nameof(toolType));
+
+            var attr = toolType.GetCustomAttribute<ToolAttribute>();
+            if (attr == null)
+                throw new ArgumentException($"类型 {toolType.Name} 缺少 [Tool] 特性");
+
+            // 从泛型接口获取参数/结果类型
+            Type? paramsType = null;
+            Type? resultType = null;
+            
+            var interfaces = toolType.GetInterfaces();
+            foreach (var iface in interfaces)
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition().Name.StartsWith("IToolPlugin"))
+                {
+                    var genericArgs = iface.GetGenericArguments();
+                    if (genericArgs.Length >= 2)
+                    {
+                        paramsType = genericArgs[0];
+                        resultType = genericArgs[1];
+                        break;
+                    }
+                }
+            }
+
+            var metadata = new ToolMetadata
+            {
+                Id = attr.Id,
+                Name = attr.Id,
+                DisplayName = attr.DisplayName,
+                Description = attr.Description,
+                Icon = attr.Icon,
+                Category = attr.Category,
+                Version = attr.Version,
+                Author = attr.Author,
+                AlgorithmType = toolType,
+                ParamsType = paramsType,
+                ResultType = resultType,
+                HasDebugInterface = attr.HasDebugWindow
+            };
+
+            Register(toolType, metadata);
+        }
+
+        /// <summary>
+        /// 创建工具实例
         /// </summary>
         /// <param name="toolId">工具ID</param>
-        /// <returns>工具插件实例，未找到则返回null</returns>
-        public static IToolPlugin? GetToolPlugin(string toolId)
+        /// <returns>工具实例，未找到则返回null</returns>
+        public static IToolPlugin? CreateToolInstance(string toolId)
         {
             lock (_lock)
             {
-                if (_toolMetadata.TryGetValue(toolId, out var metadata))
+                if (_toolTypes.TryGetValue(toolId, out var type))
                 {
-                    var pluginId = metadata.AlgorithmType?.Assembly.GetName().Name ?? string.Empty;
-                    if (string.IsNullOrEmpty(pluginId))
-                    {
-                        foreach (var plugin in _toolPlugins.Values)
-                        {
-                            var metadatas = plugin.GetToolMetadata();
-                            if (metadatas.Any(m => m.Id == toolId))
-                            {
-                                return plugin;
-                            }
-                        }
-                    }
-                    return _toolPlugins.Values.FirstOrDefault(p => p.GetToolMetadata().Any(m => m.Id == toolId));
+                    return Activator.CreateInstance(type) as IToolPlugin;
                 }
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 创建参数实例
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <returns>参数实例</returns>
+        public static ToolParameters CreateParameters(string toolId)
+        {
+            lock (_lock)
+            {
+                if (_toolMetadata.TryGetValue(toolId, out var meta) && meta.ParamsType != null)
+                {
+                    return (ToolParameters)Activator.CreateInstance(meta.ParamsType)!;
+                }
+                return new GenericToolParameters();
+            }
+        }
+
+        /// <summary>
+        /// 创建调试窗口
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <returns>调试窗口实例</returns>
+        public static System.Windows.Window? CreateDebugWindow(string toolId)
+        {
+            var tool = CreateToolInstance(toolId);
+            return tool?.HasDebugWindow == true ? tool.CreateDebugWindow() : null;
         }
 
         /// <summary>
@@ -128,24 +198,8 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         {
             lock (_lock)
             {
-                if (_toolMetadata.Remove(toolId))
-                {
-                    var plugin = _toolPlugins.Values.FirstOrDefault(p =>
-                        p.GetToolMetadata().Any(m => m.Id == toolId));
-
-                    if (plugin != null)
-                    {
-                        var remainingTools = plugin.GetToolMetadata().Count(m =>
-                            _toolMetadata.ContainsKey(m.Id));
-
-                        if (remainingTools == 0)
-                        {
-                            _toolPlugins.Remove(plugin.PluginId);
-                        }
-                    }
-                    return true;
-                }
-                return false;
+                _toolTypes.Remove(toolId);
+                return _toolMetadata.Remove(toolId);
             }
         }
 
@@ -156,7 +210,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         {
             lock (_lock)
             {
-                _toolPlugins.Clear();
+                _toolTypes.Clear();
                 _toolMetadata.Clear();
             }
         }

@@ -3,14 +3,44 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="高斯模糊工具调试" Height="500" Width="450">
+        Title="高斯模糊工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <!-- Tab1: 基本参数 -->
+        <TabItem Header="基本参数" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <controls:ParamComboBox x:Name="KernelSizeCombo"
+                                            Label="核大小（奇数）"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        
+        <!-- Tab2: 运行参数 -->
+        <TabItem Header="运行参数">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:BindableParameter 
+                        x:Name="SigmaParam"
+                        Label="标准差（Sigma）"
+                        DataType="Double"
+                        DoubleMinimum="0.1"
+                        DoubleMaximum="10.0"
+                        SmallChange="0.1"
+                        LargeChange="1.0"
+                        ShowSlider="True"
+                        DecimalPlaces="1"/>
+                    
+                    <controls:ParamComboBox x:Name="BorderTypeCombo"
+                                            Label="边界类型"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

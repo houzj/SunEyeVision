@@ -1,6 +1,6 @@
 using System;
 using SunEyeVision.Core.Events;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.UI.Events;
 using SunEyeVision.UI.Infrastructure;
 

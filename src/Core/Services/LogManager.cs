@@ -1,85 +1,65 @@
-using System;
-using SunEyeVision.Core;
-using SunEyeVision.Core.Interfaces;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.Core.Services
 {
     /// <summary>
     /// 日志管理器 - 全局单例，统一管理日志
     /// </summary>
+    /// <remarks>
+    /// 此类保留作为向后兼容的静态入口点。
+    /// 推荐使用 VisionLogger.Instance 直接访问。
+    /// </remarks>
     public static class LogManager
     {
-        private static ILogger? _instance;
-        private static readonly object _lockObj = new object();
-
         /// <summary>
         /// 获取日志实例
         /// </summary>
-        public static ILogger Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (_lockObj)
-                    {
-                        if (_instance == null)
-                        {
-                            _instance = CreateDefaultLogger();
-                        }
-                    }
-                }
-                return _instance;
-            }
-            set
-            {
-                lock (_lockObj)
-                {
-                    _instance = value;
-                }
-            }
-        }
+        public static ILogger Instance => VisionLogger.Instance;
 
         /// <summary>
-        /// 获取优化的日志实例
+        /// 获取 VisionLogger 实例（提供更多功能）
         /// </summary>
-        public static OptimizedLogger? OptimizedInstance => Instance as OptimizedLogger;
-
-        /// <summary>
-        /// 创建默认日志记录器
-        /// </summary>
-        private static ILogger CreateDefaultLogger()
-        {
-            return new OptimizedLogger(
-                minLevel: LogLevel.Info,
-                sampleRate: 100
-            );
-        }
+        public static VisionLogger VisionLoggerInstance => VisionLogger.Instance;
 
         /// <summary>
         /// 设置日志级别
         /// </summary>
         public static void SetLogLevel(LogLevel level)
         {
-            if (Instance is OptimizedLogger optimizedLogger)
-            {
-                optimizedLogger.CurrentLevel = level;
-            }
+            VisionLogger.Instance.MinLevel = level;
         }
 
         /// <summary>
-        /// 设置采样率
+        /// 添加日志写入器
         /// </summary>
-        public static void SetSampleRate(int rate)
+        public static void AddWriter(ILogWriter writer)
         {
-            if (Instance is OptimizedLogger optimizedLogger)
-            {
-                // 需要重新创建实例
-                Instance = new OptimizedLogger(
-                    minLevel: optimizedLogger.CurrentLevel,
-                    sampleRate: rate
-                );
-            }
+            VisionLogger.Instance.AddWriter(writer);
+        }
+
+        /// <summary>
+        /// 移除日志写入器
+        /// </summary>
+        public static bool RemoveWriter(string name)
+        {
+            return VisionLogger.Instance.RemoveWriter(name);
+        }
+
+        /// <summary>
+        /// 立即刷新所有缓冲区
+        /// </summary>
+        public static void Flush()
+        {
+            VisionLogger.Instance.FlushAsync().Wait();
+        }
+
+        /// <summary>
+        /// 获取统计信息
+        /// </summary>
+        public static (long Total, long Dropped, int QueueSize, int Writers) GetStatistics()
+        {
+            return VisionLogger.Instance.GetStatistics();
         }
     }
 }

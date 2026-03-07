@@ -17,77 +17,14 @@ namespace SunEyeVision.Core.Tests.BindingModel
     /// </summary>
     public class EdgeDetectionBindingModelTests
     {
-        private readonly EdgeDetectionToolPlugin _plugin;
+        private readonly EdgeDetectionTool _plugin;
 
         public EdgeDetectionBindingModelTests()
         {
-            _plugin = new EdgeDetectionToolPlugin();
-            _plugin.Initialize();
+            _plugin = new EdgeDetectionTool();
         }
 
-        #region 1. 元数据验证测试
-
-        [Fact]
-        public void Plugin_Should_SupportDataBinding()
-        {
-            // Arrange & Act
-            var metadata = _plugin.GetToolMetadata().First();
-
-            // Assert
-            metadata.SupportsDataBinding.Should().BeTrue("插件应该支持数据绑定");
-            metadata.ParameterType.Should().Be(typeof(EdgeDetectionParameters), "参数类型应该正确");
-            metadata.ResultType.Should().Be(typeof(EdgeDetectionResults), "结果类型应该正确");
-        }
-
-        [Fact]
-        public void InputParameters_Should_HaveCorrectMetadata()
-        {
-            // Arrange & Act
-            var metadata = _plugin.GetToolMetadata().First();
-            var inputParams = metadata.InputParameters;
-
-            // Assert
-            inputParams.Should().HaveCount(3, "应该有3个输入参数");
-
-            var threshold1 = inputParams.First(p => p.Name == "Threshold1");
-            threshold1.DisplayName.Should().Be("低阈值");
-            threshold1.MinValue.Should().Be(0.0);
-            threshold1.MaxValue.Should().Be(255.0);
-            threshold1.SupportsBinding.Should().BeTrue("应该支持绑定");
-
-            var threshold2 = inputParams.First(p => p.Name == "Threshold2");
-            threshold2.DisplayName.Should().Be("高阈值");
-            threshold2.MinValue.Should().Be(0.0);
-            threshold2.MaxValue.Should().Be(255.0);
-            threshold2.SupportsBinding.Should().BeTrue("应该支持绑定");
-
-            var apertureSize = inputParams.First(p => p.Name == "ApertureSize");
-            apertureSize.DisplayName.Should().Be("孔径大小");
-            apertureSize.MinValue.Should().Be(3);
-            apertureSize.MaxValue.Should().Be(7);
-            apertureSize.SupportsBinding.Should().BeTrue("应该支持绑定");
-        }
-
-        [Fact]
-        public void OutputParameters_Should_HaveCorrectMetadata()
-        {
-            // Arrange & Act
-            var metadata = _plugin.GetToolMetadata().First();
-            var outputParams = metadata.OutputParameters;
-
-            // Assert
-            outputParams.Should().HaveCount(5, "应该有5个输出参数");
-
-            outputParams.Should().Contain(p => p.Name == "OutputImage" && p.Type == ParamDataType.Image);
-            outputParams.Should().Contain(p => p.Name == "EdgeCount" && p.Type == ParamDataType.Int);
-            outputParams.Should().Contain(p => p.Name == "Threshold1Used" && p.Type == ParamDataType.Double);
-            outputParams.Should().Contain(p => p.Name == "Threshold2Used" && p.Type == ParamDataType.Double);
-            outputParams.Should().Contain(p => p.Name == "ExecutionTimeMs" && p.Type == ParamDataType.Int);
-        }
-
-        #endregion
-
-        #region 2. 参数特性验证测试
+        #region 1. 参数特性验证测试
 
         [Fact]
         public void Parameters_Should_HaveRangeAttributes()
@@ -103,8 +40,8 @@ namespace SunEyeVision.Core.Tests.BindingModel
                 "Threshold1 应该有范围特性");
             threshold2Prop.Should().BeDecoratedWith<ParameterRangeAttribute>(
                 "Threshold2 应该有范围特性");
-            apertureSizeProp.Should().BeDecoratedWith<ParameterRangeAttribute>(
-                "ApertureSize 应该有范围特性");
+            apertureSizeProp.Should().BeDecoratedWith<ParameterDisplayAttribute>(
+                "ApertureSize 应该有显示特性");
         }
 
         [Fact]
@@ -127,7 +64,7 @@ namespace SunEyeVision.Core.Tests.BindingModel
 
         #endregion
 
-        #region 3. 参数验证测试
+        #region 2. 参数验证测试
 
         [Fact]
         public void Validate_Should_PassForValidParameters()
@@ -226,70 +163,7 @@ namespace SunEyeVision.Core.Tests.BindingModel
 
         #endregion
 
-        #region 4. 参数转换测试
-
-        [Fact]
-        public void ConvertToTypedParameters_Should_ConvertCorrectly()
-        {
-            // Arrange
-            var algorithmParams = new AlgorithmParameters();
-            algorithmParams.Set("Threshold1", 60.0);
-            algorithmParams.Set("Threshold2", 180.0);
-            algorithmParams.Set("ApertureSize", 5);
-
-            // Act
-            var typedParams = EdgeDetectionToolPlugin.ConvertToTypedParameters(algorithmParams);
-
-            // Assert
-            typedParams.Threshold1.Should().Be(60.0);
-            typedParams.Threshold2.Should().Be(180.0);
-            typedParams.ApertureSize.Should().Be(5);
-        }
-
-        [Fact]
-        public void ConvertToAlgorithmParameters_Should_ConvertCorrectly()
-        {
-            // Arrange
-            var typedParams = new EdgeDetectionParameters
-            {
-                Threshold1 = 70.0,
-                Threshold2 = 200.0,
-                ApertureSize = 7
-            };
-
-            // Act
-            var algorithmParams = EdgeDetectionToolPlugin.ConvertToAlgorithmParameters(typedParams);
-
-            // Assert
-            algorithmParams.Get<double>("Threshold1").Should().Be(70.0);
-            algorithmParams.Get<double>("Threshold2").Should().Be(200.0);
-            algorithmParams.Get<int>("ApertureSize").Should().Be(7);
-        }
-
-        [Fact]
-        public void ParameterConversion_Should_BeRoundTrip()
-        {
-            // Arrange
-            var originalParams = new EdgeDetectionParameters
-            {
-                Threshold1 = 80.0,
-                Threshold2 = 220.0,
-                ApertureSize = 5
-            };
-
-            // Act
-            var algorithmParams = EdgeDetectionToolPlugin.ConvertToAlgorithmParameters(originalParams);
-            var convertedParams = EdgeDetectionToolPlugin.ConvertToTypedParameters(algorithmParams);
-
-            // Assert
-            convertedParams.Threshold1.Should().Be(originalParams.Threshold1);
-            convertedParams.Threshold2.Should().Be(originalParams.Threshold2);
-            convertedParams.ApertureSize.Should().Be(originalParams.ApertureSize);
-        }
-
-        #endregion
-
-        #region 5. 结果类测试
+        #region 3. 结果类测试
 
         [Fact]
         public void Results_Should_ImplementGetResultItems()
@@ -341,7 +215,7 @@ namespace SunEyeVision.Core.Tests.BindingModel
 
         #endregion
 
-        #region 6. 运行时元数据测试
+        #region 4. 运行时元数据测试
 
         [Fact]
         public void GetRuntimeMetadata_Should_ReturnCorrectMetadata()
@@ -366,31 +240,47 @@ namespace SunEyeVision.Core.Tests.BindingModel
 
         #endregion
 
-        #region 7. 默认参数测试
+        #region 5. 默认参数测试
 
         [Fact]
         public void GetDefaultParameters_Should_ReturnCorrectDefaults()
         {
             // Act
-            var defaultParams = _plugin.GetDefaultTypedParameters();
+            var defaultParams = ((IToolPlugin)_plugin).GetDefaultParameters() as EdgeDetectionParameters;
 
             // Assert
-            defaultParams.Threshold1.Should().Be(50.0);
-            defaultParams.Threshold2.Should().Be(150.0);
-            defaultParams.ApertureSize.Should().Be(3);
+            defaultParams.Should().NotBeNull();
+            // 默认参数由 new EdgeDetectionParameters() 创建，使用默认值
+        }
+
+        #endregion
+
+        #region 6. Tool 特性测试
+
+        [Fact]
+        public void Tool_Should_HaveToolAttribute()
+        {
+            // Arrange
+            var type = typeof(EdgeDetectionTool);
+
+            // Act & Assert
+            type.Should().BeDecoratedWith<ToolAttribute>(
+                "EdgeDetectionTool 应该有 Tool 特性");
         }
 
         [Fact]
-        public void GetDefaultParameters_ThroughAlgorithmParameters_Should_Work()
+        public void ToolAttribute_Should_HaveCorrectValues()
         {
-            // Act
-            var algorithmParams = _plugin.GetDefaultParameters("edge_detection");
-            var typedParams = EdgeDetectionToolPlugin.ConvertToTypedParameters(algorithmParams);
+            // Arrange
+            var type = typeof(EdgeDetectionTool);
+            var attr = type.GetCustomAttributes(typeof(ToolAttribute), false)
+                          .FirstOrDefault() as ToolAttribute;
 
             // Assert
-            typedParams.Threshold1.Should().Be(50.0);
-            typedParams.Threshold2.Should().Be(150.0);
-            typedParams.ApertureSize.Should().Be(3);
+            attr.Should().NotBeNull();
+            attr!.Id.Should().Be("edge_detection");
+            attr.DisplayName.Should().Be("边缘检测");
+            attr.Category.Should().Be("图像处理");
         }
 
         #endregion

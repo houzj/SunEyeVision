@@ -1,6 +1,4 @@
 ﻿using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI;
@@ -9,77 +7,61 @@ using SunEyeVision.Plugin.SDK.UI.Controls;
 namespace SunEyeVision.Tool.OCR.Views
 {
     /// <summary>
-    /// OCR识别工具调试窗口 - 继承非泛型基类
+    /// OCR识别工具调试窗口 - 使用XAML Tabs架构
     /// </summary>
     public partial class OCRToolDebugWindow : BaseToolDebugWindow
     {
         private OCRToolViewModel _viewModel = null!;
-        private ImageSourceSelector _imageSourceSelector = null!;
 
         public OCRToolDebugWindow()
         {
             InitializeComponent();
             _viewModel = new OCRToolViewModel();
             DataContext = _viewModel;
-            InitializeUI();
+            ResolveNamedControls();
+            SetupBindingsAndEvents();
         }
 
         public OCRToolDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
             : this()
         {
             _viewModel.Initialize(toolId, toolPlugin, toolMetadata);
-            Title = $"{_viewModel.ToolName} - 调试窗口";
+            NodeName = _viewModel.ToolName;
         }
 
-        private void InitializeUI()
+        private void SetupBindingsAndEvents()
         {
-            // ===== 基本参数Tab =====
-            // 图像源选择 - 使用ImageSourceSelector控件
-            _imageSourceSelector = new ImageSourceSelector
+            if (ImageSourceSelector != null)
             {
-                Label = "输入图像",
-                SelectedImageSource = _viewModel.SelectedImageSource,
-                AvailableImageSources = _viewModel.AvailableImageSources,
-                ShowThumbnail = true,
-                ShowSizeInfo = true,
-                PlaceholderText = "选择图像源..."
-            };
-            _imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
-            AddToBasicParams(_imageSourceSelector);
-
-            AddToBasicParams(CreateSectionHeader("OCR设置"));
-
-            AddToBasicParams(new ParamComboBox
+                ImageSourceSelector.SetBinding(ImageSourceSelector.SelectedImageSourceProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.SelectedImageSource)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+                ImageSourceSelector.SetBinding(ImageSourceSelector.AvailableImageSourcesProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.AvailableImageSources)) { Source = _viewModel });
+                ImageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
+            }
+            
+            if (LanguageCombo != null)
             {
-                Label = "识别语言",
-                ItemsSource = _viewModel.Languages,
-                SelectedItem = _viewModel.Language
-            });
-
-            AddToBasicParams(CreateSectionHeader("Tessdata路径"));
-
-            AddToBasicParams(new ParamTextBox
+                LanguageCombo.ItemsSource = _viewModel.Languages;
+                LanguageCombo.SetBinding(ParamComboBox.SelectedItemProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.Language)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (DataPathTextBox != null)
             {
-                Label = "数据路径",
-                Text = _viewModel.DataPath,
-                Height = 32
-            });
-
-            AddToBasicParams(CreateSectionHeader("高级设置"));
-
-            AddToBasicParams(new ParamTextBox
+                DataPathTextBox.SetBinding(ParamTextBox.TextProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.DataPath)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (CharWhitelistTextBox != null)
             {
-                Label = "字符白名单",
-                Text = _viewModel.CharWhitelist,
-                Height = 60,
-                AcceptsReturn = true,
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            AddToBasicParams(new ParamComboBox
+                CharWhitelistTextBox.SetBinding(ParamTextBox.TextProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.CharWhitelist)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (PsmModeCombo != null)
             {
-                Label = "页面分割模式 (PSM)",
-                ItemsSource = new[] {
+                PsmModeCombo.ItemsSource = new[] {
                     "3: 全自动",
                     "0: 仅方向检测",
                     "1: 自动页面分割",
@@ -90,14 +72,15 @@ namespace SunEyeVision.Tool.OCR.Views
                     "7: 单行",
                     "8: 单词",
                     "9: 单字符"
-                },
-                SelectedItem = "3: 全自动"
-            });
+                };
+                PsmModeCombo.SelectedItem = "3: 全自动";
+            }
         }
 
         private void OnImageSourceChanged(object sender, RoutedEventArgs e)
         {
-            _viewModel.SelectedImageSource = _imageSourceSelector.SelectedImageSource;
+            if (ImageSourceSelector != null)
+                _viewModel.SelectedImageSource = ImageSourceSelector.SelectedImageSource;
         }
 
         protected override void OnExecuteRequested()
@@ -108,24 +91,8 @@ namespace SunEyeVision.Tool.OCR.Views
 
         protected override void OnResetRequested()
         {
-            if (_viewModel != null)
-            {
-                _viewModel.ResetParameters();
-            }
+            _viewModel?.ResetParameters();
             base.OnResetRequested();
-        }
-
-        private static TextBlock CreateSectionHeader(string text)
-        {
-            return new TextBlock
-            {
-                Text = text,
-                FontSize = 13,
-                FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString("#333333")),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
         }
     }
 }

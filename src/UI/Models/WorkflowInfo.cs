@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.UI.Models
 {

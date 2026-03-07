@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -104,7 +104,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 是否为动态绑定模式
         /// </summary>
-        public bool IsDynamicMode => SelectedBindingType == BindingType.DynamicBinding;
+        public bool IsDynamicMode => SelectedBindingType == BindingType.Binding;
 
         /// <summary>
         /// 图像数据源分组列表
@@ -266,11 +266,11 @@ namespace SunEyeVision.UI.ViewModels
             _binding = new ParameterBinding
             {
                 ParameterName = parameterName,
-                BindingType = BindingType.DynamicBinding,
+                BindingType = BindingType.Binding,
                 TargetType = ParameterType
             };
 
-            _selectedBindingType = BindingType.DynamicBinding;
+            _selectedBindingType = BindingType.Binding;
 
             ImageDataSourceGroups = new ObservableCollection<ImageDataSourceGroup>();
             ImageDataSources = new ObservableCollection<AvailableDataSource>();
@@ -378,7 +378,7 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteToggleBindingMode()
         {
-            SelectedBindingType = IsDynamicMode ? BindingType.Constant : BindingType.DynamicBinding;
+            SelectedBindingType = IsDynamicMode ? BindingType.Constant : BindingType.Binding;
         }
 
         private async Task LoadPreviewThumbnailAsync()

@@ -1,160 +1,140 @@
 using System;
-using System.Collections.Generic;
-using SunEyeVision.Plugin.SDK.Metadata;
+using OpenCvSharp;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 
 namespace SunEyeVision.Plugin.SDK.Core
 {
     /// <summary>
-    /// 工具插件接口 - 插件开发的唯一入口
+    /// 工具执行选项
+    /// </summary>
+    public sealed class ToolExecuteOptions
+    {
+        /// <summary>
+        /// 是否启用详细日志
+        /// </summary>
+        public bool VerboseLogging { get; set; }
+
+        /// <summary>
+        /// 超时时间（毫秒），0表示无超时
+        /// </summary>
+        public int TimeoutMs { get; set; }
+
+        /// <summary>
+        /// 是否启用结果缓存
+        /// </summary>
+        public bool EnableCaching { get; set; } = true;
+
+        /// <summary>
+        /// 是否返回中间结果
+        /// </summary>
+        public bool ReturnIntermediateResults { get; set; }
+
+        /// <summary>
+        /// 用户自定义数据
+        /// </summary>
+        public object? Tag { get; set; }
+
+        /// <summary>
+        /// 默认选项
+        /// </summary>
+        public static ToolExecuteOptions Default => new();
+    }
+
+    /// <summary>
+    /// 工具插件接口 - 框架层使用的非泛型版本
     /// </summary>
     /// <remarks>
-    /// 此接口定义了插件与框架交互的完整契约。
-    /// 插件开发者只需实现此接口即可创建可热加载的工具插件。
+    /// 极简工具接口，插件开发唯一入口。
+    /// 一个类就是一个完整的工具插件。
+    /// 元数据通过 [Tool] 特性定义，框架通过反射自动获取。
     /// 
     /// 使用示例：
     /// <code>
-    /// public class MyToolPlugin : IToolPlugin
+    /// [Tool("threshold", "图像阈值化",
+    ///     Description = "将灰度图像转换为二值图像",
+    ///     Icon = "📷",
+    ///     Category = "图像处理")]
+    /// public class ThresholdTool : IToolPlugin&lt;ThresholdParameters, ThresholdResults&gt;
     /// {
-    ///     public string Name => "MyTool";
-    ///     public string PluginId => "my-company.my-tool";
-    ///     
-    ///     public void Initialize()
+    ///     public ThresholdResults Run(Mat image, ThresholdParameters parameters)
     ///     {
-    ///         // 初始化插件
-    ///     }
-    ///     
-    ///     public List&lt;ToolMetadata&gt; GetToolMetadata()
-    ///     {
-    ///         return new List&lt;ToolMetadata&gt;
-    ///         {
-    ///             new ToolMetadata
-    ///             {
-    ///                 Id = "circle-find",
-    ///                 Name = "CircleFind",
-    ///                 DisplayName = "圆查找",
-    ///                 Description = "检测图像中的圆形",
-    ///                 Category = "几何检测"
-    ///             }
-    ///         };
+    ///         var result = new ThresholdResults();
+    ///         Cv2.Threshold(image, result.OutputImage, parameters.Threshold, 255, ThresholdTypes.Binary);
+    ///         return result;
     ///     }
     /// }
     /// </code>
     /// </remarks>
     public interface IToolPlugin
     {
-        #region 插件基本信息
+        /// <summary>参数类型</summary>
+        Type ParamsType { get; }
 
-        /// <summary>
-        /// 插件名称
-        /// </summary>
-        string Name { get; }
+        /// <summary>结果类型</summary>
+        Type ResultType { get; }
 
-        /// <summary>
-        /// 插件版本
-        /// </summary>
-        string Version { get; }
+        /// <summary>执行工具</summary>
+        ToolResults Run(Mat image, ToolParameters parameters);
 
-        /// <summary>
-        /// 插件唯一标识符
-        /// </summary>
-        string PluginId { get; }
+        /// <summary>是否支持调试窗口（默认 true）</summary>
+        bool HasDebugWindow => true;
 
-        /// <summary>
-        /// 插件描述
-        /// </summary>
-        string Description { get; }
+        /// <summary>创建调试窗口（可选实现）</summary>
+        System.Windows.Window? CreateDebugWindow() => null;
 
-        /// <summary>
-        /// 插件图标 (Emoji或图标路径)
-        /// </summary>
-        string Icon { get; }
+        /// <summary>获取默认参数（可选实现）</summary>
+        ToolParameters GetDefaultParameters() => (ToolParameters)Activator.CreateInstance(ParamsType)!;
+    }
 
-        /// <summary>
-        /// 插件作者
-        /// </summary>
-        string Author { get; }
+    /// <summary>
+    /// 工具插件接口 - 开发者使用的泛型版本
+    /// </summary>
+    /// <typeparam name="TParams">参数类型</typeparam>
+    /// <typeparam name="TResult">结果类型</typeparam>
+    /// <remarks>
+    /// 提供类型安全的执行入口，框架通过反射获取元数据。
+    /// 
+    /// 开发者只需：
+    /// 1. 在类上标记 [Tool] 特性（定义元数据）
+    /// 2. 实现 Run 方法（执行逻辑）
+    /// 3. 可选重写 CreateDebugWindow 方法（调试窗口）
+    /// </remarks>
+    public interface IToolPlugin<TParams, TResult> : IToolPlugin
+        where TParams : ToolParameters, new()
+        where TResult : ToolResults, new()
+    {
+        /// <summary>执行工具（类型安全）</summary>
+        TResult Run(Mat image, TParams parameters);
 
-        /// <summary>
-        /// 插件依赖列表
-        /// </summary>
-        List<string> Dependencies { get; }
+        /// <summary>获取默认参数</summary>
+        new TParams GetDefaultParameters() => new();
 
-        /// <summary>
-        /// 插件是否已加载
-        /// </summary>
-        bool IsLoaded { get; }
+        #region IToolPlugin 显式实现
 
-        #endregion
+        Type IToolPlugin.ParamsType => typeof(TParams);
+        Type IToolPlugin.ResultType => typeof(TResult);
 
-        #region 生命周期管理
+        ToolResults IToolPlugin.Run(Mat image, ToolParameters parameters)
+        {
+            if (parameters is TParams typedParams)
+                return Run(image, typedParams);
+            throw new ArgumentException($"参数类型错误：期望 {typeof(TParams).Name}，实际 {parameters?.GetType().Name ?? "null"}");
+        }
 
-        /// <summary>
-        /// 初始化插件
-        /// </summary>
-        void Initialize();
-
-        /// <summary>
-        /// 卸载插件
-        /// </summary>
-        void Unload();
-
-        #endregion
-
-        #region 工具管理
-
-        /// <summary>
-        /// 获取插件提供的所有工具元数据
-        /// </summary>
-        /// <returns>工具元数据列表</returns>
-        List<ToolMetadata> GetToolMetadata();
-
-        /// <summary>
-        /// 创建工具实例
-        /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <returns>工具实例</returns>
-        ITool? CreateToolInstance(string toolId);
-
-        /// <summary>
-        /// 获取工具默认参数
-        /// </summary>
-        /// <param name="toolId">工具ID</param>
-        /// <returns>默认参数</returns>
-        AlgorithmParameters GetDefaultParameters(string toolId);
+        ToolParameters IToolPlugin.GetDefaultParameters() => new TParams();
 
         #endregion
     }
 
     /// <summary>
-    /// 工具插件特性 - 用于标记工具插件类
+    /// 支持ROI的工具接口
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ToolPluginAttribute : Attribute
+    public interface IRoiToolPlugin<TParams, TResult> : IToolPlugin<TParams, TResult>
+        where TParams : ToolParameters, new()
+        where TResult : ToolResults, new()
     {
-        /// <summary>
-        /// 工具ID
-        /// </summary>
-        public string ToolId { get; }
-
-        /// <summary>
-        /// 工具名称
-        /// </summary>
-        public string Name { get; }
-
-        /// <summary>
-        /// 工具版本
-        /// </summary>
-        public string Version { get; set; } = "1.0.0";
-
-        /// <summary>
-        /// 工具分类
-        /// </summary>
-        public string Category { get; set; } = "未分类";
-
-        public ToolPluginAttribute(string toolId, string name)
-        {
-            ToolId = toolId ?? throw new ArgumentNullException(nameof(toolId));
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-        }
+        /// <summary>执行工具（指定ROI）</summary>
+        TResult Run(Mat image, TParams parameters, Models.Roi.IRoi roi);
     }
 }

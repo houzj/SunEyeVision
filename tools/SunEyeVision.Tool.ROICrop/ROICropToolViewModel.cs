@@ -42,8 +42,8 @@ namespace SunEyeVision.Tool.ROICrop
             get => _x;
             set
             {
-                SetProperty(ref _x, value);
-                SetParamValue("X", value);
+                if (SetProperty(ref _x, value, "X坐标"))
+                    SetParamValue("X", value);
             }
         }
 
@@ -52,8 +52,8 @@ namespace SunEyeVision.Tool.ROICrop
             get => _y;
             set
             {
-                SetProperty(ref _y, value);
-                SetParamValue("Y", value);
+                if (SetProperty(ref _y, value, "Y坐标"))
+                    SetParamValue("Y", value);
             }
         }
 
@@ -62,8 +62,8 @@ namespace SunEyeVision.Tool.ROICrop
             get => _width;
             set
             {
-                SetProperty(ref _width, value);
-                SetParamValue("Width", value);
+                if (SetProperty(ref _width, value, "宽度"))
+                    SetParamValue("Width", value);
             }
         }
 
@@ -72,8 +72,8 @@ namespace SunEyeVision.Tool.ROICrop
             get => _height;
             set
             {
-                SetProperty(ref _height, value);
-                SetParamValue("Height", value);
+                if (SetProperty(ref _height, value, "高度"))
+                    SetParamValue("Height", value);
             }
         }
 
@@ -82,8 +82,8 @@ namespace SunEyeVision.Tool.ROICrop
             get => _normalize;
             set
             {
-                SetProperty(ref _normalize, value);
-                SetParamValue("Normalize", value);
+                if (SetProperty(ref _normalize, value, "归一化"))
+                    SetParamValue("Normalize", value);
             }
         }
 

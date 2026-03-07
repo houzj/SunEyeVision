@@ -5,33 +5,23 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
-    /// 参数绑定模式
-    /// </summary>
-    public enum ParameterBindingMode
-    {
-        /// <summary>
-        /// 常量模式 - 使用固定值
-        /// </summary>
-        Constant,
-
-        /// <summary>
-        /// 绑定模式 - 绑定到其他节点输出
-        /// </summary>
-        Binding
-    }
-
-    /// <summary>
-    /// 支持常量/绑定模式切换的参数控件
+    /// 支持常量/绑定模式切换的多类型参数控件
     /// </summary>
     /// <remarks>
+    /// 核心概念：
+    /// 1. 绑定类型（BindingType）：回答"值从哪里来" - Constant 或 Binding
+    /// 2. 数据类型（DataType）：回答"值是什么类型" - Int, Double, String, Bool 等
+    /// 3. 绑定类型与数据类型正交，任何数据类型都可以是常量或绑定
+    /// 
     /// 布局：
-    /// 第一行：Label | TextBox | ▲▼ | BindingButton | MinValueLabel
-    /// 第二行（展开时）：Slider
-    /// 支持数值型参数的常量值输入和节点绑定切换
+    /// 第一行：Label | Editor | BindingButton
+    /// 第二行（数值型展开时）：Slider
     /// </remarks>
     public class BindableParameter : Control
     {
@@ -42,22 +32,50 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(Label), typeof(string), typeof(BindableParameter),
                 new PropertyMetadata(string.Empty));
 
-        public static readonly DependencyProperty MinValueLabelProperty =
-            DependencyProperty.Register(nameof(MinValueLabel), typeof(string), typeof(BindableParameter),
+        public static readonly DependencyProperty DescriptionProperty =
+            DependencyProperty.Register(nameof(Description), typeof(string), typeof(BindableParameter),
                 new PropertyMetadata(string.Empty));
 
-        // ===== 值属性 =====
-        public static readonly DependencyProperty ValueProperty =
-            DependencyProperty.Register(nameof(Value), typeof(double), typeof(BindableParameter),
+        // ===== 数据类型 =====
+        public static readonly DependencyProperty DataTypeProperty =
+            DependencyProperty.Register(nameof(DataType), typeof(ParamDataType), typeof(BindableParameter),
+                new PropertyMetadata(ParamDataType.Double, OnDataTypeChanged));
+
+        // ===== 绑定类型 =====
+        public static readonly DependencyProperty BindingTypeProperty =
+            DependencyProperty.Register(nameof(BindingType), typeof(BindingType), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(BindingType.Constant, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        // ===== 绑定源 =====
+        public static readonly DependencyProperty BindingSourceProperty =
+            DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        // ===== Int 值 =====
+        public static readonly DependencyProperty IntValueProperty =
+            DependencyProperty.Register(nameof(IntValue), typeof(int), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        public static readonly DependencyProperty IntMinimumProperty =
+            DependencyProperty.Register(nameof(IntMinimum), typeof(int), typeof(BindableParameter),
+                new PropertyMetadata(int.MinValue));
+
+        public static readonly DependencyProperty IntMaximumProperty =
+            DependencyProperty.Register(nameof(IntMaximum), typeof(int), typeof(BindableParameter),
+                new PropertyMetadata(int.MaxValue));
+
+        // ===== Double 值 =====
+        public static readonly DependencyProperty DoubleValueProperty =
+            DependencyProperty.Register(nameof(DoubleValue), typeof(double), typeof(BindableParameter),
                 new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-        public static readonly DependencyProperty MinimumProperty =
-            DependencyProperty.Register(nameof(Minimum), typeof(double), typeof(BindableParameter),
-                new PropertyMetadata(0.0));
+        public static readonly DependencyProperty DoubleMinimumProperty =
+            DependencyProperty.Register(nameof(DoubleMinimum), typeof(double), typeof(BindableParameter),
+                new PropertyMetadata(double.MinValue));
 
-        public static readonly DependencyProperty MaximumProperty =
-            DependencyProperty.Register(nameof(Maximum), typeof(double), typeof(BindableParameter),
-                new PropertyMetadata(100.0));
+        public static readonly DependencyProperty DoubleMaximumProperty =
+            DependencyProperty.Register(nameof(DoubleMaximum), typeof(double), typeof(BindableParameter),
+                new PropertyMetadata(double.MaxValue));
 
         public static readonly DependencyProperty SmallChangeProperty =
             DependencyProperty.Register(nameof(SmallChange), typeof(double), typeof(BindableParameter),
@@ -67,14 +85,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(LargeChange), typeof(double), typeof(BindableParameter),
                 new PropertyMetadata(10.0));
 
-        // ===== 绑定模式属性 =====
-        public static readonly DependencyProperty BindingModeProperty =
-            DependencyProperty.Register(nameof(BindingMode), typeof(ParameterBindingMode), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(ParameterBindingMode.Constant, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
-        public static readonly DependencyProperty BindingSourceProperty =
-            DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(BindableParameter),
+        // ===== String 值 =====
+        public static readonly DependencyProperty StringValueProperty =
+            DependencyProperty.Register(nameof(StringValue), typeof(string), typeof(BindableParameter),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        // ===== Bool 值 =====
+        public static readonly DependencyProperty BoolValueProperty =
+            DependencyProperty.Register(nameof(BoolValue), typeof(bool), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         // ===== 显示选项 =====
         public static readonly DependencyProperty ShowSliderProperty =
@@ -87,12 +106,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         public static readonly DependencyProperty DecimalPlacesProperty =
             DependencyProperty.Register(nameof(DecimalPlaces), typeof(int), typeof(BindableParameter),
-                new PropertyMetadata(0));
+                new PropertyMetadata(2));
 
         // ===== 绑定配置 =====
         public static readonly DependencyProperty AvailableBindingsProperty =
             DependencyProperty.Register(nameof(AvailableBindings), typeof(System.Collections.Generic.List<string>), typeof(BindableParameter),
                 new PropertyMetadata(null));
+
+        // ===== 转换表达式 =====
+        public static readonly DependencyProperty TransformExpressionProperty =
+            DependencyProperty.Register(nameof(TransformExpression), typeof(string), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         #endregion
 
@@ -104,28 +128,66 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(LabelProperty, value);
         }
 
-        public string MinValueLabel
+        public string Description
         {
-            get => (string)GetValue(MinValueLabelProperty);
-            set => SetValue(MinValueLabelProperty, value);
+            get => (string)GetValue(DescriptionProperty);
+            set => SetValue(DescriptionProperty, value);
         }
 
-        public double Value
+        public ParamDataType DataType
         {
-            get => (double)GetValue(ValueProperty);
-            set => SetValue(ValueProperty, value);
+            get => (ParamDataType)GetValue(DataTypeProperty);
+            set => SetValue(DataTypeProperty, value);
         }
 
-        public double Minimum
+        public BindingType BindingType
         {
-            get => (double)GetValue(MinimumProperty);
-            set => SetValue(MinimumProperty, value);
+            get => (BindingType)GetValue(BindingTypeProperty);
+            set => SetValue(BindingTypeProperty, value);
         }
 
-        public double Maximum
+        public string BindingSource
         {
-            get => (double)GetValue(MaximumProperty);
-            set => SetValue(MaximumProperty, value);
+            get => (string)GetValue(BindingSourceProperty);
+            set => SetValue(BindingSourceProperty, value);
+        }
+
+        // Int 值属性
+        public int IntValue
+        {
+            get => (int)GetValue(IntValueProperty);
+            set => SetValue(IntValueProperty, value);
+        }
+
+        public int IntMinimum
+        {
+            get => (int)GetValue(IntMinimumProperty);
+            set => SetValue(IntMinimumProperty, value);
+        }
+
+        public int IntMaximum
+        {
+            get => (int)GetValue(IntMaximumProperty);
+            set => SetValue(IntMaximumProperty, value);
+        }
+
+        // Double 值属性
+        public double DoubleValue
+        {
+            get => (double)GetValue(DoubleValueProperty);
+            set => SetValue(DoubleValueProperty, value);
+        }
+
+        public double DoubleMinimum
+        {
+            get => (double)GetValue(DoubleMinimumProperty);
+            set => SetValue(DoubleMinimumProperty, value);
+        }
+
+        public double DoubleMaximum
+        {
+            get => (double)GetValue(DoubleMaximumProperty);
+            set => SetValue(DoubleMaximumProperty, value);
         }
 
         public double SmallChange
@@ -140,16 +202,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(LargeChangeProperty, value);
         }
 
-        public ParameterBindingMode BindingMode
+        // String 值属性
+        public string StringValue
         {
-            get => (ParameterBindingMode)GetValue(BindingModeProperty);
-            set => SetValue(BindingModeProperty, value);
+            get => (string)GetValue(StringValueProperty);
+            set => SetValue(StringValueProperty, value);
         }
 
-        public string BindingSource
+        // Bool 值属性
+        public bool BoolValue
         {
-            get => (string)GetValue(BindingSourceProperty);
-            set => SetValue(BindingSourceProperty, value);
+            get => (bool)GetValue(BoolValueProperty);
+            set => SetValue(BoolValueProperty, value);
         }
 
         public bool ShowSlider
@@ -176,33 +240,49 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(AvailableBindingsProperty, value);
         }
 
+        public string TransformExpression
+        {
+            get => (string)GetValue(TransformExpressionProperty);
+            set => SetValue(TransformExpressionProperty, value);
+        }
+
         #endregion
 
         #region 控件引用
 
-        private TextBox _valueTextBox = null!;
-        private Slider _slider = null!;
-        private RepeatButton _decreaseButton = null!;  // ▼ 按钮
-        private RepeatButton _increaseButton = null!;  // ▲ 按钮
+        private NumericUpDown _numericEditor = null!;
+        private TextBox _stringTextBox = null!;
         private Button _bindingButton = null!;
-        private Border _expandPanel = null!;
-        private DispatcherTimer _focusCheckTimer = null!;
+        private CheckBox _boolCheckBox = null!;
 
         #endregion
 
         #region 事件
 
         /// <summary>
-        /// 绑定模式变更事件
+        /// 值变更事件
         /// </summary>
-        public static readonly RoutedEvent BindingModeChangedEvent =
-            EventManager.RegisterRoutedEvent(nameof(BindingModeChanged), RoutingStrategy.Bubble,
+        public static readonly RoutedEvent ValueChangedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ValueChanged), RoutingStrategy.Bubble,
                 typeof(RoutedEventHandler), typeof(BindableParameter));
 
-        public event RoutedEventHandler BindingModeChanged
+        public event RoutedEventHandler ValueChanged
         {
-            add => AddHandler(BindingModeChangedEvent, value);
-            remove => RemoveHandler(BindingModeChangedEvent, value);
+            add => AddHandler(ValueChangedEvent, value);
+            remove => RemoveHandler(ValueChangedEvent, value);
+        }
+
+        /// <summary>
+        /// 绑定类型变更事件
+        /// </summary>
+        public static readonly RoutedEvent BindingTypeChangedEvent =
+            EventManager.RegisterRoutedEvent(nameof(BindingTypeChanged), RoutingStrategy.Bubble,
+                typeof(RoutedEventHandler), typeof(BindableParameter));
+
+        public event RoutedEventHandler BindingTypeChanged
+        {
+            add => AddHandler(BindingTypeChangedEvent, value);
+            remove => RemoveHandler(BindingTypeChangedEvent, value);
         }
 
         /// <summary>
@@ -229,13 +309,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public BindableParameter()
         {
             AvailableBindings = new System.Collections.Generic.List<string>();
+        }
 
-            // 初始化焦点检查定时器（用于延迟一帧检查焦点状态）
-            _focusCheckTimer = new DispatcherTimer
+        private static void OnDataTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BindableParameter control)
             {
-                Interval = TimeSpan.FromMilliseconds(10)
-            };
-            _focusCheckTimer.Tick += OnFocusCheckTimerTick;
+                control.UpdateVisualState();
+            }
         }
 
         public override void OnApplyTemplate()
@@ -243,134 +324,62 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             base.OnApplyTemplate();
 
             // 获取模板中的控件
-            _valueTextBox = GetTemplateChild("PART_ValueTextBox") as TextBox ?? throw new InvalidOperationException("PART_ValueTextBox not found");
-            _slider = GetTemplateChild("PART_Slider") as Slider ?? throw new InvalidOperationException("PART_Slider not found");
-            _decreaseButton = GetTemplateChild("PART_DecreaseButton") as RepeatButton ?? throw new InvalidOperationException("PART_DecreaseButton not found");
-            _increaseButton = GetTemplateChild("PART_IncreaseButton") as RepeatButton ?? throw new InvalidOperationException("PART_IncreaseButton not found");
-            _bindingButton = GetTemplateChild("PART_BindingButton") as Button ?? throw new InvalidOperationException("PART_BindingButton not found");
-            _expandPanel = GetTemplateChild("PART_ExpandPanel") as Border ?? throw new InvalidOperationException("PART_ExpandPanel not found");
-
-            // 让slider和expandPanel可获取焦点，以便正确判断焦点离开
-            _slider.Focusable = true;
-            _expandPanel.Focusable = true;
+            _numericEditor = GetTemplateChild("PART_NumericEditor") as NumericUpDown;
+            _stringTextBox = GetTemplateChild("PART_StringTextBox") as TextBox;
+            _bindingButton = GetTemplateChild("PART_BindingButton") as Button ??
+                throw new InvalidOperationException("PART_BindingButton not found");
+            _boolCheckBox = GetTemplateChild("PART_BoolCheckBox") as CheckBox;
 
             // 绑定事件
-            _valueTextBox.TextChanged += OnValueTextBoxTextChanged;
-            _valueTextBox.LostFocus += OnValueTextBoxLostFocus;
-            _valueTextBox.PreviewKeyDown += OnValueTextBoxPreviewKeyDown;
-            _valueTextBox.GotFocus += OnValueTextBoxGotFocus;
-            _decreaseButton.Click += OnDecreaseButtonClick;
-            _increaseButton.Click += OnIncreaseButtonClick;
-            _bindingButton.Click += OnBindingButtonClick;
+            if (_numericEditor != null)
+            {
+                _numericEditor.ValueChanged += (s, e) => RaiseValueChanged();
+            }
 
-            // 订阅控件焦点离开事件
-            _valueTextBox.LostFocus += OnControlLostFocus;
-            _slider.LostFocus += OnControlLostFocus;
-            _expandPanel.LostFocus += OnControlLostFocus;
-            _increaseButton.LostFocus += OnControlLostFocus;
-            _decreaseButton.LostFocus += OnControlLostFocus;
+            if (_stringTextBox != null)
+            {
+                _stringTextBox.TextChanged += (s, e) =>
+                {
+                    if (BindingType == BindingType.Constant)
+                        RaiseValueChanged();
+                };
+            }
+
+            if (_boolCheckBox != null)
+            {
+                _boolCheckBox.Checked += (s, e) => RaiseValueChanged();
+                _boolCheckBox.Unchecked += (s, e) => RaiseValueChanged();
+            }
+
+            _bindingButton.Click += OnBindingButtonClick;
 
             // 初始化状态
             UpdateVisualState();
         }
 
-        private void OnValueTextBoxGotFocus(object sender, RoutedEventArgs e)
+        private void RaiseValueChanged()
         {
-            // 点击文本框时展开滑块
-            if (ShowSlider && BindingMode == ParameterBindingMode.Constant)
-            {
-                IsExpanded = true;
-            }
-        }
-
-        /// <summary>
-        /// 控件失去焦点时检查是否需要收起滑块
-        /// </summary>
-        private void OnControlLostFocus(object sender, RoutedEventArgs e)
-        {
-            _focusCheckTimer.Start();
-        }
-
-        /// <summary>
-        /// 定时器检查焦点状态
-        /// </summary>
-        private void OnFocusCheckTimerTick(object? sender, EventArgs e)
-        {
-            _focusCheckTimer.Stop();
-
-            // 如果焦点已离开整个控件，且当前展开滑块，则收起
-            if (!IsKeyboardFocusWithin && IsExpanded && ShowSlider && BindingMode == ParameterBindingMode.Constant)
-            {
-                IsExpanded = false;
-            }
-        }
-
-        private void OnValueTextBoxPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (BindingMode != ParameterBindingMode.Constant)
-                return;
-
-            if (e.Key == System.Windows.Input.Key.Up)
-            {
-                Value = Math.Min(Maximum, Value + SmallChange);
-                e.Handled = true;
-            }
-            else if (e.Key == System.Windows.Input.Key.Down)
-            {
-                Value = Math.Max(Minimum, Value - SmallChange);
-                e.Handled = true;
-            }
-        }
-
-        private void OnValueTextBoxTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(_valueTextBox.Text, out double result))
-            {
-                if (result >= Minimum && result <= Maximum)
-                {
-                    Value = result;
-                }
-            }
-        }
-
-        private void OnValueTextBoxLostFocus(object sender, RoutedEventArgs e)
-        {
-            // 格式化显示值
-            string format = DecimalPlaces > 0 ? $"F{DecimalPlaces}" : "F0";
-            _valueTextBox.Text = Value.ToString(format);
-        }
-
-        private void OnDecreaseButtonClick(object sender, RoutedEventArgs e)
-        {
-            Value = Math.Max(Minimum, Value - SmallChange);
-        }
-
-        private void OnIncreaseButtonClick(object sender, RoutedEventArgs e)
-        {
-            Value = Math.Min(Maximum, Value + SmallChange);
+            RaiseEvent(new RoutedEventArgs(ValueChangedEvent));
         }
 
         private void OnBindingButtonClick(object sender, RoutedEventArgs e)
         {
-            if (BindingMode == ParameterBindingMode.Constant)
+            if (BindingType == BindingType.Constant)
             {
-                // 切换到绑定模式，显示绑定选择器
                 ShowBindingSelector();
             }
             else
             {
-                // 切换回常量模式
-                BindingMode = ParameterBindingMode.Constant;
+                BindingType = BindingType.Constant;
                 BindingSource = string.Empty;
                 UpdateVisualState();
             }
 
-            RaiseEvent(new RoutedEventArgs(BindingModeChangedEvent));
+            RaiseEvent(new RoutedEventArgs(BindingTypeChangedEvent));
         }
 
         private void ShowBindingSelector()
         {
-            // 创建弹出菜单
             var contextMenu = new ContextMenu
             {
                 PlacementTarget = _bindingButton,
@@ -386,7 +395,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     item.Click += (s, e) =>
                     {
                         BindingSource = binding;
-                        BindingMode = ParameterBindingMode.Binding;
+                        BindingType = BindingType.Binding;
                         UpdateVisualState();
                         RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
                     };
@@ -408,61 +417,147 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void UpdateVisualState()
         {
-            if (_valueTextBox == null || _slider == null ||
-                _decreaseButton == null || _increaseButton == null || _bindingButton == null || _expandPanel == null)
+            if (_bindingButton == null)
                 return;
 
-            if (BindingMode == ParameterBindingMode.Binding)
+            if (BindingType == BindingType.Binding)
             {
                 // 绑定模式：禁用值编辑控件
-                _valueTextBox.IsEnabled = false;
-                _slider.IsEnabled = false;
-                _decreaseButton.IsEnabled = false;
-                _increaseButton.IsEnabled = false;
-                _valueTextBox.Text = BindingSource;
+                if (_numericEditor != null)
+                {
+                    _numericEditor.IsEnabled = false;
+                }
+                if (_stringTextBox != null)
+                {
+                    _stringTextBox.IsEnabled = false;
+                    _stringTextBox.Text = BindingSource;
+                }
+                if (_boolCheckBox != null) _boolCheckBox.IsEnabled = false;
                 IsExpanded = false;
 
-                // 更新按钮样式表示绑定状态
                 _bindingButton.Content = "🔗";
                 _bindingButton.ToolTip = $"绑定源: {BindingSource}\n点击解除绑定";
             }
             else
             {
                 // 常量模式：启用值编辑控件
-                _valueTextBox.IsEnabled = true;
-                _slider.IsEnabled = ShowSlider;
-                _decreaseButton.IsEnabled = true;
-                _increaseButton.IsEnabled = true;
+                if (_numericEditor != null)
+                {
+                    _numericEditor.IsEnabled = true;
+                }
+                if (_stringTextBox != null)
+                {
+                    _stringTextBox.IsEnabled = true;
+                }
+                if (_boolCheckBox != null) _boolCheckBox.IsEnabled = true;
 
-                string format = DecimalPlaces > 0 ? $"F{DecimalPlaces}" : "F0";
-                _valueTextBox.Text = Value.ToString(format);
-
-                // 更新按钮样式表示常量模式
                 _bindingButton.Content = "⚡";
                 _bindingButton.ToolTip = "点击绑定到其他节点输出";
             }
-
-            // 更新滑块展开状态
-            _expandPanel.Visibility = (IsExpanded && ShowSlider && BindingMode == ParameterBindingMode.Constant)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
         {
             base.OnPropertyChanged(e);
 
-            if (e.Property == BindingModeProperty || e.Property == BindingSourceProperty || e.Property == IsExpandedProperty)
+            if (e.Property == BindingTypeProperty || e.Property == BindingSourceProperty ||
+                e.Property == IsExpandedProperty || e.Property == DataTypeProperty)
             {
                 UpdateVisualState();
             }
-            else if (e.Property == ValueProperty && BindingMode == ParameterBindingMode.Constant)
+        }
+
+        /// <summary>
+        /// 获取当前值（根据数据类型）
+        /// </summary>
+        public object? GetValue()
+        {
+            return DataType switch
             {
-                if (_valueTextBox != null)
-                {
-                    string format = DecimalPlaces > 0 ? $"F{DecimalPlaces}" : "F0";
-                    _valueTextBox.Text = Value.ToString(format);
-                }
+                ParamDataType.Int => IntValue,
+                ParamDataType.Double => DoubleValue,
+                ParamDataType.String => StringValue,
+                ParamDataType.Bool => BoolValue,
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// 设置当前值（根据数据类型）
+        /// </summary>
+        public void SetValue(object? value)
+        {
+            if (value == null)
+                return;
+
+            switch (DataType)
+            {
+                case ParamDataType.Int:
+                    if (value is int intVal)
+                        IntValue = intVal;
+                    else if (int.TryParse(value.ToString(), out int intResult))
+                        IntValue = intResult;
+                    break;
+
+                case ParamDataType.Double:
+                    if (value is double doubleVal)
+                        DoubleValue = doubleVal;
+                    else if (double.TryParse(value.ToString(), out double doubleResult))
+                        DoubleValue = doubleResult;
+                    break;
+
+                case ParamDataType.String:
+                    StringValue = value.ToString() ?? string.Empty;
+                    break;
+
+                case ParamDataType.Bool:
+                    if (value is bool boolVal)
+                        BoolValue = boolVal;
+                    else if (bool.TryParse(value.ToString(), out bool boolResult))
+                        BoolValue = boolResult;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 转换为 ParameterBinding 对象
+        /// </summary>
+        public ParameterBinding ToParameterBinding()
+        {
+            if (BindingType == BindingType.Constant)
+            {
+                return ParameterBinding.CreateConstant(Label, GetValue());
+            }
+            else
+            {
+                var parts = BindingSource.Split('.');
+                var nodeId = parts.Length > 0 ? parts[0] : string.Empty;
+                var property = parts.Length > 1 ? parts[1] : BindingSource;
+                return ParameterBinding.CreateBinding(Label, nodeId, property, TransformExpression);
+            }
+        }
+
+        /// <summary>
+        /// 从 ParameterBinding 对象加载
+        /// </summary>
+        public void FromParameterBinding(ParameterBinding binding)
+        {
+            if (binding == null)
+                return;
+
+            Label = binding.ParameterName;
+            BindingType = binding.BindingType;
+            TransformExpression = binding.TransformExpression ?? string.Empty;
+
+            if (binding.BindingType == BindingType.Constant)
+            {
+                SetValue(binding.ConstantValue);
+            }
+            else
+            {
+                BindingSource = string.IsNullOrEmpty(binding.SourceProperty)
+                    ? binding.SourceNodeId ?? string.Empty
+                    : $"{binding.SourceNodeId}.{binding.SourceProperty}";
             }
         }
     }

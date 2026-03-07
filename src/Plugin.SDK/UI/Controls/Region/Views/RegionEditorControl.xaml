@@ -3,16 +3,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
              xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Models"
-             Width="320"
              Loaded="OnLoaded"
              Unloaded="OnUnloaded">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        
-        <!-- 模式颜色 -->
-        <SolidColorBrush x:Key="DrawingModeBrush" Color="#4CAF50"/>
-        <SolidColorBrush x:Key="SubscribeRegionBrush" Color="#2196F3"/>
-        <SolidColorBrush x:Key="SubscribeParameterBrush" Color="#FF9800"/>
+
+        <!-- 形状按钮样式 -->
+        <Style x:Key="ShapeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="50"/>
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#C0C0C0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#E8F4FC"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#CCE4F7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 形状图标画笔 -->
+        <SolidColorBrush x:Key="ShapeIconBrush" Color="#555"/>
+        <SolidColorBrush x:Key="ShapeIconActiveBrush" Color="#1976D2"/>
     </UserControl.Resources>
 
     <Grid>
@@ -39,27 +71,84 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- 图形类型（绘制模式和按参数订阅模式显示） -->
-                <GroupBox Header="图形类型" Margin="0,0,0,8"
+                <!-- 形状选择（绘制模式和按参数订阅模式显示） -->
+                <GroupBox Header="形状" Margin="0,0,0,8"
                           Visibility="{Binding ShowShapeTypeSelector, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <WrapPanel>
-                        <RadioButton Content="矩形"
-                                     IsChecked="{Binding IsRectangleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,12,4"
-                                     ToolTip="矩形区域"/>
-                        <RadioButton Content="圆形"
-                                     IsChecked="{Binding IsCircleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,12,4"
-                                     ToolTip="圆形区域"/>
-                        <RadioButton Content="旋转矩形"
-                                     IsChecked="{Binding IsRotatedRectangleSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,12,4"
-                                     ToolTip="旋转矩形区域"/>
-                        <RadioButton Content="直线"
-                                     IsChecked="{Binding IsLineSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,12,4"
-                                     ToolTip="直线区域"/>
-                    </WrapPanel>
+                    <UniformGrid Columns="5" HorizontalAlignment="Center">
+                        <!-- 选择按钮 - 退出绘制模式，进入选择/编辑模式 -->
+                        <Button Style="{StaticResource ShapeButtonStyle}"
+                                ToolTip="选择/编辑模式 (V)&#x0a;点击选中区域进行编辑&#x0a;可缩放平移图像"
+                                Click="OnSelectButtonClick"
+                                x:Name="SelectButton">
+                            <Grid>
+                                <!-- 箭头光标图标 -->
+                                <Path Width="18" Height="18"
+                                      Stroke="{StaticResource ShapeIconBrush}"
+                                      StrokeThickness="1.5"
+                                      Fill="{StaticResource ShapeIconBrush}"
+                                      Data="M2,2 L2,14 L6,10 L9,16 L12,14 L9,8 L14,8 Z"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                        <!-- 矩形 -->
+                        <Button Style="{StaticResource ShapeButtonStyle}"
+                                ToolTip="矩形 (R)"
+                                Click="OnRectangleButtonClick"
+                                x:Name="RectangleButton">
+                            <Grid>
+                                <Rectangle Width="22" Height="22"
+                                           Stroke="{StaticResource ShapeIconBrush}"
+                                           StrokeThickness="2"
+                                           Fill="Transparent"/>
+                            </Grid>
+                        </Button>
+
+                        <!-- 圆形 -->
+                        <Button Style="{StaticResource ShapeButtonStyle}"
+                                ToolTip="圆形 (C)"
+                                Click="OnCircleButtonClick"
+                                x:Name="CircleButton">
+                            <Grid>
+                                <Ellipse Width="22" Height="22"
+                                         Stroke="{StaticResource ShapeIconBrush}"
+                                         StrokeThickness="2"
+                                         Fill="Transparent"/>
+                            </Grid>
+                        </Button>
+
+                        <!-- 旋转矩形 -->
+                        <Button Style="{StaticResource ShapeButtonStyle}"
+                                ToolTip="旋转矩形 (O)"
+                                Click="OnRotatedRectangleButtonClick"
+                                x:Name="RotatedRectangleButton">
+                            <Grid>
+                                <Rectangle Width="18" Height="18"
+                                           Stroke="{StaticResource ShapeIconBrush}"
+                                           StrokeThickness="2"
+                                           Fill="Transparent"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <Rectangle.RenderTransform>
+                                        <RotateTransform Angle="45"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+                        </Button>
+
+                        <!-- 直线 -->
+                        <Button Style="{StaticResource ShapeButtonStyle}"
+                                ToolTip="直线 (L)"
+                                Click="OnLineButtonClick"
+                                x:Name="LineButton">
+                            <Grid>
+                                <Line X1="4" Y1="22" X2="22" Y2="4"
+                                      Stroke="{StaticResource ShapeIconBrush}"
+                                      StrokeThickness="2"/>
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
                 </GroupBox>
 
                 <!-- 输入方式（仅订阅模式显示） -->
@@ -81,7 +170,7 @@
                           Visibility="{Binding IsDrawingMode, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsExpanded="True"
                           Margin="0,0,0,8">
-                    <local:DrawingParameterPanel DataContext="{Binding DrawingParameterPanel}"/>
+                    <local:DrawingParameterPanel DataContext="{Binding}"/>
                 </Expander>
 
                 <!-- 参数面板 - 订阅-按区域 -->
@@ -89,7 +178,7 @@
                           Visibility="{Binding IsSubscribeByRegionMode, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsExpanded="True"
                           Margin="0,0,0,8">
-                    <local:RegionSubscribePanel DataContext="{Binding RegionSubscribePanel}"/>
+                    <local:RegionSubscribePanel DataContext="{Binding NodeSelector}"/>
                 </Expander>
 
                 <!-- 参数面板 - 订阅-按参数 -->
@@ -99,48 +188,6 @@
                           Margin="0,0,0,8">
                     <local:ParameterPanel DataContext="{Binding ParameterPanel}"/>
                 </Expander>
-
-                <!-- 区域列表 -->
-                <GroupBox Header="区域列表" Margin="0,0,0,8">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        
-                        <!-- 操作按钮 -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button Content="添加"
-                                    Command="{Binding AddRegionCommand}"
-                                    CommandParameter="{Binding CurrentShapeType}"
-                                    Padding="8,4"
-                                    Margin="0,0,4,0"/>
-                            <Button Content="删除"
-                                    Command="{Binding RemoveRegionCommand}"
-                                    Padding="8,4"
-                                    Margin="0,0,4,0"/>
-                            <Button Content="清除"
-                                    Command="{Binding ClearAllCommand}"
-                                    Padding="8,4"/>
-                        </StackPanel>
-
-                        <!-- 区域列表 -->
-                        <ListBox Grid.Row="1"
-                                 ItemsSource="{Binding Regions}"
-                                 SelectedItem="{Binding SelectedRegion}"
-                                 MinHeight="100"
-                                 MaxHeight="200">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}" Margin="0,0,8,0"/>
-                                        <TextBlock Text="{Binding Mode}" Foreground="Gray" FontSize="11"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Grid>
-                </GroupBox>
 
                 <!-- 选中区域详细信息 -->
                 <GroupBox Header="选中区域" Margin="0,0,0,8"
@@ -152,13 +199,35 @@
 
         <!-- 底部提示栏 -->
         <Border Grid.Row="1"
-                Background="#F0F8FF"
-                BorderBrush="#D0D0D0"
+                Background="#F5F5F5"
+                BorderBrush="#E0E0E0"
                 BorderThickness="0,1,0,0"
                 Padding="8,4">
-            <TextBlock Text="💡 实时编辑 | 关闭窗口自动保存"
-                       FontSize="11"
-                       Foreground="#666"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 当前模式指示器 -->
+                <Border Grid.Column="0"
+                        Background="#E3F2FD"
+                        CornerRadius="3"
+                        Padding="6,2"
+                        Margin="0,0,8,0">
+                    <TextBlock Text="{Binding CurrentToolMode}"
+                               FontSize="10"
+                               Foreground="#1976D2"
+                               FontWeight="Medium"/>
+                </Border>
+
+                <!-- 状态消息 -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding StatusMessage}"
+                           FontSize="11"
+                           Foreground="#666"
+                           TextTrimming="CharacterEllipsis"/>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

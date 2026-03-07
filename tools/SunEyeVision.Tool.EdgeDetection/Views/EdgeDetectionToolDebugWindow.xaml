@@ -3,14 +3,59 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
-        Title="边缘检测工具调试" Height="500" Width="450">
+        Title="边缘检测工具调试" Height="500" Width="400">
     
-    <ui:BaseToolDebugWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </ui:BaseToolDebugWindow.Resources>
+    <ui:BaseToolDebugWindow.Tabs>
+        <!-- Tab1: 基本参数 -->
+        <TabItem Header="基本参数" IsSelected="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:ImageSourceSelector 
+                        x:Name="ImageSourceSelector"
+                        Label="输入图像"
+                        PlaceholderText="选择图像源..."/>
+                    
+                    <TextBlock Text="边缘检测算法" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamComboBox x:Name="AlgorithmCombo"
+                                            Label="算法类型"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        
+        <!-- Tab2: 运行参数 -->
+        <TabItem Header="运行参数">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                <StackPanel>
+                    <controls:BindableParameter 
+                        x:Name="Threshold1Param"
+                        Label="阈值1 (低阈值)"
+                        DataType="Int"
+                        IntMinimum="0"
+                        IntMaximum="255"
+                        SmallChange="1"
+                        LargeChange="10"
+                        ShowSlider="True"/>
+                    
+                    <controls:BindableParameter 
+                        x:Name="Threshold2Param"
+                        Label="阈值2 (高阈值)"
+                        DataType="Int"
+                        IntMinimum="0"
+                        IntMaximum="255"
+                        SmallChange="1"
+                        LargeChange="10"
+                        ShowSlider="True"/>
+                    
+                    <TextBlock Text="孔径设置" FontSize="13" FontWeight="Medium" 
+                               Margin="0,16,0,8" Foreground="#333333"/>
+                    
+                    <controls:ParamComboBox x:Name="ApertureSizeCombo"
+                                            Label="孔径大小"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </ui:BaseToolDebugWindow.Tabs>
     
 </ui:BaseToolDebugWindow>

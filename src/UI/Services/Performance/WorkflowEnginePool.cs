@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using SunEyeVision.Workflow;
+using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.Services.Performance
 {
@@ -40,9 +41,8 @@ namespace SunEyeVision.UI.Services.Performance
         private WorkflowEngine CreateDefaultEngine()
         {
             // WorkflowEngine需要ILogger参数
-            // 使用NullLogger或ConsoleLogger作为默认
-            var logger = new Diagnostics.ConsoleLogger();
-            return new WorkflowEngine(logger);
+            // 使用VisionLogger.Instance作为默认
+            return new WorkflowEngine(VisionLogger.Instance);
         }
 
         /// <summary>

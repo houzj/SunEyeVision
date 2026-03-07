@@ -18,7 +18,7 @@ namespace SunEyeVision.Plugin.SDK.UI
     ///     public FrameworkElement ParameterPanel => _panel;
     ///     public event EventHandler? ExecuteRequested;
     ///     
-    ///     public void SetTool(ITool tool) { ... }
+    ///     public void SetTool(IToolPlugin tool) { ... }
     ///     public void Reset() { ... }
     /// }
     /// </code>
@@ -28,7 +28,7 @@ namespace SunEyeVision.Plugin.SDK.UI
         /// <summary>
         /// 关联的工具实例
         /// </summary>
-        ITool? Tool { get; }
+        IToolPlugin? Tool { get; }
 
         /// <summary>
         /// 参数面板UI元素
@@ -53,7 +53,7 @@ namespace SunEyeVision.Plugin.SDK.UI
         /// <summary>
         /// 设置关联的工具实例
         /// </summary>
-        void SetTool(ITool tool);
+        void SetTool(IToolPlugin tool);
 
         /// <summary>
         /// 重置参数到默认值

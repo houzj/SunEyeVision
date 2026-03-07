@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.Validation;
 using ValidationResult = SunEyeVision.Plugin.SDK.Validation.ValidationResult;
 
@@ -70,23 +71,35 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     }
 
     /// <summary>
-    /// 参数显示特性
+    /// 参数显示特性 - UI渲染的唯一元数据来源
     /// </summary>
+    /// <remarks>
+    /// 此特性与 ParameterRangeAttribute 配合使用，构成参数定义的唯一真实来源。
+    /// UI层通过反射读取这些特性生成界面，无需手动维护ParameterMetadata。
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// [ParameterRange(0, 255, Step = 1)]
+    /// [ParameterDisplay(DisplayName = "阈值", Description = "二值化阈值", 
+    ///                   Group = "基本参数", Order = 1, SupportsBinding = true)]
+    /// public int Threshold { get; set; } = 128;
+    /// </code>
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
     public sealed class ParameterDisplayAttribute : Attribute
     {
         /// <summary>
-        /// 显示名称
+        /// 显示名称（UI标签）
         /// </summary>
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// 描述信息
+        /// 描述信息（工具提示）
         /// </summary>
         public string? Description { get; set; }
 
         /// <summary>
-        /// 分组名称
+        /// 分组名称（用于参数分组显示）
         /// </summary>
         public string? Group { get; set; }
 
@@ -101,53 +114,74 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public bool IsReadOnly { get; set; }
 
         /// <summary>
-        /// 是否高级参数
+        /// 是否高级参数（默认折叠）
         /// </summary>
         public bool IsAdvanced { get; set; }
+
+        /// <summary>
+        /// 是否支持调试模式下实时修改
+        /// </summary>
+        public bool EditableInDebug { get; set; } = true;
+
+        /// <summary>
+        /// 是否支持数据绑定（从上游节点获取值）
+        /// </summary>
+        public bool SupportsBinding { get; set; } = true;
     }
 
     /// <summary>
     /// 工具参数基类
     /// </summary>
     /// <remarks>
-    /// 所有工具参数类的基类，提供参数验证、克隆和元数据功能。
+    /// 所有工具参数类的基类，提供参数验证、克隆、元数据功能和属性变更通知。
     /// 
     /// 设计理念：
     /// 1. 强类型参数，编译时检查
     /// 2. 自动验证支持，通过特性标注约束
     /// 3. 序列化友好，支持JSON/Binary
-    /// 4. UI绑定友好，支持属性变更通知
+    /// 4. UI绑定友好，继承ObservableObject支持属性变更通知
+    /// 5. 参数只定义一次，UI直接绑定Parameters属性
     /// 
     /// 使用示例：
     /// <code>
-    /// public class CircleFindParams : ToolParamsBase
+    /// public class ThresholdParameters : ToolParameters
     /// {
-    ///     [ParameterRange(1, 100)]
-    ///     [ParameterDisplay(DisplayName = "最小半径", Description = "检测圆的最小半径")]
-    ///     public double MinRadius { get; set; } = 5.0;
+    ///     private int _threshold = 128;
     ///     
-    ///     [ParameterRange(1, 100)]
-    ///     [ParameterDisplay(DisplayName = "最大半径", Description = "检测圆的最大半径")]
-    ///     public double MaxRadius { get; set; } = 50.0;
-    ///     
-    ///     public override ValidationResult Validate()
+    ///     [ParameterRange(0, 255)]
+    ///     [ParameterDisplay(DisplayName = "阈值")]
+    ///     public int Threshold
     ///     {
-    ///         var result = base.Validate();
-    ///         if (MinRadius > MaxRadius)
-    ///         {
-    ///             result.AddError("最小半径不能大于最大半径");
-    ///         }
-    ///         return result;
+    ///         get => _threshold;
+    ///         set => SetProperty(ref _threshold, value, "阈值");
     ///     }
     /// }
     /// </code>
     /// </remarks>
-    public abstract class ToolParameters
+    public abstract class ToolParameters : ObservableObject
     {
         /// <summary>
         /// 参数版本（用于序列化兼容性）
         /// </summary>
         public int Version { get; set; } = 1;
+
+        /// <summary>
+        /// 执行上下文（由执行器注入）
+        /// </summary>
+        /// <remarks>
+        /// 工具执行期间可用的运行时服务，如日志记录器。
+        /// 此属性由 ToolExecutor 在执行前自动注入，工具开发者无需手动设置。
+        /// 
+        /// 使用扩展方法访问：
+        /// <code>
+        /// parameters.LogInfo("执行信息");
+        /// parameters.LogWarning("警告信息");
+        /// parameters.LogError("错误信息", exception);
+        /// </code>
+        /// </remarks>
+        [IgnoreSave]
+        [IgnoreDisplay]
+        public ExecutionContext? Context { get; internal set; }
 
         /// <summary>
         /// 验证所有参数
@@ -160,8 +194,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var prop in properties)
             {
-                // 跳过Version属性
-                if (prop.Name == nameof(Version)) continue;
+                // 跳过Version和Context属性
+                if (prop.Name == nameof(Version) || prop.Name == nameof(Context)) continue;
 
                 var value = prop.GetValue(this);
                 var rangeAttr = prop.GetCustomAttribute<ParameterRangeAttribute>();
@@ -227,7 +261,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var prop in properties)
             {
-                if (prop.Name == nameof(Version)) continue;
+                if (prop.Name == nameof(Version) || prop.Name == nameof(Context)) continue;
 
                 var rangeAttr = prop.GetCustomAttribute<ParameterRangeAttribute>();
                 var displayAttr = prop.GetCustomAttribute<ParameterDisplayAttribute>();
@@ -246,7 +280,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     Group = displayAttr?.Group,
                     Order = displayAttr?.Order ?? int.MaxValue,
                     IsReadOnly = displayAttr?.IsReadOnly ?? false,
-                    IsAdvanced = displayAttr?.IsAdvanced ?? false
+                    IsAdvanced = displayAttr?.IsAdvanced ?? false,
+                    EditableInDebug = displayAttr?.EditableInDebug ?? true,
+                    SupportsBinding = displayAttr?.SupportsBinding ?? true
                 });
             }
 
@@ -459,11 +495,217 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         #endregion
+
+        #region 序列化支持
+
+        /// <summary>
+        /// 转换为可序列化字典（用于项目文件保存）
+        /// </summary>
+        /// <remarks>
+        /// 支持 Enum、Point、Rect 等特殊类型的序列化。
+        /// 仅保存标记为可保存的属性（未标记 IgnoreSave）。
+        /// </remarks>
+        public Dictionary<string, object?> ToSerializableDictionary()
+        {
+            var dict = new Dictionary<string, object?>
+            {
+                ["$type"] = GetType().AssemblyQualifiedName,
+                ["Version"] = Version
+            };
+
+            foreach (var prop in GetSaveableProperties())
+            {
+                if (!prop.CanRead) continue;
+
+                var value = prop.GetValue(this);
+                dict[prop.Name] = SerializeValue(value);
+            }
+
+            return dict;
+        }
+
+        /// <summary>
+        /// 从字典加载参数值
+        /// </summary>
+        public void LoadFromDictionary(Dictionary<string, object?> dict)
+        {
+            if (dict == null) return;
+
+            // 恢复版本
+            if (dict.TryGetValue("Version", out var version) && version is int v)
+            {
+                Version = v;
+            }
+
+            foreach (var prop in GetSaveableProperties())
+            {
+                if (!prop.CanWrite) continue;
+                if (!dict.TryGetValue(prop.Name, out var value) || value == null) continue;
+
+                try
+                {
+                    var deserializedValue = DeserializeValue(value, prop.PropertyType);
+                    prop.SetValue(this, deserializedValue);
+                }
+                catch
+                {
+                    // 反序列化失败时保留默认值
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从字典创建强类型参数实例（静态工厂方法）
+        /// </summary>
+        public static T? FromDictionary<T>(Dictionary<string, object?> dict) where T : ToolParameters
+        {
+            if (dict == null) return null;
+
+            // 尝试从字典中的类型信息创建实例
+            if (dict.TryGetValue("$type", out var typeName) && typeName is string typeStr)
+            {
+                var type = Type.GetType(typeStr);
+                if (type != null && typeof(T).IsAssignableFrom(type))
+                {
+                    var instance = Activator.CreateInstance(type) as T;
+                    instance?.LoadFromDictionary(dict);
+                    return instance;
+                }
+            }
+
+            // 回退到直接创建泛型类型
+            var result = Activator.CreateInstance<T>();
+            result.LoadFromDictionary(dict);
+            return result;
+        }
+
+        /// <summary>
+        /// 从字典创建参数实例（非泛型版本）
+        /// </summary>
+        public static ToolParameters? CreateFromDictionary(Dictionary<string, object?> dict)
+        {
+            if (dict == null) return null;
+
+            if (!dict.TryGetValue("$type", out var typeName) || typeName is not string typeStr)
+                return null;
+
+            var type = Type.GetType(typeStr);
+            if (type == null || !typeof(ToolParameters).IsAssignableFrom(type))
+                return null;
+
+            var instance = Activator.CreateInstance(type) as ToolParameters;
+            instance?.LoadFromDictionary(dict);
+            return instance;
+        }
+
+        /// <summary>
+        /// 序列化单个值
+        /// </summary>
+        private static object? SerializeValue(object? value)
+        {
+            if (value == null) return null;
+
+            var type = value.GetType();
+
+            // 枚举转字符串
+            if (type.IsEnum)
+                return value.ToString();
+
+            // OpenCvSharp Point
+            if (value is OpenCvSharp.Point point)
+                return $"{point.X},{point.Y}";
+
+            // OpenCvSharp Point2d
+            if (value is OpenCvSharp.Point2d point2d)
+                return $"{point2d.X},{point2d.Y}";
+
+            // OpenCvSharp Rect
+            if (value is OpenCvSharp.Rect rect)
+                return $"{rect.X},{rect.Y},{rect.Width},{rect.Height}";
+
+            // OpenCvSharp Rect2d
+            if (value is OpenCvSharp.Rect2d rect2d)
+                return $"{rect2d.X},{rect2d.Y},{rect2d.Width},{rect2d.Height}";
+
+            // OpenCvSharp Size
+            if (value is OpenCvSharp.Size size)
+                return $"{size.Width},{size.Height}";
+
+            // 其他类型直接返回
+            return value;
+        }
+
+        /// <summary>
+        /// 反序列化单个值
+        /// </summary>
+        private static object? DeserializeValue(object? value, Type targetType)
+        {
+            if (value == null) return null;
+
+            // 如果已经是目标类型
+            if (targetType.IsAssignableFrom(value.GetType()))
+                return value;
+
+            var strValue = value as string;
+
+            // 枚举
+            if (targetType.IsEnum && strValue != null)
+                return Enum.Parse(targetType, strValue);
+
+            // OpenCvSharp Point
+            if (targetType == typeof(OpenCvSharp.Point) && strValue != null)
+            {
+                var parts = strValue.Split(',');
+                if (parts.Length == 2)
+                    return new OpenCvSharp.Point(int.Parse(parts[0]), int.Parse(parts[1]));
+            }
+
+            // OpenCvSharp Point2d
+            if (targetType == typeof(OpenCvSharp.Point2d) && strValue != null)
+            {
+                var parts = strValue.Split(',');
+                if (parts.Length == 2)
+                    return new OpenCvSharp.Point2d(double.Parse(parts[0]), double.Parse(parts[1]));
+            }
+
+            // OpenCvSharp Rect
+            if (targetType == typeof(OpenCvSharp.Rect) && strValue != null)
+            {
+                var parts = strValue.Split(',');
+                if (parts.Length == 4)
+                    return new OpenCvSharp.Rect(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]), int.Parse(parts[3]));
+            }
+
+            // OpenCvSharp Rect2d
+            if (targetType == typeof(OpenCvSharp.Rect2d) && strValue != null)
+            {
+                var parts = strValue.Split(',');
+                if (parts.Length == 4)
+                    return new OpenCvSharp.Rect2d(double.Parse(parts[0]), double.Parse(parts[1]), double.Parse(parts[2]), double.Parse(parts[3]));
+            }
+
+            // OpenCvSharp Size
+            if (targetType == typeof(OpenCvSharp.Size) && strValue != null)
+            {
+                var parts = strValue.Split(',');
+                if (parts.Length == 2)
+                    return new OpenCvSharp.Size(int.Parse(parts[0]), int.Parse(parts[1]));
+            }
+
+            // 尝试直接转换
+            return Convert.ChangeType(value, targetType);
+        }
+
+        #endregion
     }
 
     /// <summary>
     /// 运行时参数元数据 - 用于运行时参数值跟踪和内省
     /// </summary>
+    /// <remarks>
+    /// UI层直接使用此结构进行渲染，无需额外的ParameterMetadata层。
+    /// 数据来源于ToolParameters属性上的特性标注。
+    /// </remarks>
     public sealed class RuntimeParameterMetadata
     {
         /// <summary>
@@ -530,6 +772,16 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 是否高级参数
         /// </summary>
         public bool IsAdvanced { get; set; }
+
+        /// <summary>
+        /// 是否支持调试模式下实时修改
+        /// </summary>
+        public bool EditableInDebug { get; set; } = true;
+
+        /// <summary>
+        /// 是否支持数据绑定
+        /// </summary>
+        public bool SupportsBinding { get; set; } = true;
     }
 
     /// <summary>

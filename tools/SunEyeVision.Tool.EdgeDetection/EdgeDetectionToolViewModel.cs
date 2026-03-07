@@ -39,9 +39,9 @@ namespace SunEyeVision.Tool.EdgeDetection
 
         #region 参数绑定支持
 
-        private ParameterBindingMode _threshold1BindingMode = ParameterBindingMode.Constant;
+        private BindingType _threshold1BindingMode = BindingType.Constant;
         private string _threshold1BindingSource = string.Empty;
-        private ParameterBindingMode _threshold2BindingMode = ParameterBindingMode.Constant;
+        private BindingType _threshold2BindingMode = BindingType.Constant;
         private string _threshold2BindingSource = string.Empty;
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// 阈值1绑定模式
         /// </summary>
-        public ParameterBindingMode Threshold1BindingMode
+        public BindingType Threshold1BindingMode
         {
             get => _threshold1BindingMode;
             set => SetProperty(ref _threshold1BindingMode, value);
@@ -70,7 +70,7 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// 阈值2绑定模式
         /// </summary>
-        public ParameterBindingMode Threshold2BindingMode
+        public BindingType Threshold2BindingMode
         {
             get => _threshold2BindingMode;
             set => SetProperty(ref _threshold2BindingMode, value);
@@ -92,8 +92,8 @@ namespace SunEyeVision.Tool.EdgeDetection
             get => _algorithm;
             set
             {
-                SetProperty(ref _algorithm, value);
-                SetParamValue("Algorithm", value);
+                if (SetProperty(ref _algorithm, value, "算法"))
+                    SetParamValue("Algorithm", value);
             }
         }
 
@@ -102,8 +102,8 @@ namespace SunEyeVision.Tool.EdgeDetection
             get => _threshold1;
             set
             {
-                SetProperty(ref _threshold1, value);
-                SetParamValue("Threshold1", value);
+                if (SetProperty(ref _threshold1, value, "阈值1"))
+                    SetParamValue("Threshold1", value);
             }
         }
 
@@ -112,8 +112,8 @@ namespace SunEyeVision.Tool.EdgeDetection
             get => _threshold2;
             set
             {
-                SetProperty(ref _threshold2, value);
-                SetParamValue("Threshold2", value);
+                if (SetProperty(ref _threshold2, value, "阈值2"))
+                    SetParamValue("Threshold2", value);
             }
         }
 
@@ -122,8 +122,8 @@ namespace SunEyeVision.Tool.EdgeDetection
             get => _apertureSize;
             set
             {
-                SetProperty(ref _apertureSize, value);
-                SetParamValue("ApertureSize", value);
+                if (SetProperty(ref _apertureSize, value, "孔径大小"))
+                    SetParamValue("ApertureSize", value);
             }
         }
 

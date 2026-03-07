@@ -1,5 +1,4 @@
 ﻿using System.Windows;
-using System.Windows.Controls;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI;
@@ -8,7 +7,7 @@ using SunEyeVision.Plugin.SDK.UI.Controls;
 namespace SunEyeVision.Tool.ImageCapture.Views
 {
     /// <summary>
-    /// 图像采集工具调试窗口 - 继承非泛型基类
+    /// 图像采集工具调试窗口 - 使用XAML Tabs架构
     /// </summary>
     public partial class ImageCaptureToolDebugWindow : BaseToolDebugWindow
     {
@@ -19,67 +18,52 @@ namespace SunEyeVision.Tool.ImageCapture.Views
             InitializeComponent();
             _viewModel = new ImageCaptureToolViewModel();
             DataContext = _viewModel;
-            InitializeUI();
+            ResolveNamedControls();
+            SetupBindingsAndEvents();
         }
 
         public ImageCaptureToolDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
             : this()
         {
             _viewModel.Initialize(toolId, toolPlugin, toolMetadata);
-            Title = $"{_viewModel.ToolName} - 调试窗口";
+            NodeName = _viewModel.ToolName;
         }
 
-        private void InitializeUI()
+        private void SetupBindingsAndEvents()
         {
-            // ===== 基本参数Tab =====
-            AddToBasicParams(CreateSectionHeader("设备设置"));
+            if (DeviceIdCombo != null)
+            {
+                DeviceIdCombo.ItemsSource = new[] { "默认设备", "设备 1", "设备 2" };
+                DeviceIdCombo.SelectedItem = "默认设备";
+            }
             
-            AddToBasicParams(new ParamComboBox
+            if (WidthParam != null)
             {
-                Label = "设备ID",
-                ItemsSource = new[] { "默认设备", "设备 1", "设备 2" },
-                SelectedItem = "默认设备"
-            });
-
-            AddToBasicParams(CreateSectionHeader("分辨率设置"));
-
-            AddToBasicParams(new ParamSlider
+                WidthParam.IntValue = _viewModel.Width;
+                WidthParam.SetBinding(BindableParameter.IntValueProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.Width)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (HeightParam != null)
             {
-                Label = "宽度",
-                Value = _viewModel.Width,
-                Minimum = 640,
-                Maximum = 3840
-            });
-
-            AddToBasicParams(new ParamSlider
+                HeightParam.IntValue = _viewModel.Height;
+                HeightParam.SetBinding(BindableParameter.IntValueProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.Height)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (ExposureParam != null)
             {
-                Label = "高度",
-                Value = _viewModel.Height,
-                Minimum = 480,
-                Maximum = 2160
-            });
-
-            AddToBasicParams(CreateSectionHeader("相机参数"));
-
-            AddToBasicParams(new ParamSlider
+                ExposureParam.DoubleValue = _viewModel.ExposureTime;
+                ExposureParam.SetBinding(BindableParameter.DoubleValueProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.ExposureTime)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
+            
+            if (GainParam != null)
             {
-                Label = "曝光时间 (ms)",
-                Value = _viewModel.ExposureTime,
-                Minimum = 0.1,
-                Maximum = 1000,
-                SmallChange = 0.1,
-                LargeChange = 10
-            });
-
-            AddToBasicParams(new ParamSlider
-            {
-                Label = "增益",
-                Value = _viewModel.Gain,
-                Minimum = 0,
-                Maximum = 16,
-                SmallChange = 0.1,
-                LargeChange = 1
-            });
+                GainParam.DoubleValue = _viewModel.Gain;
+                GainParam.SetBinding(BindableParameter.DoubleValueProperty,
+                    new System.Windows.Data.Binding(nameof(_viewModel.Gain)) { Source = _viewModel, Mode = System.Windows.Data.BindingMode.TwoWay });
+            }
         }
 
         protected override void OnExecuteRequested()
@@ -90,24 +74,8 @@ namespace SunEyeVision.Tool.ImageCapture.Views
 
         protected override void OnResetRequested()
         {
-            if (_viewModel != null)
-            {
-                _viewModel.ResetParameters();
-            }
+            _viewModel?.ResetParameters();
             base.OnResetRequested();
-        }
-
-        private TextBlock CreateSectionHeader(string text)
-        {
-            return new TextBlock
-            {
-                Text = text,
-                FontSize = 13,
-                FontWeight = FontWeights.Medium,
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#333333")),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
         }
     }
 }
