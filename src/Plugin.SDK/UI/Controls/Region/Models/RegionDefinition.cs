@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
@@ -125,6 +125,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         #endregion
 
+        #region 样式属性（参考ROI编辑器）
+
+        /// <summary>
+        /// 填充颜色（ARGB）
+        /// </summary>
+        public uint FillColorArgb { get; set; } = 0x28FF0000; // 默认红色半透明
+
+        /// <summary>
+        /// 边框颜色（ARGB）
+        /// </summary>
+        public uint StrokeColorArgb { get; set; } = 0xFFFF0000; // 默认红色
+
+        /// <summary>
+        /// 边框厚度
+        /// </summary>
+        public double StrokeThickness { get; set; } = 2;
+
+        /// <summary>
+        /// 透明度 (0-1)
+        /// </summary>
+        public double Opacity { get; set; } = 0.3;
+
+        #endregion
+
         public ShapeDefinition()
         {
             Mode = RegionDefinitionMode.Drawing;
@@ -216,7 +240,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
                 EndX = EndX,
                 EndY = EndY,
                 StartAngle = StartAngle,
-                EndAngle = EndAngle
+                EndAngle = EndAngle,
+                FillColorArgb = FillColorArgb,
+                StrokeColorArgb = StrokeColorArgb,
+                StrokeThickness = StrokeThickness,
+                Opacity = Opacity
             };
             foreach (var point in Points)
             {

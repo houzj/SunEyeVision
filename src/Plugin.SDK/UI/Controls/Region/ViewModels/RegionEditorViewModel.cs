@@ -30,6 +30,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private ParameterPanelViewModel? _parameterPanel;
         private NodeSelectorViewModel? _nodeSelector;
         private IRegionDataSourceProvider? _dataProvider;
+        
+        // 新增：绘制参数预览形状
+        private ShapeDefinition? _previewShape;
 
         /// <summary>
         /// 区域列表
@@ -142,7 +145,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 if (SetProperty(ref _drawingShapeType, value))
                 {
                     OnPropertyChanged(nameof(CurrentToolMode));
+                    OnPropertyChanged(nameof(IsAnyShapeSelected));
+                    UpdatePreviewShape();
                 }
+            }
+        }
+
+        /// <summary>
+        /// 预览形状（用于绘制参数面板）
+        /// </summary>
+        public ShapeDefinition? PreviewShape
+        {
+            get => _previewShape;
+            private set => SetProperty(ref _previewShape, value);
+        }
+
+        /// <summary>
+        /// 是否选择了任何形状
+        /// </summary>
+        public bool IsAnyShapeSelected => _drawingShapeType != ShapeType.Point;
+
+        /// <summary>
+        /// 预览直线长度
+        /// </summary>
+        public double PreviewLength
+        {
+            get
+            {
+                if (_previewShape == null) return 0;
+                var dx = _previewShape.EndX - _previewShape.StartX;
+                var dy = _previewShape.EndY - _previewShape.StartY;
+                return Math.Sqrt(dx * dx + dy * dy);
             }
         }
 
@@ -645,6 +678,62 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             }
             SelectedRegion = null;
             RegionChanged?.Invoke(this, new RegionChangedEventArgs(null, RegionChangeType.Cleared));
+        }
+
+        /// <summary>
+        /// 更新预览形状
+        /// </summary>
+        private void UpdatePreviewShape()
+        {
+            // 根据当前选择的形状类型创建预览形状
+            switch (_drawingShapeType)
+            {
+                case ShapeType.Rectangle:
+                    PreviewShape = new ShapeDefinition
+                    {
+                        ShapeType = ShapeType.Rectangle,
+                        CenterX = 100,
+                        CenterY = 100,
+                        Width = 100,
+                        Height = 100
+                    };
+                    break;
+                case ShapeType.Circle:
+                    PreviewShape = new ShapeDefinition
+                    {
+                        ShapeType = ShapeType.Circle,
+                        CenterX = 100,
+                        CenterY = 100,
+                        Radius = 50
+                    };
+                    break;
+                case ShapeType.RotatedRectangle:
+                    PreviewShape = new ShapeDefinition
+                    {
+                        ShapeType = ShapeType.RotatedRectangle,
+                        CenterX = 100,
+                        CenterY = 100,
+                        Width = 100,
+                        Height = 100,
+                        Angle = 0
+                    };
+                    break;
+                case ShapeType.Line:
+                    PreviewShape = new ShapeDefinition
+                    {
+                        ShapeType = ShapeType.Line,
+                        StartX = 50,
+                        StartY = 50,
+                        EndX = 150,
+                        EndY = 150
+                    };
+                    break;
+                default:
+                    PreviewShape = null;
+                    break;
+            }
+            
+            OnPropertyChanged(nameof(PreviewLength));
         }
 
         /// <summary>

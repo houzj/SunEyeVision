@@ -13,6 +13,7 @@ using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 {
@@ -36,17 +37,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private Point _dragStartPoint;
         private Point _handleDragStartPoint;
 
-        // 旋转操作专用字段（解决角度跳变问题）
-        private double _rotateStartAngle;      // 旋转开始时的形状角度
-        private double _rotateStartMouseAngle; // 旋转开始时鼠标相对于中心的角度
-
         // 区域名称索引管理
         private int _regionIndex = 0;
 
         // 手柄管理
         private HandleManager _handleManager;
-        private EditHandle? _activeHandle;
         private RegionEditorSettings _settings;
+
+        // ROI编辑器风格的手柄管理
+        private Rendering.EditHandle[] _currentHandles = null;
+        private Rendering.HandleType _activeHandleType = Rendering.HandleType.None;
+        private ShapeDefinition? _originalShapeDefinition = null;
+        private Point _originalPosition;
+        private Size _originalSize;
+        private double _originalRotation;
+        private double? _rotateStartAngle = null;
+        private double? _rotateStartMouseAngle = null;
 
         public RegionEditorViewModel ViewModel => _viewModel;
 
@@ -332,7 +338,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 {
                     _isDragging = false;
                     _isDraggingHandle = false;
-                    _activeHandle = null;
                     ReleaseMouseCapture();
                     UpdateRegionOverlay();
                     _viewModel.StatusMessage = "已取消编辑";
@@ -393,13 +398,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
             var position = e.ImagePosition;
 
-            // 拖动手柄编辑
-            if (_isDraggingHandle && _activeHandle != null && _selectedRegion != null)
+            // 拖动ROI编辑器风格的手柄编辑
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeDefinition shape)
             {
-                var dx = position.X - _handleDragStartPoint.X;
-                var dy = position.Y - _handleDragStartPoint.Y;
-                UpdateShapeByHandle(_selectedRegion, _activeHandle.Type, dx, dy);
-                _handleDragStartPoint = position;
+                HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
                 return;
             }
@@ -425,20 +427,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private void RegionEditorControl_MouseMove(object sender, MouseEventArgs e)
         {
             if (_mainImageControl == null || OverlayCanvas == null) return;
-            
+
             // 只在捕获鼠标时处理
             if (!_isDrawing && !_isDragging && !_isDraggingHandle) return;
 
             var screenPoint = e.GetPosition(_mainImageControl.MainCanvas);
             var position = _mainImageControl.ScreenToImage(screenPoint);
 
-            // 拖动手柄编辑
-            if (_isDraggingHandle && _activeHandle != null && _selectedRegion != null)
+            // 拖动ROI编辑器风格的手柄编辑
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeDefinition shape)
             {
-                var dx = position.X - _handleDragStartPoint.X;
-                var dy = position.Y - _handleDragStartPoint.Y;
-                UpdateShapeByHandle(_selectedRegion, _activeHandle.Type, dx, dy);
-                _handleDragStartPoint = position;
+                HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
             }
             else if (_isDragging && _selectedRegion != null)
@@ -461,44 +460,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
             var position = e.ImagePosition;
 
-            // 只在绘制模式处理
-            if (!_viewModel.IsDrawingMode) return;
-
-            // 首先检测是否命中编辑手柄（仅当有选中区域且不在绘制状态时）
-            if (_selectedRegion != null && !_isDrawing && !_viewModel.IsDrawing)
-            {
-                var point2D = new Point2D(position.X, position.Y);
-                var hitHandleType = _handleManager.HitTest(point2D);
-
-                if (hitHandleType != HandleType.None)
-                {
-                    // 找到被命中的手柄
-                    _activeHandle = _handleManager.Handles.FirstOrDefault(h => h.Type == hitHandleType);
-                    if (_activeHandle != null)
-                    {
-                        _isDraggingHandle = true;
-                        _handleDragStartPoint = position;
-                        
-                        // 如果是旋转手柄，记录初始状态
-                        if (hitHandleType == HandleType.Rotate && _selectedRegion?.Definition is ShapeDefinition shapeDef)
-                        {
-                            _rotateStartAngle = shapeDef.Angle;
-                            var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
-                            _rotateStartMouseAngle = Math.Atan2(
-                                position.Y - center.Y,
-                                position.X - center.X
-                            ) * 180 / Math.PI;
-                        }
-                        
-                        CaptureMouse();
-                        _viewModel.StatusMessage = $"正在拖动 {hitHandleType} 手柄";
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
-
-            // 绘制工具
+            // ========== 绘制模式 ==========
             if (_viewModel.IsDrawing && _currentTool != ShapeType.Point)
             {
                 // 开始绘制
@@ -540,7 +502,58 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 return;
             }
 
-            // 选择模式 - 检测命中
+            // ========== 非绘制模式（选择/编辑） ==========
+            // 首先检测是否命中手柄（仅当有选中区域时）
+            if (_selectedRegion != null)
+            {
+                if (_currentHandles != null)
+                {
+                    var hitHandleType = Rendering.HandleRenderer.HitTestHandle(position, _currentHandles, 8);
+
+                    if (hitHandleType != Rendering.HandleType.None)
+                    {
+                        // 中心手柄：触发拖动
+                        if (hitHandleType == Rendering.HandleType.Center)
+                        {
+                            _isDragging = true;
+                            _dragStartPoint = position;
+                            CaptureMouse();
+                            _viewModel.StatusMessage = "正在拖动区域";
+                            e.Handled = true;
+                            return;
+                        }
+
+                        // 其他手柄：开始编辑
+                        _isDraggingHandle = true;
+                        _activeHandleType = hitHandleType;
+                        _handleDragStartPoint = position;
+
+                        // 保存原始状态
+                        if (_selectedRegion.Definition is ShapeDefinition shapeDef)
+                        {
+                            _originalShapeDefinition = shapeDef.Clone() as ShapeDefinition;
+                            _originalPosition = new Point(shapeDef.CenterX, shapeDef.CenterY);
+                            _originalSize = new Size(shapeDef.Width, shapeDef.Height);
+                            _originalRotation = shapeDef.Angle;
+
+                            // 如果是旋转手柄，记录起始角度
+                            if (hitHandleType == Rendering.HandleType.Rotate)
+                            {
+                                _rotateStartAngle = shapeDef.Angle;
+                                var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
+                                _rotateStartMouseAngle = CalculateMouseAngle(center, position);
+                            }
+                        }
+
+                        CaptureMouse();
+                        _viewModel.StatusMessage = $"正在拖动 {hitHandleType} 手柄";
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
+            // ========== 检测区域命中 ==========
             var hitRegion = HitTestRegion(position);
             if (hitRegion != null)
             {
@@ -609,9 +622,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _isDrawing = false;
             _isDragging = false;
             _isDraggingHandle = false;
-            _activeHandle = null;
             _currentDrawingRegion = null;
             ReleaseMouseCapture();
+
+            // 清理ROI编辑器风格的手柄状态
+            _activeHandleType = Rendering.HandleType.None;
+            _originalShapeDefinition = null;
+            _rotateStartAngle = null;
+            _rotateStartMouseAngle = null;
             UpdateRegionOverlay();
         }
 
@@ -675,7 +693,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 根据手柄类型更新形状
         /// </summary>
-        private void UpdateShapeByHandle(RegionData region, HandleType handleType, double dx, double dy)
+        private void UpdateShapeByHandle(RegionData region, Rendering.HandleType handleType, double dx, double dy)
         {
             if (region.Definition is not ShapeDefinition shapeDef)
                 return;
@@ -683,10 +701,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             switch (shapeDef.ShapeType)
             {
                 case ShapeType.Rectangle:
-                    UpdateRectangleByHandle(shapeDef, handleType, dx, dy);
+                    // 使用ResizeRectangleFromCorner和ResizeRectangleFromEdge方法
+                    // 这些方法在HandleShapeEdit中调用
                     break;
                 case ShapeType.RotatedRectangle:
-                    UpdateRotatedRectangleByHandle(shapeDef, handleType, dx, dy);
+                    // 旋转矩形在HandleShapeEdit中通过HandleRotatedRectangleResize处理
                     break;
                 case ShapeType.Circle:
                     UpdateCircleByHandle(shapeDef, handleType, dx, dy);
@@ -701,90 +720,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         }
 
         /// <summary>
-        /// 更新矩形形状（通过手柄）
+        /// 更新矩形形状（通过手柄，使用原始状态避免累积误差）
         /// </summary>
-        private void UpdateRectangleByHandle(ShapeDefinition shapeDef, HandleType handleType, double dx, double dy)
+        private void UpdateRectangleByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
-            switch (handleType)
-            {
-                case HandleType.TopLeft:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Width -= dx;
-                    shapeDef.Height -= dy;
-                    break;
-                case HandleType.TopRight:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Width += dx;
-                    shapeDef.Height -= dy;
-                    break;
-                case HandleType.BottomLeft:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Width -= dx;
-                    shapeDef.Height += dy;
-                    break;
-                case HandleType.BottomRight:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Width += dx;
-                    shapeDef.Height += dy;
-                    break;
-                case HandleType.Top:
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Height -= dy;
-                    break;
-                case HandleType.Bottom:
-                    shapeDef.CenterY += dy / 2;
-                    shapeDef.Height += dy;
-                    break;
-                case HandleType.Left:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.Width -= dx;
-                    break;
-                case HandleType.Right:
-                    shapeDef.CenterX += dx / 2;
-                    shapeDef.Width += dx;
-                    break;
-            }
-
-            // 确保尺寸不为负
-            if (shapeDef.Width < 5) shapeDef.Width = 5;
-            if (shapeDef.Height < 5) shapeDef.Height = 5;
-        }
-
-        /// <summary>
-        /// 更新旋转矩形形状（通过手柄）
-        /// </summary>
-        private void UpdateRotatedRectangleByHandle(ShapeDefinition shapeDef, HandleType handleType, double dx, double dy)
-        {
-            if (handleType == HandleType.Rotate)
-            {
-                // 使用增量角度计算，避免角度跳变
-                var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
-                var currentMouseAngle = Math.Atan2(
-                    _handleDragStartPoint.Y + dy - center.Y,
-                    _handleDragStartPoint.X + dx - center.X
-                ) * 180 / Math.PI;
-                
-                // 计算角度增量
-                var deltaAngle = currentMouseAngle - _rotateStartMouseAngle;
-                
-                // 最终角度 = 起始角度 + 增量
-                shapeDef.Angle = NormalizeAngle(_rotateStartAngle + deltaAngle);
-            }
-            else if (handleType == HandleType.Center)
-            {
-                // 中心手柄：移动整个形状
-                shapeDef.CenterX += dx;
-                shapeDef.CenterY += dy;
-            }
-            else
-            {
-                // 其他手柄：缩放操作（简化处理，保持角度不变）
-                UpdateRectangleByHandle(shapeDef, handleType, dx, dy);
-            }
+            // 此方法已弃用，现在使用ResizeRectangleFromCorner和ResizeRectangleFromEdge方法
+            // 这些方法使用原始状态保存机制，避免累积误差
         }
 
         /// <summary>
@@ -801,23 +742,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 更新圆形形状（通过手柄）
         /// </summary>
-        private void UpdateCircleByHandle(ShapeDefinition shapeDef, HandleType handleType, double dx, double dy)
+        private void UpdateCircleByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
             // 圆形手柄用于调整半径
             var delta = Math.Sqrt(dx * dx + dy * dy);
 
             switch (handleType)
             {
-                case HandleType.Top:
+                case Rendering.HandleType.Top:
                     shapeDef.Radius += dy; // 向上拖动减小半径
                     break;
-                case HandleType.Bottom:
+                case Rendering.HandleType.Bottom:
                     shapeDef.Radius += dy; // 向下拖动增大半径
                     break;
-                case HandleType.Left:
+                case Rendering.HandleType.Left:
                     shapeDef.Radius += dx; // 向左拖动减小半径
                     break;
-                case HandleType.Right:
+                case Rendering.HandleType.Right:
                     shapeDef.Radius += dx; // 向右拖动增大半径
                     break;
             }
@@ -829,18 +770,462 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 更新直线形状（通过手柄）
         /// </summary>
-        private void UpdateLineByHandle(ShapeDefinition shapeDef, HandleType handleType, double dx, double dy)
+        private void UpdateLineByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
             switch (handleType)
             {
-                case HandleType.LineStart:
+                case Rendering.HandleType.LineStart:
                     shapeDef.StartX += dx;
                     shapeDef.StartY += dy;
                     break;
-                case HandleType.LineEnd:
+                case Rendering.HandleType.LineEnd:
                     shapeDef.EndX += dx;
                     shapeDef.EndY += dy;
                     break;
+            }
+        }
+
+        /// <summary>
+        /// ROI编辑器风格的手柄编辑处理
+        /// 参考ROI编辑器的编辑操作逻辑（ROIImageEditor.xaml.cs 1461-1816行）
+        /// </summary>
+        private void HandleShapeEdit(ShapeDefinition shape, Point currentPosition)
+        {
+            var delta = currentPosition - _handleDragStartPoint;
+
+            // 直线端点调整
+            if (shape.ShapeType == ShapeType.Line)
+            {
+                HandleLineEndpoint(shape, currentPosition);
+                return;
+            }
+
+            // 圆形半径调整
+            if (shape.ShapeType == ShapeType.Circle)
+            {
+                HandleCircleResize(shape, currentPosition);
+                return;
+            }
+
+            // 旋转矩形调整
+            if (shape.ShapeType == ShapeType.RotatedRectangle)
+            {
+                if (_activeHandleType == Rendering.HandleType.Rotate)
+                {
+                    HandleRotate(shape, currentPosition);
+                }
+                else
+                {
+                    HandleRotatedRectangleResize(shape, currentPosition, delta);
+                }
+                return;
+            }
+
+            // 普通矩形调整
+            if (shape.ShapeType == ShapeType.Rectangle)
+            {
+                switch (_activeHandleType)
+                {
+                    case Rendering.HandleType.TopLeft:
+                        ResizeRectangleFromCorner(shape, delta, true, true);
+                        break;
+                    case Rendering.HandleType.TopRight:
+                        ResizeRectangleFromCorner(shape, delta, false, true);
+                        break;
+                    case Rendering.HandleType.BottomLeft:
+                        ResizeRectangleFromCorner(shape, delta, true, false);
+                        break;
+                    case Rendering.HandleType.BottomRight:
+                        ResizeRectangleFromCorner(shape, delta, false, false);
+                        break;
+                    case Rendering.HandleType.Top:
+                        ResizeRectangleFromEdge(shape, delta, true, true);
+                        break;
+                    case Rendering.HandleType.Bottom:
+                        ResizeRectangleFromEdge(shape, delta, true, false);
+                        break;
+                    case Rendering.HandleType.Left:
+                        ResizeRectangleFromEdge(shape, delta, false, true);
+                        break;
+                    case Rendering.HandleType.Right:
+                        ResizeRectangleFromEdge(shape, delta, false, false);
+                        break;
+                }
+            }
+
+            // 触发变更事件
+            if (_selectedRegion != null)
+            {
+                _selectedRegion.MarkModified();
+                RegionDataChanged?.Invoke(this, _selectedRegion);
+            }
+        }
+
+        /// <summary>
+        /// 处理旋转操作（参考ROI编辑器HandleRotate 1792-1816行）
+        /// </summary>
+        private void HandleRotate(ShapeDefinition shape, Point currentPosition)
+        {
+            var center = new Point(shape.CenterX, shape.CenterY);
+
+            // 保存旋转开始时的状态（第一次调用时）
+            if (_rotateStartAngle == null)
+            {
+                _rotateStartAngle = shape.Angle;
+                _rotateStartMouseAngle = CalculateMouseAngle(center, _handleDragStartPoint);
+            }
+
+            // 计算当前鼠标角度
+            var currentMouseAngle = CalculateMouseAngle(center, currentPosition);
+
+            // 计算角度增量
+            var deltaAngle = currentMouseAngle - _rotateStartMouseAngle.Value;
+
+            // 应用角度增量（使用RotatedRectangleHelper.NormalizeAngle）
+            shape.Angle = RotatedRectangleHelper.NormalizeAngle(_rotateStartAngle.Value + deltaAngle);
+        }
+
+        /// <summary>
+        /// 计算鼠标相对于中心的图像坐标系角度
+        /// </summary>
+        private double CalculateMouseAngle(Point center, Point mousePos)
+        {
+            // 计算鼠标相对于中心的数学角度
+            // Math.Atan2返回数学角度：逆时针为正，0°向右
+            var mathAngle = Math.Atan2(mousePos.Y - center.Y, mousePos.X - center.X) * 180 / Math.PI;
+
+            // 转换为图像坐标系角度（顺时针为正，0°向下）
+            // 公式：imageAngle = -mathAngle + 90
+            return -mathAngle + 90;
+        }
+
+        /// <summary>
+        /// 处理旋转矩形大小调整（使用坐标变换，参考ROI编辑器）
+        /// </summary>
+        private void HandleRotatedRectangleResize(ShapeDefinition shape, Point currentPosition, Vector delta)
+        {
+            if (_originalShapeDefinition == null) return;
+
+            // 1. 将世界坐标系的 delta 转换为局部坐标系的 delta
+            var localDelta = WorldToLocalDelta(delta, _originalRotation);
+
+            // 2. 计算原始矩形的四个角点（局部坐标，原点在中心）
+            var corners = GetLocalCorners(_originalSize.Width, _originalSize.Height);
+
+            // 3. 根据拖动的手柄计算新的角点位置
+            var newCorners = CalculateNewCorners(corners, localDelta, _activeHandleType);
+
+            // 4. 从新角点计算新的尺寸和中心
+            var (newWidth, newHeight, newCenterLocal) = CalculateFromCorners(newCorners);
+
+            // 5. 将新中心从局部坐标转换回世界坐标
+            var newCenterWorld = LocalToWorldPoint(newCenterLocal, _originalPosition, _originalRotation);
+
+            // 6. 应用新的状态
+            shape.Width = newWidth;
+            shape.Height = newHeight;
+            shape.CenterX = newCenterWorld.X;
+            shape.CenterY = newCenterWorld.Y;
+        }
+
+        /// <summary>
+        /// 将世界坐标系的 delta 转换为局部坐标系的 delta（参考ROI编辑器）
+        /// </summary>
+        private Vector WorldToLocalDelta(Vector worldDelta, double rotation)
+        {
+            // 将角度转换为弧度
+            var angle = -rotation * Math.PI / 180;
+            var cos = Math.Cos(angle);
+            var sin = Math.Sin(angle);
+
+            // 使用逆旋转矩阵：local = transpose(R) * world
+            return new Vector(
+                worldDelta.X * cos + worldDelta.Y * sin,
+                -worldDelta.X * sin + worldDelta.Y * cos);
+        }
+
+        /// <summary>
+        /// 将局部坐标系的点转换为世界坐标系的点（参考ROI编辑器）
+        /// </summary>
+        private Point LocalToWorldPoint(Point localPoint, Point center, double rotation)
+        {
+            // 将角度转换为弧度
+            var angle = -rotation * Math.PI / 180;
+            var cos = Math.Cos(angle);
+            var sin = Math.Sin(angle);
+
+            return new Point(
+                center.X + localPoint.X * cos - localPoint.Y * sin,
+                center.Y + localPoint.X * sin + localPoint.Y * cos);
+        }
+
+        /// <summary>
+        /// 获取矩形四个角点（局部坐标，原点在中心）
+        /// </summary>
+        private Point[] GetLocalCorners(double width, double height)
+        {
+            var hw = width / 2;
+            var hh = height / 2;
+            return new Point[]
+            {
+                new Point(-hw, -hh), // TopLeft
+                new Point( hw, -hh), // TopRight
+                new Point( hw,  hh), // BottomRight
+                new Point(-hw,  hh)  // BottomLeft
+            };
+        }
+
+        /// <summary>
+        /// 根据拖动的手柄计算新的角点位置（固定对角锚点模式）
+        /// </summary>
+        private Point[] CalculateNewCorners(Point[] originalCorners, Vector delta, Rendering.HandleType handle)
+        {
+            var newCorners = (Point[])originalCorners.Clone();
+
+            switch (handle)
+            {
+                case Rendering.HandleType.TopLeft:
+                    // TopLeft 移动，BottomRight 固定
+                    newCorners[0] = new Point(
+                        originalCorners[0].X + delta.X,
+                        originalCorners[0].Y + delta.Y);
+                    // TopRight 和 BottomLeft 跟随变化（保持矩形形状）
+                    newCorners[1] = new Point(originalCorners[1].X, newCorners[0].Y);
+                    newCorners[3] = new Point(newCorners[0].X, originalCorners[3].Y);
+                    break;
+
+                case Rendering.HandleType.TopRight:
+                    // TopRight 移动，BottomLeft 固定
+                    newCorners[1] = new Point(
+                        originalCorners[1].X + delta.X,
+                        originalCorners[1].Y + delta.Y);
+                    newCorners[0] = new Point(originalCorners[0].X, newCorners[1].Y);
+                    newCorners[2] = new Point(newCorners[1].X, originalCorners[2].Y);
+                    break;
+
+                case Rendering.HandleType.BottomRight:
+                    // BottomRight 移动，TopLeft 固定
+                    newCorners[2] = new Point(
+                        originalCorners[2].X + delta.X,
+                        originalCorners[2].Y + delta.Y);
+                    newCorners[1] = new Point(newCorners[2].X, originalCorners[1].Y);
+                    newCorners[3] = new Point(originalCorners[3].X, newCorners[2].Y);
+                    break;
+
+                case Rendering.HandleType.BottomLeft:
+                    // BottomLeft 移动，TopRight 固定
+                    newCorners[3] = new Point(
+                        originalCorners[3].X + delta.X,
+                        originalCorners[3].Y + delta.Y);
+                    newCorners[0] = new Point(newCorners[3].X, originalCorners[0].Y);
+                    newCorners[2] = new Point(originalCorners[2].X, newCorners[3].Y);
+                    break;
+
+                case Rendering.HandleType.Top:
+                    // 只改变高度，固定 Bottom 边
+                    var newTop = originalCorners[0].Y + delta.Y;
+                    newCorners[0] = new Point(originalCorners[0].X, newTop);
+                    newCorners[1] = new Point(originalCorners[1].X, newTop);
+                    break;
+
+                case Rendering.HandleType.Bottom:
+                    // 只改变高度，固定 Top 边
+                    var newBottom = originalCorners[2].Y + delta.Y;
+                    newCorners[2] = new Point(originalCorners[2].X, newBottom);
+                    newCorners[3] = new Point(originalCorners[3].X, newBottom);
+                    break;
+
+                case Rendering.HandleType.Left:
+                    // 只改变宽度，固定 Right 边
+                    var newLeft = originalCorners[0].X + delta.X;
+                    newCorners[0] = new Point(newLeft, originalCorners[0].Y);
+                    newCorners[3] = new Point(newLeft, originalCorners[3].Y);
+                    break;
+
+                case Rendering.HandleType.Right:
+                    // 只改变宽度，固定 Left 边
+                    var newRight = originalCorners[1].X + delta.X;
+                    newCorners[1] = new Point(newRight, originalCorners[1].Y);
+                    newCorners[2] = new Point(newRight, originalCorners[2].Y);
+                    break;
+            }
+
+            return newCorners;
+        }
+
+        /// <summary>
+        /// 从四个角点计算宽度、高度和中心（局部坐标）
+        /// </summary>
+        private (double width, double height, Point center) CalculateFromCorners(Point[] corners)
+        {
+            var width = corners[1].X - corners[0].X;
+            var height = corners[2].Y - corners[0].Y;
+
+            // 确保最小尺寸，取绝对值
+            width = Math.Max(10, Math.Abs(width));
+            height = Math.Max(10, Math.Abs(height));
+
+            var center = new Point(
+                (corners[0].X + corners[2].X) / 2,
+                (corners[0].Y + corners[2].Y) / 2);
+
+            return (width, height, center);
+        }
+
+        /// <summary>
+        /// 处理圆形半径调整（参考ROI编辑器HandleCircleResize 1473-1477行）
+        /// </summary>
+        private void HandleCircleResize(ShapeDefinition shape, Point currentPosition)
+        {
+            var center = new Point(shape.CenterX, shape.CenterY);
+
+            // 计算从中心到鼠标的距离作为新半径
+            var dx = currentPosition.X - center.X;
+            var dy = currentPosition.Y - center.Y;
+            var newRadius = Math.Sqrt(dx * dx + dy * dy);
+
+            if (newRadius < 5) newRadius = 5;
+
+            shape.Radius = newRadius;
+        }
+
+        /// <summary>
+        /// 处理直线端点调整（参考ROI编辑器HandleLineResize 1466-1470行）
+        /// </summary>
+        private void HandleLineEndpoint(ShapeDefinition shape, Point currentPosition)
+        {
+            if (_activeHandleType == Rendering.HandleType.LineStart)
+            {
+                shape.StartX = currentPosition.X;
+                shape.StartY = currentPosition.Y;
+            }
+            else if (_activeHandleType == Rendering.HandleType.LineEnd)
+            {
+                shape.EndX = currentPosition.X;
+                shape.EndY = currentPosition.Y;
+            }
+        }
+
+        /// <summary>
+        /// 从角落调整矩形（不对称编辑 - 固定对角点模式）
+        /// 参考ROI编辑器旋转矩形的HandleRotatedRectangleResize逻辑
+        /// </summary>
+        private void ResizeRectangleFromCorner(ShapeDefinition shape, Vector delta, bool isLeft, bool isTop)
+        {
+            if (_originalShapeDefinition == null) return;
+
+            var original = _originalShapeDefinition;
+
+            // 计算原始矩形的四个角点（局部坐标，原点在中心）
+            var hw = original.Width / 2;
+            var hh = original.Height / 2;
+            var corners = new Point[]
+            {
+                new Point(-hw, -hh), // TopLeft
+                new Point( hw, -hh), // TopRight
+                new Point( hw,  hh), // BottomRight
+                new Point(-hw,  hh)  // BottomLeft
+            };
+
+            // 根据拖动的角点计算新的角点位置（固定对角锚点模式）
+            Point[] newCorners;
+
+            // 确定拖动的手柄类型
+            if (isLeft && isTop) // TopLeft
+            {
+                // TopLeft 移动，BottomRight 固定
+                newCorners = new Point[]
+                {
+                    new Point(corners[0].X + delta.X, corners[0].Y + delta.Y),
+                    new Point(corners[1].X, corners[0].Y + delta.Y),
+                    new Point(corners[2].X, corners[2].Y),
+                    new Point(corners[0].X + delta.X, corners[3].Y)
+                };
+            }
+            else if (!isLeft && isTop) // TopRight
+            {
+                // TopRight 移动，BottomLeft 固定
+                newCorners = new Point[]
+                {
+                    new Point(corners[0].X, corners[0].Y + delta.Y),
+                    new Point(corners[1].X + delta.X, corners[1].Y + delta.Y),
+                    new Point(corners[1].X + delta.X, corners[2].Y),
+                    new Point(corners[3].X, corners[3].Y)
+                };
+            }
+            else if (isLeft && !isTop) // BottomLeft
+            {
+                // BottomLeft 移动，TopRight 固定
+                newCorners = new Point[]
+                {
+                    new Point(corners[0].X, corners[0].Y),
+                    new Point(corners[1].X, corners[1].Y),
+                    new Point(corners[2].X, corners[2].Y + delta.Y),
+                    new Point(corners[3].X + delta.X, corners[3].Y + delta.Y)
+                };
+            }
+            else // BottomRight
+            {
+                // BottomRight 移动，TopLeft 固定
+                newCorners = new Point[]
+                {
+                    new Point(corners[0].X, corners[0].Y),
+                    new Point(corners[1].X + delta.X, corners[1].Y),
+                    new Point(corners[2].X + delta.X, corners[2].Y + delta.Y),
+                    new Point(corners[3].X, corners[3].Y + delta.Y)
+                };
+            }
+
+            // 从新角点计算新的尺寸和中心
+            var newWidth = Math.Max(10, newCorners[1].X - newCorners[0].X);
+            var newHeight = Math.Max(10, newCorners[2].Y - newCorners[0].Y);
+            var centerLocal = new Point(
+                (newCorners[0].X + newCorners[2].X) / 2,
+                (newCorners[0].Y + newCorners[2].Y) / 2);
+
+            // 将局部坐标转换为世界坐标
+            shape.Width = newWidth;
+            shape.Height = newHeight;
+            shape.CenterX = original.CenterX + centerLocal.X;
+            shape.CenterY = original.CenterY + centerLocal.Y;
+        }
+
+        /// <summary>
+        /// 从边缘调整矩形（参考ROI编辑器ResizeFromEdge 1760-1790行）
+        /// </summary>
+        private void ResizeRectangleFromEdge(ShapeDefinition shape, Vector delta, bool isVertical, bool isTopOrLeft)
+        {
+            if (_originalShapeDefinition == null) return;
+
+            var original = _originalShapeDefinition;
+
+            if (isVertical)
+            {
+                var newHeight = isTopOrLeft
+                    ? original.Height - delta.Y
+                    : original.Height + delta.Y;
+                if (newHeight < 10) newHeight = 10;
+
+                var centerY = isTopOrLeft
+                    ? original.CenterY - original.Height / 2 + newHeight / 2 + delta.Y / 2
+                    : original.CenterY - original.Height / 2 + newHeight / 2 + delta.Y / 2;
+
+                shape.Height = newHeight;
+                shape.CenterY = centerY;
+            }
+            else
+            {
+                var newWidth = isTopOrLeft
+                    ? original.Width - delta.X
+                    : original.Width + delta.X;
+                if (newWidth < 10) newWidth = 10;
+
+                var centerX = isTopOrLeft
+                    ? original.CenterX - original.Width / 2 + newWidth / 2 + delta.X / 2
+                    : original.CenterX - original.Width / 2 + newWidth / 2 + delta.X / 2;
+
+                shape.Width = newWidth;
+                shape.CenterX = centerX;
             }
         }
 
@@ -872,6 +1257,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 {
                     OverlayCanvas.Children.Add(previewShape);
                 }
+
+                // 为旋转矩形预览绘制方向箭头
+                if (_currentDrawingRegion.Definition is ShapeDefinition shapeDef && 
+                    shapeDef.ShapeType == ShapeType.RotatedRectangle)
+                {
+                    DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
+                }
             }
 
             // 绘制选中区域的编辑手柄
@@ -882,169 +1274,137 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         }
 
         /// <summary>
-        /// 绘制编辑手柄
+        /// 绘制编辑手柄（ROI编辑器风格）
         /// </summary>
         private void DrawEditHandles(RegionData region)
         {
             if (region.Definition is not ShapeDefinition shapeDef || OverlayCanvas == null)
                 return;
 
-            _handleManager.CreateHandles(shapeDef);
-            var handles = _handleManager.Handles;
+            // 使用ROI编辑器的手柄渲染器创建手柄
+            CreateHandlesForShape(shapeDef);
 
-            foreach (var handle in handles)
+            if (_currentHandles != null && _currentHandles.Length > 0)
             {
-                // 旋转手柄使用绿色圆形，其他使用白色
-                Ellipse ellipse;
-                if (handle.Type == HandleType.Rotate)
-                {
-                    ellipse = new Ellipse
-                    {
-                        Width = _settings.HandleSize,
-                        Height = _settings.HandleSize,
-                        Fill = Brushes.LightGreen,
-                        Stroke = Brushes.Green,
-                        StrokeThickness = 1.5,
-                        Tag = handle
-                    };
-                }
-                else
-                {
-                    ellipse = new Ellipse
-                    {
-                        Width = _settings.HandleSize,
-                        Height = _settings.HandleSize,
-                        Fill = Brushes.White,
-                        Stroke = new SolidColorBrush(_settings.SelectedColor),
-                        StrokeThickness = 1.5,
-                        Tag = handle
-                    };
-                }
+                // 使用ROI编辑器的手柄渲染器绘制手柄
+                Rendering.HandleRenderer.DrawHandles(OverlayCanvas, _currentHandles, shapeDef.ShapeType);
 
-                Canvas.SetLeft(ellipse, handle.Position.X - _settings.HandleSize / 2);
-                Canvas.SetTop(ellipse, handle.Position.Y - _settings.HandleSize / 2);
-                OverlayCanvas.Children.Add(ellipse);
-            }
-
-            // 为旋转矩形绘制旋转手柄连接线
-            if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
-            {
-                DrawRotateHandleLine(shapeDef, new SolidColorBrush(_settings.SelectedColor));
+                // 旋转矩形的特殊处理（绘制方向箭头和连接线）
+                if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
+                {
+                    DrawRotatedRectangleHelpers(shapeDef);
+                }
             }
         }
 
         /// <summary>
-        /// 绘制旋转矩形的方向箭头
-        /// 箭头从中心指向右边中点，表示矩形的"宽度方向"（0°方向）
+        /// 为形状创建ROI编辑器风格的手柄
         /// </summary>
-        private void DrawDirectionArrow(ShapeDefinition shapeDef, Brush strokeBrush)
+        private void CreateHandlesForShape(ShapeDefinition shape)
         {
-            if (OverlayCanvas == null) return;
-
-            var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
-            var w = shapeDef.Width;
-            var angleRad = shapeDef.Angle * Math.PI / 180;
-            var sin = Math.Sin(angleRad);
-            var cos = Math.Cos(angleRad);
-
-            // 右边中点：本地坐标 (w/2, 0)
-            // 在屏幕坐标系中应用逆时针旋转变换
-            var rightCenterX = center.X + (w / 2) * cos;
-            var rightCenterY = center.Y - (w / 2) * sin;
-            var rightCenter = new Point(rightCenterX, rightCenterY);
-
-            // 绘制主箭头线
-            var arrowLine = new Line
+            switch (shape.ShapeType)
             {
-                X1 = center.X,
-                Y1 = center.Y,
-                X2 = rightCenter.X,
-                Y2 = rightCenter.Y,
-                Stroke = strokeBrush,
-                StrokeThickness = 2
-            };
-            OverlayCanvas.Children.Add(arrowLine);
+                case ShapeType.Rectangle:
+                    var bounds = new Rect(
+                        shape.CenterX - shape.Width / 2,
+                        shape.CenterY - shape.Height / 2,
+                        shape.Width,
+                        shape.Height
+                    );
+                    _currentHandles = Rendering.HandleRenderer.CreateRectangleHandles(bounds);
+                    break;
 
-            // 计算箭头方向
-            var dx = rightCenter.X - center.X;
-            var dy = rightCenter.Y - center.Y;
-            var length = Math.Sqrt(dx * dx + dy * dy);
-            if (length < 5) return;
+                case ShapeType.Circle:
+                    var center = new Point(shape.CenterX, shape.CenterY);
+                    _currentHandles = Rendering.HandleRenderer.CreateCircleHandles(center, shape.Radius);
+                    break;
 
-            // 归一化方向向量
-            var ux = dx / length;
-            var uy = dy / length;
+                case ShapeType.RotatedRectangle:
+                    var rotatedCenter = new Point(shape.CenterX, shape.CenterY);
+                    var corners = RotatedRectangleHelper.GetCorners(
+                        rotatedCenter,
+                        shape.Width,
+                        shape.Height,
+                        shape.Angle
+                    );
+                    var bottomCenter = CalculateRotatedRectBottomCenter(rotatedCenter, shape.Height, shape.Angle);
+                    _currentHandles = Rendering.HandleRenderer.CreateRotatedRectangleHandles(
+                        corners,
+                        shape.Angle,
+                        bottomCenter
+                    );
+                    break;
 
-            // 箭头参数
-            var arrowSize = 10;
-            var arrowAngle = 25 * Math.PI / 180;
-            var cosA = Math.Cos(arrowAngle);
-            var sinA = Math.Sin(arrowAngle);
-
-            // 左翼（逆时针旋转）
-            var leftX = rightCenter.X - arrowSize * (ux * cosA + uy * sinA);
-            var leftY = rightCenter.Y - arrowSize * (-ux * sinA + uy * cosA);
-
-            // 右翼（顺时针旋转）
-            var rightX = rightCenter.X - arrowSize * (ux * cosA - uy * sinA);
-            var rightY = rightCenter.Y - arrowSize * (ux * sinA + uy * cosA);
-
-            // 绘制箭头两翼
-            OverlayCanvas.Children.Add(new Line
-            {
-                X1 = rightCenter.X, Y1 = rightCenter.Y,
-                X2 = leftX, Y2 = leftY,
-                Stroke = strokeBrush, StrokeThickness = 2
-            });
-            OverlayCanvas.Children.Add(new Line
-            {
-                X1 = rightCenter.X, Y1 = rightCenter.Y,
-                X2 = rightX, Y2 = rightY,
-                Stroke = strokeBrush, StrokeThickness = 2
-            });
+                case ShapeType.Line:
+                    var startPoint = new Point(shape.StartX, shape.StartY);
+                    var endPoint = new Point(shape.EndX, shape.EndY);
+                    _currentHandles = Rendering.HandleRenderer.CreateLineHandles(startPoint, endPoint);
+                    break;
+            }
         }
 
         /// <summary>
-        /// 绘制旋转手柄连接线（从顶边中点到旋转手柄的虚线）
+        /// 计算旋转矩形的下边中点
         /// </summary>
-        private void DrawRotateHandleLine(ShapeDefinition shapeDef, Brush strokeBrush)
+        private Point CalculateRotatedRectBottomCenter(Point center, double height, double angle)
         {
-            if (OverlayCanvas == null) return;
-
-            var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
-            var h = shapeDef.Height;
-            var angleRad = shapeDef.Angle * Math.PI / 180;
+            var angleRad = angle * Math.PI / 180;
             var sin = Math.Sin(angleRad);
             var cos = Math.Cos(angleRad);
 
-            // 顶边中点：本地坐标 (0, -h/2)
-            var topCenterX = center.X + (-h / 2) * sin;
-            var topCenterY = center.Y + (-h / 2) * cos;
-            var topCenter = new Point(topCenterX, topCenterY);
-
-            // 计算旋转手柄位置（从顶边中点延伸25像素）
-            var direction = new Point(topCenter.X - center.X, topCenter.Y - center.Y);
-            var length = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
-            if (length <= 0) return;
-
-            var unitDir = new Point(direction.X / length, direction.Y / length);
-            var rotateHandlePos = new Point(
-                topCenter.X + unitDir.X * 25,
-                topCenter.Y + unitDir.Y * 25
+            return new Point(
+                center.X + (height / 2) * sin,
+                center.Y + (height / 2) * cos
             );
+        }
 
-            // 绘制虚线连接
-            var connectorLine = new Line
-            {
-                X1 = topCenter.X,
-                Y1 = topCenter.Y,
-                X2 = rotateHandlePos.X,
-                Y2 = rotateHandlePos.Y,
-                Stroke = strokeBrush,
-                StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 3, 2 }
-            };
-            OverlayCanvas.Children.Add(connectorLine);
+        /// <summary>
+        /// 绘制旋转矩形的辅助元素（方向箭头和连接线）
+        /// </summary>
+        private void DrawRotatedRectangleHelpers(ShapeDefinition shape)
+        {
+            if (shape.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
+
+            var center = new Point(shape.CenterX, shape.CenterY);
+            var height = shape.Height;
+            var rotation = shape.Angle;
+
+            // 计算旋转手柄位置
+            var rotateHandlePos = RotatedRectangleHelper.GetRotationHandlePosition(center, height, rotation);
+
+            // 绘制方向箭头和连接线
+            RotatedRectangleHelper.DrawRotateHandleLine(
+                OverlayCanvas,
+                center,
+                height,
+                rotation,
+                rotateHandlePos
+            );
+        }
+
+        /// <summary>
+        /// 绘制旋转矩形的方向箭头（ROI编辑器风格）
+        /// </summary>
+        private void DrawRotatedRectangleDirectionArrow(ShapeDefinition shapeDef, bool isSelected)
+        {
+            if (shapeDef.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
+
+            var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
+            var height = shapeDef.Height;
+            var rotation = shapeDef.Angle;
+
+            // 使用ROI编辑器的颜色
+            var arrowColor = isSelected ? Brushes.Blue : new SolidColorBrush(Color.FromRgb(
+                (byte)((shapeDef.StrokeColorArgb >> 16) & 0xFF),
+                (byte)((shapeDef.StrokeColorArgb >> 8) & 0xFF),
+                (byte)(shapeDef.StrokeColorArgb & 0xFF)
+            ));
+
+            // 计算箭头几何
+            var arrow = RotatedRectangleHelper.GetDirectionArrow(center, height, rotation);
+
+            // 绘制方向箭头
+            RotatedRectangleHelper.DrawDirectionArrow(OverlayCanvas, arrow.Start, arrow.End, arrowColor);
         }
 
         private Shape? CreateRegionShape(RegionData region, bool isPreview = false)
@@ -1052,86 +1412,34 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (region.Definition is not ShapeDefinition shapeDef)
                 return null;
 
-            var color = Color.FromRgb(
-                (byte)(region.DisplayColor >> 16 & 0xFF),
-                (byte)(region.DisplayColor >> 8 & 0xFF),
-                (byte)(region.DisplayColor & 0xFF)
-            );
+            // 使用ShapeRenderer创建形状（参考ROI编辑器）
+            var isSelected = region == _selectedRegion;
+            var shape = ShapeRenderer.CreateShape(shapeDef, isSelected, isPreview);
 
-            var fillColor = isPreview
-                ? new SolidColorBrush(_settings.PreviewColor)
-                : new SolidColorBrush(color) { Opacity = region.DisplayOpacity };
-
-            var strokeColor = region == _selectedRegion
-                ? new SolidColorBrush(_settings.SelectedColor)
-                : new SolidColorBrush(color);
-
-            var strokeThickness = region == _selectedRegion
-                ? _settings.SelectedBorderThickness
-                : _settings.DefaultBorderThickness;
-
-            Shape? shape = null;
-
-            switch (shapeDef.ShapeType)
+            if (shape != null)
             {
-                case ShapeType.Rectangle:
-                    shape = new Rectangle
-                    {
-                        Width = shapeDef.Width,
-                        Height = shapeDef.Height,
-                        Fill = fillColor,
-                        Stroke = strokeColor,
-                        StrokeThickness = strokeThickness,
-                        StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
-                    };
-                    Canvas.SetLeft(shape, shapeDef.CenterX - shapeDef.Width / 2);
-                    Canvas.SetTop(shape, shapeDef.CenterY - shapeDef.Height / 2);
-                    break;
+                // 根据shape.Tag获取位置信息
+                var tag = shape.Tag;
+                if (tag != null && tag.GetType().GetProperty("X") != null && tag.GetType().GetProperty("Y") != null)
+                {
+                    var xProp = tag.GetType().GetProperty("X");
+                    var yProp = tag.GetType().GetProperty("Y");
+                    var x = (double?)xProp.GetValue(tag);
+                    var y = (double?)yProp.GetValue(tag);
 
-                case ShapeType.RotatedRectangle:
-                    var rotRect = new Rectangle
+                    if (x.HasValue && y.HasValue)
                     {
-                        Width = shapeDef.Width,
-                        Height = shapeDef.Height,
-                        Fill = fillColor,
-                        Stroke = strokeColor,
-                        StrokeThickness = strokeThickness,
-                        StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
-                    };
-                    rotRect.RenderTransform = new RotateTransform(-shapeDef.Angle, shapeDef.Width / 2, shapeDef.Height / 2);
-                    Canvas.SetLeft(rotRect, shapeDef.CenterX - shapeDef.Width / 2);
-                    Canvas.SetTop(rotRect, shapeDef.CenterY - shapeDef.Height / 2);
-                    shape = rotRect;
-                    // 绘制方向箭头
-                    DrawDirectionArrow(shapeDef, strokeColor);
-                    break;
+                        Canvas.SetLeft(shape, x.Value);
+                        Canvas.SetTop(shape, y.Value);
+                    }
+                }
+                // 直线不需要Canvas定位
+            }
 
-                case ShapeType.Circle:
-                    shape = new Ellipse
-                    {
-                        Width = shapeDef.Radius * 2,
-                        Height = shapeDef.Radius * 2,
-                        Fill = fillColor,
-                        Stroke = strokeColor,
-                        StrokeThickness = strokeThickness,
-                        StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
-                    };
-                    Canvas.SetLeft(shape, shapeDef.CenterX - shapeDef.Radius);
-                    Canvas.SetTop(shape, shapeDef.CenterY - shapeDef.Radius);
-                    break;
-
-                case ShapeType.Line:
-                    shape = new Line
-                    {
-                        X1 = shapeDef.StartX,
-                        Y1 = shapeDef.StartY,
-                        X2 = shapeDef.EndX,
-                        Y2 = shapeDef.EndY,
-                        Stroke = strokeColor,
-                        StrokeThickness = strokeThickness,
-                        StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
-                    };
-                    break;
+            // 为旋转矩形绘制方向箭头（ROI编辑器风格）
+            if (shapeDef.ShapeType == ShapeType.RotatedRectangle && !isPreview)
+            {
+                DrawRotatedRectangleDirectionArrow(shapeDef, isSelected);
             }
 
             return shape;
@@ -1204,6 +1512,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private RegionData? HitTestRegion(Point point)
         {
+            // 从后往前测试（后绘制的在上面）
             foreach (var region in _viewModel.Regions.Reverse())
             {
                 if (!region.IsVisible) continue;
@@ -1220,19 +1529,47 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
             return shapeDef.ShapeType switch
             {
-                ShapeType.Rectangle => point.X >= shapeDef.CenterX - shapeDef.Width / 2 &&
-                                       point.X <= shapeDef.CenterX + shapeDef.Width / 2 &&
-                                       point.Y >= shapeDef.CenterY - shapeDef.Height / 2 &&
-                                       point.Y <= shapeDef.CenterY + shapeDef.Height / 2,
+                ShapeType.Rectangle => IsPointInRectangle(point, shapeDef),
                 ShapeType.RotatedRectangle => IsPointInRotatedRectangle(point, shapeDef),
-                ShapeType.Circle => Math.Sqrt(
-                    Math.Pow(point.X - shapeDef.CenterX, 2) +
-                    Math.Pow(point.Y - shapeDef.CenterY, 2)) <= shapeDef.Radius,
-                ShapeType.Line => DistanceToLine(point,
-                    new Point(shapeDef.StartX, shapeDef.StartY),
-                    new Point(shapeDef.EndX, shapeDef.EndY)) < 5,
+                ShapeType.Circle => IsPointInCircle(point, shapeDef),
+                ShapeType.Line => IsPointNearLine(point, shapeDef),
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// 判断点是否在矩形内（参考ROI编辑器使用GetBounds和Contains）
+        /// </summary>
+        private bool IsPointInRectangle(Point point, ShapeDefinition shapeDef)
+        {
+            var bounds = new Rect(
+                shapeDef.CenterX - shapeDef.Width / 2,
+                shapeDef.CenterY - shapeDef.Height / 2,
+                shapeDef.Width,
+                shapeDef.Height
+            );
+            return bounds.Contains(point);
+        }
+
+        /// <summary>
+        /// 判断点是否在圆形内
+        /// </summary>
+        private bool IsPointInCircle(Point point, ShapeDefinition shapeDef)
+        {
+            var distance = Math.Sqrt(
+                Math.Pow(point.X - shapeDef.CenterX, 2) +
+                Math.Pow(point.Y - shapeDef.CenterY, 2));
+            return distance <= shapeDef.Radius;
+        }
+
+        /// <summary>
+        /// 判断点是否在直线附近（10像素容差）
+        /// </summary>
+        private bool IsPointNearLine(Point point, ShapeDefinition shapeDef)
+        {
+            return DistanceToLine(point,
+                new Point(shapeDef.StartX, shapeDef.StartY),
+                new Point(shapeDef.EndX, shapeDef.EndY)) < 10;
         }
 
         /// <summary>
@@ -1287,6 +1624,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             _selectedRegion = null;
             _viewModel.SelectedRegion = null;
+
+            // 清理ROI编辑器风格的手柄状态
+            _currentHandles = null;
+            _activeHandleType = Rendering.HandleType.None;
+            _originalShapeDefinition = null;
+            _rotateStartAngle = null;
+            _rotateStartMouseAngle = null;
+
             UpdateRegionOverlay();
         }
 
