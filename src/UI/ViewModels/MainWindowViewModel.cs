@@ -1476,8 +1476,11 @@ namespace SunEyeVision.UI.ViewModels
                     var toolId = node.AlgorithmType ?? node.Name;
                     var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
 
+                    AddLog($"🔧 尝试打开调试窗口：工具ID={toolId}，节点名称={node.Name}");
+
                     if (toolMetadata == null)
                     {
+                        AddLog($"❌ 未找到工具 '{toolId}' 的元数据信息");
                         System.Windows.MessageBox.Show(
                             $"未找到工具 '{toolId}' 的元数据信息",
                             "未找到工具",
@@ -1486,11 +1489,26 @@ namespace SunEyeVision.UI.ViewModels
                         return;
                     }
 
+                    AddLog($"✅ 找到工具元数据：{toolMetadata.DisplayName}，HasDebugInterface={toolMetadata.HasDebugInterface}");
+
                     // 获取工具实例用于运行时检查
                     var tool = ToolRegistry.CreateToolInstance(toolId);
+                    if (tool == null)
+                    {
+                        AddLog($"❌ 无法创建工具实例");
+                        System.Windows.MessageBox.Show(
+                            $"无法创建工具 '{toolId}' 的实例",
+                            "无法创建工具",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    AddLog($"✅ 创建工具实例成功：{tool.GetType().Name}，HasDebugWindow={tool.HasDebugWindow}");
 
                     // 使用 NodeInterfaceFactory 获取界面类型（运行时检查版本）
                     var interfaceType = NodeInterfaceFactory.GetInterfaceType(node.ToWorkflowNode(), toolMetadata, tool);
+                    AddLog($"🔍 界面类型：{interfaceType}");
 
                     switch (interfaceType)
                     {
@@ -1521,6 +1539,9 @@ namespace SunEyeVision.UI.ViewModels
                             // 创建新的调试窗口
                             var mainImageControl = GetMainImageControl?.Invoke();
                             var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, tool, toolMetadata, mainImageControl);
+                            
+                            AddLog($"🔨 创建调试窗口：{debugWindow?.GetType().Name ?? "null"}");
+                            
                             if (debugWindow != null)
                             {
                                 debugWindow.Owner = System.Windows.Application.Current.MainWindow;
@@ -1538,12 +1559,12 @@ namespace SunEyeVision.UI.ViewModels
 
                                 _openDebugWindow = debugWindow;
                                 debugWindow.Show();
-                                AddLog($"🔧 打开调试窗口: {node.Name}");
+                                AddLog($"✅ 调试窗口已打开: {node.Name}");
                             }
                             else
                             {
                                 // 窗口创建失败或工具不支持调试窗口
-                                AddLog($"⚠️ 工具 '{node.Name}' 无调试窗口");
+                                AddLog($"⚠️ 工具 '{node.Name}' 无调试窗口或创建失败");
                             }
                             break;
 
