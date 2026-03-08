@@ -7,6 +7,9 @@
              MinHeight="200">
     <UserControl.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
             
             <!-- 数值输入框样式 -->
             <Style x:Key="NumericTextBox" TargetType="TextBox">
