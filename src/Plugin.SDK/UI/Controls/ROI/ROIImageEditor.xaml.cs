@@ -372,9 +372,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                             _currentDrawingROI.Radius = radius;
                             break;
 
-                        case ROIType.Line:
-                            _currentDrawingROI.EndPoint = position;
-                            break;
+                case ROIType.Line:
+                    _currentDrawingROI.EndPoint = position;
+                    // 确保起点位置始终为原始起点，不随绘制过程变化
+                    _currentDrawingROI.Position = _startPoint;
+                    break;
                     }
 
                     UpdateROIOverlay();
@@ -2075,9 +2077,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                             _currentDrawingROI.Radius = radius;
                             break;
 
-                        case ROIType.Line:
-                            _currentDrawingROI.EndPoint = position;
-                            break;
+                case ROIType.Line:
+                    _currentDrawingROI.EndPoint = position;
+                    // 确保起点位置始终为原始起点，不随绘制过程变化
+                    _currentDrawingROI.Position = _startPoint;
+                    break;
                     }
                     
                     UpdateROIOverlay();
