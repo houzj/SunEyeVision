@@ -73,7 +73,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public RegionResolver(IParameterContext? context = null, ILogger? logger = null)
         {
             _context = context;
-            _logger = logger ?? new PluginLogger();
+            _logger = logger ?? PluginLogger.Logger;
         }
 
         /// <summary>

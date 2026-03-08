@@ -30,7 +30,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public WorkflowDataSourceProvider(ILogger? logger = null)
         {
-            _logger = logger ?? new PluginLogger();
+            _logger = logger ?? PluginLogger.Logger;
         }
 
         /// <summary>

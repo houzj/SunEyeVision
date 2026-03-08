@@ -641,7 +641,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 AddLog($"❌ 父容器为 null，无法进入全屏");
                 return;
             }
-            
+           
+
             AddLog($"✓ 父容器类型: {_originalParent.GetType().Name}");
             
             // ★★★ 关键修复：在移除父容器之前保存 DataContext ★★★
