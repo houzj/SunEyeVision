@@ -232,7 +232,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
 
             _logger.LogInfo($"区域参数解析：参数 '{parameterName}' 绑定源类型={source.GetType().Name}", "RegionResolver");
 
-            var value = source.GetValue(_context);
+            var value = source.GetValue(_context, _logger);
             if (value == null)
             {
                 _logger.LogWarning($"区域参数解析：参数 '{parameterName}' 从节点获取值为null，使用默认值={defaultValue}", "RegionResolver");

@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
@@ -21,7 +22,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 获取参数值
         /// </summary>
-        public abstract object? GetValue(IParameterContext? context);
+        public abstract object? GetValue(IParameterContext? context, ILogger? logger = null);
 
         /// <summary>
         /// 克隆
@@ -51,8 +52,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             DataType = dataType;
         }
 
-        public override object? GetValue(IParameterContext? context)
+        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
         {
+            logger?.LogInfo($"参数源获取：常量值，值={Value}，类型={Value?.GetType().Name ?? "null"}", "ParameterSource");
             return Value;
         }
 
@@ -101,12 +103,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             PropertyPath = propertyPath;
         }
 
-        public override object? GetValue(IParameterContext? context)
+        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
         {
-            if (context == null || string.IsNullOrEmpty(NodeId) || string.IsNullOrEmpty(OutputName))
-                return null;
+            logger?.LogInfo($"参数源获取：节点输出，节点ID={NodeId}，输出名={OutputName}，索引={Index}，属性路径={PropertyPath ?? "(无)"}", "ParameterSource");
 
-            return context.GetNodeOutputValue(NodeId, OutputName, Index, PropertyPath);
+            if (context == null || string.IsNullOrEmpty(NodeId) || string.IsNullOrEmpty(OutputName))
+            {
+                logger?.LogError($"参数源获取失败：上下文为空或节点信息不完整，节点ID={NodeId}，输出名={OutputName}", "ParameterSource");
+                return null;
+            }
+
+            var value = context.GetNodeOutputValue(NodeId, OutputName, Index, PropertyPath);
+
+            if (value == null)
+            {
+                logger?.LogWarning($"参数源获取警告：节点 {NodeId}.{OutputName} 返回null", "ParameterSource");
+            }
+            else
+            {
+                logger?.LogSuccess($"参数源获取成功：节点 {NodeId}.{OutputName}，值类型={value.GetType().Name}", "ParameterSource");
+            }
+
+            return value;
         }
 
         public override ParameterSource Clone()
@@ -144,12 +162,36 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             Expression = expression;
         }
 
-        public override object? GetValue(IParameterContext? context)
+        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
         {
-            if (context == null || string.IsNullOrEmpty(Expression))
-                return null;
+            logger?.LogInfo($"参数源获取：表达式，表达式={Expression}，变量数={VariableReferences.Count}", "ParameterSource");
 
-            return context.EvaluateExpression(Expression, VariableReferences);
+            if (context == null || string.IsNullOrEmpty(Expression))
+            {
+                logger?.LogError($"参数源获取失败：上下文为空或表达式为空", "ParameterSource");
+                return null;
+            }
+
+            try
+            {
+                var value = context.EvaluateExpression(Expression, VariableReferences);
+
+                if (value == null)
+                {
+                    logger?.LogWarning($"参数源获取警告：表达式 {Expression} 计算结果为null", "ParameterSource");
+                }
+                else
+                {
+                    logger?.LogSuccess($"参数源获取成功：表达式 {Expression} 计算结果={value}，类型={value.GetType().Name}", "ParameterSource");
+                }
+
+                return value;
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError($"参数源获取异常：表达式 {Expression} 计算失败 - {ex.Message}", "ParameterSource", ex);
+                return null;
+            }
         }
 
         public override ParameterSource Clone()
@@ -193,12 +235,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             IsGlobal = isGlobal;
         }
 
-        public override object? GetValue(IParameterContext? context)
+        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
         {
-            if (context == null || string.IsNullOrEmpty(VariableName))
-                return null;
+            logger?.LogInfo($"参数源获取：变量，变量名={VariableName}，是否全局={IsGlobal}", "ParameterSource");
 
-            return context.GetVariableValue(VariableName, IsGlobal);
+            if (context == null || string.IsNullOrEmpty(VariableName))
+            {
+                logger?.LogError($"参数源获取失败：上下文为空或变量名为空", "ParameterSource");
+                return null;
+            }
+
+            var value = context.GetVariableValue(VariableName, IsGlobal);
+
+            if (value == null)
+            {
+                logger?.LogWarning($"参数源获取警告：变量 {VariableName} (全局={IsGlobal}) 返回null", "ParameterSource");
+            }
+            else
+            {
+                logger?.LogSuccess($"参数源获取成功：变量 {VariableName} (全局={IsGlobal})，值类型={value.GetType().Name}", "ParameterSource");
+            }
+
+            return value;
         }
 
         public override ParameterSource Clone()
