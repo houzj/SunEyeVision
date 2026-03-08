@@ -1544,7 +1544,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         }
 
         /// <summary>
-        /// 处理旋转矩形调整（锚点模式：固定对角，被拖动句柄跟随鼠标）
+        /// 处理旋转矩形调整（使用角点法，确保固定对角）
         /// </summary>
         private void HandleRotatedRectangleResize(ROI roi, Point currentPosition, Vector delta)
         {
@@ -1554,16 +1554,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 return;
             }
 
-            var angle = _originalRotation * Math.PI / 180;
-            var cos = Math.Cos(-angle);
-            var sin = Math.Sin(-angle);
+            // 将世界坐标系的 delta 转换为局部坐标系的 delta
+            var localDelta = WorldToLocalDelta(delta, _originalRotation);
 
-            // 将 delta 转换到未旋转的本地坐标系
-            var localDelta = new Vector(
-                delta.X * cos - delta.Y * sin,
-                delta.X * sin + delta.Y * cos);
-
-            // 计算原始矩形的四个角点（本地坐标，原点在中心）
+            // 计算原始矩形的四个角点（局部坐标，原点在中心）
             var corners = GetLocalCorners(_originalSize.Width, _originalSize.Height);
 
             // 根据拖动的句柄计算新的角点位置
@@ -1572,15 +1566,42 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             // 从新角点计算新的尺寸和中心
             var (newWidth, newHeight, newCenterLocal) = CalculateFromCorners(newCorners);
 
-            // 将新中心从本地坐标转换回世界坐标
-            var cosAngle = Math.Cos(angle);
-            var sinAngle = Math.Sin(angle);
-            var newCenterWorld = new Point(
-                _originalPosition.X + newCenterLocal.X * cosAngle - newCenterLocal.Y * sinAngle,
-                _originalPosition.Y + newCenterLocal.X * sinAngle + newCenterLocal.Y * cosAngle);
+            // 将新中心从局部坐标转换回世界坐标
+            var newCenterWorld = LocalToWorldPoint(newCenterLocal, _originalPosition, _originalRotation);
 
             roi.Size = new Size(newWidth, newHeight);
             roi.Position = newCenterWorld;
+        }
+
+        /// <summary>
+        /// 将世界坐标系的 delta 转换为局部坐标系的 delta
+        /// </summary>
+        private Vector WorldToLocalDelta(Vector worldDelta, double rotation)
+        {
+            // 将角度转换为弧度，注意图像坐标系角度是顺时针为正
+            var angle = -rotation * Math.PI / 180;
+            var cos = Math.Cos(angle);
+            var sin = Math.Sin(angle);
+
+            // 使用标准逆旋转矩阵：local = transpose(R) * world
+            return new Vector(
+                worldDelta.X * cos + worldDelta.Y * sin,
+                -worldDelta.X * sin + worldDelta.Y * cos);
+        }
+
+        /// <summary>
+        /// 将局部坐标系的点转换为世界坐标系的点
+        /// </summary>
+        private Point LocalToWorldPoint(Point localPoint, Point center, double rotation)
+        {
+            // 将角度转换为弧度
+            var angle = -rotation * Math.PI / 180;
+            var cos = Math.Cos(angle);
+            var sin = Math.Sin(angle);
+
+            return new Point(
+                center.X + localPoint.X * cos - localPoint.Y * sin,
+                center.Y + localPoint.X * sin + localPoint.Y * cos);
         }
 
         /// <summary>
