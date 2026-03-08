@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.Services.Logging
 {
@@ -118,12 +119,10 @@ namespace SunEyeVision.UI.Services.Logging
         {
             if (!IsEnabled || entries.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine($"[UILogWriter] WriteBatch 跳过: IsEnabled={IsEnabled}, entries.Count={entries.Count}");
                 return;
             }
 
             var filtered = entries.Where(e => e.Level >= MinLevel).ToList();
-            System.Diagnostics.Debug.WriteLine($"[UILogWriter] WriteBatch: 接收={entries.Count}, 过滤后={filtered.Count}, MinLevel={MinLevel}");
             if (filtered.Count > 0)
             {
                 AddToCollection(filtered);

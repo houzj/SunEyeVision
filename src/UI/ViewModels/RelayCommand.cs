@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.Windows.Input;
+using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -10,17 +12,20 @@ namespace SunEyeVision.UI.ViewModels
     {
         private readonly Action<object> _execute;
         private readonly Func<object, bool> _canExecute;
+        private readonly string _name;
 
-        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null, string name = null)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
+            _name = name ?? execute.Method.Name;
         }
 
-        public RelayCommand(Action execute, Func<bool> canExecute = null)
+        public RelayCommand(Action execute, Func<bool> canExecute = null, string name = null)
         {
             _execute = _ => execute();
             _canExecute = canExecute == null ? null : _ => canExecute();
+            _name = name ?? execute.Method.Name;
         }
 
         public event EventHandler CanExecuteChanged
@@ -36,7 +41,20 @@ namespace SunEyeVision.UI.ViewModels
 
         public void Execute(object parameter)
         {
-            _execute(parameter);
+            VisionLogger.Instance.Log(LogLevel.Info, $"RelayCommand.Execute 开始执行 - 命令: {_name}, 委托: {_execute.Method.Name}, 是否为空: {_execute == null}", "RelayCommand");
+
+            // 尝试捕获并记录任何异常
+            try
+            {
+                _execute(parameter);
+                VisionLogger.Instance.Log(LogLevel.Success, $"RelayCommand.Execute 执行成功 - 命令: {_name}", "RelayCommand");
+            }
+            catch (Exception ex)
+            {
+                // 命令执行失败，记录到系统日志
+                var logger = VisionLogger.Instance;
+                logger.Log(LogLevel.Error, $"RelayCommand 执行失败 - 命令: {_name}, 错误: {ex.Message}", "RelayCommand", ex);
+            }
         }
 
         public void RaiseCanExecuteChanged()

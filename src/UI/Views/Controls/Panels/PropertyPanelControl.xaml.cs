@@ -50,6 +50,22 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             DependencyProperty.Register("ClearLogCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
                 new PropertyMetadata(null));
 
+        public static readonly DependencyProperty CopyCommandProperty =
+            DependencyProperty.Register("CopyCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty CopyAllCommandProperty =
+            DependencyProperty.Register("CopyAllCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty TestCommandProperty =
+            DependencyProperty.Register("TestCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty TestClearCommandProperty =
+            DependencyProperty.Register("TestClearCommand", typeof(System.Windows.Input.ICommand), typeof(PropertyPanelControl),
+                new PropertyMetadata(null));
+
         #endregion
 
         #region 属性
@@ -76,6 +92,30 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         {
             get => (System.Windows.Input.ICommand)GetValue(ClearLogCommandProperty);
             set => SetValue(ClearLogCommandProperty, value);
+        }
+
+        public System.Windows.Input.ICommand CopyCommand
+        {
+            get => (System.Windows.Input.ICommand)GetValue(CopyCommandProperty);
+            set => SetValue(CopyCommandProperty, value);
+        }
+
+        public System.Windows.Input.ICommand CopyAllCommand
+        {
+            get => (System.Windows.Input.ICommand)GetValue(CopyAllCommandProperty);
+            set => SetValue(CopyAllCommandProperty, value);
+        }
+
+        public System.Windows.Input.ICommand TestCommand
+        {
+            get => (System.Windows.Input.ICommand)GetValue(TestCommandProperty);
+            set => SetValue(TestCommandProperty, value);
+        }
+
+        public System.Windows.Input.ICommand TestClearCommand
+        {
+            get => (System.Windows.Input.ICommand)GetValue(TestClearCommandProperty);
+            set => SetValue(TestClearCommandProperty, value);
         }
 
         // ========== 高性能日志面板属性 ==========
@@ -225,18 +265,43 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             InitializeComponent();
             PropertyGroups = new ObservableCollection<ModelsPropertyGroup>();
 
-            // 初始化高性能日志 ViewModel
-            _logViewModel = new LogPanelViewModel();
-            _logViewModel.LogsUpdated += OnLogsUpdated;
+            try
+            {
+                // 初始化高性能日志 ViewModel
+                _logViewModel = new LogPanelViewModel();
+                _logViewModel.LogsUpdated += OnLogsUpdated;
 
-            // 初始化清空命令
-            ClearLogCommand = _logViewModel.ClearCommand;
+                // 初始化命令
+                ClearLogCommand = _logViewModel?.ClearCommand;
+                CopyCommand = new RelayCommand(CopySelectedLogsFromDataGrid, null, "CopySelectedLogsFromDataGrid");
+                CopyAllCommand = _logViewModel?.CopyAllCommand;
+                TestCommand = new RelayCommand(TestButton, null, "TestButton");
+                TestClearCommand = new RelayCommand(ClearLogsDirect, null, "ClearLogsDirect");
 
-            // 同步过滤设置
-            _logViewModel.ShowInfo = _showInfo;
-            _logViewModel.ShowSuccess = _showSuccess;
-            _logViewModel.ShowWarning = _showWarning;
-            _logViewModel.ShowError = _showError;
+                // 直接设置按钮命令，绕过 XAML 绑定问题（添加空引用检查）
+                if (TestBtn != null) TestBtn.Command = TestCommand;
+                if (TestClearBtn != null) TestClearBtn.Command = TestClearCommand;
+                if (CopyBtn != null) CopyBtn.Command = CopyCommand;
+                if (CopyAllBtn != null) CopyAllBtn.Command = CopyAllCommand;
+                if (ClearLogBtn != null) ClearLogBtn.Command = ClearLogCommand;
+
+                // 同步过滤设置
+                if (_logViewModel != null)
+                {
+                    _logViewModel.ShowInfo = _showInfo;
+                    _logViewModel.ShowSuccess = _showSuccess;
+                    _logViewModel.ShowWarning = _showWarning;
+                    _logViewModel.ShowError = _showError;
+
+                    // 验证命令绑定
+                    _logViewModel.LogInfo("属性面板控件初始化完成，命令已绑定");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logViewModel?.LogError($"属性面板控件初始化失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"PropertyPanelControl 初始化异常: {ex}");
+            }
         }
 
         #endregion
@@ -431,15 +496,133 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
         private void CopyMessage_Click(object sender, RoutedEventArgs e)
         {
-            if (LogDataGrid.SelectedItem is LogEntry entry)
+            try
             {
-                Clipboard.SetText(entry.Message);
+                if (LogDataGrid?.SelectedItem is LogEntry entry && !string.IsNullOrEmpty(entry.Message))
+                {
+                    Clipboard.SetText(entry.Message);
+                    _logViewModel?.LogSuccess("已复制消息到剪贴板");
+                }
+                else
+                {
+                    _logViewModel?.LogWarning("未选中任何日志条目或消息为空");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logViewModel?.LogError($"复制消息失败: {ex.Message}");
             }
         }
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // 空实现，预留扩展
+        }
+
+        /// <summary>
+        /// 测试按钮方法
+        /// </summary>
+        private void TestButton()
+        {
+            _logViewModel.LogSuccess("测试按钮被点击了！");
+            _logViewModel.LogInfo($"当前日志数量: {_logViewModel.LogEntries.Count}");
+        }
+
+        /// <summary>
+        /// 复制选中的日志（从 DataGrid 获取选中项）
+        /// </summary>
+        private void CopySelectedLogsFromDataGrid()
+        {
+            CopySelectedLogsFromDataGrid_Click(null, null);
+        }
+
+        /// <summary>
+        /// 复制选中的日志（从 DataGrid 获取选中项）- Click 事件处理
+        /// </summary>
+        private void CopySelectedLogsFromDataGrid_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 空引用检查
+                if (LogDataGrid == null)
+                {
+                    _logViewModel.LogError("LogDataGrid 未初始化");
+                    return;
+                }
+
+                if (LogDataGrid.SelectedItems == null || LogDataGrid.SelectedItems.Count == 0)
+                {
+                    _logViewModel.LogWarning("未选中任何日志条目");
+                    return;
+                }
+
+                var selectedItems = LogDataGrid.SelectedItems.Cast<LogEntry>().Where(entry => entry != null).ToList();
+                if (selectedItems.Count == 0)
+                {
+                    _logViewModel.LogWarning("选中的日志条目无效");
+                    return;
+                }
+
+                _logViewModel.LogInfo($"DataGrid 选中: {selectedItems.Count} 项");
+
+                var logText = string.Join(Environment.NewLine, selectedItems.Select(entry =>
+                    $"[{entry.FormattedTime}] [{entry.Level}] {entry.DisplayMessage}"));
+
+                if (_logViewModel?.CopyToClipboardInternal(logText) == true)
+                {
+                    _logViewModel.LogSuccess($"已复制 {selectedItems.Count} 条日志到剪贴板");
+                }
+            }
+            catch (NullReferenceException ex)
+            {
+                _logViewModel?.LogError($"空引用异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"CopySelectedLogsFromDataGrid 空引用: {ex}");
+            }
+            catch (Exception ex)
+            {
+                _logViewModel?.LogError($"复制失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"CopySelectedLogsFromDataGrid 异常: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// 直接清空方法
+        /// </summary>
+        private void ClearLogsDirect()
+        {
+        }
+
+        /// <summary>
+        /// 清空日志 - Click 事件处理
+        /// </summary>
+        private void ClearLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _logViewModel?.ClearCommand?.Execute(null);
+            }
+            catch (Exception ex)
+            {
+                _logViewModel?.LogError($"清空日志失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 全选 - Click 事件处理
+        /// </summary>
+        private void SelectAll_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (LogDataGrid != null)
+                {
+                    LogDataGrid.SelectAll();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logViewModel?.LogError($"全选失败: {ex.Message}");
+            }
         }
 
         #endregion
