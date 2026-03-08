@@ -188,6 +188,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             }
         }
 
+        /// <summary>
+        /// 是否强制边界限制（默认为 true）
+        /// </summary>
+        public static readonly DependencyProperty EnforceBoundaryConstraintsProperty =
+            DependencyProperty.Register(nameof(EnforceBoundaryConstraints), typeof(bool), typeof(ROIImageEditor),
+                new PropertyMetadata(true, OnEnforceBoundaryConstraintsChanged));
+
+        public bool EnforceBoundaryConstraints
+        {
+            get => (bool)GetValue(EnforceBoundaryConstraintsProperty);
+            set => SetValue(EnforceBoundaryConstraintsProperty, value);
+        }
+
+        private static void OnEnforceBoundaryConstraintsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            // 边界限制变更 - 仅通过代码设置
+        }
+
         #endregion
 
         #region 事件
@@ -1988,6 +2006,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// </summary>
         private bool IsPointInImageBounds(Point point, BitmapSource image)
         {
+            // 边界限制关闭时，始终返回 true
+            if (!EnforceBoundaryConstraints) return true;
+            
             if (image == null) return false;
             return point.X >= 0 && point.X < image.PixelWidth && 
                    point.Y >= 0 && point.Y < image.PixelHeight;
@@ -1998,6 +2019,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// </summary>
         private bool IsROIInImageBounds(ROI roi, BitmapSource image)
         {
+            // 边界限制关闭时，始终返回 true
+            if (!EnforceBoundaryConstraints) return true;
+            
             if (image == null) return false;
             
             switch (roi.Type)
