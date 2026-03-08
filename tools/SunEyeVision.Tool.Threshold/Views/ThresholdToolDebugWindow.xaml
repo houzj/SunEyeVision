@@ -11,27 +11,27 @@
         <TabItem Header="输入配置" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector 
-                        x:Name="ImageSourceSelector"
+                    <controls:ImageSourceSelector
+                        x:Name="imageSourceSelector"
                         Label="输入图像"
                         PlaceholderText="请选择输入图像源"/>
-                    
-                    <TextBlock Text="ROI区域" 
-                               FontSize="13" 
-                               FontWeight="Medium" 
+
+                    <TextBlock Text="ROI区域"
+                               FontSize="13"
+                               FontWeight="Medium"
                                Margin="0,16,0,4"
                                Foreground="#333333"/>
-                    <region:RegionEditorControl x:Name="RegionEditor" Height="300"/>
+                    <region:RegionEditorControl x:Name="regionEditor" Height="300"/>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
-        
+
         <!-- Tab2: 阈值参数 -->
         <TabItem Header="阈值参数">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:BindableParameter 
-                        x:Name="ThresholdParam"
+                    <controls:BindableParameter
+                        x:Name="thresholdParam"
                         Label="阈值"
                         DataType="Int"
                         IntMinimum="0"
@@ -39,9 +39,9 @@
                         SmallChange="1"
                         LargeChange="10"
                         ShowSlider="True"/>
-                    
-                    <controls:BindableParameter 
-                        x:Name="MaxValueParam"
+
+                    <controls:BindableParameter
+                        x:Name="maxValueParam"
                         Label="最大值"
                         DataType="Int"
                         IntMinimum="0"
@@ -49,13 +49,13 @@
                         SmallChange="1"
                         LargeChange="10"
                         ShowSlider="True"/>
-                    
-                    <TextBlock Text="阈值类型" 
-                               FontSize="13" 
-                               FontWeight="Medium" 
+
+                    <TextBlock Text="阈值类型"
+                               FontSize="13"
+                               FontWeight="Medium"
                                Margin="0,16,0,8"
                                Foreground="#333333"/>
-                    <ComboBox x:Name="ThresholdTypeComboBox" Height="32" VerticalContentAlignment="Center">
+                    <ComboBox x:Name="thresholdTypeComboBox" Height="32" VerticalContentAlignment="Center">
                         <ComboBoxItem Content="Binary" IsSelected="True"/>
                         <ComboBoxItem Content="BinaryInv"/>
                         <ComboBoxItem Content="Trunc"/>
@@ -65,32 +65,32 @@
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
-        
+
         <!-- Tab3: 执行结果 -->
         <TabItem Header="执行结果">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <TextBlock Text="输出图像" 
-                               FontSize="13" 
-                               FontWeight="Medium" 
+                    <TextBlock Text="输出图像"
+                               FontSize="13"
+                               FontWeight="Medium"
                                Margin="0,0,0,8"
                                Foreground="#333333"/>
-                    <Border Background="#F5F5F5" 
-                            Height="200" 
+                    <Border Background="#F5F5F5"
+                            Height="200"
                             CornerRadius="4"
                             Margin="0,0,0,16">
-                        <Image x:Name="OutputImage"
+                        <Image x:Name="outputImage"
                                Stretch="Uniform"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
                     </Border>
-                    
-                    <TextBlock Text="执行状态" 
-                               FontSize="13" 
-                               FontWeight="Medium" 
+
+                    <TextBlock Text="执行状态"
+                               FontSize="13"
+                               FontWeight="Medium"
                                Margin="0,0,0,8"
                                Foreground="#333333"/>
-                    <TextBlock x:Name="StatusText"
+                    <TextBlock x:Name="statusText"
                                FontSize="12"
                                Foreground="#666666"
                                TextWrapping="Wrap"/>
