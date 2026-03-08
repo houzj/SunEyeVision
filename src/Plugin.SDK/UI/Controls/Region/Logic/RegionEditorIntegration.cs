@@ -1,7 +1,8 @@
-using System.Windows;
+﻿using System.Windows;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
 {
@@ -17,10 +18,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 构造函数
         /// </summary>
-        public RegionEditorIntegration(RegionEditorViewModel viewModel)
+        public RegionEditorIntegration(RegionEditorViewModel viewModel, ILogger? logger = null)
         {
             _viewModel = viewModel;
-            _dataProvider = new WorkflowDataSourceProvider();
+            _dataProvider = new WorkflowDataSourceProvider(logger);
             _nodeSelectorPopup = new NodeSelectorPopup();
 
             // 初始化ViewModel

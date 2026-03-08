@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
@@ -13,6 +14,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         private readonly Dictionary<string, object?> _nodeOutputs = new();
         private readonly Dictionary<string, List<Action<object?>>> _subscriptions = new();
         private readonly Dictionary<string, NodeOutputInfo> _outputCache = new();
+        private readonly ILogger _logger;
 
         // 前驱节点注册信息（支持显示未执行的节点）
         private readonly Dictionary<string, string> _parentNodeNames = new();
@@ -22,6 +24,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// 当前节点ID（用于过滤，不包含自己的输出）
         /// </summary>
         public string? CurrentNodeId { get; set; }
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        public WorkflowDataSourceProvider(ILogger? logger = null)
+        {
+            _logger = logger ?? new PluginLogger();
+        }
 
         /// <summary>
         /// 是否在输出列表中包含当前节点
@@ -235,13 +245,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         public object? GetCurrentBindingValue(string nodeId, string outputName, string? propertyPath)
         {
             if (!_nodeOutputs.TryGetValue(nodeId, out var output))
+            {
+                _logger.LogWarning($"获取绑定值：节点 {nodeId} 没有输出数据，返回null", "WorkflowDataSource");
                 return null;
+            }
+
+            _logger.LogInfo($"获取绑定值：节点={nodeId}，输出={outputName}，属性路径={propertyPath ?? "(无)"}", "WorkflowDataSource");
 
             if (string.IsNullOrEmpty(propertyPath))
+            {
+                _logger.LogSuccess($"获取绑定值成功：节点={nodeId}，值类型={output?.GetType().Name ?? "null"}", "WorkflowDataSource");
                 return output;
+            }
 
             // 沿着属性路径获取值
-            return GetPropertyValue(output, propertyPath);
+            var propertyValue = GetPropertyValue(output, propertyPath);
+            _logger.LogSuccess($"获取绑定值成功：节点={nodeId}，属性路径={propertyPath}，值类型={propertyValue?.GetType().Name ?? "null"}", "WorkflowDataSource");
+
+            return propertyValue;
         }
 
         /// <summary>
@@ -274,12 +295,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public void UpdateNodeOutput(string nodeId, object? output)
         {
+            var outputType = output?.GetType().Name ?? "null";
+            _logger.LogInfo($"节点输出更新：节点ID={nodeId}，输出类型={outputType}", "WorkflowDataSource");
+
             _nodeOutputs[nodeId] = output;
 
             // 通知订阅者
             var key = $"{nodeId}.Output.";
             if (_subscriptions.ContainsKey(key))
             {
+                _logger.LogInfo($"节点输出更新：通知 {key} 的 {_subscriptions[key].Count} 个订阅者", "WorkflowDataSource");
                 foreach (var callback in _subscriptions[key])
                 {
                     callback(output);
@@ -293,6 +318,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
                 {
                     var propertyPath = kvp.Key.Substring($"{nodeId}.Output.".Length);
                     var value = GetPropertyValue(output, propertyPath);
+
+                    _logger.LogSuccess($"节点输出更新：属性订阅 {nodeId}.Output.{propertyPath} 值={value}", "WorkflowDataSource");
 
                     foreach (var callback in kvp.Value)
                     {
@@ -331,6 +358,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
             _parentNodeNames[nodeId] = nodeName ?? nodeId;
             _parentNodeTypes[nodeId] = nodeType ?? "Mat";
+            _logger.LogInfo($"节点注册：节点ID={nodeId}，节点名称={nodeName}，节点类型={nodeType}", "WorkflowDataSource");
         }
 
         /// <summary>

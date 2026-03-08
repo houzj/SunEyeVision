@@ -597,15 +597,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 var shapeDef = _currentDrawingRegion.Definition as ShapeDefinition;
                 if (shapeDef != null)
                 {
+                    // 记录区域创建日志
+                    LogInfo($"区域创建：开始创建 {_currentTool} 区域，尺寸=({shapeDef.Width:F2}×{shapeDef.Height:F2})，中心=({shapeDef.CenterX:F2}, {shapeDef.CenterY:F2})", "RegionEditor");
+
                     // 统一使用大尺寸算法，并对长宽增加限制：任意尺寸太小都不生成区域
                     // 矩形和旋转矩形：最小宽度和高度都是10像素，同时满足面积≥100
                     bool isValid = _currentTool switch
                     {
-                        ShapeType.Rectangle or ShapeType.RotatedRectangle => 
-                            shapeDef.Width >= 10 && 
+                        ShapeType.Rectangle or ShapeType.RotatedRectangle =>
+                            shapeDef.Width >= 10 &&
                             shapeDef.Height >= 10 &&
                             shapeDef.Width * shapeDef.Height >= 100,
-                        ShapeType.Circle => 
+                        ShapeType.Circle =>
                             shapeDef.Radius >= 5.64 && // 面积≥100对应的半径
                             Math.PI * shapeDef.Radius * shapeDef.Radius >= 100,
                         ShapeType.Line => shapeDef.GetLineLength() >= 10,
@@ -618,10 +621,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                         _viewModel.SelectedRegion = _currentDrawingRegion;
                         _viewModel.StatusMessage = $"已创建 {_currentTool} 区域";
                         RegionDataChanged?.Invoke(this, _currentDrawingRegion);
+                        LogSuccess($"区域创建成功：{_currentTool} 区域已添加到列表，区域名称={_currentDrawingRegion.Name}，区域ID={_currentDrawingRegion.Id}", "RegionEditor");
                     }
                     else
                     {
                         _viewModel.StatusMessage = "区域太小，已忽略";
+                        LogWarning($"区域创建失败：{_currentTool} 区域尺寸太小或面积不足，尺寸=({shapeDef.Width:F2}×{shapeDef.Height:F2})，面积={shapeDef.Width * shapeDef.Height:F2}", "RegionEditor");
                     }
                 }
             }
