@@ -597,18 +597,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 var shapeDef = _currentDrawingRegion.Definition as ShapeDefinition;
                 if (shapeDef != null)
                 {
-                    // 统一使用大尺寸算法，并对长宽增加限制：任意尺寸太小都不生成区域
-                    // 矩形和旋转矩形：最小宽度和高度都是10像素，同时满足面积≥100
                     bool isValid = _currentTool switch
                     {
-                        ShapeType.Rectangle or ShapeType.RotatedRectangle => 
-                            shapeDef.Width >= 10 && 
-                            shapeDef.Height >= 10 &&
-                            shapeDef.Width * shapeDef.Height >= 100,
-                        ShapeType.Circle => 
-                            shapeDef.Radius >= 5.64 && // 面积≥100对应的半径
-                            Math.PI * shapeDef.Radius * shapeDef.Radius >= 100,
-                        ShapeType.Line => shapeDef.GetLineLength() >= 10,
+                        ShapeType.Rectangle or ShapeType.RotatedRectangle => shapeDef.Width > 5 && shapeDef.Height > 5,
+                        ShapeType.Circle => shapeDef.Radius > 5,
+                        ShapeType.Line => shapeDef.GetLineLength() > 5,
                         _ => false
                     };
 

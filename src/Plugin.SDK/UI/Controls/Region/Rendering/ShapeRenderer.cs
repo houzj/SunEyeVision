@@ -77,8 +77,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
         private static Rectangle CreateRectangle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
-            var width = shape.Width > 0 ? shape.Width : 100;
-            var height = shape.Height > 0 ? shape.Height : 100;
+            var width = shape.Width;
+            var height = shape.Height;
 
             var rect = new Rectangle
             {
@@ -103,7 +103,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
         private static Ellipse CreateCircle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
-            var radius = shape.Radius > 0 ? shape.Radius : 50;
+            var radius = shape.Radius;
 
             var ellipse = new Ellipse
             {
@@ -126,8 +126,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
         private static Rectangle CreateRotatedRectangle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
-            var width = shape.Width > 0 ? shape.Width : 100;
-            var height = shape.Height > 0 ? shape.Height : 100;
+            var width = shape.Width;
+            var height = shape.Height;
             var rotation = shape.Angle;
 
             var rect = new Rectangle
