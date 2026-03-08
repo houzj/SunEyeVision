@@ -71,7 +71,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         /// <summary>
         /// 旋转角度（度数，仅用于旋转矩形）
-        /// 使用数学角度定义：范围[-180°, 180°]，逆时针为正，0°表示矩形宽度方向与X轴平行
+        /// 使用图像坐标系角度定义：范围[-180°, 180°]，顺时针为正，0°表示箭头向下（+Y方向）
         /// </summary>
         public double Rotation
         {
@@ -317,8 +317,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         #region 数学角度系统支持
 
         /// <summary>
-        /// 将角度规范化到数学角度范围[-180°, 180°]
-        /// 数学角度定义：逆时针为正，0°表示矩形宽度方向与X轴平行
+        /// 将角度规范化到图像坐标系角度范围[-180°, 180°]
+        /// 图像坐标系角度定义：顺时针为正，0°表示箭头向下（+Y方向）
         /// </summary>
         /// <param name="angle">任意角度值（度）</param>
         /// <returns>规范化后的角度</returns>
@@ -338,7 +338,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// <summary>
         /// 获取旋转矩形的四个角点（世界坐标）
         /// 角点顺序：TopLeft, TopRight, BottomRight, BottomLeft
-        /// 使用数学角度系统：Rotation为正时逆时针旋转
+        /// 尺寸语义：Size.Width垂直于箭头方向，Size.Height沿箭头方向
+        /// 图像坐标系角度：0°时箭头向下，90°向右，180°向上，-90°向左（顺时针为正）
         /// </summary>
         /// <returns>四个角点数组</returns>
         public Point[] GetCorners()
@@ -349,8 +350,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             var center = Position;
             var w = Size.Width;
             var h = Size.Height;
-            // 数学角度系统：正角度逆时针旋转
-            // 在屏幕坐标系（Y轴向下）中，需要使用修正后的旋转矩阵
+
+            // 图像坐标系角度：顺时针为正，0°向下
+            // 直接使用图像坐标系角度进行计算
             var angleRad = Rotation * Math.PI / 180;
             var cos = Math.Cos(angleRad);
             var sin = Math.Sin(angleRad);
@@ -360,7 +362,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             var hh = h / 2;
 
             // 应用旋转变换得到世界坐标
-            // 在屏幕坐标系中实现数学角度系统（逆时针为正）
+            // 注意：这里使用顺时针旋转变换
             Point Transform(double localX, double localY)
             {
                 return new Point(
@@ -380,8 +382,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         /// <summary>
         /// 获取方向箭头几何数据
-        /// 箭头从中心指向右边中点的方向（表示矩形的"宽度方向"，与数学角度0°一致）
-        /// 使用数学角度系统：0°时箭头指向右方，逆时针为正
+        /// 箭头从中心沿高度方向指向下边中点
+        /// 尺寸语义：Size.Height沿箭头方向（高度），Size.Width垂直于箭头方向（宽度）
+        /// 图像坐标系角度：0°时箭头向下，90°向右，180°向上，-90°向左（顺时针为正）
         /// </summary>
         /// <returns>箭头起点和终点</returns>
         public (Point Start, Point End) GetDirectionArrow()
@@ -390,22 +393,56 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 return (Position, Position);
 
             var center = Position;
-            var w = Size.Width;
+            var h = Size.Height;
 
-            // 数学角度（逆时针为正）
-            var mathAngleRad = Rotation * Math.PI / 180;
-            var sin = Math.Sin(mathAngleRad);
-            var cos = Math.Cos(mathAngleRad);
+            // 图像坐标系角度：顺时针为正，0°向下
+            // 直接使用图像坐标系角度进行计算
+            var angleRad = Rotation * Math.PI / 180;
+            var sin = Math.Sin(angleRad);
+            var cos = Math.Cos(angleRad);
 
-            // 右边中点：本地坐标 (w/2, 0)
-            // 在屏幕坐标系中应用逆时针旋转变换：
-            // x' = x*cos(θ) + y*sin(θ) = (w/2)*cos + 0*sin = (w/2)*cos
-            // y' = -x*sin(θ) + y*cos(θ) = -(w/2)*sin + 0 = -(w/2)*sin
-            var rightCenterX = center.X + (w / 2) * cos;
-            var rightCenterY = center.Y - (w / 2) * sin;
+            // 箭头终点：沿高度方向指向下边中点
+            // 箭头方向向量：(sin, cos) - 箭头朝下
+            // 下边中点距离中心：h/2
+            var arrowEndX = center.X + (h / 2) * sin;
+            var arrowEndY = center.Y + (h / 2) * cos;
 
-            // 箭头从中心到右边中点
-            return (center, new Point(rightCenterX, rightCenterY));
+            return (center, new Point(arrowEndX, arrowEndY));
+        }
+
+        /// <summary>
+        /// 获取旋转手柄位置
+        /// 手柄位于下边中点，然后沿下方方向向外偏移35像素
+        /// 尺寸语义：Size.Height沿箭头方向（高度），Size.Width垂直于箭头方向（宽度）
+        /// 图像坐标系角度：0°时箭头向下，90°向右，180°向上，-90°向左（顺时针为正）
+        /// </summary>
+        /// <returns>旋转手柄的世界坐标</returns>
+        public Point GetRotationHandlePosition()
+        {
+            if (Type != ROIType.RotatedRectangle)
+                return Position;
+
+            var center = Position;
+            var h = Size.Height;
+
+            // 图像坐标系角度：顺时针为正，0°向下
+            // 直接使用图像坐标系角度进行计算
+            var angleRad = Rotation * Math.PI / 180;
+            var sin = Math.Sin(angleRad);
+            var cos = Math.Cos(angleRad);
+
+            // 下边中点坐标（与箭头方向一致）
+            // 箭头方向向量：(sin, cos) - 箭头朝下
+            var bottomCenterX = center.X + (h / 2) * sin;
+            var bottomCenterY = center.Y + (h / 2) * cos;
+
+            // 旋转手柄位于下边中点，沿下方方向向外偏移35像素
+            // 下方方向向量：(sin, cos)
+            const double handleOffset = 35;
+            var handleX = bottomCenterX + handleOffset * sin;
+            var handleY = bottomCenterY + handleOffset * cos;
+
+            return new Point(handleX, handleY);
         }
 
         /// <summary>

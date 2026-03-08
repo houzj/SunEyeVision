@@ -331,19 +331,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
             }
         }
 
-        /// <summary>
-        /// 重新附加事件订阅（用于控件重新加载后恢复）
-        /// </summary>
-        public void ReattachEvents()
-        {
-            // 确保没有重复订阅
-            _editor.SelectionChanged -= OnEditorSelectionChanged;
-            _editor.ROIChanged -= OnEditorROIChanged;
-
-            _editor.SelectionChanged += OnEditorSelectionChanged;
-            _editor.ROIChanged += OnEditorROIChanged;
-        }
-
         #region INotifyPropertyChanged
 
         public event PropertyChangedEventHandler? PropertyChanged;

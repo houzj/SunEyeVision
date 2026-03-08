@@ -59,24 +59,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 
         public ROIInfoPanel()
         {
-            // 设计时跳过资源加载
-            if (!System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
-            {
-                // 在运行时加载资源字典
-                try
-                {
-                    var resourceDict = new ResourceDictionary
-                    {
-                        Source = new Uri("pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml", UriKind.Absolute)
-                    };
-                    Resources.MergedDictionaries.Add(resourceDict);
-                }
-                catch
-                {
-                    // 忽略资源加载失败
-                }
-            }
-
             InitializeComponent();
         }
 
@@ -115,10 +97,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                             : Visibility.Collapsed;
                     case "Line":
                         return type == ROIType.Line
-                            ? Visibility.Visible
-                            : Visibility.Collapsed;
-                    case "NotLine":
-                        return type != ROIType.Line
                             ? Visibility.Visible
                             : Visibility.Collapsed;
                     default:
