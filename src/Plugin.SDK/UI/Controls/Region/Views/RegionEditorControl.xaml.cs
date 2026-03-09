@@ -145,16 +145,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 // 启用OverlayCanvas命中测试
                 _mainImageControl.OverlayHitTestVisible = true;
 
-                // 订阅ImageControl事件
-                _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
-                _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
-                _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
-                _mainImageControl.CanvasMouseLeftButtonUp += ImageControl_CanvasMouseLeftButtonUp;
+            // 订阅ImageControl事件
+            _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
+            _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
+            _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
 
-                // 添加自己的鼠标事件处理（当CaptureMouse时使用）
-                MouseMove += RegionEditorControl_MouseMove;
-                MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
-                LostMouseCapture += RegionEditorControl_LostMouseCapture;
+            // 添加自己的鼠标事件处理（当CaptureMouse时使用）
+            MouseMove += RegionEditorControl_MouseMove;
+            MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
+            LostMouseCapture += RegionEditorControl_LostMouseCapture;
             }
 
             UpdateRegionOverlay();
@@ -167,15 +166,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             if (_mainImageControl != null)
             {
-                // 取消订阅事件
-                _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
-                _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
-                _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
-                _mainImageControl.CanvasMouseLeftButtonUp -= ImageControl_CanvasMouseLeftButtonUp;
+            // 取消订阅事件
+            _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
+            _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
+            _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
 
-                MouseMove -= RegionEditorControl_MouseMove;
-                MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
-                LostMouseCapture -= RegionEditorControl_LostMouseCapture;
+            MouseMove -= RegionEditorControl_MouseMove;
+            MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
+            LostMouseCapture -= RegionEditorControl_LostMouseCapture;
 
                 // 清理覆盖层
                 _mainImageControl.OverlayCanvas.Children.Clear();
@@ -571,10 +569,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             }
         }
 
-        private void ImageControl_CanvasMouseLeftButtonUp(object? sender, ImageMouseEventArgs e)
-        {
-            FinishInteraction();
-        }
+
 
         private void RegionEditorControl_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
