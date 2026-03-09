@@ -26,7 +26,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// <summary>
         /// 创建形状（参考ROIImageEditor.CreateROIShape 1820-1896行）
         /// </summary>
-        public static Shape CreateShape(ShapeDefinition shape, bool isSelected, bool isPreview = false)
+        public static Shape CreateShape(ShapeParameters shape, bool isSelected, bool isPreview = false)
         {
             if (shape == null) return null;
 
@@ -75,7 +75,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             return result;
         }
 
-        private static Rectangle CreateRectangle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
+        private static Rectangle CreateRectangle(ShapeParameters shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
             var width = shape.Width;
             var height = shape.Height;
@@ -101,7 +101,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             return rect;
         }
 
-        private static Ellipse CreateCircle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
+        private static Ellipse CreateCircle(ShapeParameters shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
             var radius = shape.Radius;
 
@@ -124,7 +124,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             return ellipse;
         }
 
-        private static Rectangle CreateRotatedRectangle(ShapeDefinition shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
+        private static Rectangle CreateRotatedRectangle(ShapeParameters shape, Brush fillColor, Brush strokeColor, double strokeThickness, bool isPreview)
         {
             var width = shape.Width;
             var height = shape.Height;
@@ -155,7 +155,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             return rect;
         }
 
-        private static Line CreateLine(ShapeDefinition shape, Brush strokeColor, double strokeThickness, bool isPreview)
+        private static Line CreateLine(ShapeParameters shape, Brush strokeColor, double strokeThickness, bool isPreview)
         {
             var line = new Line
             {

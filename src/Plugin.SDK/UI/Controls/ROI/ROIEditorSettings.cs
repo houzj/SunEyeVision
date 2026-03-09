@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 {
     /// <summary>
     /// ROI编辑器显示设置
     /// </summary>
-    public class ROIEditorSettings : INotifyPropertyChanged
+    public class ROIEditorSettings : ObservableObject
     {
         private double _labelFontSize = 12;
         private Color _labelForeground = Colors.Blue;
@@ -106,25 +105,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
         /// 获取默认设置实例
         /// </summary>
         public static ROIEditorSettings Default { get; } = new ROIEditorSettings();
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
     }
 }

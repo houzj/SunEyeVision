@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows.Media.Imaging;
 using SunEyeVision.UI.Services.Thumbnail;
 using SunEyeVision.UI.Views.Controls.Panels;
+using SunEyeVision.UI.ViewModels;
 
 namespace SunEyeVision.UI.Models
 {
@@ -18,12 +17,12 @@ namespace SunEyeVision.UI.Models
     /// 1. 输入源是用户选择的原始数据，执行流程不应修改
     /// 2. 提供只读语义，保护用户输入不被意外修改
     /// 3. 支持运行模式选择（运行全部/运行选择）
-    /// 
+    ///
     /// 与 NodeOutputCache 的区别：
     /// - ImageInputSource: 输入数据，用户选择，只读
     /// - NodeOutputCache: 输出数据，执行结果，可变
     /// </remarks>
-    public class ImageInputSource : INotifyPropertyChanged, INotifyCollectionChanged
+    public class ImageInputSource : ObservableObject, INotifyCollectionChanged
     {
         private readonly BatchObservableCollection<ImageInfo> _images;
         private int _currentIndex = -1;
@@ -125,8 +124,6 @@ namespace SunEyeVision.UI.Models
             add => _images.CollectionChanged += value;
             remove => _images.CollectionChanged -= value;
         }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
         /// 创建图像输入源
@@ -241,19 +238,6 @@ namespace SunEyeVision.UI.Models
                 image.Thumbnail = null;
             }
             return count;
-        }
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? name = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

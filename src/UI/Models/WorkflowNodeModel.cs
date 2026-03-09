@@ -13,6 +13,14 @@ namespace SunEyeVision.UI.Models
     /// <summary>
     /// 工作流节点模?
     /// </summary>
+    /// <remarks>
+    /// 注意：此类不继承 ObservableObject，原因：
+    /// 1. 需要支持属性变更批处理（BeginPropertyBatch/EndPropertyBatch）
+    /// 2. 需要扩展事件（PropertyChanging、PropertyChangedExtended）
+    /// 3. 有特殊的批处理延迟优化逻辑
+    ///
+    /// 如果需要属性通知功能，直接使用内置的 SetProperty/OnPropertyChanged 方法。
+    /// </remarks>
     public class WorkflowNode : INotifyPropertyChanged
     {
         private string _id = string.Empty;
@@ -517,7 +525,7 @@ namespace SunEyeVision.UI.Models
     /// <summary>
     /// 工作流连接线模型
     /// </summary>
-        public class WorkflowConnection : INotifyPropertyChanged
+        public class WorkflowConnection : ObservableObject
     {
         private string _id = string.Empty;
         private string _sourceNodeId = string.Empty;
@@ -537,66 +545,31 @@ namespace SunEyeVision.UI.Models
         public string Id
         {
             get => _id;
-            set
-            {
-                if (_id != value)
-                {
-                    _id = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _id, value);
         }
 
         public string SourceNodeId
         {
             get => _sourceNodeId;
-            set
-            {
-                if (_sourceNodeId != value)
-                {
-                    _sourceNodeId = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _sourceNodeId, value);
         }
 
         public string TargetNodeId
         {
             get => _targetNodeId;
-            set
-            {
-                if (_targetNodeId != value)
-                {
-                    _targetNodeId = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _targetNodeId, value);
         }
 
         public string SourcePort
         {
             get => _sourcePort;
-            set
-            {
-                if (_sourcePort != value)
-                {
-                    _sourcePort = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _sourcePort, value);
         }
 
         public string TargetPort
         {
             get => _targetPort;
-            set
-            {
-                if (_targetPort != value)
-                {
-                    _targetPort = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _targetPort, value);
         }
 
         /// <summary>
@@ -605,14 +578,7 @@ namespace SunEyeVision.UI.Models
         public double ArrowAngle
         {
             get => _arrowAngle;
-            set
-            {
-                if (_arrowAngle != value)
-                {
-                    _arrowAngle = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _arrowAngle, value);
         }
 
         /// <summary>
@@ -623,10 +589,8 @@ namespace SunEyeVision.UI.Models
             get => _arrowPosition;
             set
             {
-                if (_arrowPosition != value)
+                if (SetProperty(ref _arrowPosition, value))
                 {
-                    _arrowPosition = value;
-                    OnPropertyChanged();
                     OnPropertyChanged(nameof(ArrowX));
                     OnPropertyChanged(nameof(ArrowY));
                 }
@@ -659,14 +623,7 @@ namespace SunEyeVision.UI.Models
         public ConnectionStatus Status
         {
             get => _status;
-            set
-            {
-                if (_status != value)
-                {
-                    _status = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _status, value);
         }
 
         /// <summary>
@@ -687,14 +644,7 @@ namespace SunEyeVision.UI.Models
         public bool ShowPathPoints
         {
             get => _showPathPoints;
-            set
-            {
-                if (_showPathPoints != value)
-                {
-                    _showPathPoints = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _showPathPoints, value);
         }
 
         /// <summary>
@@ -703,14 +653,7 @@ namespace SunEyeVision.UI.Models
         public string PathData
         {
             get => _pathData;
-            set
-            {
-                if (_pathData != value)
-                {
-                    _pathData = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _pathData, value);
         }
 
         /// <summary>
@@ -724,14 +667,7 @@ namespace SunEyeVision.UI.Models
         public bool IsSelected
         {
             get => _isSelected;
-            set
-            {
-                if (_isSelected != value)
-                {
-                    _isSelected = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _isSelected, value);
         }
 
         private bool _isVisible = true;
@@ -742,14 +678,7 @@ namespace SunEyeVision.UI.Models
         public bool IsVisible
         {
             get => _isVisible;
-            set
-            {
-                if (_isVisible != value)
-                {
-                    _isVisible = value;
-                    OnPropertyChanged();
-                }
-            }
+            set => SetProperty(ref _isVisible, value);
         }
 
         public System.Windows.Point SourcePosition
@@ -757,12 +686,8 @@ namespace SunEyeVision.UI.Models
             get => _sourcePosition;
             set
             {
-                if (_sourcePosition != value)
+                if (SetProperty(ref _sourcePosition, value))
                 {
-                    // 注意：这?Model 类，无法直接访问 ViewModel
-                    // 日志已移?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
-                    _sourcePosition = value;
-                    OnPropertyChanged();
                     OnPropertyChanged(nameof(StartX));
                     OnPropertyChanged(nameof(StartY));
                 }
@@ -774,12 +699,8 @@ namespace SunEyeVision.UI.Models
             get => _targetPosition;
             set
             {
-                if (_targetPosition != value)
+                if (SetProperty(ref _targetPosition, value))
                 {
-                    // 注意：这?Model 类，无法直接访问 ViewModel
-                    // 日志已移?WorkflowCanvasControl 中通过 _viewModel?.AddLog 输出
-                    _targetPosition = value;
-                    OnPropertyChanged();
                     OnPropertyChanged(nameof(EndX));
                     OnPropertyChanged(nameof(EndY));
                 }
@@ -824,13 +745,6 @@ namespace SunEyeVision.UI.Models
             SourcePosition = new Point(0, 0);
             TargetPosition = new Point(0, 0);
             ArrowPosition = new Point(0, 0);
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         /// <summary>

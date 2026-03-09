@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI.Converters
 {
@@ -11,20 +12,48 @@ namespace SunEyeVision.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is bool boolValue)
+            try
             {
-                return boolValue ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                PluginLogger.Info($"[BoolToVisibleConverter] Convert 被调用: value={value?.ToString() ?? "null"}, value.GetType()={value?.GetType().Name ?? "null"}, targetType={targetType?.Name ?? "null"}", "UI");
+
+                if (value is bool boolValue)
+                {
+                    var result = boolValue ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                    PluginLogger.Info($"[BoolToVisibleConverter] 返回: {result}", "UI");
+                    return result;
+                }
+
+                PluginLogger.Warning($"[BoolToVisibleConverter] value 不是 bool 类型，返回默认值 Collapsed", "UI");
+                return System.Windows.Visibility.Collapsed;
             }
-            return System.Windows.Visibility.Collapsed;
+            catch (Exception ex)
+            {
+                PluginLogger.Error($"[BoolToVisibleConverter] Convert 发生异常: {ex.Message}\n{ex.StackTrace}", "UI");
+                return System.Windows.Visibility.Collapsed;
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is System.Windows.Visibility visibility)
+            try
             {
-                return visibility == System.Windows.Visibility.Visible;
+                PluginLogger.Info($"[BoolToVisibleConverter] ConvertBack 被调用: value={value?.ToString() ?? "null"}, value.GetType()={value?.GetType().Name ?? "null"}, targetType={targetType?.Name ?? "null"}", "UI");
+
+                if (value is System.Windows.Visibility visibility)
+                {
+                    var result = visibility == System.Windows.Visibility.Visible;
+                    PluginLogger.Info($"[BoolToVisibleConverter] ConvertBack 返回: {result}", "UI");
+                    return result;
+                }
+
+                PluginLogger.Warning($"[BoolToVisibleConverter] value 不是 Visibility 类型，返回默认值 false", "UI");
+                return false;
             }
-            return false;
+            catch (Exception ex)
+            {
+                PluginLogger.Error($"[BoolToVisibleConverter] ConvertBack 发生异常: {ex.Message}\n{ex.StackTrace}", "UI");
+                return false;
+            }
         }
     }
 

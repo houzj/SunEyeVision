@@ -163,7 +163,7 @@ namespace SunEyeVision.Tool.RegionEditor.Views
         private void AddLine_Click(object sender, RoutedEventArgs e)
         {
             var region = RegionData.CreateDrawingRegion($"直线_{_viewModel?.Regions.Count + 1}", ShapeType.Line);
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.StartX = 100;
                 shapeDef.StartY = 100;

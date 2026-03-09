@@ -97,7 +97,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             return new RegionData
             {
                 Name = name,
-                Definition = new ShapeDefinition { ShapeType = shapeType }
+                Definition = new ShapeParameters { ShapeType = shapeType }
             };
         }
 

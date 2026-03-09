@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -13,7 +12,7 @@ namespace SunEyeVision.UI.ViewModels
     /// 重构说明：已改用 RuntimeParameterMetadata 替代 ParameterMetadata。
     /// 参数元数据直接从 ToolParameters 特性读取，避免冗余层。
     /// </remarks>
-    public class ParameterItemViewModel : INotifyPropertyChanged
+    public class ParameterItemViewModel : ObservableObject
     {
         private readonly RuntimeParameterMetadata _metadata;
         private ParameterBinding _binding;
@@ -321,17 +320,6 @@ namespace SunEyeVision.UI.ViewModels
         {
             AvailableSourceNodes.Clear();
             AvailableSourceProperties.Clear();
-        }
-
-        #endregion
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         #endregion

@@ -252,7 +252,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef)
+            if (region?.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX -= _deltaX;
                 shapeDef.CenterY -= _deltaY;
@@ -270,7 +270,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef)
+            if (region?.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX += _deltaX;
                 shapeDef.CenterY += _deltaY;
@@ -301,24 +301,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
     public class ResizeRegionAction : IEditAction
     {
         private readonly Guid _regionId;
-        private readonly ShapeDefinition _originalState;
-        private readonly ShapeDefinition _newState;
+        private readonly ShapeParameters _originalState;
+        private readonly ShapeParameters _newState;
         private readonly RegionEditorViewModel _editor;
 
         public string Description => "调整大小";
 
-        public ResizeRegionAction(Guid regionId, ShapeDefinition originalState, ShapeDefinition newState, RegionEditorViewModel editor)
+        public ResizeRegionAction(Guid regionId, ShapeParameters originalState, ShapeParameters newState, RegionEditorViewModel editor)
         {
             _regionId = regionId;
-            _originalState = (ShapeDefinition)originalState.Clone();
-            _newState = (ShapeDefinition)newState.Clone();
+            _originalState = (ShapeParameters)originalState.Clone();
+            _newState = (ShapeParameters)newState.Clone();
             _editor = editor;
         }
 
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef)
+            if (region?.Definition is ShapeParameters shapeDef)
             {
                 CopyState(_originalState, shapeDef);
                 region.MarkModified();
@@ -328,14 +328,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef)
+            if (region?.Definition is ShapeParameters shapeDef)
             {
                 CopyState(_newState, shapeDef);
                 region.MarkModified();
             }
         }
 
-        private static void CopyState(ShapeDefinition source, ShapeDefinition target)
+        private static void CopyState(ShapeParameters source, ShapeParameters target)
         {
             target.CenterX = source.CenterX;
             target.CenterY = source.CenterY;
@@ -366,28 +366,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
     public class ModifyRegionAction : IEditAction
     {
         private readonly Guid _regionId;
-        private readonly ShapeDefinition _originalState;
-        private ShapeDefinition? _newState;
+        private readonly ShapeParameters _originalState;
+        private ShapeParameters? _newState;
         private readonly RegionEditorViewModel _editor;
 
         public string Description => "修改区域";
 
-        public ModifyRegionAction(Guid regionId, ShapeDefinition originalState, RegionEditorViewModel editor)
+        public ModifyRegionAction(Guid regionId, ShapeParameters originalState, RegionEditorViewModel editor)
         {
             _regionId = regionId;
-            _originalState = (ShapeDefinition)originalState.Clone();
+            _originalState = (ShapeParameters)originalState.Clone();
             _editor = editor;
         }
 
-        public void CaptureNewState(ShapeDefinition newState)
+        public void CaptureNewState(ShapeParameters newState)
         {
-            _newState = (ShapeDefinition)newState.Clone();
+            _newState = (ShapeParameters)newState.Clone();
         }
 
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef && _originalState != null)
+            if (region?.Definition is ShapeParameters shapeDef && _originalState != null)
             {
                 CopyState(_originalState, shapeDef);
                 region.MarkModified();
@@ -397,14 +397,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeDefinition shapeDef && _newState != null)
+            if (region?.Definition is ShapeParameters shapeDef && _newState != null)
             {
                 CopyState(_newState, shapeDef);
                 region.MarkModified();
             }
         }
 
-        private static void CopyState(ShapeDefinition source, ShapeDefinition target)
+        private static void CopyState(ShapeParameters source, ShapeParameters target)
         {
             target.CenterX = source.CenterX;
             target.CenterY = source.CenterY;

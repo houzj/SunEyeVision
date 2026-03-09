@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 
@@ -13,15 +15,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// <summary>
     /// 区域编辑器视图模型
     /// </summary>
-    public class RegionEditorViewModel : INotifyPropertyChanged, IDisposable
+    public class RegionEditorViewModel : ObservableObject, IDisposable
     {
         private readonly Logic.RegionResolver _resolver;
         private readonly EditHistory _editHistory;
         private RegionData? _selectedRegion;
-        private ShapeDefinition? _editingShape;
+        private ShapeParameters? _editingShape;
         private bool _isEditing;
         private bool _isDrawing;
-        private ShapeType _drawingShapeType = ShapeType.Rectangle;
+        private ShapeType? _selectedShapeType = null;  // 默认为null（无形状选择）
         private RegionDefinitionMode _currentMode = RegionDefinitionMode.Drawing;
         private string _statusMessage = "就绪";
         private bool _isInfoPanelVisible = true;
@@ -30,9 +32,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private ParameterPanelViewModel? _parameterPanel;
         private NodeSelectorViewModel? _nodeSelector;
         private IRegionDataSourceProvider? _dataProvider;
-        
-        // 新增：绘制参数预览形状
-        private ShapeDefinition? _previewShape;
+
+        // 形状参数（可空，未选中区域时为null）
+        private ShapeParameters? _parameters;
+
+        // WPF Dispatcher（用于延迟UI更新）
+        private readonly Dispatcher _dispatcher;
 
         /// <summary>
         /// 区域列表
@@ -47,8 +52,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             get => _selectedRegion;
             set
             {
+                PluginLogger.Info($"[RegionEditor] SelectedRegion setter 被调用，新值={value?.Name ?? "null"}, 旧值={_selectedRegion?.Name ?? "null"}", "RegionEditor");
+                
                 if (SetProperty(ref _selectedRegion, value))
                 {
+                    PluginLogger.Info($"[RegionEditor] ✓ SelectedRegion 已更新，调用 UpdateEditingShape()", "RegionEditor");
                     UpdateEditingShape();
                     OnPropertyChanged(nameof(HasSelection));
                     OnPropertyChanged(nameof(CanEdit));
@@ -59,13 +67,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                     OnPropertyChanged(nameof(IsSubscribeByParameterMode));
                     OnPropertyChanged(nameof(ParameterBindings));
                 }
+                else
+                {
+                    PluginLogger.Warning($"[RegionEditor] ⚠️ SetProperty 返回 false，值未变化", "RegionEditor");
+                }
             }
         }
 
         /// <summary>
         /// 当前编辑的形状定义
         /// </summary>
-        public ShapeDefinition? EditingShape
+        public ShapeParameters? EditingShape
         {
             get => _editingShape;
             private set => SetProperty(ref _editingShape, value);
@@ -111,8 +123,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 if (!IsDrawingMode)
                     return "订阅模式";
 
-                return IsDrawing
-                    ? $"绘制{GetShapeTypeName(DrawingShapeType)}"
+                return IsDrawing && SelectedShapeType.HasValue
+                    ? $"绘制{GetShapeTypeName(SelectedShapeType.Value)}"
                     : "选择模式";
             }
         }
@@ -135,35 +147,70 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         }
 
         /// <summary>
-        /// 绘制的形状类型
+        /// 选中的形状类型
         /// </summary>
-        public ShapeType DrawingShapeType
+        public ShapeType? SelectedShapeType
         {
-            get => _drawingShapeType;
+            get => _selectedShapeType;
             set
             {
-                if (SetProperty(ref _drawingShapeType, value))
+                var stackTrace = new System.Diagnostics.StackTrace();
+                var callingMethod = stackTrace.GetFrame(1)?.GetMethod()?.Name ?? "Unknown";
+                var callingClass = stackTrace.GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
+
+                PluginLogger.Info($"[RegionEditor] SelectedShapeType setter: 旧值={_selectedShapeType}, 新值={value}, 调用者={callingClass}.{callingMethod}()", "RegionEditor");
+
+                if (SetProperty(ref _selectedShapeType, value))
                 {
+                    PluginLogger.Info($"[RegionEditor] ✓ SetProperty 返回 true，调用 UpdateParameters()", "RegionEditor");
                     OnPropertyChanged(nameof(CurrentToolMode));
                     OnPropertyChanged(nameof(IsAnyShapeSelected));
-                    UpdatePreviewShape();
+                    UpdateParameters();
+                }
+                else
+                {
+                    PluginLogger.Warning($"[RegionEditor] ⚠️ SetProperty 返回 false，值未变化，不调用 UpdateParameters()", "RegionEditor");
                 }
             }
         }
 
         /// <summary>
-        /// 预览形状（用于绘制参数面板）
+        /// 形状参数（用于绘制参数面板）
         /// </summary>
-        public ShapeDefinition? PreviewShape
+        public ShapeParameters? Parameters
         {
-            get => _previewShape;
-            private set => SetProperty(ref _previewShape, value);
+            get => _parameters;
+            private set
+            {
+                if (SetProperty(ref _parameters, value))
+                {
+                    OnPropertyChanged(nameof(PreviewLength));
+
+                    // 同步回选中区域（编辑模式）
+                    if (_parameters != null && _selectedRegion?.Definition is ShapeParameters editingShape && _currentMode != RegionDefinitionMode.Drawing)
+                    {
+                        editingShape.CenterX = _parameters.CenterX;
+                        editingShape.CenterY = _parameters.CenterY;
+                        editingShape.Width = _parameters.Width;
+                        editingShape.Height = _parameters.Height;
+                        editingShape.Radius = _parameters.Radius;
+                        editingShape.Angle = _parameters.Angle;
+                        editingShape.StartX = _parameters.StartX;
+                        editingShape.StartY = _parameters.StartY;
+                        editingShape.EndX = _parameters.EndX;
+                        editingShape.EndY = _parameters.EndY;
+
+                        _selectedRegion.MarkModified();
+                        RegionChanged?.Invoke(this, new RegionChangedEventArgs(_selectedRegion, RegionChangeType.Modified));
+                    }
+                }
+            }
         }
 
         /// <summary>
         /// 是否选择了任何形状
         /// </summary>
-        public bool IsAnyShapeSelected => _drawingShapeType != ShapeType.Point;
+        public bool IsAnyShapeSelected => _selectedShapeType.HasValue;
 
         /// <summary>
         /// 预览直线长度
@@ -172,9 +219,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         {
             get
             {
-                if (_previewShape == null) return 0;
-                var dx = _previewShape.EndX - _previewShape.StartX;
-                var dy = _previewShape.EndY - _previewShape.StartY;
+                if (_parameters == null) return 0;
+                var dx = _parameters.EndX - _parameters.StartX;
+                var dy = _parameters.EndY - _parameters.StartY;
                 return Math.Sqrt(dx * dx + dy * dy);
             }
         }
@@ -312,12 +359,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 当前图形类型
         /// </summary>
-        public ShapeType CurrentShapeType
+        public ShapeType? CurrentShapeType
         {
-            get => _drawingShapeType;
+            get => _selectedShapeType;
             set
             {
-                if (SetProperty(ref _drawingShapeType, value))
+                if (SetProperty(ref _selectedShapeType, value))
                 {
                     OnPropertyChanged(nameof(IsRectangleSelected));
                     OnPropertyChanged(nameof(IsCircleSelected));
@@ -479,8 +526,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
         public RegionEditorViewModel()
         {
+            _dispatcher = Dispatcher.CurrentDispatcher;
             _resolver = new Logic.RegionResolver();
             _editHistory = new EditHistory();
+
+            // Parameters初始为null，只有选中区域后才显示参数（参考ROIInfoViewModel）
+            _parameters = null;
 
             AddRegionCommand = new RelayCommand<ShapeType>(AddRegion);
             RemoveRegionCommand = new RelayCommand(RemoveSelectedRegion, () => HasSelection);
@@ -554,7 +605,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             var region = RegionData.CreateDrawingRegion($"区域_{Regions.Count + 1}", shapeType);
 
             // 设置默认参数
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX = 100;
                 shapeDef.CenterY = 100;
@@ -681,59 +732,114 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         }
 
         /// <summary>
-        /// 更新预览形状
+        /// 更新形状参数
         /// </summary>
-        private void UpdatePreviewShape()
+        private void UpdateParameters()
         {
-            // 根据当前选择的形状类型创建预览形状
-            switch (_drawingShapeType)
+            PluginLogger.Info($"[RegionEditor] UpdateParameters: SelectedShapeType={_selectedShapeType?.ToString() ?? "null"}, SelectedRegion={SelectedRegion?.Name ?? "null"}", "RegionEditor");
+
+            // 如果没有选中形状类型，Parameters 设为 null
+            if (!_selectedShapeType.HasValue)
             {
-                case ShapeType.Rectangle:
-                    PreviewShape = new ShapeDefinition
-                    {
-                        ShapeType = ShapeType.Rectangle,
-                        CenterX = 100,
-                        CenterY = 100,
-                        Width = 100,
-                        Height = 100
-                    };
-                    break;
-                case ShapeType.Circle:
-                    PreviewShape = new ShapeDefinition
-                    {
-                        ShapeType = ShapeType.Circle,
-                        CenterX = 100,
-                        CenterY = 100,
-                        Radius = 50
-                    };
-                    break;
-                case ShapeType.RotatedRectangle:
-                    PreviewShape = new ShapeDefinition
-                    {
-                        ShapeType = ShapeType.RotatedRectangle,
-                        CenterX = 100,
-                        CenterY = 100,
-                        Width = 100,
-                        Height = 100,
-                        Angle = 0
-                    };
-                    break;
-                case ShapeType.Line:
-                    PreviewShape = new ShapeDefinition
-                    {
-                        ShapeType = ShapeType.Line,
-                        StartX = 50,
-                        StartY = 50,
-                        EndX = 150,
-                        EndY = 150
-                    };
-                    break;
-                default:
-                    PreviewShape = null;
-                    break;
+                PluginLogger.Info($"[RegionEditor] 没有选中形状类型，Parameters设为null", "RegionEditor");
+                Parameters = null;
+                return;
             }
-            
-            OnPropertyChanged(nameof(PreviewLength));
+
+            // 优先使用选中区域的值（仅当形状类型匹配）
+            if (SelectedRegion?.Definition is ShapeParameters selectedShapeDef &&
+                selectedShapeDef.ShapeType == _selectedShapeType.Value)
+            {
+                PluginLogger.Info($"[RegionEditor] 使用选中区域的值创建新Parameters", "RegionEditor");
+                Parameters = new ShapeParameters
+                {
+                    ShapeType = selectedShapeDef.ShapeType,
+                    CenterX = selectedShapeDef.CenterX,
+                    CenterY = selectedShapeDef.CenterY,
+                    Width = selectedShapeDef.Width,
+                    Height = selectedShapeDef.Height,
+                    Radius = selectedShapeDef.Radius,
+                    StartX = selectedShapeDef.StartX,
+                    StartY = selectedShapeDef.StartY,
+                    EndX = selectedShapeDef.EndX,
+                    EndY = selectedShapeDef.EndY,
+                    Angle = selectedShapeDef.Angle
+                };
+                return;
+            }
+
+            // 没有选中区域或类型不匹配：创建默认Parameters
+            if (SelectedRegion == null)
+            {
+                PluginLogger.Info($"[RegionEditor] 没有选中区域，创建默认Parameters", "RegionEditor");
+            }
+            else
+            {
+                PluginLogger.Info($"[RegionEditor] 选中区域类型不匹配，创建默认Parameters", "RegionEditor");
+            }
+            Parameters = CreateParametersByType(_selectedShapeType.Value, 100, 100, 100, 100, 0);
+
+            PluginLogger.Info($"[RegionEditor] UpdateParameters完成", "RegionEditor");
+        }
+
+        /// <summary>
+        /// 根据形状类型创建参数对象
+        /// </summary>
+        private ShapeParameters CreateParametersByType(ShapeType shapeType, double centerX, double centerY, double width, double height, double angle)
+        {
+            var parameters = new ShapeParameters();
+
+            // 为所有属性设置默认值，确保UI控件有合理的初始显示
+            parameters.CenterX = centerX;
+            parameters.CenterY = centerY;
+            parameters.Width = width > 0 ? width : 100;
+            parameters.Height = height > 0 ? height : 100;
+            parameters.Radius = 50;
+            parameters.Angle = angle;
+            parameters.StartX = centerX - (width > 0 ? width : 100) / 2;
+            parameters.StartY = centerY;
+            parameters.EndX = centerX + (width > 0 ? width : 100) / 2;
+            parameters.EndY = centerY;
+
+            // 根据形状类型设置主要参数
+            parameters.ShapeType = shapeType;
+            if (shapeType == ShapeType.Circle)
+            {
+                parameters.Radius = Math.Max(width, height) / 2;
+            }
+
+            return parameters;
+        }
+
+        /// <summary>
+        /// 公共方法：强制更新形状参数
+        /// </summary>
+        public void CallUpdateParameters()
+        {
+            PluginLogger.Info($"[RegionEditor] CallUpdateParameters 被调用（公共方法）", "RegionEditor");
+            UpdateParameters();
+        }
+
+        /// <summary>
+        /// 公共方法：强制触发 SelectedShapeType 的 PropertyChanged 事件
+        /// </summary>
+        public void NotifySelectedShapeTypeChanged()
+        {
+            PluginLogger.Info($"[RegionEditor] NotifySelectedShapeTypeChanged 被调用，SelectedShapeType={_selectedShapeType}", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] 即将触发 PropertyChanged: SelectedShapeType", "RegionEditor");
+            OnPropertyChanged(nameof(SelectedShapeType));
+            PluginLogger.Info($"[RegionEditor] PropertyChanged 已触发: SelectedShapeType", "RegionEditor");
+        }
+
+        /// <summary>
+        /// 公共方法：强制触发 IsDrawingMode 的 PropertyChanged 事件
+        /// </summary>
+        public void NotifyIsDrawingModeChanged()
+        {
+            PluginLogger.Info($"[RegionEditor] NotifyIsDrawingModeChanged 被调用", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] 即将触发 PropertyChanged: IsDrawingMode", "RegionEditor");
+            OnPropertyChanged(nameof(IsDrawingMode));
+            PluginLogger.Info($"[RegionEditor] PropertyChanged 已触发: IsDrawingMode", "RegionEditor");
         }
 
         /// <summary>
@@ -741,13 +847,35 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         private void UpdateEditingShape()
         {
-            if (SelectedRegion?.Definition is ShapeDefinition shapeDef)
+            if (SelectedRegion?.Definition is ShapeParameters shapeDef)
             {
                 EditingShape = shapeDef;
+                SelectedShapeType = shapeDef.ShapeType;
+
+                // 从选中区域的形状创建新的Parameters（参考ROIInfoViewModel的RefreshDisplay逻辑）
+                Parameters = new ShapeParameters
+                {
+                    ShapeType = shapeDef.ShapeType,
+                    CenterX = shapeDef.CenterX,
+                    CenterY = shapeDef.CenterY,
+                    Width = shapeDef.Width,
+                    Height = shapeDef.Height,
+                    Radius = shapeDef.Radius,
+                    StartX = shapeDef.StartX,
+                    StartY = shapeDef.StartY,
+                    EndX = shapeDef.EndX,
+                    EndY = shapeDef.EndY,
+                    Angle = shapeDef.Angle
+                };
+
+                PluginLogger.Info($"[RegionEditor] 从选中区域更新Parameters", "RegionEditor");
             }
             else
             {
                 EditingShape = null;
+                // 没有选中区域时，Parameters设为null（不显示参数面板）
+                Parameters = null;
+                PluginLogger.Info($"[RegionEditor] 没有选中区域，Parameters设为null", "RegionEditor");
             }
 
             // 更新参数面板
@@ -757,7 +885,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 {
                     _parameterPanel.LoadFromComputedRegion(computedRegion);
                 }
-                else if (SelectedRegion.Definition is ShapeDefinition definition)
+                else if (SelectedRegion.Definition is ShapeParameters definition)
                 {
                     _parameterPanel.CurrentShapeType = definition.ShapeType;
                 }
@@ -770,7 +898,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public void StartDrawing(ShapeType shapeType)
         {
             IsDrawing = true;
-            DrawingShapeType = shapeType;
+            SelectedShapeType = shapeType;
             StatusMessage = $"正在绘制 {shapeType}";
         }
 
@@ -790,7 +918,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         {
             if (EditingShape == null) return;
 
-            var prop = typeof(ShapeDefinition).GetProperty(parameterName);
+            var prop = typeof(ShapeParameters).GetProperty(parameterName);
             if (prop != null && prop.CanWrite)
             {
                 prop.SetValue(EditingShape, Convert.ChangeType(value, prop.PropertyType));
@@ -861,26 +989,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 _nodeSelector.Dispose();
             }
         }
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
     }
 
     /// <summary>

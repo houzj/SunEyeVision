@@ -8,6 +8,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:ShapeTypeToVisibilityConverter x:Key="ShapeTypeToVisibilityConverter"/>
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         
         <!-- 标签样式 -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
@@ -32,15 +33,25 @@
                 <!-- 提示信息 -->
                 <TextBlock Text="绘制参数"
                            Style="{StaticResource GroupHeaderStyle}"/>
-                <TextBlock Text="选择形状工具后，在此处可手动输入参数"
-                           FontSize="11"
-                           Foreground="#666"
-                           Margin="8,0,8,8"
-                           TextWrapping="Wrap"/>
-                
+
+                <!-- 未选中区域的提示（参考ROIInfoViewModel的RefreshDisplay逻辑：没有选中时CurrentInfo为null） -->
+                <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="16,24" Margin="0,0,0,8"
+                        Visibility="{Binding Parameters, Converter={StaticResource NullToVisibilityConverter}}"
+                        Background="#FAFAFA">
+                    <TextBlock Text="请先创建并选择一个区域"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Foreground="#999"
+                               FontSize="14"
+                               FontStyle="Italic"/>
+                </Border>
+
+                <!-- 参数面板（只有选中区域后才显示） -->
+                <StackPanel Visibility="{Binding Parameters, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Invert}">
+
                 <!-- 通用位置参数（所有形状显示） -->
                 <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="0,4" Margin="0,0,0,8"
-                        Visibility="{Binding DrawingShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Rectangle,Circle,RotatedRectangle', FallbackValue=Collapsed}">
+                        Visibility="{Binding SelectedShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Rectangle,Circle,RotatedRectangle', FallbackValue=Collapsed}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="60"/>
@@ -50,24 +61,24 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="中心X:" Style="{StaticResource LabelStyle}"/>
                         <ctrl:NumericUpDown Grid.Column="1"
-                                            Value="{Binding PreviewShape.CenterX, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                            Value="{Binding Parameters.CenterX, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                             Minimum="0" Maximum="9999"
                                             SmallChange="1" LargeChange="10"
                                             DecimalPlaces="3"
                                             Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                         <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                         <ctrl:NumericUpDown Grid.Column="3"
-                                            Value="{Binding PreviewShape.CenterY, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                            Value="{Binding Parameters.CenterY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                             Minimum="0" Maximum="9999"
                                             SmallChange="1" LargeChange="10"
                                             DecimalPlaces="3"
                                             Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                     </Grid>
                 </Border>
-                
+
                 <!-- 矩形参数 -->
                 <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="0,4" Margin="0,0,0,8"
-                        Visibility="{Binding DrawingShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Rectangle', FallbackValue=Collapsed}">
+                        Visibility="{Binding SelectedShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Rectangle', FallbackValue=Collapsed}">
                     <StackPanel>
                         <TextBlock Text="矩形尺寸 - 矩形工具"
                                    FontSize="12"
@@ -82,14 +93,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="宽度:" Style="{StaticResource LabelStyle}"/>
                             <ctrl:NumericUpDown Grid.Column="1"
-                                                Value="{Binding PreviewShape.Width, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.Width, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
                                                 Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="高度:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
-                                                Value="{Binding PreviewShape.Height, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.Height, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
@@ -97,10 +108,10 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
                 <!-- 圆形参数 -->
                 <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="0,4" Margin="0,0,0,8"
-                        Visibility="{Binding DrawingShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Circle', FallbackValue=Collapsed}">
+                        Visibility="{Binding SelectedShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Circle', FallbackValue=Collapsed}">
                     <StackPanel>
                         <TextBlock Text="圆形尺寸 - 圆形工具"
                                    FontSize="12"
@@ -113,7 +124,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="半径:" Style="{StaticResource LabelStyle}"/>
                             <ctrl:NumericUpDown Grid.Column="1"
-                                                Value="{Binding PreviewShape.Radius, UpdateSourceTrigger=PropertyChanged, FallbackValue=50}"
+                                                Value="{Binding Parameters.Radius, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
@@ -121,10 +132,10 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
                 <!-- 旋转矩形参数 -->
                 <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="0,4" Margin="0,0,0,8"
-                        Visibility="{Binding DrawingShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='RotatedRectangle', FallbackValue=Collapsed}">
+                        Visibility="{Binding SelectedShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='RotatedRectangle', FallbackValue=Collapsed}">
                     <StackPanel>
                         <TextBlock Text="旋转矩形尺寸 - 旋转矩形工具"
                                    FontSize="12"
@@ -141,14 +152,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="宽度:" Style="{StaticResource LabelStyle}"/>
                             <ctrl:NumericUpDown Grid.Column="1"
-                                                Value="{Binding PreviewShape.Width, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.Width, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
                                                 Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="高度:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
-                                                Value="{Binding PreviewShape.Height, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.Height, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
@@ -164,13 +175,13 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="角度:" Style="{StaticResource LabelStyle}"/>
                             <Slider Grid.Column="1"
-                                    Value="{Binding PreviewShape.Angle, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                    Value="{Binding Parameters.Angle, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                     Minimum="-180" Maximum="180"
                                     TickFrequency="15"
                                     TickPlacement="BottomRight"
                                     Margin="4,2"/>
                             <TextBlock Grid.Column="2"
-                                       Text="{Binding PreviewShape.Angle, StringFormat={}{0:F1}°, FallbackValue='0°'}"
+                                       Text="{Binding Parameters.Angle, StringFormat={}{0:F1}°}"
                                        VerticalAlignment="Center"
                                        Margin="4,2"
                                        Width="50"
@@ -178,10 +189,10 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
                 <!-- 直线参数 -->
                 <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="0,4" Margin="0,0,0,8"
-                        Visibility="{Binding DrawingShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Line', FallbackValue=Collapsed}">
+                        Visibility="{Binding SelectedShapeType, Converter={StaticResource ShapeTypeToVisibilityConverter}, ConverterParameter='Line', FallbackValue=Collapsed}">
                     <StackPanel>
                         <TextBlock Text="直线端点 - 直线工具"
                                    FontSize="12"
@@ -198,14 +209,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="起点:" Style="{StaticResource LabelStyle}"/>
                             <ctrl:NumericUpDown Grid.Column="1"
-                                                Value="{Binding PreviewShape.StartX, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                                Value="{Binding Parameters.StartX, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
                                                 Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
-                                                Value="{Binding PreviewShape.StartY, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                                Value="{Binding Parameters.StartY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
@@ -222,14 +233,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="终点:" Style="{StaticResource LabelStyle}"/>
                             <ctrl:NumericUpDown Grid.Column="1"
-                                                Value="{Binding PreviewShape.EndX, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.EndX, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
                                                 Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
-                                                Value="{Binding PreviewShape.EndY, UpdateSourceTrigger=PropertyChanged, FallbackValue=100}"
+                                                Value="{Binding Parameters.EndY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
@@ -251,18 +262,7 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
-                <!-- 未选择形状的提示 -->
-                <Border BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="16,24" Margin="0,0,0,8"
-                        Visibility="{Binding IsAnyShapeSelected, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                        Background="#FAFAFA">
-                    <TextBlock Text="请先选择形状工具"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="#999"
-                               FontSize="14"
-                               FontStyle="Italic"/>
-                </Border>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </Grid>

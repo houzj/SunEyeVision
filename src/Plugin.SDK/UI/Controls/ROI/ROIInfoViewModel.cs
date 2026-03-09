@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
 {
     /// <summary>
     /// ROI信息面板视图模型
     /// </summary>
-    public class ROIInfoViewModel : INotifyPropertyChanged
+    public class ROIInfoViewModel : ObservableObject
     {
         private readonly ROIImageEditor _editor;
         private ROIDisplayInfo? _currentInfo;
@@ -330,26 +329,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.ROI
                 CurrentInfo.PropertyChanged -= OnCurrentInfoPropertyChanged;
             }
         }
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
     }
 
     /// <summary>

@@ -127,8 +127,22 @@ public partial class App : Application
             // Debug.WriteLine($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}");
         }
 
+        // 记录到插件日志系统
+        try
+        {
+            var logger = SunEyeVision.Plugin.SDK.Logging.PluginLogger.Logger;
+            logger.Error($"[App] Dispatcher 未处理异常: {e.Exception.Message}", "App", e.Exception);
+            logger.Error($"[App] 堆栈跟踪: {e.Exception.StackTrace}", "App");
+            if (e.Exception.InnerException != null)
+            {
+                logger.Error($"[App] 内部异常: {e.Exception.InnerException.Message}", "App", e.Exception.InnerException);
+                logger.Error($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}", "App");
+            }
+        }
+        catch { }
+
         e.Handled = true; // 防止应用程序崩溃
-        MessageBox.Show($"UI 线程发生异常:\n{e.Exception.Message}",
+        MessageBox.Show($"UI 线程发生异常:\n{e.Exception.Message}\n\n堆栈跟踪:\n{e.Exception.StackTrace}",
             "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 

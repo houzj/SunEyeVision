@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls;
@@ -48,7 +49,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         // ROI编辑器风格的手柄管理
         private Rendering.EditHandle[] _currentHandles = null;
         private Rendering.HandleType _activeHandleType = Rendering.HandleType.None;
-        private ShapeDefinition? _originalShapeDefinition = null;
+        private ShapeParameters? _originalShapeDefinition = null;
         private Point _originalPosition;
         private Size _originalSize;
         private double _originalRotation;
@@ -400,7 +401,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             var position = e.ImagePosition;
 
             // 拖动ROI编辑器风格的手柄编辑
-            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeDefinition shape)
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
@@ -436,7 +437,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             var position = _mainImageControl.ScreenToImage(screenPoint);
 
             // 拖动ROI编辑器风格的手柄编辑
-            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeDefinition shape)
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
@@ -474,7 +475,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     _currentTool
                 );
 
-                if (_currentDrawingRegion.Definition is ShapeDefinition shapeDef)
+                if (_currentDrawingRegion.Definition is ShapeParameters shapeDef)
                 {
                     switch (_currentTool)
                     {
@@ -530,9 +531,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                         _handleDragStartPoint = position;
 
                         // 保存原始状态
-                        if (_selectedRegion.Definition is ShapeDefinition shapeDef)
+                        if (_selectedRegion.Definition is ShapeParameters shapeDef)
                         {
-                            _originalShapeDefinition = shapeDef.Clone() as ShapeDefinition;
+                            _originalShapeDefinition = shapeDef.Clone() as ShapeParameters;
                             _originalPosition = new Point(shapeDef.CenterX, shapeDef.CenterY);
                             _originalSize = new Size(shapeDef.Width, shapeDef.Height);
                             _originalRotation = shapeDef.Angle;
@@ -595,7 +596,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 // 完成绘制
-                var shapeDef = _currentDrawingRegion.Definition as ShapeDefinition;
+                var shapeDef = _currentDrawingRegion.Definition as ShapeParameters;
                 if (shapeDef != null)
                 {
                     // 记录区域创建日志
@@ -652,7 +653,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void UpdateDrawingPreview(Point currentPosition)
         {
-            if (_currentDrawingRegion?.Definition is not ShapeDefinition shapeDef)
+            if (_currentDrawingRegion?.Definition is not ShapeParameters shapeDef)
                 return;
 
             var dx = currentPosition.X - _startPoint.X;
@@ -682,7 +683,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void MoveRegion(RegionData region, Vector offset)
         {
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX += offset.X;
                 shapeDef.CenterY += offset.Y;
@@ -708,7 +709,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void UpdateShapeByHandle(RegionData region, Rendering.HandleType handleType, double dx, double dy)
         {
-            if (region.Definition is not ShapeDefinition shapeDef)
+            if (region.Definition is not ShapeParameters shapeDef)
                 return;
 
             switch (shapeDef.ShapeType)
@@ -735,7 +736,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 更新矩形形状（通过手柄，使用原始状态避免累积误差）
         /// </summary>
-        private void UpdateRectangleByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
+        private void UpdateRectangleByHandle(ShapeParameters shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
             // 此方法已弃用，现在使用ResizeRectangleFromCorner和ResizeRectangleFromEdge方法
             // 这些方法使用原始状态保存机制，避免累积误差
@@ -755,7 +756,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 更新圆形形状（通过手柄）
         /// </summary>
-        private void UpdateCircleByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
+        private void UpdateCircleByHandle(ShapeParameters shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
             // 圆形手柄用于调整半径
             var delta = Math.Sqrt(dx * dx + dy * dy);
@@ -783,7 +784,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 更新直线形状（通过手柄）
         /// </summary>
-        private void UpdateLineByHandle(ShapeDefinition shapeDef, Rendering.HandleType handleType, double dx, double dy)
+        private void UpdateLineByHandle(ShapeParameters shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
             switch (handleType)
             {
@@ -802,7 +803,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// ROI编辑器风格的手柄编辑处理
         /// 参考ROI编辑器的编辑操作逻辑（ROIImageEditor.xaml.cs 1461-1816行）
         /// </summary>
-        private void HandleShapeEdit(ShapeDefinition shape, Point currentPosition)
+        private void HandleShapeEdit(ShapeParameters shape, Point currentPosition)
         {
             var delta = currentPosition - _handleDragStartPoint;
 
@@ -877,7 +878,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 处理旋转操作（参考ROI编辑器HandleRotate 1792-1816行）
         /// </summary>
-        private void HandleRotate(ShapeDefinition shape, Point currentPosition)
+        private void HandleRotate(ShapeParameters shape, Point currentPosition)
         {
             var center = new Point(shape.CenterX, shape.CenterY);
 
@@ -915,7 +916,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 处理旋转矩形大小调整（使用坐标变换，参考ROI编辑器）
         /// </summary>
-        private void HandleRotatedRectangleResize(ShapeDefinition shape, Point currentPosition, Vector delta)
+        private void HandleRotatedRectangleResize(ShapeParameters shape, Point currentPosition, Vector delta)
         {
             if (_originalShapeDefinition == null) return;
 
@@ -1088,7 +1089,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 处理圆形半径调整（参考ROI编辑器HandleCircleResize 1473-1477行）
         /// </summary>
-        private void HandleCircleResize(ShapeDefinition shape, Point currentPosition)
+        private void HandleCircleResize(ShapeParameters shape, Point currentPosition)
         {
             var center = new Point(shape.CenterX, shape.CenterY);
 
@@ -1105,7 +1106,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 处理直线端点调整（参考ROI编辑器HandleLineResize 1466-1470行）
         /// </summary>
-        private void HandleLineEndpoint(ShapeDefinition shape, Point currentPosition)
+        private void HandleLineEndpoint(ShapeParameters shape, Point currentPosition)
         {
             if (_activeHandleType == Rendering.HandleType.LineStart)
             {
@@ -1123,7 +1124,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// 从角落调整矩形（不对称编辑 - 固定对角点模式）
         /// 参考ROI编辑器旋转矩形的HandleRotatedRectangleResize逻辑
         /// </summary>
-        private void ResizeRectangleFromCorner(ShapeDefinition shape, Vector delta, bool isLeft, bool isTop)
+        private void ResizeRectangleFromCorner(ShapeParameters shape, Vector delta, bool isLeft, bool isTop)
         {
             if (_originalShapeDefinition == null) return;
 
@@ -1206,7 +1207,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 从边缘调整矩形（参考ROI编辑器ResizeFromEdge 1760-1790行）
         /// </summary>
-        private void ResizeRectangleFromEdge(ShapeDefinition shape, Vector delta, bool isVertical, bool isTopOrLeft)
+        private void ResizeRectangleFromEdge(ShapeParameters shape, Vector delta, bool isVertical, bool isTopOrLeft)
         {
             if (_originalShapeDefinition == null) return;
 
@@ -1265,14 +1266,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             // 绘制当前正在创建的区域
             if (_isDrawing && _currentDrawingRegion != null)
             {
-                var previewShape = CreateRegionShape(_currentDrawingRegion, true);
-                if (previewShape != null)
+                var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
+                if (parametersShape != null)
                 {
-                    OverlayCanvas.Children.Add(previewShape);
+                    OverlayCanvas.Children.Add(parametersShape);
                 }
 
                 // 为旋转矩形预览绘制方向箭头
-                if (_currentDrawingRegion.Definition is ShapeDefinition shapeDef && 
+                if (_currentDrawingRegion.Definition is ShapeParameters shapeDef && 
                     shapeDef.ShapeType == ShapeType.RotatedRectangle)
                 {
                     DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
@@ -1291,7 +1292,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void DrawEditHandles(RegionData region)
         {
-            if (region.Definition is not ShapeDefinition shapeDef || OverlayCanvas == null)
+            if (region.Definition is not ShapeParameters shapeDef || OverlayCanvas == null)
                 return;
 
             // 使用ROI编辑器的手柄渲染器创建手柄
@@ -1313,7 +1314,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 为形状创建ROI编辑器风格的手柄
         /// </summary>
-        private void CreateHandlesForShape(ShapeDefinition shape)
+        private void CreateHandlesForShape(ShapeParameters shape)
         {
             switch (shape.ShapeType)
             {
@@ -1374,7 +1375,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 绘制旋转矩形的辅助元素（方向箭头和连接线）
         /// </summary>
-        private void DrawRotatedRectangleHelpers(ShapeDefinition shape)
+        private void DrawRotatedRectangleHelpers(ShapeParameters shape)
         {
             if (shape.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
 
@@ -1398,7 +1399,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 绘制旋转矩形的方向箭头（ROI编辑器风格）
         /// </summary>
-        private void DrawRotatedRectangleDirectionArrow(ShapeDefinition shapeDef, bool isSelected)
+        private void DrawRotatedRectangleDirectionArrow(ShapeParameters shapeDef, bool isSelected)
         {
             if (shapeDef.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
 
@@ -1422,7 +1423,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private Shape? CreateRegionShape(RegionData region, bool isPreview = false)
         {
-            if (region.Definition is not ShapeDefinition shapeDef)
+            if (region.Definition is not ShapeParameters shapeDef)
                 return null;
 
             // 使用ShapeRenderer创建形状（参考ROI编辑器）
@@ -1490,7 +1491,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private Rect GetRegionBounds(RegionData region)
         {
-            if (region.Definition is not ShapeDefinition shapeDef)
+            if (region.Definition is not ShapeParameters shapeDef)
                 return Rect.Empty;
 
             return shapeDef.ShapeType switch
@@ -1525,19 +1526,27 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private RegionData? HitTestRegion(Point point)
         {
+            PluginLogger.Info($"[RegionEditor] HitTestRegion 被调用，point=({point.X:F2}, {point.Y:F2})，区域数量={_viewModel.Regions.Count}", "RegionEditor");
+            
             // 从后往前测试（后绘制的在上面）
             foreach (var region in _viewModel.Regions.Reverse())
             {
                 if (!region.IsVisible) continue;
+                
                 if (IsPointInRegion(point, region))
+                {
+                    PluginLogger.Info($"[RegionEditor] ✓ 命中区域: {region.Name}, 类型={region.Definition?.GetType().Name}", "RegionEditor");
                     return region;
+                }
             }
+            
+            PluginLogger.Warning($"[RegionEditor] ⚠️ 未命中任何区域", "RegionEditor");
             return null;
         }
 
         private bool IsPointInRegion(Point point, RegionData region)
         {
-            if (region.Definition is not ShapeDefinition shapeDef)
+            if (region.Definition is not ShapeParameters shapeDef)
                 return false;
 
             return shapeDef.ShapeType switch
@@ -1553,7 +1562,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 判断点是否在矩形内（参考ROI编辑器使用GetBounds和Contains）
         /// </summary>
-        private bool IsPointInRectangle(Point point, ShapeDefinition shapeDef)
+        private bool IsPointInRectangle(Point point, ShapeParameters shapeDef)
         {
             var bounds = new Rect(
                 shapeDef.CenterX - shapeDef.Width / 2,
@@ -1567,7 +1576,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 判断点是否在圆形内
         /// </summary>
-        private bool IsPointInCircle(Point point, ShapeDefinition shapeDef)
+        private bool IsPointInCircle(Point point, ShapeParameters shapeDef)
         {
             var distance = Math.Sqrt(
                 Math.Pow(point.X - shapeDef.CenterX, 2) +
@@ -1578,7 +1587,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 判断点是否在直线附近（10像素容差）
         /// </summary>
-        private bool IsPointNearLine(Point point, ShapeDefinition shapeDef)
+        private bool IsPointNearLine(Point point, ShapeParameters shapeDef)
         {
             return DistanceToLine(point,
                 new Point(shapeDef.StartX, shapeDef.StartY),
@@ -1588,7 +1597,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 判断点是否在旋转矩形内（使用坐标变换法）
         /// </summary>
-        private bool IsPointInRotatedRectangle(Point point, ShapeDefinition shapeDef)
+        private bool IsPointInRotatedRectangle(Point point, ShapeParameters shapeDef)
         {
             // 1. 将测试点平移到以矩形中心为原点
             double dx = point.X - shapeDef.CenterX;
@@ -1628,9 +1637,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void SelectRegion(RegionData? region)
         {
+            PluginLogger.Info($"[RegionEditor] SelectRegion 被调用，region={region?.Name ?? "null"}", "RegionEditor");
             _selectedRegion = region;
             _viewModel.SelectedRegion = region;
             UpdateRegionOverlay();
+            PluginLogger.Info($"[RegionEditor] ✓ SelectRegion 完成，_viewModel.SelectedRegion={_viewModel.SelectedRegion?.Name ?? "null"}", "RegionEditor");
         }
 
         private void DeselectAll()
@@ -1686,21 +1697,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void OnRectangleButtonClick(object sender, RoutedEventArgs e)
         {
+            PluginLogger.Info($"[RegionEditor] OnRectangleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Rectangle, sender as Button);
         }
 
         private void OnCircleButtonClick(object sender, RoutedEventArgs e)
         {
+            PluginLogger.Info($"[RegionEditor] OnCircleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Circle, sender as Button);
         }
 
         private void OnRotatedRectangleButtonClick(object sender, RoutedEventArgs e)
         {
+            PluginLogger.Info($"[RegionEditor] OnRotatedRectangleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.RotatedRectangle, sender as Button);
         }
 
         private void OnLineButtonClick(object sender, RoutedEventArgs e)
         {
+            PluginLogger.Info($"[RegionEditor] OnLineButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Line, sender as Button);
         }
 
@@ -1728,14 +1743,49 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void SelectShapeTool(ShapeType shapeType, Button? clickedButton)
         {
+            PluginLogger.Info($"[RegionEditor] ═══════════════════════════════════════", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] SelectShapeTool 开始执行", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] 参数 shapeType={shapeType}, clickedButton={clickedButton?.Name ?? "null"}", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] 当前选中区域: {_viewModel.SelectedRegion?.Name ?? "null"}", "RegionEditor");
+
             // 设置当前工具
             _currentTool = shapeType;
-            _viewModel.CurrentShapeType = shapeType;
+            PluginLogger.Info($"[RegionEditor] 已设置 _currentTool={_currentTool}", "RegionEditor");
 
             // 切换到绘制模式
             _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
+            PluginLogger.Info($"[RegionEditor] 已设置 _viewModel.CurrentMode={_viewModel.CurrentMode}", "RegionEditor");
+
             _viewModel.IsDrawing = true;
-            _viewModel.DrawingShapeType = shapeType;
+            PluginLogger.Info($"[RegionEditor] 已设置 _viewModel.IsDrawing={_viewModel.IsDrawing}", "RegionEditor");
+
+            // ✅ 手动触发 IsDrawingMode 的 PropertyChanged 事件
+            // 因为 CurrentMode 的默认值已经是 Drawing，所以 setter 不会触发 PropertyChanged
+            PluginLogger.Info($"[RegionEditor] 手动触发 IsDrawingMode PropertyChanged", "RegionEditor");
+            _viewModel.NotifyIsDrawingModeChanged();
+
+            // 设置 SelectedShapeType（如果值变化，setter 会自动调用 UpdateParameters）
+            // 如果值相同，setter 不会调用 UpdateParameters，所以我们需要手动调用
+            var oldShapeType = _viewModel.SelectedShapeType;
+            PluginLogger.Info($"[RegionEditor] 准备设置 SelectedShapeType: 旧值={oldShapeType}, 新值={shapeType}", "RegionEditor");
+
+            _viewModel.SelectedShapeType = shapeType;
+
+            PluginLogger.Info($"[RegionEditor] 设置后 SelectedShapeType: {_viewModel.SelectedShapeType}", "RegionEditor");
+
+            // 只有当形状类型未变化时，才手动调用 UpdateParameters
+            // 因为这种情况下 setter 不会调用 UpdateParameters
+            // 同时需要手动触发 SelectedShapeType 的 PropertyChanged 事件，以确保参数面板可见性更新
+            if (oldShapeType == shapeType)
+            {
+                PluginLogger.Info($"[RegionEditor] ═════════════════════════════════════════", "RegionEditor");
+                PluginLogger.Info($"[RegionEditor] 形状类型未变化，开始手动调用方法", "RegionEditor");
+                PluginLogger.Info($"[RegionEditor] 步骤1: 调用 CallUpdateParameters()", "RegionEditor");
+                _viewModel.CallUpdateParameters();
+                PluginLogger.Info($"[RegionEditor] 步骤2: 调用 NotifySelectedShapeTypeChanged()", "RegionEditor");
+                _viewModel.NotifySelectedShapeTypeChanged();
+                PluginLogger.Info($"[RegionEditor] ═════════════════════════════════════════", "RegionEditor");
+            }
 
             // 更新按钮高亮状态
             UpdateShapeButtonHighlight(clickedButton);
@@ -1750,6 +1800,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 _ => shapeType.ToString()
             };
             _viewModel.StatusMessage = $"已选择 {shapeName} 工具，在图像上拖动绘制";
+            PluginLogger.Info($"[RegionEditor] ✓ 状态消息已更新: {_viewModel.StatusMessage}", "RegionEditor");
         }
 
         /// <summary>

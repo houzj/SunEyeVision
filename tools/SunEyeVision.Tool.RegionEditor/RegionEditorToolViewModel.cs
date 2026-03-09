@@ -115,7 +115,7 @@ namespace SunEyeVision.Tool.RegionEditor
             double width = 100, double height = 100, double angle = 0, double radius = 50)
         {
             var region = RegionData.CreateDrawingRegion(name, shapeType);
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX = centerX;
                 shapeDef.CenterY = centerY;

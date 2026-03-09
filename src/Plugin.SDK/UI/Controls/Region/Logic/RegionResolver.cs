@@ -97,7 +97,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
 
             return regionData.Definition switch
             {
-                ShapeDefinition shapeDef => ResolveShapeDefinition(shapeDef, regionData),
+                ShapeParameters shapeDef => ResolveShapeDefinition(shapeDef, regionData),
                 FixedRegion fixedDef => ResolveFixedRegion(fixedDef, regionData),
                 ComputedRegion computedDef => ResolveComputedRegion(computedDef, regionData),
                 _ => ResolvedRegion.Invalid("未知的区域定义类型")
@@ -107,7 +107,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 解析形状定义
         /// </summary>
-        private ResolvedRegion ResolveShapeDefinition(ShapeDefinition shapeDef, RegionData sourceData)
+        private ResolvedRegion ResolveShapeDefinition(ShapeParameters shapeDef, RegionData sourceData)
         {
             var result = new ResolvedRegion
             {

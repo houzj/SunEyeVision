@@ -143,7 +143,7 @@ namespace SunEyeVision.Tool.Threshold.Views
             PluginLogger.Info($"✓ 区域ID: {region.Id}", "ThresholdTool");
             PluginLogger.Info($"✓ 形状类型: {region.GetShapeType()}", "ThresholdTool");
 
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 PluginLogger.Info($"✓ 中心点: ({shapeDef.CenterX:F2}, {shapeDef.CenterY:F2})", "ThresholdTool");
                 PluginLogger.Info($"✓ 尺寸: {shapeDef.Width:F2} × {shapeDef.Height:F2}", "ThresholdTool");
@@ -177,7 +177,7 @@ namespace SunEyeVision.Tool.Threshold.Views
                 ["Mode"] = region.GetMode().ToString()
             };
 
-            if (region.Definition is ShapeDefinition shapeDef)
+            if (region.Definition is ShapeParameters shapeDef)
             {
                 regionInfo["CenterX"] = shapeDef.CenterX;
                 regionInfo["CenterY"] = shapeDef.CenterY;

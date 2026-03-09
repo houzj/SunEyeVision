@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 
@@ -133,7 +133,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 为形状创建编辑手柄
         /// </summary>
-        public void CreateHandles(ShapeDefinition shape)
+        public void CreateHandles(ShapeParameters shape)
         {
             _handles.Clear();
 
@@ -186,7 +186,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 创建矩形手柄（8个轴对齐手柄）
         /// </summary>
-        private void CreateRectangleHandles(ShapeDefinition shape)
+        private void CreateRectangleHandles(ShapeParameters shape)
         {
             var bounds = GetBounds(shape);
 
@@ -211,7 +211,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 创建圆形手柄（4个对称半径手柄）
         /// </summary>
-        private void CreateCircleHandles(ShapeDefinition shape)
+        private void CreateCircleHandles(ShapeParameters shape)
         {
             var center = shape.GetCenter();
             var radius = shape.Radius;
@@ -234,7 +234,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 创建旋转矩形手柄（8个缩放手柄 + 1个旋转手柄 + 中心手柄）
         /// </summary>
-        private void CreateRotatedRectangleHandles(ShapeDefinition shape)
+        private void CreateRotatedRectangleHandles(ShapeParameters shape)
         {
             var corners = GetCorners(shape);
             if (corners == null || corners.Length != 4) return;
@@ -305,7 +305,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 创建直线手柄（2个端点手柄）
         /// </summary>
-        private void CreateLineHandles(ShapeDefinition shape)
+        private void CreateLineHandles(ShapeParameters shape)
         {
             // 起点手柄
             AddHandle(HandleType.LineStart, shape.GetStartPoint());
@@ -336,7 +336,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 获取形状边界
         /// </summary>
-        private Bounds GetBounds(ShapeDefinition shape)
+        private Bounds GetBounds(ShapeParameters shape)
         {
             return shape.ShapeType switch
             {
@@ -363,7 +363,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 获取旋转矩形的四个角点
         /// </summary>
-        private Point2D[]? GetCorners(ShapeDefinition shape)
+        private Point2D[]? GetCorners(ShapeParameters shape)
         {
             if (shape.ShapeType != ShapeType.RotatedRectangle)
                 return null;
@@ -398,7 +398,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 获取旋转矩形的轴对齐包围盒
         /// </summary>
-        private Bounds GetRotatedBoundingBox(ShapeDefinition shape)
+        private Bounds GetRotatedBoundingBox(ShapeParameters shape)
         {
             var corners = GetCorners(shape);
             if (corners == null || corners.Length == 0)
