@@ -145,15 +145,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 // 启用OverlayCanvas命中测试
                 _mainImageControl.OverlayHitTestVisible = true;
 
-            // 订阅ImageControl事件
-            _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
-            _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
-            _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
+                // 订阅ImageControl事件
+                _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
+                _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
+                _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
 
-            // 添加自己的鼠标事件处理（当CaptureMouse时使用）
-            MouseMove += RegionEditorControl_MouseMove;
-            MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
-            LostMouseCapture += RegionEditorControl_LostMouseCapture;
+                // 添加自己的鼠标事件处理（当CaptureMouse时使用）
+                MouseMove += RegionEditorControl_MouseMove;
+                MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
+                LostMouseCapture += RegionEditorControl_LostMouseCapture;
             }
 
             UpdateRegionOverlay();
@@ -588,6 +588,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void FinishInteraction()
         {
+            var totalStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            PluginLogger.Info($"[性能监控] ═════════════════════════════════════════════════════", "RegionEditor");
+            PluginLogger.Info($"[性能监控] FinishInteraction() 开始执行", "RegionEditor");
+
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 // 完成绘制
@@ -614,10 +618,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
                     if (isValid)
                     {
+                        // 监控点1: Regions.Add()
+                        var addStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         _viewModel.Regions.Add(_currentDrawingRegion);
+                        addStopwatch.Stop();
+                        PluginLogger.Info($"[性能监控] [1/5] Regions.Add() 耗时: {addStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
+                        // 监控点2: SelectedRegion setter
+                        var selectStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         _viewModel.SelectedRegion = _currentDrawingRegion;
+                        selectStopwatch.Stop();
+                        PluginLogger.Info($"[性能监控] [2/5] SelectedRegion setter 耗时: {selectStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
                         _viewModel.StatusMessage = $"已创建 {_currentTool} 区域";
+
+                        // 监控点3: RegionDataChanged 事件
+                        var eventStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         RegionDataChanged?.Invoke(this, _currentDrawingRegion);
+                        eventStopwatch.Stop();
+                        PluginLogger.Info($"[性能监控] [3/5] RegionDataChanged 事件处理耗时: {eventStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
                         PluginLogger.Success($"区域创建成功：{_currentTool} 区域已添加到列表，区域名称={_currentDrawingRegion.Name}，区域ID={_currentDrawingRegion.Id}", "RegionEditor");
                     }
                     else
@@ -639,7 +659,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _originalShapeDefinition = null;
             _rotateStartAngle = null;
             _rotateStartMouseAngle = null;
+
+            // 监控点4: UpdateRegionOverlay()
+            var overlayStopwatch = System.Diagnostics.Stopwatch.StartNew();
             UpdateRegionOverlay();
+            overlayStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] [4/5] UpdateRegionOverlay() 耗时: {overlayStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
+            // 总耗时
+            totalStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] [5/5] FinishInteraction() 总耗时: {totalStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+            PluginLogger.Info($"[性能监控] ═════════════════════════════════════════════════════", "RegionEditor");
         }
 
         #endregion
@@ -1240,13 +1270,29 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void UpdateRegionOverlay()
         {
-            if (OverlayCanvas == null) return;
+            var overlayStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            PluginLogger.Info($"[性能监控] UpdateRegionOverlay() 开始，区域数量={_viewModel.Regions.Count}", "RegionEditor");
 
+            if (OverlayCanvas == null)
+            {
+                PluginLogger.Warning($"[性能监控] UpdateRegionOverlay() 跳过：OverlayCanvas 为 null", "RegionEditor");
+                return;
+            }
+
+            // 清空Canvas
+            var clearCanvasStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var childCount = OverlayCanvas.Children.Count;
             OverlayCanvas.Children.Clear();
+            clearCanvasStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] OverlayCanvas.Children.Clear() 耗时: {clearCanvasStopwatch.ElapsedMilliseconds} ms，清除数量={childCount}", "RegionEditor");
 
+            // 绘制区域
+            var drawRegionsStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            int visibleRegionCount = 0;
             foreach (var region in _viewModel.Regions)
             {
                 if (!region.IsVisible) continue;
+                visibleRegionCount++;
 
                 var shape = CreateRegionShape(region);
                 if (shape != null)
@@ -1257,8 +1303,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 // 绘制名称标签
                 DrawRegionLabel(region);
             }
+            drawRegionsStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] 绘制区域耗时: {drawRegionsStopwatch.ElapsedMilliseconds} ms，可见区域={visibleRegionCount}", "RegionEditor");
 
             // 绘制当前正在创建的区域
+            var drawPreviewStopwatch = System.Diagnostics.Stopwatch.StartNew();
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
@@ -1274,12 +1323,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
                 }
             }
+            drawPreviewStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] 绘制预览区域耗时: {drawPreviewStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
 
             // 绘制选中区域的编辑手柄
+            var drawHandlesStopwatch = System.Diagnostics.Stopwatch.StartNew();
             if (_selectedRegion != null && !_isDrawing)
             {
                 DrawEditHandles(_selectedRegion);
             }
+            drawHandlesStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] 绘制编辑手柄耗时: {drawHandlesStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
+            overlayStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] UpdateRegionOverlay() 总耗时: {overlayStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
         }
 
         /// <summary>

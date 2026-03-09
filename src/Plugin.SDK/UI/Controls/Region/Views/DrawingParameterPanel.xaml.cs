@@ -196,28 +196,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 }
             }
             PluginLogger.Info($"[DrawingParameterPanel] ================================", "UI");
-
-            // 检查内部控件的实际可见性
-            LogChildControlsVisibility(this, 0);
         }
 
-        private void LogChildControlsVisibility(DependencyObject parent, int depth)
-        {
-            var indent = new string(' ', depth * 2);
-            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
-
-            for (int i = 0; i < childrenCount; i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is FrameworkElement element)
-                {
-                    PluginLogger.Info($"{indent}[Child] {element.GetType().Name}: Visibility={element.Visibility}, IsVisible={element.IsVisible}, ActualWidth={element.ActualWidth}, ActualHeight={element.ActualHeight}, Name={element.Name ?? "(unnamed)"}", "UI");
-                }
-
-                LogChildControlsVisibility(child, depth + 1);
-            }
-        }
     }
 
     /// <summary>

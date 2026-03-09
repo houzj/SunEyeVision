@@ -49,12 +49,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             get => _selectedRegion;
             set
             {
+                var setterStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 PluginLogger.Info($"[RegionEditor] SelectedRegion setter 被调用，新值={value?.Name ?? "null"}, 旧值={_selectedRegion?.Name ?? "null"}", "RegionEditor");
-                
+
                 if (SetProperty(ref _selectedRegion, value))
                 {
                     PluginLogger.Info($"[RegionEditor] ✓ SelectedRegion 已更新，调用 UpdateEditingShape()", "RegionEditor");
+                    var updateStopwatch = System.Diagnostics.Stopwatch.StartNew();
                     UpdateEditingShape();
+                    updateStopwatch.Stop();
+                    PluginLogger.Info($"[性能监控] UpdateEditingShape() 耗时: {updateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+
                     OnPropertyChanged(nameof(HasSelection));
                     OnPropertyChanged(nameof(CanEdit));
                     OnPropertyChanged(nameof(SelectedRegionMode));
@@ -68,15 +73,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 else
                 {
                     PluginLogger.Warning($"[RegionEditor] ⚠️ SetProperty 返回 false，值未变化", "RegionEditor");
-                    
+
                     // 🔥 关键修复：即使选中同一个区域，也强制更新参数面板
                     // 解决绘制后首次选中时，因属性相同导致面板不更新的问题
                     if (value != null)
                     {
                         PluginLogger.Info($"[RegionEditor] 🔥 选中相同区域，强制调用 UpdateEditingShape()", "RegionEditor");
+                        var forceUpdateStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         UpdateEditingShape();
+                        forceUpdateStopwatch.Stop();
+                        PluginLogger.Info($"[性能监控] 强制 UpdateEditingShape() 耗时: {forceUpdateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
                     }
                 }
+
+                setterStopwatch.Stop();
+                PluginLogger.Info($"[性能监控] SelectedRegion setter 总耗时: {setterStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
             }
         }
 
@@ -813,6 +824,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         private void UpdateEditingShape()
         {
+            var updateShapeStopwatch = System.Diagnostics.Stopwatch.StartNew();
             PluginLogger.Info($"[RegionEditor] ========== UpdateEditingShape 开始 ==========", "RegionEditor");
             PluginLogger.Info($"[RegionEditor] SelectedRegion={SelectedRegion?.Name ?? "null"}", "RegionEditor");
             PluginLogger.Info($"[RegionEditor] SelectedRegion?.Parameters={SelectedRegion?.Parameters?.GetType().Name ?? "null"}", "RegionEditor");
@@ -845,6 +857,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             // 更新参数面板
             if (_parameterPanel != null && SelectedRegion?.Parameters != null)
             {
+                var paramPanelStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 if (SelectedRegion.Parameters is ComputedRegion computedRegion)
                 {
                     _parameterPanel.LoadFromComputedRegion(computedRegion);
@@ -853,7 +866,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 {
                     _parameterPanel.CurrentShapeType = definition.ShapeType;
                 }
+                paramPanelStopwatch.Stop();
+                PluginLogger.Info($"[性能监控] 参数面板更新耗时: {paramPanelStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
             }
+
+            updateShapeStopwatch.Stop();
+            PluginLogger.Info($"[性能监控] UpdateEditingShape() 总耗时: {updateShapeStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
         }
 
         /// <summary>
