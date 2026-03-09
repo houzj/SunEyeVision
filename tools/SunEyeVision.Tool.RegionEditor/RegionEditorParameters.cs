@@ -42,9 +42,9 @@ namespace SunEyeVision.Tool.RegionEditor
                     result.AddError($"区域 {region.Id} 名称为空");
                 }
 
-                if (region.Definition == null)
+                if (region.Parameters == null)
                 {
-                    result.AddError($"区域 {region.Name} 定义为空");
+                    result.AddError($"区域 {region.Name} 参数为空");
                 }
             }
 

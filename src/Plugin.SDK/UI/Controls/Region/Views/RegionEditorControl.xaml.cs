@@ -401,7 +401,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             var position = e.ImagePosition;
 
             // 拖动ROI编辑器风格的手柄编辑
-            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeParameters shape)
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
@@ -437,7 +437,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             var position = _mainImageControl.ScreenToImage(screenPoint);
 
             // 拖动ROI编辑器风格的手柄编辑
-            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Definition is ShapeParameters shape)
+            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
                 UpdateRegionOverlay();
@@ -475,7 +475,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     _currentTool
                 );
 
-                if (_currentDrawingRegion.Definition is ShapeParameters shapeDef)
+                if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef)
                 {
                     switch (_currentTool)
                     {
@@ -531,7 +531,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                         _handleDragStartPoint = position;
 
                         // 保存原始状态
-                        if (_selectedRegion.Definition is ShapeParameters shapeDef)
+                        if (_selectedRegion.Parameters is ShapeParameters shapeDef)
                         {
                             _originalShapeDefinition = shapeDef.Clone() as ShapeParameters;
                             _originalPosition = new Point(shapeDef.CenterX, shapeDef.CenterY);
@@ -596,7 +596,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 // 完成绘制
-                var shapeDef = _currentDrawingRegion.Definition as ShapeParameters;
+                var shapeDef = _currentDrawingRegion.Parameters as ShapeParameters;
                 if (shapeDef != null)
                 {
                     // 记录区域创建日志
@@ -653,7 +653,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void UpdateDrawingPreview(Point currentPosition)
         {
-            if (_currentDrawingRegion?.Definition is not ShapeParameters shapeDef)
+            if (_currentDrawingRegion?.Parameters is not ShapeParameters shapeDef)
                 return;
 
             var dx = currentPosition.X - _startPoint.X;
@@ -683,7 +683,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void MoveRegion(RegionData region, Vector offset)
         {
-            if (region.Definition is ShapeParameters shapeDef)
+            if (region.Parameters is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX += offset.X;
                 shapeDef.CenterY += offset.Y;
@@ -709,7 +709,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void UpdateShapeByHandle(RegionData region, Rendering.HandleType handleType, double dx, double dy)
         {
-            if (region.Definition is not ShapeParameters shapeDef)
+            if (region.Parameters is not ShapeParameters shapeDef)
                 return;
 
             switch (shapeDef.ShapeType)
@@ -1273,7 +1273,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 }
 
                 // 为旋转矩形预览绘制方向箭头
-                if (_currentDrawingRegion.Definition is ShapeParameters shapeDef && 
+                if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef &&
                     shapeDef.ShapeType == ShapeType.RotatedRectangle)
                 {
                     DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
@@ -1292,7 +1292,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void DrawEditHandles(RegionData region)
         {
-            if (region.Definition is not ShapeParameters shapeDef || OverlayCanvas == null)
+            if (region.Parameters is not ShapeParameters shapeDef || OverlayCanvas == null)
                 return;
 
             // 使用ROI编辑器的手柄渲染器创建手柄
@@ -1423,7 +1423,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private Shape? CreateRegionShape(RegionData region, bool isPreview = false)
         {
-            if (region.Definition is not ShapeParameters shapeDef)
+            if (region.Parameters is not ShapeParameters shapeDef)
                 return null;
 
             // 使用ShapeRenderer创建形状（参考ROI编辑器）
@@ -1491,7 +1491,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private Rect GetRegionBounds(RegionData region)
         {
-            if (region.Definition is not ShapeParameters shapeDef)
+            if (region.Parameters is not ShapeParameters shapeDef)
                 return Rect.Empty;
 
             return shapeDef.ShapeType switch
@@ -1535,7 +1535,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 
                 if (IsPointInRegion(point, region))
                 {
-                    PluginLogger.Info($"[RegionEditor] ✓ 命中区域: {region.Name}, 类型={region.Definition?.GetType().Name}", "RegionEditor");
+                    PluginLogger.Info($"[RegionEditor] ✓ 命中区域: {region.Name}, 类型={region.Parameters?.GetType().Name}", "RegionEditor");
                     return region;
                 }
             }
@@ -1546,7 +1546,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private bool IsPointInRegion(Point point, RegionData region)
         {
-            if (region.Definition is not ShapeParameters shapeDef)
+            if (region.Parameters is not ShapeParameters shapeDef)
                 return false;
 
             return shapeDef.ShapeType switch

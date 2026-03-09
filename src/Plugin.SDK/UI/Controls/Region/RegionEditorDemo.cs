@@ -18,7 +18,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region
 
             // 示例1：绘制模式的矩形
             var rectRegion = RegionData.CreateDrawingRegion("矩形区域1", ShapeType.Rectangle);
-            if (rectRegion.Definition is ShapeParameters rectDef)
+            if (rectRegion.Parameters is ShapeParameters rectDef)
             {
                 rectDef.CenterX = 200;
                 rectDef.CenterY = 150;
@@ -29,7 +29,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region
 
             // 示例2：绘制模式的圆形
             var circleRegion = RegionData.CreateDrawingRegion("圆形区域1", ShapeType.Circle);
-            if (circleRegion.Definition is ShapeParameters circleDef)
+            if (circleRegion.Parameters is ShapeParameters circleDef)
             {
                 circleDef.CenterX = 400;
                 circleDef.CenterY = 200;
@@ -39,7 +39,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region
 
             // 示例3：绘制模式的旋转矩形
             var rotatedRectRegion = RegionData.CreateDrawingRegion("旋转矩形1", ShapeType.RotatedRectangle);
-            if (rotatedRectRegion.Definition is ShapeParameters rotatedDef)
+            if (rotatedRectRegion.Parameters is ShapeParameters rotatedDef)
             {
                 rotatedDef.CenterX = 300;
                 rotatedDef.CenterY = 300;
@@ -51,7 +51,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region
 
             // 示例4：绘制模式的直线
             var lineRegion = RegionData.CreateDrawingRegion("直线1", ShapeType.Line);
-            if (lineRegion.Definition is ShapeParameters lineDef)
+            if (lineRegion.Parameters is ShapeParameters lineDef)
             {
                 lineDef.StartX = 100;
                 lineDef.StartY = 100;
@@ -66,7 +66,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region
 
             // 示例6：计算模式的区域
             var computedRegion = RegionData.CreateComputedRegion("计算区域1", ShapeType.Rectangle);
-            if (computedRegion.Definition is ComputedRegion computedDef)
+            if (computedRegion.Parameters is ComputedRegion computedDef)
             {
                 computedDef.SetParameterBinding("CenterX", new NodeOutputSource("node_001", "CenterX"));
                 computedDef.SetParameterBinding("CenterY", new NodeOutputSource("node_001", "CenterY"));

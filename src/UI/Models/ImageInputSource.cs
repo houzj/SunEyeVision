@@ -5,7 +5,7 @@ using System.Linq;
 using System.Windows.Media.Imaging;
 using SunEyeVision.UI.Services.Thumbnail;
 using SunEyeVision.UI.Views.Controls.Panels;
-using SunEyeVision.UI.ViewModels;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.UI.Models
 {

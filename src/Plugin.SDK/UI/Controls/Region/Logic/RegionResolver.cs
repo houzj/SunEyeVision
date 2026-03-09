@@ -87,15 +87,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
                 return ResolvedRegion.Invalid("区域数据为空");
             }
 
-            if (regionData.Definition == null)
+            if (regionData.Parameters == null)
             {
-                _logger.LogInfo($"区域参数解析：区域定义为空，区域ID={regionData.Id}", "RegionResolver");
-                return ResolvedRegion.Invalid("区域定义为空");
+                _logger.LogInfo($"区域参数解析：区域参数为空，区域ID={regionData.Id}", "RegionResolver");
+                return ResolvedRegion.Invalid("区域参数为空");
             }
 
-            _logger.LogInfo($"区域参数解析开始：区域名称={regionData.Name}，定义类型={regionData.Definition.GetType().Name}", "RegionResolver");
+            _logger.LogInfo($"区域参数解析开始：区域名称={regionData.Name}，定义类型={regionData.Parameters.GetType().Name}", "RegionResolver");
 
-            return regionData.Definition switch
+            return regionData.Parameters switch
             {
                 ShapeParameters shapeDef => ResolveShapeDefinition(shapeDef, regionData),
                 FixedRegion fixedDef => ResolveFixedRegion(fixedDef, regionData),

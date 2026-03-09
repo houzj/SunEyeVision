@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 
@@ -19,12 +20,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         public DrawingParameterPanel()
         {
-            PluginLogger.Info($"[DrawingParameterPanel] 构造函数被调用", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] 构造函数被调用, HashCode={this.GetHashCode()}", "UI");
             InitializeComponent();
             DataContextChanged += OnDataContextChanged;
             Loaded += OnLoaded;
             IsVisibleChanged += OnIsVisibleChanged;
-            PluginLogger.Info($"[DrawingParameterPanel] 构造函数完成，初始化组件", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] 构造函数完成，初始化组件, HashCode={this.GetHashCode()}", "UI");
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -112,21 +113,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             var newDataContext = e.NewValue;
             var newDataContextType = newDataContext?.GetType().Name ?? "null";
-            PluginLogger.Info($"[DrawingParameterPanel] DataContextChanged: OldValue={e.OldValue?.GetType().Name ?? "null"}, NewValue={newDataContextType}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] DataContextChanged: HashCode={this.GetHashCode()}, OldValue={e.OldValue?.GetType().Name ?? "null"}, NewValue={newDataContextType}", "UI");
 
             // 取消订阅旧ViewModel的事件
             if (e.OldValue is RegionEditorViewModel oldViewModel)
             {
                 oldViewModel.PropertyChanged -= OnViewModelPropertyChanged;
-                PluginLogger.Info($"[DrawingParameterPanel] 已取消订阅旧ViewModel的PropertyChanged事件", "UI");
+                PluginLogger.Info($"[DrawingParameterPanel] 已取消订阅旧ViewModel(HashCode={oldViewModel.GetHashCode()})的PropertyChanged事件", "UI");
             }
 
             // 订阅新ViewModel的事件
             if (newDataContext is RegionEditorViewModel newViewModel)
             {
                 _viewModel = newViewModel;
+                PluginLogger.Info($"[DrawingParameterPanel] 准备订阅新ViewModel(HashCode={newViewModel.GetHashCode()})的PropertyChanged事件", "UI");
                 newViewModel.PropertyChanged += OnViewModelPropertyChanged;
-                PluginLogger.Info($"[DrawingParameterPanel] 已订阅新ViewModel的PropertyChanged事件", "UI");
+                PluginLogger.Info($"[DrawingParameterPanel] 已订阅新ViewModel(HashCode={newViewModel.GetHashCode()})的PropertyChanged事件", "UI");
 
                 var selectedShapeTypeProperty = newDataContext.GetType().GetProperty("SelectedShapeType");
                 if (selectedShapeTypeProperty != null)
@@ -147,14 +149,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            PluginLogger.Info($"[DrawingParameterPanel] PropertyChanged 事件: propertyName={e.PropertyName}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] PropertyChanged 事件触发: propertyName={e.PropertyName}, sender.HashCode={sender?.GetHashCode()}, sender.Type={sender?.GetType().Name}, DrawingParameterPanel.HashCode={this.GetHashCode()}", "UI");
 
             // 当SelectedShapeType或Parameters属性变化时，刷新绑定
             if (e.PropertyName == nameof(RegionEditorViewModel.SelectedShapeType) ||
                 e.PropertyName == nameof(RegionEditorViewModel.Parameters))
             {
                 PluginLogger.Info($"[DrawingParameterPanel] 属性 {e.PropertyName} 变化，刷新绑定", "UI");
-                
+
+                if (_viewModel != null)
+                {
+                    PluginLogger.Info($"[DrawingParameterPanel] _viewModel.SelectedShapeType={_viewModel.SelectedShapeType}", "UI");
+                    PluginLogger.Info($"[DrawingParameterPanel] _viewModel.Parameters={_viewModel.Parameters?.ShapeType.ToString() ?? "null"}", "UI");
+                }
+
                 // 强制刷新绑定
                 InvalidateVisual();
                 UpdateLayout();
@@ -166,8 +174,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private void LogBindingInfo()
         {
             PluginLogger.Info($"[DrawingParameterPanel] ========== 绑定信息 ==========", "UI");
-            PluginLogger.Info($"[DrawingParameterPanel] Visibility={Visibility}", "UI");
-            PluginLogger.Info($"[DrawingParameterPanel] DataContext={DataContext?.GetType().Name ?? "null"}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] DrawingParameterPanel.Visibility={Visibility}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] DrawingParameterPanel.DataContext={DataContext?.GetType().Name ?? "null"}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] DrawingParameterPanel.ActualWidth={ActualWidth}, ActualHeight={ActualHeight}", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] DrawingParameterPanel.Visibility={Visibility}, IsVisible={IsVisible}", "UI");
 
             if (DataContext != null)
             {
@@ -186,6 +196,27 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 }
             }
             PluginLogger.Info($"[DrawingParameterPanel] ================================", "UI");
+
+            // 检查内部控件的实际可见性
+            LogChildControlsVisibility(this, 0);
+        }
+
+        private void LogChildControlsVisibility(DependencyObject parent, int depth)
+        {
+            var indent = new string(' ', depth * 2);
+            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is FrameworkElement element)
+                {
+                    PluginLogger.Info($"{indent}[Child] {element.GetType().Name}: Visibility={element.Visibility}, IsVisible={element.IsVisible}, ActualWidth={element.ActualWidth}, ActualHeight={element.ActualHeight}, Name={element.Name ?? "(unnamed)"}", "UI");
+                }
+
+                LogChildControlsVisibility(child, depth + 1);
+            }
         }
     }
 
@@ -245,154 +276,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 PluginLogger.Error($"[NullToVisibilityConverter] ❌ ConvertBack 发生异常: {ex.Message}", "UI", ex);
                 throw;
             }
-        }
-    }
-
-    /// <summary>
-    /// 形状类型到可见性的转换器
-    /// </summary>
-    public class ShapeTypeToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            try
-            {
-                var result = Visibility.Collapsed;
-
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] Convert 开始执行", "UI");
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] value={value?.ToString() ?? "null"}, value.GetType()={value?.GetType().Name ?? "null"}", "UI");
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] parameter={parameter?.ToString() ?? "null"}, targetType={targetType?.Name ?? "null"}", "UI");
-
-                // 处理 null 值
-                if (value == null)
-                {
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ❌ value 为 null，返回 Collapsed", "UI");
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                    return Visibility.Collapsed;
-                }
-
-                // 添加类型检测，防止bool值被错误传递
-                if (value is bool)
-                {
-                    PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ⚠️ 严重错误：收到bool类型值，而不是ShapeType!", "UI");
-                    PluginLogger.Error($"[ShapeTypeToVisibilityConverter] value={value}, 实际类型={value.GetType().Name}", "UI");
-                    PluginLogger.Error($"[ShapeTypeToVisibilityConverter] 堆栈跟踪: {Environment.StackTrace}", "UI");
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                    return Visibility.Collapsed;
-                }
-
-                // 处理枚举值（包括可空枚举）
-                Models.ShapeType? shapeType = null;
-                bool isNullable = false;
-
-                // 尝试直接获取 ShapeType（非可空）
-                if (value is Models.ShapeType nonNullableShapeType)
-                {
-                    shapeType = nonNullableShapeType;
-                    isNullable = false;
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ✅ 检测到非可空 ShapeType: {shapeType.Value}", "UI");
-                }
-                // 尝试从可空枚举获取
-                else if (value is Enum enumValue)
-                {
-                    var valueType = enumValue.GetType();
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] 检测到枚举类型: {valueType.Name}, IsGenericType={valueType.IsGenericType}", "UI");
-
-                    if (valueType == typeof(Models.ShapeType))
-                    {
-                        shapeType = (Models.ShapeType)enumValue;
-                        isNullable = false;
-                        PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ✅ 从 ShapeType 枚举获取: {shapeType.Value}", "UI");
-                    }
-                    else if (valueType == typeof(Models.ShapeType?) || 
-                             (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Nullable<>) &&
-                              valueType.GetGenericArguments()[0] == typeof(Models.ShapeType)))
-                    {
-                        shapeType = (Models.ShapeType)enumValue;
-                        isNullable = true;
-                        PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ✅ 从可空 ShapeType? 枚举获取: {shapeType.Value}", "UI");
-                    }
-                    else
-                    {
-                        PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ⚠️ 收到错误的枚举类型: {valueType.FullName}", "UI");
-                        PluginLogger.Error($"[ShapeTypeToVisibilityConverter] 期望类型: ShapeType 或 ShapeType?", "UI");
-                        PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                        return Visibility.Collapsed;
-                    }
-                }
-                else
-                {
-                    PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ⚠️ 收到不支持的类型: {value.GetType().FullName}", "UI");
-                    PluginLogger.Error($"[ShapeTypeToVisibilityConverter] 期望类型: ShapeType, ShapeType? 或 null", "UI");
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                    return Visibility.Collapsed;
-                }
-
-                // 如果成功获取形状类型且参数是字符串
-                if (shapeType.HasValue && parameter is string types)
-                {
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] 开始匹配: shapeType={shapeType.Value}, types参数='{types}'", "UI");
-                    
-                    var typeList = types.Split(',');
-                    PluginLogger.Info($"[ShapeTypeToVisibilityConverter] 匹配列表: [{string.Join(", ", typeList.Select(t => t.Trim()))}]", "UI");
-                    
-                    foreach (var type in typeList)
-                    {
-                        var trimmedType = type.Trim();
-                        PluginLogger.Info($"[ShapeTypeToVisibilityConverter]   尝试匹配: '{trimmedType}'", "UI");
-                        
-                        if (Enum.TryParse<Models.ShapeType>(trimmedType, out var t))
-                        {
-                            if (shapeType.Value == t)
-                            {
-                                result = Visibility.Visible;
-                                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ✅ 匹配成功: {shapeType.Value} == {t}", "UI");
-                                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ✅ 最终结果: {result}", "UI");
-                                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                                break;
-                            }
-                            else
-                            {
-                                PluginLogger.Info($"[ShapeTypeToVisibilityConverter]   不匹配: {shapeType.Value} != {t}", "UI");
-                            }
-                        }
-                        else
-                        {
-                            PluginLogger.Warning($"[ShapeTypeToVisibilityConverter] ⚠️ 无法解析枚举值: '{trimmedType}'", "UI");
-                        }
-                    }
-                }
-                else
-                {
-                    if (!shapeType.HasValue)
-                    {
-                        PluginLogger.Warning($"[ShapeTypeToVisibilityConverter] ⚠️ shapeType 为 null，无法进行匹配", "UI");
-                    }
-                    if (!(parameter is string))
-                    {
-                        PluginLogger.Warning($"[ShapeTypeToVisibilityConverter] ⚠️ parameter 不是 string 类型: {parameter?.GetType().Name ?? "null"}", "UI");
-                    }
-                }
-
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] 最终返回: {result}", "UI");
-                PluginLogger.Info($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                return result;
-            }
-            catch (Exception ex)
-            {
-                PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ❌ Convert 发生异常: {ex.Message}", "UI", ex);
-                PluginLogger.Error($"[ShapeTypeToVisibilityConverter] 异常类型: {ex.GetType().Name}", "UI");
-                PluginLogger.Error($"[ShapeTypeToVisibilityConverter] 堆栈跟踪:\n{ex.StackTrace}", "UI");
-                PluginLogger.Error($"[ShapeTypeToVisibilityConverter] ══════════════════════════════════════════════", "UI");
-                return Visibility.Collapsed;
-            }
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
         }
     }
 }

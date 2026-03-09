@@ -166,8 +166,9 @@
                 </GroupBox>
 
                 <!-- 参数面板 - 绘制模式 -->
+                <!-- 当有选中区域时才显示 -->
                 <Expander Header="绘制参数"
-                          Visibility="{Binding IsDrawingMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          Visibility="{Binding HasParametersVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsExpanded="True"
                           Margin="0,0,0,8">
                     <local:DrawingParameterPanel DataContext="{Binding}"/>
@@ -191,7 +192,7 @@
 
                 <!-- 选中区域详细信息 -->
                 <GroupBox Header="选中区域" Margin="0,0,0,8"
-                          Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                          Visibility="Collapsed">
                     <local:RegionInfoPanel DataContext="{Binding SelectedRegion}"/>
                 </GroupBox>
             </StackPanel>

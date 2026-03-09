@@ -42,9 +42,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         }
 
         /// <summary>
-        /// 区域定义
+        /// 区域参数
         /// </summary>
-        public RegionDefinition? Definition
+        public RegionDefinition? Parameters
         {
             get => _definition;
             set => SetProperty(ref _definition, value);
@@ -145,7 +145,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public ShapeType? GetShapeType()
         {
-            return Definition?.GetShapeType();
+            return Parameters?.GetShapeType();
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public RegionDefinitionMode GetMode()
         {
-            return Definition?.Mode ?? RegionDefinitionMode.Drawing;
+            return Parameters?.Mode ?? RegionDefinitionMode.Drawing;
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             return new RegionData
             {
                 Name = name,
-                Definition = new ShapeParameters { ShapeType = shapeType }
+                Parameters = new ShapeParameters { ShapeType = shapeType }
             };
         }
 
@@ -176,7 +176,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             return new RegionData
             {
                 Name = name,
-                Definition = new FixedRegion(nodeId, outputName, index)
+                Parameters = new FixedRegion(nodeId, outputName, index)
             };
         }
 
@@ -188,7 +188,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             return new RegionData
             {
                 Name = name,
-                Definition = new ComputedRegion { TargetShapeType = targetShapeType }
+                Parameters = new ComputedRegion { TargetShapeType = targetShapeType }
             };
         }
 
@@ -209,7 +209,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             {
                 Id = Id,
                 Name = Name,
-                Definition = Definition?.Clone(),
+                Parameters = (RegionDefinition?)Parameters?.Clone(),
                 IsEnabled = IsEnabled,
                 IsVisible = IsVisible,
                 IsEditable = IsEditable,

@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Workflow;
+using SunEyeVision.Plugin.SDK.Models;   
 
 namespace SunEyeVision.UI.Models
 {

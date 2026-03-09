@@ -33,9 +33,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private NodeSelectorViewModel? _nodeSelector;
         private IRegionDataSourceProvider? _dataProvider;
 
-        // 形状参数（可空，未选中区域时为null）
-        private ShapeParameters? _parameters;
-
         // WPF Dispatcher（用于延迟UI更新）
         private readonly Dispatcher _dispatcher;
 
@@ -66,10 +63,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                     OnPropertyChanged(nameof(IsSubscribeByRegionMode));
                     OnPropertyChanged(nameof(IsSubscribeByParameterMode));
                     OnPropertyChanged(nameof(ParameterBindings));
+                    OnPropertyChanged(nameof(HasParametersVisible));
                 }
                 else
                 {
                     PluginLogger.Warning($"[RegionEditor] ⚠️ SetProperty 返回 false，值未变化", "RegionEditor");
+                    
+                    // 🔥 关键修复：即使选中同一个区域，也强制更新参数面板
+                    // 解决绘制后首次选中时，因属性相同导致面板不更新的问题
+                    if (value != null)
+                    {
+                        PluginLogger.Info($"[RegionEditor] 🔥 选中相同区域，强制调用 UpdateEditingShape()", "RegionEditor");
+                        UpdateEditingShape();
+                    }
                 }
             }
         }
@@ -163,6 +169,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 if (SetProperty(ref _selectedShapeType, value))
                 {
                     PluginLogger.Info($"[RegionEditor] ✓ SetProperty 返回 true，调用 UpdateParameters()", "RegionEditor");
+
+                    // 🔥 关键修复：额外触发 PropertyChanged
+                    PluginLogger.Info($"[RegionEditor] 🔥 手动触发 PropertyChanged('SelectedShapeType')", "RegionEditor");
+                    OnPropertyChanged(nameof(SelectedShapeType));
+
                     OnPropertyChanged(nameof(CurrentToolMode));
                     OnPropertyChanged(nameof(IsAnyShapeSelected));
                     UpdateParameters();
@@ -177,35 +188,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 形状参数（用于绘制参数面板）
         /// </summary>
-        public ShapeParameters? Parameters
-        {
-            get => _parameters;
-            private set
-            {
-                if (SetProperty(ref _parameters, value))
-                {
-                    OnPropertyChanged(nameof(PreviewLength));
+        /// <remarks>
+        /// 计算属性：直接引用选中区域的参数，避免创建不必要的副本
+        /// </remarks>
+        public ShapeParameters? Parameters => SelectedRegion?.Parameters as ShapeParameters;
 
-                    // 同步回选中区域（编辑模式）
-                    if (_parameters != null && _selectedRegion?.Definition is ShapeParameters editingShape && _currentMode != RegionDefinitionMode.Drawing)
-                    {
-                        editingShape.CenterX = _parameters.CenterX;
-                        editingShape.CenterY = _parameters.CenterY;
-                        editingShape.Width = _parameters.Width;
-                        editingShape.Height = _parameters.Height;
-                        editingShape.Radius = _parameters.Radius;
-                        editingShape.Angle = _parameters.Angle;
-                        editingShape.StartX = _parameters.StartX;
-                        editingShape.StartY = _parameters.StartY;
-                        editingShape.EndX = _parameters.EndX;
-                        editingShape.EndY = _parameters.EndY;
-
-                        _selectedRegion.MarkModified();
-                        RegionChanged?.Invoke(this, new RegionChangedEventArgs(_selectedRegion, RegionChangeType.Modified));
-                    }
-                }
-            }
-        }
+        /// <summary>
+        /// 是否有选中区域的参数（用于控制绘制参数面板的可见性）
+        /// </summary>
+        public bool HasParametersVisible => Parameters != null;
 
         /// <summary>
         /// 是否选择了任何形状
@@ -219,9 +210,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         {
             get
             {
-                if (_parameters == null) return 0;
-                var dx = _parameters.EndX - _parameters.StartX;
-                var dy = _parameters.EndY - _parameters.StartY;
+                if (Parameters == null) return 0;
+                var dx = Parameters.EndX - Parameters.StartX;
+                var dy = Parameters.EndY - Parameters.StartY;
                 return Math.Sqrt(dx * dx + dy * dy);
             }
         }
@@ -429,7 +420,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// 选中区域的参数绑定（用于参数订阅模式）
         /// </summary>
         public Dictionary<string, ParameterSource>? ParameterBindings =>
-            (SelectedRegion?.Definition as ComputedRegion)?.ParameterBindings;
+            (SelectedRegion?.Parameters as ComputedRegion)?.ParameterBindings;
 
         /// <summary>
         /// 是否可编辑
@@ -515,6 +506,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         #endregion
 
         /// <summary>
+        /// 重写 OnPropertyChanged 方法，添加详细日志
+        /// </summary>
+        protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+        {
+            PluginLogger.Info($"[RegionEditorViewModel] OnPropertyChanged 触发: propertyName={propertyName}, HashCode={this.GetHashCode()}", "RegionEditor");
+            base.OnPropertyChanged(propertyName);
+        }
+
+        /// <summary>
         /// 区域变更事件
         /// </summary>
         public event EventHandler<RegionChangedEventArgs>? RegionChanged;
@@ -526,12 +526,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
         public RegionEditorViewModel()
         {
+            PluginLogger.Info($"[RegionEditorViewModel] 构造函数被调用, HashCode={this.GetHashCode()}", "RegionEditor");
             _dispatcher = Dispatcher.CurrentDispatcher;
             _resolver = new Logic.RegionResolver();
             _editHistory = new EditHistory();
-
-            // Parameters初始为null，只有选中区域后才显示参数（参考ROIInfoViewModel）
-            _parameters = null;
 
             AddRegionCommand = new RelayCommand<ShapeType>(AddRegion);
             RemoveRegionCommand = new RelayCommand(RemoveSelectedRegion, () => HasSelection);
@@ -545,6 +543,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
             // 订阅编辑历史变更事件
             _editHistory.HistoryChanged += OnEditHistoryChanged;
+            PluginLogger.Info($"[RegionEditorViewModel] 构造函数完成, HashCode={this.GetHashCode()}", "RegionEditor");
         }
 
         /// <summary>
@@ -581,7 +580,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         private void OnParameterBindingChanged(object? sender, ParameterBindingChangedEventArgs e)
         {
-            if (SelectedRegion?.Definition is ComputedRegion computed)
+            if (SelectedRegion?.Parameters is ComputedRegion computed)
             {
                 if (e.NewSource != null)
                 {
@@ -591,7 +590,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 {
                     computed.RemoveParameterBinding(e.ParameterName);
                 }
-                
+
                 SelectedRegion.MarkModified();
                 RegionChanged?.Invoke(this, new RegionChangedEventArgs(SelectedRegion, RegionChangeType.Modified));
             }
@@ -605,7 +604,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             var region = RegionData.CreateDrawingRegion($"区域_{Regions.Count + 1}", shapeType);
 
             // 设置默认参数
-            if (region.Definition is ShapeParameters shapeDef)
+            if (region.Parameters is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX = 100;
                 shapeDef.CenterY = 100;
@@ -734,57 +733,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 更新形状参数
         /// </summary>
+        /// <remarks>
+        /// 已废弃：Parameters 改为计算属性后，不再需要手动更新
+        /// 保留此方法仅为兼容性，可以移除
+        /// </remarks>
         private void UpdateParameters()
         {
-            PluginLogger.Info($"[RegionEditor] UpdateParameters: SelectedShapeType={_selectedShapeType?.ToString() ?? "null"}, SelectedRegion={SelectedRegion?.Name ?? "null"}", "RegionEditor");
-
-            // 如果没有选中形状类型，Parameters 设为 null
-            if (!_selectedShapeType.HasValue)
-            {
-                PluginLogger.Info($"[RegionEditor] 没有选中形状类型，Parameters设为null", "RegionEditor");
-                Parameters = null;
-                return;
-            }
-
-            // 优先使用选中区域的值（仅当形状类型匹配）
-            if (SelectedRegion?.Definition is ShapeParameters selectedShapeDef &&
-                selectedShapeDef.ShapeType == _selectedShapeType.Value)
-            {
-                PluginLogger.Info($"[RegionEditor] 使用选中区域的值创建新Parameters", "RegionEditor");
-                Parameters = new ShapeParameters
-                {
-                    ShapeType = selectedShapeDef.ShapeType,
-                    CenterX = selectedShapeDef.CenterX,
-                    CenterY = selectedShapeDef.CenterY,
-                    Width = selectedShapeDef.Width,
-                    Height = selectedShapeDef.Height,
-                    Radius = selectedShapeDef.Radius,
-                    StartX = selectedShapeDef.StartX,
-                    StartY = selectedShapeDef.StartY,
-                    EndX = selectedShapeDef.EndX,
-                    EndY = selectedShapeDef.EndY,
-                    Angle = selectedShapeDef.Angle
-                };
-                return;
-            }
-
-            // 没有选中区域或类型不匹配：创建默认Parameters
-            if (SelectedRegion == null)
-            {
-                PluginLogger.Info($"[RegionEditor] 没有选中区域，创建默认Parameters", "RegionEditor");
-            }
-            else
-            {
-                PluginLogger.Info($"[RegionEditor] 选中区域类型不匹配，创建默认Parameters", "RegionEditor");
-            }
-            Parameters = CreateParametersByType(_selectedShapeType.Value, 100, 100, 100, 100, 0);
-
-            PluginLogger.Info($"[RegionEditor] UpdateParameters完成", "RegionEditor");
+            // Parameters 现在是计算属性，直接引用 SelectedRegion.Parameters
+            // 不需要手动创建和同步对象
+            OnPropertyChanged(nameof(Parameters));
         }
 
         /// <summary>
         /// 根据形状类型创建参数对象
         /// </summary>
+        /// <remarks>
+        /// 已废弃：不再需要此方法，直接修改 SelectedRegion.Parameters 即可
+        /// 保留此方法仅为兼容性，可以移除
+        /// </remarks>
         private ShapeParameters CreateParametersByType(ShapeType shapeType, double centerX, double centerY, double width, double height, double angle)
         {
             var parameters = new ShapeParameters();
@@ -847,45 +813,43 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         private void UpdateEditingShape()
         {
-            if (SelectedRegion?.Definition is ShapeParameters shapeDef)
+            PluginLogger.Info($"[RegionEditor] ========== UpdateEditingShape 开始 ==========", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] SelectedRegion={SelectedRegion?.Name ?? "null"}", "RegionEditor");
+            PluginLogger.Info($"[RegionEditor] SelectedRegion?.Parameters={SelectedRegion?.Parameters?.GetType().Name ?? "null"}", "RegionEditor");
+
+            if (SelectedRegion?.Parameters is ShapeParameters shapeDef)
             {
+                PluginLogger.Info($"[RegionEditor] 选中区域是ShapeParameters类型: ShapeType={shapeDef.ShapeType}", "RegionEditor");
+
                 EditingShape = shapeDef;
+
+                // Parameters 现在是计算属性，直接引用 SelectedRegion.Parameters
+                // 不需要创建新对象，直接设置 SelectedShapeType 即可
+                PluginLogger.Info($"[RegionEditor] 设置 SelectedShapeType={shapeDef.ShapeType}", "RegionEditor");
                 SelectedShapeType = shapeDef.ShapeType;
 
-                // 从选中区域的形状创建新的Parameters（参考ROIInfoViewModel的RefreshDisplay逻辑）
-                Parameters = new ShapeParameters
-                {
-                    ShapeType = shapeDef.ShapeType,
-                    CenterX = shapeDef.CenterX,
-                    CenterY = shapeDef.CenterY,
-                    Width = shapeDef.Width,
-                    Height = shapeDef.Height,
-                    Radius = shapeDef.Radius,
-                    StartX = shapeDef.StartX,
-                    StartY = shapeDef.StartY,
-                    EndX = shapeDef.EndX,
-                    EndY = shapeDef.EndY,
-                    Angle = shapeDef.Angle
-                };
+                // 通知属性变更
+                OnPropertyChanged(nameof(Parameters));
+                OnPropertyChanged(nameof(PreviewLength));
 
-                PluginLogger.Info($"[RegionEditor] 从选中区域更新Parameters", "RegionEditor");
+                PluginLogger.Info($"[RegionEditor] ========== UpdateEditingShape 完成 ==========", "RegionEditor");
             }
             else
             {
+                PluginLogger.Info($"[RegionEditor] 选中区域不是ShapeParameters类型或没有选中区域", "RegionEditor");
                 EditingShape = null;
-                // 没有选中区域时，Parameters设为null（不显示参数面板）
-                Parameters = null;
-                PluginLogger.Info($"[RegionEditor] 没有选中区域，Parameters设为null", "RegionEditor");
+                SelectedShapeType = null;
+                PluginLogger.Info($"[RegionEditor] SelectedShapeType已设为null", "RegionEditor");
             }
 
             // 更新参数面板
-            if (_parameterPanel != null && SelectedRegion?.Definition != null)
+            if (_parameterPanel != null && SelectedRegion?.Parameters != null)
             {
-                if (SelectedRegion.Definition is ComputedRegion computedRegion)
+                if (SelectedRegion.Parameters is ComputedRegion computedRegion)
                 {
                     _parameterPanel.LoadFromComputedRegion(computedRegion);
                 }
-                else if (SelectedRegion.Definition is ShapeParameters definition)
+                else if (SelectedRegion.Parameters is ShapeParameters definition)
                 {
                     _parameterPanel.CurrentShapeType = definition.ShapeType;
                 }
@@ -934,7 +898,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         {
             if (SelectedRegion == null) return;
 
-            SelectedRegion.Definition = new FixedRegion(nodeId, outputName, index);
+            SelectedRegion.Parameters = new FixedRegion(nodeId, outputName, index);
             SelectedRegion.MarkModified();
 
             RegionChanged?.Invoke(this, new RegionChangedEventArgs(SelectedRegion, RegionChangeType.Modified));
@@ -946,7 +910,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public void SetParameterBinding(string parameterName, ParameterSource source)
         {
-            if (SelectedRegion?.Definition is ComputedRegion computedDef)
+            if (SelectedRegion?.Parameters is ComputedRegion computedDef)
             {
                 computedDef.SetParameterBinding(parameterName, source);
                 SelectedRegion.MarkModified();

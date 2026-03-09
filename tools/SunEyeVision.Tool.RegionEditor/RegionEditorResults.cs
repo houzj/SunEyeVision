@@ -61,7 +61,7 @@ namespace SunEyeVision.Tool.RegionEditor
                 });
 
                 // 如果是绘制模式，显示几何参数
-                if (region.Definition is ShapeParameters shapeDef)
+                if (region.Parameters is ShapeParameters shapeDef)
                 {
                     items.Add(new ResultItem
                     {

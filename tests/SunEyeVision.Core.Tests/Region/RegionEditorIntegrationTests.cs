@@ -328,9 +328,9 @@ namespace SunEyeVision.Core.Tests.Region
             region.Name.Should().Be("测试区域");
             region.IsEditable.Should().BeTrue();
             region.IsVisible.Should().BeTrue();
-            region.Definition.Should().BeOfType<ShapeDefinition>();
-            region.Definition.Should().NotBeNull();
-            var shapeDef = (ShapeDefinition)region.Definition!;
+            region.Parameters.Should().BeOfType<ShapeDefinition>();
+            region.Parameters.Should().NotBeNull();
+            var shapeDef = (ShapeDefinition)region.Parameters!;
             shapeDef.ShapeType.Should().Be(ShapeType.Rectangle);
         }
 
@@ -339,14 +339,14 @@ namespace SunEyeVision.Core.Tests.Region
         {
             // Arrange
             var original = RegionData.CreateDrawingRegion("原始区域", ShapeType.Circle);
-            original.Definition.Should().NotBeNull();
-            var originalShapeDef = (ShapeDefinition)original.Definition!;
+            original.Parameters.Should().NotBeNull();
+            var originalShapeDef = (ShapeDefinition)original.Parameters!;
             originalShapeDef.Radius = 50;
 
             // Act
             var clone = (RegionData)original.Clone();
-            clone.Definition.Should().NotBeNull();
-            var cloneShapeDef = (ShapeDefinition)clone.Definition!;
+            clone.Parameters.Should().NotBeNull();
+            var cloneShapeDef = (ShapeDefinition)clone.Parameters!;
             cloneShapeDef.Radius = 100;
 
             // Assert

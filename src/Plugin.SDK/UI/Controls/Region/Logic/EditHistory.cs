@@ -252,7 +252,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef)
+            if (region?.Parameters is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX -= _deltaX;
                 shapeDef.CenterY -= _deltaY;
@@ -270,7 +270,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef)
+            if (region?.Parameters is ShapeParameters shapeDef)
             {
                 shapeDef.CenterX += _deltaX;
                 shapeDef.CenterY += _deltaY;
@@ -279,7 +279,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
                     shapeDef.StartX += _deltaX;
                     shapeDef.StartY += _deltaY;
                     shapeDef.EndX += _deltaX;
-                    shapeDef.EndY += _deltaY;
+                    shapeDef.EndY -= _deltaY;
                 }
                 region.MarkModified();
             }
@@ -318,7 +318,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef)
+            if (region?.Parameters is ShapeParameters shapeDef)
             {
                 CopyState(_originalState, shapeDef);
                 region.MarkModified();
@@ -328,7 +328,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef)
+            if (region?.Parameters is ShapeParameters shapeDef)
             {
                 CopyState(_newState, shapeDef);
                 region.MarkModified();
@@ -387,7 +387,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Undo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef && _originalState != null)
+            if (region?.Parameters is ShapeParameters shapeDef && _originalState != null)
             {
                 CopyState(_originalState, shapeDef);
                 region.MarkModified();
@@ -397,7 +397,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         public void Redo()
         {
             var region = FindRegion(_regionId);
-            if (region?.Definition is ShapeParameters shapeDef && _newState != null)
+            if (region?.Parameters is ShapeParameters shapeDef && _newState != null)
             {
                 CopyState(_newState, shapeDef);
                 region.MarkModified();
