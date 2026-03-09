@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
     /// <summary>
     /// 节点输出信息 - 用于树状选择器显示
     /// </summary>
-    public class NodeOutputInfo : INotifyPropertyChanged
+    public class NodeOutputInfo : ObservableObject
     {
         private object? _currentValue;
         private bool _isExpanded;
@@ -101,16 +100,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// 状态描述（用于UI显示执行状态）
         /// </summary>
         public string StatusDescription => HasExecuted ? "已执行" : "未执行";
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            return true;
-        }
     }
 }

@@ -1,13 +1,11 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
     /// <summary>
     /// 参数绑定项 - 用于参数面板显示
     /// </summary>
-    public class ParameterBindingItem : INotifyPropertyChanged
+    public class ParameterBindingItem : ObservableObject
     {
         private ParameterSource? _source;
         private string _displayPath = string.Empty;
@@ -71,21 +69,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// 绑定类型
         /// </summary>
         public ParameterBindingType BindingType => Source?.BindingType ?? ParameterBindingType.Constant;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
     }
 }

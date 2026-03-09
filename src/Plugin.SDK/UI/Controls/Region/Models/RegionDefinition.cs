@@ -1,42 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
     /// <summary>
     /// 区域定义基类
     /// </summary>
-    public abstract class RegionDefinition : DependencyObject
+    public abstract class RegionDefinition : ObservableObject
     {
+        private Guid _id = Guid.NewGuid();
+        private RegionDefinitionMode _mode = RegionDefinitionMode.Drawing;
+
         /// <summary>
         /// 区域定义ID
         /// </summary>
         public Guid Id
         {
-            get => (Guid)GetValue(IdProperty);
-            set => SetValue(IdProperty, value);
+            get => _id;
+            set => SetProperty(ref _id, value);
         }
-
-        public static readonly DependencyProperty IdProperty =
-            DependencyProperty.Register(nameof(Id), typeof(Guid), typeof(RegionDefinition),
-                new PropertyMetadata(Guid.NewGuid()));
 
         /// <summary>
         /// 定义模式
         /// </summary>
         public RegionDefinitionMode Mode
         {
-            get => (RegionDefinitionMode)GetValue(ModeProperty);
-            set => SetValue(ModeProperty, value);
+            get => _mode;
+            set => SetProperty(ref _mode, value);
         }
-
-        public static readonly DependencyProperty ModeProperty =
-            DependencyProperty.Register(nameof(Mode), typeof(RegionDefinitionMode), typeof(RegionDefinition),
-                new PropertyMetadata(RegionDefinitionMode.Drawing));
 
         /// <summary>
         /// 获取形状类型（如果适用）
@@ -54,6 +47,29 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
     /// </summary>
     public class ShapeParameters : RegionDefinition
     {
+        #region 私有字段
+
+        private ShapeType _shapeType = ShapeType.Rectangle;
+        private double _centerX = 0;
+        private double _centerY = 0;
+        private double _width = 100;
+        private double _height = 100;
+        private double _angle = 0;
+        private double _radius = 50;
+        private double _outerRadius = 0;
+        private double _startX = 0;
+        private double _startY = 0;
+        private double _endX = 100;
+        private double _endY = 100;
+        private double _startAngle = 0;
+        private double _endAngle = 0;
+        private uint _fillColorArgb = 0x28FF0000;
+        private uint _strokeColorArgb = 0xFFFF0000;
+        private double _strokeThickness = 2;
+        private double _opacity = 0.3;
+
+        #endregion
+
         #region 通用参数
 
         /// <summary>
@@ -61,18 +77,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public ShapeType ShapeType
         {
-            get => (ShapeType)GetValue(ShapeTypeProperty);
-            set => SetValue(ShapeTypeProperty, value);
-        }
-
-        public static readonly DependencyProperty ShapeTypeProperty =
-            DependencyProperty.Register(nameof(ShapeType), typeof(ShapeType), typeof(ShapeParameters),
-                new PropertyMetadata(ShapeType.Rectangle, OnShapeTypeChanged));
-
-        private static void OnShapeTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] ShapeType: {e.OldValue} → {e.NewValue}", "ShapeParameters");
+            get => _shapeType;
+            set => SetProperty(ref _shapeType, value, "形状类型");
         }
 
         /// <summary>
@@ -80,18 +86,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double CenterX
         {
-            get => (double)GetValue(CenterXProperty);
-            set => SetValue(CenterXProperty, value);
-        }
-
-        public static readonly DependencyProperty CenterXProperty =
-            DependencyProperty.Register(nameof(CenterX), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d, OnCenterXChanged));
-
-        private static void OnCenterXChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] CenterX: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _centerX;
+            set => SetProperty(ref _centerX, value, "中心点X坐标");
         }
 
         /// <summary>
@@ -99,18 +95,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double CenterY
         {
-            get => (double)GetValue(CenterYProperty);
-            set => SetValue(CenterYProperty, value);
-        }
-
-        public static readonly DependencyProperty CenterYProperty =
-            DependencyProperty.Register(nameof(CenterY), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d, OnCenterYChanged));
-
-        private static void OnCenterYChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] CenterY: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _centerY;
+            set => SetProperty(ref _centerY, value, "中心点Y坐标");
         }
 
         /// <summary>
@@ -118,18 +104,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double Width
         {
-            get => (double)GetValue(WidthProperty);
-            set => SetValue(WidthProperty, value);
-        }
-
-        public static readonly DependencyProperty WidthProperty =
-            DependencyProperty.Register(nameof(Width), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(100d, OnWidthChanged));
-
-        private static void OnWidthChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] Width: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _width;
+            set => SetProperty(ref _width, value, "宽度");
         }
 
         /// <summary>
@@ -137,18 +113,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double Height
         {
-            get => (double)GetValue(HeightProperty);
-            set => SetValue(HeightProperty, value);
-        }
-
-        public static readonly DependencyProperty HeightProperty =
-            DependencyProperty.Register(nameof(Height), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(100d, OnHeightChanged));
-
-        private static void OnHeightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] Height: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _height;
+            set => SetProperty(ref _height, value, "高度");
         }
 
         /// <summary>
@@ -156,18 +122,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double Angle
         {
-            get => (double)GetValue(AngleProperty);
-            set => SetValue(AngleProperty, value);
-        }
-
-        public static readonly DependencyProperty AngleProperty =
-            DependencyProperty.Register(nameof(Angle), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d, OnAngleChanged));
-
-        private static void OnAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] Angle: {e.OldValue:F1}° → {e.NewValue:F1}°", "ShapeParameters");
+            get => _angle;
+            set => SetProperty(ref _angle, value, "角度");
         }
 
         /// <summary>
@@ -175,18 +131,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double Radius
         {
-            get => (double)GetValue(RadiusProperty);
-            set => SetValue(RadiusProperty, value);
-        }
-
-        public static readonly DependencyProperty RadiusProperty =
-            DependencyProperty.Register(nameof(Radius), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(50d, OnRadiusChanged));
-
-        private static void OnRadiusChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] Radius: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _radius;
+            set => SetProperty(ref _radius, value, "半径");
         }
 
         /// <summary>
@@ -194,13 +140,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double OuterRadius
         {
-            get => (double)GetValue(OuterRadiusProperty);
-            set => SetValue(OuterRadiusProperty, value);
+            get => _outerRadius;
+            set => SetProperty(ref _outerRadius, value, "外半径");
         }
-
-        public static readonly DependencyProperty OuterRadiusProperty =
-            DependencyProperty.Register(nameof(OuterRadius), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d));
 
         #endregion
 
@@ -211,18 +153,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double StartX
         {
-            get => (double)GetValue(StartXProperty);
-            set => SetValue(StartXProperty, value);
-        }
-
-        public static readonly DependencyProperty StartXProperty =
-            DependencyProperty.Register(nameof(StartX), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d, OnStartXChanged));
-
-        private static void OnStartXChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] StartX: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _startX;
+            set => SetProperty(ref _startX, value, "起点X坐标");
         }
 
         /// <summary>
@@ -230,18 +162,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double StartY
         {
-            get => (double)GetValue(StartYProperty);
-            set => SetValue(StartYProperty, value);
-        }
-
-        public static readonly DependencyProperty StartYProperty =
-            DependencyProperty.Register(nameof(StartY), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(0d, OnStartYChanged));
-
-        private static void OnStartYChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] StartY: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _startY;
+            set => SetProperty(ref _startY, value, "起点Y坐标");
         }
 
         /// <summary>
@@ -249,18 +171,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double EndX
         {
-            get => (double)GetValue(EndXProperty);
-            set => SetValue(EndXProperty, value);
-        }
-
-        public static readonly DependencyProperty EndXProperty =
-            DependencyProperty.Register(nameof(EndX), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(100d, OnEndXChanged));
-
-        private static void OnEndXChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] EndX: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _endX;
+            set => SetProperty(ref _endX, value, "终点X坐标");
         }
 
         /// <summary>
@@ -268,18 +180,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// </summary>
         public double EndY
         {
-            get => (double)GetValue(EndYProperty);
-            set => SetValue(EndYProperty, value);
-        }
-
-        public static readonly DependencyProperty EndYProperty =
-            DependencyProperty.Register(nameof(EndY), typeof(double), typeof(ShapeParameters),
-                new PropertyMetadata(100d, OnEndYChanged));
-
-        private static void OnEndYChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var obj = (ShapeParameters)d;
-            PluginLogger.Info($"[ShapeParameters] EndY: {e.OldValue:F2} → {e.NewValue:F2}", "ShapeParameters");
+            get => _endY;
+            set => SetProperty(ref _endY, value, "终点Y坐标");
         }
 
         #endregion
@@ -298,12 +200,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 起始角度（弧形）
         /// </summary>
-        public double StartAngle { get; set; }
+        public double StartAngle
+        {
+            get => _startAngle;
+            set => SetProperty(ref _startAngle, value, "起始角度");
+        }
 
         /// <summary>
         /// 结束角度（弧形）
         /// </summary>
-        public double EndAngle { get; set; }
+        public double EndAngle
+        {
+            get => _endAngle;
+            set => SetProperty(ref _endAngle, value, "结束角度");
+        }
 
         #endregion
 
@@ -312,22 +222,38 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 填充颜色（ARGB）
         /// </summary>
-        public uint FillColorArgb { get; set; } = 0x28FF0000; // 默认红色半透明
+        public uint FillColorArgb
+        {
+            get => _fillColorArgb;
+            set => SetProperty(ref _fillColorArgb, value, "填充颜色");
+        }
 
         /// <summary>
         /// 边框颜色（ARGB）
         /// </summary>
-        public uint StrokeColorArgb { get; set; } = 0xFFFF0000; // 默认红色
+        public uint StrokeColorArgb
+        {
+            get => _strokeColorArgb;
+            set => SetProperty(ref _strokeColorArgb, value, "边框颜色");
+        }
 
         /// <summary>
         /// 边框厚度
         /// </summary>
-        public double StrokeThickness { get; set; } = 2;
+        public double StrokeThickness
+        {
+            get => _strokeThickness;
+            set => SetProperty(ref _strokeThickness, value, "边框厚度");
+        }
 
         /// <summary>
         /// 透明度 (0-1)
         /// </summary>
-        public double Opacity { get; set; } = 0.3;
+        public double Opacity
+        {
+            get => _opacity;
+            set => SetProperty(ref _opacity, value, "透明度");
+        }
 
         #endregion
 

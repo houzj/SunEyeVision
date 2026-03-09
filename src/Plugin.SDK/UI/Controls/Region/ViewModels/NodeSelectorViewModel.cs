@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
@@ -12,7 +11,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// <summary>
     /// 节点选择器视图模型
     /// </summary>
-    public class NodeSelectorViewModel : INotifyPropertyChanged, IDisposable
+    public class NodeSelectorViewModel : ObservableObject, IDisposable
     {
         private readonly IRegionDataSourceProvider? _dataProvider;
         private string _searchText = string.Empty;
@@ -267,22 +266,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         {
             AllNodes.Clear();
             FilteredNodes.Clear();
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            return true;
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

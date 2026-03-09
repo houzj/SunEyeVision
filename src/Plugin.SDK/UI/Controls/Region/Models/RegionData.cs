@@ -1,77 +1,144 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
     /// <summary>
     /// 区域数据 - 顶层容器
     /// </summary>
-    public class RegionData : ICloneable
+    public class RegionData : ObservableObject, ICloneable
     {
+        private Guid _id = Guid.NewGuid();
+        private string _name = string.Empty;
+        private RegionDefinition? _definition;
+        private bool _isEnabled = true;
+        private bool _isVisible = true;
+        private bool _isEditable = true;
+        private string _tag = string.Empty;
+        private int _zIndex;
+        private uint _displayColor = 0xFFFF0000;
+        private double _displayOpacity = 0.3;
+        private DateTime _createdTime = DateTime.Now;
+        private DateTime _modifiedTime = DateTime.Now;
+        private Dictionary<string, object> _extendedProperties = new();
+
         /// <summary>
         /// 唯一标识符
         /// </summary>
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid Id
+        {
+            get => _id;
+            set => SetProperty(ref _id, value);
+        }
 
         /// <summary>
         /// 区域名称
         /// </summary>
-        public string Name { get; set; } = string.Empty;
+        public string Name
+        {
+            get => _name;
+            set => SetProperty(ref _name, value, "区域名称");
+        }
 
         /// <summary>
         /// 区域定义
         /// </summary>
-        public RegionDefinition? Definition { get; set; }
+        public RegionDefinition? Definition
+        {
+            get => _definition;
+            set => SetProperty(ref _definition, value);
+        }
 
         /// <summary>
         /// 是否启用
         /// </summary>
-        public bool IsEnabled { get; set; } = true;
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set => SetProperty(ref _isEnabled, value, "启用状态");
+        }
 
         /// <summary>
         /// 是否可见
         /// </summary>
-        public bool IsVisible { get; set; } = true;
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set => SetProperty(ref _isVisible, value, "可见性");
+        }
 
         /// <summary>
         /// 是否可编辑
         /// </summary>
-        public bool IsEditable { get; set; } = true;
+        public bool IsEditable
+        {
+            get => _isEditable;
+            set => SetProperty(ref _isEditable, value, "可编辑性");
+        }
 
         /// <summary>
         /// 标签
         /// </summary>
-        public string Tag { get; set; } = string.Empty;
+        public string Tag
+        {
+            get => _tag;
+            set => SetProperty(ref _tag, value);
+        }
 
         /// <summary>
         /// 显示顺序
         /// </summary>
-        public int ZIndex { get; set; }
+        public int ZIndex
+        {
+            get => _zIndex;
+            set => SetProperty(ref _zIndex, value);
+        }
 
         /// <summary>
         /// 显示颜色（ARGB）
         /// </summary>
-        public uint DisplayColor { get; set; } = 0xFFFF0000; // 红色
+        public uint DisplayColor
+        {
+            get => _displayColor;
+            set => SetProperty(ref _displayColor, value, "显示颜色");
+        }
 
         /// <summary>
         /// 显示透明度 (0-1)
         /// </summary>
-        public double DisplayOpacity { get; set; } = 0.3;
+        public double DisplayOpacity
+        {
+            get => _displayOpacity;
+            set => SetProperty(ref _displayOpacity, value, "显示透明度");
+        }
 
         /// <summary>
         /// 创建时间
         /// </summary>
-        public DateTime CreatedTime { get; set; } = DateTime.Now;
+        public DateTime CreatedTime
+        {
+            get => _createdTime;
+            set => SetProperty(ref _createdTime, value);
+        }
 
         /// <summary>
         /// 最后修改时间
         /// </summary>
-        public DateTime ModifiedTime { get; set; } = DateTime.Now;
+        public DateTime ModifiedTime
+        {
+            get => _modifiedTime;
+            set => SetProperty(ref _modifiedTime, value);
+        }
 
         /// <summary>
         /// 扩展属性
         /// </summary>
-        public Dictionary<string, object> ExtendedProperties { get; set; } = new();
+        public Dictionary<string, object> ExtendedProperties
+        {
+            get => _extendedProperties;
+            set => SetProperty(ref _extendedProperties, value);
+        }
 
         /// <summary>
         /// 获取形状类型
