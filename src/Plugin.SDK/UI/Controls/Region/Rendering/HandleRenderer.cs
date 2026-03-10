@@ -257,10 +257,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         }
 
         /// <summary>
+        /// 手柄标记（用于识别和清理）
+        /// </summary>
+        public const string HandleTag = "EditHandle";
+
+        /// <summary>
+        /// 清理Canvas上的所有手柄
+        /// </summary>
+        public static void ClearHandles(Canvas canvas)
+        {
+            var toRemove = new List<UIElement>();
+            foreach (var child in canvas.Children)
+            {
+                if (child is Shape shape && shape.Tag as string == HandleTag)
+                {
+                    toRemove.Add(shape);
+                }
+            }
+            foreach (var item in toRemove)
+            {
+                canvas.Children.Remove(item);
+            }
+        }
+
+        /// <summary>
         /// 绘制手柄到Canvas（参考ROI编辑器DrawEditHandles 1281-1347行）
         /// </summary>
         public static void DrawHandles(Canvas canvas, EditHandle[] handles, ShapeType shapeType)
         {
+            // 先清理旧手柄
+            ClearHandles(canvas);
+
             foreach (var handle in handles)
             {
                 Shape handleShape;
@@ -274,7 +301,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                         Height = handle.HandleSize,
                         Fill = Brushes.LightGreen,
                         Stroke = Brushes.Green,
-                        StrokeThickness = 1.5
+                        StrokeThickness = 1.5,
+                        Tag = HandleTag
                     };
                 }
                 else if (shapeType == ShapeType.Circle || shapeType == ShapeType.Line)
@@ -286,7 +314,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                         Height = handle.HandleSize,
                         Fill = Brushes.White,
                         Stroke = Brushes.Blue,
-                        StrokeThickness = 1.5
+                        StrokeThickness = 1.5,
+                        Tag = HandleTag
                     };
                 }
                 else
@@ -298,7 +327,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                         Height = handle.HandleSize,
                         Fill = Brushes.White,
                         Stroke = Brushes.Blue,
-                        StrokeThickness = 1.5
+                        StrokeThickness = 1.5,
+                        Tag = HandleTag
                     };
                 }
 

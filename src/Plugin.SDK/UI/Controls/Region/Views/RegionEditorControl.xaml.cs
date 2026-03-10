@@ -56,6 +56,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private double? _rotateStartAngle = null;
         private double? _rotateStartMouseAngle = null;
 
+        // WPF Shape渲染器（对象池 + 增量更新）
+        private WpfShapeRenderer? _renderer;
+
         public RegionEditorViewModel ViewModel => _viewModel;
 
         /// <summary>
@@ -172,6 +175,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 MouseMove += RegionEditorControl_MouseMove;
                 MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
                 LostMouseCapture += RegionEditorControl_LostMouseCapture;
+
+                // 初始化WPF Shape渲染器
+                if (OverlayCanvas != null)
+                {
+                    _renderer?.Dispose();
+                    _renderer = new WpfShapeRenderer(OverlayCanvas);
+                }
             }
 
             UpdateRegionOverlay();
@@ -196,6 +206,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 // 清理覆盖层
                 _mainImageControl.OverlayCanvas.Children.Clear();
             }
+
+            // 清理渲染器
+            _renderer?.Dispose();
+            _renderer = null;
 
             _mainImageControl = null;
         }
@@ -429,7 +443,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_selectedRegion);
                 return;
             }
 
@@ -439,7 +453,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 var offset = position - _dragStartPoint;
                 MoveRegion(_selectedRegion, offset);
                 _dragStartPoint = position;
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_selectedRegion);
                 return;
             }
 
@@ -447,7 +461,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 UpdateDrawingPreview(position);
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_currentDrawingRegion);
             }
         }
 
@@ -465,19 +479,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
             {
                 HandleShapeEdit(shape, position);
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_selectedRegion);
             }
             else if (_isDragging && _selectedRegion != null)
             {
                 var offset = position - _dragStartPoint;
                 MoveRegion(_selectedRegion, offset);
                 _dragStartPoint = position;
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_selectedRegion);
             }
             else if (_isDrawing && _currentDrawingRegion != null)
             {
                 UpdateDrawingPreview(position);
-                UpdateRegionOverlay();
+                UpdateSingleRegionFast(_currentDrawingRegion);
             }
         }
 
@@ -1268,46 +1282,140 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 return;
             }
 
-            // 清空Canvas
-            OverlayCanvas.Children.Clear();
-
-            // 绘制区域
-            foreach (var region in _viewModel.Regions)
+            // 使用 WpfShapeRenderer 渲染区域（对象池 + 增量更新）
+            if (_renderer != null)
             {
-                if (!region.IsVisible) continue;
+                var contexts = new List<RegionRenderContext>();
 
-                var shape = CreateRegionShape(region);
-                if (shape != null)
+                // 添加所有可见区域
+                foreach (var region in _viewModel.Regions)
                 {
-                    OverlayCanvas.Children.Add(shape);
+                    if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
+                        continue;
+
+                    contexts.Add(CreateRenderContext(region, shapeDef));
                 }
 
-                // 绘制名称标签
-                DrawRegionLabel(region);
+                // 添加绘制预览
+                if (_isDrawing && _currentDrawingRegion?.Parameters is ShapeParameters previewShape)
+                {
+                    contexts.Add(CreateRenderContext(_currentDrawingRegion, previewShape, isPreview: true));
+                }
+
+                // 渲染
+                _renderer.Render(contexts, new RegionRenderOptions
+                {
+                    ShowLabels = true,
+                    ShowHandles = false  // 手柄单独处理
+                });
+
+                // 清理所有辅助元素（手柄、方向箭头等）
+                Rendering.HandleRenderer.ClearHandles(OverlayCanvas);
+
+                // 为旋转矩形绘制方向箭头（渲染器不处理此特殊元素）
+                foreach (var region in _viewModel.Regions)
+                {
+                    if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
+                        continue;
+                    if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
+                    {
+                        DrawRotatedRectangleDirectionArrow(shapeDef, region == _selectedRegion);
+                    }
+                }
+
+                // 绘制预览的旋转矩形方向箭头
+                if (_isDrawing && _currentDrawingRegion?.Parameters is ShapeParameters previewDef &&
+                    previewDef.ShapeType == ShapeType.RotatedRectangle)
+                {
+                    DrawRotatedRectangleDirectionArrow(previewDef, false);
+                }
+            }
+            else
+            {
+                // 回退到传统渲染方式（渲染器未初始化时）
+                OverlayCanvas.Children.Clear();
+
+                foreach (var region in _viewModel.Regions)
+                {
+                    if (!region.IsVisible) continue;
+
+                    var shape = CreateRegionShape(region);
+                    if (shape != null)
+                    {
+                        OverlayCanvas.Children.Add(shape);
+                    }
+
+                    DrawRegionLabel(region);
+                }
+
+                if (_isDrawing && _currentDrawingRegion != null)
+                {
+                    var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
+                    if (parametersShape != null)
+                    {
+                        OverlayCanvas.Children.Add(parametersShape);
+                    }
+
+                    if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef &&
+                        shapeDef.ShapeType == ShapeType.RotatedRectangle)
+                    {
+                        DrawRotatedRectangleDirectionArrow(shapeDef, false);
+                    }
+                }
             }
 
-            // 绘制当前正在创建的区域
-            if (_isDrawing && _currentDrawingRegion != null)
-            {
-                var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
-                if (parametersShape != null)
-                {
-                    OverlayCanvas.Children.Add(parametersShape);
-                }
-
-                // 为旋转矩形预览绘制方向箭头
-                if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef &&
-                    shapeDef.ShapeType == ShapeType.RotatedRectangle)
-                {
-                    DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
-                }
-            }
-
-            // 绘制选中区域的编辑手柄
+            // 绘制选中区域的编辑手柄（独立于区域渲染）
             if (_selectedRegion != null && !_isDrawing)
             {
                 DrawEditHandles(_selectedRegion);
             }
+        }
+
+        /// <summary>
+        /// 创建渲染上下文
+        /// </summary>
+        private RegionRenderContext CreateRenderContext(RegionData region, ShapeParameters shape, bool isPreview = false)
+        {
+            var context = new RegionRenderContext
+            {
+                Id = region.Id,
+                ShapeType = shape.ShapeType,
+                IsSelected = region == _selectedRegion,
+                IsPreview = isPreview,
+                IsVisible = true,
+
+                // 几何参数
+                Center = new Point(shape.CenterX, shape.CenterY),
+                Width = shape.Width,
+                Height = shape.Height,
+                Angle = shape.Angle,
+                Radius = shape.Radius,
+                LineStart = new Point(shape.StartX, shape.StartY),
+                LineEnd = new Point(shape.EndX, shape.EndY),
+                PolygonPoints = shape.Points?.Select(p => new Point(p.X, p.Y)).ToList() ?? new List<Point>(),
+
+                // 样式参数
+                FillColor = Color.FromArgb(
+                    (byte)((shape.FillColorArgb >> 24) & 0xFF),
+                    (byte)((shape.FillColorArgb >> 16) & 0xFF),
+                    (byte)((shape.FillColorArgb >> 8) & 0xFF),
+                    (byte)(shape.FillColorArgb & 0xFF)
+                ),
+                StrokeColor = Color.FromArgb(
+                    (byte)((shape.StrokeColorArgb >> 24) & 0xFF),
+                    (byte)((shape.StrokeColorArgb >> 16) & 0xFF),
+                    (byte)((shape.StrokeColorArgb >> 8) & 0xFF),
+                    (byte)(shape.StrokeColorArgb & 0xFF)
+                ),
+                StrokeThickness = shape.StrokeThickness,
+                Opacity = shape.Opacity,
+
+                // 标签
+                Label = region.Name
+            };
+
+            context.CalculateBounds();
+            return context;
         }
 
         /// <summary>
@@ -1674,6 +1782,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _rotateStartMouseAngle = null;
 
             UpdateRegionOverlay();
+        }
+
+        /// <summary>
+        /// 快速更新单个区域（用于拖动时的增量更新）
+        /// </summary>
+        private void UpdateSingleRegionFast(RegionData region)
+        {
+            if (_renderer == null || region.Parameters is not ShapeParameters shape) return;
+
+            // 只更新这个区域的 Shape，不重新渲染所有区域
+            var context = CreateRenderContext(region, shape);
+            _renderer.UpdateRegion(context);
+
+            // 更新手柄位置
+            if (region == _selectedRegion && OverlayCanvas != null)
+            {
+                Rendering.HandleRenderer.ClearHandles(OverlayCanvas);
+                DrawEditHandles(region);
+            }
         }
 
         #endregion

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Media;
 
@@ -135,6 +135,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         }
 
         /// <summary>
+        /// 辅助元素标记（与手柄相同，统一清理）
+        /// </summary>
+        public const string HelperTag = HandleRenderer.HandleTag;
+
+        /// <summary>
         /// 绘制方向箭头（参考ROI编辑器DrawDirectionArrow 1354-1425行）
         /// </summary>
         public static void DrawDirectionArrow(System.Windows.Controls.Canvas canvas, Point center, Point topCenter, Brush strokeBrush)
@@ -150,7 +155,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 X2 = topCenter.X,
                 Y2 = topCenter.Y,
                 Stroke = strokeBrush,
-                StrokeThickness = 2
+                StrokeThickness = 2,
+                Tag = HelperTag
             };
             canvas.Children.Add(arrowLine);
 
@@ -188,7 +194,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 X2 = leftX,
                 Y2 = leftY,
                 Stroke = strokeBrush,
-                StrokeThickness = 2
+                StrokeThickness = 2,
+                Tag = HelperTag
             };
             canvas.Children.Add(leftWing);
 
@@ -199,7 +206,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 X2 = rightX,
                 Y2 = rightY,
                 Stroke = strokeBrush,
-                StrokeThickness = 2
+                StrokeThickness = 2,
+                Tag = HelperTag
             };
             canvas.Children.Add(rightWing);
         }
@@ -230,7 +238,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = rotateHandlePos.Y,
                 Stroke = Brushes.Blue,
                 StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 3, 2 }
+                StrokeDashArray = new DoubleCollection { 3, 2 },
+                Tag = HelperTag
             };
             canvas.Children.Add(connectorLine);
         }
