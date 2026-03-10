@@ -138,6 +138,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         public void SetMainImageControl(ImageControl imageControl)
         {
+            // 如果是同一个实例，不做任何操作
+            if (_mainImageControl == imageControl)
+                return;
+
+            // 先取消旧的事件订阅
+            if (_mainImageControl != null)
+            {
+                _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
+                _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
+                _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
+            }
+
+            // 取消自身的鼠标事件订阅
+            MouseMove -= RegionEditorControl_MouseMove;
+            MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
+            LostMouseCapture -= RegionEditorControl_LostMouseCapture;
+
+            // 设置新的引用
             _mainImageControl = imageControl;
             
             if (_mainImageControl != null)
@@ -275,9 +293,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _viewModel.RegionChanged -= OnRegionChanged;
             _viewModel.Dispose();
 
-            // 注意：不要调用 ClearMainOverlay() 清空 _mainImageControl
-            // 因为控件重新加载时（如 Tab 切换），需要保持 ImageControl 引用
-            // 只在显式调用 ClearMainOverlay() 或控件销毁时才清理
+            // 取消订阅 ImageControl 事件
+            if (_mainImageControl != null)
+            {
+                _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
+                _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
+                _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
+            }
+
+            // 取消自身的鼠标事件订阅
+            MouseMove -= RegionEditorControl_MouseMove;
+            MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
+            LostMouseCapture -= RegionEditorControl_LostMouseCapture;
         }
 
         #region 键盘快捷键

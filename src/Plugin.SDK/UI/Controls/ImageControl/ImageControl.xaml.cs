@@ -829,6 +829,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var screenPoint = e.GetPosition(MainCanvas);
             var imagePos = ScreenToImage(screenPoint);
 
+
+
             // 触发外部事件，允许外部处理
             var args = new ImageMouseEventArgs(imagePos, screenPoint, e);
             CanvasMouseLeftButtonDown?.Invoke(this, args);
