@@ -183,20 +183,12 @@ namespace SunEyeVision.Plugin.SDK.Models
     {
         private static readonly string Version = "V5.0_20260310_性能优化版";
 
-        // 性能阈值：超过此值才输出详细日志（毫秒）
-        private const int PerformanceThresholdMs = 50;
-
         /// <summary>
         /// 静态构造函数：输出版本信息，确认代码已加载
         /// </summary>
         static ObservableObject()
         {
-            PluginLogger.Warning($"========================================", "ObservableObject");
-            PluginLogger.Warning($"ObservableObject 已加载", "ObservableObject");
-            PluginLogger.Warning($"版本: {Version}", "ObservableObject");
-            PluginLogger.Warning($"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}", "ObservableObject");
-            PluginLogger.Warning($"特性: 性能阈值监控({PerformanceThresholdMs}ms), 超阈值时输出详细日志", "ObservableObject");
-            PluginLogger.Warning($"========================================", "ObservableObject");
+            PluginLogger.Info($"ObservableObject 已加载 (版本: {Version})", "ObservableObject");
         }
 
         #region INotifyPropertyChanged
@@ -262,21 +254,9 @@ namespace SunEyeVision.Plugin.SDK.Models
             var totalTime = totalStopwatch.ElapsedMilliseconds;
 
             // 仅在超阈值时输出详细日志
-            if (totalTime > PerformanceThresholdMs)
+            if (totalTime > 50) // 保留阈值判断，但简化日志输出
             {
-                PluginLogger.Warning($"[性能瓶颈] {targetType}.{propertyName} 耗时 {totalTime}ms, 订阅者: {totalSubscribers}", logSource);
-
-                // 输出每个订阅者的耗时（仅在超阈值时）
-                foreach (var subscriber in invocationList)
-                {
-                    var subscriberType = subscriber.Target?.GetType().Name ?? "静态方法";
-                    var subscriberMethod = subscriber.Method?.Name ?? "Unknown";
-
-                    if (subscriberType.Contains("PropertyChangedEventManager"))
-                    {
-                        PluginLogger.Warning($"  → 订阅者: {subscriberType}.{subscriberMethod}() [WPF绑定]", logSource);
-                    }
-                }
+                PluginLogger.Warning($"[性能瓶颈] {targetType}.{propertyName} 耗时 {totalTime}ms", logSource);
             }
         }
 
@@ -393,7 +373,10 @@ namespace SunEyeVision.Plugin.SDK.Models
         protected virtual void LogPropertyChange(string displayName, object? oldValue, object? newValue)
         {
             var source = GetLogSource();
-            PluginLogger.ParameterChanged(displayName, oldValue, newValue, source);
+            if (!string.IsNullOrEmpty(displayName)) // 仅记录有显示名称的属性变更
+            {
+                PluginLogger.ParameterChanged(displayName, oldValue, newValue, source);
+            }
         }
 
         /// <summary>
