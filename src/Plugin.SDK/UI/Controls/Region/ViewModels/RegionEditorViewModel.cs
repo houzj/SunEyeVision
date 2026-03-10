@@ -17,6 +17,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// </summary>
     public class RegionEditorViewModel : ObservableObject, IDisposable
     {
+        private static readonly string Version = "PERF_DEBUG_V3.1_20260310_1415";
+
+        /// <summary>
+        /// 静态构造函数：输出版本信息，确认代码已加载
+        /// </summary>
+        static RegionEditorViewModel()
+        {
+            PluginLogger.Warning($"========================================", "RegionEditor");
+            PluginLogger.Warning($"RegionEditorViewModel 类已加载", "RegionEditor");
+            PluginLogger.Warning($"版本: {Version}", "RegionEditor");
+            PluginLogger.Warning($"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}", "RegionEditor");
+            PluginLogger.Warning($"========================================", "RegionEditor");
+        }
+
         private readonly Logic.RegionResolver _resolver;
         private readonly EditHistory _editHistory;
         private RegionData? _selectedRegion;
@@ -52,23 +66,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 var setterStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 PluginLogger.Info($"[RegionEditor] SelectedRegion setter 被调用，新值={value?.Name ?? "null"}, 旧值={_selectedRegion?.Name ?? "null"}", "RegionEditor");
 
-                if (SetProperty(ref _selectedRegion, value))
-                {
-                    PluginLogger.Info($"[RegionEditor] ✓ SelectedRegion 已更新，调用 UpdateEditingShape()", "RegionEditor");
-                    var updateStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    UpdateEditingShape();
-                    updateStopwatch.Stop();
-                    PluginLogger.Info($"[性能监控] UpdateEditingShape() 耗时: {updateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+                // 监控 SetProperty 调用
+                var setPropertyStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                bool propertyChanged = SetProperty(ref _selectedRegion, value);
+                setPropertyStopwatch.Stop();
+                PluginLogger.Info($"[性能监控] SetProperty() 耗时: {setPropertyStopwatch.ElapsedMilliseconds} ms, propertyChanged={propertyChanged}", "RegionEditor");
 
-                    OnPropertyChanged(nameof(HasSelection));
-                    OnPropertyChanged(nameof(CanEdit));
-                    OnPropertyChanged(nameof(SelectedRegionMode));
-                    OnPropertyChanged(nameof(SelectedRegionShapeType));
-                    OnPropertyChanged(nameof(IsDrawingMode));
-                    OnPropertyChanged(nameof(IsSubscribeByRegionMode));
-                    OnPropertyChanged(nameof(IsSubscribeByParameterMode));
-                    OnPropertyChanged(nameof(ParameterBindings));
-                    OnPropertyChanged(nameof(HasParametersVisible));
+                if (propertyChanged)
+                {
+                    PluginLogger.Info($"[RegionEditor] ✓ SelectedRegion 已更新，使用延迟更新", "RegionEditor");
+
+                    // 使用 Dispatcher.BeginInvoke 异步更新，避免阻塞属性设置
+                    // 这样可以将 UpdateEditingShape 延迟到下一个 UI 消息循环
+                    _dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var updateStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        UpdateEditingShape();
+                        updateStopwatch.Stop();
+                        PluginLogger.Info($"[性能监控] UpdateEditingShape() 耗时: {updateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+                    }), System.Windows.Threading.DispatcherPriority.Background);
                 }
                 else
                 {
@@ -78,16 +94,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                     // 解决绘制后首次选中时，因属性相同导致面板不更新的问题
                     if (value != null)
                     {
-                        PluginLogger.Info($"[RegionEditor] 🔥 选中相同区域，强制调用 UpdateEditingShape()", "RegionEditor");
-                        var forceUpdateStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                        UpdateEditingShape();
-                        forceUpdateStopwatch.Stop();
-                        PluginLogger.Info($"[性能监控] 强制 UpdateEditingShape() 耗时: {forceUpdateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+                        PluginLogger.Info($"[RegionEditor] 🔥 选中相同区域，使用延迟调用 UpdateEditingShape()", "RegionEditor");
+                        _dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            var forceUpdateStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            UpdateEditingShape();
+                            forceUpdateStopwatch.Stop();
+                            PluginLogger.Info($"[性能监控] 强制 UpdateEditingShape() 耗时: {forceUpdateStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+                        }), System.Windows.Threading.DispatcherPriority.Background);
                     }
                 }
 
                 setterStopwatch.Stop();
-                PluginLogger.Info($"[性能监控] SelectedRegion setter 总耗时: {setterStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+                PluginLogger.Warning($"[性能监控] SelectedRegion setter 总耗时: {setterStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
             }
         }
 
@@ -517,13 +536,34 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         #endregion
 
         /// <summary>
-        /// 重写 OnPropertyChanged 方法，添加详细日志
+        /// 重写 OnPropertyChanged 方法，添加性能监控
         /// </summary>
+        /// <remarks>
+        /// 简化版本：让基类 ObservableObject 的详细日志机制正常工作
+        /// ObservableObject 会记录：
+        /// 1. 订阅者数量
+        /// 2. 每个订阅者的事件调用耗时
+        /// 3. 事件调用的详细堆栈
+        /// </remarks>
         protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
         {
-            PluginLogger.Info($"[RegionEditorViewModel] OnPropertyChanged 触发: propertyName={propertyName}, HashCode={this.GetHashCode()}", "RegionEditor");
+            var notifyStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var baseInvokeStopwatch = System.Diagnostics.Stopwatch.StartNew();
             base.OnPropertyChanged(propertyName);
+            baseInvokeStopwatch.Stop();
+            PluginLogger.Warning($"[OnPropertyChanged] propertyName={propertyName}, base.OnPropertyChanged 耗时: {baseInvokeStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+            notifyStopwatch.Stop();
+            PluginLogger.Warning($"[性能监控] OnPropertyChanged('{propertyName}') 总耗时: {notifyStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+            if (baseInvokeStopwatch.ElapsedMilliseconds > 100)
+            {
+                PluginLogger.Warning($"🔥🔥🔥 瓶颈确认：base.OnPropertyChanged('{propertyName}') 耗时 {baseInvokeStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
+            }
         }
+
+        /// <summary>
+        /// 重写 GetLogSource，启用ObservableObject的详细性能日志
+        /// </summary>
+        protected override string? GetLogSource() => "RegionEditor";
 
         /// <summary>
         /// 区域变更事件
@@ -537,7 +577,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
         public RegionEditorViewModel()
         {
-            PluginLogger.Info($"[RegionEditorViewModel] 构造函数被调用, HashCode={this.GetHashCode()}", "RegionEditor");
+            PluginLogger.Warning($"========================================", "RegionEditor");
+            PluginLogger.Warning($"RegionEditorViewModel 构造函数被调用", "RegionEditor");
+            PluginLogger.Warning($"版本: {Version}", "RegionEditor");
+            PluginLogger.Warning($"HashCode: {this.GetHashCode()}", "RegionEditor");
+            PluginLogger.Warning($"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}", "RegionEditor");
+            PluginLogger.Warning($"========================================", "RegionEditor");
             _dispatcher = Dispatcher.CurrentDispatcher;
             _resolver = new Logic.RegionResolver();
             _editHistory = new EditHistory();
@@ -554,7 +599,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
             // 订阅编辑历史变更事件
             _editHistory.HistoryChanged += OnEditHistoryChanged;
-            PluginLogger.Info($"[RegionEditorViewModel] 构造函数完成, HashCode={this.GetHashCode()}", "RegionEditor");
+            PluginLogger.Warning($"RegionEditorViewModel 构造函数完成", "RegionEditor");
         }
 
         /// <summary>
@@ -840,10 +885,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 PluginLogger.Info($"[RegionEditor] 设置 SelectedShapeType={shapeDef.ShapeType}", "RegionEditor");
                 SelectedShapeType = shapeDef.ShapeType;
 
-                // 通知属性变更
-                OnPropertyChanged(nameof(Parameters));
-                OnPropertyChanged(nameof(PreviewLength));
-
                 PluginLogger.Info($"[RegionEditor] ========== UpdateEditingShape 完成 ==========", "RegionEditor");
             }
             else
@@ -858,6 +899,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             if (_parameterPanel != null && SelectedRegion?.Parameters != null)
             {
                 var paramPanelStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                PluginLogger.Info($"[性能监控] 开始更新参数面板...", "RegionEditor");
                 if (SelectedRegion.Parameters is ComputedRegion computedRegion)
                 {
                     _parameterPanel.LoadFromComputedRegion(computedRegion);
@@ -869,6 +911,68 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 paramPanelStopwatch.Stop();
                 PluginLogger.Info($"[性能监控] 参数面板更新耗时: {paramPanelStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
             }
+
+            // 通知计算属性变更（这些调用已经在异步上下文中，不需要再次使用 BeginInvoke）
+            PluginLogger.Info($"[性能监控] 开始通知11个属性变更...", "RegionEditor");
+            var notifyStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            var notify1 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(HasSelection));
+            notify1.Stop();
+            PluginLogger.Info($"[性能监控]   通知 HasSelection 耗时: {notify1.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify2 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(CanEdit));
+            notify2.Stop();
+            PluginLogger.Info($"[性能监控]   通知 CanEdit 耗时: {notify2.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify3 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(SelectedRegionMode));
+            notify3.Stop();
+            PluginLogger.Info($"[性能监控]   通知 SelectedRegionMode 耗时: {notify3.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify4 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(SelectedRegionShapeType));
+            notify4.Stop();
+            PluginLogger.Info($"[性能监控]   通知 SelectedRegionShapeType 耗时: {notify4.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify5 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(IsDrawingMode));
+            notify5.Stop();
+            PluginLogger.Info($"[性能监控]   通知 IsDrawingMode 耗时: {notify5.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify6 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(IsSubscribeByRegionMode));
+            notify6.Stop();
+            PluginLogger.Info($"[性能监控]   通知 IsSubscribeByRegionMode 耗时: {notify6.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify7 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(IsSubscribeByParameterMode));
+            notify7.Stop();
+            PluginLogger.Info($"[性能监控]   通知 IsSubscribeByParameterMode 耗时: {notify7.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify8 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(ParameterBindings));
+            notify8.Stop();
+            PluginLogger.Info($"[性能监控]   通知 ParameterBindings 耗时: {notify8.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify9 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(HasParametersVisible));
+            notify9.Stop();
+            PluginLogger.Info($"[性能监控]   通知 HasParametersVisible 耗时: {notify9.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify10 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(Parameters));
+            notify10.Stop();
+            PluginLogger.Warning($"[性能监控] 🔥 通知 Parameters 耗时: {notify10.ElapsedMilliseconds} ms", "RegionEditor");
+
+            var notify11 = System.Diagnostics.Stopwatch.StartNew();
+            OnPropertyChanged(nameof(PreviewLength));
+            notify11.Stop();
+            PluginLogger.Info($"[性能监控]   通知 PreviewLength 耗时: {notify11.ElapsedMilliseconds} ms", "RegionEditor");
+
+            notifyStopwatch.Stop();
+            PluginLogger.Warning($"[性能监控] 🔥 11个属性通知总耗时: {notifyStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
 
             updateShapeStopwatch.Stop();
             PluginLogger.Info($"[性能监控] UpdateEditingShape() 总耗时: {updateShapeStopwatch.ElapsedMilliseconds} ms", "RegionEditor");

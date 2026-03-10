@@ -33,8 +33,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             PluginLogger.Info($"[DrawingParameterPanel] Loaded 事件触发，面板已加载", "UI");
 
             // 尝试强制刷新绑定
+            var loadedStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            PluginLogger.Info($"[性能监控] OnLoaded 开始执行 InvalidateVisual()", "UI");
             InvalidateVisual();
+
+            PluginLogger.Info($"[性能监控] OnLoaded 开始执行 UpdateLayout()...", "UI");
             UpdateLayout();
+            PluginLogger.Warning($"[性能监控] OnLoaded UpdateLayout() 耗时: {loadedStopwatch.ElapsedMilliseconds} ms", "UI");
 
             LogBindingInfo();
             CheckParametersBinding();
@@ -149,7 +154,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            PluginLogger.Info($"[DrawingParameterPanel] PropertyChanged 事件触发: propertyName={e.PropertyName}, sender.HashCode={sender?.GetHashCode()}, sender.Type={sender?.GetType().Name}, DrawingParameterPanel.HashCode={this.GetHashCode()}", "UI");
+            var handlerStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            PluginLogger.Info($"[DrawingParameterPanel] ========== PropertyChanged 事件开始 ==========", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] propertyName={e.PropertyName}, sender.HashCode={sender?.GetHashCode()}, sender.Type={sender?.GetType().Name}, DrawingParameterPanel.HashCode={this.GetHashCode()}", "UI");
 
             // 当SelectedShapeType或Parameters属性变化时，刷新绑定
             if (e.PropertyName == nameof(RegionEditorViewModel.SelectedShapeType) ||
@@ -163,12 +170,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     PluginLogger.Info($"[DrawingParameterPanel] _viewModel.Parameters={_viewModel.Parameters?.ShapeType.ToString() ?? "null"}", "UI");
                 }
 
-                // 强制刷新绑定
+                // 性能监控：记录 InvalidateVisual 耗时
+                var invalidateStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                PluginLogger.Info($"[性能监控] InvalidateVisual() 开始...", "UI");
                 InvalidateVisual();
+                invalidateStopwatch.Stop();
+                PluginLogger.Info($"[性能监控] InvalidateVisual() 耗时: {invalidateStopwatch.ElapsedMilliseconds} ms", "UI");
+
+                // 性能监控：记录 UpdateLayout 耗时（可能是性能瓶颈）
+                PluginLogger.Warning($"[性能监控] 🔥🔥🔥 UpdateLayout() 开始执行（可能是瓶颈）...", "UI");
+                var layoutStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 UpdateLayout();
+                layoutStopwatch.Stop();
+                PluginLogger.Warning($"[性能监控] 🔥🔥🔥 UpdateLayout() 耗时: {layoutStopwatch.ElapsedMilliseconds} ms", "UI");
 
                 PluginLogger.Info($"[DrawingParameterPanel] 绑定已刷新", "UI");
             }
+
+            handlerStopwatch.Stop();
+            PluginLogger.Warning($"[性能监控] OnViewModelPropertyChanged({e.PropertyName}) 总耗时: {handlerStopwatch.ElapsedMilliseconds} ms", "UI");
+            PluginLogger.Info($"[DrawingParameterPanel] ========== PropertyChanged 事件结束 ==========", "UI");
         }
 
         private void LogBindingInfo()

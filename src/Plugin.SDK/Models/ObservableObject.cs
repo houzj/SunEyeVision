@@ -1,10 +1,156 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Models
 {
+    /// <summary>
+    /// 属性变更记录
+    /// </summary>
+    public class PropertyChangeRecord
+    {
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// 目标类型
+        /// </summary>
+        public Type TargetType { get; set; } = null!;
+
+        /// <summary>
+        /// 属性名称
+        /// </summary>
+        public string PropertyName { get; set; } = null!;
+
+        /// <summary>
+        /// 显示名称
+        /// </summary>
+        public string? DisplayName { get; set; }
+
+        /// <summary>
+        /// 旧值
+        /// </summary>
+        public object? OldValue { get; set; }
+
+        /// <summary>
+        /// 新值
+        /// </summary>
+        public object? NewValue { get; set; }
+
+        /// <summary>
+        /// 修改者类名
+        /// </summary>
+        public string? ModifierClass { get; set; }
+
+        /// <summary>
+        /// 修改者方法名
+        /// </summary>
+        public string? ModifierMethod { get; set; }
+
+        /// <summary>
+        /// 调用栈
+        /// </summary>
+        public string? CallStack { get; set; }
+
+        public override string ToString()
+        {
+            var modifierInfo = !string.IsNullOrEmpty(ModifierClass) && !string.IsNullOrEmpty(ModifierMethod)
+                ? $"{ModifierClass}.{ModifierMethod}()"
+                : "未知调用者";
+
+            return $"[{Timestamp:HH:mm:ss.fff}] {TargetType.Name}.{PropertyName} ({DisplayName ?? "N/A"}) = {NewValue} | 修改者: {modifierInfo}";
+        }
+    }
+
+    /// <summary>
+    /// 属性变更监控器 - 全局单例
+    /// </summary>
+    public class PropertyChangeMonitor
+    {
+        private static readonly Lazy<PropertyChangeMonitor> _instance = new Lazy<PropertyChangeMonitor>(() => new PropertyChangeMonitor());
+        public static PropertyChangeMonitor Instance => _instance.Value;
+
+        private readonly List<PropertyChangeRecord> _records = new List<PropertyChangeRecord>();
+        private readonly object _lock = new object();
+
+        private PropertyChangeMonitor() { }
+
+        /// <summary>
+        /// 记录属性变更
+        /// </summary>
+        public void RecordChange(PropertyChangeRecord record)
+        {
+            lock (_lock)
+            {
+                _records.Add(record);
+            }
+        }
+
+        /// <summary>
+        /// 查询指定属性的变更记录
+        /// </summary>
+        public List<PropertyChangeRecord> QueryChanges(Type targetType, string propertyName)
+        {
+            lock (_lock)
+            {
+                return _records.Where(r => r.TargetType == targetType && r.PropertyName == propertyName).ToList();
+            }
+        }
+
+        /// <summary>
+        /// 查询指定类型的所有变更记录
+        /// </summary>
+        public List<PropertyChangeRecord> QueryChanges(Type targetType)
+        {
+            lock (_lock)
+            {
+                return _records.Where(r => r.TargetType == targetType).ToList();
+            }
+        }
+
+        /// <summary>
+        /// 查询所有变更记录
+        /// </summary>
+        public List<PropertyChangeRecord> QueryAllChanges()
+        {
+            lock (_lock)
+            {
+                return new List<PropertyChangeRecord>(_records);
+            }
+        }
+
+        /// <summary>
+        /// 清空所有记录
+        /// </summary>
+        public void Clear()
+        {
+            lock (_lock)
+            {
+                _records.Clear();
+            }
+        }
+
+        /// <summary>
+        /// 获取记录数量
+        /// </summary>
+        public int Count
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _records.Count;
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// 可观察对象基类 - 项目中所有属性变化通知的唯一源头
     /// </summary>
@@ -12,8 +158,10 @@ namespace SunEyeVision.Plugin.SDK.Models
     /// 特性：
     /// 1. 统一的属性变化通知机制
     /// 2. 可选的自动日志记录（通过 displayName 参数启用）
-    /// 3. 扩展点支持子类自定义行为
-    /// 
+    /// 3. 可选的属性变更监控（通过 displayName 参数启用）
+    /// 4. 自动追踪修改者信息（通过 StackTrace）
+    /// 5. 扩展点支持子类自定义行为
+    ///
     /// 使用方式：
     /// <code>
     /// // 不记录日志的属性
@@ -22,8 +170,8 @@ namespace SunEyeVision.Plugin.SDK.Models
     ///     get => _internalValue;
     ///     set => SetProperty(ref _internalValue, value);
     /// }
-    /// 
-    /// // 自动记录日志的属性（指定显示名称）
+    ///
+    /// // 自动记录日志并监控的属性（指定显示名称）
     /// public int Threshold
     /// {
     ///     get => _threshold;
@@ -33,6 +181,24 @@ namespace SunEyeVision.Plugin.SDK.Models
     /// </remarks>
     public abstract class ObservableObject : INotifyPropertyChanged
     {
+        private static readonly string Version = "V5.0_20260310_性能优化版";
+
+        // 性能阈值：超过此值才输出详细日志（毫秒）
+        private const int PerformanceThresholdMs = 50;
+
+        /// <summary>
+        /// 静态构造函数：输出版本信息，确认代码已加载
+        /// </summary>
+        static ObservableObject()
+        {
+            PluginLogger.Warning($"========================================", "ObservableObject");
+            PluginLogger.Warning($"ObservableObject 已加载", "ObservableObject");
+            PluginLogger.Warning($"版本: {Version}", "ObservableObject");
+            PluginLogger.Warning($"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}", "ObservableObject");
+            PluginLogger.Warning($"特性: 性能阈值监控({PerformanceThresholdMs}ms), 超阈值时输出详细日志", "ObservableObject");
+            PluginLogger.Warning($"========================================", "ObservableObject");
+        }
+
         #region INotifyPropertyChanged
 
         /// <summary>
@@ -44,9 +210,74 @@ namespace SunEyeVision.Plugin.SDK.Models
         /// 触发属性变更通知
         /// </summary>
         /// <param name="propertyName">属性名称（自动获取）</param>
+        /// <remarks>
+        /// 性能优化版本：
+        /// - 正常情况：直接触发事件，不输出日志
+        /// - 超阈值情况：输出详细性能分析日志
+        /// </remarks>
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            var propertyChanged = PropertyChanged;
+            if (propertyChanged == null)
+            {
+                return;
+            }
+
+            // 简单调用：不监控性能
+            var args = new PropertyChangedEventArgs(propertyName);
+            propertyChanged.Invoke(this, args);
+        }
+
+        /// <summary>
+        /// 触发属性变更通知（带性能监控）
+        /// </summary>
+        /// <param name="propertyName">属性名称</param>
+        /// <param name="enableProfiling">是否启用性能监控</param>
+        protected virtual void OnPropertyChangedWithProfiling(string propertyName, bool enableProfiling = true)
+        {
+            var propertyChanged = PropertyChanged;
+            if (propertyChanged == null)
+            {
+                return;
+            }
+
+            if (!enableProfiling)
+            {
+                propertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                return;
+            }
+
+            // 性能监控模式
+            var totalStopwatch = Stopwatch.StartNew();
+            var targetType = GetType().Name;
+            var logSource = GetLogSource() ?? targetType;
+            var invocationList = propertyChanged.GetInvocationList();
+            var totalSubscribers = invocationList.Length;
+
+            // 直接调用所有订阅者
+            var args = new PropertyChangedEventArgs(propertyName);
+            propertyChanged.Invoke(this, args);
+
+            totalStopwatch.Stop();
+            var totalTime = totalStopwatch.ElapsedMilliseconds;
+
+            // 仅在超阈值时输出详细日志
+            if (totalTime > PerformanceThresholdMs)
+            {
+                PluginLogger.Warning($"[性能瓶颈] {targetType}.{propertyName} 耗时 {totalTime}ms, 订阅者: {totalSubscribers}", logSource);
+
+                // 输出每个订阅者的耗时（仅在超阈值时）
+                foreach (var subscriber in invocationList)
+                {
+                    var subscriberType = subscriber.Target?.GetType().Name ?? "静态方法";
+                    var subscriberMethod = subscriber.Method?.Name ?? "Unknown";
+
+                    if (subscriberType.Contains("PropertyChangedEventManager"))
+                    {
+                        PluginLogger.Warning($"  → 订阅者: {subscriberType}.{subscriberMethod}() [WPF绑定]", logSource);
+                    }
+                }
+            }
         }
 
         #endregion
@@ -54,24 +285,59 @@ namespace SunEyeVision.Plugin.SDK.Models
         #region SetProperty 方法
 
         /// <summary>
-        /// 设置属性值（可选自动记录日志）
+        /// 调用者信息
+        /// </summary>
+        private class CallerInfo
+        {
+            public string? ClassName { get; set; }
+            public string? MethodName { get; set; }
+            public string? CallStack { get; set; }
+        }
+
+        /// <summary>
+        /// 通过StackTrace获取调用者信息
+        /// </summary>
+        private static CallerInfo GetCallerInfo()
+        {
+            var info = new CallerInfo();
+            var stackTrace = new StackTrace(skipFrames: 2);
+
+            for (int i = 0; i < stackTrace.FrameCount; i++)
+            {
+                var frame = stackTrace.GetFrame(i);
+                if (frame == null) continue;
+
+                var method = frame.GetMethod();
+                if (method == null) continue;
+
+                if (method.DeclaringType == typeof(ObservableObject) ||
+                    method.Name.StartsWith("set_") ||
+                    method.Name.StartsWith("get_"))
+                {
+                    continue;
+                }
+
+                info.ClassName = method.DeclaringType?.Name;
+                info.MethodName = method.Name;
+
+                info.CallStack = string.Join("\n", stackTrace.GetFrames()
+                    .Where(f => f?.GetMethod() != null)
+                    .Select(f => $"  at {f?.GetMethod()?.DeclaringType?.FullName}.{f?.GetMethod()?.Name}"));
+                break;
+            }
+
+            return info;
+        }
+
+        /// <summary>
+        /// 设置属性值（可选自动记录日志和监控）
         /// </summary>
         /// <typeparam name="T">属性类型</typeparam>
         /// <param name="field">字段引用</param>
         /// <param name="value">新值</param>
-        /// <param name="displayName">显示名称（传入时自动记录日志）</param>
+        /// <param name="displayName">显示名称（传入时自动记录日志并启用监控）</param>
         /// <param name="propertyName">属性名（自动获取）</param>
         /// <returns>是否发生了变化</returns>
-        /// <remarks>
-        /// 使用方式：
-        /// <code>
-        /// // 不记录日志
-        /// SetProperty(ref _internalValue, value);
-        /// 
-        /// // 自动记录日志
-        /// SetProperty(ref _threshold, value, "阈值");
-        /// </code>
-        /// </remarks>
         protected bool SetProperty<T>(
             ref T field,
             T value,
@@ -84,13 +350,26 @@ namespace SunEyeVision.Plugin.SDK.Models
             var oldValue = field;
             field = value;
 
-            // 触发扩展处理
             OnPropertyChanging(propertyName, oldValue, value);
 
-            // 自动记录日志（displayName 不为空时）
             if (!string.IsNullOrEmpty(displayName))
             {
                 LogPropertyChange(displayName, oldValue, value);
+
+                var callerInfo = GetCallerInfo();
+                var record = new PropertyChangeRecord
+                {
+                    Timestamp = DateTime.Now,
+                    TargetType = GetType(),
+                    PropertyName = propertyName ?? "Unknown",
+                    DisplayName = displayName,
+                    OldValue = oldValue,
+                    NewValue = value,
+                    ModifierClass = callerInfo.ClassName,
+                    ModifierMethod = callerInfo.MethodName,
+                    CallStack = callerInfo.CallStack
+                };
+                PropertyChangeMonitor.Instance.RecordChange(record);
             }
 
             OnPropertyChanged(propertyName);
@@ -104,34 +383,22 @@ namespace SunEyeVision.Plugin.SDK.Models
         /// <summary>
         /// 属性即将变化时的扩展处理（子类可重写）
         /// </summary>
-        /// <param name="propertyName">属性名称</param>
-        /// <param name="oldValue">旧值</param>
-        /// <param name="newValue">新值</param>
         protected virtual void OnPropertyChanging(string? propertyName, object? oldValue, object? newValue)
         {
-            // 默认不做任何事，子类可以重写来添加额外逻辑
         }
 
         /// <summary>
         /// 记录属性变化日志（子类可重写自定义日志格式）
         /// </summary>
-        /// <param name="displayName">显示名称</param>
-        /// <param name="oldValue">旧值</param>
-        /// <param name="newValue">新值</param>
         protected virtual void LogPropertyChange(string displayName, object? oldValue, object? newValue)
         {
             var source = GetLogSource();
-            System.Diagnostics.Debug.WriteLine(
-                $"[ObservableObject.LogPropertyChange] displayName={displayName}, oldValue={oldValue}, newValue={newValue}, source={source}");
             PluginLogger.ParameterChanged(displayName, oldValue, newValue, source);
-            System.Diagnostics.Debug.WriteLine(
-                $"[ObservableObject.LogPropertyChange] PluginLogger.ParameterChanged 调用完成");
         }
 
         /// <summary>
         /// 获取日志来源（子类可重写）
         /// </summary>
-        /// <returns>日志来源名称</returns>
         protected virtual string? GetLogSource() => null;
 
         #endregion

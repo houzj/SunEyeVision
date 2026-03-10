@@ -190,10 +190,15 @@
                     <local:ParameterPanel DataContext="{Binding ParameterPanel}"/>
                 </Expander>
 
-                <!-- 选中区域详细信息 -->
+                <!-- 选中区域详细信息 - 重新启用用于性能问题定位 (2026-03-10)
+                     修复方案：
+                     1. Converter 中移除了所有调试日志
+                     2. DataContext 绑定到 RegionEditorViewModel 而不是 SelectedRegion
+                     3. ObservableObject 性能监控仅在超阈值时输出详细日志
+                -->
                 <GroupBox Header="选中区域" Margin="0,0,0,8"
-                          Visibility="Collapsed">
-                    <local:RegionInfoPanel DataContext="{Binding SelectedRegion}"/>
+                          Visibility="{Binding HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <local:RegionInfoPanel DataContext="{Binding}"/>
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
