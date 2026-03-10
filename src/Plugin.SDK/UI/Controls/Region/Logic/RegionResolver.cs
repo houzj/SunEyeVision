@@ -83,17 +83,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         {
             if (regionData == null)
             {
-                _logger.LogInfo("区域参数解析：区域数据为空", "RegionResolver");
                 return ResolvedRegion.Invalid("区域数据为空");
             }
 
             if (regionData.Parameters == null)
             {
-                _logger.LogInfo($"区域参数解析：区域参数为空，区域ID={regionData.Id}", "RegionResolver");
                 return ResolvedRegion.Invalid("区域参数为空");
             }
-
-            _logger.LogInfo($"区域参数解析开始：区域名称={regionData.Name}，定义类型={regionData.Parameters.GetType().Name}", "RegionResolver");
 
             return regionData.Parameters switch
             {
@@ -148,11 +144,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// </summary>
         private ResolvedRegion ResolveFixedRegion(FixedRegion fixedDef, RegionData sourceData)
         {
-            _logger.LogInfo($"区域参数解析：解析固定区域定义，源节点={fixedDef.SourceNodeId}，输出名={fixedDef.OutputName}，区域索引={fixedDef.RegionIndex}", "RegionResolver");
-
             if (_context == null)
             {
-                _logger.LogError("区域参数解析：参数上下文为空，无法解析订阅区域", "RegionResolver");
                 return ResolvedRegion.Invalid("参数上下文为空，无法解析订阅区域");
             }
 
@@ -163,11 +156,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
 
             if (regionValue == null)
             {
-                _logger.LogError($"区域参数解析：无法获取节点 {fixedDef.SourceNodeId} 的输出 {fixedDef.OutputName}[{fixedDef.RegionIndex}]，返回null", "RegionResolver");
                 return ResolvedRegion.Invalid($"无法获取节点 {fixedDef.SourceNodeId} 的输出 {fixedDef.OutputName}");
             }
-
-            _logger.LogSuccess($"区域参数解析：成功获取节点 {fixedDef.SourceNodeId} 的输出 {fixedDef.OutputName}[{fixedDef.RegionIndex}]，值类型={regionValue.GetType().Name}", "RegionResolver");
 
             // 尝试将值转换为区域
             return ConvertToResolvedRegion(regionValue, sourceData);
@@ -178,8 +168,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// </summary>
         private ResolvedRegion ResolveComputedRegion(ComputedRegion computedDef, RegionData sourceData)
         {
-            _logger.LogInfo($"区域参数解析：解析计算区域定义，目标形状={computedDef.TargetShapeType}", "RegionResolver");
-
             var result = new ResolvedRegion
             {
                 ShapeType = computedDef.TargetShapeType,
@@ -208,11 +196,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
             {
                 result.IsValid = false;
                 result.ErrorMessage = validationError;
-                _logger.LogError($"区域参数解析：参数验证失败 - {validationError}", "RegionResolver");
-            }
-            else
-            {
-                _logger.LogSuccess($"区域参数解析：解析成功，形状={computedDef.TargetShapeType}，中心=({result.CenterX:F2}, {result.CenterY:F2})，尺寸=({result.Width:F2}×{result.Height:F2})", "RegionResolver");
             }
 
             return result;
@@ -226,24 +209,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
             var source = computedDef.GetParameterBinding(parameterName);
             if (source == null)
             {
-                _logger.LogInfo($"区域参数解析：参数 '{parameterName}' 无绑定源，使用默认值={defaultValue}", "RegionResolver");
                 return defaultValue;
             }
-
-            _logger.LogInfo($"区域参数解析：参数 '{parameterName}' 绑定源类型={source.GetType().Name}", "RegionResolver");
 
             var value = source.GetValue(_context, _logger);
             if (value == null)
             {
-                _logger.LogWarning($"区域参数解析：参数 '{parameterName}' 从节点获取值为null，使用默认值={defaultValue}", "RegionResolver");
                 return defaultValue;
             }
 
             // 尝试转换为double
-            var doubleValue = Convert.ToDouble(value);
-            _logger.LogSuccess($"区域参数解析：参数 '{parameterName}' 从节点获取成功，值={doubleValue} (源值类型={value.GetType().Name})", "RegionResolver");
-
-            return doubleValue;
+            return Convert.ToDouble(value);
         }
 
         /// <summary>

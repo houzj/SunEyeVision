@@ -82,33 +82,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         private void UpdateParameterDefinitions()
         {
-            var updateParamStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            PluginLogger.Info($"[性能监控] UpdateParameterDefinitions() 开始，ShapeType={_currentShapeType}", "RegionEditor");
-
             // 清理旧的订阅
-            var cleanupStopwatch = System.Diagnostics.Stopwatch.StartNew();
             foreach (var subscription in _subscriptions.Values)
             {
                 subscription.Dispose();
             }
             _subscriptions.Clear();
-            cleanupStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] 清理旧订阅耗时: {cleanupStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
 
             // 清空参数列表
-            var clearStopwatch = System.Diagnostics.Stopwatch.StartNew();
             Parameters.Clear();
-            clearStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] Parameters.Clear() 耗时: {clearStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
 
             // 根据形状类型定义参数
-            var getDefsStopwatch = System.Diagnostics.Stopwatch.StartNew();
             var parameterDefs = GetParameterDefinitions(_currentShapeType);
-            getDefsStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] GetParameterDefinitions() 耗时: {getDefsStopwatch.ElapsedMilliseconds} ms，数量={parameterDefs.Count}", "RegionEditor");
 
             // 添加参数项
-            var addItemsStopwatch = System.Diagnostics.Stopwatch.StartNew();
             foreach (var def in parameterDefs)
             {
                 Parameters.Add(new ParameterBindingItem
@@ -118,11 +105,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                     DataType = def.DataType
                 });
             }
-            addItemsStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] 添加参数项耗时: {addItemsStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
-            updateParamStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] UpdateParameterDefinitions() 总耗时: {updateParamStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
         }
 
         /// <summary>

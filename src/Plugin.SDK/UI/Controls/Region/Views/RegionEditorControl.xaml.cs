@@ -588,19 +588,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void FinishInteraction()
         {
-            var totalStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            PluginLogger.Info($"[性能监控] ═════════════════════════════════════════════════════", "RegionEditor");
-            PluginLogger.Info($"[性能监控] FinishInteraction() 开始执行", "RegionEditor");
-
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 // 完成绘制
                 var shapeDef = _currentDrawingRegion.Parameters as ShapeParameters;
                 if (shapeDef != null)
                 {
-                    // 记录区域创建日志
-                    PluginLogger.Info($"区域创建：开始创建 {_currentTool} 区域，尺寸=({shapeDef.Width:F2}×{shapeDef.Height:F2})，中心=({shapeDef.CenterX:F2}, {shapeDef.CenterY:F2})", "RegionEditor");
-
                     // 统一使用大尺寸算法，并对长宽增加限制：任意尺寸太小都不生成区域
                     // 矩形和旋转矩形：最小宽度和高度都是10像素，同时满足面积≥100
                     bool isValid = _currentTool switch
@@ -618,32 +611,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
                     if (isValid)
                     {
-                        // 监控点1: Regions.Add()
-                        var addStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         _viewModel.Regions.Add(_currentDrawingRegion);
-                        addStopwatch.Stop();
-                        PluginLogger.Info($"[性能监控] [1/5] Regions.Add() 耗时: {addStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
-                        // 监控点2: SelectedRegion setter
-                        var selectStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         _viewModel.SelectedRegion = _currentDrawingRegion;
-                        selectStopwatch.Stop();
-                        PluginLogger.Info($"[性能监控] [2/5] SelectedRegion setter 耗时: {selectStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
                         _viewModel.StatusMessage = $"已创建 {_currentTool} 区域";
-
-                        // 监控点3: RegionDataChanged 事件
-                        var eventStopwatch = System.Diagnostics.Stopwatch.StartNew();
                         RegionDataChanged?.Invoke(this, _currentDrawingRegion);
-                        eventStopwatch.Stop();
-                        PluginLogger.Info($"[性能监控] [3/5] RegionDataChanged 事件处理耗时: {eventStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
-                        PluginLogger.Success($"区域创建成功：{_currentTool} 区域已添加到列表，区域名称={_currentDrawingRegion.Name}，区域ID={_currentDrawingRegion.Id}", "RegionEditor");
                     }
                     else
                     {
                         _viewModel.StatusMessage = "区域太小，已忽略";
-                        PluginLogger.Warning($"区域创建失败：{_currentTool} 区域尺寸太小或面积不足，尺寸=({shapeDef.Width:F2}×{shapeDef.Height:F2})，面积={shapeDef.Width * shapeDef.Height:F2}", "RegionEditor");
                     }
                 }
             }
@@ -660,16 +635,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _rotateStartAngle = null;
             _rotateStartMouseAngle = null;
 
-            // 监控点4: UpdateRegionOverlay()
-            var overlayStopwatch = System.Diagnostics.Stopwatch.StartNew();
             UpdateRegionOverlay();
-            overlayStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] [4/5] UpdateRegionOverlay() 耗时: {overlayStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
-            // 总耗时
-            totalStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] [5/5] FinishInteraction() 总耗时: {totalStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-            PluginLogger.Info($"[性能监控] ═════════════════════════════════════════════════════", "RegionEditor");
         }
 
         #endregion
@@ -1270,29 +1236,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void UpdateRegionOverlay()
         {
-            var overlayStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            PluginLogger.Info($"[性能监控] UpdateRegionOverlay() 开始，区域数量={_viewModel.Regions.Count}", "RegionEditor");
-
             if (OverlayCanvas == null)
             {
-                PluginLogger.Warning($"[性能监控] UpdateRegionOverlay() 跳过：OverlayCanvas 为 null", "RegionEditor");
                 return;
             }
 
             // 清空Canvas
-            var clearCanvasStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var childCount = OverlayCanvas.Children.Count;
             OverlayCanvas.Children.Clear();
-            clearCanvasStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] OverlayCanvas.Children.Clear() 耗时: {clearCanvasStopwatch.ElapsedMilliseconds} ms，清除数量={childCount}", "RegionEditor");
 
             // 绘制区域
-            var drawRegionsStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            int visibleRegionCount = 0;
             foreach (var region in _viewModel.Regions)
             {
                 if (!region.IsVisible) continue;
-                visibleRegionCount++;
 
                 var shape = CreateRegionShape(region);
                 if (shape != null)
@@ -1303,11 +1258,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 // 绘制名称标签
                 DrawRegionLabel(region);
             }
-            drawRegionsStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] 绘制区域耗时: {drawRegionsStopwatch.ElapsedMilliseconds} ms，可见区域={visibleRegionCount}", "RegionEditor");
 
             // 绘制当前正在创建的区域
-            var drawPreviewStopwatch = System.Diagnostics.Stopwatch.StartNew();
             if (_isDrawing && _currentDrawingRegion != null)
             {
                 var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
@@ -1323,20 +1275,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     DrawRotatedRectangleDirectionArrow(shapeDef, false); // 预览状态
                 }
             }
-            drawPreviewStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] 绘制预览区域耗时: {drawPreviewStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
 
             // 绘制选中区域的编辑手柄
-            var drawHandlesStopwatch = System.Diagnostics.Stopwatch.StartNew();
             if (_selectedRegion != null && !_isDrawing)
             {
                 DrawEditHandles(_selectedRegion);
             }
-            drawHandlesStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] 绘制编辑手柄耗时: {drawHandlesStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
-
-            overlayStopwatch.Stop();
-            PluginLogger.Info($"[性能监控] UpdateRegionOverlay() 总耗时: {overlayStopwatch.ElapsedMilliseconds} ms", "RegionEditor");
         }
 
         /// <summary>
@@ -1578,21 +1522,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private RegionData? HitTestRegion(Point point)
         {
-            PluginLogger.Info($"[RegionEditor] HitTestRegion 被调用，point=({point.X:F2}, {point.Y:F2})，区域数量={_viewModel.Regions.Count}", "RegionEditor");
-            
             // 从后往前测试（后绘制的在上面）
             foreach (var region in _viewModel.Regions.Reverse())
             {
                 if (!region.IsVisible) continue;
-                
+
                 if (IsPointInRegion(point, region))
                 {
-                    PluginLogger.Info($"[RegionEditor] ✓ 命中区域: {region.Name}, 类型={region.Parameters?.GetType().Name}", "RegionEditor");
                     return region;
                 }
             }
-            
-            PluginLogger.Warning($"[RegionEditor] ⚠️ 未命中任何区域", "RegionEditor");
+
             return null;
         }
 
@@ -1689,11 +1629,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void SelectRegion(RegionData? region)
         {
-            PluginLogger.Info($"[RegionEditor] SelectRegion 被调用，region={region?.Name ?? "null"}", "RegionEditor");
             _selectedRegion = region;
             _viewModel.SelectedRegion = region;
             UpdateRegionOverlay();
-            PluginLogger.Info($"[RegionEditor] ✓ SelectRegion 完成，_viewModel.SelectedRegion={_viewModel.SelectedRegion?.Name ?? "null"}", "RegionEditor");
         }
 
         private void DeselectAll()
@@ -1749,25 +1687,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void OnRectangleButtonClick(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[RegionEditor] OnRectangleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Rectangle, sender as Button);
         }
 
         private void OnCircleButtonClick(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[RegionEditor] OnCircleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Circle, sender as Button);
         }
 
         private void OnRotatedRectangleButtonClick(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[RegionEditor] OnRotatedRectangleButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.RotatedRectangle, sender as Button);
         }
 
         private void OnLineButtonClick(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[RegionEditor] OnLineButtonClick 被调用", "RegionEditor");
             SelectShapeTool(ShapeType.Line, sender as Button);
         }
 
@@ -1795,48 +1729,29 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void SelectShapeTool(ShapeType shapeType, Button? clickedButton)
         {
-            PluginLogger.Info($"[RegionEditor] ═══════════════════════════════════════", "RegionEditor");
-            PluginLogger.Info($"[RegionEditor] SelectShapeTool 开始执行", "RegionEditor");
-            PluginLogger.Info($"[RegionEditor] 参数 shapeType={shapeType}, clickedButton={clickedButton?.Name ?? "null"}", "RegionEditor");
-            PluginLogger.Info($"[RegionEditor] 当前选中区域: {_viewModel.SelectedRegion?.Name ?? "null"}", "RegionEditor");
-
             // 设置当前工具
             _currentTool = shapeType;
-            PluginLogger.Info($"[RegionEditor] 已设置 _currentTool={_currentTool}", "RegionEditor");
 
             // 切换到绘制模式
             _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
-            PluginLogger.Info($"[RegionEditor] 已设置 _viewModel.CurrentMode={_viewModel.CurrentMode}", "RegionEditor");
-
             _viewModel.IsDrawing = true;
-            PluginLogger.Info($"[RegionEditor] 已设置 _viewModel.IsDrawing={_viewModel.IsDrawing}", "RegionEditor");
 
-            // ✅ 手动触发 IsDrawingMode 的 PropertyChanged 事件
+            // 手动触发 IsDrawingMode 的 PropertyChanged 事件
             // 因为 CurrentMode 的默认值已经是 Drawing，所以 setter 不会触发 PropertyChanged
-            PluginLogger.Info($"[RegionEditor] 手动触发 IsDrawingMode PropertyChanged", "RegionEditor");
             _viewModel.NotifyIsDrawingModeChanged();
 
             // 设置 SelectedShapeType（如果值变化，setter 会自动调用 UpdateParameters）
             // 如果值相同，setter 不会调用 UpdateParameters，所以我们需要手动调用
             var oldShapeType = _viewModel.SelectedShapeType;
-            PluginLogger.Info($"[RegionEditor] 准备设置 SelectedShapeType: 旧值={oldShapeType}, 新值={shapeType}", "RegionEditor");
-
             _viewModel.SelectedShapeType = shapeType;
-
-            PluginLogger.Info($"[RegionEditor] 设置后 SelectedShapeType: {_viewModel.SelectedShapeType}", "RegionEditor");
 
             // 只有当形状类型未变化时，才手动调用 UpdateParameters
             // 因为这种情况下 setter 不会调用 UpdateParameters
             // 同时需要手动触发 SelectedShapeType 的 PropertyChanged 事件，以确保参数面板可见性更新
             if (oldShapeType == shapeType)
             {
-                PluginLogger.Info($"[RegionEditor] ═════════════════════════════════════════", "RegionEditor");
-                PluginLogger.Info($"[RegionEditor] 形状类型未变化，开始手动调用方法", "RegionEditor");
-                PluginLogger.Info($"[RegionEditor] 步骤1: 调用 CallUpdateParameters()", "RegionEditor");
                 _viewModel.CallUpdateParameters();
-                PluginLogger.Info($"[RegionEditor] 步骤2: 调用 NotifySelectedShapeTypeChanged()", "RegionEditor");
                 _viewModel.NotifySelectedShapeTypeChanged();
-                PluginLogger.Info($"[RegionEditor] ═════════════════════════════════════════", "RegionEditor");
             }
 
             // 更新按钮高亮状态
@@ -1852,7 +1767,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 _ => shapeType.ToString()
             };
             _viewModel.StatusMessage = $"已选择 {shapeName} 工具，在图像上拖动绘制";
-            PluginLogger.Info($"[RegionEditor] ✓ 状态消息已更新: {_viewModel.StatusMessage}", "RegionEditor");
         }
 
         /// <summary>
