@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using SunEyeVision.Plugin.SDK.Logging;
 
-namespace SunEyeVision.Core.Services.Logging
+namespace SunEyeVision.Plugin.SDK.Logging
 {
     /// <summary>
     /// 调试输出日志写入器 - 输出到 Visual Studio 调试窗口

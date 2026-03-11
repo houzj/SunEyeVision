@@ -2,7 +2,6 @@ using System;
 using SunEyeVision.Core.Events;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.Infrastructure;
-using SunEyeVision.Core.Services.Logging;
 using SunEyeVision.UI.Services.Logging;
 
 namespace SunEyeVision.UI.Infrastructure

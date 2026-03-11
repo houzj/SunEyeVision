@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using SunEyeVision.Plugin.SDK.Logging;
 
-namespace SunEyeVision.Core.Services.Logging
+namespace SunEyeVision.Plugin.SDK.Logging
 {
     /// <summary>
     /// 控制台日志写入器 - 输出到控制台（带颜色）

@@ -1,12 +1,23 @@
 ---
-description: 
+# 此文件已废弃，请使用新文件：
+# .codebuddy/rules/01-coding-standards/property-notification.mdc
+#
+# 废弃日期: 2026-03-11
+# 替代文件: 01-coding-standards/property-notification.mdc
+# 原因: 规则系统全面优化，采用新的分类结构和元数据格式
+---
+
+---
+description:
 alwaysApply: true
 enabled: true
 updatedAt: 2026-03-09T01:17:28.209Z
-provider: 
+provider:
 ---
 
-# 属性更改通知统一规范
+# 属性更改通知统一规范 [已废弃]
+
+⚠️ **此文件已废弃**，请使用新文件：[01-coding-standards/property-notification.mdc](./01-coding-standards/property-notification.mdc)
 
 ## 🎯 核心规则
 

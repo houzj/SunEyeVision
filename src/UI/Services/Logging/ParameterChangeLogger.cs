@@ -1,4 +1,3 @@
-using SunEyeVision.Core.Services.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.UI.Events;
 

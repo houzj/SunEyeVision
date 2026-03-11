@@ -11,7 +11,6 @@ using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.UI.Adapters;
 using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.ViewModels
 {

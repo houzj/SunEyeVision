@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
 using LogLevel = SunEyeVision.Plugin.SDK.Logging.LogLevel;
 
 namespace SunEyeVision.Workflow

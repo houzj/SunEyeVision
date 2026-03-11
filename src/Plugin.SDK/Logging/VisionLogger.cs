@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SunEyeVision.Plugin.SDK.Logging;
 
-namespace SunEyeVision.Core.Services.Logging
+namespace SunEyeVision.Plugin.SDK.Logging
 {
     /// <summary>
     /// 核心日志服务 - 高性能、多写入器、异步队列

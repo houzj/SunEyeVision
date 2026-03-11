@@ -1,0 +1,226 @@
+# 优先级系统配置
+# SunEyeVision 项目规则优先级定义
+
+priority-levels:
+  critical:
+    description: 关键规则，违反会导致代码审查不通过
+    autoCheck: true
+    enforcement: 自动检查 + 人工审查
+    examples:
+      - rule-001: property-notification
+    violation-consequence: 代码审查不通过，必须修复
+
+  high:
+    description: 重要规则，有充分理由才能违反
+    autoCheck: true
+    enforcement: 人工审查
+    examples:
+      - rule-002: naming-conventions
+      - rule-003: logging-system
+      - rule-004: solution-design
+      - rule-005: implementation-approval
+    violation-consequence: 需要提供书面解释，技术负责人批准
+
+  medium:
+    description: 一般性指导原则
+    autoCheck: false
+    enforcement: 建议遵循
+    examples:
+      - rule-006: documentation-policy
+      - rule-007: quality-control
+    violation-consequence: 记录为建议改进项，不阻止合并
+
+  low:
+    description: 最佳实践参考，可灵活处理
+    autoCheck: false
+    enforcement: 参考即可
+    examples: []
+    violation-consequence: 无后果，仅作为参考
+
+# 规则冲突处理策略
+conflict-resolution:
+  strategy: highest-priority-wins
+  fallback: manual-review
+  rules:
+    # 当规则A和规则B冲突时，优先级高的规则生效
+    - rule: "priority-comparison"
+      description: "Critical > High > Medium > Low"
+
+    # 如果优先级相同，标记为需要人工审查
+    - rule: "equal-priority"
+      description: "标记为需要人工审查"
+
+    # 具体规则优于通用规则
+    - rule: "specific-over-general"
+      description: "具体规则的优先级高于通用规则"
+
+  # 规则豁免申请流程
+  exemption:
+    required-for:
+      - critical
+      - high
+    process:
+      - step: "填写豁免申请表"
+        template: "../templates/rule-exemption-request.md"
+      - step: "提交技术负责人审批"
+        approver: "技术负责人"
+      - step: "记录豁免原因和期限"
+        duration: "最多30天"
+      - step: "定期评估豁免必要性"
+        interval: "每2周"
+
+# 规则验证流程
+validation-process:
+  rule-creation:
+    steps:
+      - step: "技术负责人提案"
+      - step: "团队评审"
+        participants: ["技术负责人", "架构师", "资深开发者"]
+      - step: "试点测试"
+        duration: "1周"
+      - step: "正式发布"
+    criteria:
+      - "规则必要且有价值"
+      - "规则清晰可执行"
+      - "规则可验证"
+      - "规则不与其他规则冲突"
+
+  rule-update:
+    steps:
+      - step: "收集反馈"
+        sources: ["代码审查", "团队会议", "开发者反馈"]
+      - step: "评估影响范围"
+      - step: "发布更新通知"
+        channels: ["团队群", "邮件", "更新日志"]
+    criteria:
+      - "有明确的改进需求"
+      - "改进方案经过验证"
+      - "不影响现有功能"
+
+  rule-deprecation:
+    steps:
+      - step: "标记为 deprecated"
+        metadata:
+          deprecatedAt: "废弃日期"
+          replacementRule: "替代规则"
+          reason: "废弃原因"
+      - step: "提供替代方案"
+      - step: "保留期"
+        duration: "3个月"
+      - step: "移除规则"
+    criteria:
+      - "规则已过时或被替代"
+      - "有更好的替代方案"
+      - "已通知所有开发者"
+
+# 规则执行监控
+monitoring:
+  # 代码审查统计
+  code-review:
+    frequency: "每次代码审查"
+    metrics:
+      - "规则遵循率"
+      - "规则违反次数"
+      - "规则违反类型"
+    target:
+      - critical: "100%"
+      - high: "≥95%"
+      - medium: "≥90%"
+      - low: "≥80%"
+
+  # 规则效果评估
+  effectiveness:
+    frequency: "每月"
+    metrics:
+      - "规则使用频率"
+      - "规则改进效果"
+      - "规则开发者满意度"
+    actions:
+      - "低效规则需要优化或移除"
+      - "频繁违反的规则需要审查"
+
+  # 规则更新周期
+  review-cycle:
+    frequency: "每季度"
+    participants: ["技术负责人", "架构师", "资深开发者"]
+    agenda:
+      - "评估现有规则效果"
+      - "讨论新增规则需求"
+      - "讨论规则改进建议"
+      - "更新规则文档"
+
+# 自动检查配置
+auto-check:
+  enabled: true
+  tools:
+    - tool: "Code Analysis"
+      description: "静态代码分析"
+      checks:
+        - "ObservableObject 继承检查"
+        - "命名规范检查"
+        - "日志系统使用检查"
+
+  exceptions:
+    - "第三方库代码"
+    - "自动生成代码"
+    - "已豁免的规则"
+
+# 规则通知系统
+notifications:
+  events:
+    - event: "规则更新"
+      channels: ["团队群", "邮件", "更新日志"]
+      recipients: ["所有开发者"]
+
+    - event: "规则新增"
+      channels: ["团队群", "邮件"]
+      recipients: ["所有开发者"]
+
+    - event: "规则废弃"
+      channels: ["团队群", "邮件", "更新日志"]
+      recipients: ["所有开发者"]
+      advance-notice: "2周"
+
+    - event: "规则豁免批准"
+      channels: ["邮件", "代码审查"]
+      recipients: ["申请人", "技术负责人", "代码审查者"]
+
+# 规则元数据标准
+metadata-standard:
+  required-fields:
+    - id
+    - title
+    - category
+    - priority
+    - alwaysApply
+    - enabled
+    - version
+    - updatedAt
+
+  optional-fields:
+    - author
+    - reviewed
+    - lastReviewed
+    - relatedRules
+    - conflictRules
+    - deprecated
+    - replacedBy
+    - dependsOn
+
+  data-types:
+    id: "string (rule-XXX)"
+    title: "string"
+    category: "enum (coding-standards, development-process, quality-control, workflow-guidance)"
+    priority: "enum (critical, high, medium, low)"
+    alwaysApply: "boolean"
+    enabled: "boolean"
+    version: "string (semver)"
+    updatedAt: "string (ISO 8601)"
+    author: "string"
+    reviewed: "boolean"
+    lastReviewed: "string (ISO 8601)"
+    relatedRules: "array of rule IDs"
+    conflictRules: "array of rule IDs"
+    deprecated: "boolean"
+    replacedBy: "rule ID"
+    dependsOn: "array of rule IDs"

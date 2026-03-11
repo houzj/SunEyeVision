@@ -29,7 +29,6 @@ using SunEyeVision.UI.Converters.Path;
 using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.Core.Services.Logging;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
@@ -93,6 +92,10 @@ namespace SunEyeVision.UI.ViewModels
         // 所有工作流状态
         private bool _isAllWorkflowsRunning = false;
         private string _allWorkflowsRunButtonText = "运行";
+
+        // 工作流文件管理
+        private string? _currentWorkflowFilePath;
+        private bool _isWorkflowModified = false;
 
         // 执行管理
         private readonly WorkflowExecutionManager _executionManager;
@@ -1089,17 +1092,297 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteOpenWorkflow()
         {
-            // TODO: 打开工作流
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "工作流文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+                Title = "打开工作流",
+                CheckFileExists = true,
+                CheckPathExists = true
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var filePath = openFileDialog.FileName;
+                    AddLog($"📂 正在加载工作流: {filePath}");
+
+                    // 加载工作流
+                    var success = _workflowEngine.LoadWorkflow(filePath);
+
+                    if (!success)
+                    {
+                        AddLog("❌ 工作流加载失败，请查看日志了解详情");
+                        return;
+                    }
+
+                    // 获取加载的工作流
+                    var workflow = _workflowEngine.CurrentWorkflow;
+                    if (workflow == null)
+                    {
+                        AddLog("❌ 加载的工作流为 null");
+                        return;
+                    }
+
+                    AddLog($"✅ 工作流加载成功: {workflow.Name}");
+                    AddLog($"   - 节点数量: {workflow.Nodes.Count}");
+                    AddLog($"   - 连接数量: {workflow.Connections.Count}");
+
+                    // 创建新的 UI 标签页
+                    CreateWorkflowTab(workflow, filePath);
+
+                    _currentWorkflowFilePath = filePath;
+                    _isWorkflowModified = false;
+
+                    AddLog($"✅ 工作流已在画布中打开");
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"❌ 打开工作流时发生异常: {ex.Message}");
+                    _logger?.LogError("打开工作流失败", "MainWindowViewModel", ex);
+                }
+            }
         }
 
         private void ExecuteSaveWorkflow()
         {
-            // TODO: 保存工作流文件
+            if (WorkflowTabViewModel?.SelectedTab == null)
+            {
+                AddLog("❌ 没有选中的工作流标签页");
+                return;
+            }
+
+            var selectedTab = WorkflowTabViewModel.SelectedTab;
+            var workflowId = selectedTab.WorkflowId;
+
+            // 如果没有文件路径，执行"另存为"
+            if (string.IsNullOrEmpty(_currentWorkflowFilePath))
+            {
+                ExecuteSaveAsWorkflow();
+                return;
+            }
+
+            try
+            {
+                AddLog($"💾 正在保存工作流到: {_currentWorkflowFilePath}");
+
+                // 获取底层工作流对象
+                var workflow = _workflowEngine.GetWorkflowById(workflowId);
+                if (workflow == null)
+                {
+                    AddLog($"❌ 工作流不存在: {workflowId}");
+                    return;
+                }
+
+                // 更新工作流节点（从 UI 层同步到底层）
+                UpdateWorkflowFromUI(workflow, selectedTab);
+
+                // 保存工作流
+                var success = _workflowEngine.SaveWorkflow(workflowId, _currentWorkflowFilePath);
+
+                if (success)
+                {
+                    _isWorkflowModified = false;
+                    AddLog($"✅ 工作流已成功保存: {_currentWorkflowFilePath}");
+                }
+                else
+                {
+                    AddLog("❌ 工作流保存失败，请查看日志了解详情");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 保存工作流时发生异常: {ex.Message}");
+                _logger?.LogError("保存工作流失败", "MainWindowViewModel", ex);
+            }
         }
 
         private void ExecuteSaveAsWorkflow()
         {
-            // TODO: 另存为文件
+            if (WorkflowTabViewModel?.SelectedTab == null)
+            {
+                AddLog("❌ 没有选中的工作流标签页");
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "工作流文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+                DefaultExt = "json",
+                Title = "保存工作流",
+                FileName = WorkflowTabViewModel.SelectedTab.Name + ".json"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var filePath = saveFileDialog.FileName;
+                    var selectedTab = WorkflowTabViewModel.SelectedTab;
+                    var workflowId = selectedTab.WorkflowId;
+
+                    AddLog($"💾 正在保存工作流到: {filePath}");
+
+                    // 获取底层工作流对象
+                    var workflow = _workflowEngine.GetWorkflowById(workflowId);
+                    if (workflow == null)
+                    {
+                        AddLog($"❌ 工作流不存在: {workflowId}");
+                        return;
+                    }
+
+                    // 更新工作流（从 UI 层同步）
+                    UpdateWorkflowFromUI(workflow, selectedTab);
+
+                    // 保存工作流
+                    var success = _workflowEngine.SaveWorkflow(workflowId, filePath);
+
+                    if (success)
+                    {
+                        _currentWorkflowFilePath = filePath;
+                        _isWorkflowModified = false;
+                        AddLog($"✅ 工作流已成功保存: {filePath}");
+                    }
+                    else
+                    {
+                        AddLog("❌ 工作流保存失败，请查看日志了解详情");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"❌ 另存工作流时发生异常: {ex.Message}");
+                    _logger?.LogError("另存工作流失败", "MainWindowViewModel", ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从 UI 层同步到底层工作流
+        /// </summary>
+        private void UpdateWorkflowFromUI(Workflow workflow, Models.WorkflowTabInfo tabInfo)
+        {
+            // 清空现有节点
+            workflow.Nodes.Clear();
+
+            // 转换 UI 节点到底层节点
+            foreach (var uiNode in tabInfo.WorkflowNodes)
+            {
+                var workflowNode = new WorkflowWorkflowNode(
+                    uiNode.Id,
+                    uiNode.Name,
+                    uiNode.Type
+                )
+                {
+                    AlgorithmType = uiNode.AlgorithmType,
+                    Parameters = uiNode.Parameters ?? new Plugin.SDK.Execution.Parameters.GenericToolParameters(),
+                    IsEnabled = uiNode.IsEnabled
+                };
+
+                // 设置参数类型名称（用于强类型恢复）
+                if (uiNode.Parameters?.GetType() != typeof(Plugin.SDK.Execution.Parameters.GenericToolParameters))
+                {
+                    workflowNode.ParametersTypeName = uiNode.Parameters.GetType().AssemblyQualifiedName;
+                }
+
+                // 转换参数绑定
+                if (uiNode.ParameterBindings != null && uiNode.ParameterBindings.Count > 0)
+                {
+                    workflowNode.ParameterBindings = uiNode.ParameterBindings;
+                }
+
+                workflow.Nodes.Add(workflowNode);
+            }
+
+            // 清空现有连接
+            workflow.Connections.Clear();
+            workflow.PortConnections.Clear();
+
+            // 转换 UI 连接到底层连接
+            foreach (var uiConn in tabInfo.WorkflowConnections)
+            {
+                // 添加节点级连接
+                if (!workflow.Connections.ContainsKey(uiConn.SourceNodeId))
+                {
+                    workflow.Connections[uiConn.SourceNodeId] = new List<string>();
+                }
+
+                if (!workflow.Connections[uiConn.SourceNodeId].Contains(uiConn.TargetNodeId))
+                {
+                    workflow.Connections[uiConn.SourceNodeId].Add(uiConn.TargetNodeId);
+                }
+
+                // 添加端口级连接
+                workflow.PortConnections.Add(new PortConnection
+                {
+                    SourceNodeId = uiConn.SourceNodeId,
+                    SourcePort = uiConn.SourcePort ?? "output",
+                    TargetNodeId = uiConn.TargetNodeId,
+                    TargetPort = uiConn.TargetPort ?? "input"
+                });
+            }
+
+            // 更新工作流元数据
+            workflow.Name = tabInfo.Name;
+        }
+
+        /// <summary>
+        /// 为加载的工作流创建新的标签页
+        /// </summary>
+        private void CreateWorkflowTab(Workflow workflow, string? filePath)
+        {
+            var tabInfo = new Models.WorkflowTabInfo
+            {
+                WorkflowId = workflow.Id,
+                Name = workflow.Name,
+                FilePath = filePath,
+                IsModified = false,
+                Workflow = workflow
+            };
+
+            // 转换底层节点到 UI 节点
+            foreach (var workflowNode in workflow.Nodes)
+            {
+                var uiNode = new UIWorkflowNode
+                {
+                    Id = workflowNode.Id,
+                    Name = workflowNode.Name,
+                    Type = workflowNode.Type,
+                    AlgorithmType = workflowNode.AlgorithmType,
+                    Parameters = workflowNode.Parameters,
+                    IsEnabled = workflowNode.IsEnabled,
+                    ParameterBindings = workflowNode.ParameterBindings
+                };
+
+                tabInfo.WorkflowNodes.Add(uiNode);
+            }
+
+            // 转换底层连接到 UI 连接
+            foreach (var kvp in workflow.Connections)
+            {
+                foreach (var targetId in kvp.Value)
+                {
+                    var connection = new Models.Connection
+                    {
+                        SourceNodeId = kvp.Key,
+                        TargetNodeId = targetId
+                    };
+
+                    // 查找对应的端口连接
+                    var portConn = workflow.PortConnections.FirstOrDefault(pc =>
+                        pc.SourceNodeId == kvp.Key && pc.TargetNodeId == targetId);
+
+                    if (portConn != null)
+                    {
+                        connection.SourcePort = portConn.SourcePort;
+                        connection.TargetPort = portConn.TargetPort;
+                    }
+
+                    tabInfo.WorkflowConnections.Add(connection);
+                }
+            }
+
+            // 添加到标签页视图模型
+            WorkflowTabViewModel?.AddTab(tabInfo);
         }
 
         private async System.Threading.Tasks.Task ExecuteRunWorkflow()

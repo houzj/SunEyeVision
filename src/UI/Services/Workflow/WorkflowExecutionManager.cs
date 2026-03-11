@@ -12,7 +12,6 @@ using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Infrastructure;
 using SunEyeVision.UI.Services.Workflow;
-using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.Services.Workflow
 {

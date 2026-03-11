@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows.Input;
-using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI.ViewModels

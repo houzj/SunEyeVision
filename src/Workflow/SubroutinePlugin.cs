@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.Core.Services.Logging;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;

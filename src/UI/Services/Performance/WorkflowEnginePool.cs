@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using SunEyeVision.Workflow;
-using SunEyeVision.Core.Services.Logging;
 
 namespace SunEyeVision.UI.Services.Performance
 {

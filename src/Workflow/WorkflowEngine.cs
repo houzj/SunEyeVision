@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -101,6 +101,15 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// Get workflow by ID (alias for GetWorkflow)
+        /// </summary>
+        public Workflow? GetWorkflowById(string workflowId)
+        {
+            Workflows.TryGetValue(workflowId, out var workflow);
+            return workflow;
+        }
+
+        /// <summary>
         /// Get all workflows
         /// </summary>
         public List<Workflow> GetAllWorkflows()
@@ -155,9 +164,22 @@ namespace SunEyeVision.Workflow
             try
             {
                 var workflow = Workflows[workflowId];
-                var json = JsonSerializer.Serialize(workflow, new JsonSerializerOptions { WriteIndented = true });
+
+                // 使用自定义转换器进行序列化
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+
+                // 注册自定义转换器
+                options.Converters.Add(new WorkflowJsonConverter());
+
+                var json = JsonSerializer.Serialize(workflow, options);
                 File.WriteAllText(filePath, json);
+
                 Logger.LogInfo($"Workflow saved to: {filePath}");
+                Logger.LogInfo($"  - Saved {workflow.Nodes.Count} nodes and {workflow.Connections.Count} connections");
                 return true;
             }
             catch (Exception ex)
@@ -181,7 +203,12 @@ namespace SunEyeVision.Workflow
             try
             {
                 var json = File.ReadAllText(filePath);
-                var workflow = JsonSerializer.Deserialize<Workflow>(json);
+
+                // 使用自定义转换器进行反序列化
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new WorkflowJsonConverter());
+
+                var workflow = JsonSerializer.Deserialize<Workflow>(json, options);
 
                 if (workflow != null)
                 {
@@ -199,12 +226,20 @@ namespace SunEyeVision.Workflow
                         workflow.Connections = new Dictionary<string, List<string>>();
                     }
 
+                    if (workflow.PortConnections == null)
+                    {
+                        workflow.PortConnections = new List<PortConnection>();
+                    }
+
                     Workflows[workflow.Id] = workflow;
+                    CurrentWorkflow = workflow;
+
                     Logger.LogInfo($"Workflow loaded from file: {workflow.Name}");
                     Logger.LogInfo($"  - Loaded {workflow.Nodes.Count} nodes and {workflow.Connections.Count} connections");
                     return true;
                 }
 
+                Logger.LogError("Failed to load workflow: Deserialization returned null");
                 return false;
             }
             catch (Exception ex)
