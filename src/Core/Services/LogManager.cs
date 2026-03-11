@@ -1,5 +1,4 @@
-using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.Core.Services.Logging;
+﻿using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Core.Services
 {

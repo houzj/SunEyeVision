@@ -1259,7 +1259,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 从 UI 层同步到底层工作流
         /// </summary>
-        private void UpdateWorkflowFromUI(Workflow workflow, Models.WorkflowTabInfo tabInfo)
+        private void UpdateWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, Models.WorkflowTabInfo tabInfo)
         {
             // 清空现有节点
             workflow.Nodes.Clear();
@@ -1328,7 +1328,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 为加载的工作流创建新的标签页
         /// </summary>
-        private void CreateWorkflowTab(Workflow workflow, string? filePath)
+        private void CreateWorkflowTab(SunEyeVision.Workflow.Workflow workflow, string? filePath)
         {
             var tabInfo = new Models.WorkflowTabInfo
             {

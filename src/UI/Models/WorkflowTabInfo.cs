@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Models
@@ -31,16 +31,16 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 工作流节点列表（UI 层）
         /// </summary>
-        public ObservableCollection<UIWorkflowNode> WorkflowNodes { get; set; } = new();
+        public ObservableCollection<WorkflowNode> WorkflowNodes { get; set; } = new();
 
         /// <summary>
         /// 工作流连接列表（UI 层）
         /// </summary>
-        public ObservableCollection<Connection> WorkflowConnections { get; set; } = new();
+        public ObservableCollection<WorkflowConnection> WorkflowConnections { get; set; } = new();
 
         /// <summary>
         /// 底层工作流对象
         /// </summary>
-        public Workflow? Workflow { get; set; }
+        public SunEyeVision.Workflow.Workflow? Workflow { get; set; }
     }
 }
