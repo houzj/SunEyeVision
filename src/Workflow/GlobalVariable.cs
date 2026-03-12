@@ -1,4 +1,4 @@
-using SunEyeVision.Plugin.SDK.Models;
+﻿using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Workflow;
 
@@ -15,6 +15,7 @@ public class GlobalVariable : ObservableObject
     private string _name = string.Empty;
     private object? _value;
     private string _type = "String";
+    private string _description = string.Empty;
 
     /// <summary>
     /// 变量名称
@@ -41,5 +42,11 @@ public class GlobalVariable : ObservableObject
     {
         get => _type;
         set => SetProperty(ref _type, value, "变量类型");
+    }
+
+    public string Description
+    {
+        get => _description;
+        set=>SetProperty(ref _description, value, "Description");
     }
 }

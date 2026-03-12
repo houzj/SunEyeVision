@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
@@ -29,6 +30,7 @@ using SunEyeVision.UI.Converters.Path;
 using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Models;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
 using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
 
@@ -96,6 +98,10 @@ namespace SunEyeVision.UI.ViewModels
         // 工作流文件管理
         private string? _currentWorkflowFilePath;
         private bool _isWorkflowModified = false;
+
+        // 工作流引擎
+        private readonly WorkflowEngine _workflowEngine;
+        private readonly ILogger _logger;
 
         // 执行管理
         private readonly WorkflowExecutionManager _executionManager;
@@ -793,6 +799,10 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化图像显示数据源
             DisplayImageSources = new ObservableCollection<ImageSourceInfo>();
 
+            // 初始化工作流引擎
+            _logger = VisionLogger.Instance;
+            _workflowEngine = new WorkflowEngine(_logger);
+
             // 初始化执行管理器
             _executionManager = new Services.Workflow.WorkflowExecutionManager(new Infrastructure.DefaultInputProvider());
 
@@ -1153,7 +1163,7 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             var selectedTab = WorkflowTabViewModel.SelectedTab;
-            var workflowId = selectedTab.WorkflowId;
+            var workflowId = selectedTab.Id;
 
             // 如果没有文件路径，执行"另存为"
             if (string.IsNullOrEmpty(_currentWorkflowFilePath))
@@ -1219,7 +1229,7 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     var filePath = saveFileDialog.FileName;
                     var selectedTab = WorkflowTabViewModel.SelectedTab;
-                    var workflowId = selectedTab.WorkflowId;
+                    var workflowId = selectedTab.Id;
 
                     AddLog($"💾 正在保存工作流到: {filePath}");
 
@@ -1259,7 +1269,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 从 UI 层同步到底层工作流
         /// </summary>
-        private void UpdateWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, Models.WorkflowTabInfo tabInfo)
+        private void UpdateWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, WorkflowTabViewModel tabInfo)
         {
             // 清空现有节点
             workflow.Nodes.Clear();
@@ -1267,21 +1277,24 @@ namespace SunEyeVision.UI.ViewModels
             // 转换 UI 节点到底层节点
             foreach (var uiNode in tabInfo.WorkflowNodes)
             {
+                // 根据 AlgorithmType 确定 NodeType
+                var nodeType = DetermineNodeTypeFromAlgorithmType(uiNode.AlgorithmType);
+
                 var workflowNode = new WorkflowWorkflowNode(
                     uiNode.Id,
                     uiNode.Name,
-                    uiNode.Type
+                    nodeType
                 )
                 {
                     AlgorithmType = uiNode.AlgorithmType,
-                    Parameters = uiNode.Parameters ?? new Plugin.SDK.Execution.Parameters.GenericToolParameters(),
+                    Parameters = ConvertDictionaryToToolParameters(uiNode.Parameters),
                     IsEnabled = uiNode.IsEnabled
                 };
 
                 // 设置参数类型名称（用于强类型恢复）
-                if (uiNode.Parameters?.GetType() != typeof(Plugin.SDK.Execution.Parameters.GenericToolParameters))
+                if (uiNode.Parameters?.GetType() != typeof(Dictionary<string, object>))
                 {
-                    workflowNode.ParametersTypeName = uiNode.Parameters.GetType().AssemblyQualifiedName;
+                    workflowNode.ParametersTypeName = uiNode.Parameters?.GetType().AssemblyQualifiedName;
                 }
 
                 // 转换参数绑定
@@ -1326,6 +1339,90 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 根据算法类型确定节点类型
+        /// </summary>
+        private SunEyeVision.Core.Models.NodeType DetermineNodeTypeFromAlgorithmType(string algorithmType)
+        {
+            if (string.IsNullOrEmpty(algorithmType))
+                return SunEyeVision.Core.Models.NodeType.Algorithm;
+
+            // 图像采集类工具作为起始节点
+            if (algorithmType.Contains("ImageCapture") ||
+                algorithmType.Contains("ImageAcquisition") ||
+                algorithmType.Contains("Camera") ||
+                algorithmType.Contains("image_capture"))
+            {
+                return SunEyeVision.Core.Models.NodeType.Start;
+            }
+
+            // 图像载入类工具作为起始节点
+            if (algorithmType.Contains("ImageLoad") ||
+                algorithmType.Contains("image_load"))
+            {
+                return SunEyeVision.Core.Models.NodeType.Start;
+            }
+
+            // 控制类节点
+            if (algorithmType.Contains("Subroutine") ||
+                algorithmType.Contains("subroutine"))
+            {
+                return SunEyeVision.Core.Models.NodeType.Subroutine;
+            }
+
+            if (algorithmType.Contains("Condition") ||
+                algorithmType.Contains("condition"))
+            {
+                return SunEyeVision.Core.Models.NodeType.Condition;
+            }
+
+            // 默认为算法节点
+            return SunEyeVision.Core.Models.NodeType.Algorithm;
+        }
+
+        /// <summary>
+        /// 将 Dictionary 参数转换为 ToolParameters
+        /// </summary>
+        private Plugin.SDK.Execution.Parameters.ToolParameters ConvertDictionaryToToolParameters(Dictionary<string, object>? parameters)
+        {
+            if (parameters == null || parameters.Count == 0)
+                return new Plugin.SDK.Execution.Parameters.GenericToolParameters();
+
+            var toolParams = new Plugin.SDK.Execution.Parameters.GenericToolParameters();
+
+            // 将 Dictionary 中的键值对复制到 ToolParameters
+            foreach (var kvp in parameters)
+            {
+                toolParams.SetValue(kvp.Key, kvp.Value);
+            }
+
+            return toolParams;
+        }
+
+        /// <summary>
+        /// 将 ToolParameters 转换为 Dictionary
+        /// </summary>
+        private Dictionary<string, object> ConvertToolParametersToDictionary(Plugin.SDK.Execution.Parameters.ToolParameters? toolParams)
+        {
+            var dict = new Dictionary<string, object>();
+
+            if (toolParams is Plugin.SDK.Execution.Parameters.GenericToolParameters genericParams)
+            {
+                // GenericToolParameters 提供了 GetParameterNames 方法
+                foreach (var paramName in genericParams.GetParameterNames())
+                {
+                    // 尝试获取参数值
+                    var value = genericParams.GetValue<object>(paramName);
+                    if (value != null)
+                    {
+                        dict[paramName] = value;
+                    }
+                }
+            }
+
+            return dict;
+        }
+
+        /// <summary>
         /// 为加载的工作流创建新的标签页
         /// </summary>
         private void CreateWorkflowTab(SunEyeVision.Workflow.Workflow workflow, string? filePath)
@@ -1342,13 +1439,13 @@ namespace SunEyeVision.UI.ViewModels
             // 转换底层节点到 UI 节点
             foreach (var workflowNode in workflow.Nodes)
             {
-                var uiNode = new UIWorkflowNode
+                var uiNode = new UIWorkflowNode(
+                    workflowNode.Id,
+                    workflowNode.Name,
+                    workflowNode.AlgorithmType
+                )
                 {
-                    Id = workflowNode.Id,
-                    Name = workflowNode.Name,
-                    Type = workflowNode.Type,
-                    AlgorithmType = workflowNode.AlgorithmType,
-                    Parameters = workflowNode.Parameters,
+                    Parameters = ConvertToolParametersToDictionary(workflowNode.Parameters),
                     IsEnabled = workflowNode.IsEnabled,
                     ParameterBindings = workflowNode.ParameterBindings
                 };
@@ -1361,7 +1458,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 foreach (var targetId in kvp.Value)
                 {
-                    var connection = new Models.Connection
+                    var connection = new WorkflowConnection
                     {
                         SourceNodeId = kvp.Key,
                         TargetNodeId = targetId
@@ -1381,8 +1478,25 @@ namespace SunEyeVision.UI.ViewModels
                 }
             }
 
+            // 创建 WorkflowTabViewModel
+            var tabViewModel = new ViewModels.WorkflowTabViewModel();
+
+            // 设置属性
+            tabViewModel.Name = tabInfo.Name;
+
+            // 将节点和连接复制到新的 ViewModel
+            foreach (var node in tabInfo.WorkflowNodes)
+            {
+                tabViewModel.WorkflowNodes.Add(node);
+            }
+
+            foreach (var connection in tabInfo.WorkflowConnections)
+            {
+                tabViewModel.WorkflowConnections.Add(connection);
+            }
+
             // 添加到标签页视图模型
-            WorkflowTabViewModel?.AddTab(tabInfo);
+            WorkflowTabViewModel?.Tabs.Add(tabViewModel);
         }
 
         private async System.Threading.Tasks.Task ExecuteRunWorkflow()

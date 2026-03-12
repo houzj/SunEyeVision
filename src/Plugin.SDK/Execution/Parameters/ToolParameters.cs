@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.Validation;
@@ -142,8 +143,13 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 4. UI绑定友好，继承ObservableObject支持属性变更通知
     /// 5. 参数只定义一次，UI直接绑定Parameters属性
     /// 
+    /// 多态序列化：
+    /// 使用 [JsonPolymorphic] 特性支持派生类的多态序列化。
+    /// 序列化时自动添加 "$type" 字段标识具体类型。
+    /// 
     /// 使用示例：
     /// <code>
+    /// [JsonDerivedType(typeof(ThresholdParameters), "Threshold")]
     /// public class ThresholdParameters : ToolParameters
     /// {
     ///     private int _threshold = 128;
@@ -158,6 +164,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// }
     /// </code>
     /// </remarks>
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [JsonDerivedType(typeof(GenericToolParameters), "Generic")]
     public abstract class ToolParameters : ObservableObject
     {
         /// <summary>
