@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SunEyeVision.UI.Views.Windows;
 using System.Runtime.InteropServices;
+using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI;
 
@@ -48,24 +49,239 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         // 初始化服务（包括节点显示适配器）
-        // Debug.WriteLine("[App] 正在初始化服务...");
         ServiceInitializer.InitializeServices();
-        // Debug.WriteLine("[App] 服务初始化完成");
+
+        // 检查并配置解决方案路径
+        var solutionsPath = GetOrConfigureSolutionsPath();
+        if (string.IsNullOrEmpty(solutionsPath))
+        {
+            // 用户取消配置，退出应用
+            Shutdown();
+            return;
+        }
+
+        // 初始化项目管理器
+        ServiceInitializer.InitializeProjectManager(solutionsPath);
 
         // 初始化插件管理器
-        // Debug.WriteLine("[App] 正在初始化插件管理器...");
-        var pluginManager = new PluginManager(); // 使用 Plugin.Infrastructure.PluginManager
-        // 工具插件目录：plugins/（相对于应用程序运行目录）
+        var pluginManager = new PluginManager();
         string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
-        // Debug.WriteLine($"[App] 插件路径: {pluginsPath}");
         pluginManager.LoadPlugins(pluginsPath);
-        // Debug.WriteLine("[App] 插件管理器初始化完成");
 
-        // 显示主窗口
-        // Debug.WriteLine("[App] 正在创建主窗口...");
+        // 启动决策
+        HandleStartupDecision();
+    }
+
+    /// <summary>
+    /// 处理启动决策
+    /// </summary>
+    private void HandleStartupDecision()
+    {
+        var projectManager = ServiceInitializer.ProjectManager;
+        var startupDecisionService = new StartupDecisionService(projectManager);
+        var decision = startupDecisionService.GetStartupDecision();
+
         var mainWindow = new MainWindow();
-        mainWindow.Show();
-        // Debug.WriteLine("[App] 主窗口已显示");
+
+        switch (decision)
+        {
+            case StartupDecision.LoadRecentAndStart:
+                // 自动加载最近项目并启动
+                var projectId = startupDecisionService.GetRecentProjectId();
+                var recipeName = startupDecisionService.GetRecentRecipeName();
+
+                if (!string.IsNullOrEmpty(projectId) && !string.IsNullOrEmpty(recipeName))
+                {
+                    try
+                    {
+                        projectManager.SetCurrentProject(projectId, recipeName);
+                        mainWindow.Show();
+                        // Debug.WriteLine($"[App] 自动加载项目: {projectId}, 配方: {recipeName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // 加载失败，显示配置界面
+                        // Debug.WriteLine($"[App] 加载项目失败: {ex.Message}");
+                        ShowConfigurationDialog(mainWindow, projectId, recipeName);
+                    }
+                }
+                else
+                {
+                    // 无有效项目，显示配置界面
+                    ShowConfigurationDialog(mainWindow);
+                }
+                break;
+
+            case StartupDecision.SkipConfiguration:
+                // 跳过配置，直接进入主界面
+                mainWindow.Show();
+                break;
+
+            case StartupDecision.ShowConfigurationWithEmptyState:
+            case StartupDecision.ShowConfigurationWithRecentProject:
+            case StartupDecision.ShowConfiguration:
+            default:
+                // 显示配置界面
+                var preselectProjectId = decision == StartupDecision.ShowConfigurationWithRecentProject
+                    ? startupDecisionService.GetRecentProjectId()
+                    : null;
+                var preselectRecipeName = decision == StartupDecision.ShowConfigurationWithRecentProject
+                    ? startupDecisionService.GetRecentRecipeName()
+                    : null;
+
+                ShowConfigurationDialog(mainWindow, preselectProjectId, preselectRecipeName);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 获取或配置解决方案路径
+    /// </summary>
+    private string? GetOrConfigureSolutionsPath()
+    {
+        var defaultPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "solutions");
+
+        // 检查RuntimeConfig中是否配置了路径
+        var configPath = GetConfiguredSolutionsPath();
+        if (!string.IsNullOrEmpty(configPath))
+        {
+            // 有配置的路径，直接使用
+            return configPath;
+        }
+
+        // 没有配置，检查默认路径是否存在
+        if (System.IO.Directory.Exists(defaultPath))
+        {
+            // 默认路径存在，使用它
+            return defaultPath;
+        }
+
+        // 默认路径不存在，弹出路径配置对话框
+        var pathDialog = new SolutionPathDialog(defaultPath);
+        var result = pathDialog.ShowDialog();
+
+        if (result == true && pathDialog.SelectedPath != null)
+        {
+            // 用户确认路径，保存配置
+            SaveSolutionsPathConfig(pathDialog.SelectedPath);
+            return pathDialog.SelectedPath;
+        }
+
+        // 用户取消，返回null（会导致应用退出）
+        return null;
+    }
+
+    /// <summary>
+    /// 获取配置的解决方案路径
+    /// </summary>
+    private string? GetConfiguredSolutionsPath()
+    {
+        try
+        {
+            var configFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "solutions_config.json");
+            if (!System.IO.File.Exists(configFilePath))
+                return null;
+
+            var json = System.IO.File.ReadAllText(configFilePath);
+            var config = System.Text.Json.JsonSerializer.Deserialize<SolutionsPathConfig>(json);
+            return config?.SolutionsPath;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 保存解决方案路径配置
+    /// </summary>
+    private void SaveSolutionsPathConfig(string newPath)
+    {
+        try
+        {
+            // 保存新路径配置
+            var config = new SolutionsPathConfig { SolutionsPath = newPath };
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(config, options);
+
+            var configFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "solutions_config.json");
+            System.IO.File.WriteAllText(configFilePath, json);
+
+            LogInfo($"保存解决方案路径配置: {newPath}");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"保存路径配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// 记录日志
+    /// </summary>
+    private void LogInfo(string message)
+    {
+        try
+        {
+            var logger = SunEyeVision.Plugin.SDK.Logging.VisionLogger.Instance;
+            logger?.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info, message, "App");
+        }
+        catch
+        {
+            // 忽略日志错误
+        }
+    }
+
+    /// <summary>
+    /// 解决方案路径配置
+    /// </summary>
+    private class SolutionsPathConfig
+    {
+        public string SolutionsPath { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 显示配置对话框
+    /// </summary>
+    private void ShowConfigurationDialog(MainWindow mainWindow, string? preselectProjectId = null, string? preselectRecipeName = null)
+    {
+        var projectManager = ServiceInitializer.ProjectManager;
+        var configDialog = new SolutionConfigurationDialog(projectManager, preselectProjectId, preselectRecipeName);
+
+        var result = configDialog.ShowDialog();
+
+        if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+        {
+            // 用户点击启动，加载项目和配方
+            var (project, recipe) = configDialog.LaunchResult.Value;
+
+            if (project != null && recipe != null)
+            {
+                try
+                {
+                    projectManager.SetCurrentProject(project.Id, recipe.Name);
+                    mainWindow.Show();
+                    // Debug.WriteLine($"[App] 加载项目: {project.Name}, 配方: {recipe.Name}");
+                }
+                catch (Exception ex)
+                {
+                    // Debug.WriteLine($"[App] 加载项目失败: {ex.Message}");
+                    MessageBox.Show($"加载项目失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    mainWindow.Show();
+                }
+            }
+            else
+            {
+                mainWindow.Show();
+            }
+        }
+        else
+        {
+            // 用户点击跳过或取消
+            mainWindow.Show();
+        }
     }
 
     private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

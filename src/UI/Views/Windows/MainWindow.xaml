@@ -42,10 +42,10 @@
         <!-- ========== 顶部菜单栏 (28px) ========== -->
         <Menu DockPanel.Dock="Top" Height="28" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <MenuItem Header="文件(_F)">
-                <MenuItem Header="新建方案(_N)" Command="{Binding NewWorkflowCommand}" InputGestureText="Ctrl+N"/>
-                <MenuItem Header="打开方案(_O)" Command="{Binding OpenWorkflowCommand}" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="保存方案(_S)" Command="{Binding SaveWorkflowCommand}" InputGestureText="Ctrl+S"/>
-                <MenuItem Header="另存为(_A)" Command="{Binding SaveAsWorkflowCommand}" InputGestureText="Ctrl+Shift+S"/>
+                <MenuItem Header="解决方案配置(_C)" Command="{Binding ShowSolutionConfigurationCommand}" InputGestureText="Ctrl+Alt+S"/>
+                <Separator/>
+                <MenuItem Header="保存当前配方(_S)" Command="{Binding SaveCurrentRecipeCommand}" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="另存为(_A)" Command="{Binding SaveRecipeAsCommand}" InputGestureText="Ctrl+Shift+S"/>
                 <Separator/>
                 <MenuItem Header="导入(_I)" InputGestureText="Ctrl+I"/>
                 <MenuItem Header="导出(_E)" InputGestureText="Ctrl+E"/>
@@ -113,20 +113,14 @@
 
         <!-- ========== 工具栏 (40px) ========== -->
         <ToolBar DockPanel.Dock="Top" Height="40" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <!-- 文件操作组 -->
-            <Button ToolTip="新建 (Ctrl+N)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding NewWorkflowCommand}">
+            <!-- 解决方案管理组 -->
+            <Button ToolTip="解决方案配置 (Ctrl+Alt+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding ShowSolutionConfigurationCommand}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="📁" FontSize="16" VerticalAlignment="Center"/>
-                    <TextBlock Text="新建" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="⚙️" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="解决方案" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <Button ToolTip="打开 (Ctrl+O)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding OpenWorkflowCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="📂" FontSize="16" VerticalAlignment="Center"/>
-                    <TextBlock Text="打开" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button ToolTip="保存 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveWorkflowCommand}">
+            <Button ToolTip="保存当前配方 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveCurrentRecipeCommand}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center"/>
                     <TextBlock Text="保存" Margin="5,0,0,0" VerticalAlignment="Center"/>

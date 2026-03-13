@@ -1,5 +1,8 @@
-﻿using SunEyeVision.Plugin.SDK.Logging;
+﻿using System;
+using System.IO;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.UI.Services.Logging;
+using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Adapters
 {
@@ -57,6 +60,7 @@ namespace SunEyeVision.UI.Adapters
     public static class ServiceInitializer
     {
         private static UILogWriter? _uiLogWriter;
+        private static ProjectManager? _projectManager;
 
         /// <summary>
         /// 获取 UI 日志写入器（供 LogPanelViewModel 使用）
@@ -65,6 +69,11 @@ namespace SunEyeVision.UI.Adapters
         /// 在应用启动时预创建，确保日志从一开始就能显示到UI。
         /// </remarks>
         public static UILogWriter UILogWriter => _uiLogWriter ?? throw new InvalidOperationException("UILogWriter 未初始化，请先调用 InitializeServices()");
+
+        /// <summary>
+        /// 获取项目管理器
+        /// </summary>
+        public static ProjectManager ProjectManager => _projectManager ?? throw new InvalidOperationException("ProjectManager 未初始化，请先调用 InitializeProjectManager()");
 
         /// <summary>
         /// 初始化所有服务。
@@ -76,6 +85,31 @@ namespace SunEyeVision.UI.Adapters
 
             // 初始化插件日志器 - 让工具项目可以访问全局日志器
             InitializePluginLogger();
+        }
+
+        /// <summary>
+        /// 初始化项目管理器
+        /// </summary>
+        /// <param name="solutionsDirectory">解决方案目录，默认为solutions/</param>
+        public static void InitializeProjectManager(string? solutionsDirectory = null)
+        {
+            if (_projectManager != null)
+            {
+                return;
+            }
+
+            var logger = VisionLogger.Instance;
+            logger.Info("正在初始化项目管理器...", "ServiceInitializer");
+
+            // 如果未指定解决方案目录，使用默认目录
+            if (string.IsNullOrWhiteSpace(solutionsDirectory))
+            {
+                solutionsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "solutions");
+            }
+
+            // 创建项目管理器
+            _projectManager = new ProjectManager(solutionsDirectory);
+            logger.Info($"项目管理器初始化完成，目录: {_projectManager.SolutionsDirectory}", "ServiceInitializer");
         }
 
         /// <summary>

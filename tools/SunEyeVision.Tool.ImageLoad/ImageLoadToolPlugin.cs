@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;

@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
-    <ProjectReference Include="..\..\src\UI\SunEyeVision.UI.csproj" />
     <PackageReference Include="OpenCvSharp4.WpfExtensions" Version="4.13.0.20260222" />
   </ItemGroup>
 </Project>

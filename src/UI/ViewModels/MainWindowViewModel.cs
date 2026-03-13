@@ -723,6 +723,11 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand OpenWorkflowCommand { get; }
         public ICommand SaveWorkflowCommand { get; }
         public ICommand SaveAsWorkflowCommand { get; }
+        
+        // 新的配方保存命令（更清晰的语义）
+        public ICommand SaveCurrentRecipeCommand { get; }
+        public ICommand SaveRecipeAsCommand { get; }
+        
         public ICommand RunWorkflowCommand { get; }
         public ICommand StopWorkflowCommand { get; }
         public ICommand ShowSettingsCommand { get; }
@@ -754,6 +759,11 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ClearImageCommand { get; }
 
         public ICommand ClearLogCommand { get; }
+
+        // 解决方案管理
+        public ICommand ShowSolutionConfigurationCommand { get; }
+        public ICommand SwitchProjectCommand { get; }
+        public ICommand SwitchRecipeCommand { get; }
 
         // 主窗口 ImageControl 获取委托 - 用于区域编辑器绑定
         /// <summary>
@@ -840,6 +850,11 @@ namespace SunEyeVision.UI.ViewModels
             OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
             SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
             SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
+            
+            // 新的配方保存命令（更清晰的语义）
+            SaveCurrentRecipeCommand = new RelayCommand(ExecuteSaveCurrentRecipe);
+            SaveRecipeAsCommand = new RelayCommand(ExecuteSaveRecipeAs);
+            
             RunWorkflowCommand = new RelayCommand(async () => await ExecuteRunWorkflow(), () => !IsRunning);
             StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
             ShowSettingsCommand = new RelayCommand(ExecuteShowSettings);
@@ -872,6 +887,11 @@ namespace SunEyeVision.UI.ViewModels
 
             // 日志操作
             ClearLogCommand = new RelayCommand(_ => ClearLog());
+
+            // 解决方案管理
+            ShowSolutionConfigurationCommand = new RelayCommand(ExecuteShowSolutionConfiguration);
+            SwitchProjectCommand = new RelayCommand(ExecuteSwitchProject);
+            SwitchRecipeCommand = new RelayCommand(ExecuteSwitchRecipe);
         }
 
         /// <summary>
@@ -1263,6 +1283,71 @@ namespace SunEyeVision.UI.ViewModels
                     AddLog($"❌ 另存工作流时发生异常: {ex.Message}");
                     _logger?.LogError("另存工作流失败", "MainWindowViewModel", ex);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 保存当前配方
+        /// </summary>
+        private void ExecuteSaveCurrentRecipe()
+        {
+            try
+            {
+                LogInfo("保存当前配方");
+                
+                var projectManager = Adapters.ServiceInitializer.ProjectManager;
+                if (projectManager.CurrentProject == null || projectManager.CurrentRecipe == null)
+                {
+                    LogWarning("没有当前项目和配方");
+                    return;
+                }
+
+                // 保存当前项目（包括配方）
+                projectManager.SaveProject(projectManager.CurrentProject);
+                
+                LogSuccess($"已保存当前配方: {projectManager.CurrentRecipe.Name}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"保存当前配方失败: {ex.Message}", null, ex);
+            }
+        }
+
+        /// <summary>
+        /// 另存为配方
+        /// </summary>
+        private void ExecuteSaveRecipeAs()
+        {
+            try
+            {
+                LogInfo("另存为配方");
+                
+                var projectManager = Adapters.ServiceInitializer.ProjectManager;
+                if (projectManager.CurrentProject == null || projectManager.CurrentRecipe == null)
+                {
+                    LogWarning("没有当前项目和配方");
+                    return;
+                }
+
+                // 使用 SaveRecipeAs 方法
+                var newRecipe = projectManager.SaveRecipeAs(
+                    projectManager.CurrentProject.Id,
+                    projectManager.CurrentRecipe.Name,
+                    $"{projectManager.CurrentRecipe.Name}_副本",
+                    "另存为的配方");
+
+                if (newRecipe != null)
+                {
+                    LogSuccess($"已另存为配方: {newRecipe.Name}");
+                }
+                else
+                {
+                    LogError("另存为配方失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"另存为配方失败: {ex.Message}", null, ex);
             }
         }
 
@@ -3250,6 +3335,145 @@ namespace SunEyeVision.UI.ViewModels
         #endregion
 
         #endregion // 显示
+
+        #region 解决方案管理
+
+        /// <summary>
+        /// 显示解决方案配置界面
+        /// </summary>
+        private void ExecuteShowSolutionConfiguration()
+        {
+            try
+            {
+                LogInfo("打开解决方案配置界面");
+
+                var projectManager = Adapters.ServiceInitializer.ProjectManager;
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager);
+
+                var result = configDialog.ShowDialog();
+
+                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+                {
+                    // 用户点击启动，加载项目和配方
+                    var (project, recipe) = configDialog.LaunchResult.Value;
+
+                    if (project != null && recipe != null)
+                    {
+                        try
+                        {
+                            // TODO: 加载项目和配方到工作流编辑器
+                            LogSuccess($"已加载项目: {project.Name}, 配方: {recipe.Name}");
+
+                            // 更新标题
+                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"加载项目失败: {ex.Message}", null, ex);
+                            MessageBox.Show(
+                                $"加载项目失败: {ex.Message}",
+                                "错误",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("打开解决方案配置界面失败", null, ex);
+            }
+        }
+
+        /// <summary>
+        /// 切换项目
+        /// </summary>
+        private void ExecuteSwitchProject()
+        {
+            try
+            {
+                LogInfo("切换项目");
+
+                var projectManager = Adapters.ServiceInitializer.ProjectManager;
+                var startupDecisionService = new StartupDecisionService(projectManager);
+                var preselectProjectId = startupDecisionService.GetRecentProjectId();
+
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager, preselectProjectId);
+
+                var result = configDialog.ShowDialog();
+
+                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+                {
+                    var (project, recipe) = configDialog.LaunchResult.Value;
+
+                    if (project != null && recipe != null)
+                    {
+                        try
+                        {
+                            projectManager.SetCurrentProject(project.Id, recipe.Name);
+                            LogSuccess($"已切换到项目: {project.Name}, 配方: {recipe.Name}");
+
+                            // 更新标题
+                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"切换项目失败: {ex.Message}", null, ex);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("切换项目失败", null, ex);
+            }
+        }
+
+        /// <summary>
+        /// 切换配方
+        /// </summary>
+        private void ExecuteSwitchRecipe()
+        {
+            try
+            {
+                LogInfo("切换配方");
+
+                var projectManager = Adapters.ServiceInitializer.ProjectManager;
+                var startupDecisionService = new StartupDecisionService(projectManager);
+                var preselectProjectId = startupDecisionService.GetRecentProjectId();
+
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager, preselectProjectId);
+
+                var result = configDialog.ShowDialog();
+
+                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+                {
+                    var (project, recipe) = configDialog.LaunchResult.Value;
+
+                    if (project != null && recipe != null)
+                    {
+                        try
+                        {
+                            projectManager.SetCurrentProject(project.Id, recipe.Name);
+                            LogSuccess($"已切换到配方: {recipe.Name}");
+
+                            // 更新标题
+                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"切换配方失败: {ex.Message}", null, ex);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("切换配方失败", null, ex);
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 默认工具插件 - 用于测试

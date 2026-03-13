@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Models;
@@ -22,6 +22,7 @@ public class RuntimeConfig : ObservableObject
     private string _currentProject = string.Empty;
     private string _currentRecipe = "standard";
     private DateTime _lastAccessTime = DateTime.Now;
+    private bool _skipStartupConfig = false;
 
     /// <summary>
     /// 当前项目ID
@@ -58,6 +59,15 @@ public class RuntimeConfig : ObservableObject
     {
         get => _lastAccessTime;
         set => SetProperty(ref _lastAccessTime, value);
+    }
+
+    /// <summary>
+    /// 启动时跳过配置界面
+    /// </summary>
+    public bool SkipStartupConfig
+    {
+        get => _skipStartupConfig;
+        set => SetProperty(ref _skipStartupConfig, value, "启动时跳过配置界面");
     }
 
     /// <summary>

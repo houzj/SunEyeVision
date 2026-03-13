@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
@@ -29,6 +29,7 @@ public class Project : ObservableObject
     private string _name = "新建项目";
     private string _productCode = string.Empty;
     private string _description = string.Empty;
+    private string _storagePath = string.Empty;
     private DateTime _createdTime = DateTime.Now;
     private DateTime _modifiedTime = DateTime.Now;
 
@@ -70,6 +71,20 @@ public class Project : ObservableObject
     {
         get => _description;
         set => SetProperty(ref _description, value);
+    }
+
+    /// <summary>
+    /// 项目存储路径
+    /// </summary>
+    /// <remarks>
+    /// 记录项目的实际存储路径，支持自定义路径。
+    /// 如果为空，则使用默认路径（solutions/projects/{projectId}）。
+    /// </remarks>
+    [JsonIgnore]
+    public string StoragePath
+    {
+        get => _storagePath;
+        set => SetProperty(ref _storagePath, value);
     }
 
     /// <summary>
@@ -170,6 +185,26 @@ public class Project : ObservableObject
                 return recipe;
         }
         return null;
+    }
+
+    /// <summary>
+    /// 重命名配方
+    /// </summary>
+    /// <remarks>
+    /// 返回旧配方名称，用于删除旧文件。
+    /// </remarks>
+    public string? RenameRecipe(string recipeId, string newName)
+    {
+        var recipe = GetRecipe(recipeId);
+        if (recipe == null)
+            return null;
+
+        var oldName = recipe.Name;
+        recipe.Name = newName;
+        recipe.ModifiedTime = DateTime.Now;
+        ModifiedTime = DateTime.Now;
+
+        return oldName;
     }
 
     /// <summary>
