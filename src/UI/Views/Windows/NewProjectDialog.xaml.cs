@@ -1,86 +1,93 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using SunEyeVision.UI.Controls.Helpers;
 using SunEyeVision.UI.ViewModels;
 
-namespace SunEyeVision.UI.Views.Windows;
-
-/// <summary>
-/// NewProjectDialog.xaml 的交互逻辑
-/// </summary>
-public partial class NewProjectDialog : Window
+namespace SunEyeVision.UI.Views.Windows
 {
-    private readonly NewProjectDialogViewModel _viewModel;
-
     /// <summary>
-    /// 项目名称
+    /// NewProjectDialog.xaml 的交互逻辑
     /// </summary>
-    public string ProjectName => _viewModel.ProjectName;
-
-    /// <summary>
-    /// 项目路径
-    /// </summary>
-    public string ProjectPath => _viewModel.ProjectPath;
-
-    /// <summary>
-    /// 描述
-    /// </summary>
-    public string Description => _viewModel.Description;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    public NewProjectDialog(string defaultPath)
+    public partial class NewProjectDialog : Window
     {
-        InitializeComponent();
+        private readonly NewProjectDialogViewModel _viewModel;
 
-        _viewModel = new NewProjectDialogViewModel
+        /// <summary>
+        /// 项目名称
+        /// </summary>
+        public string ProjectName => _viewModel.ProjectName;
+
+        /// <summary>
+        /// 项目路径
+        /// </summary>
+        public string ProjectPath => _viewModel.ProjectPath;
+
+        /// <summary>
+        /// 描述
+        /// </summary>
+        public string Description => _viewModel.Description;
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        public NewProjectDialog(string defaultPath)
         {
-            ProjectPath = defaultPath
-        };
-        DataContext = _viewModel;
+            InitializeComponent();
 
-        // 设置焦点
-        Loaded += (s, e) => ProjectNameTextBox.Focus();
-    }
+            _viewModel = new NewProjectDialogViewModel
+            {
+                ProjectPath = defaultPath
+            };
+            DataContext = _viewModel;
 
-    /// <summary>
-    /// 浏览按钮点击
-    /// </summary>
-    private void BrowseButton_Click(object sender, RoutedEventArgs e)
-    {
-        var selectedPath = FolderBrowserHelper.BrowseForFolder(
-            "选择项目保存位置",
-            _viewModel.ProjectPath,
-            showNewFolderButton: true);
-
-        if (!string.IsNullOrEmpty(selectedPath))
-        {
-            _viewModel.ProjectPath = selectedPath;
+            // 设置焦点
+            Loaded += (s, e) => ProjectNameTextBox.Focus();
         }
-    }
 
-    /// <summary>
-    /// 确定按钮点击
-    /// </summary>
-    private void OkButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel.Validate())
+        /// <summary>
+        /// 浏览按钮点击
+        /// </summary>
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = true;
+            // 如果路径为空，从桌面开始；否则从用户输入的路径开始
+            var initialPath = string.IsNullOrEmpty(_viewModel.ProjectPath)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                : _viewModel.ProjectPath;
+
+            var selectedPath = FolderBrowserHelper.BrowseForFolder(
+                "选择项目保存位置",
+                initialPath,
+                showNewFolderButton: true);
+
+            if (!string.IsNullOrEmpty(selectedPath))
+            {
+                _viewModel.ProjectPath = selectedPath;
+            }
+        }
+
+        /// <summary>
+        /// 确定按钮点击
+        /// </summary>
+        private void OkButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.Validate())
+            {
+                DialogResult = true;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("请填写项目名称和项目路径", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// 取消按钮点击
+        /// </summary>
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
             Close();
         }
-        else
-        {
-            MessageBox.Show("请填写项目名称和项目路径", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    /// <summary>
-    /// 取消按钮点击
-    /// </summary>
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
     }
 }

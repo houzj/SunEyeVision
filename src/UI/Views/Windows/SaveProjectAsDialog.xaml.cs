@@ -45,9 +45,14 @@ namespace SunEyeVision.UI.Views.Windows
         /// </summary>
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            // 如果路径为空，从桌面开始；否则从用户输入的路径开始
+            var initialPath = string.IsNullOrEmpty(_viewModel.ProjectPath)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                : _viewModel.ProjectPath;
+
             var selectedPath = FolderBrowserHelper.BrowseForFolder(
                 "选择项目保存位置",
-                _viewModel.ProjectPath,
+                initialPath,
                 showNewFolderButton: true);
 
             if (!string.IsNullOrEmpty(selectedPath))

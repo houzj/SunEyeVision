@@ -3345,10 +3345,10 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo("打开解决方案配置界面");
+                LogInfo("打开项目配置界面");
 
                 var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager);
+                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager);
 
                 var result = configDialog.ShowDialog();
 
@@ -3398,7 +3398,7 @@ namespace SunEyeVision.UI.ViewModels
                 var startupDecisionService = new StartupDecisionService(projectManager);
                 var preselectProjectId = startupDecisionService.GetRecentProjectId();
 
-                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager, preselectProjectId);
+                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager, preselectProjectId);
 
                 var result = configDialog.ShowDialog();
 
@@ -3442,7 +3442,7 @@ namespace SunEyeVision.UI.ViewModels
                 var startupDecisionService = new StartupDecisionService(projectManager);
                 var preselectProjectId = startupDecisionService.GetRecentProjectId();
 
-                var configDialog = new Views.Windows.SolutionConfigurationDialog(projectManager, preselectProjectId);
+                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager, preselectProjectId);
 
                 var result = configDialog.ShowDialog();
 

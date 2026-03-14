@@ -43,11 +43,6 @@ public class RuntimeConfig : ObservableObject
     }
 
     /// <summary>
-    /// 最近使用的项目列表
-    /// </summary>
-    public List<string> RecentProjects { get; set; } = new();
-
-    /// <summary>
     /// 最近使用的配方列表
     /// </summary>
     public List<RecipeUsageRecord> RecentRecipes { get; set; } = new();
@@ -71,6 +66,16 @@ public class RuntimeConfig : ObservableObject
     }
 
     /// <summary>
+    /// 工作空间目录列表
+    /// </summary>
+    public List<string> WorkspaceFolders { get; set; } = new();
+
+    /// <summary>
+    /// 最近打开的项目列表
+    /// </summary>
+    public List<RecentProjectInfo> RecentProjects { get; set; } = new();
+
+    /// <summary>
     /// 用户偏好设置
     /// </summary>
     public Dictionary<string, object> Preferences { get; set; } = new();
@@ -83,9 +88,7 @@ public class RuntimeConfig : ObservableObject
         CurrentProject = projectId;
         CurrentRecipe = recipeName;
         LastAccessTime = DateTime.Now;
-
-        // 更新最近使用列表
-        AddRecentProject(projectId);
+        // 注意：不在这里添加到最近打开列表，应该由ProjectManager在SetCurrentProject时调用AddRecentProject方法
     }
 
     /// <summary>
@@ -104,21 +107,12 @@ public class RuntimeConfig : ObservableObject
     }
 
     /// <summary>
-    /// 添加最近使用的项目
+    /// 添加最近使用的项目（已废弃，请使用AddRecentProject(string, string, string, string?)）
     /// </summary>
+    [Obsolete("请使用 AddRecentProject(string projectId, string projectName, string projectPath, string? recipeName)")]
     public void AddRecentProject(string projectId)
     {
-        // 移除已存在的记录
-        RecentProjects.Remove(projectId);
-
-        // 添加到列表开头
-        RecentProjects.Insert(0, projectId);
-
-        // 限制列表长度
-        if (RecentProjects.Count > 10)
-        {
-            RecentProjects = RecentProjects.GetRange(0, 10);
-        }
+        // 此方法已废弃，不实现任何逻辑
     }
 
     /// <summary>
@@ -188,13 +182,100 @@ public class RuntimeConfig : ObservableObject
     }
 
     /// <summary>
-    /// 清除最近使用记录
+    /// 清除最近使用记录（已废弃，请使用ClearRecentProjects()）
     /// </summary>
+    [Obsolete("请使用 ClearRecentProjects()")]
     public void ClearRecentHistory()
     {
         RecentProjects.Clear();
         RecentRecipes.Clear();
     }
+
+    /// <summary>
+    /// 添加最近打开的项目
+    /// </summary>
+    public void AddRecentProject(string projectId, string projectName, string projectPath, string? recipeName = null)
+    {
+        // 移除已存在的记录
+        RecentProjects.RemoveAll(p => p.ProjectId == projectId);
+
+        // 添加到列表开头
+        var recentInfo = new RecentProjectInfo
+        {
+            ProjectId = projectId,
+            ProjectName = projectName,
+            ProjectPath = projectPath,
+            LastOpenedTime = DateTime.Now,
+            LastRecipeName = recipeName ?? string.Empty
+        };
+        RecentProjects.Insert(0, recentInfo);
+
+        // 限制列表长度
+        if (RecentProjects.Count > 20)
+        {
+            RecentProjects = RecentProjects.GetRange(0, 20);
+        }
+    }
+
+    /// <summary>
+    /// 添加工作空间目录
+    /// </summary>
+    public void AddWorkspaceFolder(string workspacePath)
+    {
+        // 检查是否已存在
+        if (WorkspaceFolders.Contains(workspacePath))
+            return;
+
+        // 添加到列表
+        WorkspaceFolders.Add(workspacePath);
+    }
+
+    /// <summary>
+    /// 移除工作空间目录
+    /// </summary>
+    public void RemoveWorkspaceFolder(string workspacePath)
+    {
+        WorkspaceFolders.Remove(workspacePath);
+    }
+
+    /// <summary>
+    /// 清除最近打开记录
+    /// </summary>
+    public void ClearRecentProjects()
+    {
+        RecentProjects.Clear();
+    }
+}
+
+/// <summary>
+/// 最近打开的项目信息
+/// </summary>
+public class RecentProjectInfo
+{
+    /// <summary>
+    /// 项目ID
+    /// </summary>
+    public string ProjectId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 项目名称
+    /// </summary>
+    public string ProjectName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 项目完整路径
+    /// </summary>
+    public string ProjectPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 最后打开时间
+    /// </summary>
+    public DateTime LastOpenedTime { get; set; } = DateTime.Now;
+
+    /// <summary>
+    /// 最近使用的配方名称
+    /// </summary>
+    public string LastRecipeName { get; set; } = string.Empty;
 }
 
 /// <summary>

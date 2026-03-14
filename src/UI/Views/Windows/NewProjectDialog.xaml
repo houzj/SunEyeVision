@@ -41,7 +41,6 @@
 
             <TextBox Grid.Column="0"
                      Text="{Binding ProjectPath, UpdateSourceTrigger=PropertyChanged}"
-                     IsReadOnly="True"
                      VerticalContentAlignment="Center"/>
 
             <Button Grid.Column="1"

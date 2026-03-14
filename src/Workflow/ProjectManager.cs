@@ -545,6 +545,93 @@ public class ProjectManager
     }
 
     // ====================================================================
+    // 项目加载扩展（混合模式）
+    // ====================================================================
+
+    /// <summary>
+    /// 加载单个项目（从任意路径）
+    /// </summary>
+    public Project? LoadProjectFromPath(string projectPath)
+    {
+        try
+        {
+            var projectFilePath = Path.Combine(projectPath, "project.json");
+            if (!File.Exists(projectFilePath))
+                return null;
+
+            var project = LoadFromFile<Project>(projectFilePath);
+            if (project == null || string.IsNullOrEmpty(project.Id))
+                return null;
+
+            project.StoragePath = projectPath;
+
+            var programFilePath = Path.Combine(projectPath, "program.json");
+            var program = LoadFromFile<InspectionProgram>(programFilePath);
+            if (program != null)
+                project.Program = program;
+
+            var recipesDir = Path.Combine(projectPath, "recipes");
+            if (Directory.Exists(recipesDir))
+            {
+                var recipeFiles = Directory.GetFiles(recipesDir, "*.json");
+                project.Recipes.Clear();
+                foreach (var recipeFile in recipeFiles)
+                {
+                    var recipe = LoadFromFile<InspectionRecipe>(recipeFile);
+                    if (recipe != null)
+                    {
+                        recipe.ProjectId = project.Id;
+                        project.Recipes.Add(recipe);
+                    }
+                }
+            }
+
+            _projects[project.Id] = project;
+            _logger.Log(LogLevel.Success, $"加载项目: {project.Name} -> {projectPath}", "ProjectManager");
+            return project;
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Error, $"加载项目失败: {projectPath}, 错误: {ex.Message}", "ProjectManager");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 扫描工作空间目录下的所有项目
+    /// </summary>
+    public List<Project> ScanWorkspace(string workspacePath)
+    {
+        var projects = new List<Project>();
+
+        if (!Directory.Exists(workspacePath))
+            return projects;
+
+        try
+        {
+            var subDirs = Directory.GetDirectories(workspacePath);
+            foreach (var subDir in subDirs)
+            {
+                var projectFilePath = Path.Combine(subDir, "project.json");
+                if (!File.Exists(projectFilePath))
+                    continue;
+
+                var project = LoadProjectFromPath(subDir);
+                if (project != null)
+                    projects.Add(project);
+            }
+
+            _logger.Log(LogLevel.Info, $"扫描工作空间 {workspacePath}，发现 {projects.Count} 个项目", "ProjectManager");
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Error, $"扫描工作空间失败: {workspacePath}, 错误: {ex.Message}", "ProjectManager");
+        }
+
+        return projects;
+    }
+
+    // ====================================================================
     // 当前项目和配方管理
     // ====================================================================
 
@@ -579,6 +666,14 @@ public class ProjectManager
                 CurrentRecipe = project.Recipes[0];
             }
         }
+
+        // 添加到最近打开
+        _runtimeConfig.AddRecentProject(
+            project.Id,
+            project.Name,
+            project.StoragePath ?? string.Empty,
+            CurrentRecipe?.Name
+        );
 
         // 更新运行时配置
         _runtimeConfig.SetCurrentProject(projectId, CurrentRecipe?.Name ?? "standard");
@@ -666,65 +761,6 @@ public class ProjectManager
         var configFilePath = Path.Combine(_solutionDirectory, "config.json");
         SaveToFile(_runtimeConfig, configFilePath);
         _logger.Log(LogLevel.Info, "保存运行时配置", "ProjectManager");
-    }
-
-    // ====================================================================
-    // 迁移工具
-    // ====================================================================
-
-    /// <summary>
-    /// 从旧 Solution 迁移到新 Project
-    /// </summary>
-    public Project MigrateFromSolution(Solution solution)
-    {
-        if (solution == null)
-            throw new ArgumentNullException(nameof(solution));
-
-        var project = new Project
-        {
-            Id = solution.Id,
-            Name = solution.Name,
-            Description = solution.Description,
-            CreatedTime = solution.CreatedAt,
-            ModifiedTime = solution.ModifiedAt
-        };
-
-        // 迁移工作流定义到程序
-        // 注意：这里需要根据实际情况调整
-        // 如果 Solution 中有 WorkflowDefinition，需要转换为 InspectionProgram
-
-        // 迁移配方
-        foreach (var recipe in solution.Recipes)
-        {
-            var inspectionRecipe = new InspectionRecipe
-            {
-                Id = recipe.Id,
-                Name = recipe.Name,
-                Description = recipe.Description,
-                ProjectId = project.Id,
-                NodeParams = new Dictionary<string, Plugin.SDK.Execution.Parameters.ToolParameters>(recipe.ParameterMappings),
-                CreatedTime = DateTime.Now,
-                ModifiedTime = DateTime.Now
-            };
-
-            project.Recipes.Add(inspectionRecipe);
-        }
-
-        // 迁移全局变量
-        if (solution.GlobalVariables != null && solution.GlobalVariables.Count > 0)
-        {
-            // 将全局变量添加到第一个配方中
-            if (project.Recipes.Count > 0)
-            {
-                project.Recipes[0].GlobalVariables = new Dictionary<string, GlobalVariable>(solution.GlobalVariables);
-            }
-        }
-
-        _projects[project.Id] = project;
-        SaveProject(project);
-
-        _logger.Log(LogLevel.Success, $"迁移解决方案: {solution.Name} -> 项目: {project.Name}", "ProjectManager");
-        return project;
     }
 
     // ====================================================================

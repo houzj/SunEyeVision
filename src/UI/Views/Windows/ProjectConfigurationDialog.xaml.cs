@@ -5,11 +5,11 @@ using SunEyeVision.Workflow;
 namespace SunEyeVision.UI.Views.Windows;
 
 /// <summary>
-/// SolutionConfigurationDialog.xaml 的交互逻辑
+/// ProjectConfigurationDialog.xaml 的交互逻辑
 /// </summary>
-public partial class SolutionConfigurationDialog : Window
+public partial class ProjectConfigurationDialog : Window
 {
-    private readonly SolutionConfigurationDialogViewModel _viewModel;
+    private readonly ProjectConfigurationDialogViewModel _viewModel;
 
     /// <summary>
     /// 获取启动结果
@@ -27,11 +27,11 @@ public partial class SolutionConfigurationDialog : Window
     /// <param name="projectManager">项目管理器</param>
     /// <param name="preselectProjectId">预选中的项目ID</param>
     /// <param name="preselectRecipeName">预选中的配方名称</param>
-    public SolutionConfigurationDialog(ProjectManager projectManager, string? preselectProjectId = null, string? preselectRecipeName = null)
+    public ProjectConfigurationDialog(ProjectManager projectManager, string? preselectProjectId = null, string? preselectRecipeName = null)
     {
         InitializeComponent();
 
-        _viewModel = new SolutionConfigurationDialogViewModel(projectManager, preselectProjectId, preselectRecipeName);
+        _viewModel = new ProjectConfigurationDialogViewModel(projectManager, preselectProjectId, preselectRecipeName);
         DataContext = _viewModel;
     }
 
