@@ -123,19 +123,89 @@ public class RecipeGroup : ObservableObject
     }
 
     /// <summary>
-    /// 从现有 Recipe 创建 RecipeGroup
+    /// 获取节点参数
     /// </summary>
-    /// <param name="recipe">现有配方</param>
-    /// <returns>配方组实例</returns>
-    public static RecipeGroup FromRecipe(Recipe recipe)
+    public ToolParameters? GetNodeParameters(string nodeId)
     {
-        return new RecipeGroup
+        return GetNodeParams(nodeId);
+    }
+
+    /// <summary>
+    /// 保存节点参数
+    /// </summary>
+    public void SaveNodeParameters(string nodeId, ToolParameters parameters)
+    {
+        SaveNodeParams(nodeId, parameters);
+    }
+
+    /// <summary>
+    /// 克隆配方组
+    /// </summary>
+    public RecipeGroup Clone()
+    {
+        var cloned = new RecipeGroup
         {
-            Name = recipe.Name,
-            Description = recipe.Description,
-            NodeParams = new Dictionary<string, ToolParameters>(recipe.ParameterMappings),
+            Name = Name,
+            Description = Description,
             CreatedTime = DateTime.Now,
             ModifiedTime = DateTime.Now
         };
+
+        // 深拷贝节点参数
+        foreach (var kvp in NodeParams)
+        {
+            cloned.NodeParams[kvp.Key] = kvp.Value.Clone();
+        }
+
+        return cloned;
+    }
+
+    /// <summary>
+    /// 验证配方组
+    /// </summary>
+    public (bool IsValid, List<string> Errors) Validate()
+    {
+        var errors = new List<string>();
+
+        // 检查是否有节点参数
+        if (NodeParams.Count == 0)
+        {
+            errors.Add("配方组没有节点参数");
+        }
+
+        // 验证节点参数
+        foreach (var kvp in NodeParams)
+        {
+            if (kvp.Value == null)
+            {
+                errors.Add($"节点 {kvp.Key} 的参数为空");
+            }
+        }
+
+        return (errors.Count == 0, errors);
+    }
+
+    /// <summary>
+    /// 从 Workflow 创建默认 RecipeGroup
+    /// </summary>
+    /// <param name="workflow">工作流</param>
+    /// <returns>配方组实例</returns>
+    public static RecipeGroup FromWorkflow(Workflow workflow)
+    {
+        var group = new RecipeGroup
+        {
+            Name = "default",
+            Description = "默认配方组",
+            CreatedTime = DateTime.Now,
+            ModifiedTime = DateTime.Now
+        };
+
+        // 从工作流的默认参数复制
+        foreach (var kvp in workflow.DefaultParams)
+        {
+            group.NodeParams[kvp.Key] = kvp.Value?.Clone();
+        }
+
+        return group;
     }
 }

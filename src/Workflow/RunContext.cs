@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Workflow;
 
@@ -9,14 +9,14 @@ namespace SunEyeVision.Workflow;
 /// 执行上下文（运行时临时对象）
 /// </summary>
 /// <remarks>
-/// 组合 Program（执行流）和 Recipe（数据流），提供运行时执行环境。
+/// 组合 Workflow（执行流）和 Recipe（数据流），提供运行时执行环境。
 /// 与 RuntimeConfig（持久化配置）不同，RunContext 是临时的运行时对象。
-/// 
+///
 /// 使用场景：
 /// 1. 执行检测任务时创建
-/// 2. 提供节点参数查询（优先配方参数，其次程序默认参数）
+/// 2. 提供节点参数查询（优先配方参数，其次工作流默认参数）
 /// 3. 任务完成后释放
-/// 
+///
 /// 生命周期：
 /// - 创建：开始执行时
 /// - 使用：执行过程中
@@ -25,14 +25,19 @@ namespace SunEyeVision.Workflow;
 public class RunContext
 {
     /// <summary>
-    /// 检测程序（执行流）
+    /// 工作流（执行流）
     /// </summary>
-    public InspectionProgram Program { get; set; } = new();
+    public Workflow Workflow { get; set; } = new();
 
     /// <summary>
-    /// 检测配方（数据流）
+    /// 配方（数据流）
     /// </summary>
-    public InspectionRecipe Recipe { get; set; } = new();
+    public Recipe Recipe { get; set; } = new();
+
+    /// <summary>
+    /// 配方组
+    /// </summary>
+    public RecipeGroup? RecipeGroup { get; set; }
 
     /// <summary>
     /// 创建时间
@@ -49,18 +54,38 @@ public class RunContext
     /// </summary>
     /// <remarks>
     /// 优先级：
-    /// 1. 配方中的节点参数
-    /// 2. 程序中的默认参数
+    /// 1. 配方组中的节点参数
+    /// 2. 配方中的节点参数（如果配方组不存在）
+    /// 3. 工作流中的默认参数
     /// </remarks>
-    public ToolParameters? GetNodeParameters(string nodeId)
+    public ToolParameters? GetNodeParameters(string nodeId, string? recipeGroupName = null)
     {
-        // 优先使用配方参数
-        if (Recipe.NodeParams.TryGetValue(nodeId, out var recipeParam))
-            return recipeParam.Clone();
+        // 如果指定了配方组名称，优先使用配方组参数
+        if (!string.IsNullOrEmpty(recipeGroupName))
+        {
+            RecipeGroup = Recipe.GetRecipeGroup(recipeGroupName);
+        }
 
-        // 其次使用程序默认参数
-        if (Program.DefaultParams.TryGetValue(nodeId, out var defaultParam))
-            return defaultParam.Clone();
+        // 优先使用配方组参数
+        if (RecipeGroup != null)
+        {
+            var groupParams = RecipeGroup.GetNodeParameters(nodeId);
+            if (groupParams != null)
+                return groupParams;
+        }
+
+        // 其次使用配方默认参数（配方组的default）
+        var defaultParams = Recipe.GetRecipeGroup("default");
+        if (defaultParams != null)
+        {
+            var recipeParams = defaultParams.GetNodeParameters(nodeId);
+            if (recipeParams != null)
+                return recipeParams;
+        }
+
+        // 最后使用工作流默认参数
+        if (Workflow.DefaultParams.TryGetValue(nodeId, out var workflowParam))
+            return workflowParam.Clone();
 
         return null;
     }
@@ -68,9 +93,9 @@ public class RunContext
     /// <summary>
     /// 获取节点参数（指定类型）
     /// </summary>
-    public T? GetNodeParameters<T>(string nodeId) where T : ToolParameters
+    public T? GetNodeParameters<T>(string nodeId, string? recipeGroupName = null) where T : ToolParameters
     {
-        var parameters = GetNodeParameters(nodeId);
+        var parameters = GetNodeParameters(nodeId, recipeGroupName);
         return parameters as T;
     }
 
@@ -88,7 +113,7 @@ public class RunContext
     public List<string> GetAllNodeIds()
     {
         var nodeIds = new List<string>();
-        foreach (var node in Program.Nodes)
+        foreach (var node in Workflow.Nodes)
         {
             nodeIds.Add(node.Id);
         }
@@ -98,10 +123,10 @@ public class RunContext
     /// <summary>
     /// 获取启用的节点列表
     /// </summary>
-    public List<ProgramNode> GetEnabledNodes()
+    public List<WorkflowNode> GetEnabledNodes()
     {
-        var nodes = new List<ProgramNode>();
-        foreach (var node in Program.Nodes)
+        var nodes = new List<WorkflowNode>();
+        foreach (var node in Workflow.Nodes)
         {
             if (node.IsEnabled)
                 nodes.Add(node);
@@ -112,12 +137,12 @@ public class RunContext
     /// <summary>
     /// 获取节点的输入连接
     /// </summary>
-    public List<ProgramConnection> GetInputConnections(string nodeId)
+    public List<Connection> GetInputConnections(string nodeId)
     {
-        var connections = new List<ProgramConnection>();
-        foreach (var conn in Program.Connections)
+        var connections = new List<Connection>();
+        foreach (var conn in Workflow.Connections)
         {
-            if (conn.TargetNodeId == nodeId)
+            if (conn.TargetNode == nodeId)
                 connections.Add(conn);
         }
         return connections;
@@ -126,12 +151,12 @@ public class RunContext
     /// <summary>
     /// 获取节点的输出连接
     /// </summary>
-    public List<ProgramConnection> GetOutputConnections(string nodeId)
+    public List<Connection> GetOutputConnections(string nodeId)
     {
-        var connections = new List<ProgramConnection>();
-        foreach (var conn in Program.Connections)
+        var connections = new List<Connection>();
+        foreach (var conn in Workflow.Connections)
         {
-            if (conn.SourceNodeId == nodeId)
+            if (conn.SourceNode == nodeId)
                 connections.Add(conn);
         }
         return connections;
@@ -140,23 +165,44 @@ public class RunContext
     /// <summary>
     /// 验证执行上下文
     /// </summary>
-    public bool Validate()
+    public (bool IsValid, List<string> Errors) Validate()
     {
-        if (Program == null)
-            return false;
+        var errors = new List<string>();
+
+        if (Workflow == null)
+        {
+            errors.Add("工作流为空");
+            return (false, errors);
+        }
 
         if (Recipe == null)
-            return false;
+        {
+            errors.Add("配方为空");
+            return (false, errors);
+        }
+
+        // 验证配方组
+        if (RecipeGroup == null)
+        {
+            RecipeGroup = Recipe.GetRecipeGroup("default");
+            if (RecipeGroup == null)
+            {
+                errors.Add("配方组为空");
+                return (false, errors);
+            }
+        }
 
         // 验证所有启用的节点都有参数
         foreach (var node in GetEnabledNodes())
         {
             var parameters = GetNodeParameters(node.Id);
             if (parameters == null)
-                return false;
+            {
+                errors.Add($"节点 {node.Name} ({node.Id}) 没有参数配置");
+            }
         }
 
-        return true;
+        return (errors.Count == 0, errors);
     }
 
     /// <summary>
@@ -165,63 +211,62 @@ public class RunContext
     public string GetStatistics()
     {
         var enabledNodes = GetEnabledNodes();
-        return $"节点数: {enabledNodes.Count}/{Program.Nodes.Count}, " +
-               $"连接数: {Program.Connections.Count}, " +
-               $"配方参数: {Recipe.NodeParams.Count}, " +
-               $"全局变量: {Recipe.GlobalVariables.Count}";
+        var nodeParamsCount = RecipeGroup?.NodeParams.Count ?? 0;
+        var globalVarsCount = Recipe.GlobalVariables.Count;
+
+        return $"节点数: {enabledNodes.Count}/{Workflow.Nodes.Count}, " +
+               $"连接数: {Workflow.Connections.Count}, " +
+               $"配方参数: {nodeParamsCount}, " +
+               $"全局变量: {globalVarsCount}";
     }
 
     /// <summary>
-    /// 从项目和配方创建执行上下文
+    /// 从工作流和配方创建执行上下文
     /// </summary>
-    public static RunContext Create(Project project, InspectionRecipe? recipe = null)
+    public static RunContext Create(Workflow workflow, Recipe recipe, string? recipeGroupName = null)
     {
-        if (project == null)
-            throw new ArgumentNullException(nameof(project));
+        if (workflow == null)
+            throw new ArgumentNullException(nameof(workflow));
 
-        // 如果没有指定配方，使用第一个配方
         if (recipe == null)
-        {
-            if (project.Recipes.Count == 0)
-            {
-                // 创建默认配方
-                recipe = new InspectionRecipe
-                {
-                    Name = "默认配方",
-                    ProjectId = project.Id
-                };
+            throw new ArgumentNullException(nameof(recipe));
 
-                // 从程序的默认参数创建配方参数
-                foreach (var kvp in project.Program.DefaultParams)
-                {
-                    recipe.NodeParams[kvp.Key] = kvp.Value.Clone();
-                }
-            }
-            else
-            {
-                recipe = project.Recipes[0];
-            }
-        }
+        var recipeGroup = recipe.GetRecipeGroup(recipeGroupName ?? "default");
 
         return new RunContext
         {
-            Program = project.Program,
-            Recipe = recipe
+            Workflow = workflow,
+            Recipe = recipe,
+            RecipeGroup = recipeGroup
         };
     }
 
     /// <summary>
-    /// 从项目和配方名称创建执行上下文
+    /// 从解决方案和设备ID创建执行上下文
     /// </summary>
-    public static RunContext Create(Project project, string recipeName)
+    public static RunContext? Create(SolutionFile solution, string deviceId)
     {
-        if (project == null)
-            throw new ArgumentNullException(nameof(project));
+        if (solution == null)
+            throw new ArgumentNullException(nameof(solution));
 
-        var recipe = project.GetRecipeByName(recipeName);
+        if (string.IsNullOrEmpty(deviceId))
+            throw new ArgumentException("设备ID不能为空", nameof(deviceId));
+
+        // 查找设备绑定
+        var binding = solution.Bindings.FirstOrDefault(b => b.DeviceId == deviceId);
+        if (binding == null)
+            return null;
+
+        // 查找工作流
+        var workflow = solution.Workflows.FirstOrDefault(w => w.Id == binding.WorkflowRef);
+        if (workflow == null)
+            return null;
+
+        // 查找配方
+        var recipe = solution.Recipes.FirstOrDefault(r => r.Id == binding.RecipeRef);
         if (recipe == null)
-            throw new ArgumentException($"配方不存在: {recipeName}");
+            return null;
 
-        return Create(project, recipe);
+        return Create(workflow, recipe, binding.RecipeGroupName);
     }
 }
