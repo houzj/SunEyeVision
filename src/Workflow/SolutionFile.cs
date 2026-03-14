@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Workflow;
 

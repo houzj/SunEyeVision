@@ -42,22 +42,26 @@ public enum StartupDecision
 /// 1. 检查 RuntimeConfig
 /// 2. 决定启动时是否显示配置界面
 /// 3. 返回决策结果
-/// 
+///
 /// 使用场景：
 /// 1. 应用启动时调用
 /// 2. 根据用户配置决定启动流程
+///
+/// TODO: 在UI层重构完成后，更新此服务使用 SolutionManager
 /// </remarks>
 public class StartupDecisionService
 {
-    private readonly ProjectManager _projectManager;
+    // TODO: 暂时禁用此服务，等UI层重构完成后恢复
+    // private readonly ProjectManager _projectManager;
 
     /// <summary>
     /// 构造函数
     /// </summary>
-    /// <param name="projectManager">项目管理器</param>
-    public StartupDecisionService(ProjectManager projectManager)
+    /// <param name="solutionManager">解决方案管理器</param>
+    public StartupDecisionService(SolutionManager solutionManager)
     {
-        _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
+        // TODO: 暂时禁用，等UI层重构完成后恢复
+        // _projectManager = solutionManager ?? throw new ArgumentNullException(nameof(solutionManager));
     }
 
     /// <summary>
@@ -66,64 +70,8 @@ public class StartupDecisionService
     /// <returns>启动决策结果</returns>
     public StartupDecision GetStartupDecision()
     {
-        // 获取运行时配置
-        var config = _projectManager.RuntimeConfig;
-
-        // 检查是否跳过配置界面
-        if (config.SkipStartupConfig)
-        {
-            // 检查是否有最近项目
-            if (!string.IsNullOrEmpty(config.CurrentProject) &&
-                HasValidRecentProject(config.CurrentProject))
-            {
-                return StartupDecision.LoadRecentAndStart;
-            }
-
-            return StartupDecision.SkipConfiguration;
-        }
-
-        // 检查是否有项目
-        var projectsDirectory = _projectManager.ProjectsDirectory;
-        if (projectsDirectory == null || !Directory.Exists(projectsDirectory))
-        {
-            // 目录不存在，显示空状态
-            return StartupDecision.ShowConfigurationWithEmptyState;
-        }
-
-        var projectDirectories = Directory.GetDirectories(projectsDirectory);
-        if (projectDirectories.Length == 0)
-        {
-            // 无项目，显示空状态
-            return StartupDecision.ShowConfigurationWithEmptyState;
-        }
-
-        // 有项目，检查是否有最近项目
-        if (!string.IsNullOrEmpty(config.CurrentProject) &&
-            HasValidRecentProject(config.CurrentProject))
-        {
-            return StartupDecision.ShowConfigurationWithRecentProject;
-        }
-
-        // 有项目，但无最近项目，显示配置界面
+        // TODO: 暂时返回默认值，等UI层重构完成后实现
         return StartupDecision.ShowConfiguration;
-    }
-
-    /// <summary>
-    /// 检查最近项目是否有效
-    /// </summary>
-    /// <param name="projectId">项目ID</param>
-    /// <returns>是否有效</returns>
-    private bool HasValidRecentProject(string projectId)
-    {
-        try
-        {
-            var projectPath = _projectManager.GetProjectPath(projectId);
-            return projectPath != null && Directory.Exists(projectPath);
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     /// <summary>
@@ -132,8 +80,8 @@ public class StartupDecisionService
     /// <returns>项目ID，如果没有则返回null</returns>
     public string? GetRecentProjectId()
     {
-        var config = _projectManager.RuntimeConfig;
-        return string.IsNullOrEmpty(config.CurrentProject) ? null : config.CurrentProject;
+        // TODO: 暂时返回null，等UI层重构完成后实现
+        return null;
     }
 
     /// <summary>
@@ -142,7 +90,7 @@ public class StartupDecisionService
     /// <returns>配方名称，如果没有则返回null</returns>
     public string? GetRecentRecipeName()
     {
-        var config = _projectManager.RuntimeConfig;
-        return string.IsNullOrEmpty(config.CurrentRecipe) ? null : config.CurrentRecipe;
+        // TODO: 暂时返回null，等UI层重构完成后实现
+        return null;
     }
 }
