@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Threading;
+using System.Windows;
+using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI.Services.Logging
@@ -35,6 +38,8 @@ namespace SunEyeVision.UI.Services.Logging
         private int _count;
         private readonly int _capacity;
         private bool _isBatchUpdate;
+        private readonly Dispatcher _dispatcher;
+        private int _removedSinceLastReset;
 
         // 增量统计
         private int _errorCount;
@@ -105,16 +110,24 @@ namespace SunEyeVision.UI.Services.Logging
 
         #region 构造函数
 
-        public CircularBufferLogCollection(int capacity = DefaultCapacity)
+        public CircularBufferLogCollection(int capacity = DefaultCapacity) : this(capacity, Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher)
+        {
+        }
+
+        public CircularBufferLogCollection(int capacity, Dispatcher dispatcher)
         {
             if (capacity <= 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
+            if (dispatcher == null)
+                throw new ArgumentNullException(nameof(dispatcher));
 
             _capacity = capacity;
             _buffer = new LogEntry[capacity];
             _head = 0;
             _tail = 0;
             _count = 0;
+            _dispatcher = dispatcher;
+            _removedSinceLastReset = 0;
         }
 
         #endregion
@@ -205,8 +218,9 @@ namespace SunEyeVision.UI.Services.Logging
             if (removedCount > 0)
             {
                 // 循环缓冲区满时触发Reset，让WPF重新绑定
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                    NotifyCollectionChangedAction.Reset));
+                // 使用延迟触发，等待UI绑定完成
+                _removedSinceLastReset += removedCount;
+                ScheduleReset();
             }
             else
             {
@@ -312,6 +326,36 @@ namespace SunEyeVision.UI.Services.Logging
         #endregion
 
         #region 私有方法
+
+        /// <summary>
+        /// 调度Reset事件触发（延迟触发以等待UI绑定完成）
+        /// </summary>
+        /// <remarks>
+        /// 修复说明（2026-03-16）：修复Dispatcher.BeginInvoke参数顺序错误
+        /// 原bug：_dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => { ... });
+        /// 修复：_dispatcher.BeginInvoke(new Action(() => { ... }), DispatcherPriority.ContextIdle);
+        /// </remarks>
+        private void ScheduleReset()
+        {
+            var removedCount = Interlocked.Exchange(ref _removedSinceLastReset, 0);
+
+            if (removedCount > 0)
+            {
+                // ✅ 修复：正确的参数顺序
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+                            NotifyCollectionChangedAction.Reset));
+                    }
+                    catch (Exception)
+                    {
+                        // 忽略可能的集合异常（如UI正在销毁）
+                    }
+                }), DispatcherPriority.ContextIdle);
+            }
+        }
 
         private void IncrementStatistics(LogEntry entry)
         {

@@ -92,16 +92,23 @@ namespace SunEyeVision.Workflow
     /// <summary>
     /// Example of extending Workflow class to use event bus
     /// </summary>
+    /// <remarks>
+    /// 注意：此类需要重构以使用 WorkflowExecutionEngine 而不是继承 Workflow。
+    /// 当前版本为了保持兼容性，仅修复编译错误。
+    /// </remarks>
     public class EventEnabledWorkflow : Workflow
     {
         private readonly WorkflowEventPublisher _eventPublisher;
 
-        public EventEnabledWorkflow(string id, string name, ILogger logger, IEventBus eventBus)
-            : base(id, name, logger)
+        public EventEnabledWorkflow(string id, string name, IEventBus eventBus)
+            : base(id, name)
         {
             _eventPublisher = new WorkflowEventPublisher(eventBus);
         }
 
+        // TODO: 重构此方法以使用 WorkflowExecutionEngine.ExecuteAsync() 而不是 base.Execute()
+        // ExecuteWithEvents 方法已被禁用，因为 Workflow 类不再包含 Execute 方法
+        /*
         /// <summary>
         /// Execute workflow with event publishing
         /// </summary>
@@ -136,6 +143,7 @@ namespace SunEyeVision.Workflow
                 throw;
             }
         }
+        */
 
         /// <summary>
         /// Execute a single node with event publishing

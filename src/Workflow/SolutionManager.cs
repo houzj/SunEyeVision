@@ -1,16 +1,38 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Workflow;
 
 /// <summary>
-/// 解决方案管理器
+/// 解决方案管理器（重构版本）
 /// </summary>
 /// <remarks>
-/// 统一管理解决方案的加载、保存、创建、删除等操作。
+/// 职责：高层协调，整合所有组件
+///
+/// 特性：
+/// - 组合所有组件（Registry、Cache、Repository、Settings）
+/// - 提供统一的高层API
+/// - 触发事件通知UI层
+/// - 管理当前解决方案
+/// - 懒加载优化（通过元数据缓存）
+///
+/// 架构原则（rule-004）：
+/// - 职责清晰：仅负责高层协调
+/// - 单一职责：不直接操作文件系统（委托给Repository）
+/// - 依赖注入：通过构造函数注入依赖
+/// - 事件驱动：通过事件通知UI层
+///
+/// 设计原则（rule-002）：
+/// - 命名符合视觉软件行业标准
+/// - 方法使用 PascalCase，动词开头
+///
+/// 日志规范（rule-003）：
+/// - 使用 VisionLogger 记录日志
+/// - 使用适当的日志级别（Info/Success/Warning/Error）
 /// </remarks>
 public class SolutionManager
 {
@@ -18,10 +40,15 @@ public class SolutionManager
     private readonly string _configFilePath;
     private readonly ILogger _logger;
 
+    private readonly SolutionRegistry _registry;
+    private readonly SolutionCache _cache;
+    private readonly SolutionRepository _repository;
+    private readonly SolutionSettings _settings;
+
     /// <summary>
     /// 当前解决方案
     /// </summary>
-    public SolutionFile? CurrentSolution { get; private set; }
+    public Solution? CurrentSolution { get; private set; }
 
     /// <summary>
     /// 当前文件路径
@@ -29,29 +56,34 @@ public class SolutionManager
     public string? CurrentFilePath { get; private set; }
 
     /// <summary>
-    /// 运行时配置
+    /// 解决方案目录
     /// </summary>
-    public RuntimeConfig RuntimeConfig { get; }
+    public string SolutionsDirectory => _solutionsDirectory;
 
     /// <summary>
-    /// 最近打开的解决方案列表
+    /// 用户设置
     /// </summary>
-    public List<RecentSolutionInfo> RecentSolutions { get; }
+    public SolutionSettings Settings => _settings;
 
     /// <summary>
     /// 解决方案打开事件
     /// </summary>
-    public event EventHandler<SolutionFile>? SolutionOpened;
+    public event EventHandler<Solution>? SolutionOpened;
 
     /// <summary>
     /// 解决方案保存事件
     /// </summary>
-    public event EventHandler<SolutionFile>? SolutionSaved;
+    public event EventHandler<Solution>? SolutionSaved;
 
     /// <summary>
     /// 解决方案关闭事件
     /// </summary>
     public event EventHandler? SolutionClosed;
+
+    /// <summary>
+    /// 元数据变更事件
+    /// </summary>
+    public event EventHandler? MetadataChanged;
 
     /// <summary>
     /// 工作流添加事件
@@ -64,144 +96,362 @@ public class SolutionManager
     public event EventHandler<Workflow>? WorkflowRemoved;
 
     /// <summary>
-    /// 配方添加事件
+    /// 全局变量添加事件
     /// </summary>
-    public event EventHandler<Recipe>? RecipeAdded;
+    public event EventHandler<GlobalVariable>? GlobalVariableAdded;
 
     /// <summary>
-    /// 配方移除事件
+    /// 设备添加事件
     /// </summary>
-    public event EventHandler<Recipe>? RecipeRemoved;
+    public event EventHandler<Device>? DeviceAdded;
 
     /// <summary>
-    /// 设备绑定切换事件
+    /// 通讯添加事件
     /// </summary>
-    public event EventHandler<DeviceBinding>? BindingSwitched;
+    public event EventHandler<Communication>? CommunicationAdded;
 
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="solutionsDirectory">解决方案目录</param>
     public SolutionManager(string solutionsDirectory)
     {
         _solutionsDirectory = solutionsDirectory;
-        _configFilePath = Path.Combine(solutionsDirectory, "solution_config.json");
+        _configFilePath = Path.Combine(solutionsDirectory, "solution_settings.json");
         _logger = VisionLogger.Instance;
-        RuntimeConfig = new RuntimeConfig();
-        RecentSolutions = new List<RecentSolutionInfo>();
 
+        // 初始化组件
+        _registry = new SolutionRegistry();
+        _cache = new SolutionCache(maxSize: 100, expirationTime: TimeSpan.FromMinutes(30));
+        _repository = new SolutionRepository();
+        _settings = new SolutionSettings();
+
+        // 创建目录
         Directory.CreateDirectory(solutionsDirectory);
-        LoadConfig();
+
+        _logger.Log(LogLevel.Info, $"解决方案管理器初始化: 目录={_solutionsDirectory}, 配置文件={_configFilePath}", "SolutionManager");
+
+        // 加载设置
+        LoadSettings();
+
+        // 自动加载最近解决方案
+        AutoLoadRecentSolution();
+    }
+
+    /// <summary>
+    /// 自动加载最近解决方案
+    /// </summary>
+    private void AutoLoadRecentSolution()
+    {
+        _logger.Log(LogLevel.Info, $"开始自动加载最近解决方案, 当前SolutionId: {_settings.CurrentSolutionId}", "SolutionManager");
+
+        if (string.IsNullOrEmpty(_settings.CurrentSolutionId))
+        {
+            _logger.Log(LogLevel.Info, "当前SolutionId为空，跳过自动加载", "SolutionManager");
+            return;
+        }
+
+        var metadata = _settings.GetRecentSolution(_settings.CurrentSolutionId);
+        if (metadata == null)
+        {
+            _logger.Log(LogLevel.Warning, $"未找到SolutionId对应的最近使用记录: {_settings.CurrentSolutionId}", "SolutionManager");
+            return;
+        }
+
+        _logger.Log(LogLevel.Info, $"找到最近使用记录: Name={metadata.Name}, FilePath={metadata.FilePath}", "SolutionManager");
+
+        if (!string.IsNullOrEmpty(metadata.FilePath) && _repository.Exists(metadata.FilePath))
+        {
+            _logger.Log(LogLevel.Info, $"解决方案文件存在，开始加载: {metadata.FilePath}", "SolutionManager");
+            var solution = OpenSolution(metadata.FilePath);
+            if (solution != null)
+            {
+                _logger.Log(LogLevel.Success, $"自动加载最近解决方案成功: {solution.Name}", "SolutionManager");
+            }
+            else
+            {
+                _logger.Log(LogLevel.Error, $"加载解决方案失败: {metadata.FilePath}", "SolutionManager");
+            }
+        }
+        else
+        {
+            _logger.Log(LogLevel.Warning, $"解决方案文件不存在: FilePath={metadata.FilePath}", "SolutionManager");
+        }
     }
 
     /// <summary>
     /// 创建新解决方案
     /// </summary>
-    public SolutionFile CreateNewSolution(string name, string description = "")
+    /// <param name="name">解决方案名称</param>
+    /// <param name="description">描述</param>
+    /// <param name="solutionPath">保存路径（可选）</param>
+    /// <returns>创建的解决方案对象</returns>
+    public Solution CreateNewSolution(string name, string description = "", string? solutionPath = null)
     {
         CloseSolution();
 
-        CurrentSolution = SolutionFile.CreateNew(name);
+        CurrentSolution = Solution.CreateNew(name);
         CurrentSolution.Description = description;
 
-        // 添加默认工作流和配方
-        var defaultWorkflow = CurrentSolution.AddWorkflow("默认工作流", "默认检测流程");
-        var defaultRecipe = CurrentSolution.AddRecipe("默认配方", defaultWorkflow.Id, "默认产品配置");
+        // 添加默认工作流
+        var defaultWorkflow = CurrentSolution.AddWorkflow("默认工作流");
 
-        CurrentFilePath = null;
+        // 创建元数据
+        var metadata = SolutionMetadata.FromSolution(CurrentSolution);
+
+        if (!string.IsNullOrEmpty(solutionPath))
+        {
+            // 构建完整文件路径
+            var filePath = Path.Combine(solutionPath, $"{name}.solution");
+            CurrentFilePath = filePath;
+            CurrentSolution.FilePath = filePath;
+            metadata.FilePath = filePath;
+            metadata.DirectoryPath = solutionPath;
+
+            // 注册元数据
+            _registry.Register(metadata);
+            _cache.Set(metadata.Id, metadata);
+        }
+        else
+        {
+            CurrentFilePath = null;
+        }
+
+        // 添加到最近使用
+        _settings.AddRecentSolution(metadata);
+        _settings.CurrentSolutionId = metadata.Id;
+        SaveSettings();
 
         _logger.Log(LogLevel.Success, $"创建新解决方案: {name}", "SolutionManager");
         return CurrentSolution;
     }
 
     /// <summary>
-    /// 打开解决方案
+    /// 打开解决方案（懒加载）
     /// </summary>
-    public SolutionFile? OpenSolution(string filePath)
+    /// <param name="filePath">解决方案文件路径</param>
+    /// <returns>解决方案对象，失败返回 null</returns>
+    public Solution? OpenSolution(string filePath)
     {
-        if (!File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath))
         {
-            _logger.Log(LogLevel.Error, $"解决方案文件不存在: {filePath}", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "打开解决方案失败：文件路径为空", "SolutionManager");
             return null;
         }
 
-        var solution = SolutionFile.Load(filePath);
-        if (solution == null)
+        // 检查文件是否存在
+        if (!_repository.Exists(filePath))
         {
-            _logger.Log(LogLevel.Error, $"加载解决方案失败: {filePath}", "SolutionManager");
+            _logger.Log(LogLevel.Error, $"打开解决方案失败：文件不存在: {filePath}", "SolutionManager");
             return null;
         }
 
         CloseSolution();
+
+        // 加载解决方案
+        var solution = _repository.Load(filePath);
+        if (solution == null)
+        {
+            _logger.Log(LogLevel.Error, $"打开解决方案失败：加载失败: {filePath}", "SolutionManager");
+            return null;
+        }
+
         CurrentSolution = solution;
         CurrentFilePath = filePath;
 
-        AddToRecent(filePath, solution.Name);
+        // 创建或更新元数据
+        var metadata = SolutionMetadata.FromSolution(solution);
+        metadata.FilePath = filePath;
+        metadata.DirectoryPath = Path.GetDirectoryName(filePath) ?? "";
 
+        // 注册元数据
+        _registry.Register(metadata);
+        _cache.Set(metadata.Id, metadata);
+
+        // 添加到最近使用
+        _settings.AddRecentSolution(metadata);
+        _settings.CurrentSolutionId = metadata.Id;
+        SaveSettings();
+
+        // 触发事件
         SolutionOpened?.Invoke(this, solution);
-        _logger.Log(LogLevel.Success, $"打开解决方案: {solution.Name}", "SolutionManager");
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+        _logger.Log(LogLevel.Success, $"打开解决方案: {solution.Name} -> {filePath}", "SolutionManager");
         return CurrentSolution;
     }
 
     /// <summary>
-    /// 保存解决方案
+    /// 从路径加载解决方案（别名方法）
     /// </summary>
+    /// <param name="filePath">解决方案文件路径</param>
+    /// <returns>解决方案对象，失败返回 null</returns>
+    public Solution? LoadSolutionFromPath(string filePath)
+    {
+        return OpenSolution(filePath);
+    }
+
+    /// <summary>
+    /// 仅加载解决方案对象（不设置为当前解决方案）
+    /// </summary>
+    /// <param name="filePath">解决方案文件路径</param>
+    /// <returns>解决方案对象，失败返回 null</returns>
+    public Solution? LoadSolutionOnly(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath))
+        {
+            _logger.Log(LogLevel.Warning, "仅加载解决方案失败：文件路径为空", "SolutionManager");
+            return null;
+        }
+
+        return _repository.Load(filePath);
+    }
+
+    /// <summary>
+    /// 保存当前解决方案
+    /// </summary>
+    /// <param name="filePath">文件路径（可选，默认使用当前路径）</param>
+    /// <returns>是否成功</returns>
     public bool SaveSolution(string? filePath = null)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有可保存的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "保存解决方案失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
         var savePath = filePath ?? CurrentFilePath;
         if (string.IsNullOrEmpty(savePath))
         {
-            _logger.Log(LogLevel.Warning, "未指定保存路径", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "保存解决方案失败：未指定保存路径", "SolutionManager");
             return false;
         }
 
-        try
+        // 保存文件
+        bool success = _repository.Save(CurrentSolution, savePath);
+        if (!success)
         {
-            CurrentSolution.Save(savePath);
-            CurrentFilePath = savePath;
-            AddToRecent(savePath, CurrentSolution.Name);
-            SolutionSaved?.Invoke(this, CurrentSolution);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.Log(LogLevel.Error, $"保存解决方案失败: {ex.Message}", "SolutionManager", ex);
             return false;
         }
+
+        CurrentFilePath = savePath;
+
+        // 更新元数据
+        var metadata = SolutionMetadata.FromSolution(CurrentSolution);
+        metadata.FilePath = savePath;
+        metadata.DirectoryPath = Path.GetDirectoryName(savePath) ?? "";
+
+        _registry.Register(metadata);
+        _cache.Set(metadata.Id, metadata);
+        _settings.AddRecentSolution(metadata);
+
+        SaveSettings();
+
+        // 触发事件
+        SolutionSaved?.Invoke(this, CurrentSolution);
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+        _logger.Log(LogLevel.Success, $"保存解决方案成功: {CurrentSolution.Name} -> {savePath}", "SolutionManager");
+        return true;
     }
 
     /// <summary>
     /// 另存为解决方案
     /// </summary>
+    /// <param name="filePath">目标文件路径</param>
+    /// <returns>是否成功</returns>
     public bool SaveAsSolution(string filePath)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有可保存的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "另存为解决方案失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
         if (string.IsNullOrEmpty(filePath))
         {
-            _logger.Log(LogLevel.Warning, "未指定保存路径", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "另存为解决方案失败：未指定保存路径", "SolutionManager");
             return false;
         }
 
-        try
+        // 保存到新路径
+        bool success = _repository.Save(CurrentSolution, filePath);
+        if (!success)
         {
-            CurrentSolution.Save(filePath);
-            CurrentFilePath = filePath;
-            AddToRecent(filePath, CurrentSolution.Name);
-            SolutionSaved?.Invoke(this, CurrentSolution);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.Log(LogLevel.Error, $"另存为解决方案失败: {ex.Message}", "SolutionManager", ex);
             return false;
         }
+
+        CurrentFilePath = filePath;
+
+        // 创建新元数据
+        var newMetadata = SolutionMetadata.FromSolution(CurrentSolution);
+        newMetadata.FilePath = filePath;
+        newMetadata.DirectoryPath = Path.GetDirectoryName(filePath) ?? "";
+
+        // 注册新元数据
+        _registry.Register(newMetadata);
+        _cache.Set(newMetadata.Id, newMetadata);
+        _settings.AddRecentSolution(newMetadata);
+        _settings.CurrentSolutionId = newMetadata.Id;
+
+        SaveSettings();
+
+        // 触发事件
+        SolutionSaved?.Invoke(this, CurrentSolution);
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+        _logger.Log(LogLevel.Success, $"另存为解决方案成功: {CurrentSolution.Name} -> {filePath}", "SolutionManager");
+        return true;
+    }
+
+    /// <summary>
+    /// 另存为解决方案（带新名称和描述）
+    /// </summary>
+    /// <param name="solutionId">解决方案ID</param>
+    /// <param name="newName">新名称</param>
+    /// <param name="newDescription">新描述</param>
+    /// <param name="newPath">新路径</param>
+    /// <returns>新解决方案对象，失败返回 null</returns>
+    public Solution? SaveSolutionAs(string solutionId, string newName, string newDescription, string newPath)
+    {
+        if (CurrentSolution?.Id != solutionId)
+        {
+            _logger.Log(LogLevel.Warning, "另存为解决方案失败：只能另存为当前解决方案", "SolutionManager");
+            return null;
+        }
+
+        // 创建副本
+        var newSolution = CurrentSolution.Clone();
+        newSolution.Id = Guid.NewGuid().ToString();
+        newSolution.Name = newName;
+        newSolution.Description = newDescription;
+        newSolution.FilePath = newPath;
+
+        // 保存到新路径
+        bool success = _repository.Save(newSolution, newPath);
+        if (!success)
+        {
+            return null;
+        }
+
+        // 创建新元数据
+        var newMetadata = SolutionMetadata.FromSolution(newSolution);
+        newMetadata.FilePath = newPath;
+        newMetadata.DirectoryPath = Path.GetDirectoryName(newPath) ?? "";
+
+        // 注册新元数据
+        _registry.Register(newMetadata);
+        _cache.Set(newMetadata.Id, newMetadata);
+        _settings.AddRecentSolution(newMetadata);
+        _settings.CurrentSolutionId = newMetadata.Id;
+
+        SaveSettings();
+
+        // 触发事件
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+        _logger.Log(LogLevel.Success, $"另存为解决方案成功: {newName} -> {newPath}", "SolutionManager");
+        return newSolution;
     }
 
     /// <summary>
@@ -216,316 +466,408 @@ public class SolutionManager
 
         CurrentSolution = null;
         CurrentFilePath = null;
+
         SolutionClosed?.Invoke(this, EventArgs.Empty);
         _logger.Log(LogLevel.Info, "关闭解决方案", "SolutionManager");
     }
 
     /// <summary>
-    /// 添加工作流
+    /// 删除解决方案
+    /// </summary>
+    /// <param name="solutionId">解决方案ID</param>
+    public void DeleteSolution(string solutionId)
+    {
+        if (string.IsNullOrEmpty(solutionId))
+        {
+            _logger.Log(LogLevel.Warning, "删除解决方案失败：解决方案ID为空", "SolutionManager");
+            return;
+        }
+
+        // 如果是当前解决方案，先关闭
+        if (CurrentSolution?.Id == solutionId)
+        {
+            CloseSolution();
+        }
+
+        // 获取元数据
+        var metadata = _registry.Get(solutionId);
+        if (metadata == null)
+        {
+            _logger.Log(LogLevel.Warning, $"删除解决方案失败：元数据不存在: {solutionId}", "SolutionManager");
+            return;
+        }
+
+        // 删除文件
+        if (!string.IsNullOrEmpty(metadata.FilePath) && _repository.Exists(metadata.FilePath))
+        {
+            _repository.Delete(metadata.FilePath);
+        }
+
+        // 从注册表移除
+        _registry.Unregister(solutionId);
+
+        // 从缓存移除
+        _cache.Invalidate(solutionId);
+
+        // 从最近使用移除
+        _settings.RemoveRecentSolution(solutionId);
+
+        SaveSettings();
+
+        // 触发事件
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+        _logger.Log(LogLevel.Success, $"删除解决方案: {metadata.Name} (Id={solutionId})", "SolutionManager");
+    }
+
+    /// <summary>
+    /// 获取元数据（优先从缓存）
+    /// </summary>
+    /// <param name="solutionId">解决方案ID</param>
+    /// <returns>元数据对象，不存在返回 null</returns>
+    public SolutionMetadata? GetMetadata(string solutionId)
+    {
+        if (string.IsNullOrEmpty(solutionId))
+            return null;
+
+        // 先从缓存获取
+        var metadata = _cache.Get(solutionId);
+        if (metadata != null)
+            return metadata;
+
+        // 从注册表获取
+        metadata = _registry.Get(solutionId);
+        if (metadata != null)
+        {
+            // 加入缓存
+            _cache.Set(solutionId, metadata);
+            return metadata;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取所有元数据
+    /// </summary>
+    /// <returns>元数据列表</returns>
+    public List<SolutionMetadata> GetAllMetadata()
+    {
+        return _registry.GetAll();
+    }
+
+    /// <summary>
+    /// 获取最近使用的解决方案列表
+    /// </summary>
+    /// <returns>元数据列表</returns>
+    public List<SolutionMetadata> GetRecentSolutions()
+    {
+        return _settings.GetRecentSolutionsCopy();
+    }
+
+    /// <summary>
+    /// 刷新元数据（扫描文件系统）
+    /// </summary>
+    public void RefreshMetadata()
+    {
+        _logger.Log(LogLevel.Info, "开始刷新元数据：扫描目录", "SolutionManager");
+
+        // 扫描目录
+        var metadataList = _repository.ScanDirectory(_solutionsDirectory);
+
+        // 注册元数据
+        int registeredCount = _registry.RegisterBatch(metadataList);
+
+        // 加入缓存
+        foreach (var metadata in metadataList)
+        {
+            _cache.Set(metadata.Id, metadata);
+        }
+
+        _logger.Log(LogLevel.Success, $"刷新元数据完成: 扫描到 {metadataList.Count} 个解决方案, 注册了 {registeredCount} 个", "SolutionManager");
+
+        // 触发事件
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// 扫描指定目录并注册元数据
+    /// </summary>
+    /// <param name="directoryPath">目录路径</param>
+    public void ScanDirectory(string directoryPath)
+    {
+        _logger.Log(LogLevel.Info, $"开始扫描目录: {directoryPath}", "SolutionManager");
+
+        // 扫描目录
+        var metadataList = _repository.ScanDirectory(directoryPath);
+
+        // 注册元数据
+        int registeredCount = _registry.RegisterBatch(metadataList);
+
+        // 加入缓存
+        foreach (var metadata in metadataList)
+        {
+            _cache.Set(metadata.Id, metadata);
+        }
+
+        _logger.Log(LogLevel.Success, $"扫描目录完成: 扫描到 {metadataList.Count} 个解决方案, 注册了 {registeredCount} 个", "SolutionManager");
+
+        // 触发事件
+        MetadataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// 批量加载元数据
+    /// </summary>
+    /// <param name="filePaths">文件路径列表</param>
+    /// <returns>元数据列表</returns>
+    public List<SolutionMetadata> LoadMetadataBatch(System.Collections.Generic.IEnumerable<string> filePaths)
+    {
+        _logger.Log(LogLevel.Info, $"开始批量加载元数据: 数量={filePaths.Count()}", "SolutionManager");
+
+        // 加载元数据
+        var metadataList = _repository.LoadMetadataBatch(filePaths);
+
+        // 注册元数据
+        int registeredCount = _registry.RegisterBatch(metadataList);
+
+        // 加入缓存
+        foreach (var metadata in metadataList)
+        {
+            _cache.Set(metadata.Id, metadata);
+        }
+
+        _logger.Log(LogLevel.Success, $"批量加载元数据完成: 加载 {metadataList.Count} 个, 注册 {registeredCount} 个", "SolutionManager");
+
+        return metadataList;
+    }
+
+    /// <summary>
+    /// 添加到最近使用
+    /// </summary>
+    /// <param name="solutionId">解决方案ID</param>
+    public void AddToRecent(string solutionId)
+    {
+        if (string.IsNullOrEmpty(solutionId))
+            return;
+
+        var metadata = GetMetadata(solutionId);
+        if (metadata != null)
+        {
+            _settings.AddRecentSolution(metadata);
+            SaveSettings();
+        }
+    }
+
+    /// <summary>
+    /// 工作流管理
     /// </summary>
     public Workflow? AddWorkflow(string name, string description = "")
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "添加工作流失败：没有当前解决方案", "SolutionManager");
             return null;
         }
 
-        var workflow = CurrentSolution.AddWorkflow(name, description);
+        var workflow = CurrentSolution.AddWorkflow(name);
         WorkflowAdded?.Invoke(this, workflow);
         return workflow;
     }
 
-    /// <summary>
-    /// 移除工作流
-    /// </summary>
     public bool RemoveWorkflow(string workflowId)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "移除工作流失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
         var workflow = CurrentSolution.GetWorkflow(workflowId);
         if (workflow == null)
         {
-            _logger.Log(LogLevel.Warning, $"工作流不存在: {workflowId}", "SolutionManager");
+            _logger.Log(LogLevel.Warning, $"移除工作流失败：工作流不存在: {workflowId}", "SolutionManager");
             return false;
         }
 
-        if (CurrentSolution.RemoveWorkflow(workflowId))
+        bool removed = CurrentSolution.RemoveWorkflow(workflowId);
+        if (removed)
         {
             WorkflowRemoved?.Invoke(this, workflow);
-            return true;
         }
-
-        return false;
+        return removed;
     }
 
     /// <summary>
-    /// 添加配方
+    /// 全局变量管理
     /// </summary>
-    public Recipe? AddRecipe(string name, string workflowRef, string description = "")
+    public GlobalVariable? AddGlobalVariable(string name, object? value, string type = "String")
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "添加全局变量失败：没有当前解决方案", "SolutionManager");
             return null;
         }
 
-        var recipe = CurrentSolution.AddRecipe(name, workflowRef, description);
-        RecipeAdded?.Invoke(this, recipe);
-        return recipe;
+        var globalVariable = CurrentSolution.AddGlobalVariable(name, value, type);
+        GlobalVariableAdded?.Invoke(this, globalVariable);
+        return globalVariable;
     }
 
-    /// <summary>
-    /// 移除配方
-    /// </summary>
-    public bool RemoveRecipe(string recipeId)
+    public bool RemoveGlobalVariable(string name)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "移除全局变量失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
-        var recipe = CurrentSolution.GetRecipe(recipeId);
-        if (recipe == null)
-        {
-            _logger.Log(LogLevel.Warning, $"配方不存在: {recipeId}", "SolutionManager");
-            return false;
-        }
-
-        if (CurrentSolution.RemoveRecipe(recipeId))
-        {
-            RecipeRemoved?.Invoke(this, recipe);
-            return true;
-        }
-
-        return false;
+        return CurrentSolution.RemoveGlobalVariable(name);
     }
 
     /// <summary>
-    /// 添加设备绑定
+    /// 设备管理
     /// </summary>
-    public DeviceBinding? AddBinding(string deviceName, string workflowRef, string recipeRef, string recipeGroupName = "default")
+    public Device? AddDevice(string name, DeviceType type)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "添加设备失败：没有当前解决方案", "SolutionManager");
             return null;
         }
 
-        var binding = CurrentSolution.AddBinding(deviceName, workflowRef, recipeRef, recipeGroupName);
-        return binding;
+        var device = CurrentSolution.AddDevice(name, type);
+        DeviceAdded?.Invoke(this, device);
+        return device;
     }
 
-    /// <summary>
-    /// 移除设备绑定
-    /// </summary>
-    public bool RemoveBinding(string deviceId)
+    public bool RemoveDevice(string deviceId)
     {
         if (CurrentSolution == null)
         {
-            _logger.Log(LogLevel.Warning, "没有打开的解决方案", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "移除设备失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
-        return CurrentSolution.RemoveBinding(deviceId);
+        return CurrentSolution.RemoveDevice(deviceId);
     }
 
     /// <summary>
-    /// 切换设备配置
+    /// 通讯配置管理
     /// </summary>
-    public bool SwitchDeviceBinding(string deviceId, string recipeGroupName = "default")
+    public Communication? AddCommunication(string name, CommunicationType type)
     {
         if (CurrentSolution == null)
-            return false;
-
-        var binding = CurrentSolution.GetBinding(deviceId);
-        if (binding == null)
         {
-            _logger.Log(LogLevel.Warning, $"设备绑定不存在: {deviceId}", "SolutionManager");
+            _logger.Log(LogLevel.Warning, "添加通讯配置失败：没有当前解决方案", "SolutionManager");
+            return null;
+        }
+
+        var communication = CurrentSolution.AddCommunication(name, type);
+        CommunicationAdded?.Invoke(this, communication);
+        return communication;
+    }
+
+    public bool RemoveCommunication(string communicationId)
+    {
+        if (CurrentSolution == null)
+        {
+            _logger.Log(LogLevel.Warning, "移除通讯配置失败：没有当前解决方案", "SolutionManager");
             return false;
         }
 
-        binding.RecipeGroupName = recipeGroupName;
-        binding.LastSwitchTime = DateTime.Now;
-        RuntimeConfig.CurrentRecipe = recipeGroupName;
-
-        BindingSwitched?.Invoke(this, binding);
-        _logger.Log(LogLevel.Info, $"切换设备配置: {deviceId} -> {recipeGroupName}", "SolutionManager");
-        return true;
+        return CurrentSolution.RemoveCommunication(communicationId);
     }
 
     /// <summary>
-    /// 获取当前运行时上下文
+    /// 设置当前解决方案
     /// </summary>
-    public RunContext? GetCurrentRunContext()
+    public void SetCurrentSolution(Solution solution)
     {
-        if (CurrentSolution == null || string.IsNullOrEmpty(CurrentSolution.CurrentDeviceId))
-            return null;
+        if (solution == null)
+            throw new ArgumentNullException(nameof(solution));
 
-        var binding = CurrentSolution.GetCurrentBinding();
-        if (binding == null)
-            return null;
-
-        var workflow = CurrentSolution.GetCurrentWorkflow();
-        var recipe = CurrentSolution.GetCurrentRecipe();
-
-        if (workflow == null || recipe == null)
-            return null;
-
-        // 创建运行时上下文
-        var recipeGroup = recipe.GetCurrentRecipeGroup(binding.RecipeGroupName);
-        if (recipeGroup == null)
-            return null;
-
-        return new RunContext
+        // 如果有文件路径，从文件重新加载
+        if (!string.IsNullOrEmpty(solution.FilePath) && _repository.Exists(solution.FilePath))
         {
-            Workflow = workflow,
-            Recipe = recipe,
-            RecipeGroup = recipeGroup
-        };
-    }
-
-    /// <summary>
-    /// 添加到最近打开列表
-    /// </summary>
-    private void AddToRecent(string filePath, string name)
-    {
-        // 移除已存在的记录
-        RecentSolutions.RemoveAll(r => r.FilePath == filePath);
-
-        // 添加到开头
-        RecentSolutions.Insert(0, new RecentSolutionInfo
-        {
-            FilePath = filePath,
-            Name = name,
-            LastOpened = DateTime.Now
-        });
-
-        // 限制数量
-        while (RecentSolutions.Count > 10)
-        {
-            RecentSolutions.RemoveAt(RecentSolutions.Count - 1);
-        }
-
-        SaveConfig();
-    }
-
-    /// <summary>
-    /// 从最近打开列表移除
-    /// </summary>
-    public void RemoveFromRecent(string filePath)
-    {
-        RecentSolutions.RemoveAll(r => r.FilePath == filePath);
-        SaveConfig();
-    }
-
-    /// <summary>
-    /// 加载配置
-    /// </summary>
-    private void LoadConfig()
-    {
-        if (!File.Exists(_configFilePath))
-            return;
-
-        try
-        {
-            var json = File.ReadAllText(_configFilePath);
-            var config = System.Text.Json.JsonSerializer.Deserialize<SolutionManagerConfig>(json);
-            if (config != null)
+            var reloadedSolution = _repository.Load(solution.FilePath);
+            if (reloadedSolution != null)
             {
-                RecentSolutions.Clear();
-                RecentSolutions.AddRange(config.RecentSolutions ?? new List<RecentSolutionInfo>());
-
-                if (!string.IsNullOrEmpty(config.CurrentDeviceId))
-                {
-                    RuntimeConfig.CurrentDevice = config.CurrentDeviceId;
-                }
-
-                if (!string.IsNullOrEmpty(config.CurrentRecipe))
-                {
-                    RuntimeConfig.CurrentRecipe = config.CurrentRecipe;
-                }
+                CurrentSolution = reloadedSolution;
+                CurrentFilePath = solution.FilePath;
+            }
+            else
+            {
+                CurrentSolution = solution;
             }
         }
-        catch (Exception ex)
+        else
         {
-            _logger.Log(LogLevel.Error, $"加载配置失败: {ex.Message}", "SolutionManager", ex);
+            CurrentSolution = solution;
         }
+
+        // 更新设置
+        _settings.CurrentSolutionId = solution.Id;
+        SaveSettings();
+
+        // 触发事件
+        SolutionOpened?.Invoke(this, CurrentSolution);
+
+        _logger.Log(LogLevel.Info, $"设置当前解决方案: {CurrentSolution.Name}", "SolutionManager");
     }
 
     /// <summary>
-    /// 保存配置
+    /// 加载设置
     /// </summary>
-    private void SaveConfig()
+    private void LoadSettings()
     {
-        try
-        {
-            var config = new SolutionManagerConfig
-            {
-                RecentSolutions = RecentSolutions,
-                CurrentDeviceId = RuntimeConfig.CurrentDevice,
-                CurrentRecipe = RuntimeConfig.CurrentRecipe
-            };
+        _logger.Log(LogLevel.Info, $"开始加载设置文件: {_configFilePath}", "SolutionManager");
 
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-            };
+        _settings.Load(_configFilePath);
 
-            var json = System.Text.Json.JsonSerializer.Serialize(config, options);
-            File.WriteAllText(_configFilePath, json);
-        }
-        catch (Exception ex)
-        {
-            _logger.Log(LogLevel.Error, $"保存配置失败: {ex.Message}", "SolutionManager", ex);
-        }
+        _logger.Log(LogLevel.Success, $"设置加载完成: {_settings.GetStatistics()}", "SolutionManager");
     }
-}
-
-/// <summary>
-/// 最近打开的解决方案信息
-/// </summary>
-public class RecentSolutionInfo
-{
-    /// <summary>
-    /// 文件路径
-    /// </summary>
-    public string FilePath { get; set; } = "";
 
     /// <summary>
-    /// 解决方案名称
+    /// 保存设置
     /// </summary>
-    public string Name { get; set; } = "";
+    private void SaveSettings()
+    {
+        _logger.Log(LogLevel.Info, $"开始保存设置文件: {_configFilePath}", "SolutionManager");
+
+        _settings.Save(_configFilePath);
+
+        _logger.Log(LogLevel.Success, "设置保存完成", "SolutionManager");
+    }
 
     /// <summary>
-    /// 最后打开时间
+    /// 获取统计信息
     /// </summary>
-    public DateTime LastOpened { get; set; } = DateTime.Now;
-}
+    /// <returns>统计信息字符串</returns>
+    public string GetStatistics()
+    {
+        return $"解决方案管理器统计:\n" +
+               $"  - 注册表数量: {_registry.Count}\n" +
+               $"  - 缓存数量: {_cache.Count}, 命中率: {_cache.HitRate:P2}\n" +
+               $"  - 当前解决方案: {CurrentSolution?.Name ?? "无"}\n" +
+               $"  - 设置统计: {_settings.GetStatistics()}";
+    }
 
-/// <summary>
-/// 解决方案管理器配置
-/// </summary>
-internal class SolutionManagerConfig
-{
-    /// <summary>
-    /// 最近打开的解决方案列表
-    /// </summary>
-    public List<RecentSolutionInfo>? RecentSolutions { get; set; }
-
-    /// <summary>
-    /// 当前设备ID
-    /// </summary>
-    public string? CurrentDeviceId { get; set; }
+    // ========== 向后兼容的遗留方法 ==========
 
     /// <summary>
-    /// 当前配方组名称
+    /// 创建新解决方案（别名方法）
     /// </summary>
-    public string? CurrentRecipe { get; set; }
+    [System.Obsolete("请使用 CreateNewSolution 方法")]
+    public Solution CreateSolution(string name, string description = "", string? solutionPath = null)
+    {
+        return CreateNewSolution(name, description, solutionPath);
+    }
+
+    /// <summary>
+    /// 获取配置文件路径（向后兼容）
+    /// </summary>
+    [System.Obsolete("配置文件已迁移到 SolutionSettings")]
+    public string ConfigFilePath => _configFilePath;
+
 }

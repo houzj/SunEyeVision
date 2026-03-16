@@ -44,8 +44,7 @@
             <MenuItem Header="文件(_F)">
                 <MenuItem Header="解决方案配置(_C)" Command="{Binding ShowSolutionConfigurationCommand}" InputGestureText="Ctrl+Alt+S"/>
                 <Separator/>
-                <MenuItem Header="保存当前配方(_S)" Command="{Binding SaveCurrentRecipeCommand}" InputGestureText="Ctrl+S"/>
-                <MenuItem Header="另存为(_A)" Command="{Binding SaveRecipeAsCommand}" InputGestureText="Ctrl+Shift+S"/>
+                <MenuItem Header="保存当前解决方案(_S)" Command="{Binding SaveCurrentSolutionCommand}" InputGestureText="Ctrl+S"/>
                 <Separator/>
                 <MenuItem Header="导入(_I)" InputGestureText="Ctrl+I"/>
                 <MenuItem Header="导出(_E)" InputGestureText="Ctrl+E"/>
@@ -120,7 +119,7 @@
                     <TextBlock Text="解决方案" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <Button ToolTip="保存当前配方 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveCurrentRecipeCommand}">
+            <Button ToolTip="保存当前解决方案 (Ctrl+S)" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Command="{Binding SaveCurrentSolutionCommand}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center"/>
                     <TextBlock Text="保存" Margin="5,0,0,0" VerticalAlignment="Center"/>

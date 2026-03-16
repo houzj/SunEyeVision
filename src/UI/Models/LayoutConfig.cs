@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.UI.Models
 {
@@ -57,11 +58,7 @@ namespace SunEyeVision.UI.Models
                     Directory.CreateDirectory(directory);
                 }
 
-                var json = JsonSerializer.Serialize(this, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
+                var json = JsonSerializer.Serialize(this, JsonSerializationOptions.Default);
                 File.WriteAllText(configPath, json);
                 return true;
             }
@@ -88,7 +85,7 @@ namespace SunEyeVision.UI.Models
                 }
 
                 var json = File.ReadAllText(configPath);
-                var config = JsonSerializer.Deserialize<LayoutConfig>(json);
+                var config = JsonSerializer.Deserialize<LayoutConfig>(json, JsonSerializationOptions.Default);
 
                 if (config == null)
                 {

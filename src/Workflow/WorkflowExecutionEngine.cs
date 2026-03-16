@@ -227,11 +227,11 @@ namespace SunEyeVision.Workflow
                 if (node != null && node.IsEnabled)
                 {
                     _logger.Info($"开始执行", node.Name);
-                    
+
                     // 准备数据源
                     var parentIds = workflow.Connections
-                        .Where(kvp => kvp.Value.Contains(node.Id))
-                        .Select(kvp => kvp.Key)
+                        .Where(conn => conn.TargetNode == node.Id)
+                        .Select(conn => conn.SourceNode)
                         .ToList();
                     PrepareNodeExecution(node.Id, parentIds);
                     
@@ -286,8 +286,8 @@ namespace SunEyeVision.Workflow
                 {
                     // 准备数据源
                     var parentIds = workflow.Connections
-                        .Where(kvp => kvp.Value.Contains(node.Id))
-                        .Select(kvp => kvp.Key)
+                        .Where(conn => conn.TargetNode == node.Id)
+                        .Select(conn => conn.SourceNode)
                         .ToList();
                     PrepareNodeExecution(node.Id, parentIds);
                     
@@ -357,15 +357,12 @@ namespace SunEyeVision.Workflow
             // 计算组内节点间的依赖关系
             foreach (var conn in workflow.Connections)
             {
-                if (nodeSet.Contains(conn.Key) && conn.Value != null)
+                if (nodeSet.Contains(conn.SourceNode) && !string.IsNullOrEmpty(conn.TargetNode))
                 {
-                    foreach (var targetId in conn.Value)
+                    if (nodeSet.Contains(conn.TargetNode))
                     {
-                        if (nodeSet.Contains(targetId))
-                        {
-                            dependencies[conn.Key].Add(targetId);
-                            inDegree[targetId]++;
-                        }
+                        dependencies[conn.SourceNode].Add(conn.TargetNode);
+                        inDegree[conn.TargetNode]++;
                     }
                 }
             }
@@ -482,8 +479,8 @@ namespace SunEyeVision.Workflow
         {
             // 查找所有父节点
             var parentIds = workflow.Connections
-                .Where(kvp => kvp.Value.Contains(node.Id))
-                .Select(kvp => kvp.Key)
+                .Where(conn => conn.TargetNode == node.Id)
+                .Select(conn => conn.SourceNode)
                 .ToList();
 
             if (parentIds.Count == 0)

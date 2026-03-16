@@ -33,6 +33,7 @@ namespace SunEyeVision.UI.Services.Logging
 
         private readonly CircularBufferLogCollection _logEntries;
         private readonly Dispatcher _dispatcher;
+        private readonly LogEventAggregator _eventAggregator;
         private bool _isDisposed;
 
         #endregion
@@ -95,8 +96,14 @@ namespace SunEyeVision.UI.Services.Logging
 
         public UILogWriter()
         {
-            _logEntries = new CircularBufferLogCollection(MaxDisplayLogs);
             _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            _logEntries = new CircularBufferLogCollection(MaxDisplayLogs, _dispatcher);
+
+            // 创建事件聚合器（100ms节流间隔）
+            _eventAggregator = new LogEventAggregator(_dispatcher, TimeSpan.FromMilliseconds(100));
+
+            // 订阅聚合器事件
+            _eventAggregator.LogsAggregated += OnLogsAggregated;
 
             // 订阅集合变更事件以更新统计
             _logEntries.CollectionChanged += OnLogEntriesCollectionChanged;
@@ -139,7 +146,17 @@ namespace SunEyeVision.UI.Services.Logging
                 return;
 
             _isDisposed = true;
+
+            // 取消订阅聚合器事件
+            _eventAggregator.LogsAggregated -= OnLogsAggregated;
+
+            // 清空聚合器
+            _eventAggregator.Clear();
+
+            // 取消订阅集合变更事件
             _logEntries.CollectionChanged -= OnLogEntriesCollectionChanged;
+
+            // 清空日志
             Clear();
         }
 
@@ -160,7 +177,7 @@ namespace SunEyeVision.UI.Services.Logging
             }
             else
             {
-                _dispatcher.Invoke(Clear);
+                _dispatcher.Invoke(() => Clear());
             }
         }
 
@@ -185,16 +202,26 @@ namespace SunEyeVision.UI.Services.Logging
         {
             if (_dispatcher.CheckAccess())
             {
-                // 使用循环缓冲区的批量添加 - O(1)操作
-                _logEntries.AddRange(entries);
-
-                // 触发事件
-                LogsAdded?.Invoke(this, new LogBatchEventArgs(entries));
+                // 使用聚合器代替直接添加和事件触发
+                // 聚合器会批量处理并延迟触发事件
+                _eventAggregator.EnqueueLogs(entries);
             }
             else
             {
                 _dispatcher.Invoke(() => AddToCollection(entries));
             }
+        }
+
+        /// <summary>
+        /// 聚合器日志批量处理事件
+        /// </summary>
+        private void OnLogsAggregated(object? sender, LogBatchEventArgs e)
+        {
+            // 批量添加到集合
+            _logEntries.AddRange(e.Logs);
+
+            // 触发外部订阅者
+            LogsAdded?.Invoke(this, e);
         }
 
         private void OnLogEntriesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

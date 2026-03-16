@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
 using SunEyeVision.Plugin.SDK.Logging;
@@ -108,6 +108,62 @@ namespace SunEyeVision.UI.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// 路径到文件名转换器
+    /// </summary>
+    public class PathToFileNameConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string path && !string.IsNullOrEmpty(path))
+            {
+                try
+                {
+                    return System.IO.Path.GetFileName(path);
+                }
+                catch
+                {
+                    return path;
+                }
+            }
+            return value ?? string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// 相等性转换器（用于 MultiBinding）
+    /// </summary>
+    public class EqualityConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            try
+            {
+                if (values == null || values.Length != 2)
+                    return false;
+                var value1 = values[0];
+                var value2 = values[1];
+                if (value1 == null || value2 == null)
+                    return false;
+                return Equals(value1, value2);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

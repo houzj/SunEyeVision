@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using SunEyeVision.UI.Views.Windows;
 using System.Runtime.InteropServices;
 using SunEyeVision.Workflow;
+using SunEyeVision.UI.Services;
+using SunEyeVision.UI.Services.Monitoring;
 
 namespace SunEyeVision.UI;
 
@@ -22,7 +24,11 @@ public partial class App : Application
     // RPC_S_SERVER_UNAVAILABLE = 0x000006BA = 1722
     private const int RPC_S_SERVER_UNAVAILABLE = 1722;
     private const int HRESULT_RPC_UNAVAILABLE = unchecked((int)0x800706BA);
-    
+
+    // 监控定时器
+    private DispatcherTimer? _monitorTimer;
+    private int _monitorReportInterval = 30; // 每30秒报告一次
+
     static App()
     {
         // 抑制 AIStudio.Wpf.DiagramDesigner 库内部的绑定警告
@@ -48,22 +54,30 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
+        // 注册文件关联（仅当前用户，无需管理员权限）
+        RegisterFileAssociation();
+
         // 初始化服务（包括节点显示适配器）
         ServiceInitializer.InitializeServices();
 
         // 使用默认路径
         var defaultPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "SunEyeVision", "Projects"
+            "SunEyeVision", "Solutions"
         );
 
-        // 初始化项目管理器
-        ServiceInitializer.InitializeProjectManager(defaultPath);
+        // 初始化解决方案管理器
+        ServiceInitializer.InitializeSolutionManager(defaultPath);
 
         // 初始化插件管理器
         var pluginManager = new PluginManager();
         string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         pluginManager.LoadPlugins(pluginsPath);
+
+        // 初始化DispatcherTimer监控
+        InitializeMonitoring();
+
+        Debug.WriteLine("[App] 监控系统已初始化");
 
         // 启动决策
         HandleStartupDecision();
@@ -74,8 +88,8 @@ public partial class App : Application
     /// </summary>
     private void HandleStartupDecision()
     {
-        var projectManager = ServiceInitializer.ProjectManager;
-        var startupDecisionService = new StartupDecisionService(projectManager);
+        var solutionManager = ServiceInitializer.SolutionManager;
+        var startupDecisionService = new StartupDecisionService(solutionManager);
         var decision = startupDecisionService.GetStartupDecision();
 
         var mainWindow = new MainWindow();
@@ -83,28 +97,41 @@ public partial class App : Application
         switch (decision)
         {
             case StartupDecision.LoadRecentAndStart:
-                // 自动加载最近项目并启动
-                var projectId = startupDecisionService.GetRecentProjectId();
-                var recipeName = startupDecisionService.GetRecentRecipeName();
+                // 自动加载最近解决方案并启动
+                var solutionId = startupDecisionService.GetRecentSolutionId();
 
-                if (!string.IsNullOrEmpty(projectId) && !string.IsNullOrEmpty(recipeName))
+                if (!string.IsNullOrEmpty(solutionId))
                 {
                     try
                     {
-                        projectManager.SetCurrentProject(projectId, recipeName);
-                        mainWindow.Show();
-                        // Debug.WriteLine($"[App] 自动加载项目: {projectId}, 配方: {recipeName}");
+                        // ✅ 改进：使用 SolutionSettings 获取最近解决方案
+                        var currentSolutionMetadata = solutionManager.Settings.GetRecentSolution(solutionId);
+                        if (currentSolutionMetadata != null &&
+                            !string.IsNullOrEmpty(currentSolutionMetadata.FilePath) &&
+                            File.Exists(currentSolutionMetadata.FilePath))
+                        {
+                            var solution = solutionManager.LoadSolutionFromPath(currentSolutionMetadata.FilePath);
+                            if (solution != null)
+                            {
+                                solutionManager.SetCurrentSolution(solution);
+                                solutionManager.Settings.CurrentSolutionId = solution.Id;  // ✅ 改进：使用 SolutionSettings
+                                mainWindow.Show();
+                                break;
+                            }
+                        }
+                        // 加载失败，显示配置界面
+                        ShowConfigurationDialog(mainWindow, solutionId);
                     }
                     catch (Exception ex)
                     {
                         // 加载失败，显示配置界面
-                        // Debug.WriteLine($"[App] 加载项目失败: {ex.Message}");
-                        ShowConfigurationDialog(mainWindow, projectId, recipeName);
+                        Debug.WriteLine($"[App] 加载解决方案失败: {ex.Message}");
+                        ShowConfigurationDialog(mainWindow, solutionId);
                     }
                 }
                 else
                 {
-                    // 无有效项目，显示配置界面
+                    // 无有效解决方案，显示配置界面
                     ShowConfigurationDialog(mainWindow);
                 }
                 break;
@@ -115,18 +142,15 @@ public partial class App : Application
                 break;
 
             case StartupDecision.ShowConfigurationWithEmptyState:
-            case StartupDecision.ShowConfigurationWithRecentProject:
+            case StartupDecision.ShowConfigurationWithRecentSolution:
             case StartupDecision.ShowConfiguration:
             default:
                 // 显示配置界面
-                var preselectProjectId = decision == StartupDecision.ShowConfigurationWithRecentProject
-                    ? startupDecisionService.GetRecentProjectId()
-                    : null;
-                var preselectRecipeName = decision == StartupDecision.ShowConfigurationWithRecentProject
-                    ? startupDecisionService.GetRecentRecipeName()
+                var preselectSolutionId = decision == StartupDecision.ShowConfigurationWithRecentSolution
+                    ? startupDecisionService.GetRecentSolutionId()
                     : null;
 
-                ShowConfigurationDialog(mainWindow, preselectProjectId, preselectRecipeName);
+                ShowConfigurationDialog(mainWindow, preselectSolutionId);
                 break;
         }
     }
@@ -134,30 +158,30 @@ public partial class App : Application
     /// <summary>
     /// 显示配置对话框
     /// </summary>
-    private void ShowConfigurationDialog(MainWindow mainWindow, string? preselectProjectId = null, string? preselectRecipeName = null)
+    private void ShowConfigurationDialog(MainWindow mainWindow, string? preselectSolutionId = null)
     {
-        var projectManager = ServiceInitializer.ProjectManager;
-        var configDialog = new ProjectConfigurationDialog(projectManager, preselectProjectId, preselectRecipeName);
+        var solutionManager = ServiceInitializer.SolutionManager;
+        var configDialog = new SolutionConfigurationDialog(solutionManager, preselectSolutionId);
 
         var result = configDialog.ShowDialog();
 
-        if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+        if (result == true && configDialog.IsLaunched && configDialog.LaunchResult != null)
         {
-            // 用户点击启动，加载项目和配方
-            var (project, recipe) = configDialog.LaunchResult.Value;
+            // 用户点击启动，加载解决方案
+            var solution = configDialog.LaunchResult;
 
-            if (project != null && recipe != null)
+            if (solution != null)
             {
                 try
                 {
-                    projectManager.SetCurrentProject(project.Id, recipe.Name);
+                    solutionManager.SetCurrentSolution(solution);
                     mainWindow.Show();
-                    // Debug.WriteLine($"[App] 加载项目: {project.Name}, 配方: {recipe.Name}");
+                    // Debug.WriteLine($"[App] 加载解决方案: {solution.Name}");
                 }
                 catch (Exception ex)
                 {
-                    // Debug.WriteLine($"[App] 加载项目失败: {ex.Message}");
-                    MessageBox.Show($"加载项目失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Debug.WriteLine($"[App] 加载解决方案失败: {ex.Message}");
+                    MessageBox.Show($"加载解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     mainWindow.Show();
                 }
             }
@@ -223,13 +247,54 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        // Debug.WriteLine($"[App] Dispatcher 未处理异常: {e.Exception.Message}");
-        // Debug.WriteLine($"[App] 堆栈跟踪: {e.Exception.StackTrace}");
+        Debug.WriteLine($"[App] Dispatcher 未处理异常: {e.Exception.Message}");
+        Debug.WriteLine($"[App] 异常类型: {e.Exception.GetType().FullName}");
+        Debug.WriteLine($"[App] 堆栈跟踪: {e.Exception.StackTrace}");
 
         if (e.Exception.InnerException != null)
         {
-            // Debug.WriteLine($"[App] 内部异常: {e.Exception.InnerException.Message}");
-            // Debug.WriteLine($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}");
+            Debug.WriteLine($"[App] 内部异常: {e.Exception.InnerException.Message}");
+            Debug.WriteLine($"[App] 内部异常类型: {e.Exception.InnerException.GetType().FullName}");
+            Debug.WriteLine($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}");
+        }
+
+        // 特别处理TargetParameterCountException
+        if (e.Exception is System.Reflection.TargetParameterCountException)
+        {
+            Debug.WriteLine($"[App] *** 这是一个参数数量不匹配异常 ***");
+            Debug.WriteLine($"[App] 可能的原因:");
+            Debug.WriteLine($"[App]   1. Dispatcher.BeginInvoke参数顺序错误");
+            Debug.WriteLine($"[App]   2. 事件处理器签名不匹配");
+            Debug.WriteLine($"[App]   3. 委托调用时参数数量错误");
+
+            // 捕获完整的调用堆栈
+            Debug.WriteLine($"[App] 完整调用堆栈:");
+            Debug.WriteLine(Environment.StackTrace);
+
+            // 记录到文件以便详细分析
+            try
+            {
+                string diagLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parameter_mismatch_detailed.log");
+                string logContent = $"\n\n=== Parameter Mismatch Detail ===\n";
+                logContent += $"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\n";
+                logContent += $"异常: {e.Exception.Message}\n";
+                logContent += $"异常类型: {e.Exception.GetType().FullName}\n";
+                logContent += $"\n异常堆栈:\n{e.Exception.StackTrace}\n";
+                logContent += $"\n完整调用堆栈:\n{Environment.StackTrace}\n";
+                if (e.Exception.InnerException != null)
+                {
+                    logContent += $"\n内部异常: {e.Exception.InnerException.Message}\n";
+                    logContent += $"内部异常类型: {e.Exception.InnerException.GetType().FullName}\n";
+                    logContent += $"内部堆栈:\n{e.Exception.InnerException.StackTrace}\n";
+                }
+                logContent += $"===================================\n\n";
+                File.AppendAllText(diagLog, logContent);
+                Debug.WriteLine($"[App] 详细日志已保存到: {diagLog}");
+            }
+            catch (Exception writeEx)
+            {
+                Debug.WriteLine($"[App] 保存详细日志失败: {writeEx.Message}");
+            }
         }
 
         // 记录到插件日志系统
@@ -237,10 +302,12 @@ public partial class App : Application
         {
             var logger = SunEyeVision.Plugin.SDK.Logging.PluginLogger.Logger;
             logger.Error($"[App] Dispatcher 未处理异常: {e.Exception.Message}", "App", e.Exception);
+            logger.Error($"[App] 异常类型: {e.Exception.GetType().FullName}", "App");
             logger.Error($"[App] 堆栈跟踪: {e.Exception.StackTrace}", "App");
             if (e.Exception.InnerException != null)
             {
                 logger.Error($"[App] 内部异常: {e.Exception.InnerException.Message}", "App", e.Exception.InnerException);
+                logger.Error($"[App] 内部异常类型: {e.Exception.InnerException.GetType().FullName}", "App");
                 logger.Error($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}", "App");
             }
         }
@@ -257,8 +324,44 @@ public partial class App : Application
     /// </summary>
     private void OnFirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
     {
+        // 捕获参数数量不匹配异常
+        if (e.Exception is System.Reflection.TargetParameterCountException)
+        {
+            var ex = e.Exception as System.Reflection.TargetParameterCountException;
+            Debug.WriteLine($"[App] 捕获TargetParameterCountException(参数数量不匹配): {ex?.Message}");
+            Debug.WriteLine($"[App] 异常堆栈: {ex?.StackTrace}");
+            
+            // 捕获完整调用堆栈
+            Debug.WriteLine($"[App] 完整调用堆栈:");
+            Debug.WriteLine(Environment.StackTrace);
+            
+            // 记录到文件以便详细分析
+            try
+            {
+                string diagLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parameter_mismatch_detailed.log");
+                string logContent = $"\n\n=== FirstChanceException - TargetParameterCountException ===\n";
+                logContent += $"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\n";
+                logContent += $"异常: {ex?.Message}\n";
+                logContent += $"异常类型: {ex?.GetType().FullName}\n";
+                logContent += $"\n异常堆栈:\n{ex?.StackTrace}\n";
+                logContent += $"\n完整调用堆栈:\n{Environment.StackTrace}\n";
+                if (ex?.InnerException != null)
+                {
+                    logContent += $"\n内部异常: {ex.InnerException.Message}\n";
+                    logContent += $"内部异常类型: {ex.InnerException.GetType().FullName}\n";
+                    logContent += $"内部堆栈:\n{ex.InnerException.StackTrace}\n";
+                }
+                logContent += $"===================================\n\n";
+                File.AppendAllText(diagLog, logContent);
+                Debug.WriteLine($"[App] 详细日志已保存到: {diagLog}");
+            }
+            catch (Exception writeEx)
+            {
+                Debug.WriteLine($"[App] 保存详细日志失败: {writeEx.Message}");
+            }
+        }
         // 捕获RPC服务器不可用异常
-        if (e.Exception is COMException comEx)
+        else if (e.Exception is COMException comEx)
         {
             if (comEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (comEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
             {
@@ -268,7 +371,7 @@ public partial class App : Application
             }
         }
         // 捕获WIC相关的内部异常
-        else if (e.Exception is System.Reflection.TargetInvocationException tie && 
+        else if (e.Exception is System.Reflection.TargetInvocationException tie &&
                  tie.InnerException is COMException innerComEx)
         {
             if (innerComEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (innerComEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
@@ -308,4 +411,76 @@ public partial class App : Application
             Debug.WriteLine($"[App] 线程池预热失败: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// 注册文件关联
+    /// </summary>
+    private void RegisterFileAssociation()
+    {
+        try
+        {
+            var fileAssociationService = new FileAssociationService();
+            if (!fileAssociationService.IsRegistered())
+            {
+                fileAssociationService.RegisterFileAssociation();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] 文件关联注册失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 初始化监控
+    /// </summary>
+    private void InitializeMonitoring()
+    {
+        try
+        {
+            Debug.WriteLine("[App] 初始化DispatcherTimer监控...");
+            var monitor = DispatcherTimerMonitor.Instance;
+
+            // 创建监控报告定时器
+            _monitorTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(_monitorReportInterval)
+            };
+            _monitorTimer.Tick += (sender, e) =>
+            {
+                Debug.WriteLine("[App] === DispatcherTimer 监控报告 ===");
+                monitor.PrintAllTimersInfo();
+            };
+            _monitorTimer.Start();
+
+            Debug.WriteLine($"[App] DispatcherTimer监控已启动，报告间隔: {_monitorReportInterval}秒");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] 初始化监控失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 应用程序退出时清理
+    /// </summary>
+    protected override void OnExit(ExitEventArgs e)
+    {
+        // 停止监控定时器
+        _monitorTimer?.Stop();
+
+        // 生成最终的监控报告
+        try
+        {
+            Debug.WriteLine("[App] === 应用程序退出 - 最终监控报告 ===");
+            DispatcherTimerMonitor.Instance.PrintAllTimersInfo();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] 生成最终监控报告失败: {ex.Message}");
+        }
+
+        base.OnExit(e);
+    }
 }
+

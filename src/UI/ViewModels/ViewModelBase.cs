@@ -1,5 +1,7 @@
 ﻿using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.Logging;
+using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -27,6 +29,7 @@ namespace SunEyeVision.UI.ViewModels
     /// </code>
     ///
     /// 提供便捷的日志方法（LogInfo、LogSuccess、LogWarning、LogError）
+    /// 提供线程安全的集合操作方法（避免 Collection modified 异常）
     /// </remarks>
     public abstract class ViewModelBase : ObservableObject
     {
@@ -74,5 +77,101 @@ namespace SunEyeVision.UI.ViewModels
             var logger = VisionLogger.Instance;
             logger.Error(message, source ?? GetLogSource(), exception);
         }
+
+        /// <summary>
+        /// 注册命令异常处理（在构造函数中调用）
+        /// </summary>
+        /// <param name="command">要注册异常处理的命令</param>
+        protected void RegisterCommandExceptionHandler(RelayCommand command)
+        {
+            command.ExecutionFailed += (sender, e) =>
+            {
+                LogError($"命令执行失败 [{e.CommandName}]: {e.Exception.Message}", e.CommandName, e.Exception);
+            };
+        }
+
+        #region 集合操作辅助方法
+
+        /// <summary>
+        /// 线程安全的集合更新方法
+        /// </summary>
+        /// <typeparam name="T">集合元素类型</typeparam>
+        /// <param name="collection">要更新的集合</param>
+        /// <param name="updateAction">更新操作</param>
+        /// <remarks>
+        /// 使用 Dispatcher 保护集合操作，避免 UI 枚举时修改异常。
+        /// 适用于批量操作，减少 UI 更新次数。
+        /// </remarks>
+        protected void UpdateCollection<T>(ObservableCollection<T> collection, Action<ObservableCollection<T>> updateAction)
+        {
+            if (Application.Current != null && Application.Current.Dispatcher != null)
+            {
+                Application.Current.Dispatcher.Invoke(() => updateAction(collection));
+            }
+            else
+            {
+                // 非主线程或无 Dispatcher 的情况（设计时等）
+                updateAction(collection);
+            }
+        }
+
+        /// <summary>
+        /// 线程安全地添加元素到集合
+        /// </summary>
+        protected void AddToCollection<T>(ObservableCollection<T> collection, T item)
+        {
+            UpdateCollection(collection, c => c.Add(item));
+        }
+
+        /// <summary>
+        /// 线程安全地从集合移除元素
+        /// </summary>
+        protected bool RemoveFromCollection<T>(ObservableCollection<T> collection, T item)
+        {
+            bool removed = false;
+            UpdateCollection(collection, c =>
+            {
+                removed = c.Remove(item);
+            });
+            return removed;
+        }
+
+        /// <summary>
+        /// 线程安全地清空集合
+        /// </summary>
+        protected void ClearCollection<T>(ObservableCollection<T> collection)
+        {
+            UpdateCollection(collection, c => c.Clear());
+        }
+
+        /// <summary>
+        /// 线程安全地批量添加元素
+        /// </summary>
+        protected void AddRangeToCollection<T>(ObservableCollection<T> collection, IEnumerable<T> items)
+        {
+            UpdateCollection(collection, c =>
+            {
+                foreach (var item in items)
+                {
+                    c.Add(item);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 线程安全地批量移除元素
+        /// </summary>
+        protected void RemoveRangeFromCollection<T>(ObservableCollection<T> collection, IEnumerable<T> items)
+        {
+            UpdateCollection(collection, c =>
+            {
+                foreach (var item in items)
+                {
+                    c.Remove(item);
+                }
+            });
+        }
+
+        #endregion
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
@@ -76,10 +76,10 @@ namespace SunEyeVision.UI.ViewModels
             var node4 = new WorkflowNode("node4", "输出", "Output");
             node4.Position = new Point(650, 50);
 
-            Nodes.Add(node1);
-            Nodes.Add(node2);
-            Nodes.Add(node3);
-            Nodes.Add(node4);
+            AddToCollection(Nodes, node1);
+            AddToCollection(Nodes, node2);
+            AddToCollection(Nodes, node3);
+            AddToCollection(Nodes, node4);
 
             var conn1 = new WorkflowConnection("conn1", "node1", "node2");
             var conn2 = new WorkflowConnection("conn2", "node2", "node3");
@@ -95,9 +95,9 @@ namespace SunEyeVision.UI.ViewModels
             conn3.SourcePosition = new Point(590, 95);
             conn3.TargetPosition = new Point(650, 95);
 
-            Connections.Add(conn1);
-            Connections.Add(conn2);
-            Connections.Add(conn3);
+            AddToCollection(Connections, conn1);
+            AddToCollection(Connections, conn2);
+            AddToCollection(Connections, conn3);
         }
 
         private void ExecuteAddNode(string? type)
@@ -116,7 +116,7 @@ namespace SunEyeVision.UI.ViewModels
 
             var newNode = new WorkflowNode(id, name, type);
             newNode.Position = new Point(100 + Nodes.Count * 200, 100);
-            Nodes.Add(newNode);
+            AddToCollection(Nodes, newNode);
             SelectedNode = newNode;
         }
 
@@ -128,12 +128,11 @@ namespace SunEyeVision.UI.ViewModels
                 .Where(c => c.SourceNodeId == node.Id || c.TargetNodeId == node.Id)
                 .ToList();
 
-            foreach (var conn in connectionsToRemove)
-            {
-                Connections.Remove(conn);
-            }
+            // 使用线程安全方法批量移除连接
+            RemoveRangeFromCollection(Connections, connectionsToRemove);
 
-            Nodes.Remove(node);
+            // 移除节点
+            RemoveFromCollection(Nodes, node);
 
             if (SelectedNode == node)
             {
@@ -160,8 +159,11 @@ namespace SunEyeVision.UI.ViewModels
             }
             else if (SelectedConnection != null)
             {
-                Connections.Remove(SelectedConnection);
+                var connectionToRemove = SelectedConnection;
                 SelectedConnection = null;
+
+                // 使用线程安全方法移除连接
+                RemoveFromCollection(Connections, connectionToRemove);
             }
         }
 
@@ -224,7 +226,7 @@ namespace SunEyeVision.UI.ViewModels
             newConnection.SourcePosition = sourcePos;
             newConnection.TargetPosition = targetPos;
 
-            Connections.Add(newConnection);
+            AddToCollection(Connections, newConnection);
 
             // 退出连接模式
             IsInConnectionMode = false;

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Workflow
 {
@@ -25,13 +26,9 @@ namespace SunEyeVision.Workflow
             // 读取基本属性
             var id = root.GetProperty("Id").GetString() ?? Guid.NewGuid().ToString();
             var name = root.GetProperty("Name").GetString() ?? "Unnamed Workflow";
-            var description = root.TryGetProperty("Description", out var descElement)
-                ? descElement.GetString()
-                : string.Empty;
 
-            // 创建工作流实例（Logger 暂时为 null，后续由 LoadWorkflow 设置）
-            var workflow = new Workflow(id, name, null!);
-            workflow.Description = description;
+            // 创建工作流实例
+            var workflow = new Workflow(id, name);
 
             // 反序列化节点（使用 FromDictionary 方法恢复强类型参数）
             if (root.TryGetProperty("Nodes", out var nodesElement))
@@ -59,7 +56,7 @@ namespace SunEyeVision.Workflow
                     catch (Exception ex)
                     {
                         // 跳过无法解析的节点，继续处理其他节点
-                        System.Diagnostics.Debug.WriteLine($"Failed to deserialize node: {ex.Message}");
+                        VisionLogger.Instance.Log(LogLevel.Warning, $"Failed to deserialize node: {ex.Message}", "WorkflowJsonConverter");
                     }
                 }
             }
@@ -69,41 +66,20 @@ namespace SunEyeVision.Workflow
             {
                 try
                 {
-                    workflow.Connections = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(
+                    workflow.Connections = JsonSerializer.Deserialize<List<Connection>>(
                         connElement.GetRawText(),
                         options
-                    ) ?? new Dictionary<string, List<string>>();
+                    ) ?? new List<Connection>();
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to deserialize connections: {ex.Message}");
-                    workflow.Connections = new Dictionary<string, List<string>>();
+                    VisionLogger.Instance.Log(LogLevel.Warning, $"Failed to deserialize connections: {ex.Message}", "WorkflowJsonConverter");
+                    workflow.Connections = new List<Connection>();
                 }
             }
             else
             {
-                workflow.Connections = new Dictionary<string, List<string>>();
-            }
-
-            // 反序列化端口连接
-            if (root.TryGetProperty("PortConnections", out var portConnElement))
-            {
-                try
-                {
-                    workflow.PortConnections = JsonSerializer.Deserialize<List<PortConnection>>(
-                        portConnElement.GetRawText(),
-                        options
-                    ) ?? new List<PortConnection>();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to deserialize port connections: {ex.Message}");
-                    workflow.PortConnections = new List<PortConnection>();
-                }
-            }
-            else
-            {
-                workflow.PortConnections = new List<PortConnection>();
+                workflow.Connections = new List<Connection>();
             }
 
             return workflow;
@@ -116,7 +92,6 @@ namespace SunEyeVision.Workflow
             // 写入基本属性
             writer.WriteString("Id", value.Id);
             writer.WriteString("Name", value.Name);
-            writer.WriteString("Description", value.Description ?? string.Empty);
 
             // 写入节点（使用 ToDictionary 方法保留强类型信息）
             writer.WritePropertyName("Nodes");
@@ -132,9 +107,9 @@ namespace SunEyeVision.Workflow
             writer.WritePropertyName("Connections");
             JsonSerializer.Serialize(writer, value.Connections, options);
 
-            // 写入端口连接
-            writer.WritePropertyName("PortConnections");
-            JsonSerializer.Serialize(writer, value.PortConnections, options);
+            // PortConnections 已移除
+            // writer.WritePropertyName("PortConnections");
+            // JsonSerializer.Serialize(writer, value.PortConnections, options);
 
             writer.WriteEndObject();
         }

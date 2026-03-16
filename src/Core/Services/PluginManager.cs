@@ -1,10 +1,11 @@
-using SunEyeVision.Core.Interfaces.Plugins;
+﻿using SunEyeVision.Core.Interfaces.Plugins;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Core.Services
 {
@@ -102,7 +103,7 @@ namespace SunEyeVision.Core.Services
                 try
                 {
                     var json = File.ReadAllText(metadataFile);
-                    return JsonSerializer.Deserialize<PluginMetadata>(json) ?? new PluginMetadata();
+                    return JsonSerializer.Deserialize<PluginMetadata>(json, JsonSerializationOptions.Default) ?? new PluginMetadata();
                 }
                 catch
                 {

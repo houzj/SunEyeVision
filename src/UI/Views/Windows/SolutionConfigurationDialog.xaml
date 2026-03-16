@@ -1,0 +1,455 @@
+<Window x:Class="SunEyeVision.UI.Views.Windows.SolutionConfigurationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:SunEyeVision.UI.Converters"
+        mc:Ignorable="d"
+        Title="太阳眼视觉 - 打开解决方案"
+        Width="780"
+        Height="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <!-- 转换器 -->
+        <converters:EqualityConverter x:Key="EqualityConverter"/>
+        <converters:PathToFileNameConverter x:Key="PathToFileNameConverter"/>
+
+        <!-- 主按钮样式 -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#BDBDBD"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 次要按钮样式 -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#9E9E9E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#757575"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#E0E0E0"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 工具栏按钮样式 -->
+        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E0E0E0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#BDBDBD"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 主要操作按钮样式 -->
+        <Style x:Key="SuccessButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+            <Setter Property="Foreground" Value="#4CAF50"/>
+        </Style>
+
+        <!-- 危险操作按钮样式 -->
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+            <Setter Property="Foreground" Value="#F44336"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 主内容区域：单列布局 -->
+        <Grid Grid.Row="0" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 解决方案列表（占满整个宽度） -->
+            <GroupBox Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" Margin="0">
+                <GroupBox.Header>
+                    <Grid Margin="5,0">
+                        <TextBlock Text="解决方案列表" FontSize="14" FontWeight="Medium" Foreground="#424242"/>
+                    </Grid>
+                </GroupBox.Header>
+
+                <Grid Margin="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 顶部工具栏 -->
+                    <Border Grid.Row="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,5">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- 新建按钮 -->
+                            <Button Style="{StaticResource SuccessButtonStyle}"
+                                    Command="{Binding NewSolutionCommand}"
+                                    ToolTip="新建解决方案">
+                                ➕
+                            </Button>
+                            <!-- 载入按钮 -->
+                            <Button Style="{StaticResource SuccessButtonStyle}"
+                                    Command="{Binding OpenSolutionCommand}"
+                                    ToolTip="载入解决方案"
+                                    Margin="5,0,0,0">
+                                📂
+                            </Button>
+                            <!-- 另存按钮 -->
+                            <Button Style="{StaticResource SuccessButtonStyle}"
+                                    Command="{Binding SaveSolutionAsCommand}"
+                                    ToolTip="另存解决方案"
+                                    Margin="5,0,0,0">
+                                💾
+                            </Button>
+                            <!-- 复制按钮 -->
+                            <Button Style="{StaticResource SuccessButtonStyle}"
+                                    Command="{Binding CopySolutionCommand}"
+                                    ToolTip="复制解决方案"
+                                    Margin="5,0,0,0">
+                                📋
+                            </Button>
+                            <!-- 删除按钮 -->
+                            <Button Style="{StaticResource DangerButtonStyle}"
+                                    Command="{Binding DeleteSolutionCommand}"
+                                    ToolTip="删除解决方案"
+                                    Margin="5,0,0,0">
+                                🗑️
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 搜索框 -->
+                    <Border Grid.Row="1" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,5,10,10">
+                        <TextBox Text="🔍 搜索解决方案..."
+                                 FontSize="12"
+                                 Foreground="Gray"
+                                 Padding="8,4"
+                                 Background="White"
+                                 BorderBrush="#E0E0E0"
+                                 BorderThickness="1"/>
+                    </Border>
+
+                    <!-- 解决方案列表（卡片模式 + WrapPanel自动换行 + 滚动条支持） -->
+                    <ScrollViewer Grid.Row="2"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Background="White"
+                                  CanContentScroll="False">
+                        <ItemsControl ItemsSource="{Binding SolutionMetadatas}"
+                                      Background="white">
+
+                            <!-- 自动换行布局 -->
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+
+                            <!-- 卡片样式模板 -->
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- 解决方案卡片 -->
+                                    <Border Width="240"
+                                            Height="150"
+                                            Margin="8"
+                                            Background="White"
+                                            BorderBrush="#E0E0E0"
+                                            BorderThickness="1"
+                                            CornerRadius="0"
+                                            Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <!-- 默认值：未选中状态 -->
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                                                <Setter Property="BorderThickness" Value="1"/>
+                                                <Setter Property="Effect" Value="{x:Null}"/>
+                                                <Style.Triggers>
+                                                    <!-- 悬停效果：仅当未选中时生效 -->
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                            <Condition Value="False">
+                                                                <Condition.Binding>
+                                                                    <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                        <Binding Path="Id"/>
+                                                                        <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                    </MultiBinding>
+                                                                </Condition.Binding>
+                                                            </Condition>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#F0F8FF"/>
+                                                        <Setter Property="BorderBrush" Value="#2196F3"/>
+                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                    </MultiDataTrigger>
+                                                    <!-- 选中效果：多重视觉反馈 -->
+                                                    <DataTrigger Value="True">
+                                                        <DataTrigger.Binding>
+                                                            <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                <Binding Path="Id"/>
+                                                                <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                            </MultiBinding>
+                                                        </DataTrigger.Binding>
+                                                        <Setter Property="Background" Value="#F0F9F4"/>
+                                                        <Setter Property="BorderBrush" Value="#4CAF50"/>
+                                                        <Setter Property="BorderThickness" Value="3"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+
+                                        <!-- 使用Grid作为根容器，包含左侧标识条和主内容 -->
+                                        <Grid>
+                                            <!-- 左侧选中标识条（8px宽） -->
+                                            <Border Width="8"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Stretch"
+                                                    Background="Transparent">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                        <Binding Path="Id"/>
+                                                                        <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                    </MultiBinding>
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="Background" Value="#1565C0"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+
+                                            <!-- 主内容区域（避开左侧标识条） -->
+                                            <Grid Margin="10,10,10,10">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- 第一行：勾选图标 + 名称 + 编辑按钮 -->
+                                                <Grid Grid.Row="0" Height="24">
+                                                    <!-- 勾选/未勾选图标 -->
+                                                    <Grid Width="20" Height="20">
+                                                        <Ellipse Stroke="#BDBDBD" StrokeThickness="2" Fill="White">
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Setter Property="Stroke" Value="#BDBDBD"/>
+                                                                    <Setter Property="Fill" Value="White"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Value="True">
+                                                                            <DataTrigger.Binding>
+                                                                                <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                                    <Binding Path="Id"/>
+                                                                                    <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                                </MultiBinding>
+                                                                            </DataTrigger.Binding>
+                                                                            <Setter Property="Stroke" Value="#4CAF50"/>
+                                                                            <Setter Property="Fill" Value="#4CAF50"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                        <!-- 勾号（选中时显示） -->
+                                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold" Foreground="White"
+                                                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                  Panel.ZIndex="1">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Value="True">
+                                                                            <DataTrigger.Binding>
+                                                                                <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                                    <Binding Path="Id"/>
+                                                                                    <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                                </MultiBinding>
+                                                                            </DataTrigger.Binding>
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+
+                                                    <!-- 名称 -->
+                                                    <TextBlock Text="{Binding Name}"
+                                                              FontSize="14" FontWeight="SemiBold"
+                                                              Foreground="#212121" VerticalAlignment="Center" Margin="30,0,30,0"/>
+
+                                                    <!-- 编辑按钮（选中时显示） -->
+                                                    <Button Width="24" Height="24" Padding="0" Background="Transparent"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                            Command="{Binding DataContext.EditSolutionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Setter Property="BorderThickness" Value="0"/>
+                                                                <Setter Property="Cursor" Value="Hand"/>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Value="True">
+                                                                        <DataTrigger.Binding>
+                                                                            <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                                <Binding Path="Id"/>
+                                                                                <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                            </MultiBinding>
+                                                                        </DataTrigger.Binding>
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#F5F5F5"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <TextBlock Text="✏️" FontSize="12" Foreground="#757575"/>
+                                                    </Button>
+                                                </Grid>
+
+                                                <!-- 第二行：文件路径 -->
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
+                                                    <TextBlock Text="📄" FontSize="10" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding FilePath, Converter={StaticResource PathToFileNameConverter}}"
+                                                              FontSize="10" Foreground="#9E9E9E" TextTrimming="CharacterEllipsis"
+                                                              ToolTip="{Binding FilePath}"/>
+                                                </StackPanel>
+
+                                                <!-- 第三行：描述（限制1行） -->
+                                                <TextBlock Grid.Row="2" Text="{Binding Description}" FontSize="11"
+                                                          Foreground="#616161" TextTrimming="CharacterEllipsis"
+                                                          Margin="0,6,0,0" ToolTip="{Binding Description}"/>
+
+                                                <!-- 第四行：时间信息（紧凑显示） -->
+                                                <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                                                    <TextBlock FontSize="10" Foreground="#546E7A" Margin="0,6,0,0">
+                                                        <Run Text="🕐 最近打开: "/>
+                                                        <Run Text="{Binding LastAccessTime, StringFormat='{}{0:MM-dd HH:mm}'}" FontWeight="Medium"/>
+                                                    </TextBlock>
+                                                    <TextBlock FontSize="10" Foreground="#5D4037" Margin="0,2,0,0">
+                                                        <Run Text="✏️ 修改: "/>
+                                                        <Run Text="{Binding ModifiedTime, StringFormat='{}{0:MM-dd HH:mm}'}" FontWeight="Medium"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Grid>
+
+                                        <!-- 选中命令绑定（单击） -->
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftClick"
+                                                          Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding}"/>
+                                            <MouseBinding Gesture="LeftDoubleClick"
+                                                          Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </GroupBox>
+        </Grid>
+
+        <!-- 底部按钮栏 -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="20,15">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <!-- 启动时跳过配置 -->
+                <CheckBox Content="启动时跳过配置界面"
+                          IsChecked="{Binding SkipStartupConfig}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,20,0"
+                          FontSize="13"
+                          Foreground="#424242"/>
+
+                <Button Content="跳过配置"
+                        Command="{Binding SkipCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="0,0,8,0"/>
+                <Button Content="启动解决方案"
+                        Command="{Binding LaunchCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "d:\MyWork\SunEyeVision\SunEyeVision\generate_solution_icon.py", line 206, in <module>
+    main()
+  File "d:\MyWork\SunEyeVision\SunEyeVision\generate_solution_icon.py", line 195, in main
+    generate_ico_file(icon_path)
+  File "d:\MyWork\SunEyeVision\SunEyeVision\generate_solution_icon.py", line 157, in generate_ico_file
+    print("\U0001f3a8 开始生成 SunEyeVision 图标...")
+UnicodeEncodeError: 'gbk' codec can't encode character '\U0001f3a8' in position 0: illegal multibyte sequence

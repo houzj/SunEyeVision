@@ -694,7 +694,7 @@ namespace SunEyeVision.UI.ViewModels
         {
             // 使用日志管理器清空
             // 注意：VisionLogger 不支持直接清空，这里仅作标记
-            System.Diagnostics.Debug.WriteLine($"[ClearLog] 日志清空请求已记录");
+            // TODO: 实现日志清空功能
         }
 
         /// <summary>
@@ -723,11 +723,10 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand OpenWorkflowCommand { get; }
         public ICommand SaveWorkflowCommand { get; }
         public ICommand SaveAsWorkflowCommand { get; }
-        
-        // 新的配方保存命令（更清晰的语义）
-        public ICommand SaveCurrentRecipeCommand { get; }
-        public ICommand SaveRecipeAsCommand { get; }
-        
+
+        // 解决方案保存命令
+        public ICommand SaveCurrentSolutionCommand { get; }
+
         public ICommand RunWorkflowCommand { get; }
         public ICommand StopWorkflowCommand { get; }
         public ICommand ShowSettingsCommand { get; }
@@ -763,7 +762,6 @@ namespace SunEyeVision.UI.ViewModels
         // 解决方案管理
         public ICommand ShowSolutionConfigurationCommand { get; }
         public ICommand SwitchProjectCommand { get; }
-        public ICommand SwitchRecipeCommand { get; }
 
         // 主窗口 ImageControl 获取委托 - 用于区域编辑器绑定
         /// <summary>
@@ -851,9 +849,8 @@ namespace SunEyeVision.UI.ViewModels
             SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
             SaveAsWorkflowCommand = new RelayCommand(ExecuteSaveAsWorkflow);
             
-            // 新的配方保存命令（更清晰的语义）
-            SaveCurrentRecipeCommand = new RelayCommand(ExecuteSaveCurrentRecipe);
-            SaveRecipeAsCommand = new RelayCommand(ExecuteSaveRecipeAs);
+            // 解决方案保存命令
+            SaveCurrentSolutionCommand = new RelayCommand(ExecuteSaveCurrentSolution);
             
             RunWorkflowCommand = new RelayCommand(async () => await ExecuteRunWorkflow(), () => !IsRunning);
             StopWorkflowCommand = new RelayCommand(ExecuteStopWorkflow, () => IsRunning);
@@ -886,12 +883,11 @@ namespace SunEyeVision.UI.ViewModels
             ClearImageCommand = new RelayCommand(ExecuteClearImage);
 
             // 日志操作
-            ClearLogCommand = new RelayCommand(_ => ClearLog());
+            ClearLogCommand = new RelayCommand(ClearLog);
 
             // 解决方案管理
             ShowSolutionConfigurationCommand = new RelayCommand(ExecuteShowSolutionConfiguration);
             SwitchProjectCommand = new RelayCommand(ExecuteSwitchProject);
-            SwitchRecipeCommand = new RelayCommand(ExecuteSwitchRecipe);
         }
 
         /// <summary>
@@ -1082,36 +1078,43 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (WorkflowTabViewModel.SelectedTab != null)
             {
-                // 添加节点到当前选中的标签页
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("1", "图像采集_1", "image_capture")
+                // 准备要添加的节点和连接
+                var nodesToAdd = new List<Models.WorkflowNode>
                 {
-                    Position = new System.Windows.Point(100, 100),
-                    IsSelected = false
-                });
+                    new Models.WorkflowNode("1", "图像采集_1", "image_capture")
+                    {
+                        Position = new System.Windows.Point(100, 100),
+                        IsSelected = false
+                    },
+                    new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
+                    {
+                        Position = new System.Windows.Point(300, 100),
+                        IsSelected = false
+                    },
+                    new Models.WorkflowNode("3", "边缘检测", "edge_detection")
+                    {
+                        Position = new System.Windows.Point(500, 100),
+                        IsSelected = false
+                    }
+                };
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
+                var connectionsToAdd = new List<Models.WorkflowConnection>
                 {
-                    Position = new System.Windows.Point(300, 100),
-                    IsSelected = false
-                });
+                    new Models.WorkflowConnection("conn_1", "1", "2")
+                    {
+                        SourcePosition = new System.Windows.Point(240, 145),
+                        TargetPosition = new System.Windows.Point(300, 145)
+                    },
+                    new Models.WorkflowConnection("conn_2", "2", "3")
+                    {
+                        SourcePosition = new System.Windows.Point(440, 145),
+                        TargetPosition = new System.Windows.Point(500, 145)
+                    }
+                };
 
-                WorkflowTabViewModel.SelectedTab.WorkflowNodes.Add(new Models.WorkflowNode("3", "边缘检测", "edge_detection")
-                {
-                    Position = new System.Windows.Point(500, 100),
-                    IsSelected = false
-                });
-
-                WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(new Models.WorkflowConnection("conn_1", "1", "2")
-                {
-                    SourcePosition = new System.Windows.Point(240, 145),
-                    TargetPosition = new System.Windows.Point(300, 145)
-                });
-
-                WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(new Models.WorkflowConnection("conn_2", "2", "3")
-                {
-                    SourcePosition = new System.Windows.Point(440, 145),
-                    TargetPosition = new System.Windows.Point(500, 145)
-                });
+                // 批量添加，减少 UI 更新次数
+                AddRangeToCollection(WorkflowTabViewModel.SelectedTab.WorkflowNodes, nodesToAdd);
+                AddRangeToCollection(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connectionsToAdd);
             }
         }
 
@@ -1287,67 +1290,29 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 保存当前配方
+        /// 保存当前解决方案
         /// </summary>
-        private void ExecuteSaveCurrentRecipe()
+        private void ExecuteSaveCurrentSolution()
         {
             try
             {
-                LogInfo("保存当前配方");
-                
-                var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                if (projectManager.CurrentProject == null || projectManager.CurrentRecipe == null)
+                LogInfo("保存当前解决方案");
+
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                if (solutionManager.CurrentSolution == null)
                 {
-                    LogWarning("没有当前项目和配方");
+                    LogWarning("没有当前解决方案");
                     return;
                 }
 
-                // 保存当前项目（包括配方）
-                projectManager.SaveProject(projectManager.CurrentProject);
-                
-                LogSuccess($"已保存当前配方: {projectManager.CurrentRecipe.Name}");
+                // 保存当前解决方案
+                solutionManager.SaveSolution();
+
+                LogSuccess($"已保存当前解决方案: {solutionManager.CurrentSolution.Name}");
             }
             catch (Exception ex)
             {
-                LogError($"保存当前配方失败: {ex.Message}", null, ex);
-            }
-        }
-
-        /// <summary>
-        /// 另存为配方
-        /// </summary>
-        private void ExecuteSaveRecipeAs()
-        {
-            try
-            {
-                LogInfo("另存为配方");
-                
-                var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                if (projectManager.CurrentProject == null || projectManager.CurrentRecipe == null)
-                {
-                    LogWarning("没有当前项目和配方");
-                    return;
-                }
-
-                // 使用 SaveRecipeAs 方法
-                var newRecipe = projectManager.SaveRecipeAs(
-                    projectManager.CurrentProject.Id,
-                    projectManager.CurrentRecipe.Name,
-                    $"{projectManager.CurrentRecipe.Name}_副本",
-                    "另存为的配方");
-
-                if (newRecipe != null)
-                {
-                    LogSuccess($"已另存为配方: {newRecipe.Name}");
-                }
-                else
-                {
-                    LogError("另存为配方失败");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"另存为配方失败: {ex.Message}", null, ex);
+                LogError($"保存当前解决方案失败: {ex.Message}", null, ex);
             }
         }
 
@@ -1393,30 +1358,19 @@ namespace SunEyeVision.UI.ViewModels
 
             // 清空现有连接
             workflow.Connections.Clear();
-            workflow.PortConnections.Clear();
 
             // 转换 UI 连接到底层连接
             foreach (var uiConn in tabInfo.WorkflowConnections)
             {
-                // 添加节点级连接
-                if (!workflow.Connections.ContainsKey(uiConn.SourceNodeId))
+                // 添加连接
+                var connection = new Connection
                 {
-                    workflow.Connections[uiConn.SourceNodeId] = new List<string>();
-                }
-
-                if (!workflow.Connections[uiConn.SourceNodeId].Contains(uiConn.TargetNodeId))
-                {
-                    workflow.Connections[uiConn.SourceNodeId].Add(uiConn.TargetNodeId);
-                }
-
-                // 添加端口级连接
-                workflow.PortConnections.Add(new PortConnection
-                {
-                    SourceNodeId = uiConn.SourceNodeId,
+                    SourceNode = uiConn.SourceNodeId,
                     SourcePort = uiConn.SourcePort ?? "output",
-                    TargetNodeId = uiConn.TargetNodeId,
+                    TargetNode = uiConn.TargetNodeId,
                     TargetPort = uiConn.TargetPort ?? "input"
-                });
+                };
+                workflow.Connections.Add(connection);
             }
 
             // 更新工作流元数据
@@ -1521,7 +1475,8 @@ namespace SunEyeVision.UI.ViewModels
                 Workflow = workflow
             };
 
-            // 转换底层节点到 UI 节点
+            // 转换底层节点到 UI 节点（先收集，再批量添加）
+            var nodesToLoad = new List<UIWorkflowNode>();
             foreach (var workflowNode in workflow.Nodes)
             {
                 var uiNode = new UIWorkflowNode(
@@ -1535,33 +1490,29 @@ namespace SunEyeVision.UI.ViewModels
                     ParameterBindings = workflowNode.ParameterBindings
                 };
 
-                tabInfo.WorkflowNodes.Add(uiNode);
+                nodesToLoad.Add(uiNode);
             }
 
-            // 转换底层连接到 UI 连接
-            foreach (var kvp in workflow.Connections)
+            // 批量添加节点到 tabInfo
+            AddRangeToCollection(tabInfo.WorkflowNodes, nodesToLoad);
+
+            // 转换底层连接到 UI 连接（先收集，再批量添加）
+            var connectionsToLoad = new List<WorkflowConnection>();
+            foreach (var conn in workflow.Connections)
             {
-                foreach (var targetId in kvp.Value)
+                var connection = new WorkflowConnection
                 {
-                    var connection = new WorkflowConnection
-                    {
-                        SourceNodeId = kvp.Key,
-                        TargetNodeId = targetId
-                    };
+                    SourceNodeId = conn.SourceNode,
+                    TargetNodeId = conn.TargetNode,
+                    SourcePort = conn.SourcePort,
+                    TargetPort = conn.TargetPort
+                };
 
-                    // 查找对应的端口连接
-                    var portConn = workflow.PortConnections.FirstOrDefault(pc =>
-                        pc.SourceNodeId == kvp.Key && pc.TargetNodeId == targetId);
-
-                    if (portConn != null)
-                    {
-                        connection.SourcePort = portConn.SourcePort;
-                        connection.TargetPort = portConn.TargetPort;
-                    }
-
-                    tabInfo.WorkflowConnections.Add(connection);
-                }
+                connectionsToLoad.Add(connection);
             }
+
+            // 批量添加连接到 tabInfo
+            AddRangeToCollection(tabInfo.WorkflowConnections, connectionsToLoad);
 
             // 创建 WorkflowTabViewModel
             var tabViewModel = new ViewModels.WorkflowTabViewModel();
@@ -1569,16 +1520,9 @@ namespace SunEyeVision.UI.ViewModels
             // 设置属性
             tabViewModel.Name = tabInfo.Name;
 
-            // 将节点和连接复制到新的 ViewModel
-            foreach (var node in tabInfo.WorkflowNodes)
-            {
-                tabViewModel.WorkflowNodes.Add(node);
-            }
-
-            foreach (var connection in tabInfo.WorkflowConnections)
-            {
-                tabViewModel.WorkflowConnections.Add(connection);
-            }
+            // 将节点和连接复制到新的 ViewModel（批量添加）
+            AddRangeToCollection(tabViewModel.WorkflowNodes, tabInfo.WorkflowNodes);
+            AddRangeToCollection(tabViewModel.WorkflowConnections, tabInfo.WorkflowConnections);
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
@@ -3345,37 +3289,34 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo("打开项目配置界面");
+                LogInfo("打开解决方案配置界面");
 
-                var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager);
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager);
 
                 var result = configDialog.ShowDialog();
 
-                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult != null)
                 {
-                    // 用户点击启动，加载项目和配方
-                    var (project, recipe) = configDialog.LaunchResult.Value;
+                    // 用户点击启动，加载解决方案
+                    var solution = configDialog.LaunchResult;
 
-                    if (project != null && recipe != null)
+                    try
                     {
-                        try
-                        {
-                            // TODO: 加载项目和配方到工作流编辑器
-                            LogSuccess($"已加载项目: {project.Name}, 配方: {recipe.Name}");
+                        // TODO: 加载解决方案到工作流编辑器
+                        LogSuccess($"已加载解决方案: {solution.Name}");
 
-                            // 更新标题
-                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"加载项目失败: {ex.Message}", null, ex);
-                            MessageBox.Show(
-                                $"加载项目失败: {ex.Message}",
-                                "错误",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                        }
+                        // 更新标题
+                        Title = $"太阳眼视觉 - {solution.Name}";
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"加载解决方案失败: {ex.Message}", null, ex);
+                        MessageBox.Show(
+                            $"加载解决方案失败: {ex.Message}",
+                            "错误",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
                     }
                 }
             }
@@ -3392,84 +3333,37 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo("切换项目");
+                LogInfo("切换解决方案");
 
-                var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                var startupDecisionService = new StartupDecisionService(projectManager);
-                var preselectProjectId = startupDecisionService.GetRecentProjectId();
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var startupDecisionService = new StartupDecisionService(solutionManager);
+                var preselectSolutionId = startupDecisionService.GetRecentSolutionId();
 
-                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager, preselectProjectId);
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager, preselectSolutionId);
 
                 var result = configDialog.ShowDialog();
 
-                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
+                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult != null)
                 {
-                    var (project, recipe) = configDialog.LaunchResult.Value;
+                    var solution = configDialog.LaunchResult;
 
-                    if (project != null && recipe != null)
+                    try
                     {
-                        try
-                        {
-                            projectManager.SetCurrentProject(project.Id, recipe.Name);
-                            LogSuccess($"已切换到项目: {project.Name}, 配方: {recipe.Name}");
+                        solutionManager.SetCurrentSolution(solution);
+                        LogSuccess($"已切换到解决方案: {solution.Name}");
 
-                            // 更新标题
-                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"切换项目失败: {ex.Message}", null, ex);
-                        }
+                        // 更新标题
+                        Title = $"太阳眼视觉 - {solution.Name}";
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"切换解决方案失败: {ex.Message}", null, ex);
                     }
                 }
             }
             catch (Exception ex)
             {
                 LogError("切换项目失败", null, ex);
-            }
-        }
-
-        /// <summary>
-        /// 切换配方
-        /// </summary>
-        private void ExecuteSwitchRecipe()
-        {
-            try
-            {
-                LogInfo("切换配方");
-
-                var projectManager = Adapters.ServiceInitializer.ProjectManager;
-                var startupDecisionService = new StartupDecisionService(projectManager);
-                var preselectProjectId = startupDecisionService.GetRecentProjectId();
-
-                var configDialog = new Views.Windows.ProjectConfigurationDialog(projectManager, preselectProjectId);
-
-                var result = configDialog.ShowDialog();
-
-                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult.HasValue)
-                {
-                    var (project, recipe) = configDialog.LaunchResult.Value;
-
-                    if (project != null && recipe != null)
-                    {
-                        try
-                        {
-                            projectManager.SetCurrentProject(project.Id, recipe.Name);
-                            LogSuccess($"已切换到配方: {recipe.Name}");
-
-                            // 更新标题
-                            Title = $"太阳眼视觉 - {project.Name} - {recipe.Name}";
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"切换配方失败: {ex.Message}", null, ex);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError("切换配方失败", null, ex);
             }
         }
 

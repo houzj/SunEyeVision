@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -9,12 +9,12 @@ namespace SunEyeVision.Workflow;
 /// 执行上下文（运行时临时对象）
 /// </summary>
 /// <remarks>
-/// 组合 Workflow（执行流）和 Recipe（数据流），提供运行时执行环境。
+/// 提供运行时执行环境，包含工作流和全局变量。
 /// 与 RuntimeConfig（持久化配置）不同，RunContext 是临时的运行时对象。
 ///
 /// 使用场景：
 /// 1. 执行检测任务时创建
-/// 2. 提供节点参数查询（优先配方参数，其次工作流默认参数）
+/// 2. 提供节点参数查询（从节点内部获取）
 /// 3. 任务完成后释放
 ///
 /// 生命周期：
@@ -24,20 +24,12 @@ namespace SunEyeVision.Workflow;
 /// </remarks>
 public class RunContext
 {
+    private readonly List<GlobalVariable> _globalVariables;
+
     /// <summary>
     /// 工作流（执行流）
     /// </summary>
     public Workflow Workflow { get; set; } = new();
-
-    /// <summary>
-    /// 配方（数据流）
-    /// </summary>
-    public Recipe Recipe { get; set; } = new();
-
-    /// <summary>
-    /// 配方组
-    /// </summary>
-    public RecipeGroup? RecipeGroup { get; set; }
 
     /// <summary>
     /// 创建时间
@@ -50,52 +42,31 @@ public class RunContext
     public string ExecutionId { get; } = Guid.NewGuid().ToString();
 
     /// <summary>
+    /// 构造函数
+    /// </summary>
+    public RunContext(List<GlobalVariable> globalVariables)
+    {
+        _globalVariables = globalVariables ?? new List<GlobalVariable>();
+    }
+
+    /// <summary>
     /// 获取节点参数
     /// </summary>
     /// <remarks>
-    /// 优先级：
-    /// 1. 配方组中的节点参数
-    /// 2. 配方中的节点参数（如果配方组不存在）
-    /// 3. 工作流中的默认参数
+    /// 参数已嵌入在节点中，直接从节点获取
     /// </remarks>
-    public ToolParameters? GetNodeParameters(string nodeId, string? recipeGroupName = null)
+    public ToolParameters? GetNodeParameters(string nodeId)
     {
-        // 如果指定了配方组名称，优先使用配方组参数
-        if (!string.IsNullOrEmpty(recipeGroupName))
-        {
-            RecipeGroup = Recipe.GetRecipeGroup(recipeGroupName);
-        }
-
-        // 优先使用配方组参数
-        if (RecipeGroup != null)
-        {
-            var groupParams = RecipeGroup.GetNodeParameters(nodeId);
-            if (groupParams != null)
-                return groupParams;
-        }
-
-        // 其次使用配方默认参数（配方组的default）
-        var defaultParams = Recipe.GetRecipeGroup("default");
-        if (defaultParams != null)
-        {
-            var recipeParams = defaultParams.GetNodeParameters(nodeId);
-            if (recipeParams != null)
-                return recipeParams;
-        }
-
-        // 最后使用工作流默认参数
-        if (Workflow.DefaultParams.TryGetValue(nodeId, out var workflowParam))
-            return workflowParam.Clone();
-
-        return null;
+        var node = Workflow.GetNode(nodeId);
+        return node?.Parameters?.Clone();
     }
 
     /// <summary>
     /// 获取节点参数（指定类型）
     /// </summary>
-    public T? GetNodeParameters<T>(string nodeId, string? recipeGroupName = null) where T : ToolParameters
+    public T? GetNodeParameters<T>(string nodeId) where T : ToolParameters
     {
-        var parameters = GetNodeParameters(nodeId, recipeGroupName);
+        var parameters = GetNodeParameters(nodeId);
         return parameters as T;
     }
 
@@ -104,7 +75,26 @@ public class RunContext
     /// </summary>
     public T? GetGlobalVariable<T>(string name)
     {
-        return Recipe.GetGlobalVariable<T>(name);
+        var variable = _globalVariables.FirstOrDefault(v => v.Name == name);
+        if (variable == null)
+            return default;
+
+        if (variable.Value is T typedValue)
+            return typedValue;
+
+        return default;
+    }
+
+    /// <summary>
+    /// 设置全局变量值
+    /// </summary>
+    public void SetGlobalVariable(string name, object? value)
+    {
+        var variable = _globalVariables.FirstOrDefault(v => v.Name == name);
+        if (variable != null)
+        {
+            variable.Value = value;
+        }
     }
 
     /// <summary>
@@ -175,28 +165,10 @@ public class RunContext
             return (false, errors);
         }
 
-        if (Recipe == null)
-        {
-            errors.Add("配方为空");
-            return (false, errors);
-        }
-
-        // 验证配方组
-        if (RecipeGroup == null)
-        {
-            RecipeGroup = Recipe.GetRecipeGroup("default");
-            if (RecipeGroup == null)
-            {
-                errors.Add("配方组为空");
-                return (false, errors);
-            }
-        }
-
         // 验证所有启用的节点都有参数
         foreach (var node in GetEnabledNodes())
         {
-            var parameters = GetNodeParameters(node.Id);
-            if (parameters == null)
+            if (node.Parameters == null)
             {
                 errors.Add($"节点 {node.Name} ({node.Id}) 没有参数配置");
             }
@@ -211,62 +183,24 @@ public class RunContext
     public string GetStatistics()
     {
         var enabledNodes = GetEnabledNodes();
-        var nodeParamsCount = RecipeGroup?.NodeParams.Count ?? 0;
-        var globalVarsCount = Recipe.GlobalVariables.Count;
+        var globalVarsCount = _globalVariables.Count;
 
         return $"节点数: {enabledNodes.Count}/{Workflow.Nodes.Count}, " +
                $"连接数: {Workflow.Connections.Count}, " +
-               $"配方参数: {nodeParamsCount}, " +
                $"全局变量: {globalVarsCount}";
     }
 
     /// <summary>
-    /// 从工作流和配方创建执行上下文
+    /// 从工作流和全局变量创建执行上下文
     /// </summary>
-    public static RunContext Create(Workflow workflow, Recipe recipe, string? recipeGroupName = null)
+    public static RunContext Create(Workflow workflow, List<GlobalVariable> globalVariables)
     {
         if (workflow == null)
             throw new ArgumentNullException(nameof(workflow));
 
-        if (recipe == null)
-            throw new ArgumentNullException(nameof(recipe));
-
-        var recipeGroup = recipe.GetRecipeGroup(recipeGroupName ?? "default");
-
-        return new RunContext
+        return new RunContext(globalVariables ?? new List<GlobalVariable>())
         {
-            Workflow = workflow,
-            Recipe = recipe,
-            RecipeGroup = recipeGroup
+            Workflow = workflow
         };
-    }
-
-    /// <summary>
-    /// 从解决方案和设备ID创建执行上下文
-    /// </summary>
-    public static RunContext? Create(SolutionFile solution, string deviceId)
-    {
-        if (solution == null)
-            throw new ArgumentNullException(nameof(solution));
-
-        if (string.IsNullOrEmpty(deviceId))
-            throw new ArgumentException("设备ID不能为空", nameof(deviceId));
-
-        // 查找设备绑定
-        var binding = solution.Bindings.FirstOrDefault(b => b.DeviceId == deviceId);
-        if (binding == null)
-            return null;
-
-        // 查找工作流
-        var workflow = solution.Workflows.FirstOrDefault(w => w.Id == binding.WorkflowRef);
-        if (workflow == null)
-            return null;
-
-        // 查找配方
-        var recipe = solution.Recipes.FirstOrDefault(r => r.Id == binding.RecipeRef);
-        if (recipe == null)
-            return null;
-
-        return Create(workflow, recipe, binding.RecipeGroupName);
     }
 }

@@ -6,6 +6,7 @@ using System.Text.Json;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Workflow
 {
@@ -45,9 +46,10 @@ namespace SunEyeVision.Workflow
                 throw new ArgumentException($"Workflow ID {id} already exists");
             }
 
-            var workflow = new Workflow(id, name, Logger)
+            var workflow = new Workflow
             {
-                Description = description
+                Id = id,
+                Name = name
             };
 
             Workflows[id] = workflow;
@@ -131,7 +133,9 @@ namespace SunEyeVision.Workflow
             var workflow = Workflows[workflowId];
             Logger.LogInfo($"Executing workflow: {workflow.Name}");
 
-            var results = workflow.Execute(inputImage);
+            // Workflow.Execute 已迁移到 WorkflowExecutionEngine
+            // var results = workflow.Execute(inputImage);
+            var results = new List<AlgorithmResult>();
 
             return results;
         }
@@ -165,14 +169,8 @@ namespace SunEyeVision.Workflow
             {
                 var workflow = Workflows[workflowId];
 
-                // 使用自定义转换器进行序列化
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                };
-
-                // 注册自定义转换器
+                // 使用默认配置并添加自定义转换器
+                var options = JsonSerializationOptions.Default;
                 options.Converters.Add(new WorkflowJsonConverter());
 
                 var json = JsonSerializer.Serialize(workflow, options);
@@ -204,16 +202,16 @@ namespace SunEyeVision.Workflow
             {
                 var json = File.ReadAllText(filePath);
 
-                // 使用自定义转换器进行反序列化
-                var options = new JsonSerializerOptions();
+                // 使用默认配置并添加自定义转换器
+                var options = JsonSerializationOptions.Default;
                 options.Converters.Add(new WorkflowJsonConverter());
 
                 var workflow = JsonSerializer.Deserialize<Workflow>(json, options);
 
                 if (workflow != null)
                 {
-                    // Re-assign logger since it's not serialized
-                    workflow.SetLogger(Logger);
+                    // Logger is not assigned to Workflow anymore
+                    // workflow.SetLogger(Logger);
 
                     // Ensure collections are initialized if null
                     if (workflow.Nodes == null)
@@ -223,12 +221,7 @@ namespace SunEyeVision.Workflow
 
                     if (workflow.Connections == null)
                     {
-                        workflow.Connections = new Dictionary<string, List<string>>();
-                    }
-
-                    if (workflow.PortConnections == null)
-                    {
-                        workflow.PortConnections = new List<PortConnection>();
+                        workflow.Connections = new List<Connection>();
                     }
 
                     Workflows[workflow.Id] = workflow;

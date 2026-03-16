@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Threading;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Plugin.SDK.Logging;
@@ -28,6 +29,9 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         private bool _showError = true;
         private string _searchText = string.Empty;
         private readonly LogPanelViewModel _logViewModel;
+        private readonly DispatcherTimer _scrollTimer;
+        private DateTime _lastScrollTime = DateTime.MinValue;
+        private readonly TimeSpan _scrollThrottleInterval = TimeSpan.FromMilliseconds(200);
 
         #endregion
 
@@ -269,14 +273,47 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             {
                 // 初始化高性能日志 ViewModel
                 _logViewModel = new LogPanelViewModel();
-                _logViewModel.LogsUpdated += OnLogsUpdated;
+                
+                // 订阅日志更新事件（添加异常处理）
+                if (_logViewModel != null)
+                {
+                    try
+                    {
+                        _logViewModel.LogsUpdated += OnLogsUpdated;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"订阅 LogsUpdated 事件失败: {ex.Message}");
+                        _logViewModel.LogError($"订阅 LogsUpdated 事件失败: {ex.Message}");
+                    }
+                }
+
+                // 初始化滚动定时器（节流控制）
+                _scrollTimer = new DispatcherTimer
+                {
+                    Interval = _scrollThrottleInterval
+                };
+                
+                // 订阅定时器事件（添加异常处理）
+                if (_scrollTimer != null)
+                {
+                    try
+                    {
+                        _scrollTimer.Tick += OnScrollTimerTick;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"订阅 Tick 事件失败: {ex.Message}");
+                        _logViewModel?.LogError($"订阅 Tick 事件失败: {ex.Message}");
+                    }
+                }
 
                 // 初始化命令
                 ClearLogCommand = _logViewModel?.ClearCommand;
-                CopyCommand = new RelayCommand(CopySelectedLogsFromDataGrid, null, "CopySelectedLogsFromDataGrid");
+                CopyCommand = new RelayCommand(() => CopySelectedLogsFromDataGrid());
                 CopyAllCommand = _logViewModel?.CopyAllCommand;
-                TestCommand = new RelayCommand(TestButton, null, "TestButton");
-                TestClearCommand = new RelayCommand(ClearLogsDirect, null, "ClearLogsDirect");
+                TestCommand = new RelayCommand(() => TestButton());
+                TestClearCommand = new RelayCommand(() => ClearLogsDirect());
 
                 // 直接设置按钮命令，绕过 XAML 绑定问题（添加空引用检查）
                 if (TestBtn != null) TestBtn.Command = TestCommand;
@@ -406,9 +443,20 @@ namespace SunEyeVision.UI.Views.Controls.Panels
         /// </summary>
         private void OnLogsUpdated(object? sender, LogBatchEventArgs e)
         {
+            // 节流控制：使用定时器限制滚动频率
             if (AutoScroll && LogDataGrid != null)
             {
-                LogDataGrid.ScrollIntoView(LogDataGrid.Items[LogDataGrid.Items.Count - 1]);
+                // 检查时间间隔，避免频繁滚动
+                var now = DateTime.UtcNow;
+                if ((now - _lastScrollTime).TotalMilliseconds >= _scrollThrottleInterval.TotalMilliseconds)
+                {
+                    _lastScrollTime = now;
+
+                    if (!_scrollTimer.IsEnabled)
+                    {
+                        _scrollTimer.Start();
+                    }
+                }
             }
 
             // 更新统计属性
@@ -418,6 +466,27 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             OnPropertyChanged(nameof(WarningCount));
             OnPropertyChanged(nameof(Statistics));
             OnPropertyChanged(nameof(StatisticsSummary));
+        }
+
+        /// <summary>
+        /// 滚动定时器事件处理
+        /// </summary>
+        private void OnScrollTimerTick(object? sender, EventArgs e)
+        {
+            _scrollTimer.Stop();
+
+            try
+            {
+                if (AutoScroll && LogDataGrid != null && LogDataGrid.Items.Count > 0)
+                {
+                    var lastItem = LogDataGrid.Items[^1];
+                    LogDataGrid.ScrollIntoView(lastItem);
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // 集合可能正在更新，忽略此异常
+            }
         }
 
         #endregion

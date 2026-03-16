@@ -179,5 +179,26 @@ namespace SunEyeVision.Workflow
 
             return node;
         }
+
+        /// <summary>
+        /// 克隆节点
+        /// </summary>
+        public WorkflowNode Clone()
+        {
+            var cloned = new WorkflowNode(
+                Guid.NewGuid().ToString(),
+                $"{Name}_副本",
+                Type
+            )
+            {
+                AlgorithmType = AlgorithmType,
+                IsEnabled = IsEnabled,
+                ParametersTypeName = ParametersTypeName,
+                Parameters = Parameters?.Clone(),
+                ParameterBindings = ParameterBindings?.Clone()
+            };
+
+            return cloned;
+        }
     }
 }

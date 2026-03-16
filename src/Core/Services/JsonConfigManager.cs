@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Core.Services
 {
@@ -77,40 +78,34 @@ namespace SunEyeVision.Core.Services
         {
             lock (_lockObject)
             {
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                };
-
-                var json = JsonSerializer.Serialize(_configs, options);
+                var json = JsonSerializer.Serialize(_configs, JsonSerializationOptions.Default);
                 File.WriteAllText(filePath, json);
             }
 
             await Task.CompletedTask;
         }
 
-        public async Task LoadFromFileAsync(string filePath)
+    public async Task LoadFromFileAsync(string filePath)
+    {
+        if (!File.Exists(filePath))
         {
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException($"配置文件不存在: {filePath}");
-            }
+            throw new FileNotFoundException($"配置文件不存在: {filePath}");
+        }
 
-            var json = await File.ReadAllTextAsync(filePath);
-            
-            lock (_lockObject)
+        var json = await File.ReadAllTextAsync(filePath);
+
+        lock (_lockObject)
+        {
+            _configs.Clear();
+            var loaded = JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonSerializationOptions.Default);
+            if (loaded != null)
             {
-                _configs.Clear();
-                var loaded = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                if (loaded != null)
+                foreach (var kvp in loaded)
                 {
-                    foreach (var kvp in loaded)
-                    {
-                        _configs[kvp.Key] = kvp.Value;
-                    }
+                    _configs[kvp.Key] = kvp.Value;
                 }
             }
         }
+    }
     }
 }

@@ -38,6 +38,8 @@ namespace SunEyeVision.UI.ViewModels
         private string _searchText = string.Empty;
         private bool _isDisposed = false;
         private bool _isCopying = false; // 防止重复复制
+        private DateTime _lastUpdateTime = DateTime.MinValue;
+        private readonly TimeSpan _throttleInterval = TimeSpan.FromMilliseconds(50); // 50ms节流间隔
 
         #endregion
 
@@ -366,6 +368,17 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private void OnLogsAdded(object? sender, LogBatchEventArgs e)
         {
+            var now = DateTime.UtcNow;
+
+            // 节流控制：限制UI更新频率
+            if ((now - _lastUpdateTime).TotalMilliseconds < _throttleInterval.TotalMilliseconds)
+            {
+                // 间隔未到，跳过本次更新
+                return;
+            }
+
+            _lastUpdateTime = now;
+
             // 触发更新事件
             LogsUpdated?.Invoke(this, e);
 

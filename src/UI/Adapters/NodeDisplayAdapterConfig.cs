@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.Adapters
     public static class ServiceInitializer
     {
         private static UILogWriter? _uiLogWriter;
-        private static ProjectManager? _projectManager;
+        private static SolutionManager? _solutionManager;
 
         /// <summary>
         /// 获取 UI 日志写入器（供 LogPanelViewModel 使用）
@@ -71,9 +71,9 @@ namespace SunEyeVision.UI.Adapters
         public static UILogWriter UILogWriter => _uiLogWriter ?? throw new InvalidOperationException("UILogWriter 未初始化，请先调用 InitializeServices()");
 
         /// <summary>
-        /// 获取项目管理器
+        /// 获取解决方案管理器
         /// </summary>
-        public static ProjectManager ProjectManager => _projectManager ?? throw new InvalidOperationException("ProjectManager 未初始化，请先调用 InitializeProjectManager()");
+        public static SolutionManager SolutionManager => _solutionManager ?? throw new InvalidOperationException("SolutionManager 未初始化，请先调用 InitializeSolutionManager()");
 
         /// <summary>
         /// 初始化所有服务。
@@ -88,18 +88,18 @@ namespace SunEyeVision.UI.Adapters
         }
 
         /// <summary>
-        /// 初始化项目管理器
+        /// 初始化解决方案管理器
         /// </summary>
         /// <param name="solutionsDirectory">解决方案目录，默认为solutions/</param>
-        public static void InitializeProjectManager(string? solutionsDirectory = null)
+        public static void InitializeSolutionManager(string? solutionsDirectory = null)
         {
-            if (_projectManager != null)
+            if (_solutionManager != null)
             {
                 return;
             }
 
             var logger = VisionLogger.Instance;
-            logger.Info("正在初始化项目管理器...", "ServiceInitializer");
+            logger.Info("正在初始化解决方案管理器...", "ServiceInitializer");
 
             // 如果未指定解决方案目录，使用默认目录
             if (string.IsNullOrWhiteSpace(solutionsDirectory))
@@ -107,9 +107,9 @@ namespace SunEyeVision.UI.Adapters
                 solutionsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "solutions");
             }
 
-            // 创建项目管理器
-            _projectManager = new ProjectManager(solutionsDirectory);
-            logger.Info($"项目管理器初始化完成，目录: {_projectManager.SolutionsDirectory}", "ServiceInitializer");
+            // 创建解决方案管理器
+            _solutionManager = new SolutionManager(solutionsDirectory);
+            logger.Info($"解决方案管理器初始化完成，目录: {_solutionManager.SolutionsDirectory}", "ServiceInitializer");
         }
 
         /// <summary>
