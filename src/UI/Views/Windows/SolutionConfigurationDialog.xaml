@@ -328,7 +328,7 @@
                                                             </Ellipse.Style>
                                                         </Ellipse>
                                                         <!-- 勾号（选中时显示） -->
-                                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold" Foreground="White"
+                                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold" Background="White"
                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                   Panel.ZIndex="1">
                                                             <TextBlock.Style>

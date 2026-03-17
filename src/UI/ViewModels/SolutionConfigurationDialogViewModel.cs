@@ -79,6 +79,9 @@ namespace SunEyeVision.UI.ViewModels
 
             InitializeCommands();
             LoadData();
+
+            // 监听元数据变更事件，自动刷新UI
+            _solutionManager.MetadataChanged += (sender, e) => LoadSolutions();
         }
 
         /// <summary>
@@ -239,37 +242,32 @@ namespace SunEyeVision.UI.ViewModels
 
                     try
                     {
-                        var solution = _solutionManager.CreateSolution(
-                            dialog.SolutionName,
-                            dialog.Description ?? "",
-                            dialog.SolutionPath);
-
-                        if (solution == null)
+                        // ✅ 使用新的 CreateNewSolution 方法，接受元数据
+                        var metadata = new SolutionMetadata
                         {
-                            LogError("SolutionManager.CreateSolution 返回了 null");
+                            Name = dialog.SolutionName,
+                            Description = dialog.Description ?? "",
+                            DirectoryPath = dialog.SolutionPath
+                        };
+
+                        var newMetadata = _solutionManager.CreateNewSolution(metadata);
+
+                        if (newMetadata == null)
+                        {
+                            LogError("SolutionManager.CreateNewSolution 返回了 null");
                             MessageBox.Show("创建解决方案失败: 返回了 null", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
 
-                        // 构建完整文件路径并保存到磁盘
-                        var solutionFilePath = Path.Combine(dialog.SolutionPath, $"{dialog.SolutionName}.solution");
-                        LogInfo($"准备保存解决方案文件: {solutionFilePath}");
-
-                        solution.Save(solutionFilePath);
-                        LogSuccess($"解决方案文件已保存: {solutionFilePath}");
-
-                        LogInfo($"解决方案创建成功: {solution.Id}, 名称={solution.Name}");
-
-                        // 创建元数据
-                        var metadata = SolutionMetadata.FromSolution(solution);
-                        SolutionMetadatas.Add(metadata);
+                        // 添加到UI列表
+                        SolutionMetadatas.Add(newMetadata);
                         LogInfo($"添加到列表，当前数量: {SolutionMetadatas.Count}");
 
                         // 设置选中状态
-                        SelectedMetadata = metadata;
+                        SelectedMetadata = newMetadata;
                         LogInfo($"已设置选中解决方案");
 
-                        LogSuccess($"创建解决方案成功: {solution.Name}");
+                        LogSuccess($"创建解决方案成功: {newMetadata.Name}");
                     }
                     catch (Exception ex)
                     {
@@ -302,7 +300,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 try
                 {
-                    var solution = _solutionManager.LoadSolutionFromPath(selectedPath);
+                    var solution = _solutionManager.OpenSolution(selectedPath);
                     if (solution != null)
                     {
                         // 创建元数据
@@ -346,22 +344,36 @@ namespace SunEyeVision.UI.ViewModels
 
             try
             {
-                // 需要先加载完整的 Solution 对象
-                var fullSolution = _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
-                if (fullSolution != null)
+                // 显示另存为对话框
+                var dialog = new NewSolutionDialog(defaultPath)
                 {
-                    var newSolution = _solutionManager.SaveSolutionAs(
-                        SelectedMetadata.Id,
-                        defaultName,
-                        defaultDescription,
-                        Path.Combine(defaultPath, $"{defaultName}.solution"));
+                    SolutionName = defaultName,
+                    Description = defaultDescription
+                };
+                var result = dialog.ShowDialog();
 
-                    if (newSolution != null)
+                if (result == true && !string.IsNullOrEmpty(dialog.SolutionName))
+                {
+                    // ✅ 文件级操作：直接复制文件，不加载完整 Solution 对象
+                    var targetFilePath = Path.Combine(dialog.SolutionPath, $"{dialog.SolutionName}.solution");
+
+                    // 需要先打开当前解决方案（如果尚未打开）
+                    if (SelectedSolution == null)
                     {
-                        var newMetadata = SolutionMetadata.FromSolution(newSolution);
+                        _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
+                    }
+
+                    var newMetadata = _solutionManager.SaveAsSolution(targetFilePath);
+
+                    if (newMetadata != null)
+                    {
                         SolutionMetadatas.Add(newMetadata);
                         SelectedMetadata = newMetadata;
-                        LogSuccess($"解决方案另存为: {defaultName}");
+                        LogSuccess($"解决方案另存为: {dialog.SolutionName}");
+                    }
+                    else
+                    {
+                        MessageBox.Show("另存为失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
@@ -421,28 +433,21 @@ namespace SunEyeVision.UI.ViewModels
 
             try
             {
-                // 需要先加载完整的 Solution 对象
-                var fullSolution = _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
-                if (fullSolution != null)
+                // ✅ 文件级操作：不加载完整 Solution 对象
+                var baseName = SelectedMetadata.Name;
+                var copyName = GenerateUniqueCopyName(baseName);
+                var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+                var newMetadata = _solutionManager.CopySolution(
+                    SelectedMetadata.FilePath,
+                    copyName,
+                    defaultPath);
+
+                if (newMetadata != null)
                 {
-                    var baseName = SelectedMetadata.Name;
-                    var copyName = GenerateUniqueCopyName(baseName);
-                    var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    var targetPath = Path.Combine(defaultPath, copyName);
-
-                    var newSolution = _solutionManager.SaveSolutionAs(
-                        SelectedMetadata.Id,
-                        copyName,
-                        SelectedMetadata.Description,
-                        Path.Combine(targetPath, $"{copyName}.solution"));
-
-                    if (newSolution != null)
-                    {
-                        var newMetadata = SolutionMetadata.FromSolution(newSolution);
-                        SolutionMetadatas.Add(newMetadata);
-                        SelectedMetadata = newMetadata;
-                        LogSuccess($"复制解决方案: {copyName}");
-                    }
+                    SolutionMetadatas.Add(newMetadata);
+                    SelectedMetadata = newMetadata;
+                    LogSuccess($"复制解决方案: {copyName}");
                 }
             }
             catch (Exception ex)
@@ -774,18 +779,13 @@ namespace SunEyeVision.UI.ViewModels
             // 使用 SolutionManager.GetAllMetadata() 获取所有元数据
             var metadataList = _solutionManager.GetAllMetadata();
 
-            // 过滤有效的元数据并添加到列表
-            var validMetadatas = metadataList
-                .Where(metadata => !string.IsNullOrEmpty(metadata.FilePath) && File.Exists(metadata.FilePath))
-                .ToList();
-
             // 批量添加，减少 UI 更新次数
-            foreach (var metadata in validMetadatas)
+            foreach (var metadata in metadataList)
             {
                 SolutionMetadatas.Add(metadata);
             }
 
-            LogInfo($"加载 {validMetadatas.Count} 个解决方案（元数据模式 + 缓存优化）");
+            LogInfo($"加载 {metadataList.Count} 个解决方案（元数据模式 + 缓存优化）");
         }
 
         /// <summary>

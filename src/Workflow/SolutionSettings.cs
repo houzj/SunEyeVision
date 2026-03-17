@@ -15,13 +15,13 @@ namespace SunEyeVision.Workflow;
 /// 解决方案用户设置
 /// </summary>
 /// <remarks>
-/// 职责：用户偏好设置和最近使用记录
+/// 职责：用户偏好设置和已知解决方案列表
 ///
 /// 特性：
 /// - 持久化到 JSON 文件
 /// - 继承 ObservableObject（支持 UI 绑定）
-/// - 线程安全集合（ObservableCollection + Lock）
-/// - 自动限制最近使用列表数量（最多20个）
+/// - 线程安全集合（Dictionary + Lock）
+/// - 已知解决方案列表（持久化存储）
 ///
 /// 设计原则（rule-002）：
 /// - 命名符合视觉软件行业标准
@@ -39,18 +39,17 @@ namespace SunEyeVision.Workflow;
 public class SolutionSettings : ObservableObject
 {
     private string _currentSolutionId = "";
-    private readonly object _recentSolutionsLock = new();
-    private readonly ILogger _logger;
 
-    /// <summary>
-    /// 最大最近使用数量
-    /// </summary>
-    public const int MaxRecentCount = 20;
+    // ✅ 使用公共属性进行序列化，避免私有字段序列化问题
+    // 内部使用锁保证线程安全，序列化时直接访问字典
+    private Dictionary<string, SolutionMetadata> _knownSolutions = new();
+
+    private readonly object _knownSolutionsLock = new();
+    private readonly ILogger _logger;
 
     /// <summary>
     /// 当前解决方案ID
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string CurrentSolutionId
     {
         get => _currentSolutionId;
@@ -58,21 +57,45 @@ public class SolutionSettings : ObservableObject
     }
 
     /// <summary>
-    /// 最近使用的解决方案（按访问时间排序，最多20个）
+    /// 已知解决方案列表（持久化存储）
     /// </summary>
-    [JsonIgnore]
-    public ObservableCollection<SolutionMetadata> RecentSolutions { get; private set; }
+    /// <remarks>
+    /// 序列化说明：
+    /// - 使用 [JsonPropertyName] 指定 JSON 属性名
+    /// - Getter 返回线程安全的克隆副本
+    /// - Setter 仅用于反序列化，直接替换内部字典
+    /// </remarks>
+    [JsonPropertyName("knownSolutions")]
+    public Dictionary<string, SolutionMetadata> KnownSolutions
+    {
+        get
+        {
+            lock (_knownSolutionsLock)
+            {
+                return _knownSolutions.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Clone());
+            }
+        }
+        set
+        {
+            // 仅用于反序列化
+            if (value != null)
+            {
+                lock (_knownSolutionsLock)
+                {
+                    _knownSolutions = value;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 用户偏好设置
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, object> UserPreferences { get; set; }
 
     /// <summary>
     /// 启动时跳过配置界面
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool SkipStartupConfig
     {
         get => GetPreference<bool>("SkipStartupConfig", false);
@@ -85,7 +108,6 @@ public class SolutionSettings : ObservableObject
     public SolutionSettings()
     {
         _currentSolutionId = "";
-        RecentSolutions = new ObservableCollection<SolutionMetadata>();
         UserPreferences = new Dictionary<string, object>();
         _logger = VisionLogger.Instance;
 
@@ -93,104 +115,76 @@ public class SolutionSettings : ObservableObject
     }
 
     /// <summary>
-    /// 添加到最近使用列表
+    /// 添加到已知解决方案列表
     /// </summary>
     /// <param name="metadata">元数据对象</param>
-    public void AddRecentSolution(SolutionMetadata metadata)
+    public void AddKnownSolution(SolutionMetadata metadata)
     {
         if (metadata == null)
         {
-            _logger.Log(LogLevel.Warning, "添加到最近使用失败：元数据为空", "SolutionSettings");
+            _logger.Log(LogLevel.Warning, "添加到已知解决方案失败：元数据为空", "SolutionSettings");
             return;
         }
 
-        lock (_recentSolutionsLock)
+        lock (_knownSolutionsLock)
         {
-            // 移除已存在的记录
-            var existing = RecentSolutions.FirstOrDefault(s => s.Id == metadata.Id);
-            if (existing != null)
-            {
-                RecentSolutions.Remove(existing);
-            }
-
             // 更新最后访问时间
             metadata.UpdateLastAccessTime();
 
-            // 添加到列表开头
-            RecentSolutions.Insert(0, metadata.Clone());
+            // 添加或更新到字典
+            _knownSolutions[metadata.Id] = metadata.Clone();
 
-            // 限制列表长度
-            while (RecentSolutions.Count > MaxRecentCount)
-            {
-                RecentSolutions.RemoveAt(RecentSolutions.Count - 1);
-            }
-
-            _logger.Log(LogLevel.Info, $"添加到最近使用: {metadata.Name} (Id={metadata.Id})", "SolutionSettings");
+            _logger.Log(LogLevel.Info, $"添加到已知解决方案: {metadata.Name} (Id={metadata.Id})", "SolutionSettings");
         }
     }
 
     /// <summary>
-    /// 从最近使用列表中移除
+    /// 从已知解决方案列表中移除
     /// </summary>
     /// <param name="solutionId">解决方案ID</param>
-    public void RemoveRecentSolution(string solutionId)
+    public void RemoveKnownSolution(string solutionId)
     {
         if (string.IsNullOrEmpty(solutionId))
         {
-            _logger.Log(LogLevel.Warning, "从最近使用移除失败：解决方案ID为空", "SolutionSettings");
+            _logger.Log(LogLevel.Warning, "从已知解决方案移除失败：解决方案ID为空", "SolutionSettings");
             return;
         }
 
-        lock (_recentSolutionsLock)
+        lock (_knownSolutionsLock)
         {
-            var existing = RecentSolutions.FirstOrDefault(s => s.Id == solutionId);
-            if (existing != null)
+            if (_knownSolutions.TryGetValue(solutionId, out var existing))
             {
-                RecentSolutions.Remove(existing);
-                _logger.Log(LogLevel.Info, $"从最近使用移除: {existing.Name} (Id={solutionId})", "SolutionSettings");
+                _knownSolutions.Remove(solutionId);
+                _logger.Log(LogLevel.Info, $"从已知解决方案移除: {existing.Name} (Id={solutionId})", "SolutionSettings");
             }
         }
     }
 
     /// <summary>
-    /// 清空最近使用列表
-    /// </summary>
-    public void ClearRecentSolutions()
-    {
-        lock (_recentSolutionsLock)
-        {
-            int count = RecentSolutions.Count;
-            RecentSolutions.Clear();
-            _logger.Log(LogLevel.Info, $"清空最近使用列表: 清空了 {count} 条记录", "SolutionSettings");
-        }
-    }
-
-    /// <summary>
-    /// 获取最近使用列表的副本（线程安全）
+    /// 获取已知解决方案列表（线程安全）
     /// </summary>
     /// <returns>元数据列表</returns>
-    public List<SolutionMetadata> GetRecentSolutionsCopy()
+    public List<SolutionMetadata> GetKnownSolutions()
     {
-        lock (_recentSolutionsLock)
+        lock (_knownSolutionsLock)
         {
-            return RecentSolutions.Select(m => m.Clone()).ToList();
+            return _knownSolutions.Values.Select(m => m.Clone()).ToList();
         }
     }
 
     /// <summary>
-    /// 获取最近使用列表中的指定解决方案
+    /// 检查是否包含指定解决方案
     /// </summary>
     /// <param name="solutionId">解决方案ID</param>
-    /// <returns>元数据对象，不存在返回 null</returns>
-    public SolutionMetadata? GetRecentSolution(string solutionId)
+    /// <returns>是否包含</returns>
+    public bool ContainsKnownSolution(string solutionId)
     {
         if (string.IsNullOrEmpty(solutionId))
-            return null;
+            return false;
 
-        lock (_recentSolutionsLock)
+        lock (_knownSolutionsLock)
         {
-            var metadata = RecentSolutions.FirstOrDefault(s => s.Id == solutionId);
-            return metadata?.Clone();
+            return _knownSolutions.ContainsKey(solutionId);
         }
     }
 
@@ -294,24 +288,24 @@ public class SolutionSettings : ObservableObject
                 // 加载基本属性
                 _currentSolutionId = settings.CurrentSolutionId;
 
-                // 加载最近使用列表（逐个添加，保持线程安全）
+                // 加载用户偏好
                 if (settings.UserPreferences != null)
                 {
                     UserPreferences = new Dictionary<string, object>(settings.UserPreferences);
                 }
 
-                // 加载最近使用列表
-                if (settings.RecentSolutions != null && settings.RecentSolutions.Count > 0)
+                // 加载已知解决方案列表（逐个添加，保持线程安全）
+                if (settings.KnownSolutions != null && settings.KnownSolutions.Count > 0)
                 {
-                    lock (_recentSolutionsLock)
+                    lock (_knownSolutionsLock)
                     {
-                        foreach (var metadata in settings.RecentSolutions)
+                        foreach (var kvp in settings.KnownSolutions)
                         {
-                            RecentSolutions.Add(metadata);
+                            _knownSolutions[kvp.Key] = kvp.Value;
                         }
                     }
 
-                    _logger.Log(LogLevel.Success, $"加载最近使用列表成功: {settings.RecentSolutions.Count} 条记录", "SolutionSettings");
+                    _logger.Log(LogLevel.Success, $"加载已知解决方案列表成功: {settings.KnownSolutions.Count} 条记录", "SolutionSettings");
                 }
 
                 _logger.Log(LogLevel.Success, $"加载设置成功: {filePath}", "SolutionSettings");
@@ -372,6 +366,9 @@ public class SolutionSettings : ObservableObject
     /// <returns>统计信息字符串</returns>
     public string GetStatistics()
     {
-        return $"设置统计: 当前解决方案={_currentSolutionId}, 最近使用={RecentSolutions.Count}, 偏好设置={UserPreferences.Count}";
+        lock (_knownSolutionsLock)
+        {
+            return $"设置统计: 当前解决方案={_currentSolutionId}, 已知解决方案={_knownSolutions.Count}, 偏好设置={UserPreferences.Count}";
+        }
     }
 }

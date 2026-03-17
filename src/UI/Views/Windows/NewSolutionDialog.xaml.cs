@@ -12,12 +12,32 @@ public partial class NewSolutionDialog : Window
     /// <summary>
     /// 解决方案名称
     /// </summary>
-    public string SolutionName => SolutionNameTextBox?.Text?.Trim() ?? string.Empty;
+    public string SolutionName
+    {
+        get => SolutionNameTextBox?.Text?.Trim() ?? string.Empty;
+        set
+        {
+            if (SolutionNameTextBox != null)
+            {
+                SolutionNameTextBox.Text = value;
+            }
+        }
+    }
 
     /// <summary>
     /// 描述
     /// </summary>
-    public string? Description => DescriptionTextBox?.Text?.Trim();
+    public string? Description
+    {
+        get => DescriptionTextBox?.Text?.Trim();
+        set
+        {
+            if (DescriptionTextBox != null)
+            {
+                DescriptionTextBox.Text = value;
+            }
+        }
+    }
 
     /// <summary>
     /// 解决方案路径

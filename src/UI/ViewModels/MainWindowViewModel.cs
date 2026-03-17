@@ -763,6 +763,11 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ShowSolutionConfigurationCommand { get; }
         public ICommand SwitchProjectCommand { get; }
 
+        // 管理器
+        public ICommand ShowGlobalVariableManagerCommand { get; }
+        public ICommand ShowCameraManagerCommand { get; }
+        public ICommand ShowCommunicationManagerCommand { get; }
+
         // 主窗口 ImageControl 获取委托 - 用于区域编辑器绑定
         /// <summary>
         /// 获取主窗口 ImageControl 的委托 - 用于区域编辑器绑定
@@ -888,6 +893,11 @@ namespace SunEyeVision.UI.ViewModels
             // 解决方案管理
             ShowSolutionConfigurationCommand = new RelayCommand(ExecuteShowSolutionConfiguration);
             SwitchProjectCommand = new RelayCommand(ExecuteSwitchProject);
+
+            // 管理器
+            ShowGlobalVariableManagerCommand = new RelayCommand(ExecuteShowGlobalVariableManager);
+            ShowCameraManagerCommand = new RelayCommand(ExecuteShowCameraManager);
+            ShowCommunicationManagerCommand = new RelayCommand(ExecuteShowCommunicationManager);
         }
 
         /// <summary>
@@ -1314,6 +1324,14 @@ namespace SunEyeVision.UI.ViewModels
             {
                 LogError($"保存当前解决方案失败: {ex.Message}", null, ex);
             }
+        }
+
+        /// <summary>
+        /// 同步UI层的工作流到底层工作流（公开接口）
+        /// </summary>
+        public void SyncWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, WorkflowTabViewModel tabInfo)
+        {
+            UpdateWorkflowFromUI(workflow, tabInfo);
         }
 
         /// <summary>
@@ -3336,10 +3354,8 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo("切换解决方案");
 
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-                var startupDecisionService = new StartupDecisionService(solutionManager);
-                var preselectSolutionId = startupDecisionService.GetRecentSolutionId();
 
-                var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager, preselectSolutionId);
+                var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager, null);
 
                 var result = configDialog.ShowDialog();
 
@@ -3364,6 +3380,93 @@ namespace SunEyeVision.UI.ViewModels
             catch (Exception ex)
             {
                 LogError("切换项目失败", null, ex);
+            }
+        }
+
+        /// <summary>
+        /// 显示全局变量管理器
+        /// </summary>
+        private void ExecuteShowGlobalVariableManager()
+        {
+            try
+            {
+                LogInfo("打开全局变量管理器");
+
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var currentSolution = solutionManager.CurrentSolution;
+
+                if (currentSolution == null)
+                {
+                    MessageBox.Show("请先打开一个解决方案", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var viewModel = new ViewModels.GlobalVariableManagerViewModel(solutionManager);
+                var dialog = new Views.Windows.GlobalVariableManagerDialog(viewModel);
+
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                LogError($"打开全局变量管理器失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 显示相机管理器
+        /// </summary>
+        private void ExecuteShowCameraManager()
+        {
+            try
+            {
+                LogInfo("打开相机管理器");
+
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var currentSolution = solutionManager.CurrentSolution;
+
+                if (currentSolution == null)
+                {
+                    MessageBox.Show("请先打开一个解决方案", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var viewModel = new ViewModels.CameraManagerViewModel(solutionManager);
+                var dialog = new Views.Windows.CameraManagerDialog(viewModel);
+
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                LogError($"打开相机管理器失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 显示通讯管理器
+        /// </summary>
+        private void ExecuteShowCommunicationManager()
+        {
+            try
+            {
+                LogInfo("打开通讯管理器");
+
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var currentSolution = solutionManager.CurrentSolution;
+
+                if (currentSolution == null)
+                {
+                    MessageBox.Show("请先打开一个解决方案", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var viewModel = new ViewModels.CommunicationManagerViewModel(solutionManager);
+                var dialog = new Views.Windows.CommunicationManagerDialog(viewModel);
+
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                LogError($"打开通讯管理器失败: {ex.Message}");
             }
         }
 

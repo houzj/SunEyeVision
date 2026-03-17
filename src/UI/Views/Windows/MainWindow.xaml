@@ -32,7 +32,7 @@
             <convertersPath:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
             <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
             <convertersVisibility:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-            <converters:ExpandIconConverter x:Key="ExpandIconConverter"/>
+            <convertersUI:ExpandIconConverter x:Key="ExpandIconConverter"/>
             <convertersVisibility:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <convertersNode:ImageAreaHeightConverter x:Key="ImageAreaHeightConverter"/>
         </ResourceDictionary>
@@ -90,8 +90,10 @@
                 <MenuItem Header="断点(_B)" InputGestureText="F9"/>
             </MenuItem>
             <MenuItem Header="工具(_T)">
-                <MenuItem Header="相机配置(_C)"/>
-                <MenuItem Header="参数管理(_P)"/>
+                <MenuItem Header="全局变量管理(_G)" Command="{Binding ShowGlobalVariableManagerCommand}"/>
+                <MenuItem Header="相机管理(_C)" Command="{Binding ShowCameraManagerCommand}"/>
+                <MenuItem Header="通讯管理(_M)" Command="{Binding ShowCommunicationManagerCommand}"/>
+                <Separator/>
                 <MenuItem Header="插件管理(_L)"/>
                 <MenuItem Header="系统设置(_S)"/>
                 <MenuItem Header="快捷键设置(_K)"/>

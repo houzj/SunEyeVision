@@ -43,7 +43,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 解决方案ID
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Id
     {
         get => _id;
@@ -53,7 +52,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 解决方案名称
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Name
     {
         get => _name;
@@ -63,7 +61,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 解决方案描述
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Description
     {
         get => _description;
@@ -73,7 +70,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 解决方案版本
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Version
     {
         get => _version;
@@ -83,7 +79,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 解决方案文件完整路径
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string FilePath
     {
         get => _filePath;
@@ -93,7 +88,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 目录路径
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string DirectoryPath
     {
         get => _directoryPath;
@@ -103,7 +97,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 创建时间
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime CreatedTime
     {
         get => _createdTime;
@@ -113,7 +106,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 修改时间
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime ModifiedTime
     {
         get => _modifiedTime;
@@ -123,7 +115,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 最后访问时间
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime LastAccessTime
     {
         get => _lastAccessTime;
@@ -133,7 +124,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 工作流数量
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int WorkflowCount
     {
         get => _workflowCount;
@@ -143,7 +133,6 @@ public class SolutionMetadata : ObservableObject
     /// <summary>
     /// 全局变量数量
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int GlobalVariableCount
     {
         get => _globalVariableCount;

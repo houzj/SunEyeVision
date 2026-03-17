@@ -16,7 +16,7 @@
         <convertersVisibility:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         <convertersVisibility:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
         <convertersVisibility:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-        <converters:ExpandIconConverter x:Key="ExpandIconConverter"/>
+        <convertersUI:ExpandIconConverter x:Key="ExpandIconConverter"/>
 
         <!-- ========== 紧凑模式样式 ========== -->
 

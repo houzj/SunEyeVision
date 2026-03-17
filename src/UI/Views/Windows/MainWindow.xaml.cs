@@ -351,7 +351,72 @@ namespace SunEyeVision.UI.Views.Windows
 
         #region 窗口事件
 
+        /// <summary>
+        /// 窗口关闭前事件 - 提示保存解决方案
+        /// </summary>
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                // 检查是否有当前解决方案
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                if (solutionManager?.CurrentSolution == null)
+                {
+                    base.OnClosing(e);
+                    return;
+                }
 
+                // 提示用户保存
+                var result = System.Windows.MessageBox.Show(
+                    $"是否保存当前解决方案 '{solutionManager.CurrentSolution.Name}' 的修改？",
+                    "保存解决方案",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                switch (result)
+                {
+                    case MessageBoxResult.Yes:
+                        // 保存解决方案
+                        try
+                        {
+                            SyncWorkflowsToSolution();
+                            solutionManager.SaveSolution();
+                            _viewModel?.AddLog(LogLevel.Success, "关闭前已保存解决方案", LogSource.UIOperation);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Windows.MessageBox.Show(
+                                $"保存解决方案失败: {ex.Message}",
+                                "保存失败",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                            e.Cancel = true;
+                            return;
+                        }
+                        break;
+
+                    case MessageBoxResult.Cancel:
+                        // 取消关闭
+                        e.Cancel = true;
+                        return;
+
+                    case MessageBoxResult.No:
+                        // 不保存，直接关闭
+                        _viewModel?.AddLog(LogLevel.Info, "未保存解决方案，直接关闭", LogSource.UIOperation);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"关闭窗口时发生错误: {ex.Message}",
+                    "错误",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
+            base.OnClosing(e);
+        }
 
         protected override void OnClosed(EventArgs e)
 
@@ -369,6 +434,37 @@ namespace SunEyeVision.UI.Views.Windows
 
             base.OnClosed(e);
 
+        }
+
+        /// <summary>
+        /// 同步UI层的工作流到底层解决方案
+        /// </summary>
+        private void SyncWorkflowsToSolution()
+        {
+            if (_viewModel?.WorkflowTabViewModel == null || _viewModel?.WorkflowTabViewModel.Tabs == null)
+                return;
+
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            if (solutionManager?.CurrentSolution == null)
+                return;
+
+            var solution = solutionManager.CurrentSolution;
+            
+            // 清空工作流列表
+            solution.Workflows.Clear();
+            
+            // 同步每个工作流
+            foreach (var workflowTab in _viewModel.WorkflowTabViewModel.Tabs)
+            {
+                // 创建新的工作流对象
+                var workflow = new SunEyeVision.Workflow.Workflow(workflowTab.Id, workflowTab.Name);
+                
+                // 同步节点和连接
+                _viewModel.SyncWorkflowFromUI(workflow, workflowTab);
+                
+                // 添加到解决方案
+                solution.Workflows.Add(workflow);
+            }
         }
 
 

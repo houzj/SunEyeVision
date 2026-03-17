@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace SunEyeVision.UI.Converters
+namespace SunEyeVision.UI.Converters.UI
 {
     /// <summary>
     /// 展开图标转换

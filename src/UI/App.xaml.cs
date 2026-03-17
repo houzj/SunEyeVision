@@ -96,61 +96,15 @@ public partial class App : Application
 
         switch (decision)
         {
-            case StartupDecision.LoadRecentAndStart:
-                // 自动加载最近解决方案并启动
-                var solutionId = startupDecisionService.GetRecentSolutionId();
-
-                if (!string.IsNullOrEmpty(solutionId))
-                {
-                    try
-                    {
-                        // ✅ 改进：使用 SolutionSettings 获取最近解决方案
-                        var currentSolutionMetadata = solutionManager.Settings.GetRecentSolution(solutionId);
-                        if (currentSolutionMetadata != null &&
-                            !string.IsNullOrEmpty(currentSolutionMetadata.FilePath) &&
-                            File.Exists(currentSolutionMetadata.FilePath))
-                        {
-                            var solution = solutionManager.LoadSolutionFromPath(currentSolutionMetadata.FilePath);
-                            if (solution != null)
-                            {
-                                solutionManager.SetCurrentSolution(solution);
-                                solutionManager.Settings.CurrentSolutionId = solution.Id;  // ✅ 改进：使用 SolutionSettings
-                                mainWindow.Show();
-                                break;
-                            }
-                        }
-                        // 加载失败，显示配置界面
-                        ShowConfigurationDialog(mainWindow, solutionId);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 加载失败，显示配置界面
-                        Debug.WriteLine($"[App] 加载解决方案失败: {ex.Message}");
-                        ShowConfigurationDialog(mainWindow, solutionId);
-                    }
-                }
-                else
-                {
-                    // 无有效解决方案，显示配置界面
-                    ShowConfigurationDialog(mainWindow);
-                }
-                break;
-
             case StartupDecision.SkipConfiguration:
                 // 跳过配置，直接进入主界面
                 mainWindow.Show();
                 break;
 
-            case StartupDecision.ShowConfigurationWithEmptyState:
-            case StartupDecision.ShowConfigurationWithRecentSolution:
             case StartupDecision.ShowConfiguration:
             default:
-                // 显示配置界面
-                var preselectSolutionId = decision == StartupDecision.ShowConfigurationWithRecentSolution
-                    ? startupDecisionService.GetRecentSolutionId()
-                    : null;
-
-                ShowConfigurationDialog(mainWindow, preselectSolutionId);
+                // 显示配置界面（无预选）
+                ShowConfigurationDialog(mainWindow, null);
                 break;
         }
     }
