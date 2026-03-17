@@ -462,6 +462,160 @@ public class SolutionManager
     }
 
     /// <summary>
+    /// 重命名解决方案文件
+    /// </summary>
+    /// <param name="solutionId">解决方案ID</param>
+    /// <param name="newName">新名称</param>
+    /// <returns>是否成功</returns>
+    /// <remarks>
+    /// 重命名流程：
+    /// 1. 验证参数有效性
+    /// 2. 获取元数据（从注册表）
+    /// 3. 构建新文件路径
+    /// 4. 重命名物理文件（通过 Repository.Move）
+    /// 5. 更新 Solution 对象（如果已加载）
+    /// 6. 更新元数据
+    /// 7. 更新注册表和缓存
+    /// 8. 更新 KnownSolutions 设置
+    /// 
+    /// 设计原则（rule-002）：
+    /// - 方法使用 PascalCase，动词开头
+    /// - 命名符合视觉软件行业标准
+    /// 
+    /// 日志规范（rule-003）：
+    /// - 使用 VisionLogger 记录日志
+    /// - 使用适当的日志级别
+    /// </remarks>
+    public bool RenameSolutionFile(string solutionId, string newName)
+    {
+        // 1. 参数验证
+        if (string.IsNullOrEmpty(solutionId))
+        {
+            _logger.Log(LogLevel.Warning, "重命名解决方案失败：解决方案ID为空", "SolutionManager");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            _logger.Log(LogLevel.Warning, "重命名解决方案失败：新名称为空", "SolutionManager");
+            return false;
+        }
+
+        // 2. 获取元数据
+        var metadata = _registry.Get(solutionId);
+        if (metadata == null)
+        {
+            _logger.Log(LogLevel.Warning, $"重命名解决方案失败：元数据不存在: {solutionId}", "SolutionManager");
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(metadata.FilePath))
+        {
+            _logger.Log(LogLevel.Warning, $"重命名解决方案失败：文件路径为空: {metadata.Name}", "SolutionManager");
+            return false;
+        }
+
+        // 3. 检查名称是否变化
+        if (metadata.Name == newName)
+        {
+            _logger.Log(LogLevel.Info, $"解决方案名称未变化，跳过重命名: {metadata.Name}", "SolutionManager");
+            return true;
+        }
+
+        try
+        {
+            var oldName = metadata.Name;
+            var oldFilePath = metadata.FilePath;
+            var directory = Path.GetDirectoryName(oldFilePath) ?? _solutionsDirectory;
+            var newFilePath = Path.Combine(directory, $"{newName}.solution");
+
+            _logger.Log(LogLevel.Info, $"开始重命名解决方案: {oldName} -> {newName}", "SolutionManager");
+            _logger.Log(LogLevel.Info, $"文件路径: {oldFilePath} -> {newFilePath}", "SolutionManager");
+
+            // 4. 检查目标文件是否已存在
+            if (_repository.Exists(newFilePath))
+            {
+                _logger.Log(LogLevel.Warning, $"重命名解决方案失败：目标文件已存在: {newFilePath}", "SolutionManager");
+                return false;
+            }
+
+            // 5. 更新 Solution 对象（如果已加载）
+            Solution? solution = null;
+
+            if (CurrentSolution?.Id == solutionId)
+            {
+                // 当前解决方案已加载，直接更新
+                solution = CurrentSolution;
+                solution.Name = newName;
+                solution.FilePath = newFilePath;
+                _logger.Log(LogLevel.Info, "更新当前已加载的 Solution 对象", "SolutionManager");
+            }
+            else
+            {
+                // 需要加载 Solution 对象来更新名称
+                solution = _repository.Load(oldFilePath);
+                if (solution == null)
+                {
+                    _logger.Log(LogLevel.Warning, $"重命名解决方案失败：无法加载 Solution: {oldFilePath}", "SolutionManager");
+                    return false;
+                }
+                solution.Name = newName;
+                solution.FilePath = newFilePath;
+                _logger.Log(LogLevel.Info, "临时加载 Solution 对象用于重命名", "SolutionManager");
+            }
+
+            // 6. 重命名物理文件
+            bool moveSuccess = _repository.Move(oldFilePath, newFilePath, overwrite: false);
+            if (!moveSuccess)
+            {
+                _logger.Log(LogLevel.Error, $"重命名解决方案失败：文件移动失败: {oldFilePath} -> {newFilePath}", "SolutionManager");
+                return false;
+            }
+
+            // 7. 保存 Solution 到新文件（更新文件内的 Name 字段）
+            bool saveSuccess = _repository.Save(solution, newFilePath);
+            if (!saveSuccess)
+            {
+                _logger.Log(LogLevel.Error, $"重命名解决方案失败：保存 Solution 失败: {newFilePath}", "SolutionManager");
+                // 尝试回滚：将文件移回
+                _repository.Move(newFilePath, oldFilePath, overwrite: true);
+                return false;
+            }
+
+            // 8. 更新元数据
+            metadata.Name = newName;
+            metadata.FilePath = newFilePath;
+            metadata.DirectoryPath = directory;
+            metadata.ModifiedTime = DateTime.Now;
+
+            // 9. 更新注册表和缓存
+            _registry.Register(metadata);
+            _cache.Set(metadata.Id, metadata);
+
+            // 10. 更新 KnownSolutions 设置
+            _settings.AddKnownSolution(metadata);
+            SaveSettings();
+
+            // 11. 更新当前文件路径（如果是当前解决方案）
+            if (CurrentSolution?.Id == solutionId)
+            {
+                CurrentFilePath = newFilePath;
+            }
+
+            // 12. 触发事件
+            MetadataChanged?.Invoke(this, EventArgs.Empty);
+
+            _logger.Log(LogLevel.Success, $"重命名解决方案成功: {oldName} -> {newName}", "SolutionManager");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Error, $"重命名解决方案失败: {metadata.Name} -> {newName}, 错误: {ex.Message}", "SolutionManager", ex);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 复制解决方案（文件级操作，不加载完整 Solution 对象）
     /// </summary>
     /// <param name="sourcePath">源文件路径</param>
@@ -588,31 +742,168 @@ public class SolutionManager
     /// <summary>
     /// 刷新元数据（从KnownSolutions加载并验证文件存在性）
     /// </summary>
+    /// <remarks>
+    /// 改进（2026-03-17）：添加文件名变化检测
+    /// - 自动检测用户直接在文件系统中修改的文件名
+    /// - 通过ID匹配查找重命名的文件
+    /// - 自动更新 KnownSolutions、Registry、Cache 中的路径
+    /// - 记录日志并触发事件通知UI层
+    /// </remarks>
     public void RefreshMetadata()
     {
         _logger.Log(LogLevel.Info, "开始刷新元数据：从KnownSolutions加载", "SolutionManager");
 
         // 从Settings加载已知解决方案
         var knownSolutions = _settings.GetKnownSolutions();
+        var validMetadataList = new List<SolutionMetadata>();
+        int renamedCount = 0;
+        int missingCount = 0;
 
-        // 验证文件存在性并过滤
-        var validMetadataList = knownSolutions
-            .Where(metadata => !string.IsNullOrEmpty(metadata.FilePath) && _repository.Exists(metadata.FilePath))
-            .ToList();
+        foreach (var metadata in knownSolutions)
+        {
+            // ==================== 步骤1：检测文件名变化 ====================
+            if (!string.IsNullOrEmpty(metadata.FilePath) && !_repository.Exists(metadata.FilePath))
+            {
+                // 文件不存在，尝试查找重命名的文件
+                var newFilePath = TryFindRenamedFile(metadata);
 
-        // 注册元数据
+                if (newFilePath != null)
+                {
+                    // ✅ 步骤2：更新元数据对象
+                    var oldName = metadata.Name;
+                    var oldFilePath = metadata.FilePath;
+
+                    metadata.FilePath = newFilePath;
+                    metadata.Name = Path.GetFileNameWithoutExtension(newFilePath);
+                    metadata.DirectoryPath = Path.GetDirectoryName(newFilePath) ?? "";
+                    metadata.ModifiedTime = DateTime.Now;
+
+                    // ✅ 步骤3：更新 KnownSolutions（后面统一保存）
+                    _settings.AddKnownSolution(metadata);
+
+                    // ✅ 步骤4：更新当前解决方案（如果已加载）
+                    if (CurrentSolution?.Id == metadata.Id)
+                    {
+                        CurrentSolution.FilePath = newFilePath;
+                        CurrentSolution.Name = metadata.Name;
+                    }
+
+                    // ✅ 步骤5：记录日志
+                    _logger.Log(LogLevel.Warning,
+                        $"检测到文件名变化: {oldName} → {metadata.Name} (Id={metadata.Id})",
+                        "SolutionManager");
+                    _logger.Log(LogLevel.Info,
+                        $"文件路径: {oldFilePath} → {newFilePath}",
+                        "SolutionManager");
+
+                    renamedCount++;
+                }
+                else
+                {
+                    // 文件确实丢失，记录警告
+                    _logger.Log(LogLevel.Warning,
+                        $"解决方案文件丢失: {metadata.Name} (FilePath={metadata.FilePath}, Id={metadata.Id})",
+                        "SolutionManager");
+                    missingCount++;
+                    continue; // 跳过此元数据
+                }
+            }
+
+            // 添加到有效列表
+            if (!string.IsNullOrEmpty(metadata.FilePath))
+            {
+                validMetadataList.Add(metadata);
+            }
+        }
+
+        // ✅ 步骤6：注册元数据到 Registry
         int registeredCount = _registry.RegisterBatch(validMetadataList);
 
-        // 加入缓存
+        // ✅ 步骤7：加入缓存
         foreach (var metadata in validMetadataList)
         {
             _cache.Set(metadata.Id, metadata);
         }
 
-        _logger.Log(LogLevel.Success, $"刷新元数据完成: 已知解决方案 {knownSolutions.Count} 个, 有效 {validMetadataList.Count} 个, 注册了 {registeredCount} 个", "SolutionManager");
+        // ✅ 步骤8：持久化更新 settings.json（如果有重命名）
+        if (renamedCount > 0)
+        {
+            SaveSettings();
+            _logger.Log(LogLevel.Success,
+                $"已自动更新 {renamedCount} 个重命名的解决方案",
+                "SolutionManager");
+        }
 
-        // 触发事件
+        _logger.Log(LogLevel.Success,
+            $"刷新元数据完成: 已知 {knownSolutions.Count} 个, 有效 {validMetadataList.Count} 个, 注册 {registeredCount} 个, 重命名 {renamedCount} 个, 丢失 {missingCount} 个",
+            "SolutionManager");
+
+        // ✅ 步骤9：触发事件通知 UI 层
         MetadataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// 尝试查找重命名的文件
+    /// </summary>
+    /// <param name="metadata">元数据对象</param>
+    /// <returns>新文件路径，未找到返回 null</returns>
+    /// <remarks>
+    /// 查找策略：
+    /// 1. 在同目录下查找所有 .solution 文件
+    /// 2. 快速读取元数据（不加载完整 Solution）
+    /// 3. 比较 ID 是否匹配
+    /// 4. 找到匹配则返回新文件路径
+    ///
+    /// 性能优化：
+    /// - 使用 LoadMetadata() 仅读取元数据，不加载完整对象
+    /// - 文件数量较少时性能影响可忽略
+    /// - 文件数量较多时（>100个）建议用户使用重命名功能
+    /// </remarks>
+    private string? TryFindRenamedFile(SolutionMetadata metadata)
+    {
+        if (string.IsNullOrEmpty(metadata.FilePath))
+            return null;
+
+        var directory = Path.GetDirectoryName(metadata.FilePath);
+        if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+            return null;
+
+        try
+        {
+            // 在同目录下查找所有 .solution 文件
+            var solutionFiles = Directory.GetFiles(directory, "*.solution", SearchOption.TopDirectoryOnly);
+
+            _logger.Log(LogLevel.Info,
+                $"在目录 {directory} 中查找 {solutionFiles.Length} 个 .solution 文件，匹配 ID={metadata.Id}",
+                "SolutionManager");
+
+            foreach (var filePath in solutionFiles)
+            {
+                // 快速读取元数据（不加载完整 Solution）
+                var fileMetadata = _repository.LoadMetadata(filePath);
+
+                if (fileMetadata?.Id == metadata.Id)
+                {
+                    // 找到了！ID 匹配
+                    _logger.Log(LogLevel.Info,
+                        $"找到匹配文件: {filePath} (ID={metadata.Id})",
+                        "SolutionManager");
+                    return filePath;
+                }
+            }
+
+            _logger.Log(LogLevel.Info,
+                $"未找到匹配文件: ID={metadata.Id}",
+                "SolutionManager");
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Warning,
+                $"查找重命名文件失败: {ex.Message}",
+                "SolutionManager");
+        }
+
+        return null;
     }
 
     /// <summary>

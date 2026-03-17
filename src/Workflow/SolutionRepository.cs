@@ -378,4 +378,60 @@ public class SolutionRepository
             return false;
         }
     }
+
+    /// <summary>
+    /// 移动/重命名解决方案文件
+    /// </summary>
+    /// <param name="sourcePath">源文件路径</param>
+    /// <param name="destPath">目标文件路径</param>
+    /// <param name="overwrite">是否覆盖（默认 false）</param>
+    /// <returns>是否成功</returns>
+    public bool Move(string sourcePath, string destPath, bool overwrite = false)
+    {
+        if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destPath))
+        {
+            _logger.Log(LogLevel.Warning, "移动解决方案失败：路径为空", "SolutionRepository");
+            return false;
+        }
+
+        if (!File.Exists(sourcePath))
+        {
+            _logger.Log(LogLevel.Warning, $"移动解决方案失败：源文件不存在: {sourcePath}", "SolutionRepository");
+            return false;
+        }
+
+        if (!overwrite && File.Exists(destPath))
+        {
+            _logger.Log(LogLevel.Warning, $"移动解决方案失败：目标文件已存在: {destPath}", "SolutionRepository");
+            return false;
+        }
+
+        try
+        {
+            // 确保目标目录存在
+            var directory = Path.GetDirectoryName(destPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                _logger.Log(LogLevel.Info, $"创建目录: {directory}", "SolutionRepository");
+            }
+
+            // 如果目标文件存在且允许覆盖，先删除
+            if (overwrite && File.Exists(destPath))
+            {
+                File.Delete(destPath);
+                _logger.Log(LogLevel.Info, $"删除已存在的目标文件: {destPath}", "SolutionRepository");
+            }
+
+            // 移动文件
+            File.Move(sourcePath, destPath);
+            _logger.Log(LogLevel.Success, $"移动解决方案成功: {sourcePath} -> {destPath}", "SolutionRepository");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Error, $"移动解决方案失败: {sourcePath} -> {destPath}, 错误: {ex.Message}", "SolutionRepository", ex);
+            return false;
+        }
+    }
 }

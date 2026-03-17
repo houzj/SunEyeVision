@@ -201,12 +201,20 @@ namespace SunEyeVision.UI.ViewModels
             OpenSolutionCommand = new RelayCommand(OpenSolution, () => true);
             CopySolutionCommand = new RelayCommand(CopySolution, () => CanCopySolution());
             RenameSolutionCommand = new RelayCommand(RenameSolution, () => CanRenameSolution());
-            EditSolutionCommand = new RelayCommand(EditSolution, () => CanEditSolution());
+            
+            // ✅ 使用公共版本：有参方法 + 无参 canExecute（使用 _ 忽略参数）
+            EditSolutionCommand = new RelayCommand(EditSolution, _ => CanEditSolution());
+            
             SaveSolutionAsCommand = new RelayCommand(SaveSolutionAs, () => CanSaveSolutionAs());
             DeleteSolutionCommand = new RelayCommand(DeleteSolution, () => CanDeleteSolution());
-            SelectCommand = new RelayCommand(SelectSolution, () => true);
+            
+            // ✅ 使用公共版本：有参方法 + 无参 canExecute
+            SelectCommand = new RelayCommand(SelectSolution, _ => true);
+            
             SkipCommand = new RelayCommand(Skip, () => true);
-            LaunchCommand = new RelayCommand(Launch, () => true);
+            
+            // ✅ 使用公共版本：有参方法 + 无参 canExecute
+            LaunchCommand = new RelayCommand(Launch, _ => true);
         }
 
         /// <summary>
@@ -572,67 +580,100 @@ namespace SunEyeVision.UI.ViewModels
             return SelectedMetadata != null;
         }
 
-        private void EditSolution()
+        private void EditSolution(object? parameter)
         {
-            if (SelectedMetadata == null) return;
+            // 优先使用命令参数，其次使用 SelectedMetadata
+            var metadata = parameter as SolutionMetadata ?? SelectedMetadata;
+
+            if (metadata == null) return;
 
             try
             {
-                var dialog = new EditSolutionDialog(SelectedMetadata.Name, SelectedMetadata.Description)
+                var dialog = new EditSolutionDialog(metadata.Name, metadata.Description)
                 {
                     Owner = _ownerWindow
                 };
 
                 var result = dialog.ShowDialog();
 
-                if (result == true)
+                if (result != true)
                 {
-                    var oldName = SelectedMetadata.Name;
-                    var oldDescription = SelectedMetadata.Description;
+                    LogInfo("用户取消编辑解决方案");
+                    return;
+                }
 
-                    // 检查是否有变化
-                    bool nameChanged = dialog.SolutionName != SelectedMetadata.Name;
-                    bool descriptionChanged = dialog.Description != SelectedMetadata.Description;
+                // ==================== 步骤1：前置检查 ====================
+                var oldName = metadata.Name;
+                bool nameChanged = dialog.SolutionName != metadata.Name;
+                bool descriptionChanged = (dialog.Description ?? "") != (metadata.Description ?? "");
 
-                    if (!nameChanged && !descriptionChanged)
+                if (!nameChanged && !descriptionChanged)
+                {
+                    LogInfo("解决方案信息未变化");
+                    return;
+                }
+
+                // ==================== 步骤2：判断是否需要重命名文件 ====================
+                string filePath = metadata.FilePath;
+
+                if (nameChanged)
+                {
+                    LogInfo($"重命名解决方案: {oldName} → {dialog.SolutionName}");
+
+                    bool renameSuccess = _solutionManager.RenameSolutionFile(metadata.Id, dialog.SolutionName);
+                    if (!renameSuccess)
                     {
-                        LogInfo("解决方案信息未变化");
+                        LogError($"重命名解决方案失败: {oldName} → {dialog.SolutionName}");
+                        MessageBox.Show("重命名解决方案失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    // 需要加载完整的 Solution 对象来编辑
-                    var fullSolution = _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
-                    if (fullSolution != null)
+                    // 获取新的文件路径
+                    var updatedMetadata = _solutionManager.GetMetadata(metadata.Id);
+                    if (updatedMetadata == null)
                     {
-                        // 更新名称和描述
-                        if (nameChanged)
-                        {
-                            fullSolution.Name = dialog.SolutionName;
-                            LogInfo($"解决方案名称: {oldName} → {dialog.SolutionName}");
-                        }
+                        LogError("获取更新后的元数据失败");
+                        return;
+                    }
+                    filePath = updatedMetadata.FilePath;
+                }
 
-                        if (descriptionChanged)
-                        {
-                            fullSolution.Description = dialog.Description ?? "";
-                            LogInfo($"解决方案描述已更新");
-                        }
+                // ==================== 步骤3：从实际文件加载 ====================
+                var fullSolution = _solutionManager.LoadSolutionOnly(filePath);
+                if (fullSolution == null)
+                {
+                    LogError("加载解决方案失败");
+                    return;
+                }
 
-                        // 保存到文件
-                        _solutionManager.SaveSolution(fullSolution.FilePath);
+                // ==================== 步骤4：更新所有元数据 ====================
+                fullSolution.Name = dialog.SolutionName;
+                fullSolution.Description = dialog.Description ?? "";
 
-                        // 更新元数据
-                        var newMetadata = SolutionMetadata.FromSolution(fullSolution);
-                        var index = SolutionMetadatas.IndexOf(SelectedMetadata);
-                        SolutionMetadatas[index] = newMetadata;
-                        SelectedMetadata = newMetadata;
+                // ==================== 步骤5：保存解决方案文件 ====================
+                _solutionManager.SaveSolution(filePath);
 
-                        LogSuccess("解决方案信息已保存");
+                // ==================== 步骤6：更新 UI ====================
+                // 直接更新对象属性（SolutionMetadata 继承 ObservableObject，会自动触发 UI 更新）
+                metadata.Name = dialog.SolutionName;
+                metadata.Description = dialog.Description ?? "";
+                metadata.ModifiedTime = DateTime.Now;
+
+                // 如果名称变化，还需要更新 FilePath 等属性
+                if (nameChanged)
+                {
+                    var updatedMetadata = _solutionManager.GetMetadata(metadata.Id);
+                    if (updatedMetadata != null)
+                    {
+                        metadata.FilePath = updatedMetadata.FilePath;
+                        metadata.DirectoryPath = updatedMetadata.DirectoryPath;
                     }
                 }
-                else
-                {
-                    LogInfo("用户取消编辑解决方案");
-                }
+
+                // 更新选中状态
+                SelectedMetadata = metadata;
+
+                LogSuccess($"解决方案已更新: {dialog.SolutionName}");
             }
             catch (Exception ex)
             {
@@ -811,48 +852,6 @@ namespace SunEyeVision.UI.ViewModels
             var invalidChars = Path.GetInvalidFileNameChars();
             var sanitized = string.Join("_", fileName.Split(invalidChars));
             return sanitized;
-        }
-
-        #endregion
-
-        #region 辅助类
-
-        /// <summary>
-        /// 简单的命令实现（支持参数传递）
-        /// </summary>
-        private class RelayCommand : ICommand
-        {
-            private readonly Action<object?> _execute;
-            private readonly Func<bool> _canExecute;
-
-            public RelayCommand(Action execute, Func<bool> canExecute)
-            {
-                _execute = (parameter) => execute();
-                _canExecute = canExecute ?? (() => true);
-            }
-
-            public RelayCommand(Action<object?> execute, Func<bool> canExecute)
-            {
-                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-                _canExecute = canExecute ?? (() => true);
-            }
-
-            public event EventHandler? CanExecuteChanged;
-
-            public bool CanExecute(object? parameter)
-            {
-                return _canExecute();
-            }
-
-            public void Execute(object? parameter)
-            {
-                _execute(parameter);
-            }
-
-            public void RaiseCanExecuteChanged()
-            {
-                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-            }
         }
 
         #endregion
