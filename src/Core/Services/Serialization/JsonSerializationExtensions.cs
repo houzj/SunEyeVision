@@ -53,19 +53,5 @@ namespace System.Text.Json
 
             return JsonSerializer.Deserialize<T>(json, JsonSerializationOptions.Default);
         }
-
-        /// <summary>
-        /// 将JSON字符串反序列化为对象（使用兼容配置）
-        /// </summary>
-        /// <typeparam name="T">对象类型</typeparam>
-        /// <param name="json">JSON字符串</param>
-        /// <returns>反序列化的对象</returns>
-        public static T? FromJsonCompatibility<T>(this string json)
-        {
-            if (string.IsNullOrWhiteSpace(json))
-                return default;
-
-            return JsonSerializer.Deserialize<T>(json, JsonSerializationOptions.Compatibility);
-        }
     }
 }

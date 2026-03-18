@@ -1340,20 +1340,57 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo("保存当前解决方案");
-
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+
+                // 1. 如果没有当前解决方案，弹出新建对话框
                 if (solutionManager.CurrentSolution == null)
                 {
-                    LogWarning("没有当前解决方案");
-                    return;
+                    LogInfo("没有当前解决方案，弹出新建对话框");
+
+                    var defaultPath = solutionManager.SolutionsDirectory;
+                    var dialog = new Views.Windows.NewSolutionDialog(defaultPath)
+                    {
+                        Owner = System.Windows.Application.Current.MainWindow
+                    };
+
+                    if (dialog.ShowDialog() == true)
+                    {
+                        // 创建新解决方案
+                        var metadata = new SolutionMetadata
+                        {
+                            Name = dialog.SolutionName,
+                            Description = dialog.Description ?? "",
+                            DirectoryPath = dialog.SolutionPath
+                        };
+
+                        var newMetadata = solutionManager.CreateNewSolution(metadata);
+                        LogSuccess($"创建新解决方案: {newMetadata.Name}");
+
+                        // 打开新创建的解决方案
+                        var solution = solutionManager.OpenSolution(newMetadata.FilePath);
+                        if (solution == null)
+                        {
+                            LogError("打开新创建的解决方案失败");
+                            return;
+                        }
+
+                        LogSuccess($"已打开解决方案: {newMetadata.Name}");
+                    }
+                    else
+                    {
+                        LogInfo("用户取消新建解决方案");
+                        return;
+                    }
                 }
 
-                // 保存当前解决方案
+                // 2. 同步UI数据到Solution对象
+                SaveSolutionData(solutionManager);
+
+                // 3. 保存解决方案
                 solutionManager.SaveSolution();
 
-                var metadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
-                LogSuccess($"已保存当前解决方案: {metadata?.Name ?? "未命名"}");
+                var savedMetadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
+                LogSuccess($"已保存当前解决方案: {savedMetadata?.Name ?? "未命名"}");
             }
             catch (Exception ex)
             {
@@ -1468,6 +1505,67 @@ namespace SunEyeVision.UI.ViewModels
 
             // 更新工作流元数据
             workflow.Name = tabInfo.Name;
+        }
+
+        /// <summary>
+        /// 同步UI数据到Solution对象
+        /// </summary>
+        /// <param name="solutionManager">解决方案管理器</param>
+        private void SaveSolutionData(SolutionManager solutionManager)
+        {
+            if (solutionManager.CurrentSolution == null)
+            {
+                LogWarning("无法保存数据：当前解决方案为空");
+                return;
+            }
+
+            var solution = solutionManager.CurrentSolution;
+
+            // 1. 同步工作流
+            // 清空现有的工作流列表
+            solution.Workflows.Clear();
+
+            // 从 WorkflowTabViewModel 同步工作流
+            if (WorkflowTabViewModel != null)
+            {
+                foreach (var tab in WorkflowTabViewModel.Tabs)
+                {
+                    // 查找现有工作流或创建新工作流
+                    var workflow = solution.Workflows.FirstOrDefault(w => w.Id == tab.Id);
+                    if (workflow == null)
+                    {
+                        workflow = new SunEyeVision.Workflow.Workflow
+                        {
+                            Id = tab.Id,
+                            Name = tab.Name
+                        };
+                        solution.Workflows.Add(workflow);
+                    }
+
+                    // 同步工作流数据
+                    UpdateWorkflowFromUI(workflow, tab);
+                }
+            }
+
+            // 2. 同步节点参数
+            // 遍历所有工作流节点，保存参数
+            foreach (var tab in WorkflowTabViewModel.Tabs)
+            {
+                foreach (var node in tab.WorkflowNodes)
+                {
+                    // 将 Dictionary<string, object> 转换为 ToolParameters
+                    var toolParameters = ConvertDictionaryToToolParameters(node.Parameters);
+                    solution.SaveNodeParameters(node.Id, toolParameters);
+                }
+            }
+
+            // 3. 其他数据已直接操作 Solution 对象
+            // - GlobalVariables：通过 GlobalVariableManagerViewModel 直接操作（实时同步）
+            // - Communications：通过 CommunicationManagerViewModel 直接操作（实时同步）
+            // - Devices：通过 DeviceManagerViewModel 直接操作（实时同步）
+            // 无需在此同步
+
+            LogInfo("UI数据已同步到解决方案");
         }
 
         /// <summary>

@@ -126,6 +126,13 @@ public class SolutionSettings : ObservableObject
             return;
         }
 
+        // 防御性检查：Id不能为空
+        if (string.IsNullOrEmpty(metadata.Id))
+        {
+            _logger.Log(LogLevel.Warning, $"添加到已知解决方案失败：元数据Id为空（Name={metadata.Name}）", "SolutionSettings");
+            return;
+        }
+
         lock (_knownSolutionsLock)
         {
             // 更新最后访问时间

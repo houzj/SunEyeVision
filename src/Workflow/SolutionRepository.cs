@@ -110,35 +110,40 @@ public class SolutionRepository
             var root = jsonDoc.RootElement;
 
             var metadata = SolutionMetadata.Create(filePath);
+            
+            // ✅ 从 JSON 读取 ID（仍在 Solution 中）
             metadata.Id = root.TryGetProperty("Id", out var idElement) ? idElement.GetString() ?? "" : "";
-            metadata.Name = root.TryGetProperty("Name", out var nameElement) ? nameElement.GetString() ?? "" : "";
-            metadata.Description = root.TryGetProperty("Description", out var descElement) ? descElement.GetString() ?? "" : "";
-            metadata.Version = root.TryGetProperty("Version", out var verElement) ? verElement.GetString() ?? "" : "1.0";
+            
+            // ✅ Name 从文件名推断（去除 .solution 扩展名）
+            // 原因：Solution 类已不包含 Name 属性，JSON 文件中无此字段
+            metadata.Name = Path.GetFileNameWithoutExtension(filePath);
+            
+            // ✅ Version 从 JSON 读取（仍在 Solution 中）
+            metadata.Version = root.TryGetProperty("Version", out var verElement) 
+                ? verElement.GetString() ?? "1.0" 
+                : "1.0";
+            
+            // ✅ Description 设为空字符串（需要从 KnownSolutions 获取）
+            // 原因：Solution 类已不包含 Description 属性
+            metadata.Description = "";
+            
+            // ✅ 时间信息从文件系统读取（JSON 中已不存在）
+            var fileInfo = new FileInfo(filePath);
+            metadata.CreatedTime = fileInfo.CreationTime;
+            metadata.ModifiedTime = fileInfo.LastWriteTime;
 
-            // 尝试读取时间信息（优先使用JSON中的时间）
-            if (root.TryGetProperty("CreatedTime", out var createdElement))
-            {
-                metadata.CreatedTime = createdElement.GetDateTime();
-            }
-
-            if (root.TryGetProperty("ModifiedTime", out var modifiedElement))
-            {
-                metadata.ModifiedTime = modifiedElement.GetDateTime();
-            }
-
-            // 尝试读取工作流数量
+            // ✅ 读取统计数据（仍在 Solution 中）
             if (root.TryGetProperty("Workflows", out var workflowsElement) && workflowsElement.ValueKind == JsonValueKind.Array)
             {
                 metadata.WorkflowCount = workflowsElement.GetArrayLength();
             }
 
-            // 尝试读取全局变量数量
             if (root.TryGetProperty("GlobalVariables", out var varsElement) && varsElement.ValueKind == JsonValueKind.Array)
             {
                 metadata.GlobalVariableCount = varsElement.GetArrayLength();
             }
 
-            _logger.Log(LogLevel.Info, $"加载元数据成功: {metadata.Name} -> {filePath}", "SolutionRepository");
+            _logger.Log(LogLevel.Info, $"加载元数据成功: {metadata.Name} (Id={metadata.Id}) <- {filePath}", "SolutionRepository");
             return metadata;
         }
         catch (Exception ex)

@@ -1062,8 +1062,28 @@ public class SolutionManager
     {
         _logger.Log(LogLevel.Info, $"开始批量加载元数据: 数量={filePaths.Count()}", "SolutionManager");
 
-        // 加载元数据
+        // ✅ 加载元数据（从文件名推断基本元数据）
         var metadataList = _repository.LoadMetadataBatch(filePaths);
+
+        // ✅ 补充：从 KnownSolutions 获取详细元数据（Description 等）
+        foreach (var metadata in metadataList)
+        {
+            var knownMetadata = _settings.GetKnownSolutions()
+                .FirstOrDefault(m => m.Id == metadata.Id);
+            
+            if (knownMetadata != null)
+            {
+                // 使用 KnownSolutions 中的详细信息覆盖
+                metadata.Name = knownMetadata.Name;  // 使用用户自定义的名称
+                metadata.Description = knownMetadata.Description;
+                metadata.CreatedTime = knownMetadata.CreatedTime;
+                metadata.ModifiedTime = knownMetadata.ModifiedTime;
+                
+                _logger.Log(LogLevel.Info, 
+                    $"从 KnownSolutions 补充元数据: {metadata.Name} (Id={metadata.Id})", 
+                    "SolutionManager");
+            }
+        }
 
         // 注册元数据
         int registeredCount = _registry.RegisterBatch(metadataList);
