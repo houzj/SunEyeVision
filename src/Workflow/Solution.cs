@@ -12,9 +12,20 @@ using SunEyeVision.Core.Services.Serialization;
 namespace SunEyeVision.Workflow;
 
 /// <summary>
-/// 解决方案（与VisionMaster对齐的架构）
+/// 解决方案（纯数据模型，元数据已分离到 SolutionMetadata）
 /// </summary>
 /// <remarks>
+/// 架构改进（2026-03-18）：
+/// - 元数据（Name、Description、times）已分离到 SolutionMetadata
+/// - Solution 只包含实际数据（Workflows、NodeParameters、GlobalVariables等）
+/// - 通过 ID 与 SolutionMetadata 关联
+/// - FilePath 为运行时属性，不序列化到文件
+/// 
+/// 设计原则（rule-005）：
+/// - 最优和最合理：直接序列化，不需要转换层
+/// - JSON格式直观：使用 System.Text.Json 多态序列化
+/// - 单一职责：Solution 只负责存储实际数据
+/// 
 /// 完全对齐VisionMaster架构，一个解决方案包含：
 /// - 工作流列表：执行逻辑定义
 /// - 节点参数：所有节点的工具参数配置（替代Recipe/RecipeGroup概念）
@@ -23,49 +34,13 @@ namespace SunEyeVision.Workflow;
 /// - 通讯配置：PLC、串口等通讯配置
 /// - 数据库配置：数据存储配置
 /// - 执行策略：工作流执行策略
-/// 
-/// 重要变更：
-/// - 移除了Recipe/RecipeGroup概念
-/// - 一个解决方案只有一套参数配置
-/// - 参数直接存储在Solution.NodeParameters中
-/// - 运行时切换产品通过加载不同的Solution实现
 /// </remarks>
 public class Solution : ObservableObject
 {
-    private string _name = "新建解决方案";
-    private string _description = "";
-    private DateTime _createdTime = DateTime.Now;
-    private DateTime _modifiedTime = DateTime.Now;
-    private DateTime _lastAccessTime = DateTime.Now;
-
     /// <summary>
-    /// 解决方案ID
+    /// 解决方案ID（不可变，与 SolutionMetadata 关联）
     /// </summary>
     public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    /// <summary>
-    /// 解决方案名称
-    /// </summary>
-    public string Name
-    {
-        get => _name;
-        set => SetProperty(ref _name, value, "解决方案名称");
-    }
-
-    /// <summary>
-    /// 解决方案描述
-    /// </summary>
-    public string Description
-    {
-        get => _description;
-        set => SetProperty(ref _description, value, "解决方案描述");
-    }
-
-    /// <summary>
-    /// 解决方案文件完整路径
-    /// </summary>
-    [JsonIgnore]
-    public string? FilePath { get; set; }
 
     /// <summary>
     /// 解决方案版本
@@ -73,31 +48,10 @@ public class Solution : ObservableObject
     public string Version { get; set; } = "1.0";
 
     /// <summary>
-    /// 创建时间
+    /// 解决方案文件完整路径（运行时属性，不序列化）
     /// </summary>
-    public DateTime CreatedTime
-    {
-        get => _createdTime;
-        set => SetProperty(ref _createdTime, value, "创建时间");
-    }
-
-    /// <summary>
-    /// 修改时间
-    /// </summary>
-    public DateTime ModifiedTime
-    {
-        get => _modifiedTime;
-        set => SetProperty(ref _modifiedTime, value, "修改时间");
-    }
-
-    /// <summary>
-    /// 最后访问时间
-    /// </summary>
-    public DateTime LastAccessTime
-    {
-        get => _lastAccessTime;
-        set => SetProperty(ref _lastAccessTime, value);
-    }
+    [JsonIgnore]
+    public string? FilePath { get; set; }
 
     /// <summary>
     /// 工作流列表
@@ -160,8 +114,6 @@ public class Solution : ObservableObject
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentException("文件路径不能为空");
 
-        // 更新修改时间
-        ModifiedTime = DateTime.Now;
         FilePath = filePath;
 
         var directory = Path.GetDirectoryName(filePath);
@@ -171,14 +123,14 @@ public class Solution : ObservableObject
             Directory.CreateDirectory(directory);
         }
 
-        VisionLogger.Instance.Log(LogLevel.Info, $"开始序列化解决方案: {Name}", "Solution");
+        VisionLogger.Instance.Log(LogLevel.Info, $"开始序列化解决方案: Id={Id}", "Solution");
         var json = JsonSerializer.Serialize(this, JsonSerializationOptions.Default);
         VisionLogger.Instance.Log(LogLevel.Info, $"序列化完成, JSON长度: {json.Length} 字符", "Solution");
 
         File.WriteAllText(filePath, json);
 
         var fileInfo = new FileInfo(filePath);
-        VisionLogger.Instance.Log(LogLevel.Success, $"保存解决方案: {Name} -> {filePath}, 文件大小: {fileInfo.Length} 字节", "Solution");
+        VisionLogger.Instance.Log(LogLevel.Success, $"保存解决方案: Id={Id} -> {filePath}, 文件大小: {fileInfo.Length} 字节", "Solution");
     }
 
     /// <summary>
@@ -196,7 +148,7 @@ public class Solution : ObservableObject
             if (solution != null)
             {
                 solution.FilePath = filePath;
-                VisionLogger.Instance.Log(LogLevel.Info, $"加载解决方案: {solution.Name} -> {filePath}", "Solution");
+                VisionLogger.Instance.Log(LogLevel.Info, $"加载解决方案: Id={solution.Id} -> {filePath}", "Solution");
             }
 
             return solution;
@@ -211,16 +163,12 @@ public class Solution : ObservableObject
     /// <summary>
     /// 创建新解决方案
     /// </summary>
-    public static Solution CreateNew(string name)
+    public static Solution CreateNew()
     {
-        var now = DateTime.Now;
         return new Solution
         {
             Id = Guid.NewGuid().ToString(),
-            Name = name,
             Version = "1.0",
-            CreatedTime = now,
-            ModifiedTime = now,
             Workflows = new List<Workflow>(),
             NodeParameters = new Dictionary<string, ToolParameters>(),
             GlobalVariables = new List<GlobalVariable>(),
@@ -412,8 +360,6 @@ public class Solution : ObservableObject
         return new Solution
         {
             Id = Guid.NewGuid().ToString(),
-            Name = $"{Name} (副本)",
-            Description = Description,
             Version = Version,
             Workflows = Workflows.Select(w => w.Clone()).ToList(),
             NodeParameters = new Dictionary<string, ToolParameters>(
@@ -437,11 +383,6 @@ public class Solution : ObservableObject
     public (bool IsValid, List<string> Errors) Validate()
     {
         var errors = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(Name))
-        {
-            errors.Add("解决方案名称不能为空");
-        }
 
         // 验证工作流
         foreach (var workflow in Workflows)

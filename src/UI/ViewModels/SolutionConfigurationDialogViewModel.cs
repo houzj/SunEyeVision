@@ -50,6 +50,10 @@ namespace SunEyeVision.UI.ViewModels
         // 辅助属性：选中的元数据ID（用于XAML数据触发器）
         public string? SelectedMetadataId => SelectedMetadata?.Id;
 
+        // 辅助属性：当前打开的解决方案ID（用于XAML数据触发器）
+        public string? CurrentSolutionId => _solutionManager.CurrentSolution?.Id
+                                           ?? _solutionManager.Settings.CurrentSolutionId;
+
         // 状态3：完整的 Solution 对象（懒加载，仅在启动时加载）
         private Solution? _selectedSolution;
         public Solution? SelectedSolution
@@ -60,6 +64,7 @@ namespace SunEyeVision.UI.ViewModels
                 if (SetProperty(ref _selectedSolution, value))
                 {
                     OnPropertyChanged(nameof(SelectedSolutionId));
+                    OnPropertyChanged(nameof(CurrentSolutionId));
                 }
             }
         }
@@ -80,8 +85,13 @@ namespace SunEyeVision.UI.ViewModels
             InitializeCommands();
             LoadData();
 
-            // 监听元数据变更事件，自动刷新UI
-            _solutionManager.MetadataChanged += (sender, e) => LoadSolutions();
+            // ✅ 监听细粒度事件，实现增量更新
+            _solutionManager.SolutionAdded += OnSolutionAdded;
+            _solutionManager.SolutionRemoved += OnSolutionRemoved;
+            _solutionManager.SolutionRenamed += OnSolutionRenamed;
+            _solutionManager.SolutionUpdated += OnSolutionUpdated;
+            _solutionManager.MetadataRefreshed += OnMetadataRefreshed;
+            _solutionManager.CurrentSolutionChanged += OnCurrentSolutionChanged;
         }
 
         /// <summary>
@@ -181,11 +191,6 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand CopySolutionCommand { get; private set; } = null!;
 
         /// <summary>
-        /// 重命名解决方案命令
-        /// </summary>
-        public ICommand RenameSolutionCommand { get; private set; } = null!;
-
-        /// <summary>
         /// 编辑解决方案命令（名称+描述）
         /// </summary>
         public ICommand EditSolutionCommand { get; private set; } = null!;
@@ -200,7 +205,6 @@ namespace SunEyeVision.UI.ViewModels
             NewSolutionCommand = new RelayCommand(NewSolution, () => true);
             OpenSolutionCommand = new RelayCommand(OpenSolution, () => true);
             CopySolutionCommand = new RelayCommand(CopySolution, () => CanCopySolution());
-            RenameSolutionCommand = new RelayCommand(RenameSolution, () => CanRenameSolution());
             
             // ✅ 使用公共版本：有参方法 + 无参 canExecute（使用 _ 忽略参数）
             EditSolutionCommand = new RelayCommand(EditSolution, _ => CanEditSolution());
@@ -311,8 +315,24 @@ namespace SunEyeVision.UI.ViewModels
                     var solution = _solutionManager.OpenSolution(selectedPath);
                     if (solution != null)
                     {
-                        // 创建元数据
-                        var metadata = SolutionMetadata.FromSolution(solution);
+                        // 获取元数据
+                        var metadata = _solutionManager.GetMetadata(solution.Id);
+                        if (metadata == null)
+                        {
+                            // 如果无法获取元数据，创建一个基本的
+                            metadata = new SolutionMetadata
+                            {
+                                Id = solution.Id,
+                                Version = solution.Version,
+                                FilePath = solution.FilePath ?? "",
+                                DirectoryPath = selectedPath,
+                                CreatedTime = System.IO.File.GetCreationTime(solution.FilePath!),
+                                ModifiedTime = System.IO.File.GetLastWriteTime(solution.FilePath!),
+                                Name = System.IO.Path.GetFileNameWithoutExtension(solution.FilePath),
+                                Description = ""
+                            };
+                            metadata.UpdateStatistics(solution);
+                        }
 
                         // 检查是否已存在
                         if (!SolutionMetadatas.Any(s => s.Id == solution.Id))
@@ -322,7 +342,7 @@ namespace SunEyeVision.UI.ViewModels
 
                         // 设置选中状态
                         SelectedMetadata = metadata;
-                        LogSuccess($"打开解决方案: {solution.Name}");
+                        LogSuccess($"打开解决方案: {metadata.Name}");
                     }
                     else
                     {
@@ -465,116 +485,6 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        private bool CanRenameSolution()
-        {
-            return SelectedMetadata != null;
-        }
-
-        private void RenameSolution()
-        {
-            if (SelectedMetadata == null) return;
-
-            // 创建简单的重命名对话框
-            var dialog = new Window
-            {
-                Title = "重命名解决方案",
-                Width = 400,
-                Height = 150,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                ResizeMode = ResizeMode.NoResize,
-                Owner = _ownerWindow
-            };
-
-            var grid = new Grid { Margin = new Thickness(20) };
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var label = new TextBlock { Text = "请输入新的解决方案名称:", Margin = new Thickness(0, 0, 0, 10) };
-            Grid.SetRow(label, 0);
-
-            var textBox = new TextBox
-            {
-                Text = SelectedMetadata.Name,
-                Margin = new Thickness(0, 0, 0, 15),
-                Padding = new Thickness(8, 6, 8, 6)
-            };
-            Grid.SetRow(textBox, 1);
-
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            Grid.SetRow(buttonPanel, 3);
-
-            var cancelButton = new Button
-            {
-                Content = "取消",
-                Width = 100,
-                Height = 32,
-                Margin = new Thickness(0, 0, 8, 0)
-            };
-            var okButton = new Button
-            {
-                Content = "确定",
-                Width = 100,
-                Height = 32
-            };
-
-            buttonPanel.Children.Add(cancelButton);
-            buttonPanel.Children.Add(okButton);
-
-            grid.Children.Add(label);
-            grid.Children.Add(textBox);
-            grid.Children.Add(buttonPanel);
-
-            dialog.Content = grid;
-
-            string? newName = null;
-            okButton.Click += (s, e) =>
-            {
-                newName = textBox.Text.Trim();
-                dialog.DialogResult = true;
-                dialog.Close();
-            };
-
-            cancelButton.Click += (s, e) =>
-            {
-                dialog.DialogResult = false;
-                dialog.Close();
-            };
-
-            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(newName) && newName != SelectedMetadata.Name)
-            {
-                try
-                {
-                    // 需要加载完整的 Solution 对象来重命名
-                    var fullSolution = _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
-                    if (fullSolution != null)
-                    {
-                        var oldName = fullSolution.Name;
-                        fullSolution.Name = newName;
-                        _solutionManager.SaveSolution(fullSolution.FilePath);
-
-                        // 更新元数据
-                        var newMetadata = SolutionMetadata.FromSolution(fullSolution);
-                        var index = SolutionMetadatas.IndexOf(SelectedMetadata);
-                        SolutionMetadatas[index] = newMetadata;
-                        SelectedMetadata = newMetadata;
-
-                        LogSuccess($"重命名解决方案: {oldName} → {newName}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError($"重命名解决方案失败: {ex.Message}");
-                    MessageBox.Show($"重命名解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
         private bool CanEditSolution()
         {
             return SelectedMetadata != null;
@@ -613,9 +523,7 @@ namespace SunEyeVision.UI.ViewModels
                     return;
                 }
 
-                // ==================== 步骤2：判断是否需要重命名文件 ====================
-                string filePath = metadata.FilePath;
-
+                // ==================== 步骤2：重命名文件（如果名称变化） ====================
                 if (nameChanged)
                 {
                     LogInfo($"重命名解决方案: {oldName} → {dialog.SolutionName}");
@@ -628,40 +536,7 @@ namespace SunEyeVision.UI.ViewModels
                         return;
                     }
 
-                    // 获取新的文件路径
-                    var updatedMetadata = _solutionManager.GetMetadata(metadata.Id);
-                    if (updatedMetadata == null)
-                    {
-                        LogError("获取更新后的元数据失败");
-                        return;
-                    }
-                    filePath = updatedMetadata.FilePath;
-                }
-
-                // ==================== 步骤3：从实际文件加载 ====================
-                var fullSolution = _solutionManager.LoadSolutionOnly(filePath);
-                if (fullSolution == null)
-                {
-                    LogError("加载解决方案失败");
-                    return;
-                }
-
-                // ==================== 步骤4：更新所有元数据 ====================
-                fullSolution.Name = dialog.SolutionName;
-                fullSolution.Description = dialog.Description ?? "";
-
-                // ==================== 步骤5：保存解决方案文件 ====================
-                _solutionManager.SaveSolution(filePath);
-
-                // ==================== 步骤6：更新 UI ====================
-                // 直接更新对象属性（SolutionMetadata 继承 ObservableObject，会自动触发 UI 更新）
-                metadata.Name = dialog.SolutionName;
-                metadata.Description = dialog.Description ?? "";
-                metadata.ModifiedTime = DateTime.Now;
-
-                // 如果名称变化，还需要更新 FilePath 等属性
-                if (nameChanged)
-                {
+                    // 获取新的元数据（FilePath 已更新）
                     var updatedMetadata = _solutionManager.GetMetadata(metadata.Id);
                     if (updatedMetadata != null)
                     {
@@ -670,8 +545,13 @@ namespace SunEyeVision.UI.ViewModels
                     }
                 }
 
-                // 更新选中状态
-                SelectedMetadata = metadata;
+                // ==================== 步骤3：更新元数据 ====================
+                metadata.Name = dialog.SolutionName;
+                metadata.Description = dialog.Description ?? "";
+                metadata.ModifiedTime = DateTime.Now;
+
+                // ==================== 步骤4：保存元数据（不加载 Solution 文件） ====================
+                _solutionManager.UpdateMetadata(metadata);
 
                 LogSuccess($"解决方案已更新: {dialog.SolutionName}");
             }
@@ -752,7 +632,7 @@ namespace SunEyeVision.UI.ViewModels
                 if (fullSolution != null)
                 {
                     SelectedSolution = fullSolution;
-                    LogInfo($"加载完整解决方案对象: {fullSolution.Name}");
+                    LogInfo($"加载完整解决方案对象: Id={fullSolution.Id}");
 
                     _solutionManager.SetCurrentSolution(fullSolution);
                     _solutionManager.Settings.CurrentSolutionId = fullSolution.Id;
@@ -767,7 +647,7 @@ namespace SunEyeVision.UI.ViewModels
                         _ownerWindow.Close();
                     }
 
-                    LogSuccess($"启动解决方案: {fullSolution.Name}");
+                    LogSuccess($"启动解决方案: {metadataToLaunch.Name}");
                 }
                 else
                 {
@@ -827,6 +707,99 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             LogInfo($"加载 {metadataList.Count} 个解决方案（元数据模式 + 缓存优化）");
+        }
+
+        /// <summary>
+        /// 解决方案添加事件处理
+        /// </summary>
+        /// <remarks>
+        /// 增量更新：直接添加到集合，不重新加载
+        /// </remarks>
+        private void OnSolutionAdded(object? sender, SolutionMetadataEventArgs e)
+        {
+            if (e.Metadata != null)
+            {
+                SolutionMetadatas.Add(e.Metadata);
+                LogInfo($"添加解决方案到列表: {e.Metadata.Name}");
+            }
+        }
+
+        /// <summary>
+        /// 解决方案删除事件处理
+        /// </summary>
+        /// <remarks>
+        /// 增量更新：直接从集合移除，不重新加载
+        /// </remarks>
+        private void OnSolutionRemoved(object? sender, SolutionMetadataEventArgs e)
+        {
+            var toRemove = SolutionMetadatas.FirstOrDefault(s => s.Id == e.SolutionId);
+            if (toRemove != null)
+            {
+                SolutionMetadatas.Remove(toRemove);
+                LogInfo($"从列表移除解决方案: {toRemove.Name}");
+            }
+        }
+
+        /// <summary>
+        /// 解决方案重命名事件处理
+        /// </summary>
+        /// <remarks>
+        /// 增量更新：直接更新属性，不重新加载
+        /// </remarks>
+        private void OnSolutionRenamed(object? sender, SolutionMetadataEventArgs e)
+        {
+            var toUpdate = SolutionMetadatas.FirstOrDefault(s => s.Id == e.Metadata?.Id);
+            if (toUpdate != null && e.Metadata != null)
+            {
+                toUpdate.Name = e.Metadata.Name;
+                toUpdate.FilePath = e.Metadata.FilePath;
+                toUpdate.DirectoryPath = e.Metadata.DirectoryPath;
+                toUpdate.ModifiedTime = e.Metadata.ModifiedTime;
+                LogInfo($"重命名解决方案: {e.OldName} → {e.NewName}");
+            }
+        }
+
+        /// <summary>
+        /// 解决方案更新事件处理
+        /// </summary>
+        /// <remarks>
+        /// 增量更新：直接更新属性，不重新加载
+        /// </remarks>
+        private void OnSolutionUpdated(object? sender, SolutionMetadataEventArgs e)
+        {
+            var toUpdate = SolutionMetadatas.FirstOrDefault(s => s.Id == e.Metadata?.Id);
+            if (toUpdate != null && e.Metadata != null)
+            {
+                toUpdate.Name = e.Metadata.Name;
+                toUpdate.Description = e.Metadata.Description;
+                toUpdate.ModifiedTime = e.Metadata.ModifiedTime;
+                LogInfo($"更新解决方案元数据: {e.Metadata.Name}");
+            }
+        }
+
+        /// <summary>
+        /// 元数据刷新事件处理
+        /// </summary>
+        /// <remarks>
+        /// 全量刷新：重新加载整个列表
+        /// 触发场景：启动扫描、手动扫描、手动刷新
+        /// </remarks>
+        private void OnMetadataRefreshed(object? sender, EventArgs e)
+        {
+            LoadSolutions();
+            LogInfo("元数据已刷新，重新加载列表");
+        }
+
+        /// <summary>
+        /// 当前解决方案变更事件处理
+        /// </summary>
+        /// <remarks>
+        /// 增量更新：更新 CurrentSolutionId，触发属性通知
+        /// </remarks>
+        private void OnCurrentSolutionChanged(object? sender, SolutionMetadataEventArgs e)
+        {
+            OnPropertyChanged(nameof(CurrentSolutionId));
+            LogInfo($"当前解决方案变更: {e.Metadata?.Name}");
         }
 
         /// <summary>

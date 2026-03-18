@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -68,7 +68,7 @@ public class SolutionRepository
             if (solution != null)
             {
                 solution.FilePath = filePath;
-                _logger.Log(LogLevel.Success, $"加载解决方案成功: {solution.Name} -> {filePath}", "SolutionRepository");
+                _logger.Log(LogLevel.Success, $"加载解决方案成功: Id={solution.Id} -> {filePath}", "SolutionRepository");
             }
             else
             {
@@ -170,8 +170,6 @@ public class SolutionRepository
 
         try
         {
-            // 更新修改时间
-            solution.ModifiedTime = DateTime.Now;
             solution.FilePath = filePath;
 
             // 确保目录存在
@@ -186,7 +184,7 @@ public class SolutionRepository
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);
-            _logger.Log(LogLevel.Success, $"保存解决方案成功: {solution.Name} -> {filePath}, 文件大小: {fileInfo.Length} 字节", "SolutionRepository");
+            _logger.Log(LogLevel.Success, $"保存解决方案成功: Id={solution.Id} -> {filePath}, 文件大小: {fileInfo.Length} 字节", "SolutionRepository");
             return true;
         }
         catch (Exception ex)

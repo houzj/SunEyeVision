@@ -328,6 +328,44 @@
                                                 </Border.Style>
                                             </Border>
                                             
+                                            <!-- 右下角"打开"状态角标（方案1+方案4组合） -->
+                                            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                    Margin="0,0,-4,-4"
+                                                    Width="52" Height="20"
+                                                    CornerRadius="10"
+                                                    Background="#2196F3"
+                                                    BorderBrush="White"
+                                                    BorderThickness="2">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="2" Opacity="0.3"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Style.Triggers>
+                                                            <!-- 当前打开的解决方案 -->
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                        <Binding Path="Id"/>
+                                                                        <Binding Path="DataContext.CurrentSolutionId" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                    </MultiBinding>
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="📂" FontSize="9" Margin="3,0,1,0"/>
+                                                        <TextBlock Text="打开" FontSize="9" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                            
                                             <!-- 主内容区域 -->
                                             <Grid Margin="12,10,12,10">
                                                 <Grid.RowDefinitions>

@@ -55,7 +55,7 @@ public class SolutionMetadata : ObservableObject
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value, "解决方案名称");
+        set => SetProperty(ref _name, value);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class SolutionMetadata : ObservableObject
     public string Description
     {
         get => _description;
-        set => SetProperty(ref _description, value, "解决方案描述");
+        set => SetProperty(ref _description, value);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ public class SolutionMetadata : ObservableObject
     public string Version
     {
         get => _version;
-        set => SetProperty(ref _version, value, "解决方案版本");
+        set => SetProperty(ref _version, value);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public class SolutionMetadata : ObservableObject
     public string FilePath
     {
         get => _filePath;
-        set => SetProperty(ref _filePath, value, "文件路径");
+        set => SetProperty(ref _filePath, value);
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public class SolutionMetadata : ObservableObject
     public string DirectoryPath
     {
         get => _directoryPath;
-        set => SetProperty(ref _directoryPath, value, "目录路径");
+        set => SetProperty(ref _directoryPath, value);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class SolutionMetadata : ObservableObject
     public DateTime CreatedTime
     {
         get => _createdTime;
-        set => SetProperty(ref _createdTime, value, "创建时间");
+        set => SetProperty(ref _createdTime, value);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public class SolutionMetadata : ObservableObject
     public DateTime ModifiedTime
     {
         get => _modifiedTime;
-        set => SetProperty(ref _modifiedTime, value, "修改时间");
+        set => SetProperty(ref _modifiedTime, value);
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public class SolutionMetadata : ObservableObject
     public int WorkflowCount
     {
         get => _workflowCount;
-        set => SetProperty(ref _workflowCount, value, "工作流数量");
+        set => SetProperty(ref _workflowCount, value);
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public class SolutionMetadata : ObservableObject
     public int GlobalVariableCount
     {
         get => _globalVariableCount;
-        set => SetProperty(ref _globalVariableCount, value, "全局变量数量");
+        set => SetProperty(ref _globalVariableCount, value);
     }
 
     /// <summary>
@@ -168,6 +168,19 @@ public class SolutionMetadata : ObservableObject
     }
 
     /// <summary>
+    /// 更新统计数据（在加载 Solution 后调用）
+    /// </summary>
+    /// <param name="solution">解决方案对象</param>
+    public void UpdateStatistics(Solution solution)
+    {
+        if (solution == null)
+            throw new ArgumentNullException(nameof(solution));
+
+        WorkflowCount = solution.Workflows?.Count ?? 0;
+        GlobalVariableCount = solution.GlobalVariables?.Count ?? 0;
+    }
+
+    /// <summary>
     /// 创建轻量级元数据实例
     /// </summary>
     /// <param name="filePath">解决方案文件路径</param>
@@ -186,26 +199,36 @@ public class SolutionMetadata : ObservableObject
     }
 
     /// <summary>
-    /// 从 Solution 对象创建元数据
+    /// 从 Solution 对象创建元数据（已废弃：Solution 不再包含元数据）
     /// </summary>
     /// <param name="solution">解决方案对象</param>
     /// <returns>元数据实例</returns>
+    /// <remarks>
+    /// 注意：Solution 已不再包含 Name、Description、times 等元数据属性。
+    /// 此方法仅用于兼容旧代码，从文件路径推断基本元数据。
+    /// 推荐使用 SolutionRepository.LoadMetadata() 方法直接从文件加载元数据。
+    /// </remarks>
+    [Obsolete("Solution 已不再包含元数据，推荐使用 SolutionRepository.LoadMetadata()")]
     public static SolutionMetadata FromSolution(Solution solution)
     {
         if (solution == null)
             throw new ArgumentNullException(nameof(solution));
 
+        // 从文件路径推断元数据
+        var filePath = solution.FilePath ?? "";
+        var fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
+
         return new SolutionMetadata
         {
             Id = solution.Id,
-            Name = solution.Name,
-            Description = solution.Description,
+            Name = fileName,
+            Description = "",
             Version = solution.Version,
-            FilePath = solution.FilePath ?? "",
-            DirectoryPath = System.IO.Path.GetDirectoryName(solution.FilePath) ?? "",
-            CreatedTime = solution.CreatedTime,
-            ModifiedTime = solution.ModifiedTime,
-            LastAccessTime = solution.LastAccessTime,
+            FilePath = filePath,
+            DirectoryPath = System.IO.Path.GetDirectoryName(filePath) ?? "",
+            CreatedTime = System.IO.File.GetCreationTime(filePath),
+            ModifiedTime = System.IO.File.GetLastWriteTime(filePath),
+            LastAccessTime = DateTime.Now,
             WorkflowCount = solution.Workflows?.Count ?? 0,
             GlobalVariableCount = solution.GlobalVariables?.Count ?? 0
         };

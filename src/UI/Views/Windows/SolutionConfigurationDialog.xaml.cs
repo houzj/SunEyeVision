@@ -32,14 +32,9 @@ public partial class SolutionConfigurationDialog : Window
 
         _viewModel = new SolutionConfigurationDialogViewModel(solutionManager, preselectSolutionId);
         DataContext = _viewModel;
-    }
 
-    /// <summary>
-    /// 窗口加载时
-    /// </summary>
-    private void Window_Loaded(object sender, RoutedEventArgs e)
-    {
-        // 可以在这里添加额外的初始化逻辑
+        // 设置所有者窗口，使双击时能正确关闭
+        _viewModel.SetOwnerWindow(this);
     }
 
     /// <summary>

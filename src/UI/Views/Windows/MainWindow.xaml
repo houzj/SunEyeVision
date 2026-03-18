@@ -41,6 +41,36 @@
     <DockPanel>
         <!-- ========== 顶部菜单栏 (28px) ========== -->
         <Menu DockPanel.Dock="Top" Height="28" Background="{StaticResource HeaderBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Menu.Template>
+                <ControlTemplate TargetType="Menu">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 左侧菜单项 -->
+                        <ItemsPresenter Grid.Column="0"/>
+
+                        <!-- 右侧当前解决方案显示 -->
+                        <Border Grid.Column="2"
+                                Background="#F8F9FA"
+                                BorderBrush="#E0E0E0"
+                                BorderThickness="1,0,0,0"
+                                Padding="12,0"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasCurrentSolution, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="📦" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="当前解决方案:" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding CurrentSolutionName}" FontSize="12" FontWeight="SemiBold" Foreground="#333333" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Menu.Template>
             <MenuItem Header="文件(_F)">
                 <MenuItem Header="解决方案配置(_C)" Command="{Binding ShowSolutionConfigurationCommand}" InputGestureText="Ctrl+Alt+S"/>
                 <Separator/>

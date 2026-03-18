@@ -366,9 +366,13 @@ namespace SunEyeVision.UI.Views.Windows
                     return;
                 }
 
+                // 获取当前解决方案的元数据
+                var metadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
+                var solutionName = metadata?.Name ?? "未命名解决方案";
+
                 // 提示用户保存
                 var result = System.Windows.MessageBox.Show(
-                    $"是否保存当前解决方案 '{solutionManager.CurrentSolution.Name}' 的修改？",
+                    $"是否保存当前解决方案 '{solutionName}' 的修改？",
                     "保存解决方案",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);

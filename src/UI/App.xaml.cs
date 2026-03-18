@@ -130,7 +130,7 @@ public partial class App : Application
                 {
                     solutionManager.SetCurrentSolution(solution);
                     mainWindow.Show();
-                    // Debug.WriteLine($"[App] 加载解决方案: {solution.Name}");
+                    // Debug.WriteLine($"[App] 加载解决方案: Id={solution.Id}");
                 }
                 catch (Exception ex)
                 {

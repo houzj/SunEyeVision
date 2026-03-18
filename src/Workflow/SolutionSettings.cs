@@ -53,7 +53,7 @@ public class SolutionSettings : ObservableObject
     public string CurrentSolutionId
     {
         get => _currentSolutionId;
-        set => SetProperty(ref _currentSolutionId, value, "当前解决方案");
+        set => SetProperty(ref _currentSolutionId, value);
     }
 
     /// <summary>

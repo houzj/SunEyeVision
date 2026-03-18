@@ -343,6 +343,33 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _status, value);
         }
 
+        // 当前解决方案信息
+        private string _currentSolutionName = string.Empty;
+        private string _currentSolutionPath = string.Empty;
+
+        /// <summary>
+        /// 当前解决方案名称
+        /// </summary>
+        public string CurrentSolutionName
+        {
+            get => _currentSolutionName;
+            set => SetProperty(ref _currentSolutionName, value);
+        }
+
+        /// <summary>
+        /// 当前解决方案路径
+        /// </summary>
+        public string CurrentSolutionPath
+        {
+            get => _currentSolutionPath;
+            set => SetProperty(ref _currentSolutionPath, value);
+        }
+
+        /// <summary>
+        /// 是否有当前解决方案
+        /// </summary>
+        public bool HasCurrentSolution => !string.IsNullOrEmpty(CurrentSolutionName);
+
         public string CameraStatus => "相机(2台)";
 
         // 图像显示相关
@@ -845,6 +872,13 @@ namespace SunEyeVision.UI.ViewModels
             // 命令管理器的初始化
             SubscribeToCurrentCommandManager();
 
+            // 监听解决方案变更事件
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            solutionManager.CurrentSolutionChanged += OnCurrentSolutionChanged;
+
+            // 初始化当前解决方案信息
+            UpdateCurrentSolutionInfo();
+
             InitializeTools();
             // InitializeSampleNodes(); // 已禁用，暂时不加载测试节点
             InitializePropertyGroups();
@@ -1318,12 +1352,53 @@ namespace SunEyeVision.UI.ViewModels
                 // 保存当前解决方案
                 solutionManager.SaveSolution();
 
-                LogSuccess($"已保存当前解决方案: {solutionManager.CurrentSolution.Name}");
+                var metadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
+                LogSuccess($"已保存当前解决方案: {metadata?.Name ?? "未命名"}");
             }
             catch (Exception ex)
             {
                 LogError($"保存当前解决方案失败: {ex.Message}", null, ex);
             }
+        }
+
+        /// <summary>
+        /// 更新当前解决方案信息
+        /// </summary>
+        private void UpdateCurrentSolutionInfo()
+        {
+            try
+            {
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                var currentSolution = solutionManager.CurrentSolution;
+
+                if (currentSolution != null)
+                {
+                    var metadata = solutionManager.GetMetadata(currentSolution.Id);
+                    CurrentSolutionName = metadata?.Name ?? "未命名解决方案";
+                    CurrentSolutionPath = metadata?.FilePath ?? "";
+                    LogInfo($"当前解决方案: {CurrentSolutionName}");
+                }
+                else
+                {
+                    CurrentSolutionName = string.Empty;
+                    CurrentSolutionPath = string.Empty;
+                }
+
+                // 通知属性变化
+                OnPropertyChanged(nameof(HasCurrentSolution));
+            }
+            catch (Exception ex)
+            {
+                LogError($"更新解决方案信息失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 当前解决方案变更事件处理
+        /// </summary>
+        private void OnCurrentSolutionChanged(object? sender, SolutionMetadataEventArgs e)
+        {
+            UpdateCurrentSolutionInfo();
         }
 
         /// <summary>
@@ -3322,10 +3397,11 @@ namespace SunEyeVision.UI.ViewModels
                     try
                     {
                         // TODO: 加载解决方案到工作流编辑器
-                        LogSuccess($"已加载解决方案: {solution.Name}");
+                        var metadata = solutionManager.GetMetadata(solution.Id);
+                        LogSuccess($"已加载解决方案: {metadata?.Name ?? "未命名"}");
 
                         // 更新标题
-                        Title = $"太阳眼视觉 - {solution.Name}";
+                        Title = $"太阳眼视觉 - {metadata?.Name ?? "未命名"}";
                     }
                     catch (Exception ex)
                     {
@@ -3366,10 +3442,11 @@ namespace SunEyeVision.UI.ViewModels
                     try
                     {
                         solutionManager.SetCurrentSolution(solution);
-                        LogSuccess($"已切换到解决方案: {solution.Name}");
+                        var metadata = solutionManager.GetMetadata(solution.Id);
+                        LogSuccess($"已切换到解决方案: {metadata?.Name ?? "未命名"}");
 
                         // 更新标题
-                        Title = $"太阳眼视觉 - {solution.Name}";
+                        Title = $"太阳眼视觉 - {metadata?.Name ?? "未命名"}";
                     }
                     catch (Exception ex)
                     {
