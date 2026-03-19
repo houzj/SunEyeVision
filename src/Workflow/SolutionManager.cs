@@ -45,10 +45,23 @@ public class SolutionManager
     private readonly SolutionRepository _repository;
     private readonly SolutionSettings _settings;
 
+    private ParameterSyncManager? _parameterSyncManager;
+    private RecipeManager? _recipeManager;
+
     /// <summary>
     /// 当前解决方案
     /// </summary>
     public Solution? CurrentSolution { get; private set; }
+
+    /// <summary>
+    /// 参数同步管理器
+    /// </summary>
+    public ParameterSyncManager? ParameterSyncManager => _parameterSyncManager;
+
+    /// <summary>
+    /// 配方管理器
+    /// </summary>
+    public RecipeManager? RecipeManager => _recipeManager;
 
     /// <summary>
     /// 当前文件路径
@@ -172,8 +185,8 @@ public class SolutionManager
     {
         CloseSolution();
 
-        // 创建新的 Solution 对象（纯数据模型）
-        var solution = Solution.CreateNew();
+        // 创建新的 Solution 对象（纯数据模型，自动创建默认配方）
+        var solution = Solution.Create();
         solution.Version = metadata.Version;
 
         // 添加默认工作流
@@ -271,6 +284,9 @@ public class SolutionManager
         CurrentSolution = solution;
         CurrentFilePath = filePath;
 
+        // 初始化配方管理器和参数同步管理器
+        InitializeRecipeManager(solution);
+
         // 创建或更新元数据
         var metadata = _repository.LoadMetadata(filePath);
         if (metadata == null)
@@ -312,6 +328,65 @@ public class SolutionManager
 
         _logger.Log(LogLevel.Success, $"打开解决方案: {metadata.Name} -> {filePath}", "SolutionManager");
         return CurrentSolution;
+    }
+
+    /// <summary>
+    /// 初始化配方管理器和参数同步管理器
+    /// </summary>
+    /// <param name="solution">解决方案</param>
+    private void InitializeRecipeManager(Solution solution)
+    {
+        // 创建配方管理器
+        _recipeManager = new RecipeManager(solution);
+
+        // 创建参数同步管理器
+        _parameterSyncManager = new ParameterSyncManager(solution, _recipeManager);
+
+        // 关联参数同步管理器到配方管理器
+        _recipeManager.SetParameterSyncManager(_parameterSyncManager);
+
+        // 订阅工作流节点事件
+        SubscribeWorkflowEvents(solution);
+
+        // 触发解决方案加载后的参数同步
+        _parameterSyncManager.OnSolutionLoaded();
+
+        _logger.Log(LogLevel.Info, $"初始化配方管理器和参数同步管理器: 配方数={solution.Recipes.Count}", "SolutionManager");
+    }
+
+    /// <summary>
+    /// 订阅工作流事件
+    /// </summary>
+    /// <param name="solution">解决方案</param>
+    private void SubscribeWorkflowEvents(Solution solution)
+    {
+        foreach (var workflow in solution.Workflows)
+        {
+            workflow.NodeAdded += OnWorkflowNodeAdded;
+            workflow.NodeRemoved += OnWorkflowNodeRemoved;
+        }
+    }
+
+    /// <summary>
+    /// 节点添加事件处理
+    /// </summary>
+    private void OnWorkflowNodeAdded(object? sender, WorkflowNodeEventArgs e)
+    {
+        if (_parameterSyncManager != null && e.Node != null && e.Workflow != null)
+        {
+            _parameterSyncManager.OnNodeAdded(e.Node.Id, e.Workflow);
+        }
+    }
+
+    /// <summary>
+    /// 节点移除事件处理
+    /// </summary>
+    private void OnWorkflowNodeRemoved(object? sender, WorkflowNodeEventArgs e)
+    {
+        if (_parameterSyncManager != null && e.Node != null)
+        {
+            _parameterSyncManager.OnNodeDeleted(e.Node.Id);
+        }
     }
 
     /// <summary>
@@ -358,6 +433,12 @@ public class SolutionManager
         {
             _logger.Log(LogLevel.Warning, "保存解决方案失败：未指定保存路径", "SolutionManager");
             return false;
+        }
+
+        // 保存前同步参数到配方
+        if (_parameterSyncManager != null)
+        {
+            _parameterSyncManager.OnSolutionSaving();
         }
 
         // 保存文件

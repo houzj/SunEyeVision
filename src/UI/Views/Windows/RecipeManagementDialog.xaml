@@ -1,10 +1,10 @@
-﻿<Window x:Class="SunEyeVision.UI.Views.Windows.CameraManagerDialog"
+﻿<Window x:Class="SunEyeVision.UI.Views.Windows.RecipeManagementDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="相机管理器"
+        Title="配方管理"
         Width="900"
         Height="600"
         WindowStartupLocation="CenterScreen"
@@ -111,6 +111,11 @@
         <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
             <Setter Property="Foreground" Value="#F44336"/>
         </Style>
+
+        <!-- 应用按钮样式 -->
+        <Style x:Key="ApplyButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+            <Setter Property="Foreground" Value="#4CAF50"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="0">
@@ -122,9 +127,12 @@
 
         <!-- 工具栏 -->
         <ToolBar Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-            <Button Content="+" ToolTip="添加相机" Command="{Binding AddCameraCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
-            <Button Content="-" ToolTip="删除相机" Command="{Binding DeleteCameraCommand}" Style="{StaticResource DangerButtonStyle}"/>
-            <Button Content="🔗" ToolTip="测试连接" Command="{Binding TestConnectionCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="+" ToolTip="新建配方" Command="{Binding CreateRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="⧉" ToolTip="克隆配方" Command="{Binding CloneRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="-" ToolTip="删除配方" Command="{Binding DeleteRecipeCommand}" Style="{StaticResource DangerButtonStyle}"/>
+            <Separator/>
+            <Button Content="⭐" ToolTip="设为默认" Command="{Binding SetDefaultRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="✓" ToolTip="应用配方" Command="{Binding ApplyRecipeCommand}" Style="{StaticResource ApplyButtonStyle}"/>
             <Separator/>
             <Button Content="💾" ToolTip="保存" Command="{Binding SaveCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
         </ToolBar>
@@ -133,8 +141,8 @@
         <DataGrid Grid.Row="1"
                   Margin="16"
                   AutoGenerateColumns="False"
-                  ItemsSource="{Binding CameraDevices}"
-                  SelectedItem="{Binding SelectedCamera}"
+                  ItemsSource="{Binding Recipes}"
+                  SelectedItem="{Binding SelectedRecipe}"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
                   SelectionMode="Single"
@@ -143,22 +151,20 @@
                   Background="White"
                   BorderBrush="#E0E0E0"
                   BorderThickness="1"
-                  HorizontalGridLinesBrush="#F0F0F0">
+                  HorizontalGridLinesBrush="#F0F0F0"
+                  MouseDoubleClick="OnRecipeDoubleClick">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="1*" IsReadOnly="False"/>
-                <DataGridTextColumn Header="制造商" Binding="{Binding Manufacturer}" Width="100" IsReadOnly="False"/>
-                <DataGridTextColumn Header="型号" Binding="{Binding Model}" Width="100" IsReadOnly="False"/>
-                <DataGridTextColumn Header="IP地址" Binding="{Binding IpAddress}" Width="120" IsReadOnly="False"/>
-                <DataGridTextColumn Header="端口" Binding="{Binding Port}" Width="80" IsReadOnly="False"/>
-                <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="80" IsReadOnly="True"/>
-                <DataGridCheckBoxColumn Header="启用" Binding="{Binding IsEnabled}" Width="60"/>
-                <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="1*" IsReadOnly="False"/>
+                <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="150" IsReadOnly="False"/>
+                <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="200" IsReadOnly="False"/>
+                <DataGridCheckBoxColumn Header="默认" Binding="{Binding IsDefault}" Width="60" IsReadOnly="True"/>
+                <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedTime, StringFormat='yyyy-MM-dd HH:mm'}" Width="150" IsReadOnly="True"/>
+                <DataGridTextColumn Header="修改时间" Binding="{Binding LastModifiedTime, StringFormat='yyyy-MM-dd HH:mm'}" Width="150" IsReadOnly="True"/>
             </DataGrid.Columns>
         </DataGrid>
 
         <!-- 底部按钮 -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0">
-            <Button Content="保存" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="80" Margin="0,0,10,0"/>
+            <Button Content="应用" Command="{Binding ApplyRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="80" Margin="0,0,10,0"/>
             <Button Content="关闭" Click="Close_Click" Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
         </StackPanel>
     </Grid>

@@ -77,6 +77,23 @@ public class Solution : ObservableObject
     public List<GlobalVariable> GlobalVariables { get; set; } = new();
 
     /// <summary>
+    /// 配方列表
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Recipe> Recipes { get; set; } = new();
+
+    /// <summary>
+    /// 默认配方ID
+    /// </summary>
+    public string? DefaultRecipeId { get; set; }
+
+    /// <summary>
+    /// 当前激活的配方ID（运行时属性，不序列化）
+    /// </summary>
+    [JsonIgnore]
+    public string? CurrentRecipeId { get; set; }
+
+    /// <summary>
     /// 设备列表
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -163,21 +180,46 @@ public class Solution : ObservableObject
     /// <summary>
     /// 创建新解决方案
     /// </summary>
-    public static Solution CreateNew()
+    /// <remarks>
+    /// 自动创建默认配方，确保参数有存储位置。
+    /// 
+    /// 设计原则（rule-002）：
+    /// - 方法命名使用 Create()，与 RunContext.Create、SolutionMetadata.Create 保持一致
+    /// </remarks>
+    public static Solution Create()
     {
-        return new Solution
+        var solution = new Solution
         {
             Id = Guid.NewGuid().ToString(),
             Version = "1.0",
             Workflows = new List<Workflow>(),
             NodeParameters = new Dictionary<string, ToolParameters>(),
             GlobalVariables = new List<GlobalVariable>(),
+            Recipes = new List<Recipe>(),
             Devices = new List<Device>(),
             Communications = new List<Communication>(),
             DatabaseConfiguration = new DatabaseConfiguration(),
             ExecutionStrategy = new ExecutionStrategy(),
             VersionHistory = new List<SolutionVersion>()
         };
+
+        // 自动创建默认配方
+        var defaultRecipe = new Recipe
+        {
+            Name = "默认配方",
+            Description = "默认参数配置",
+            IsDefault = true,
+            CreatedTime = DateTime.Now,
+            LastModifiedTime = DateTime.Now
+        };
+
+        solution.Recipes.Add(defaultRecipe);
+        solution.DefaultRecipeId = defaultRecipe.Id;
+        solution.CurrentRecipeId = defaultRecipe.Id;
+
+        VisionLogger.Instance.Log(LogLevel.Info, $"创建解决方案: Id={solution.Id}, 自动创建默认配方: {defaultRecipe.Name}", "Solution");
+
+        return solution;
     }
 
     /// <summary>
@@ -369,6 +411,9 @@ public class Solution : ObservableObject
                 )
             ),
             GlobalVariables = GlobalVariables.Select(v => v.Clone()).ToList(),
+            Recipes = Recipes.Select(r => r.Clone()).ToList(),
+            DefaultRecipeId = DefaultRecipeId,
+            CurrentRecipeId = null, // 运行时不克隆当前配方ID
             Devices = Devices.Select(d => d.Clone()).ToList(),
             Communications = Communications.Select(c => c.Clone()).ToList(),
             DatabaseConfiguration = DatabaseConfiguration?.Clone(),
@@ -402,6 +447,22 @@ public class Solution : ObservableObject
             {
                 errors.AddRange(varErrors.Select(e => $"全局变量 '{globalVariable.Name}': {e}"));
             }
+        }
+
+        // 验证配方
+        foreach (var recipe in Recipes)
+        {
+            var (isValid, recipeErrors) = recipe.Validate();
+            if (!isValid)
+            {
+                errors.AddRange(recipeErrors.Select(e => $"配方 '{recipe.Name}': {e}"));
+            }
+        }
+
+        // 验证默认配方
+        if (Recipes.Count > 0 && !Recipes.Any(r => r.IsDefault))
+        {
+            errors.Add("存在配方但未设置默认配方");
         }
 
         // 验证设备

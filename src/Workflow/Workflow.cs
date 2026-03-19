@@ -46,6 +46,16 @@ public class Workflow : ObservableObject
     public List<Connection> Connections { get; set; } = new();
 
     /// <summary>
+    /// 节点添加事件
+    /// </summary>
+    public event EventHandler<WorkflowNodeEventArgs>? NodeAdded;
+
+    /// <summary>
+    /// 节点移除事件
+    /// </summary>
+    public event EventHandler<WorkflowNodeEventArgs>? NodeRemoved;
+
+    /// <summary>
     /// 无参构造函数
     /// </summary>
     public Workflow()
@@ -240,6 +250,9 @@ public class Workflow : ObservableObject
     public void AddNode(WorkflowNode node)
     {
         Nodes.Add(node);
+
+        // 触发节点添加事件
+        NodeAdded?.Invoke(this, new WorkflowNodeEventArgs { Node = node, Workflow = this });
     }
 
     /// <summary>
@@ -255,6 +268,9 @@ public class Workflow : ObservableObject
 
         // 移除相关连接
         Connections.RemoveAll(c => c.SourceNode == nodeId || c.TargetNode == nodeId);
+
+        // 触发节点移除事件
+        NodeRemoved?.Invoke(this, new WorkflowNodeEventArgs { Node = node, Workflow = this });
 
         return true;
     }
@@ -467,5 +483,21 @@ public class Workflow : ObservableObject
         /// 目标端口名称
         /// </summary>
         public string TargetPort { get; set; } = "";
+    }
+
+    /// <summary>
+    /// 工作流节点事件参数
+    /// </summary>
+    public class WorkflowNodeEventArgs : EventArgs
+    {
+        /// <summary>
+        /// 节点
+        /// </summary>
+        public WorkflowNode? Node { get; set; }
+
+        /// <summary>
+        /// 所属工作流
+        /// </summary>
+        public Workflow? Workflow { get; set; }
     }
 }

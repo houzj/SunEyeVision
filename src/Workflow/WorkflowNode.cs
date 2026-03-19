@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
@@ -57,6 +57,26 @@ namespace SunEyeVision.Workflow
         public bool IsEnabled { get; set; } = true;
 
         /// <summary>
+        /// 节点位置X坐标
+        /// </summary>
+        public double PositionX { get; set; } = 0;
+
+        /// <summary>
+        /// 节点位置Y坐标
+        /// </summary>
+        public double PositionY { get; set; } = 0;
+
+        /// <summary>
+        /// 节点宽度
+        /// </summary>
+        public double Width { get; set; } = 140;
+
+        /// <summary>
+        /// 节点高度
+        /// </summary>
+        public double Height { get; set; } = 90;
+
+        /// <summary>
         /// 执行前事件
         /// </summary>
         public event Action<WorkflowNode> BeforeExecute;
@@ -112,6 +132,10 @@ namespace SunEyeVision.Workflow
                 ["Type"] = (int)Type,
                 ["AlgorithmType"] = AlgorithmType,
                 ["IsEnabled"] = IsEnabled,
+                ["PositionX"] = PositionX,
+                ["PositionY"] = PositionY,
+                ["Width"] = Width,
+                ["Height"] = Height,
                 ["Parameters"] = Parameters.ToSerializableDictionary()
             };
 
@@ -139,11 +163,21 @@ namespace SunEyeVision.Workflow
             var algorithmType = dict.TryGetValue("AlgorithmType", out var algoVal) ? algoVal?.ToString() ?? string.Empty : string.Empty;
             var isEnabled = dict.TryGetValue("IsEnabled", out var enabledVal) && Convert.ToBoolean(enabledVal);
             var parametersTypeName = dict.TryGetValue("ParametersTypeName", out var ptnVal) ? ptnVal?.ToString() : null;
+            
+            // 读取位置属性
+            var positionX = dict.TryGetValue("PositionX", out var xVal) ? Convert.ToDouble(xVal) : 0.0;
+            var positionY = dict.TryGetValue("PositionY", out var yVal) ? Convert.ToDouble(yVal) : 0.0;
+            var width = dict.TryGetValue("Width", out var wVal) ? Convert.ToDouble(wVal) : 140.0;
+            var height = dict.TryGetValue("Height", out var hVal) ? Convert.ToDouble(hVal) : 90.0;
 
             var node = new WorkflowNode(id, name, type)
             {
                 AlgorithmType = algorithmType,
-                IsEnabled = isEnabled
+                IsEnabled = isEnabled,
+                PositionX = positionX,
+                PositionY = positionY,
+                Width = width,
+                Height = height
             };
 
             // 恢复参数
@@ -195,7 +229,11 @@ namespace SunEyeVision.Workflow
                 IsEnabled = IsEnabled,
                 ParametersTypeName = ParametersTypeName,
                 Parameters = Parameters?.Clone(),
-                ParameterBindings = ParameterBindings?.Clone()
+                ParameterBindings = ParameterBindings?.Clone(),
+                PositionX = PositionX,
+                PositionY = PositionY,
+                Width = Width,
+                Height = Height
             };
 
             return cloned;
