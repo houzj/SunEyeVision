@@ -15,6 +15,7 @@
     <UseWpfHotReload>false</UseWpfHotReload>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <LangVersion>latest</LangVersion>
+    <ApplicationIcon>生成光之眼-Logo-_1__副本.ico</ApplicationIcon>
   </PropertyGroup>
 
     <ItemGroup>
@@ -56,6 +57,10 @@
     <Content Include="Icons\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="生成光之眼-Logo-_1__副本.ico" />
   </ItemGroup>
 
   
