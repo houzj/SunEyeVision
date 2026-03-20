@@ -116,6 +116,11 @@
         <Style x:Key="ApplyButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
             <Setter Property="Foreground" Value="#4CAF50"/>
         </Style>
+
+        <!-- CheckBox 样式 -->
+        <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="IsEnabled" Value="False"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="0">
@@ -130,15 +135,11 @@
             <Button Content="+" ToolTip="新建配方" Command="{Binding CreateRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
             <Button Content="⧉" ToolTip="克隆配方" Command="{Binding CloneRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
             <Button Content="-" ToolTip="删除配方" Command="{Binding DeleteRecipeCommand}" Style="{StaticResource DangerButtonStyle}"/>
-            <Separator/>
-            <Button Content="⭐" ToolTip="设为默认" Command="{Binding SetDefaultRecipeCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
-            <Button Content="✓" ToolTip="应用配方" Command="{Binding ApplyRecipeCommand}" Style="{StaticResource ApplyButtonStyle}"/>
-            <Separator/>
-            <Button Content="💾" ToolTip="保存" Command="{Binding SaveCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
         </ToolBar>
 
         <!-- DataGrid -->
-        <DataGrid Grid.Row="1"
+        <DataGrid x:Name="RecipeDataGrid"
+                  Grid.Row="1"
                   Margin="16"
                   AutoGenerateColumns="False"
                   ItemsSource="{Binding Recipes}"
@@ -151,12 +152,11 @@
                   Background="White"
                   BorderBrush="#E0E0E0"
                   BorderThickness="1"
-                  HorizontalGridLinesBrush="#F0F0F0"
-                  MouseDoubleClick="OnRecipeDoubleClick">
+                  HorizontalGridLinesBrush="#F0F0F0">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="150" IsReadOnly="False"/>
                 <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="200" IsReadOnly="False"/>
-                <DataGridCheckBoxColumn Header="默认" Binding="{Binding IsDefault}" Width="60" IsReadOnly="True"/>
+                <DataGridCheckBoxColumn Header="默认" Binding="{Binding IsDefault, Mode=OneWay}" Width="60" IsReadOnly="True" ElementStyle="{StaticResource ResourceKey=CheckBoxStyle}"/>
                 <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedTime, StringFormat='yyyy-MM-dd HH:mm'}" Width="150" IsReadOnly="True"/>
                 <DataGridTextColumn Header="修改时间" Binding="{Binding LastModifiedTime, StringFormat='yyyy-MM-dd HH:mm'}" Width="150" IsReadOnly="True"/>
             </DataGrid.Columns>
@@ -164,7 +164,7 @@
 
         <!-- 底部按钮 -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0">
-            <Button Content="应用" Command="{Binding ApplyRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="80" Margin="0,0,10,0"/>
+            <Button Content="设为默认" Command="{Binding ApplyRecipeCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="100" Margin="0,0,10,0"/>
             <Button Content="关闭" Click="Close_Click" Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
         </StackPanel>
     </Grid>

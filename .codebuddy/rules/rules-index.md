@@ -2,10 +2,10 @@
 
 ## 📊 规则统计
 
-- **总规则数**: 8
-- **Critical**: 2 | **High**: 3 | **Medium**: 2 | **Low**: 1
-- **总是应用**: 5 | **手动应用**: 3
-- **已启用**: 8 | **已禁用**: 0
+- **总规则数**: 10
+- **Critical**: 4 | **High**: 3 | **Medium**: 2 | **Low**: 1
+- **总是应用**: 7 | **手动应用**: 3
+- **已启用**: 10 | **已禁用**: 0
 
 ## 🗂️ 按分类浏览
 
@@ -30,12 +30,16 @@
 |----|---------|-------|------|----------|
 | [rule-004](02-development-process/solution-design.mdc) | 方案设计要求 | 🟠 High | ✅ | 2026-03-11 |
 | [rule-008](02-development-process/prototype-design-clean-principle.mdc) | 原型设计期代码纯净原则 | 🔴 Critical | ✅ | 2026-03-18 |
+| [rule-009](02-development-process/development-principles.mdc) | 开发原则规范 | 🔴 Critical | ✅ | 2026-03-20 |
+| [rule-010](02-development-process/solution-system-implementation.mdc) | 方案系统实现规范 | 🔴 Critical | ✅ | 2026-03-20 |
 
 **规则概述**:
 - 生成方案时需要根据软件的完整上下文
 - 考虑整体架构、现有基础设施、可维护性和扩展性
 - 提供完整的方案框架和风险评估
 - 原型阶段不考虑向后兼容，保持代码纯净
+- 遵循YAGNI、KISS、按需设计三大开发原则
+- 优先使用JsonPolymorphic，特殊场景允许Dictionary转换层
 
 ---
 
@@ -70,9 +74,11 @@
 
 ### 按优先级
 
-#### 🔴 Critical (2条)
+#### 🔴 Critical (4条)
 - [rule-001: 属性更改通知统一规范](01-coding-standards/property-notification.mdc)
 - [rule-008: 原型设计期代码纯净原则](02-development-process/prototype-design-clean-principle.mdc)
+- [rule-009: 开发原则规范](02-development-process/development-principles.mdc)
+- [rule-010: 方案系统实现规范](02-development-process/solution-system-implementation.mdc)
 
 #### 🟠 High (3条)
 - [rule-002: 命名规范](01-coding-standards/naming-conventions.mdc)
@@ -89,7 +95,7 @@
 
 ### 按状态
 
-#### ✅ 已启用 (8条)
+#### ✅ 已启用 (10条)
 - rule-001: 属性更改通知统一规范
 - rule-002: 命名规范
 - rule-003: 日志系统使用规范
@@ -98,6 +104,8 @@
 - rule-006: 文档管理政策
 - rule-007: 质量控制规则
 - rule-008: 原型设计期代码纯净原则
+- rule-009: 开发原则规范
+- rule-010: 方案系统实现规范
 
 #### ❌ 已禁用 (0条)
 - 暂无
@@ -107,13 +115,15 @@
 
 ### 按生效模式
 
-#### 总是应用 (5条)
+#### 总是应用 (7条)
 - rule-001: 属性更改通知统一规范
 - rule-002: 命名规范
 - rule-003: 日志系统使用规范
 - rule-004: 方案设计要求
 - rule-007: 质量控制规则
 - rule-008: 原型设计期代码纯净原则
+- rule-009: 开发原则规范
+- rule-010: 方案系统实现规范
 
 #### 手动应用 (3条)
 - rule-005: 实施方案审批流程
@@ -137,6 +147,13 @@
 ---
 
 ## 🔄 最近更新
+
+### 2026-03-20
+- ✅ 新增规则
+  - rule-010: 方案系统实现规范（从"禁止Dictionary转换层"改为"特殊场景允许"）
+  - rule-009: 开发原则规范（整合YAGNI、KISS、按需设计三大原则）
+- ✅ 修正规则
+  - rule-010: 修正规则内容，明确允许和禁止的使用场景
 
 ### 2026-03-18
 - ✅ 新增规则
@@ -208,6 +225,6 @@
 
 ---
 
-**最后更新**: 2026-03-18
+**最后更新**: 2026-03-20
 **维护者**: SunEyeVision Team
-**版本**: 2.1
+**版本**: 2.3

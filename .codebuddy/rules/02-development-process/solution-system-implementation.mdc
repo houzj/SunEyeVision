@@ -1,15 +1,15 @@
----
-id: rule-005
+﻿---
+id: rule-010
 title: 方案系统实现规范
 category: development-process
 priority: critical
 alwaysApply: true
 enabled: true
-version: "2.0"
-updatedAt: 2026-03-11T15:00:00.000Z
+version: "2.2"
+updatedAt: 2026-03-20T10:00:00.000Z
 author: SunEyeVision Team
 reviewed: true
-lastReviewed: 2026-03-11T15:00:00.000Z
+lastReviewed: 2026-03-20T10:00:00.000Z
 relatedRules: [rule-001, rule-002, rule-003, rule-004]
 conflictRules: []
 deprecated: false
@@ -20,31 +20,37 @@ dependsOn: []
 # 方案系统实现规范
 
 ## 📋 规则元数据
-- **规则ID**: rule-005
+- **规则ID**: rule-010
 - **优先级**: 🔴 Critical
 - **适用范围**: 方案系统设计和实现
 - **生效模式**: 总是应用
-- **最后更新**: 2026-03-11
+- **最后更新**: 2026-03-20
 
 ## 🎯 规则概述
 
-方案系统实现必须遵循最优和最合理的原则，不是兼容、迁移、妥协。在原型阶段，应充分利用现代JSON库的原生能力，直接序列化，避免不必要的转换层。
+方案系统实现必须遵循最优和最合理的原则。优先使用 System.Text.Json 的多态序列化能力，在特殊场景（如自定义 JsonConverter、处理特殊类型）下允许使用 Dictionary 转换层作为辅助工具。
 
 ## ✅ 核心原则
 
-### 1. 最优和最合理
-- **优先选择**：最优的技术方案，而不是兼容旧代码
-- **拒绝妥协**：不为了兼容而降低代码质量
-- **拒绝迁移**：不保留已过时的机制
+### 1. 优先使用 JsonPolymorphic
+- **必须**：ToolParameters 及其派生类使用 `[JsonPolymorphic]` 特性
+- **必须**：派生类添加 `[JsonDerivedType]` 特性
+- **必须**：方案层（Solution）直接序列化，不使用 Dictionary 转换层
 
-### 2. 直接序列化
-- **禁止**：使用ToSerializableDictionary/LoadFromDictionary转换层
-- **禁止**：自定义JsonConverter（除非绝对必要）
-- **必须**：直接使用System.Text.Json的多态支持
+### 2. 特殊场景允许 Dictionary 转换层
+**仅限于以下场景使用 Dictionary 转换层**：
+- ✅ 自定义 JsonConverter 中使用（如 WorkflowJsonConverter）
+- ✅ 处理特殊类型（OpenCvSharp.Point/Rect/Size 等）
+- ✅ 向后兼容旧版本数据格式
+
+**禁止在以下场景使用 Dictionary 转换层**：
+- ❌ 业务逻辑中直接调用 ToSerializableDictionary/LoadFromDictionary
+- ❌ 方案层（Solution）序列化中使用
+- ❌ 作为通用序列化方案
 
 ### 3. JSON格式直观
 - **必须**：JSON格式清晰易读
-- **必须**：使用驼峰命名（camelCase）
+- **必须**：使用PascalCase命名（符合视觉软件行业标准，与C#属性名保持一致）
 - **必须**：包含类型信息（$type字段）
 
 ## 📝 技术规范
@@ -82,19 +88,50 @@ public class ThresholdParameters : ToolParameters
 }
 ```
 
-#### ❌ 错误：使用Dictionary转换层
+#### ⚠️ 特殊场景：Dictionary转换层
+Dictionary 转换层仅用于以下特殊场景：
+
 ```csharp
-// ❌ 禁止：ToSerializableDictionary/LoadFromDictionary
+// ✅ 允许：在自定义 JsonConverter 中使用
+public class WorkflowJsonConverter : JsonConverter<Workflow>
+{
+    public override void Write(Utf8JsonWriter writer, Workflow value, JsonSerializerOptions options)
+    {
+        // 在 Converter 内部使用 Dictionary 作为中间格式
+        var nodeDict = node.ToDictionary();
+        JsonSerializer.Serialize(writer, nodeDict, options);
+    }
+}
+
+// ✅ 允许：处理特殊类型（OpenCvSharp.Point/Rect等）
 public class ToolParameters : ObservableObject
 {
-    public Dictionary<string, object?> ToSerializableDictionary()
+    // internal 访问级别，不暴露给业务层
+    internal Dictionary<string, object?> ToSerializableDictionary()
     {
-        // 不要使用这种转换层
+        // 手动处理 OpenCvSharp 类型
+        if (value is OpenCvSharp.Point point)
+            return $"{point.X},{point.Y}";
+        // ...
     }
     
-    public void LoadFromDictionary(Dictionary<string, object?> dict)
+    internal void LoadFromDictionary(Dictionary<string, object?> dict)
     {
-        // 不要使用这种转换层
+        // 反序列化特殊类型
+    }
+}
+
+// ❌ 禁止：在业务逻辑中直接调用
+public class Recipe
+{
+    public void SaveParameters(string nodeId, ToolParameters parameters)
+    {
+        // ❌ 不要这样做
+        var dict = parameters.ToSerializableDictionary();
+        ParameterMappings[nodeId] = dict;
+        
+        // ✅ 应该这样做
+        ParameterMappings[nodeId] = parameters.Clone();
     }
 }
 ```
@@ -133,11 +170,15 @@ public class Recipe
 
 #### ✅ 正确：使用System.Text.Json标准配置
 ```csharp
+// src/Core/Services/Serialization/JsonSerializationOptions.cs
 var jsonOptions = new JsonSerializerOptions
 {
     WriteIndented = true,
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    PropertyNamingPolicy = null,  // 保持PascalCase，符合视觉软件行业标准
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,  // 支持中文
+    PropertyNameCaseInsensitive = true,  // 反序列化时大小写不敏感，提供兼容性
+    IncludeFields = true
 };
 
 // 序列化
@@ -215,20 +256,23 @@ var json = JsonConvert.SerializeObject(solution, new JsonSerializerSettings
 - [ ] 使用System.Text.Json而非Newtonsoft.Json
 - [ ] 使用[JsonPolymorphic]特性支持多态
 - [ ] 派生类添加[JsonDerivedType]特性
-- [ ] 不使用ToSerializableDictionary/LoadFromDictionary
-- [ ] 不使用自定义JsonConverter（除非绝对必要）
+- [ ] 方案层（Solution）不使用ToSerializableDictionary/LoadFromDictionary
+- [ ] Dictionary转换层方法应为internal或private访问级别
+- [ ] 仅在自定义JsonConverter或处理特殊类型时使用Dictionary转换层
 
 ### 代码质量
 - [ ] JSON格式直观易读
-- [ ] 使用驼峰命名（camelCase）
+- [ ] 使用PascalCase命名（符合视觉软件行业标准）
 - [ ] 包含类型信息（$type字段）
 - [ ] 直接序列化对象实例
 - [ ] 避免不必要的转换层
 
 ### 序列化配置
 - [ ] WriteIndented = true（格式化输出）
-- [ ] PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+- [ ] PropertyNamingPolicy = null（保持PascalCase）
 - [ ] DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+- [ ] Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping（支持中文）
+- [ ] PropertyNameCaseInsensitive = true（反序列化时大小写不敏感）
 
 ### 模型设计
 - [ ] ToolParameters派生类添加[JsonDerivedType]特性
@@ -238,11 +282,26 @@ var json = JsonConvert.SerializeObject(solution, new JsonSerializerSettings
 
 ## 🚫 禁止模式
 
-### 1. 禁止使用Dictionary转换层
+### 1. 禁止在业务逻辑中使用Dictionary转换层
 ```csharp
-// ❌ 禁止
-public Dictionary<string, object?> ToSerializableDictionary()
-public void LoadFromDictionary(Dictionary<string, object?> dict)
+// ❌ 禁止：业务逻辑直接调用转换层
+public class Recipe
+{
+    public void SaveParameters(string nodeId, ToolParameters parameters)
+    {
+        var dict = parameters.ToSerializableDictionary();  // ❌ 禁止
+        ParameterMappings[nodeId] = dict;
+    }
+}
+
+// ✅ 正确：直接存储对象实例
+public class Recipe
+{
+    public void SaveParameters(string nodeId, ToolParameters parameters)
+    {
+        ParameterMappings[nodeId] = parameters.Clone();  // ✅ 正确
+    }
+}
 ```
 
 ### 2. 禁止使用Newtonsoft.Json
@@ -252,20 +311,29 @@ using Newtonsoft.Json;
 var json = JsonConvert.SerializeObject(obj);
 ```
 
-### 3. 禁止嵌套Dictionary
+### 3. 禁止嵌套Dictionary作为数据模型
 ```csharp
 // ❌ 禁止
 public Dictionary<string, Dictionary<string, object?>> ParameterMappings { get; set; }
 ```
 
-### 4. 禁止复杂的自定义Converter
+### 4. 禁止复杂的自定义Converter（除非必要）
 ```csharp
-// ❌ 禁止（除非绝对必要）
+// ❌ 不推荐（除非有特殊需求）
 public class SolutionJsonConverter : JsonConverter<Solution>
 {
     public override Solution Read(ref Utf8JsonReader reader, ...)
     public override void Write(Utf8JsonWriter writer, Solution value, ...)
 }
+```
+
+### 5. 禁止将Dictionary转换层方法设为public
+```csharp
+// ❌ 禁止：暴露给业务层
+public Dictionary<string, object?> ToSerializableDictionary() { }
+
+// ✅ 正确：限制访问范围
+internal Dictionary<string, object?> ToSerializableDictionary() { }
 ```
 
 ## 🔗 相关规则
@@ -288,9 +356,38 @@ public class SolutionJsonConverter : JsonConverter<Solution>
 2. **简化代码**：避免不必要的转换层
 3. **提高性能**：直接序列化，减少转换开销
 4. **易于维护**：JSON格式直观，易于调试
+5. **命名一致**：代码层（C#）和数据层（JSON）命名完全一致，符合视觉软件行业标准
+
+## 💡 设计理念
+
+### 为什么使用PascalCase而不是camelCase？
+
+1. **行业惯例**：视觉软件行业（如VisionMaster、Halcon等）普遍使用PascalCase
+2. **一致性**：C#属性名和JSON字段名保持一致，无需转换
+3. **可读性**：PascalCase在视觉软件领域更易识别和理解
+4. **维护性**：避免命名转换带来的认知负担
+
+```csharp
+// ✅ 正确：C#属性名和JSON字段名一致
+public class Solution
+{
+    public string Id { get; set; }        // JSON: "Id"
+    public string Name { get; set; }      // JSON: "Name"
+    public List<Workflow> Workflows { get; set; }  // JSON: "Workflows"
+}
+
+// ❌ 错误：使用camelCase需要额外转换
+public class Solution
+{
+    public string Id { get; set; }        // JSON: "id" - 不一致
+    public string Name { get; set; }      // JSON: "name" - 不一致
+}
+```
 
 ## 🔄 变更历史
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
-| 2026-03-11 | 2.0 | 重写规则，强调最优和最合理原则，禁止使用Dictionary转换层 | Team |
+| 2026-03-20 | 2.2 | 修正规则：从"禁止Dictionary转换层"改为"特殊场景允许"，明确允许和禁止的使用场景 | Team |
+| 2026-03-20 | 2.1 | 修正JSON命名规范：从camelCase改为PascalCase，符合视觉软件行业标准 | Team |
+| 2026-03-11 | 2.0 | 重写规则，强调最优和最合理原则 | Team |

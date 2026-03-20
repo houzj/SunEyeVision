@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -13,6 +13,11 @@ namespace SunEyeVision.UI.ViewModels
     public class RecipeManagementDialogViewModel : ViewModelBase
     {
         private readonly SolutionManager _solutionManager;
+
+        /// <summary>
+        /// 配方创建完成事件
+        /// </summary>
+        public event Action<Recipe>? OnRecipeCreated;
 
         /// <summary>
         /// 配方列表
@@ -45,19 +50,9 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand DeleteRecipeCommand { get; private set; }
 
         /// <summary>
-        /// 设为默认命令
-        /// </summary>
-        public ICommand SetDefaultRecipeCommand { get; private set; }
-
-        /// <summary>
         /// 应用配方命令
         /// </summary>
         public ICommand ApplyRecipeCommand { get; private set; }
-
-        /// <summary>
-        /// 保存命令
-        /// </summary>
-        public ICommand SaveCommand { get; private set; }
 
         /// <summary>
         /// 关闭命令
@@ -81,9 +76,7 @@ namespace SunEyeVision.UI.ViewModels
             CreateRecipeCommand = new RelayCommand(CreateRecipe, () => true);
             CloneRecipeCommand = new RelayCommand(CloneRecipe, CanCloneRecipe);
             DeleteRecipeCommand = new RelayCommand(DeleteRecipe, CanDeleteRecipe);
-            SetDefaultRecipeCommand = new RelayCommand(SetDefaultRecipe, CanSetDefaultRecipe);
             ApplyRecipeCommand = new RelayCommand(ApplyRecipe, CanApplyRecipe);
-            SaveCommand = new RelayCommand(Save, CanSave);
             CloseCommand = new RelayCommand(Close, () => true);
         }
 
@@ -105,6 +98,9 @@ namespace SunEyeVision.UI.ViewModels
                 SelectedRecipe = recipe;
 
                 LogInfo($"创建配方: {recipe.Name}");
+
+                // 通知视图层焦点移到新配方的名称单元格
+                OnRecipeCreated?.Invoke(recipe);
             }
             catch (Exception ex)
             {
@@ -134,6 +130,9 @@ namespace SunEyeVision.UI.ViewModels
                     SelectedRecipe = cloned;
 
                     LogInfo($"克隆配方: {SelectedRecipe.Name} -> {cloned.Name}");
+
+                    // 通知视图层焦点移到克隆配方的名称单元格
+                    OnRecipeCreated?.Invoke(cloned);
                 }
             }
             catch (Exception ex)
@@ -197,30 +196,38 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 设为默认配方
+        /// 仅设置默认配方（轻量级操作，用于checkbox点击）
         /// </summary>
-        private void SetDefaultRecipe()
+        public void SetDefaultRecipeOnly(Recipe recipe)
         {
-            if (SelectedRecipe == null) return;
+            if (recipe == null) return;
 
             try
             {
                 var currentSolution = _solutionManager.CurrentSolution;
                 if (currentSolution == null) return;
 
+                // 防止取消最后一个默认配方
+                var defaultRecipes = Recipes.Where(r => r.IsDefault).ToList();
+                if (!recipe.IsDefault && defaultRecipes.Count == 1 && defaultRecipes[0].Id == recipe.Id)
+                {
+                    LogWarning("至少需要一个默认配方");
+                    return;
+                }
+
                 // 使用RecipeManager设置默认配方
                 var recipeManager = new RecipeManager(currentSolution);
-                var success = recipeManager.SetDefaultRecipe(SelectedRecipe.Id);
+                var success = recipeManager.SetDefaultRecipe(recipe.Id);
 
                 if (success)
                 {
                     // 更新UI：清除其他配方的默认标记
-                    foreach (var recipe in Recipes)
+                    foreach (var r in Recipes)
                     {
-                        recipe.IsDefault = recipe.Id == SelectedRecipe.Id;
+                        r.IsDefault = r.Id == recipe.Id;
                     }
 
-                    LogInfo($"设为默认配方: {SelectedRecipe.Name}");
+                    LogInfo($"设为默认配方: {recipe.Name}");
                 }
             }
             catch (Exception ex)
@@ -230,15 +237,7 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 是否可以设为默认配方
-        /// </summary>
-        private bool CanSetDefaultRecipe()
-        {
-            return SelectedRecipe != null && !SelectedRecipe.IsDefault;
-        }
-
-        /// <summary>
-        /// 应用配方
+        /// 应用配方（同时设为默认）
         /// </summary>
         private void ApplyRecipe()
         {
@@ -255,11 +254,20 @@ namespace SunEyeVision.UI.ViewModels
 
                 if (success)
                 {
-                    LogSuccess($"应用配方: {SelectedRecipe.Name}");
+                    // 同时设为默认配方
+                    recipeManager.SetDefaultRecipe(SelectedRecipe.Id);
+
+                    // 更新UI：清除其他配方的默认标记
+                    foreach (var recipe in Recipes)
+                    {
+                        recipe.IsDefault = recipe.Id == SelectedRecipe.Id;
+                    }
+
+                    LogSuccess($"应用配方并设为默认: {SelectedRecipe.Name}");
 
                     // 提示用户
                     MessageBox.Show(
-                        $"配方 '{SelectedRecipe.Name}' 已成功应用！\n\n工作流节点参数已更新。",
+                        $"配方 '{SelectedRecipe.Name}' 已成功应用并设为默认！\n\n工作流节点参数已更新。",
                         "应用成功",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
@@ -284,38 +292,6 @@ namespace SunEyeVision.UI.ViewModels
         private bool CanApplyRecipe()
         {
             return SelectedRecipe != null;
-        }
-
-        /// <summary>
-        /// 保存
-        /// </summary>
-        private void Save()
-        {
-            var currentSolution = _solutionManager.CurrentSolution;
-            if (currentSolution?.FilePath != null)
-            {
-                try
-                {
-                    _solutionManager.SaveSolution(currentSolution.FilePath);
-                    LogSuccess("配方保存成功");
-                }
-                catch (Exception ex)
-                {
-                    LogError($"保存配方失败: {ex.Message}");
-                }
-            }
-            else
-            {
-                LogWarning("解决方案未保存，无法保存配方");
-            }
-        }
-
-        /// <summary>
-        /// 是否可以保存
-        /// </summary>
-        private bool CanSave()
-        {
-            return _solutionManager.CurrentSolution?.FilePath != null;
         }
 
         /// <summary>

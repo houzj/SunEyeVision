@@ -54,7 +54,12 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 是否为默认配方
         /// </summary>
-        public bool IsDefault { get; set; } = false;
+        private bool _isDefault = false;
+        public bool IsDefault
+        {
+            get => _isDefault;
+            set => SetProperty(ref _isDefault, value, "默认配方");
+        }
 
         /// <summary>
         /// 参数映射：NodeId -> ToolParameters
