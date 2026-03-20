@@ -147,23 +147,57 @@ __pycache__/
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
+# 临时文件（通用）
 *.tmp
 *.temp
 *.tempfile
+temp_*
+*_temp.*
+temp.*.*
 
-# Build logs (SunEyeVision specific)
+# 临时代码文件（C#）
+temp_*.cs
+*_temp.cs
+backup_*.cs
+*_backup.cs
+old_*.cs
+*_old.*.cs
+*_reference*.cs
+
+# 临时批处理脚本
+temp_*.bat
+*_temp.bat
+temp_*.ps1
+*_temp.ps1
+
+# 编译日志
 build_*.txt
+build_*.log
 build_log.txt
+build_output.txt
+build2.txt
+test_build.txt
 restore_log.txt
 
-# Temporary files (SunEyeVision specific)
-temp_*.txt
-*_temp.*
+# 调试输出
+debug_*.txt
+debug_output_*.log
 
-# 插件输出目录（由 Directory.Build.props 控制输出位置）
-/output/
-tools/*/output/
+# 备份文件
+*.bak
+backup_*
+*_backup.*
 
-# Example files (SunEyeVision specific)
-UsageExample.cs
+# 旧版本文件
+old_*
+*_old.*
+*_reference.*
+
+# 临时测试文件
+test_*.txt
+test_*.log
+test_output_*
+
+# 其他临时文件
+RECIPE
+*.db

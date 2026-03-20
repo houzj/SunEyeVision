@@ -1721,6 +1721,69 @@ namespace SunEyeVision.UI.ViewModels
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
         }
 
+        /// <summary>
+        /// 加载解决方案到工作流标签页
+        /// </summary>
+        private void LoadSolutionToWorkflowTabs(Solution solution)
+        {
+            if (solution == null)
+            {
+                LogError("解决方案为空，无法加载");
+                return;
+            }
+
+            if (WorkflowTabViewModel == null)
+            {
+                LogError("WorkflowTabViewModel 为空，无法加载解决方案");
+                return;
+            }
+
+            try
+            {
+                LogInfo($"开始加载解决方案: {solution.FilePath}");
+
+                // 清空现有标签页
+                WorkflowTabViewModel.Tabs.Clear();
+                LogInfo($"已清空 {WorkflowTabViewModel.Tabs.Count} 个现有标签页");
+
+                // 为每个工作流创建标签页
+                foreach (var workflow in solution.Workflows)
+                {
+                    LogInfo($"加载工作流: {workflow.Name}");
+                    CreateWorkflowTab(workflow, solution.FilePath);
+                }
+
+                LogSuccess($"成功加载 {solution.Workflows.Count} 个工作流到编辑器");
+
+                // 加载节点参数
+                int nodeCount = 0;
+                int parameterCount = 0;
+                foreach (var tab in WorkflowTabViewModel.Tabs)
+                {
+                    foreach (var node in tab.WorkflowNodes)
+                    {
+                        if (solution.NodeParameters.TryGetValue(node.Id, out var toolParams))
+                        {
+                            var paramDict = ConvertToolParametersToDictionary(toolParams);
+                            if (paramDict != null && paramDict.Count > 0)
+                            {
+                                node.Parameters = paramDict;
+                                parameterCount++;
+                            }
+                        }
+                        nodeCount++;
+                    }
+                }
+
+                LogSuccess($"已加载 {nodeCount} 个节点，{parameterCount} 个节点的参数");
+            }
+            catch (Exception ex)
+            {
+                LogError($"加载解决方案到工作流标签页失败: {ex.Message}", null, ex);
+                throw;
+            }
+        }
+
         private async System.Threading.Tasks.Task ExecuteRunWorkflow()
         {
             AddLog("=== 开始执行工作流 ===");
@@ -3496,7 +3559,9 @@ namespace SunEyeVision.UI.ViewModels
 
                     try
                     {
-                        // TODO: 加载解决方案到工作流编辑器
+                        // 加载解决方案到工作流编辑器
+                        LoadSolutionToWorkflowTabs(solution);
+
                         var metadata = solutionManager.GetMetadata(solution.Id);
                         LogSuccess($"已加载解决方案: {metadata?.Name ?? "未命名"}");
 
@@ -3542,6 +3607,10 @@ namespace SunEyeVision.UI.ViewModels
                     try
                     {
                         solutionManager.SetCurrentSolution(solution);
+
+                        // 加载解决方案到工作流编辑器
+                        LoadSolutionToWorkflowTabs(solution);
+
                         var metadata = solutionManager.GetMetadata(solution.Id);
                         LogSuccess($"已切换到解决方案: {metadata?.Name ?? "未命名"}");
 

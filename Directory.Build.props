@@ -1,0 +1,42 @@
+<Project>
+  <!--
+  Directory.Build.props
+  全局构建配置文件,适用于所有项目
+  
+  输出路径设计:
+  - Debug: d:/MyWork/SunEyeVision_Dev/dev/Debug/
+  - Release: d:/MyWork/SunEyeVision_Dev/Release/SunEyeVision_v1.0.0/SunEyeVision/
+  -->
+
+  <PropertyGroup>
+    <!-- 根据配置选择输出路径 -->
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
+
+    <!-- 输出中间目录统一到 build_temp/obj/ -->
+    <IntermediateOutputPath>$(MSBuildProjectDirectory)\..\..\build_temp\obj\$(MSBuildProjectName)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
+
+    <!-- 自动创建输出目录 -->
+    <CreateProgramDatabase>true</CreateProgramDatabase>
+    <DebugType Condition="'$(Configuration)'=='Release'">embedded</DebugType>
+    <DebugSymbols Condition="'$(Configuration)'=='Release'">true</DebugSymbols>
+
+    <!-- 生成PDB文件用于调试 -->
+    <DebugType Condition="'$(Configuration)'=='Debug'">full</DebugType>
+  </PropertyGroup>
+
+  <!-- UI项目特殊配置 -->
+  <PropertyGroup Condition="'$(OutputType)'=='WinExe'">
+    <!-- 主程序输出到根目录 (Bin/ 不再需要) -->
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
+  </PropertyGroup>
+
+  <!-- 工具插件特殊配置 (通过项目路径识别：位于 tools/ 目录下) -->
+  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\tools\'))">
+    <!-- 工具插件输出到 plugins 子目录 -->
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
+  </PropertyGroup>
+
+</Project>

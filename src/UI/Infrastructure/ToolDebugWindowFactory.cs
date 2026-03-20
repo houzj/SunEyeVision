@@ -45,7 +45,7 @@ namespace SunEyeVision.UI.Factories
 
                 try
                 {
-                    // 插件目录在应用程序目录下的 plugins 子目录
+                    // 插件目录: 相对于主程序目录下的 plugins/ 子目录
                     var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
 
                     if (Directory.Exists(pluginsPath))

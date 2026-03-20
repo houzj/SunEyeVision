@@ -71,6 +71,7 @@ public partial class App : Application
 
         // 初始化插件管理器
         var pluginManager = new PluginManager();
+        // 插件路径: 相对于主程序目录下的 plugins/ 子目录
         string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         pluginManager.LoadPlugins(pluginsPath);
 

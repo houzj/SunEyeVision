@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>SunEyeVision.Tool.RegionEditor</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.RegionEditor</AssemblyName>
-    <OutDir>$(MSBuildProjectDirectory)\..\..\src\UI\bin\$(Configuration)\$(TargetFramework)\plugins\</OutDir>
+    <IsToolPlugin>true</IsToolPlugin>
   </PropertyGroup>
 
   <ItemGroup>
