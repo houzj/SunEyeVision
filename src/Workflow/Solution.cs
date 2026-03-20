@@ -28,7 +28,7 @@ namespace SunEyeVision.Workflow;
 /// 
 /// 完全对齐VisionMaster架构，一个解决方案包含：
 /// - 工作流列表：执行逻辑定义
-/// - 节点参数：所有节点的工具参数配置（替代Recipe/RecipeGroup概念）
+/// - 节点参数：所有节点的工具参数配置
 /// - 全局变量：跨工作流共享的变量
 /// - 设备配置：相机、光源等设备配置
 /// - 通讯配置：PLC、串口等通讯配置
@@ -63,7 +63,7 @@ public class Solution : ObservableObject
     /// 节点参数映射：NodeId -> ToolParameters
     /// </summary>
     /// <remarks>
-    /// 存储所有节点的工具参数配置，替代原Recipe/RecipeGroup结构。
+    /// 存储所有节点的工具参数配置。
     /// 一个解决方案只有一套参数配置。
     /// ToolParameters 使用 JsonPolymorphic 支持多态序列化。
     /// </remarks>
@@ -76,22 +76,7 @@ public class Solution : ObservableObject
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<GlobalVariable> GlobalVariables { get; set; } = new();
 
-    /// <summary>
-    /// 配方列表
-    /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<Recipe> Recipes { get; set; } = new();
 
-    /// <summary>
-    /// 默认配方ID
-    /// </summary>
-    public string? DefaultRecipeId { get; set; }
-
-    /// <summary>
-    /// 当前激活的配方ID（运行时属性，不序列化）
-    /// </summary>
-    [JsonIgnore]
-    public string? CurrentRecipeId { get; set; }
 
     /// <summary>
     /// 设备列表
@@ -181,8 +166,6 @@ public class Solution : ObservableObject
     /// 创建新解决方案
     /// </summary>
     /// <remarks>
-    /// 自动创建默认配方，确保参数有存储位置。
-    /// 
     /// 设计原则（rule-002）：
     /// - 方法命名使用 Create()，与 RunContext.Create、SolutionMetadata.Create 保持一致
     /// </remarks>
@@ -195,7 +178,6 @@ public class Solution : ObservableObject
             Workflows = new List<Workflow>(),
             NodeParameters = new Dictionary<string, ToolParameters>(),
             GlobalVariables = new List<GlobalVariable>(),
-            Recipes = new List<Recipe>(),
             Devices = new List<Device>(),
             Communications = new List<Communication>(),
             DatabaseConfiguration = new DatabaseConfiguration(),
@@ -203,21 +185,7 @@ public class Solution : ObservableObject
             VersionHistory = new List<SolutionVersion>()
         };
 
-        // 自动创建默认配方
-        var defaultRecipe = new Recipe
-        {
-            Name = "默认配方",
-            Description = "默认参数配置",
-            IsDefault = true,
-            CreatedTime = DateTime.Now,
-            LastModifiedTime = DateTime.Now
-        };
-
-        solution.Recipes.Add(defaultRecipe);
-        solution.DefaultRecipeId = defaultRecipe.Id;
-        solution.CurrentRecipeId = defaultRecipe.Id;
-
-        VisionLogger.Instance.Log(LogLevel.Info, $"创建解决方案: Id={solution.Id}, 自动创建默认配方: {defaultRecipe.Name}", "Solution");
+        VisionLogger.Instance.Log(LogLevel.Info, $"创建解决方案: Id={solution.Id}", "Solution");
 
         return solution;
     }
@@ -411,9 +379,6 @@ public class Solution : ObservableObject
                 )
             ),
             GlobalVariables = GlobalVariables.Select(v => v.Clone()).ToList(),
-            Recipes = Recipes.Select(r => r.Clone()).ToList(),
-            DefaultRecipeId = DefaultRecipeId,
-            CurrentRecipeId = null, // 运行时不克隆当前配方ID
             Devices = Devices.Select(d => d.Clone()).ToList(),
             Communications = Communications.Select(c => c.Clone()).ToList(),
             DatabaseConfiguration = DatabaseConfiguration?.Clone(),
@@ -447,22 +412,6 @@ public class Solution : ObservableObject
             {
                 errors.AddRange(varErrors.Select(e => $"全局变量 '{globalVariable.Name}': {e}"));
             }
-        }
-
-        // 验证配方
-        foreach (var recipe in Recipes)
-        {
-            var (isValid, recipeErrors) = recipe.Validate();
-            if (!isValid)
-            {
-                errors.AddRange(recipeErrors.Select(e => $"配方 '{recipe.Name}': {e}"));
-            }
-        }
-
-        // 验证默认配方
-        if (Recipes.Count > 0 && !Recipes.Any(r => r.IsDefault))
-        {
-            errors.Add("存在配方但未设置默认配方");
         }
 
         // 验证设备

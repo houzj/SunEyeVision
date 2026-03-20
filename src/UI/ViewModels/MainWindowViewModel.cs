@@ -794,7 +794,6 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand ShowGlobalVariableManagerCommand { get; }
         public ICommand ShowCameraManagerCommand { get; }
         public ICommand ShowCommunicationManagerCommand { get; }
-        public ICommand ShowRecipeManagerCommand { get; }
 
         // 主窗口 ImageControl 获取委托 - 用于区域编辑器绑定
         /// <summary>
@@ -933,7 +932,6 @@ namespace SunEyeVision.UI.ViewModels
             ShowGlobalVariableManagerCommand = new RelayCommand(ExecuteShowGlobalVariableManager);
             ShowCameraManagerCommand = new RelayCommand(ExecuteShowCameraManager);
             ShowCommunicationManagerCommand = new RelayCommand(ExecuteShowCommunicationManager);
-            ShowRecipeManagerCommand = new RelayCommand(ExecuteShowRecipeManager);
         }
 
         /// <summary>
@@ -3646,35 +3644,6 @@ namespace SunEyeVision.UI.ViewModels
             catch (Exception ex)
             {
                 LogError($"打开通讯管理器失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 显示配方管理器
-        /// </summary>
-        private void ExecuteShowRecipeManager()
-        {
-            try
-            {
-                LogInfo("打开配方管理器");
-
-                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-                var currentSolution = solutionManager.CurrentSolution;
-
-                if (currentSolution == null)
-                {
-                    MessageBox.Show("请先打开一个解决方案", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                var viewModel = new ViewModels.RecipeManagementDialogViewModel(solutionManager);
-                var dialog = new Views.Windows.RecipeManagementDialog(viewModel);
-
-                dialog.ShowDialog();
-            }
-            catch (Exception ex)
-            {
-                LogError($"打开配方管理器失败: {ex.Message}");
             }
         }
 

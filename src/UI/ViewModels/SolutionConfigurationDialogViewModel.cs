@@ -19,7 +19,6 @@ namespace SunEyeVision.UI.ViewModels
     /// 已从 Project 迁移到 Solution 架构
     /// - Project → Solution
     /// - ProjectManager → SolutionManager
-    /// - InspectionRecipe → Recipe（已移除）
     /// </remarks>
     public class SolutionConfigurationDialogViewModel : ViewModelBase
     {

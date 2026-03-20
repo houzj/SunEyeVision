@@ -157,15 +157,6 @@
                     <TextBlock Text="保存" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <Button ToolTip="配方管理 (Ctrl+R)" 
-                    Padding="8,4" Margin="2" 
-                    Style="{StaticResource SecondaryButton}" 
-                    Command="{Binding ShowRecipeManagerCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="📋" FontSize="16" VerticalAlignment="Center"/>
-                    <TextBlock Text="配方管理" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
 
             <Separator/>
 

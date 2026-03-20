@@ -13,8 +13,8 @@ namespace SunEyeVision.Workflow
 /// 定义检测任务的执行逻辑,包括节点拓扑和连接关系。
 ///
 /// 特性：
-/// - 可复用：多个Recipe可以共享同一个Workflow
-/// - 可升级：修改Workflow不影响Recipe数据
+/// - 可复用：多个Solution可以共享同一个Workflow
+/// - 可升级：修改Workflow不影响NodeParameters数据
 /// - 可版本化：支持多个版本共存
 /// </remarks>
 public class Workflow : ObservableObject
