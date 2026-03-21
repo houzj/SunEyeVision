@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Adapters;
 
@@ -11,12 +11,12 @@ namespace SunEyeVision.UI.Adapters
     {
         public string GetDisplayText(WorkflowNode node)
         {
-            return $"{node.Name} {node.Index}";
+            return node.DisplayName;
         }
 
         public string GetIcon(WorkflowNode node)
         {
-            return node.NodeTypeIcon;
+            return node.Icon ?? "?";
         }
 
         public Color GetBackgroundColor(WorkflowNode node)

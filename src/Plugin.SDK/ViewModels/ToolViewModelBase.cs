@@ -201,17 +201,18 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         }
 
         /// <summary>
-        /// 从元数据加载参数 - 通过反射从 ToolParameters 特性读取
+        /// 从元数据加载参数 - 通过 IToolPlugin 接口读取
         /// </summary>
         protected virtual void LoadParameters(ToolMetadata? metadata)
         {
-            if (metadata?.ParamsType == null)
+            if (_tool == null)
                 return;
 
-            // 直接从元数据获取参数类型
-            if (typeof(ToolParameters).IsAssignableFrom(metadata.ParamsType))
+            // 从 IToolPlugin 获取参数类型
+            var paramsType = _tool.ParamsType;
+            if (typeof(ToolParameters).IsAssignableFrom(paramsType))
             {
-                var defaultParams = Activator.CreateInstance(metadata.ParamsType) as ToolParameters;
+                var defaultParams = Activator.CreateInstance(paramsType) as ToolParameters;
                 if (defaultParams != null)
                 {
                     LoadFromToolParameters(defaultParams);

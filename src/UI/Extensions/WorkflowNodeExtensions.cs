@@ -1,4 +1,4 @@
-using SunEyeVision.Core.Models;
+﻿using SunEyeVision.Core.Models;
 
 namespace SunEyeVision.UI.Extensions
 {
@@ -8,13 +8,13 @@ namespace SunEyeVision.UI.Extensions
     public static class WorkflowNodeExtensions
     {
         /// <summary>
-        /// 将UI层的WorkflowNode转换为Workflow层的WorkflowNode
+        /// 将UI层的WorkflowNode转换为Workflow层的WorkflowNodeBase
         /// </summary>
-        public static Workflow.WorkflowNode ToWorkflowNode(this Models.WorkflowNode uiNode)
+        public static SunEyeVision.Workflow.WorkflowNodeBase ToWorkflowNode(this Models.WorkflowNode uiNode)
         {
             // 工具插件创建的节点始终为 AlgorithmNode
             // 控制节点由专门的 UI 操作创建
-            var workflowNode = new Workflow.WorkflowNode(uiNode.Id, uiNode.Name, NodeType.Algorithm);
+            var workflowNode = new SunEyeVision.Workflow.WorkflowNodeBase(uiNode.Id, uiNode.Name, "Algorithm");
             workflowNode.AlgorithmType = uiNode.AlgorithmType;
             return workflowNode;
         }

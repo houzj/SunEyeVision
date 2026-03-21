@@ -14,7 +14,7 @@ namespace SunEyeVision.Workflow
     /// <summary>
     /// 算法节点
     /// </summary>
-    public class AlgorithmNode : WorkflowNode
+    public class AlgorithmNode : WorkflowNodeBase
     {
         /// <summary>
         /// 工具实例
@@ -32,7 +32,7 @@ namespace SunEyeVision.Workflow
         public ToolResults? LastToolResult { get; private set; }
 
         public AlgorithmNode(string id, string name, IToolPlugin tool)
-            : base(id, name, NodeType.Algorithm)
+            : base(id, name, "Algorithm")
         {
             Tool = tool;
         }

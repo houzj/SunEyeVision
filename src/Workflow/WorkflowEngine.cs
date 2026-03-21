@@ -214,7 +214,7 @@ namespace SunEyeVision.Workflow
                     // Ensure collections are initialized if null
                     if (workflow.Nodes == null)
                     {
-                        workflow.Nodes = new List<WorkflowNode>();
+                        workflow.Nodes = new List<WorkflowNodeBase>();
                     }
 
                     if (workflow.Connections == null)

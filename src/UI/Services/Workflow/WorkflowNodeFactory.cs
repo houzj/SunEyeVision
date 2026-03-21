@@ -59,26 +59,22 @@ namespace SunEyeVision.UI.Services.Workflow
                 throw new ArgumentException("Algorithm type cannot be null or empty.", nameof(algorithmType));
             }
 
-            // 自动添加序号,格式:"工具名称 局部序号"
-            string nodeName = name ?? $"{algorithmType} {localIndex}";
+            // 获取工具元数据
+            var metadata = ToolRegistry.GetToolMetadata(algorithmType);
+            var displayName = metadata?.DisplayName ?? algorithmType;
+
+            // 生成节点ID和名称
+            string nodeId = _sequenceManager.GenerateNodeId(algorithmType, globalIndex, localIndex);
+            string nodeName = name ?? _sequenceManager.GenerateNodeName(displayName, localIndex);
 
             var node = new WorkflowModel.WorkflowNode(
-                Guid.NewGuid().ToString(),
+                nodeId,
                 nodeName,
-                algorithmType,
-                localIndex,
-                globalIndex
+                algorithmType
             );
 
             // 初始化节点参数
             InitializeNodeParameters(node, algorithmType);
-
-            // 使用 NodeDisplayAdapterFactory 根据算法类型获取适配器
-            var adapter = NodeDisplayAdapterFactory.GetAdapter(algorithmType);
-            if (adapter != null)
-            {
-                node.NodeTypeIcon = adapter.GetIcon(node);
-            }
 
             return node;
         }
@@ -97,7 +93,7 @@ namespace SunEyeVision.UI.Services.Workflow
                 {
                     // 直接使用 ToolParameters，不进行转换
                     node.Parameters = defaultParams;
-                    node.ParametersTypeName = defaultParams.GetType().AssemblyQualifiedName;
+                    // ParametersTypeName 已过时，不再使用
                 }
                 else
                 {

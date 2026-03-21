@@ -1,4 +1,4 @@
-using NodeModel = SunEyeVision.UI.Models.WorkflowNode;
+﻿using NodeModel = SunEyeVision.UI.Models.WorkflowNode;
 
 namespace SunEyeVision.UI.Services.Workflow
 {

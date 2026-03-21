@@ -54,7 +54,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public void PublishNodeExecutionStarted(string workflowId, string nodeId, string nodeName)
         {
-            var eventData = new LogEvent(_source, $"Node execution started: {nodeName}", SunEyeVision.Core.Events.LogLevel.Debug, "WorkflowNode")
+            var eventData = new LogEvent(_source, $"Node execution started: {nodeName}", SunEyeVision.Core.Events.LogLevel.Debug, "WorkflowNodeBase")
             {
                 Message = $"Node '{nodeName}' (ID: {nodeId}) in workflow '{workflowId}' execution started"
             };
@@ -148,7 +148,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// Execute a single node with event publishing
         /// </summary>
-        public AlgorithmResult ExecuteNode(WorkflowNode node, Mat inputImage)
+        public AlgorithmResult ExecuteNode(WorkflowNodeBase node, Mat inputImage)
         {
             var stopwatch = Stopwatch.StartNew();
             bool success = true;

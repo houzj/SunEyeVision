@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
@@ -30,7 +30,7 @@ namespace SunEyeVision.Workflow
     /// <summary>
     /// 工作流控制节点基类
     /// </summary>
-    public abstract class WorkflowControlNode : WorkflowNode
+    public abstract class WorkflowControlNode : WorkflowNodeBase
     {
         /// <summary>
         /// 控制类型
@@ -48,9 +48,23 @@ namespace SunEyeVision.Workflow
         public ValidationResult LastValidationResult { get; private set; }
 
         public WorkflowControlNode(string id, string name, WorkflowControlType controlType)
-            : base(id, name, MapControlTypeToNodeType(controlType))
+            : base(id, name, MapControlTypeToAlgorithmType(controlType))
         {
             ControlType = controlType;
+        }
+
+        /// <summary>
+        /// 将WorkflowControlType映射到AlgorithmType字符串
+        /// </summary>
+        private static string MapControlTypeToAlgorithmType(WorkflowControlType controlType)
+        {
+            return controlType switch
+            {
+                WorkflowControlType.Subroutine => "Subroutine",
+                WorkflowControlType.Condition => "Condition",
+                WorkflowControlType.Switch => "Switch",
+                _ => throw new ArgumentException($"Unknown control type: {controlType}")
+            };
         }
 
         /// <summary>

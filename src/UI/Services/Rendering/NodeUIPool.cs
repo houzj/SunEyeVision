@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Windows;
 using System.Windows.Controls;
@@ -173,7 +173,7 @@ namespace SunEyeVision.UI.Services.Rendering
                 // 图标
                 if (grid.Children[0] is TextBlock iconBlock)
                 {
-                    iconBlock.Text = node.NodeTypeIcon ?? string.Empty;
+                    iconBlock.Text = node.Icon ?? string.Empty;
                 }
 
                 // 全局序号

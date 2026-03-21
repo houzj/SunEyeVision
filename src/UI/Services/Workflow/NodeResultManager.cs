@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.UI.Models;
@@ -11,6 +12,8 @@ using SunEyeVision.UI.Services.Images;
 using SunEyeVision.UI.Services.Visualization;
 using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Views.Controls.Panels;
+using WorkflowCore = SunEyeVision.Workflow;
+using SunEyeVision.Workflow;
 
 // 别名解决命名冲突
 using IOPath = System.IO.Path;
@@ -22,31 +25,33 @@ namespace SunEyeVision.UI.Services.Workflow
     /// </summary>
     /// <remarks>
     /// 核心功能:
-    /// 1. 缓存工具执行结果到节点
+    /// 1. 缓存工具执行结果到 WorkflowContext（来自 WorkflowCore）
     /// 2. 更新图像数据
     /// 3. 刷新结果面板显示
     /// 4. 显示可视化元素（检测框、轮廓等）
-    /// 
+    ///
     /// 使用示例:
     /// <code>
-    /// var manager = new NodeResultManager(viewModel);
+    /// var manager = new NodeResultManager(workflowContext, viewModel);
     /// manager.SetOverlayCanvas(imageControl.OverlayCanvas);
     /// manager.UpdateNodeResult(node, results);
     /// </code>
     /// </remarks>
     public class NodeResultManager
     {
+        private readonly WorkflowCore.WorkflowContext _workflowContext;
         private readonly ViewModels.MainWindowViewModel _viewModel;
         private readonly VisualElementRenderer _renderer;
-        
+
         // 当前显示可视化元素的 Canvas 引用
         private System.Windows.Controls.Canvas? _overlayCanvas;
 
         // 图像转换器池（用于优化Mat到BitmapSource的转换）
         private readonly ImageConverterPool _imageConverterPool;
 
-        public NodeResultManager(ViewModels.MainWindowViewModel viewModel)
+        public NodeResultManager(WorkflowCore.WorkflowContext workflowContext, ViewModels.MainWindowViewModel viewModel)
         {
+            _workflowContext = workflowContext ?? throw new ArgumentNullException(nameof(workflowContext));
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _renderer = new VisualElementRenderer();
             _imageConverterPool = new ImageConverterPool(maxCacheSize: 10);
@@ -75,8 +80,25 @@ namespace SunEyeVision.UI.Services.Workflow
             // 诊断日志已移至Debug输出
             System.Diagnostics.Debug.WriteLine($"[UpdateNodeResult] 节点: {node.Name}, IsSelected={node.IsSelected}");
 
-            // 1. 缓存结果到节点
-            node.LastResult = result;
+            // 1. 缓存结果到 WorkflowContext
+            var executionResult = new NodeExecutionResult
+            {
+                NodeId = node.Id,
+                Success = true,
+                StartTime = DateTime.Now,
+                EndTime = DateTime.Now,
+                ToolResult = result,
+                Outputs = new Dictionary<string, object>()
+            };
+
+            // 如果结果包含图像，添加到输出
+            var outputImage = GetOutputImage(result);
+            if (outputImage != null)
+            {
+                executionResult.Outputs["Output"] = outputImage;
+            }
+
+            _workflowContext.SetNodeResult(node.Id, executionResult);
 
             // 2. 更新图像数据（如果结果包含图像）
             UpdateNodeImage(node, result);
@@ -244,61 +266,19 @@ namespace SunEyeVision.UI.Services.Workflow
                 // 转换为 BitmapSource
                 var bitmapSource = outputImage.ToBitmapSource();
 
-                // ========== 新架构：使用ImageSourceManager ==========
                 // 创建唯一ID
                 var imageSourceId = $"node_{node.Id}_output_{Guid.NewGuid():N}";
-                
+
                 // 通过ImageSourceManager创建内存图像源
                 var imageSource = ImageSourceManager.Instance.CreateFromMemory(
                     outputImage.Clone(), // 克隆Mat，避免所有权问题
                     imageSourceId
                 );
-                
+
                 System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ ImageSource已创建: {imageSourceId}");
 
-                // ========== 新架构：更新 OutputCache ==========
-                var outputCache = node.EnsureOutputCache();
-                
-                // 创建输出图像信息
-                var outputImageInfo = new OutputImageInfo
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = !string.IsNullOrEmpty(filePath) ? IOPath.GetFileName(filePath) : $"Output_{DateTime.Now:HHmmss}",
-                    SourceFilePath = filePath,
-                    Image = bitmapSource,
-                    ImageSourceId = imageSourceId, // ★ 关联ImageSource
-                    Timestamp = DateTime.Now
-                };
-                
-                outputCache.AddOutputImage(outputImageInfo);
-
-                // ★ 关键日志：新架构更新成功
-                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ 新架构: 节点 {node.Name} OutputCache 已更新, 图像数={outputCache.Count}, ImageSourceId={imageSourceId}");
-
-                // ========== 向后兼容：更新 ImageData（已过时）==========
-                // 注意：这里不再清空 ImageData，而是追加图像
-                // 这保持了与其他节点类型一致的行为
-#pragma warning disable CS0618 // 禁用过时警告
-                node.ImageData ??= new NodeImageData(node.Id);
-
-                var imageInfo = new ImageInfo
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = !string.IsNullOrEmpty(filePath) ? IOPath.GetFileName(filePath) : $"Image_{DateTime.Now:HHmmss}",
-                    FilePath = filePath,
-                    Thumbnail = bitmapSource,
-                    FullImage = bitmapSource,
-                    AddedTime = DateTime.Now
-                };
-
-                // 向后兼容：追加图像而不是清空
-                // 这样不会影响用户选择的输入源
-                node.ImageData.AddImage(imageInfo);
-                node.ImageData.CurrentImageIndex = node.ImageData.ImageCount - 1;
-#pragma warning restore CS0618
-
                 // ★ 关键日志：图像更新成功
-                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ 节点 {node.Name} 图像已更新, 图像数={node.ImageData.ImageCount}");
+                System.Diagnostics.Debug.WriteLine($"[NodeResultManager] ★ 节点 {node.Name} 图像已更新");
                 return true;
             }
             catch (Exception ex)
@@ -346,19 +326,25 @@ namespace SunEyeVision.UI.Services.Workflow
                 // 直接使用缓存的BitmapSource，无需重新转换
                 var bitmapSource = cachedResult.ProcessedImage;
 
-                // 更新 OutputCache
-                var outputCache = node.EnsureOutputCache();
-                var outputImageInfo = new OutputImageInfo
+                // 将缓存的执行结果存储到 WorkflowContext
+                var executionResult = new NodeExecutionResult
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = $"Cached_{DateTime.Now:HHmmss}",
-                    SourceFilePath = "",
-                    Image = bitmapSource,
-                    ImageSourceId = cachedResult.ImageSourceId,
-                    Timestamp = DateTime.Now
+                    NodeId = node.Id,
+                    Success = true,
+                    StartTime = DateTime.Now,
+                    EndTime = DateTime.Now,
+                    Outputs = new Dictionary<string, object>()
                 };
 
-                outputCache.AddOutputImage(outputImageInfo);
+                // 如果有缓存的图像，添加到执行结果
+                if (cachedResult.ProcessedImage != null)
+                {
+                    // 将 BitmapSource 转换为 Mat
+                    var mat = cachedResult.ProcessedImage.ToMat();
+                    executionResult.Outputs["Output"] = mat;
+                }
+
+                _workflowContext.SetNodeResult(node.Id, executionResult);
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[NodeResultManager] ★ 缓存更新: 节点 {node.Name}, " +
@@ -378,10 +364,14 @@ namespace SunEyeVision.UI.Services.Workflow
         /// <returns>输出Mat，如果无输出返回null</returns>
         public Mat? GetNodeOutputMat(WorkflowNode node)
         {
-            if (node?.LastResult == null)
+            if (node == null)
                 return null;
 
-            return GetOutputImage(node.LastResult);
+            var executionResult = _workflowContext.GetNodeResult(node.Id);
+            if (executionResult?.ToolResult == null)
+                return null;
+
+            return GetOutputImage(executionResult.ToolResult);
         }
 
         /// <summary>

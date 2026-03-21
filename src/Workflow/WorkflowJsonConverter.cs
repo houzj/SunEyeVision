@@ -33,7 +33,7 @@ namespace SunEyeVision.Workflow
             // 反序列化节点（使用 FromDictionary 方法恢复强类型参数）
             if (root.TryGetProperty("Nodes", out var nodesElement))
             {
-                workflow.Nodes = new List<WorkflowNode>();
+                workflow.Nodes = new List<WorkflowNodeBase>();
                 foreach (var nodeElement in nodesElement.EnumerateArray())
                 {
                     try
@@ -42,11 +42,7 @@ namespace SunEyeVision.Workflow
 
                         if (nodeDict != null)
                         {
-                            var nodeType = nodeDict.TryGetValue("Type", out var typeVal)
-                                ? (NodeType)Convert.ToInt32(typeVal)
-                                : NodeType.Algorithm;
-
-                            var node = WorkflowNode.FromDictionary(nodeDict, nodeType);
+                            var node = WorkflowNodeBase.FromDictionary(nodeDict);
                             workflow.Nodes.Add(node);
                         }
                     }

@@ -9,7 +9,7 @@ using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
-using SunEyeVision.Plugin.SDK.UI.Controls.ROI;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 
 // 明确Window类型，避免与OpenCvSharp.Window冲突
 using Window = System.Windows.Window;
@@ -63,8 +63,11 @@ namespace SunEyeVision.Tool.ROIEditor.Views
 
         private void OnViewModelSet()
         {
-            if (_viewModel == null || RoiEditor == null) return;
+            if (_viewModel == null || RegionEditor == null) return;
 
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
             // 同步ROI数据
             _viewModel.ROIs.CollectionChanged += OnROIsCollectionChanged;
 
@@ -76,21 +79,29 @@ namespace SunEyeVision.Tool.ROIEditor.Views
 
             // 订阅ROI编辑器事件
             RoiEditor.ROIChanged += OnROIChanged;
+            */
         }
 
         private void OnROIsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (RoiEditor == null) return;
+            if (RegionEditor == null) return;
 
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
             // 同步到编辑器
             RoiEditor.LoadROIs(_viewModel!.ROIs);
             UpdateROICount();
+            */
         }
 
         private void OnROIChanged(object? sender, ROIChangedEventArgs e)
         {
             if (_viewModel == null) return;
 
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
             switch (e.ChangeType)
             {
                 case ROIChangeType.Added:
@@ -113,6 +124,7 @@ namespace SunEyeVision.Tool.ROIEditor.Views
             }
 
             UpdateROICount();
+            */
         }
 
         private void UpdateROICount()
@@ -126,25 +138,33 @@ namespace SunEyeVision.Tool.ROIEditor.Views
 
         private void LoadImageToEditor(Mat image)
         {
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
             try
             {
                 var bitmapSource = WriteableBitmapConverter.ToWriteableBitmap(image);
-                RoiEditor?.LoadImage(bitmapSource);
+                RegionEditor?.LoadImage(bitmapSource);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"加载图像失败: {ex.Message}");
             }
+            */
         }
 
         #region 事件处理
 
         private void EditModeRadio_Checked(object sender, RoutedEventArgs e)
         {
-            if (RoiEditor != null)
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
+            if (RegionEditor != null)
             {
-                RoiEditor.CurrentMode = ROIMode.Edit;
+                RegionEditor.CurrentMode = ROIMode.Edit;
             }
+            */
             if (_viewModel != null)
             {
                 _viewModel.Mode = "Edit";
@@ -153,10 +173,14 @@ namespace SunEyeVision.Tool.ROIEditor.Views
 
         private void InheritModeRadio_Checked(object sender, RoutedEventArgs e)
         {
-            if (RoiEditor != null)
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
+            if (RegionEditor != null)
             {
-                RoiEditor.CurrentMode = ROIMode.Inherit;
+                RegionEditor.CurrentMode = ROIMode.Inherit;
             }
+            */
             if (_viewModel != null)
             {
                 _viewModel.Mode = "Inherit";
@@ -187,7 +211,11 @@ namespace SunEyeVision.Tool.ROIEditor.Views
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
             _viewModel?.ResetParameters();
-            RoiEditor?.DeselectAll();
+            // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+            // 以下代码已禁用，需要根据新 API 重新实现
+            /*
+            RegionEditor?.DeselectAll();
+            */
         }
 
         #endregion
@@ -228,8 +256,12 @@ namespace SunEyeVision.Tool.ROIEditor.Views
                         _viewModel.CurrentImage = image.Clone();
                     }
 
+                    // 注意：RegionEditorControl 的 API 与旧 ROIImageEditor 不同
+                    // 以下代码已禁用，需要根据新 API 重新实现
+                    /*
                     // 加载到编辑器
                     LoadImageToEditor(image);
+                    */
 
                     // 显示文件名
                     CurrentImageFileName.Text = Path.GetFileName(filePath);

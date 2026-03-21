@@ -188,7 +188,7 @@ namespace SunEyeVision.UI.ViewModels
                     tool.Icon,
                     tool.Description,
                     tool.AlgorithmType?.Name,
-                    tool.HasDebugInterface
+                    false // HasDebugInterface 已删除，默认为 false
                 );
                 // 设置真正的工具ID
                 toolItem.ToolId = tool.Id;

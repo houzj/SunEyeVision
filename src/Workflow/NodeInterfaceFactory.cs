@@ -1,4 +1,4 @@
-using SunEyeVision.Core.Models;
+﻿using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Metadata;
 
@@ -15,7 +15,7 @@ namespace SunEyeVision.Workflow
         /// <param name="node">工作流节点</param>
         /// <param name="toolMetadata">工具元数据</param>
         /// <returns>界面类型</returns>
-        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata)
+        public static NodeInterfaceType GetInterfaceType(WorkflowNodeBase node, ToolMetadata? toolMetadata)
         {
             if (node == null)
             {
@@ -23,7 +23,7 @@ namespace SunEyeVision.Workflow
             }
 
             // 根据节点类型决定界面类型
-            switch (node.Type)
+            switch (node.NodeType)
             {
                 case NodeType.Subroutine:
                     // 子程序节点：创建新的工作流画布
@@ -35,12 +35,9 @@ namespace SunEyeVision.Workflow
 
                 case NodeType.Algorithm:
                 default:
-                    // 算法节点：使用调试窗口
-                    if (toolMetadata != null && toolMetadata.HasDebugInterface)
-                    {
-                        return NodeInterfaceType.DebugWindow;
-                    }
-                    return NodeInterfaceType.None;
+                    // 算法节点：使用调试窗口（暂时保留此逻辑）
+                    // TODO: 后续需要从工具实例动态判断是否支持调试窗口
+                    return NodeInterfaceType.DebugWindow;
             }
         }
 
@@ -51,7 +48,7 @@ namespace SunEyeVision.Workflow
         /// <param name="toolMetadata">工具元数据</param>
         /// <param name="tool">工具实例（用于运行时检查）</param>
         /// <returns>界面类型</returns>
-        public static NodeInterfaceType GetInterfaceType(WorkflowNode node, ToolMetadata? toolMetadata, IToolPlugin? tool)
+        public static NodeInterfaceType GetInterfaceType(WorkflowNodeBase node, ToolMetadata? toolMetadata, IToolPlugin? tool)
         {
             if (node == null)
             {
@@ -59,7 +56,7 @@ namespace SunEyeVision.Workflow
             }
 
             // 根据节点类型决定界面类型
-            switch (node.Type)
+            switch (node.NodeType)
             {
                 case NodeType.Subroutine:
                     return NodeInterfaceType.NewWorkflowCanvas;
@@ -69,15 +66,9 @@ namespace SunEyeVision.Workflow
 
                 case NodeType.Algorithm:
                 default:
-                    // 运行时检查：即使元数据标记 HasDebugInterface=true，
-                    // 也需要检查工具实例的 HasDebugWindow 属性
-                    if (toolMetadata != null && toolMetadata.HasDebugInterface)
+                    // 运行时检查：检查工具实例的 HasDebugWindow 属性
+                    if (tool != null && tool.HasDebugWindow)
                     {
-                        // 运行时检查：工具实例是否真的支持调试窗口
-                        if (tool != null && !tool.HasDebugWindow)
-                        {
-                            return NodeInterfaceType.None;
-                        }
                         return NodeInterfaceType.DebugWindow;
                     }
                     return NodeInterfaceType.None;
@@ -90,7 +81,7 @@ namespace SunEyeVision.Workflow
         /// <param name="node">工作流节点</param>
         /// <param name="toolMetadata">工具元数据</param>
         /// <returns>是否可以打开界面</returns>
-        public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata)
+        public static bool CanOpenInterface(WorkflowNodeBase node, ToolMetadata? toolMetadata)
         {
             return GetInterfaceType(node, toolMetadata) != NodeInterfaceType.None;
         }
@@ -102,7 +93,7 @@ namespace SunEyeVision.Workflow
         /// <param name="toolMetadata">工具元数据</param>
         /// <param name="tool">工具实例</param>
         /// <returns>是否可以打开界面</returns>
-        public static bool CanOpenInterface(WorkflowNode node, ToolMetadata? toolMetadata, IToolPlugin? tool)
+        public static bool CanOpenInterface(WorkflowNodeBase node, ToolMetadata? toolMetadata, IToolPlugin? tool)
         {
             return GetInterfaceType(node, toolMetadata, tool) != NodeInterfaceType.None;
         }

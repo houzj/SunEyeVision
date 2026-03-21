@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Adapters;
 
@@ -11,7 +11,7 @@ namespace SunEyeVision.UI.Adapters
     {
         public string GetDisplayText(WorkflowNode node)
         {
-            return $"AI分析 {node.Index}";
+            return node.DisplayName;
         }
 
         public string GetIcon(WorkflowNode node)

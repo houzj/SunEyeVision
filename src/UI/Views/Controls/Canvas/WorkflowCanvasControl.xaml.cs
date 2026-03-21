@@ -1886,13 +1886,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             {
 
-                if (current is Border currentBorder && currentBorder.Tag is WorkflowNode workflowNode)
+                if (current is Border currentBorder && currentBorder.Tag is WorkflowNode WorkflowNode)
 
                 {
 
                     border = currentBorder;
 
-                    node = workflowNode;
+                    node = WorkflowNode;
 
                     break;
 

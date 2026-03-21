@@ -32,7 +32,7 @@ using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
-using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNode;
+using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNodeBase;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -105,6 +105,9 @@ namespace SunEyeVision.UI.ViewModels
 
         // 执行管理
         private readonly WorkflowExecutionManager _executionManager;
+
+        // 工作流上下文（用于存储执行结果）
+        private readonly WorkflowContext _workflowContext;
 
         // 运行时参数存储
         private readonly Dictionary<string, object> _runtimeParameters = new();
@@ -263,9 +266,10 @@ namespace SunEyeVision.UI.ViewModels
                     ShowPropertyPanel = value != null;
 
                     // 刷新结果显示（如果节点有缓存结果）
-                    if (value?.LastResult != null)
+                    var executionResult = value != null ? _workflowContext.GetNodeResult(value.Id) : null;
+                    if (executionResult?.ToolResult != null)
                     {
-                        _nodeResultManager.RefreshResultDisplay(value, value.LastResult);
+                        _nodeResultManager.RefreshResultDisplay(value, executionResult.ToolResult);
                     }
                     else
                     {
@@ -846,8 +850,11 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化执行管理器
             _executionManager = new Services.Workflow.WorkflowExecutionManager(new Infrastructure.DefaultInputProvider());
 
+            // 初始化工作流上下文
+            _workflowContext = new WorkflowContext();
+
             // 初始化节点结果管理器
-            _nodeResultManager = new Services.Workflow.NodeResultManager(this);
+            _nodeResultManager = new Services.Workflow.NodeResultManager(_workflowContext, this);
 
             // 初始化工作流执行协调器（图像切换优化）
             _executionOrchestrator = new WorkflowExecutionOrchestrator(_nodeResultManager, maxCacheSize: 50, maxMemoryMB: 100);
@@ -1467,31 +1474,19 @@ namespace SunEyeVision.UI.ViewModels
             foreach (var uiNode in tabInfo.WorkflowNodes)
             {
                 // 根据 AlgorithmType 确定 NodeType
-                var nodeType = DetermineNodeTypeFromAlgorithmType(uiNode.AlgorithmType);
+                var nodeTypeStr = DetermineNodeTypeFromAlgorithmType(uiNode.AlgorithmType).ToString();
 
                 var workflowNode = new WorkflowWorkflowNode(
                     uiNode.Id,
                     uiNode.Name,
-                    nodeType
+                    uiNode.AlgorithmType ?? string.Empty
                 )
                 {
-                    AlgorithmType = uiNode.AlgorithmType,
                     Parameters = uiNode.Parameters ?? new GenericToolParameters(),
                     IsEnabled = uiNode.IsEnabled,
                     PositionX = uiNode.Position.X,
-                    PositionY = uiNode.Position.Y,
-
-                    // 传递节点元数据
-                    Index = uiNode.Index,
-                    GlobalIndex = uiNode.GlobalIndex,
-                    NodeTypeIcon = uiNode.NodeTypeIcon
+                    PositionY = uiNode.Position.Y
                 };
-
-                // 设置参数类型名称（用于强类型恢复）
-                if (uiNode.Parameters != null && uiNode.Parameters.GetType() != typeof(GenericToolParameters))
-                {
-                    workflowNode.ParametersTypeName = uiNode.Parameters.GetType().AssemblyQualifiedName;
-                }
 
                 // 转换参数绑定
                 if (uiNode.ParameterBindings != null && uiNode.ParameterBindings.Count > 0)
@@ -1651,18 +1646,18 @@ namespace SunEyeVision.UI.ViewModels
             var nodesToLoad = new List<UIWorkflowNode>();
             int nodeIndex = 0;
             
-            foreach (var workflowNode in workflow.Nodes)
+            foreach (var WorkflowNode in workflow.Nodes)
             {
                 nodeIndex++;
-                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {workflowNode.Name} (类型: {workflowNode.AlgorithmType})");
-                LogInfo($"      节点ID: {workflowNode.Id}");
-                LogInfo($"      参数类型: {workflowNode.Parameters.GetType().Name}");
-                LogInfo($"      位置: ({workflowNode.PositionX}, {workflowNode.PositionY})");
+                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {WorkflowNode.Name} (类型: {WorkflowNode.AlgorithmType})");
+                LogInfo($"      节点ID: {WorkflowNode.Id}");
+                LogInfo($"      参数类型: {WorkflowNode.Parameters.GetType().Name}");
+                LogInfo($"      位置: ({WorkflowNode.PositionX}, {WorkflowNode.PositionY})");
 
                 try
                 {
                     // 直接使用 ToolParameters，不再转换为 Dictionary
-                    var paramsClone = workflowNode.Parameters.Clone();
+                    var paramsClone = WorkflowNode.Parameters.Clone();
                     LogInfo($"      参数数量: {paramsClone.GetRuntimeParameterMetadata().Count}");
 
                     // 记录关键参数值
@@ -1677,19 +1672,16 @@ namespace SunEyeVision.UI.ViewModels
                     }
 
                     var uiNode = new UIWorkflowNode(
-                        workflowNode.Id,
-                        workflowNode.Name,
-                        workflowNode.AlgorithmType,
-                        workflowNode.Index,
-                        workflowNode.GlobalIndex
+                        WorkflowNode.Id,
+                        WorkflowNode.Name,
+                        WorkflowNode.AlgorithmType
                     )
                     {
                         Parameters = paramsClone,
-                        IsEnabled = workflowNode.IsEnabled,
-                        ParameterBindings = workflowNode.ParameterBindings,
+                        IsEnabled = WorkflowNode.IsEnabled,
+                        ParameterBindings = WorkflowNode.ParameterBindings,
                         // 恢复节点位置
-                        Position = new System.Windows.Point(workflowNode.PositionX, workflowNode.PositionY),
-                        NodeTypeIcon = workflowNode.NodeTypeIcon
+                        Position = new System.Windows.Point(WorkflowNode.PositionX, WorkflowNode.PositionY)
                     };
 
                     nodesToLoad.Add(uiNode);
@@ -2240,7 +2232,7 @@ namespace SunEyeVision.UI.ViewModels
                         return;
                     }
 
-                    AddLog($"✅ 找到工具元数据：{toolMetadata.DisplayName}，HasDebugInterface={toolMetadata.HasDebugInterface}");
+                    AddLog($"✅ 找到工具元数据：{toolMetadata.DisplayName}");
 
                     // 获取工具实例用于运行时检查
                     var tool = ToolRegistry.CreateToolInstance(toolId);
@@ -2492,43 +2484,47 @@ namespace SunEyeVision.UI.ViewModels
                     });
                 }
             }
-            else if (selectedNode.LastResult != null && selectedNode.LastResult.IsSuccess)
-            {
-                // 从 LastResult 获取输出
-                var outputValues = selectedNode.LastResult.GetOutputValues();
-                if (outputValues != null)
-                {
-                    foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
-                    {
-                        DisplayImageSources.Add(new ImageSourceInfo
-                        {
-                            NodeId = selectedNode.Id,
-                            NodeName = selectedNode.Name,
-                            OutputPortName = kvp.Key,
-                            DataType = "Mat",
-                            Distance = 0,
-                            HasExecuted = true
-                        });
-                    }
-                }
-            }
             else
             {
-                // 节点未执行，清空图像显示并添加占位项
-                DisplayImage = null;
-                OriginalImage = null;
-                ProcessedImage = null;
-                ResultImage = null;
-                
-                DisplayImageSources.Add(new ImageSourceInfo
+                // 从 WorkflowContext 获取执行结果
+                var executionResult = _workflowContext.GetNodeResult(selectedNode.Id);
+                if (executionResult?.ToolResult != null && executionResult.Success)
                 {
-                    NodeId = selectedNode.Id,
-                    NodeName = $"{selectedNode.Name} (未执行)",
-                    OutputPortName = "Output",
-                    DataType = InferNodeOutputType(selectedNode),
-                    Distance = 0,
-                    HasExecuted = false
-                });
+                    var outputValues = executionResult.ToolResult.GetOutputValues();
+                    if (outputValues != null)
+                    {
+                        foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
+                        {
+                            DisplayImageSources.Add(new ImageSourceInfo
+                            {
+                                NodeId = selectedNode.Id,
+                                NodeName = selectedNode.Name,
+                                OutputPortName = kvp.Key,
+                                DataType = "Mat",
+                                Distance = 0,
+                                HasExecuted = true
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    // 节点未执行，清空图像显示并添加占位项
+                    DisplayImage = null;
+                    OriginalImage = null;
+                    ProcessedImage = null;
+                    ResultImage = null;
+
+                    DisplayImageSources.Add(new ImageSourceInfo
+                    {
+                        NodeId = selectedNode.Id,
+                        NodeName = $"{selectedNode.Name} (未执行)",
+                        OutputPortName = "Output",
+                        DataType = InferNodeOutputType(selectedNode),
+                        Distance = 0,
+                        HasExecuted = false
+                    });
+                }
             }
 
             // 2. 使用 BFS 查找所有父节点
@@ -2539,27 +2535,11 @@ namespace SunEyeVision.UI.ViewModels
             {
                 bool hasOutput = false;
 
-                // 检查节点是否有输出
-                if (parentNode.OutputCache != null && parentNode.OutputCache.HasOutput)
+                // 从 WorkflowContext 获取执行结果
+                var executionResult = _workflowContext.GetNodeResult(parentNode.Id);
+                if (executionResult?.ToolResult != null && executionResult.Success)
                 {
-                    var outputCache = parentNode.OutputCache;
-                    foreach (var imageName in outputCache.GetImageNames())
-                    {
-                        DisplayImageSources.Add(new ImageSourceInfo
-                        {
-                            NodeId = parentNode.Id,
-                            NodeName = parentNode.Name,
-                            OutputPortName = imageName,
-                            DataType = "Mat",
-                            Distance = distance,
-                            HasExecuted = true
-                        });
-                        hasOutput = true;
-                    }
-                }
-                else if (parentNode.LastResult != null && parentNode.LastResult.IsSuccess)
-                {
-                    var outputValues = parentNode.LastResult.GetOutputValues();
+                    var outputValues = executionResult.ToolResult.GetOutputValues();
                     if (outputValues != null)
                     {
                         foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
@@ -2653,14 +2633,15 @@ namespace SunEyeVision.UI.ViewModels
                     AddLog($"  📌 注册上游节点: {parentNode.Name} (距离: {distance}, 类型: {outputType})");
 
                     // 如果节点有执行结果，注入输出数据
-                    if (parentNode.LastResult != null && parentNode.LastResult.IsSuccess)
+                    var executionResult = _workflowContext.GetNodeResult(parentNode.Id);
+                    if (executionResult?.ToolResult != null && executionResult.Success)
                     {
-                        var outputValues = parentNode.LastResult.GetOutputValues();
+                        var outputValues = executionResult.ToolResult.GetOutputValues();
                         if (outputValues != null && outputValues.Count > 0)
                         {
                             // 尝试找到图像类型的输出（通常是第一个或名为 OutputImage 的属性）
-                            var imageOutput = outputValues.FirstOrDefault(kv => 
-                                kv.Value is OpenCvSharp.Mat || 
+                            var imageOutput = outputValues.FirstOrDefault(kv =>
+                                kv.Value is OpenCvSharp.Mat ||
                                 kv.Key.Contains("Image", StringComparison.OrdinalIgnoreCase) ||
                                 kv.Key.Contains("Output", StringComparison.OrdinalIgnoreCase));
 
@@ -2736,8 +2717,8 @@ namespace SunEyeVision.UI.ViewModels
                         {
                             if (result is SunEyeVision.Plugin.SDK.Execution.Results.ToolResults toolResult)
                             {
-                                // 更新节点结果
-                                node.LastResult = toolResult;
+                                // 执行结果已通过 NodeResultManager.UpdateNodeResult 存储到 WorkflowContext
+                                // 这里不再需要直接赋值给 node.LastResult
 
                                 // 获取输出图像（通过反射调用 GetOutputValue 方法）
                                 var getOutputMethod = toolResult.GetType().GetMethod("GetOutputValue");
@@ -2750,7 +2731,7 @@ namespace SunEyeVision.UI.ViewModels
                                     dataProvider.UpdateNodeOutput(node.Id, outputImage);
                                 }
 
-                                // 更新图像显示
+                                // 更新图像显示（内部已存储到 WorkflowContext）
                                 _nodeResultManager?.UpdateNodeResult(node, toolResult);
 
                                 AddLog($"✅ 调试窗口执行完成: {node.Name}");

@@ -5,7 +5,7 @@ echo ========================================
 echo.
 
 echo [1/4] 清理解决方案...
-dotnet clean SunEyeVision.New.sln
+dotnet clean SunEyeVision.sln
 if errorlevel 1 (
     echo 清理失败！
     pause

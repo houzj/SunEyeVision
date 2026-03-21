@@ -1,7 +1,7 @@
 <Window x:Class="SunEyeVision.Tool.ROIEditor.Views.ROIEditorToolDebugWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:roi="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.ROI;assembly=SunEyeVision.Plugin.SDK"
+        xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
         Title="ROI编辑器" Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
         Background="White">
@@ -57,9 +57,9 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- ROI编辑Tab -->
-            <TabItem Header="ROI编辑">
-                <roi:ROIImageEditor x:Name="RoiEditor" Margin="0" EnforceBoundaryConstraints="False"/>
+            <!-- 区域编辑Tab -->
+            <TabItem Header="区域编辑">
+                <region:RegionEditorControl x:Name="RegionEditor" Margin="0"/>
             </TabItem>
 
             <!-- 结果Tab -->

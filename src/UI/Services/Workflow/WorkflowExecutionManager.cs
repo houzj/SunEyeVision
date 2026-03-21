@@ -374,7 +374,7 @@ namespace SunEyeVision.UI.Services.Workflow
         /// 从UI节点创建AlgorithmNode
         /// </summary>
         private SunEyeVision.Workflow.AlgorithmNode? CreateAlgorithmNodeFromUiNode(
-            Models.WorkflowNode uiNode, 
+            Models.WorkflowNode uiNode,
             SunEyeVision.Plugin.SDK.Logging.ILogger logger)
         {
             try

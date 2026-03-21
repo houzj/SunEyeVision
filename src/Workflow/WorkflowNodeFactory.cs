@@ -164,7 +164,8 @@ namespace SunEyeVision.Workflow
         public static bool ValidateTool(string toolId)
         {
             var metadata = ToolRegistry.GetToolMetadata(toolId);
-            return metadata != null && metadata.IsEnabled;
+            // IsEnabled 字段已从 ToolMetadata 移除，工具始终可用
+            return metadata != null;
         }
 
         /// <summary>

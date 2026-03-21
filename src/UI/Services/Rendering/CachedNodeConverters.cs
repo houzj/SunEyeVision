@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Windows;
@@ -90,8 +90,8 @@ namespace SunEyeVision.UI.Services.Rendering
         {
             if (value is WorkflowNode node)
             {
-                // 使用节点ID作为缓存键
-                var cacheKey = $"{node.Id}_{node.Name}_{node.Index}";
+                // 使用节点ID、名称和局部序号作为缓存键
+                var cacheKey = $"{node.Id}_{node.Name}_{node.LocalIndex}";
                 return _textCache.GetOrAdd(cacheKey, _ =>
                 {
                     var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);

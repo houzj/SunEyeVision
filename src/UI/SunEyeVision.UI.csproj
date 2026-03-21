@@ -15,6 +15,7 @@
     <UseWpfHotReload>false</UseWpfHotReload>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>生成光之眼-Logo-_1__副本.ico</ApplicationIcon>
   </PropertyGroup>
 

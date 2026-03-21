@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -343,9 +343,7 @@ namespace SunEyeVision.UI.Services.Performance
                 var node = new WorkflowNode(
                     id: $"node_{i}",
                     name: $"节点{i + 1}",
-                    algorithmType: "测试算法",
-                    index: i,
-                    globalIndex: i
+                    algorithmType: "测试算法"
                 )
                 {
                     Position = new Point(random.Next(50, 1500), random.Next(50, 1000))

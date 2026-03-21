@@ -1,0 +1,65 @@
+# WorkflowNode 重构报告
+
+## 重构日期
+2026-03-21
+
+## 重构目标
+消除命名冲突，提高代码可读性
+- 基类: WorkflowNodeModel → WorkflowNodeBase
+- UI 派生类: WorkflowNodeModel → WorkflowNode
+
+## 重构统计
+### Workflow 层
+- 重命名类: 1 个 (WorkflowNodeBase)
+- 更新文件: 10 个
+- 更新引用: 23 处
+
+### UI 层
+- 重命名类: 1 个 (WorkflowNode)
+- 更新文件: 60 个
+- 更新引用: 300+ 处
+
+## 重构文件列表
+### Workflow 层
+1. src/Workflow/WorkflowNode.cs (基类)
+2. src/Workflow/WorkflowJsonConverter.cs
+3. src/Workflow/WorkflowExecutionEngine.cs
+4. src/Workflow/WorkflowEngine.cs
+5. src/Workflow/WorkflowControlNode.cs
+6. src/Workflow/Workflow.cs
+7. src/Workflow/RunContext.cs
+8. src/Workflow/NodeInterfaceFactory.cs
+9. src/Workflow/EventBusIntegration.cs
+10. src/Workflow/AlgorithmNode.cs
+
+### UI 层（主要文件）
+1. src/UI/Models/WorkflowNodeModel.cs (UI 派生类)
+2. src/UI/ViewModels/MainWindowViewModel.cs
+3. src/UI/ViewModels/WorkflowViewModel.cs
+4. src/UI/ViewModels/PropertyPanelViewModel.cs
+5. src/UI/ViewModels/WorkflowTabViewModel.cs
+6. src/UI/Views/Controls/Canvas/WorkflowCanvasControl.xaml.cs
+7. src/UI/Services/Rendering/SpatialIndex.cs
+8. src/UI/Services/Connection/ConnectionService.cs
+9. src/UI/Services/Node/NodeSelectionService.cs
+10. src/UI/Services/Interaction/ConnectionCreator.cs
+... (共 60 个文件)
+
+## 重构后的好处
+✅ 消除命名冲突
+✅ 符合 MVVM 规范
+✅ 提高代码可读性
+✅ 降低认知负担
+✅ 明确的分层架构
+
+## 命名映射表
+```
+旧命名                                 新命名
+SunEyeVision.Workflow.WorkflowNodeModel → SunEyeVision.Workflow.WorkflowNodeBase
+SunEyeVision.UI.Models.WorkflowNodeModel → SunEyeVision.UI.Models.WorkflowNode
+```
+
+## 注意事项
+- 序列化不受影响（使用 Dictionary 转换）
+- Git 历史保留（使用 git mv）
+- 向后兼容性不需要考虑（原型设计期）

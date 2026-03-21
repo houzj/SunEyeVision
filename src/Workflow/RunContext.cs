@@ -113,9 +113,9 @@ public class RunContext
     /// <summary>
     /// 获取启用的节点列表
     /// </summary>
-    public List<WorkflowNode> GetEnabledNodes()
+    public List<WorkflowNodeBase> GetEnabledNodes()
     {
-        var nodes = new List<WorkflowNode>();
+        var nodes = new List<WorkflowNodeBase>();
         foreach (var node in Workflow.Nodes)
         {
             if (node.IsEnabled)

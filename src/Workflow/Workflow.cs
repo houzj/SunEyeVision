@@ -38,7 +38,7 @@ public class Workflow : ObservableObject
     /// <summary>
     /// 节点列表
     /// </summary>
-    public List<WorkflowNode> Nodes { get; set; } = new();
+    public List<WorkflowNodeBase> Nodes { get; set; } = new();
 
     /// <summary>
     /// 连接列表
@@ -239,7 +239,7 @@ public class Workflow : ObservableObject
         /// <summary>
         /// 获取节点
         /// </summary>
-        public WorkflowNode? GetNode(string nodeId)
+        public WorkflowNodeBase? GetNode(string nodeId)
         {
             return Nodes.FirstOrDefault(n => n.Id == nodeId);
         }
@@ -247,7 +247,7 @@ public class Workflow : ObservableObject
     /// <summary>
     /// 添加节点
     /// </summary>
-    public void AddNode(WorkflowNode node)
+    public void AddNode(WorkflowNodeBase node)
     {
         Nodes.Add(node);
 
@@ -493,7 +493,7 @@ public class Workflow : ObservableObject
         /// <summary>
         /// 节点
         /// </summary>
-        public WorkflowNode? Node { get; set; }
+        public WorkflowNodeBase? Node { get; set; }
 
         /// <summary>
         /// 所属工作流

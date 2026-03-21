@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Logging;
 using LogLevel = SunEyeVision.Plugin.SDK.Logging.LogLevel;
 
@@ -197,6 +197,11 @@ namespace SunEyeVision.Workflow
         /// 运行时参数存储
         /// </summary>
         private readonly Dictionary<string, object> _runtimeParameters = new();
+
+        /// <summary>
+        /// 节点执行结果存储（新增）
+        /// </summary>
+        private readonly Dictionary<string, NodeExecutionResult> _executionResults = new();
 
         /// <summary>
         /// 工作流ID
@@ -571,6 +576,71 @@ namespace SunEyeVision.Workflow
         public void ClearRuntimeParameters()
         {
             _runtimeParameters.Clear();
+        }
+
+        #endregion
+
+        #region 节点执行结果管理（新增）
+
+        /// <summary>
+        /// 存储节点执行结果
+        /// </summary>
+        public void SetNodeResult(string nodeId, NodeExecutionResult result)
+        {
+            _executionResults[nodeId] = result;
+        }
+
+        /// <summary>
+        /// 获取节点执行结果
+        /// </summary>
+        public NodeExecutionResult? GetNodeResult(string nodeId)
+        {
+            return _executionResults.TryGetValue(nodeId, out var result) ? result : null;
+        }
+
+        /// <summary>
+        /// 获取节点执行结果（指定类型）
+        /// </summary>
+        public T? GetNodeResult<T>(string nodeId) where T : ToolResults
+        {
+            var result = GetNodeResult(nodeId);
+            if (result?.ToolResult is T typedResult)
+            {
+                return typedResult;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 检查节点是否有执行结果
+        /// </summary>
+        public bool HasNodeResult(string nodeId)
+        {
+            return _executionResults.ContainsKey(nodeId);
+        }
+
+        /// <summary>
+        /// 移除节点执行结果
+        /// </summary>
+        public bool RemoveNodeResult(string nodeId)
+        {
+            return _executionResults.Remove(nodeId);
+        }
+
+        /// <summary>
+        /// 清空所有节点执行结果
+        /// </summary>
+        public void ClearNodeResults()
+        {
+            _executionResults.Clear();
+        }
+
+        /// <summary>
+        /// 获取所有节点执行结果
+        /// </summary>
+        public IReadOnlyDictionary<string, NodeExecutionResult> GetAllNodeResults()
+        {
+            return _executionResults;
         }
 
         #endregion

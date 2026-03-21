@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.Adapters

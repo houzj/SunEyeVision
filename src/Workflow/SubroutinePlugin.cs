@@ -33,12 +33,9 @@ namespace SunEyeVision.Workflow
             return new ToolMetadata
             {
                 Id = "WorkflowControl",
-                Name = "WorkflowControl",
                 DisplayName = "工作流控制插件",
                 Description = "提供子程序调用和条件判断功能",
-                Category = "WorkflowControl",
-                Version = "1.0.0",
-                Author = "SunEyeVision Team"
+                Category = "WorkflowControl"
             };
         }
 

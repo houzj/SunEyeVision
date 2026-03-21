@@ -47,6 +47,16 @@ namespace SunEyeVision.UI.Services.Interaction
             }
         }
 
+        public string GenerateNodeId(string algorithmType, int globalIndex, int localIndex)
+        {
+            return $"{globalIndex}_{algorithmType}_{localIndex}";
+        }
+
+        public string GenerateNodeName(string displayName, int localIndex)
+        {
+            return $"{displayName}_{localIndex}";
+        }
+
         public void Reset()
         {
             lock (_lockObject)
