@@ -2,10 +2,10 @@
 
 ## 📊 规则统计
 
-- **总规则数**: 10
-- **Critical**: 4 | **High**: 3 | **Medium**: 2 | **Low**: 1
-- **总是应用**: 7 | **手动应用**: 3
-- **已启用**: 10 | **已禁用**: 0
+- **总规则数**: 11
+- **Critical**: 4 | **High**: 4 | **Medium**: 2 | **Low**: 1
+- **总是应用**: 8 | **手动应用**: 3
+- **已启用**: 11 | **已禁用**: 0
 
 ## 🗂️ 按分类浏览
 
@@ -32,6 +32,7 @@
 | [rule-008](02-development-process/prototype-design-clean-principle.mdc) | 原型设计期代码纯净原则 | 🔴 Critical | ✅ | 2026-03-18 |
 | [rule-009](02-development-process/development-principles.mdc) | 开发原则规范 | 🔴 Critical | ✅ | 2026-03-20 |
 | [rule-010](02-development-process/solution-system-implementation.mdc) | 方案系统实现规范 | 🔴 Critical | ✅ | 2026-03-20 |
+| [rule-012](02-development-process/parameter-system-constraints.mdc) | 参数系统约束条件 | 🟠 High | ✅ | 2026-03-21 |
 
 **规则概述**:
 - 生成方案时需要根据软件的完整上下文
@@ -40,6 +41,7 @@
 - 原型阶段不考虑向后兼容，保持代码纯净
 - 遵循YAGNI、KISS、按需设计三大开发原则
 - 优先使用JsonPolymorphic，特殊场景允许Dictionary转换层
+- 参数系统约束条件：UI层Dictionary存储、工具注册机制、参数绑定系统
 
 ---
 
@@ -80,10 +82,11 @@
 - [rule-009: 开发原则规范](02-development-process/development-principles.mdc)
 - [rule-010: 方案系统实现规范](02-development-process/solution-system-implementation.mdc)
 
-#### 🟠 High (3条)
+#### 🟠 High (4条)
 - [rule-002: 命名规范](01-coding-standards/naming-conventions.mdc)
 - [rule-003: 日志系统使用规范](01-coding-standards/logging-system.mdc)
 - [rule-004: 方案设计要求](02-development-process/solution-design.mdc)
+- [rule-012: 参数系统约束条件](02-development-process/parameter-system-constraints.mdc)
 - [rule-005: 实施方案审批流程](04-workflow-guidance/implementation-approval.mdc)
 
 #### 🟡 Medium (2条)
@@ -95,7 +98,7 @@
 
 ### 按状态
 
-#### ✅ 已启用 (10条)
+#### ✅ 已启用 (11条)
 - rule-001: 属性更改通知统一规范
 - rule-002: 命名规范
 - rule-003: 日志系统使用规范
@@ -106,6 +109,7 @@
 - rule-008: 原型设计期代码纯净原则
 - rule-009: 开发原则规范
 - rule-010: 方案系统实现规范
+- rule-012: 参数系统约束条件
 
 #### ❌ 已禁用 (0条)
 - 暂无
@@ -115,7 +119,7 @@
 
 ### 按生效模式
 
-#### 总是应用 (7条)
+#### 总是应用 (8条)
 - rule-001: 属性更改通知统一规范
 - rule-002: 命名规范
 - rule-003: 日志系统使用规范
@@ -124,6 +128,7 @@
 - rule-008: 原型设计期代码纯净原则
 - rule-009: 开发原则规范
 - rule-010: 方案系统实现规范
+- rule-012: 参数系统约束条件
 
 #### 手动应用 (3条)
 - rule-005: 实施方案审批流程
@@ -134,7 +139,8 @@
 ## 📈 规则执行趋势
 
 ### 代码审查统计
-- 2026-03-11: 规则优化完成，共7条规则
+- 2026-03-21: 新增 rule-012 参数系统约束条件
+- 2026-03-20: 规则优化完成，共7条规则
 - 2026-03-10: 新增方案设计要求和文档管理政策
 - 2026-03-09: 新增属性更改通知统一规范
 
@@ -147,6 +153,10 @@
 ---
 
 ## 🔄 最近更新
+
+### 2026-03-21
+- ✅ 新增规则
+  - rule-012: 参数系统约束条件（基于参数序列化优化方案总结）
 
 ### 2026-03-20
 - ✅ 新增规则
@@ -225,6 +235,6 @@
 
 ---
 
-**最后更新**: 2026-03-20
+**最后更新**: 2026-03-21
 **维护者**: SunEyeVision Team
-**版本**: 2.3
+**版本**: 2.4

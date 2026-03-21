@@ -169,9 +169,8 @@ namespace SunEyeVision.Workflow
             {
                 var workflow = Workflows[workflowId];
 
-                // 使用默认配置并添加自定义转换器
-                var options = JsonSerializationOptions.Default;
-                options.Converters.Add(new WorkflowJsonConverter());
+                // 使用 Workflow 层的序列化配置
+                var options = WorkflowSerializationOptions.Default;
 
                 var json = JsonSerializer.Serialize(workflow, options);
                 File.WriteAllText(filePath, json);
@@ -202,9 +201,8 @@ namespace SunEyeVision.Workflow
             {
                 var json = File.ReadAllText(filePath);
 
-                // 使用默认配置并添加自定义转换器
-                var options = JsonSerializationOptions.Default;
-                options.Converters.Add(new WorkflowJsonConverter());
+                // 使用 Workflow 层的序列化配置
+                var options = WorkflowSerializationOptions.Default;
 
                 var workflow = JsonSerializer.Deserialize<Workflow>(json, options);
 

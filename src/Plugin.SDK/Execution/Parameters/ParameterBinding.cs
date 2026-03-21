@@ -15,7 +15,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     ///    - Binding: 从其他节点输出获取
     /// 
     /// 2. 数据类型（DataType）：回答"值是什么类型"
-    ///    - 由 ParamDataType 枚举定义，与绑定类型正交
+    ///    - 由 ParamDataType 枚举定义（位于 SunEyeVision.Plugin.SDK.Execution.Parameters），与绑定类型正交
     /// 
     /// 3. 值转换（TransformExpression）：可选的表达式转换
     ///    - 两种绑定模式都可用

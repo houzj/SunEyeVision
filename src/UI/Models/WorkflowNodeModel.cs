@@ -238,7 +238,23 @@ namespace SunEyeVision.UI.Models
             }
         }
 
-        public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+        /// <summary>
+        /// 节点参数（使用强类型参数）
+        /// </summary>
+        /// <remarks>
+        /// 统一使用 ToolParameters 类型，支持多态序列化。
+        /// UI 层直接使用 ToolParameters，不再使用 Dictionary 转换。
+        /// </remarks>
+        public ToolParameters? Parameters { get; set; }
+
+        /// <summary>
+        /// 参数类型程序集限定名（用于强类型恢复）
+        /// </summary>
+        /// <remarks>
+        /// 用于在反序列化时恢复正确的参数类型。
+        /// 例如：SunEyeVision.Plugins.ImageCapture.ImageCaptureParameters, SunEyeVision.Plugins.ImageCapture
+        /// </remarks>
+        public string? ParametersTypeName { get; set; }
 
         public string Status
         {

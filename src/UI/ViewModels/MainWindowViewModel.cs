@@ -1436,6 +1436,15 @@ namespace SunEyeVision.UI.ViewModels
         private void OnCurrentSolutionChanged(object? sender, SolutionMetadataEventArgs e)
         {
             UpdateCurrentSolutionInfo();
+            
+            // 加载解决方案到工作流标签页
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            var currentSolution = solutionManager?.CurrentSolution;
+            
+            if (currentSolution != null)
+            {
+                LoadSolutionToWorkflowTabs(currentSolution);
+            }
         }
 
         /// <summary>
@@ -1467,14 +1476,21 @@ namespace SunEyeVision.UI.ViewModels
                 )
                 {
                     AlgorithmType = uiNode.AlgorithmType,
-                    Parameters = ConvertDictionaryToToolParameters(uiNode.Parameters),
-                    IsEnabled = uiNode.IsEnabled
+                    Parameters = uiNode.Parameters ?? new GenericToolParameters(),
+                    IsEnabled = uiNode.IsEnabled,
+                    PositionX = uiNode.Position.X,
+                    PositionY = uiNode.Position.Y,
+
+                    // 传递节点元数据
+                    Index = uiNode.Index,
+                    GlobalIndex = uiNode.GlobalIndex,
+                    NodeTypeIcon = uiNode.NodeTypeIcon
                 };
 
                 // 设置参数类型名称（用于强类型恢复）
-                if (uiNode.Parameters?.GetType() != typeof(Dictionary<string, object>))
+                if (uiNode.Parameters != null && uiNode.Parameters.GetType() != typeof(GenericToolParameters))
                 {
-                    workflowNode.ParametersTypeName = uiNode.Parameters?.GetType().AssemblyQualifiedName;
+                    workflowNode.ParametersTypeName = uiNode.Parameters.GetType().AssemblyQualifiedName;
                 }
 
                 // 转换参数绑定
@@ -1495,6 +1511,7 @@ namespace SunEyeVision.UI.ViewModels
                 // 添加连接
                 var connection = new Connection
                 {
+                    Id = uiConn.Id,
                     SourceNode = uiConn.SourceNodeId,
                     SourcePort = uiConn.SourcePort ?? "output",
                     TargetNode = uiConn.TargetNodeId,
@@ -1541,25 +1558,18 @@ namespace SunEyeVision.UI.ViewModels
                         };
                         solution.Workflows.Add(workflow);
                     }
+                    else
+                    {
+                        // 更新现有工作流的名称（确保名称同步）
+                        workflow.Name = tab.Name;
+                    }
 
                     // 同步工作流数据
                     UpdateWorkflowFromUI(workflow, tab);
                 }
             }
 
-            // 2. 同步节点参数
-            // 遍历所有工作流节点，保存参数
-            foreach (var tab in WorkflowTabViewModel.Tabs)
-            {
-                foreach (var node in tab.WorkflowNodes)
-                {
-                    // 将 Dictionary<string, object> 转换为 ToolParameters
-                    var toolParameters = ConvertDictionaryToToolParameters(node.Parameters);
-                    solution.SaveNodeParameters(node.Id, toolParameters);
-                }
-            }
-
-            // 3. 其他数据已直接操作 Solution 对象
+            // 节点参数已直接存储在 WorkflowNode.Parameters 中，无需额外同步
             // - GlobalVariables：通过 GlobalVariableManagerViewModel 直接操作（实时同步）
             // - Communications：通过 CommunicationManagerViewModel 直接操作（实时同步）
             // - Devices：通过 DeviceManagerViewModel 直接操作（实时同步）
@@ -1609,54 +1619,25 @@ namespace SunEyeVision.UI.ViewModels
             return SunEyeVision.Core.Models.NodeType.Algorithm;
         }
 
-        /// <summary>
-        /// 将 Dictionary 参数转换为 ToolParameters
-        /// </summary>
-        private Plugin.SDK.Execution.Parameters.ToolParameters ConvertDictionaryToToolParameters(Dictionary<string, object>? parameters)
-        {
-            if (parameters == null || parameters.Count == 0)
-                return new Plugin.SDK.Execution.Parameters.GenericToolParameters();
 
-            var toolParams = new Plugin.SDK.Execution.Parameters.GenericToolParameters();
 
-            // 将 Dictionary 中的键值对复制到 ToolParameters
-            foreach (var kvp in parameters)
-            {
-                toolParams.SetValue(kvp.Key, kvp.Value);
-            }
 
-            return toolParams;
-        }
-
-        /// <summary>
-        /// 将 ToolParameters 转换为 Dictionary
-        /// </summary>
-        private Dictionary<string, object> ConvertToolParametersToDictionary(Plugin.SDK.Execution.Parameters.ToolParameters? toolParams)
-        {
-            var dict = new Dictionary<string, object>();
-
-            if (toolParams is Plugin.SDK.Execution.Parameters.GenericToolParameters genericParams)
-            {
-                // GenericToolParameters 提供了 GetParameterNames 方法
-                foreach (var paramName in genericParams.GetParameterNames())
-                {
-                    // 尝试获取参数值
-                    var value = genericParams.GetValue<object>(paramName);
-                    if (value != null)
-                    {
-                        dict[paramName] = value;
-                    }
-                }
-            }
-
-            return dict;
-        }
 
         /// <summary>
         /// 为加载的工作流创建新的标签页
         /// </summary>
+        /// <remarks>
+        /// 创建流程（rule-003 日志系统使用规范）：
+        /// 1. 创建 WorkflowTabInfo 实例
+        /// 2. 转换底层节点到 UI 节点
+        /// 3. 转换底层连接到 UI 连接
+        /// 4. 批量添加到 tabInfo（避免触发多次集合变更事件）
+        /// 5. 记录详细的转换日志
+        /// </remarks>
         private void CreateWorkflowTab(SunEyeVision.Workflow.Workflow workflow, string? filePath)
         {
+            LogInfo($"创建标签页: {workflow.Name}");
+            
             var tabInfo = new Models.WorkflowTabInfo
             {
                 WorkflowId = workflow.Id,
@@ -1668,33 +1649,75 @@ namespace SunEyeVision.UI.ViewModels
 
             // 转换底层节点到 UI 节点（先收集，再批量添加）
             var nodesToLoad = new List<UIWorkflowNode>();
+            int nodeIndex = 0;
+            
             foreach (var workflowNode in workflow.Nodes)
             {
-                var uiNode = new UIWorkflowNode(
-                    workflowNode.Id,
-                    workflowNode.Name,
-                    workflowNode.AlgorithmType
-                )
-                {
-                    Parameters = ConvertToolParametersToDictionary(workflowNode.Parameters),
-                    IsEnabled = workflowNode.IsEnabled,
-                    ParameterBindings = workflowNode.ParameterBindings,
-                    // 恢复节点位置
-                    Position = new System.Windows.Point(workflowNode.PositionX, workflowNode.PositionY)
-                };
+                nodeIndex++;
+                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {workflowNode.Name} (类型: {workflowNode.AlgorithmType})");
+                LogInfo($"      节点ID: {workflowNode.Id}");
+                LogInfo($"      参数类型: {workflowNode.Parameters.GetType().Name}");
+                LogInfo($"      位置: ({workflowNode.PositionX}, {workflowNode.PositionY})");
 
-                nodesToLoad.Add(uiNode);
+                try
+                {
+                    // 直接使用 ToolParameters，不再转换为 Dictionary
+                    var paramsClone = workflowNode.Parameters.Clone();
+                    LogInfo($"      参数数量: {paramsClone.GetRuntimeParameterMetadata().Count}");
+
+                    // 记录关键参数值
+                    var runtimeMetadata = paramsClone.GetRuntimeParameterMetadata();
+                    if (runtimeMetadata.Count > 0)
+                    {
+                        var paramSample = runtimeMetadata.Take(3);
+                        var paramStr = string.Join(", ", paramSample.Select(meta => $"{meta.DisplayName}={meta.Value}"));
+                        if (runtimeMetadata.Count > 3)
+                            paramStr += "...";
+                        LogInfo($"      参数示例: {paramStr}");
+                    }
+
+                    var uiNode = new UIWorkflowNode(
+                        workflowNode.Id,
+                        workflowNode.Name,
+                        workflowNode.AlgorithmType,
+                        workflowNode.Index,
+                        workflowNode.GlobalIndex
+                    )
+                    {
+                        Parameters = paramsClone,
+                        IsEnabled = workflowNode.IsEnabled,
+                        ParameterBindings = workflowNode.ParameterBindings,
+                        // 恢复节点位置
+                        Position = new System.Windows.Point(workflowNode.PositionX, workflowNode.PositionY),
+                        NodeTypeIcon = workflowNode.NodeTypeIcon
+                    };
+
+                    nodesToLoad.Add(uiNode);
+                }
+                catch (Exception ex)
+                {
+                    LogError($"      节点加载失败: {ex.Message}", null, ex);
+                }
             }
 
+            LogInfo($"节点转换完成，待添加数量: {nodesToLoad.Count}/{workflow.Nodes.Count}");
+            
             // 批量添加节点到 tabInfo
             AddRangeToCollection(tabInfo.WorkflowNodes, nodesToLoad);
+            LogInfo($"✓ 节点已添加到标签页");
 
             // 转换底层连接到 UI 连接（先收集，再批量添加）
             var connectionsToLoad = new List<WorkflowConnection>();
+            int connIndex = 0;
+            
             foreach (var conn in workflow.Connections)
             {
+                connIndex++;
+                LogInfo($"  [{connIndex}/{workflow.Connections.Count}] 加载连接: {conn.SourceNode}.{conn.SourcePort} -> {conn.TargetNode}.{conn.TargetPort}");
+                
                 var connection = new WorkflowConnection
                 {
+                    Id = conn.Id,
                     SourceNodeId = conn.SourceNode,
                     TargetNodeId = conn.TargetNode,
                     SourcePort = conn.SourcePort,
@@ -1704,8 +1727,11 @@ namespace SunEyeVision.UI.ViewModels
                 connectionsToLoad.Add(connection);
             }
 
+            LogInfo($"连接转换完成，待添加数量: {connectionsToLoad.Count}/{workflow.Connections.Count}");
+            
             // 批量添加连接到 tabInfo
             AddRangeToCollection(tabInfo.WorkflowConnections, connectionsToLoad);
+            LogInfo($"✓ 连接已添加到标签页");
 
             // 创建 WorkflowTabViewModel
             var tabViewModel = new ViewModels.WorkflowTabViewModel();
@@ -1719,11 +1745,20 @@ namespace SunEyeVision.UI.ViewModels
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
+            LogInfo($"✓ 标签页已添加: {tabInfo.Name}");
         }
 
         /// <summary>
         /// 加载解决方案到工作流标签页
         /// </summary>
+        /// <remarks>
+        /// 加载流程（rule-003 日志系统使用规范）：
+        /// 1. 验证解决方案和 WorkflowTabViewModel
+        /// 2. 清空现有标签页
+        /// 3. 遍历工作流，为每个工作流创建标签页
+        /// 4. 在标签页创建过程中记录详细的加载日志
+        /// 5. 统计和验证加载结果
+        /// </remarks>
         private void LoadSolutionToWorkflowTabs(Solution solution)
         {
             if (solution == null)
@@ -1740,46 +1775,79 @@ namespace SunEyeVision.UI.ViewModels
 
             try
             {
-                LogInfo($"开始加载解决方案: {solution.FilePath}");
+                LogInfo($"=== 开始加载解决方案 ===");
+                LogInfo($"解决方案ID: {solution.Id}");
+                LogInfo($"解决方案版本: {solution.Version}");
+                LogInfo($"解决方案路径: {solution.FilePath ?? "（新解决方案）"}");
+                LogInfo($"工作流数量: {solution.Workflows.Count}");
+                LogInfo($"全局变量数量: {solution.GlobalVariables.Count}");
+                LogInfo($"设备数量: {solution.Devices.Count}");
+                LogInfo($"通讯配置数量: {solution.Communications.Count}");
 
                 // 清空现有标签页
+                var oldTabCount = WorkflowTabViewModel.Tabs.Count;
                 WorkflowTabViewModel.Tabs.Clear();
-                LogInfo($"已清空 {WorkflowTabViewModel.Tabs.Count} 个现有标签页");
+                LogInfo($"已清空 {oldTabCount} 个现有标签页");
 
                 // 为每个工作流创建标签页
+                int totalNodes = 0;
+                int totalConnections = 0;
+                int totalParams = 0;
+                
                 foreach (var workflow in solution.Workflows)
                 {
-                    LogInfo($"加载工作流: {workflow.Name}");
+                    LogInfo($"\n--- 加载工作流: {workflow.Name} (ID: {workflow.Id}) ---");
+                    LogInfo($"节点数量: {workflow.Nodes.Count}");
+                    LogInfo($"连接数量: {workflow.Connections.Count}");
+                    
                     CreateWorkflowTab(workflow, solution.FilePath);
-                }
-
-                LogSuccess($"成功加载 {solution.Workflows.Count} 个工作流到编辑器");
-
-                // 加载节点参数
-                int nodeCount = 0;
-                int parameterCount = 0;
-                foreach (var tab in WorkflowTabViewModel.Tabs)
-                {
-                    foreach (var node in tab.WorkflowNodes)
+                    
+                    totalNodes += workflow.Nodes.Count;
+                    totalConnections += workflow.Connections.Count;
+                    
+                    // 统计参数数量
+                    foreach (var node in workflow.Nodes)
                     {
-                        if (solution.NodeParameters.TryGetValue(node.Id, out var toolParams))
+                        if (node.Parameters != null)
                         {
-                            var paramDict = ConvertToolParametersToDictionary(toolParams);
-                            if (paramDict != null && paramDict.Count > 0)
-                            {
-                                node.Parameters = paramDict;
-                                parameterCount++;
-                            }
+                            totalParams += node.Parameters.GetRuntimeParameterMetadata().Count;
                         }
-                        nodeCount++;
                     }
                 }
 
-                LogSuccess($"已加载 {nodeCount} 个节点，{parameterCount} 个节点的参数");
+                LogInfo($"\n=== 加载完成 ===");
+                LogSuccess($"✓ 工作流数量: {solution.Workflows.Count}");
+                LogSuccess($"✓ 节点总数: {totalNodes}");
+                LogSuccess($"✓ 连接总数: {totalConnections}");
+                LogSuccess($"✓ 参数总数: {totalParams}");
+                LogSuccess($"✓ 节点参数已自动加载到 WorkflowNode.Parameters 中");
+                
+                // 验证加载结果
+                if (WorkflowTabViewModel.Tabs.Count == 0)
+                {
+                    LogWarning("警告：加载后没有标签页，请检查解决方案文件");
+                }
+                else
+                {
+                    // 设置第一个标签页为选中标签页
+                    if (WorkflowTabViewModel.SelectedTab == null && WorkflowTabViewModel.Tabs.Count > 0)
+                    {
+                        WorkflowTabViewModel.SelectedTab = WorkflowTabViewModel.Tabs[0];
+                        LogInfo($"已设置选中标签页: {WorkflowTabViewModel.SelectedTab.Name}");
+                        
+                        // 初始化SmartPathConverter（用于连接线渲染）
+                        Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
+                        Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+                        LogInfo($"SmartPathConverter已初始化，节点数: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}，连接数: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
+                    }
+                    
+                    LogSuccess($"标签页创建成功，当前标签页: {WorkflowTabViewModel.SelectedTab?.Name ?? "（无）"}");
+                }
             }
             catch (Exception ex)
             {
                 LogError($"加载解决方案到工作流标签页失败: {ex.Message}", null, ex);
+                LogError($"堆栈跟踪: {ex.StackTrace}");
                 throw;
             }
         }
@@ -1966,12 +2034,13 @@ namespace SunEyeVision.UI.ViewModels
 
             if (node.Parameters != null)
             {
-                foreach (var param in node.Parameters)
+                var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
+                foreach (var meta in runtimeMetadata)
                 {
                     paramGroup.Parameters.Add(new Models.PropertyItem
                     {
-                        Label = param.Key,
-                        Value = param.Value?.ToString() ?? ""
+                        Label = meta.DisplayName,
+                        Value = meta.Value?.ToString() ?? ""
                     });
                 }
             }

@@ -102,17 +102,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is Metadata.ParamDataType dataType && parameter is string expectedType)
+            if (value is ParamDataType dataType && parameter is string expectedType)
             {
                 // 支持特殊参数 "Numeric"，同时匹配 Int 和 Double
                 if (expectedType == "Numeric")
                 {
-                    return (dataType == Metadata.ParamDataType.Int || dataType == Metadata.ParamDataType.Double)
+                    return (dataType == ParamDataType.Int || dataType == ParamDataType.Double)
                         ? System.Windows.Visibility.Visible
                         : System.Windows.Visibility.Collapsed;
                 }
 
-                if (Enum.TryParse<Metadata.ParamDataType>(expectedType, out Metadata.ParamDataType expected))
+                if (Enum.TryParse<ParamDataType>(expectedType, out ParamDataType expected))
                 {
                     return dataType == expected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
                 }

@@ -17,7 +17,7 @@ namespace SunEyeVision.Workflow;
 /// <remarks>
 /// 架构改进（2026-03-18）：
 /// - 元数据（Name、Description、times）已分离到 SolutionMetadata
-/// - Solution 只包含实际数据（Workflows、NodeParameters、GlobalVariables等）
+/// - Solution 只包含实际数据（Workflows、GlobalVariables等）
 /// - 通过 ID 与 SolutionMetadata 关联
 /// - FilePath 为运行时属性，不序列化到文件
 /// 
@@ -58,17 +58,6 @@ public class Solution : ObservableObject
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<Workflow> Workflows { get; set; } = new();
-
-    /// <summary>
-    /// 节点参数映射：NodeId -> ToolParameters
-    /// </summary>
-    /// <remarks>
-    /// 存储所有节点的工具参数配置。
-    /// 一个解决方案只有一套参数配置。
-    /// ToolParameters 使用 JsonPolymorphic 支持多态序列化。
-    /// </remarks>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Dictionary<string, ToolParameters> NodeParameters { get; set; } = new();
 
     /// <summary>
     /// 全局变量列表
@@ -126,7 +115,7 @@ public class Solution : ObservableObject
         }
 
         VisionLogger.Instance.Log(LogLevel.Info, $"开始序列化解决方案: Id={Id}", "Solution");
-        var json = JsonSerializer.Serialize(this, JsonSerializationOptions.Default);
+        var json = JsonSerializer.Serialize(this, WorkflowSerializationOptions.Default);
         VisionLogger.Instance.Log(LogLevel.Info, $"序列化完成, JSON长度: {json.Length} 字符", "Solution");
 
         File.WriteAllText(filePath, json);
@@ -146,7 +135,7 @@ public class Solution : ObservableObject
         try
         {
             var json = File.ReadAllText(filePath);
-            var solution = JsonSerializer.Deserialize<Solution>(json, JsonSerializationOptions.Default);
+            var solution = JsonSerializer.Deserialize<Solution>(json, WorkflowSerializationOptions.Default);
             if (solution != null)
             {
                 solution.FilePath = filePath;
@@ -176,7 +165,6 @@ public class Solution : ObservableObject
             Id = Guid.NewGuid().ToString(),
             Version = "1.0",
             Workflows = new List<Workflow>(),
-            NodeParameters = new Dictionary<string, ToolParameters>(),
             GlobalVariables = new List<GlobalVariable>(),
             Devices = new List<Device>(),
             Communications = new List<Communication>(),
@@ -224,39 +212,6 @@ public class Solution : ObservableObject
 
         Workflows.Remove(workflow);
         return true;
-    }
-
-    /// <summary>
-    /// 保存节点参数
-    /// </summary>
-    public void SaveNodeParameters(string nodeId, ToolParameters parameters)
-    {
-        if (string.IsNullOrEmpty(nodeId))
-            throw new ArgumentException("节点ID不能为空", nameof(nodeId));
-
-        if (parameters == null)
-            throw new ArgumentNullException(nameof(parameters));
-
-        NodeParameters[nodeId] = parameters.Clone();
-    }
-
-    /// <summary>
-    /// 获取节点参数
-    /// </summary>
-    public ToolParameters? GetNodeParameters(string nodeId)
-    {
-        if (!NodeParameters.TryGetValue(nodeId, out var parameters))
-            return null;
-
-        return parameters.Clone();
-    }
-
-    /// <summary>
-    /// 移除节点参数
-    /// </summary>
-    public bool RemoveNodeParameters(string nodeId)
-    {
-        return NodeParameters.Remove(nodeId);
     }
 
     /// <summary>
@@ -372,12 +327,6 @@ public class Solution : ObservableObject
             Id = Guid.NewGuid().ToString(),
             Version = Version,
             Workflows = Workflows.Select(w => w.Clone()).ToList(),
-            NodeParameters = new Dictionary<string, ToolParameters>(
-                NodeParameters.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Clone()
-                )
-            ),
             GlobalVariables = GlobalVariables.Select(v => v.Clone()).ToList(),
             Devices = Devices.Select(d => d.Clone()).ToList(),
             Communications = Communications.Select(c => c.Clone()).ToList(),

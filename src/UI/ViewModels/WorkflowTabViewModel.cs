@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
@@ -30,6 +30,12 @@ namespace SunEyeVision.UI.ViewModels
         private ScaleTransform _scaleTransform;
         private double _currentScale;
         private CanvasType _canvasType;
+
+        /// <summary>
+        /// 局部索引计数器（按算法类型统计）
+        /// Key: algorithmType, Value: 该类型在本工作流中的计数
+        /// </summary>
+        private readonly Dictionary<string, int> _localIndexMap = new Dictionary<string, int>();
 
         /// <summary>
         /// 节点序号管理器
@@ -69,7 +75,7 @@ namespace SunEyeVision.UI.ViewModels
             _nodeFactory = new WorkflowNodeFactory(_sequenceManager, _displayAdapter);
 
             Id = Guid.NewGuid().ToString();
-            Name = "工作流";
+            Name = "工作流"; // 默认名称，可以被外部覆盖
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
@@ -276,8 +282,15 @@ namespace SunEyeVision.UI.ViewModels
                 throw new InvalidOperationException("NodeFactory is not initialized");
             }
 
-            // 使用工厂创建节点
-            var node = _nodeFactory.CreateNode(algorithmType, name, Id);
+            // 获取或创建局部索引（仅针对当前工作流）
+            if (!_localIndexMap.ContainsKey(algorithmType))
+            {
+                _localIndexMap[algorithmType] = 0;
+            }
+            int localIndex = ++_localIndexMap[algorithmType];
+
+            // 使用工厂创建节点（传入预计算的局部索引）
+            var node = _nodeFactory.CreateIndexedNode(algorithmType, localIndex, name, Id);
 
             return node;
         }
@@ -288,6 +301,7 @@ namespace SunEyeVision.UI.ViewModels
         public void ResetNodeSequences()
         {
             _sequenceManager.ResetWorkflow(Id);
+            _localIndexMap.Clear();
         }
 
         /// <summary>

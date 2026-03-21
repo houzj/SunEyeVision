@@ -1,0 +1,35 @@
+{
+  "Id": "test_solution_002",
+  "Version": "1.0",
+  "Name": "测试方案（带版本号）",
+  "Workflows": [
+    {
+      "Id": "workflow_002",
+      "Name": "测试工作流（带版本号）",
+      "Nodes": [
+        {
+          "Id": "node_002",
+          "Name": "阈值工具（带版本号）",
+          "Type": 1,
+          "AlgorithmType": "ThresholdTool",
+          "IsEnabled": true,
+          "PositionX": 100,
+          "PositionY": 100,
+          "Width": 140,
+          "Height": 90,
+          "Parameters": {
+            "$type": "SunEyeVision.Tool.Threshold.ThresholdParameters, SunEyeVision.Tool.Threshold, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+            "Version": 1
+          },
+          "ParameterBindings": null
+        }
+      ],
+      "Connections": []
+    }
+  ],
+  "GlobalVariables": [],
+  "Devices": [],
+  "Communications": [],
+  "ExecutionStrategy": null,
+  "VersionHistory": []
+}

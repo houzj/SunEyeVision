@@ -243,6 +243,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (!string.IsNullOrEmpty(ToolName))
                 dict["ToolName"] = ToolName;
 
+            // 始终序列化 Bindings 列表，即使为空
             var bindingsList = new List<Dictionary<string, object>>();
             foreach (var binding in _bindings.Values)
             {

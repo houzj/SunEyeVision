@@ -7,8 +7,13 @@ namespace SunEyeVision.UI.Adapters
     /// <summary>
     /// 图像源节点显示适配器
     /// </summary>
-    public class ImageSourceNodeDisplayAdapter : INodeDisplayAdapter
+    public class ImageSourceNodeDisplayAdapter : ICategoryDisplayAdapter
     {
+        /// <summary>
+        /// 支持的分类
+        /// </summary>
+        public string[] SupportedCategories => new[] { "采集", "输入" };
+
         public string GetDisplayText(WorkflowNode node)
         {
             return $"图像源 {node.Index}";

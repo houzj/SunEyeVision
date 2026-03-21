@@ -401,25 +401,29 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             PropertyGroups.Add(basicGroup);
 
             // 参数配置
-            if (node.Parameters != null && node.Parameters.Count > 0)
+            if (node.Parameters != null)
             {
-                var paramGroup = new ModelsPropertyGroup
+                var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
+                if (runtimeMetadata.Count > 0)
                 {
-                    Name = "🔧 参数配置",
-                    IsExpanded = true,
-                    Parameters = new ObservableCollection<ModelsPropertyItem>()
-                };
-
-                foreach (var param in node.Parameters)
-                {
-                    paramGroup.Parameters.Add(new ModelsPropertyItem
+                    var paramGroup = new ModelsPropertyGroup
                     {
-                        Label = $"{param.Key}:",
-                        Value = param.Value?.ToString() ?? ""
-                    });
-                }
+                        Name = "🔧 参数配置",
+                        IsExpanded = true,
+                        Parameters = new ObservableCollection<ModelsPropertyItem>()
+                    };
 
-                PropertyGroups.Add(paramGroup);
+                    foreach (var meta in runtimeMetadata)
+                    {
+                        paramGroup.Parameters.Add(new ModelsPropertyItem
+                        {
+                            Label = $"{meta.DisplayName}:",
+                            Value = meta.Value?.ToString() ?? ""
+                        });
+                    }
+
+                    PropertyGroups.Add(paramGroup);
+                }
             }
 
             // 性能统计

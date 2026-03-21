@@ -256,18 +256,16 @@ namespace SunEyeVision.UI.ViewModels
 
         private void AddAlgorithmSpecificProperties()
         {
-            if (SelectedNode == null)
+            if (SelectedNode == null || SelectedNode.Parameters == null)
                 return;
 
-            // 从 Parameters 中提取属性
-            if (SelectedNode.Parameters != null)
+            // 从 ToolParameters 动态提取属性
+            var runtimeMetadata = SelectedNode.Parameters.GetRuntimeParameterMetadata();
+            foreach (var meta in runtimeMetadata)
             {
-                var paramDict = SelectedNode.Parameters.ToDictionary();
-                foreach (var kvp in paramDict)
-                {
-                    var type = kvp.Value?.GetType()?.Name ?? "object";
-                    Properties.Add(new PropertyItem(kvp.Key, kvp.Value?.ToString() ?? "", type, true));
-                }
+                var type = meta.Type?.Name ?? "object";
+                var value = meta.Value?.ToString() ?? "";
+                Properties.Add(new PropertyItem(meta.DisplayName, value, type, true));
             }
         }
 
@@ -421,10 +419,10 @@ namespace SunEyeVision.UI.ViewModels
                     SelectedNode.IsEnabled = bool.TryParse(property.Value, out var enabled) && enabled;
                     break;
                 default:
-                    // 更新参数
+                    // 更新参数 - 使用反射设置到 ToolParameters
                     if (SelectedNode.Parameters != null)
                     {
-                        SelectedNode.Parameters[property.Name] = property.Value;
+                        SetPropertyValue(property.Name, property.Value);
                     }
                     break;
             }
@@ -435,6 +433,45 @@ namespace SunEyeVision.UI.ViewModels
             if (property == null)
                 return;
             // TODO: 实现属性重置逻辑
+        }
+
+        /// <summary>
+        /// 设置参数值（通过反射）
+        /// </summary>
+        private void SetPropertyValue(string propertyName, object value)
+        {
+            if (SelectedNode?.Parameters == null)
+                return;
+
+            var paramType = SelectedNode.Parameters.GetType();
+            var propertyInfo = paramType.GetProperty(propertyName);
+
+            if (propertyInfo != null && propertyInfo.CanWrite)
+            {
+                try
+                {
+                    // 类型转换
+                    object convertedValue;
+                    if (propertyInfo.PropertyType.IsEnum && value is string strValue)
+                    {
+                        convertedValue = Enum.Parse(propertyInfo.PropertyType, strValue);
+                    }
+                    else if (propertyInfo.PropertyType == typeof(string))
+                    {
+                        convertedValue = value.ToString();
+                    }
+                    else
+                    {
+                        convertedValue = Convert.ChangeType(value, propertyInfo.PropertyType);
+                    }
+
+                    propertyInfo.SetValue(SelectedNode.Parameters, convertedValue);
+                }
+                catch (Exception ex)
+                {
+                    LogError($"设置参数失败: {propertyName}, 值: {value}, 错误: {ex.Message}", "PropertyPanelViewModel", ex);
+                }
+            }
         }
 
         private bool CanApplyAllBindings()

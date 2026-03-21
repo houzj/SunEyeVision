@@ -177,7 +177,7 @@ public class SolutionManager
         solution.Version = metadata.Version;
 
         // 添加默认工作流
-        var defaultWorkflow = solution.AddWorkflow("默认工作流");
+        var defaultWorkflow = solution.AddWorkflow("工作流1");
 
         // 构建文件路径
         var filePath = string.IsNullOrEmpty(metadata.FilePath)

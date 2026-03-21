@@ -19,6 +19,7 @@ namespace SunEyeVision.Workflow;
 /// - JSON 序列化/反序列化
 /// - 批量操作支持
 /// - 错误处理和日志记录
+/// - 确保插件在反序列化前加载（Fail Fast 原则）
 ///
 /// 设计原则（rule-002）：
 /// - 命名符合视觉软件行业标准
@@ -27,10 +28,24 @@ namespace SunEyeVision.Workflow;
 /// 日志规范（rule-003）：
 /// - 使用 VisionLogger 记录日志
 /// - 使用适当的日志级别（Info/Success/Warning/Error）
+///
+/// 架构原则（rule-004）：
+/// - 反序列化前确保插件已加载（方案2）
+/// - 使用双重检查锁定模式保证线程安全
 /// </remarks>
 public class SolutionRepository
 {
     private readonly ILogger _logger;
+
+    /// <summary>
+    /// 插件加载状态标记（volatile保证多线程可见性）
+    /// </summary>
+    private static volatile bool _pluginsLoaded = false;
+
+    /// <summary>
+    /// 插件加载锁（双重检查锁定模式）
+    /// </summary>
+    private static readonly object _pluginsLock = new object();
 
     /// <summary>
     /// 构造函数
@@ -42,10 +57,79 @@ public class SolutionRepository
     }
 
     /// <summary>
+    /// 确保插件已加载（双重检查锁定模式）
+    /// </summary>
+    /// <remarks>
+    /// Fail Fast 原则：在反序列化前确保插件已加载，避免运行时失败。
+    /// 使用双重检查锁定模式保证线程安全，避免重复加载插件。
+    ///
+    /// 设计决策（rule-004）：
+    /// - 选择方案2：确保插件在反序列化前加载
+    /// - 理由：符合工业软件标准（VisionMaster、Halcon等），Fail Fast 原则
+    /// - 性能：仅第一次加载时加锁，后续检查无性能影响
+    /// </remarks>
+    /// <returns>是否成功加载</returns>
+    private bool EnsurePluginsLoaded()
+    {
+        // 第一次检查（无锁）
+        if (_pluginsLoaded) return true;
+
+        lock (_pluginsLock)
+        {
+            // 第二次检查（有锁）
+            if (_pluginsLoaded) return true;
+
+            try
+            {
+                _logger.Log(LogLevel.Info, "开始加载插件（反序列化前）", "SolutionRepository");
+
+                // 获取插件目录
+                var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
+                if (!Directory.Exists(pluginsPath))
+                {
+                    _logger.Log(LogLevel.Warning, $"插件目录不存在: {pluginsPath}", "SolutionRepository");
+                    return false;
+                }
+
+                // 使用 PluginManager 加载插件
+                var pluginManager = new Plugin.Infrastructure.Managers.Plugin.PluginManager();
+                pluginManager.LoadPlugins(pluginsPath);
+
+                // 验证加载结果
+                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                var toolAssemblies = loadedAssemblies
+                    .Where(a => a.GetName().Name?.StartsWith("SunEyeVision.Tool.") == true)
+                    .ToList();
+
+                _logger.Log(LogLevel.Success, $"插件加载完成，共加载 {toolAssemblies.Count} 个工具插件", "SolutionRepository");
+
+                foreach (var assembly in toolAssemblies)
+                {
+                    _logger.Log(LogLevel.Info, $"  - {assembly.GetName().Name} (Version={assembly.GetName().Version})", "SolutionRepository");
+                }
+
+                // 标记插件已加载
+                _pluginsLoaded = true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, $"插件加载失败: {ex.Message}", "SolutionRepository", ex);
+                return false;
+            }
+        }
+    }
+
+
+    /// <summary>
     /// 加载完整的解决方案对象
     /// </summary>
     /// <param name="filePath">解决方案文件路径</param>
     /// <returns>解决方案对象，失败返回 null</returns>
+    /// <remarks>
+    /// Fail Fast 原则：在反序列化前确保插件已加载。
+    /// 确保所有工具参数类型都能正确解析。
+    /// </remarks>
     public Solution? Load(string filePath)
     {
         if (string.IsNullOrEmpty(filePath))
@@ -60,10 +144,18 @@ public class SolutionRepository
             return null;
         }
 
+        // ✅ Fail Fast：确保插件在反序列化前加载
+        if (!EnsurePluginsLoaded())
+        {
+            _logger.Log(LogLevel.Error, "加载解决方案失败：插件加载未完成", "SolutionRepository");
+            return null;
+        }
+
         try
         {
+            _logger.Log(LogLevel.Info, $"开始反序列化解决方案: {filePath}", "SolutionRepository");
             var json = File.ReadAllText(filePath);
-            var solution = JsonSerializer.Deserialize<Solution>(json, JsonSerializationOptions.Default);
+            var solution = JsonSerializer.Deserialize<Solution>(json, WorkflowSerializationOptions.Default);
 
             if (solution != null)
             {
@@ -185,7 +277,7 @@ public class SolutionRepository
                 _logger.Log(LogLevel.Info, $"创建目录: {directory}", "SolutionRepository");
             }
 
-            var json = JsonSerializer.Serialize(solution, JsonSerializationOptions.Default);
+            var json = JsonSerializer.Serialize(solution, WorkflowSerializationOptions.Default);
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);

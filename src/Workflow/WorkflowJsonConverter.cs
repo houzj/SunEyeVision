@@ -38,10 +38,7 @@ namespace SunEyeVision.Workflow
                 {
                     try
                     {
-                        var nodeDict = JsonSerializer.Deserialize<Dictionary<string, object>>(
-                            nodeElement.GetRawText(),
-                            options
-                        );
+                        var nodeDict = JsonElementToDictionary(nodeElement);
 
                         if (nodeDict != null)
                         {
@@ -112,6 +109,58 @@ namespace SunEyeVision.Workflow
             // JsonSerializer.Serialize(writer, value.PortConnections, options);
 
             writer.WriteEndObject();
+        }
+
+        /// <summary>
+        /// 将 JsonElement 转换为 Dictionary<string, object>
+        /// </summary>
+        private Dictionary<string, object?> JsonElementToDictionary(JsonElement element)
+        {
+            var dict = new Dictionary<string, object?>();
+
+            foreach (var property in element.EnumerateObject())
+            {
+                dict[property.Name] = JsonElementToObject(property.Value);
+            }
+
+            return dict;
+        }
+
+        /// <summary>
+        /// 将 JsonElement 转换为相应的 C# 对象
+        /// </summary>
+        private object? JsonElementToObject(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    return element.GetString();
+                case JsonValueKind.Number:
+                    if (element.TryGetInt32(out int intVal))
+                        return intVal;
+                    if (element.TryGetInt64(out long longVal))
+                        return longVal;
+                    if (element.TryGetDouble(out double doubleVal))
+                        return doubleVal;
+                    return element.GetDecimal();
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                case JsonValueKind.Null:
+                    return null;
+                case JsonValueKind.Object:
+                    return JsonElementToDictionary(element);
+                case JsonValueKind.Array:
+                    var list = new List<object?>();
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        list.Add(JsonElementToObject(item));
+                    }
+                    return list;
+                default:
+                    return element.ToString();
+            }
         }
     }
 }

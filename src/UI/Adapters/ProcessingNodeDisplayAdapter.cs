@@ -7,8 +7,13 @@ namespace SunEyeVision.UI.Adapters
     /// <summary>
     /// 处理节点显示适配器
     /// </summary>
-    public class ProcessingNodeDisplayAdapter : INodeDisplayAdapter
+    public class ProcessingNodeDisplayAdapter : ICategoryDisplayAdapter
     {
+        /// <summary>
+        /// 支持的分类
+        /// </summary>
+        public string[] SupportedCategories => new[] { "图像处理", "定位", "识别", "输出" };
+
         public string GetDisplayText(WorkflowNode node)
         {
             return $"处理 {node.Index}";

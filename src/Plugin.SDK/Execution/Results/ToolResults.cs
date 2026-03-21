@@ -512,62 +512,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
             return result;
         }
 
-        /// <summary>
-        /// 获取输出参数的元数据
-        /// </summary>
-        public ParameterMetadata? GetOutputParameterMetadata(string propertyName)
-        {
-            var prop = GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
-            if (prop == null) return null;
-
-            var paramAttr = prop.GetCustomAttribute<ParamAttribute>();
-            if (paramAttr == null || paramAttr.Category != ParamCategory.Output)
-                return null;
-
-            return new ParameterMetadata
-            {
-                Name = prop.Name,
-                DisplayName = paramAttr.DisplayName ?? prop.Name,
-                Description = paramAttr.Description ?? string.Empty,
-                Type = DetermineParamDataType(prop.PropertyType),
-                DefaultValue = prop.GetValue(this),
-                Required = paramAttr.Required,
-                Category = paramAttr.Group ?? "输出参数",
-                SupportsBinding = !prop.IsDefined(typeof(IgnoreBindAttribute)),
-                BindingHint = "可供下游节点绑定"
-            };
-        }
-
-        /// <summary>
-        /// 根据CLR类型推断参数数据类型
-        /// </summary>
-        private static ParamDataType DetermineParamDataType(Type type)
-        {
-            if (type == typeof(int) || type == typeof(long))
-                return ParamDataType.Int;
-            if (type == typeof(double) || type == typeof(float) || type == typeof(decimal))
-                return ParamDataType.Double;
-            if (type == typeof(string))
-                return ParamDataType.String;
-            if (type == typeof(bool))
-                return ParamDataType.Bool;
-            if (type.IsEnum)
-                return ParamDataType.Enum;
-            if (type == typeof(Point) || type == typeof(Point2d) ||
-                type.FullName?.Contains("Point") == true)
-                return ParamDataType.Point;
-            if (type == typeof(Size) || type == typeof(Size2d) ||
-                type.FullName?.Contains("Size") == true)
-                return ParamDataType.Size;
-            if (type == typeof(Rect) || type == typeof(Rect2d) ||
-                type.FullName?.Contains("Rect") == true)
-                return ParamDataType.Rect;
-            if (type.Name.Contains("Image") || type.Name.Contains("Mat"))
-                return ParamDataType.Image;
-
-            return ParamDataType.Custom;
-        }
-
         #endregion
     }
 

@@ -77,6 +77,21 @@ namespace SunEyeVision.Workflow
         public double Height { get; set; } = 90;
 
         /// <summary>
+        /// 本地序号（同一工作流中相同类型节点的序号）
+        /// </summary>
+        public int Index { get; set; }
+
+        /// <summary>
+        /// 全局序号（所有工作流中的总序号）
+        /// </summary>
+        public int GlobalIndex { get; set; }
+
+        /// <summary>
+        /// 节点类型图标
+        /// </summary>
+        public string NodeTypeIcon { get; set; } = string.Empty;
+
+        /// <summary>
         /// 执行前事件
         /// </summary>
         public event Action<WorkflowNode> BeforeExecute;
@@ -136,7 +151,12 @@ namespace SunEyeVision.Workflow
                 ["PositionY"] = PositionY,
                 ["Width"] = Width,
                 ["Height"] = Height,
-                ["Parameters"] = Parameters.ToSerializableDictionary()
+                ["Parameters"] = Parameters.ToSerializableDictionary(),
+
+                // 添加节点元数据
+                ["Index"] = Index,
+                ["GlobalIndex"] = GlobalIndex,
+                ["NodeTypeIcon"] = NodeTypeIcon
             };
 
             // 保存参数类型名称用于反序列化
@@ -145,9 +165,15 @@ namespace SunEyeVision.Workflow
                 dict["ParametersTypeName"] = Parameters.GetType().AssemblyQualifiedName ?? string.Empty;
             }
 
-            if (ParameterBindings != null && ParameterBindings.Count > 0)
+            // 始终序列化参数绑定，即使为空
+            if (ParameterBindings != null)
             {
                 dict["ParameterBindings"] = ParameterBindings.ToDictionary();
+            }
+            else
+            {
+                var defaultBindings = new ParameterBindingContainer { NodeId = Id };
+                dict["ParameterBindings"] = defaultBindings.ToDictionary();
             }
 
             return dict;
@@ -170,6 +196,11 @@ namespace SunEyeVision.Workflow
             var width = dict.TryGetValue("Width", out var wVal) ? Convert.ToDouble(wVal) : 140.0;
             var height = dict.TryGetValue("Height", out var hVal) ? Convert.ToDouble(hVal) : 90.0;
 
+            // 读取节点元数据（使用默认值作为回退）
+            var index = dict.TryGetValue("Index", out var idxVal) ? Convert.ToInt32(idxVal) : 0;
+            var globalIndex = dict.TryGetValue("GlobalIndex", out var gIdxVal) ? Convert.ToInt32(gIdxVal) : 0;
+            var nodeTypeIcon = dict.TryGetValue("NodeTypeIcon", out var iconVal) ? iconVal?.ToString() ?? string.Empty : string.Empty;
+
             var node = new WorkflowNode(id, name, type)
             {
                 AlgorithmType = algorithmType,
@@ -177,7 +208,12 @@ namespace SunEyeVision.Workflow
                 PositionX = positionX,
                 PositionY = positionY,
                 Width = width,
-                Height = height
+                Height = height,
+
+                // 恢复节点元数据
+                Index = index,
+                GlobalIndex = globalIndex,
+                NodeTypeIcon = nodeTypeIcon
             };
 
             // 恢复参数
@@ -233,7 +269,12 @@ namespace SunEyeVision.Workflow
                 PositionX = PositionX,
                 PositionY = PositionY,
                 Width = Width,
-                Height = Height
+                Height = Height,
+
+                // 复制节点元数据
+                Index = Index,
+                GlobalIndex = GlobalIndex,
+                NodeTypeIcon = NodeTypeIcon
             };
 
             return cloned;

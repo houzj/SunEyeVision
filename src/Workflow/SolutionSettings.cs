@@ -288,7 +288,7 @@ public class SolutionSettings : ObservableObject
         try
         {
             var json = File.ReadAllText(filePath);
-            var settings = JsonSerializer.Deserialize<SolutionSettings>(json, JsonSerializationOptions.Default);
+            var settings = JsonSerializer.Deserialize<SolutionSettings>(json, WorkflowSerializationOptions.Default);
 
             if (settings != null)
             {
@@ -353,7 +353,7 @@ public class SolutionSettings : ObservableObject
                 Directory.CreateDirectory(directory);
             }
 
-            var json = JsonSerializer.Serialize(this, JsonSerializationOptions.Default);
+            var json = JsonSerializer.Serialize(this, WorkflowSerializationOptions.Default);
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);
