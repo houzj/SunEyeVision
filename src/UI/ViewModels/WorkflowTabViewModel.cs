@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.Plugin.SDK.Models;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Services.Canvas;
@@ -30,12 +31,6 @@ namespace SunEyeVision.UI.ViewModels
         private ScaleTransform _scaleTransform;
         private double _currentScale;
         private CanvasType _canvasType;
-
-        /// <summary>
-        /// 局部索引计数器（按算法类型统计）
-        /// Key: algorithmType, Value: 该类型在本工作流中的计数
-        /// </summary>
-        private readonly Dictionary<string, int> _localIndexMap = new Dictionary<string, int>();
 
         /// <summary>
         /// 节点序号管理器
@@ -165,6 +160,51 @@ namespace SunEyeVision.UI.ViewModels
 
         private void OnWorkflowNodesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
+            // 处理删除节点，释放索引到空洞池
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+            {
+                if (e.OldItems != null)
+                {
+                    foreach (Models.WorkflowNode node in e.OldItems)
+                    {
+                        try
+                        {
+                            // 直接使用LocalIndex属性释放索引到空洞池
+                            if (node.LocalIndex >= 0)
+                            {
+                                _sequenceManager.ReleaseLocalIndex(Id, node.AlgorithmType ?? string.Empty, node.LocalIndex);
+
+                                VisionLogger.Instance.Log(
+                                    LogLevel.Info,
+                                    $"节点删除，释放索引: {node.LocalIndex}, 节点ID: {node.Id}",
+                                    "WorkflowTabViewModel"
+                                );
+                            }
+
+                            // 释放全局索引到空洞池
+                            if (node.GlobalIndex >= 0)
+                            {
+                                _sequenceManager.ReleaseGlobalIndex(node.GlobalIndex);
+
+                                VisionLogger.Instance.Log(
+                                    LogLevel.Info,
+                                    $"节点删除，释放全局索引: {node.GlobalIndex}, 节点ID: {node.Id}",
+                                    "WorkflowTabViewModel"
+                                );
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            VisionLogger.Instance.Log(
+                                LogLevel.Error,
+                                $"释放索引失败: {node.Id}, 错误: {ex.Message}",
+                                "WorkflowTabViewModel",
+                                ex
+                            );
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -282,15 +322,14 @@ namespace SunEyeVision.UI.ViewModels
                 throw new InvalidOperationException("NodeFactory is not initialized");
             }
 
-            // 获取或创建局部索引（仅针对当前工作流）
-            if (!_localIndexMap.ContainsKey(algorithmType))
-            {
-                _localIndexMap[algorithmType] = 0;
-            }
-            int localIndex = ++_localIndexMap[algorithmType];
+            // ✅ 直接使用工厂创建节点，内部会自动获取局部索引（优先从空洞池获取）
+            var node = _nodeFactory.CreateNode(algorithmType, name, Id);
 
-            // 使用工厂创建节点（传入预计算的局部索引）
-            var node = _nodeFactory.CreateIndexedNode(algorithmType, localIndex, name, Id);
+            VisionLogger.Instance.Log(
+                LogLevel.Info,
+                $"创建节点: {node.Id}, 算法类型: {algorithmType}",
+                "WorkflowTabViewModel"
+            );
 
             return node;
         }
@@ -301,7 +340,11 @@ namespace SunEyeVision.UI.ViewModels
         public void ResetNodeSequences()
         {
             _sequenceManager.ResetWorkflow(Id);
-            _localIndexMap.Clear();
+            VisionLogger.Instance.Log(
+                LogLevel.Info,
+                "重置节点序号",
+                "WorkflowTabViewModel"
+            );
         }
 
         /// <summary>

@@ -29,11 +29,12 @@ namespace SunEyeVision.UI.Services.Workflow
 
             string workflowIdSafe = workflowId ?? Guid.NewGuid().ToString();
 
-            // 获取序号
-            int localIndex = _sequenceManager.GetNextLocalIndex(workflowIdSafe, algorithmType);
+            // 获取全局索引（跨所有工作流共享）
             int globalIndex = _sequenceManager.GetNextGlobalIndex();
+            // 获取局部序号（优先从空洞池获取）
+            int localIndex = _sequenceManager.GetNextLocalIndex(workflowIdSafe, algorithmType);
 
-            return CreateIndexedNodeInternal(algorithmType, localIndex, name, workflowIdSafe, globalIndex);
+            return CreateIndexedNodeInternal(algorithmType, globalIndex, localIndex, name, workflowIdSafe);
         }
 
         public NodeModel CreateIndexedNode(string algorithmType, int localIndex, string? name = null, string? workflowId = null)
@@ -44,15 +45,17 @@ namespace SunEyeVision.UI.Services.Workflow
             }
 
             string workflowIdSafe = workflowId ?? Guid.NewGuid().ToString();
+
+            // 获取全局索引（跨所有工作流共享）
             int globalIndex = _sequenceManager.GetNextGlobalIndex();
 
-            return CreateIndexedNodeInternal(algorithmType, localIndex, name, workflowIdSafe, globalIndex);
+            return CreateIndexedNodeInternal(algorithmType, globalIndex, localIndex, name, workflowIdSafe);
         }
 
         /// <summary>
         /// 创建节点的内部实现
         /// </summary>
-        private NodeModel CreateIndexedNodeInternal(string algorithmType, int localIndex, string? name, string workflowId, int globalIndex)
+        private NodeModel CreateIndexedNodeInternal(string algorithmType, int globalIndex, int localIndex, string? name, string workflowId)
         {
             if (string.IsNullOrWhiteSpace(algorithmType))
             {
@@ -63,8 +66,8 @@ namespace SunEyeVision.UI.Services.Workflow
             var metadata = ToolRegistry.GetToolMetadata(algorithmType);
             var displayName = metadata?.DisplayName ?? algorithmType;
 
-            // 生成节点ID和名称
-            string nodeId = _sequenceManager.GenerateNodeId(algorithmType, globalIndex, localIndex);
+            // 使用Guid生成节点ID
+            string nodeId = Guid.NewGuid().ToString();
             string nodeName = name ?? _sequenceManager.GenerateNodeName(displayName, localIndex);
 
             var node = new WorkflowModel.WorkflowNode(
@@ -72,6 +75,10 @@ namespace SunEyeVision.UI.Services.Workflow
                 nodeName,
                 algorithmType
             );
+
+            // 设置索引属性
+            node.GlobalIndex = globalIndex;
+            node.LocalIndex = localIndex;
 
             // 初始化节点参数
             InitializeNodeParameters(node, algorithmType);

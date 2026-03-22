@@ -249,13 +249,13 @@
 
                                 <!-- 全局序号 -->
                                 <TextBlock Grid.Column="1"
-                                           Text="{Binding GlobalIndex, StringFormat='#{0}'}"
+                                           Text="{Binding GlobalIndex, StringFormat='{}{0}'}"
                                            FontSize="13"
                                            FontWeight="Bold"
                                            Foreground="#ff9500"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"
-                                           Visibility="Collapsed"/>
+                                           Visibility="Visible"/>
 
                                 <!-- 节点名称 + 本地序号（使用适配器） -->
                                 <TextBlock Grid.Column="2"

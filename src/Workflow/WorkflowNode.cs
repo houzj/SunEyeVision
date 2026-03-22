@@ -13,15 +13,14 @@ namespace SunEyeVision.Workflow
     /// </summary>
     /// <remarks>
     /// 优化说明：
-    /// - 移除冗余字段：Type, ParametersTypeName, Index, GlobalIndex, NodeTypeIcon
+    /// - 移除冗余字段：Type, ParametersTypeName, Index, NodeTypeIcon
     /// - 添加计算属性：NodeType, DisplayName, Icon, ToolType
-    /// - 核心字段：8个（Id, Name, AlgorithmType, Parameters, ParameterBindings, IsEnabled, PositionX, PositionY, Width, Height）
+    /// - 核心字段：8个（Id, LocalIndex, Name, AlgorithmType, Parameters, ParameterBindings, IsEnabled, PositionX, PositionY, Width, Height）
     ///
-    /// ID格式说明：
-    /// - 节点ID格式：{GlobalIndex}_{AlgorithmType}_{LocalIndex}
-    /// - 示例：1_ImageThreshold_1, 2_GaussianBlur_2
-    /// - GlobalIndex：全局唯一递增序号，确保节点ID唯一性
-    /// - LocalIndex：同类型节点的局部序号，支持重命名
+    /// ID优化说明：
+    /// - 节点ID使用Guid，确保全局唯一性和稳定性
+    /// - LocalIndex作为独立属性存储，支持hole pool机制
+    /// - 节点显示名称格式：{DisplayName}{LocalIndex}（无分隔符）
     ///
     /// 设计原则：
     /// - 节点类型从 AlgorithmType 动态推断
@@ -30,6 +29,7 @@ namespace SunEyeVision.Workflow
     ///
     /// 重构说明：
     /// - 2026-03-21: 重命名为 WorkflowNodeBase，消除命名冲突
+    /// - 2026-03-22: 优化节点ID系统，使用Guid替代组合格式，LocalIndex独立存储
     /// - UI 层派生类为 WorkflowNode（SunEyeVision.UI.Models）
     /// </remarks>
     public class WorkflowNodeBase
@@ -37,30 +37,38 @@ namespace SunEyeVision.Workflow
         #region 核心字段（8个）
 
         /// <summary>
-        /// 节点ID - 格式：{GlobalIndex}_{AlgorithmType}_{LocalIndex}
+        /// 节点ID - 使用Guid确保全局唯一性和稳定性
         /// </summary>
         /// <remarks>
-        /// 节点ID由全局序号、算法类型和局部序号组合而成，确保全局唯一性。
-        /// 示例：1_ImageThreshold_1
+        /// 节点ID使用Guid,避免因显示名称修改导致ID变更的风险。
+        /// 示例：e2a8c5d7-f3e2-4b1a-9c5d-8f7e6b5a4c3d
         /// </remarks>
         public string Id { get; set; }
 
         /// <summary>
-        /// 全局序号 - 从节点ID解析
-        /// </summary>
-        public int GlobalIndex { get; private set; } = -1;
-
-        /// <summary>
-        /// 局部序号 - 从节点ID解析
-        /// </summary>
-        public int LocalIndex { get; private set; } = -1;
-
-        /// <summary>
-        /// 节点名称 - 格式：{DisplayName}_{LocalIndex}
+        /// 全局序号 - 跨所有工作流共享的全局唯一递增序号
         /// </summary>
         /// <remarks>
-        /// 节点名称由显示名称和局部序号组成，支持用户修改。
-        /// 示例：图像阈值化_1
+        /// 全局序号用于标识节点创建的全局顺序，不会因为工作流切换而重新计算。
+        /// 每次创建节点时递增，确保全局唯一性。
+        /// </remarks>
+        public int GlobalIndex { get; set; } = -1;
+
+        /// <summary>
+        /// 局部序号 - 同类型节点的局部序号,直接存储
+        /// </summary>
+        /// <remarks>
+        /// 局部序号不再从节点ID解析,而是作为独立属性存储。
+        /// 支持hole pool机制进行索引复用。
+        /// </remarks>
+        public int LocalIndex { get; set; } = -1;
+
+        /// <summary>
+        /// 节点名称 - 格式：{DisplayName}{LocalIndex}
+        /// </summary>
+        /// <remarks>
+        /// 节点名称由显示名称和局部序号直接拼接,无分隔符。
+        /// 示例：图像阈值化1, 高斯模糊2
         /// </remarks>
         public string Name { get; set; }
 
@@ -169,61 +177,6 @@ namespace SunEyeVision.Workflow
             AlgorithmType = algorithmType;
             Parameters = new GenericToolParameters();
             ParameterBindings = new ParameterBindingContainer();
-            ParseIndicesFromId();
-        }
-
-        /// <summary>
-        /// 从节点ID解析索引
-        /// </summary>
-        private void ParseIndicesFromId()
-        {
-            if (ValidateIdFormat())
-            {
-                var parts = Id.Split('_');
-                GlobalIndex = int.TryParse(parts[0], out var globalIndex) ? globalIndex : -1;
-                LocalIndex = int.TryParse(parts[2], out var localIndex) ? localIndex : -1;
-            }
-        }
-
-        /// <summary>
-        /// 验证节点ID格式
-        /// </summary>
-        /// <returns>如果ID格式正确返回true，否则返回false</returns>
-        public bool ValidateIdFormat()
-        {
-            if (string.IsNullOrWhiteSpace(Id))
-                return false;
-
-            var parts = Id.Split('_');
-            if (parts.Length != 3)
-                return false;
-
-            // 验证第一部分是否为有效的全局序号
-            if (!int.TryParse(parts[0], out _))
-                return false;
-
-            // 验证第二部分（算法类型）不为空
-            if (string.IsNullOrWhiteSpace(parts[1]))
-                return false;
-
-            // 验证第三部分是否为有效的局部序号
-            if (!int.TryParse(parts[2], out _))
-                return false;
-
-            return true;
-        }
-
-        /// <summary>
-        /// 从节点ID解析算法类型
-        /// </summary>
-        /// <returns>算法类型，如果解析失败返回空字符串</returns>
-        public string ParseAlgorithmType()
-        {
-            if (!ValidateIdFormat())
-                return string.Empty;
-
-            var parts = Id.Split('_');
-            return parts[1];
         }
 
         /// <summary>

@@ -14,28 +14,33 @@ namespace SunEyeVision.UI.Services.Interaction
         int GetNextGlobalIndex();
 
         /// <summary>
-        /// 获取指定工作流和算法类型的下一个局部序号
+        /// 获取指定工作流和算法类型的下一个局部序号（自动填补空洞）
         /// </summary>
         /// <param name="workflowId">工作流ID</param>
-        /// /// <param name="algorithmType">算法类型</param>
+        /// <param name="algorithmType">算法类型</param>
         /// <returns>局部序号</returns>
         int GetNextLocalIndex(string workflowId, string algorithmType);
 
         /// <summary>
-        /// 生成节点ID
+        /// 释放局部索引到空洞池
         /// </summary>
+        /// <param name="workflowId">工作流ID</param>
         /// <param name="algorithmType">算法类型</param>
-        /// <param name="globalIndex">全局序号</param>
-        /// <param name="localIndex">局部序号</param>
-        /// <returns>节点ID，格式：{GlobalIndex}_{AlgorithmType}_{LocalIndex}</returns>
-        string GenerateNodeId(string algorithmType, int globalIndex, int localIndex);
+        /// <param name="localIndex">要释放的局部索引</param>
+        void ReleaseLocalIndex(string workflowId, string algorithmType, int localIndex);
+
+        /// <summary>
+        /// 释放全局索引到空洞池
+        /// </summary>
+        /// <param name="globalIndex">要释放的全局索引</param>
+        void ReleaseGlobalIndex(int globalIndex);
 
         /// <summary>
         /// 生成节点名称
         /// </summary>
         /// <param name="displayName">显示名称</param>
         /// <param name="localIndex">局部序号</param>
-        /// <returns>节点名称，格式：{DisplayName}_{LocalIndex}</returns>
+        /// <returns>节点名称，格式：{DisplayName}{LocalIndex}</returns>
         string GenerateNodeName(string displayName, int localIndex);
 
         /// <summary>

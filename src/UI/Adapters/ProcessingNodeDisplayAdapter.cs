@@ -16,7 +16,7 @@ namespace SunEyeVision.UI.Adapters
 
         public string GetDisplayText(WorkflowNode node)
         {
-            return node.DisplayName;
+            return $"{node.DisplayName}_{node.LocalIndex}";
         }
 
         public string GetIcon(WorkflowNode node)

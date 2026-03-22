@@ -179,7 +179,7 @@ namespace SunEyeVision.UI.Services.Rendering
                 // 全局序号
                 if (grid.Children[1] is TextBlock indexBlock)
                 {
-                    indexBlock.Text = $"#{node.GlobalIndex}";
+                    indexBlock.Text = $"{node.GlobalIndex}";
                 }
 
                 // 名称
