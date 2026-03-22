@@ -424,7 +424,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
 
                 // 使用 ViewModel 的CreateNode 方法创建节点，自动分配序号。
-                var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
+                var newNode = workflowTab.CreateNode(item.ToolId);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
 
@@ -506,7 +506,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
 
                 // 使用 ViewModel 的CreateNode 方法创建节点，自动分配序号。
-                var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
+                var newNode = workflowTab.CreateNode(item.ToolId);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
                 
@@ -588,7 +588,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
 
                 // 使用 ViewModel 的CreateNode 方法创建节点，自动分配序号。
-                var newNode = workflowTab.CreateNode(item.ToolId, item.Name);
+                var newNode = workflowTab.CreateNode(item.ToolId);
                 newNode.Position = dropPosition;
                 newNode.IsSelected = true;
                 

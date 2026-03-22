@@ -298,36 +298,36 @@ namespace SunEyeVision.UI.Models
 
 
         /// <summary>
-        /// 是否为图像采集节点（基于 NodeType 计算）
+        /// 是否为图像采集节点（基于 ToolType 计算）
         /// </summary>
-        public bool IsImageCaptureNode => AlgorithmType != null && (
-            AlgorithmType.Contains("ImageCapture", StringComparison.OrdinalIgnoreCase) ||
-            AlgorithmType.Contains("Camera", StringComparison.OrdinalIgnoreCase) ||
-            AlgorithmType.Contains("视频源", StringComparison.OrdinalIgnoreCase) ||
-            AlgorithmType.Contains("VideoSource", StringComparison.OrdinalIgnoreCase));
+        public bool IsImageCaptureNode => ToolType != null && (
+            ToolType.Contains("ImageCapture", StringComparison.OrdinalIgnoreCase) ||
+            ToolType.Contains("Camera", StringComparison.OrdinalIgnoreCase) ||
+            ToolType.Contains("视频源", StringComparison.OrdinalIgnoreCase) ||
+            ToolType.Contains("VideoSource", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
-        /// 是否为图像加载节点（基于 NodeType 计算）
+        /// 是否为图像加载节点（基于 ToolType 计算）
         /// </summary>
-        public bool IsImageLoadNode => AlgorithmType != null && (
-            AlgorithmType.Contains("ImageLoad", StringComparison.OrdinalIgnoreCase) ||
-            AlgorithmType.Contains("图片载入", StringComparison.OrdinalIgnoreCase) ||
-            AlgorithmType.Contains("ImageSource", StringComparison.OrdinalIgnoreCase));
+        public bool IsImageLoadNode => ToolType != null && (
+            ToolType.Contains("ImageLoad", StringComparison.OrdinalIgnoreCase) ||
+            ToolType.Contains("图片载入", StringComparison.OrdinalIgnoreCase) ||
+            ToolType.Contains("ImageSource", StringComparison.OrdinalIgnoreCase));
 
         #endregion
 
         #region 继承自基类的属性（直接使用）
 
-        // Id, Name, AlgorithmType, Parameters, ParameterBindings, IsEnabled,
-        // PositionX, PositionY, Width, Height, NodeType, DisplayName, Icon, ToolType
+        // Id, Name, ToolType, Parameters, ParameterBindings, IsEnabled,
+        // PositionX, PositionY, Width, Height, NodeType, DisplayName, Icon
         // 这些属性都继承自基类 SunEyeVision.Workflow.WorkflowNodeBase
 
         #endregion
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public WorkflowNode(string id, string name, string algorithmType)
-            : base(id, name, algorithmType)
+        public WorkflowNode(string id, string name, string dispName, string toolType)
+            : base(id, name, dispName, toolType)
         {
             Position = new Point(PositionX, PositionY);
         }
@@ -444,8 +444,10 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public static WorkflowNode FromWorkflowNode(SunEyeVision.Workflow.WorkflowNodeBase baseNode)
         {
-            return new WorkflowNode(baseNode.Id, baseNode.Name, baseNode.AlgorithmType)
+            return new WorkflowNode(baseNode.Id, baseNode.Name, baseNode.DispName, baseNode.ToolType)
             {
+                LocalIndex = baseNode.LocalIndex,
+                GlobalIndex = baseNode.GlobalIndex,
                 Parameters = baseNode.Parameters,
                 ParameterBindings = baseNode.ParameterBindings,
                 IsEnabled = baseNode.IsEnabled,

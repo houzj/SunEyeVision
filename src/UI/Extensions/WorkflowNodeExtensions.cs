@@ -14,8 +14,10 @@ namespace SunEyeVision.UI.Extensions
         {
             // 工具插件创建的节点始终为 AlgorithmNode
             // 控制节点由专门的 UI 操作创建
-            var workflowNode = new SunEyeVision.Workflow.WorkflowNodeBase(uiNode.Id, uiNode.Name, "Algorithm");
-            workflowNode.AlgorithmType = uiNode.AlgorithmType;
+            var workflowNode = new SunEyeVision.Workflow.WorkflowNodeBase(uiNode.Id, uiNode.Name, uiNode.DispName, "Algorithm");
+            workflowNode.ToolType = uiNode.ToolType;
+            workflowNode.LocalIndex = uiNode.LocalIndex;
+            workflowNode.GlobalIndex = uiNode.GlobalIndex;
             return workflowNode;
         }
     }

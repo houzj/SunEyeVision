@@ -5,7 +5,6 @@ using System.Windows.Media;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.Logging;
-using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Models;
@@ -38,9 +37,9 @@ namespace SunEyeVision.UI.ViewModels
         private readonly INodeSequenceManager _sequenceManager;
 
         /// <summary>
-        /// 节点显示适配器
+        /// 节点序号管理器（公共访问）
         /// </summary>
-        private readonly INodeDisplayAdapter _displayAdapter;
+        public INodeSequenceManager SequenceManager => _sequenceManager;
 
         /// <summary>
         /// 节点工厂
@@ -52,22 +51,19 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public AppCommands.CommandManager CommandManager { get; }
 
-        public WorkflowTabViewModel() : this(
-            new NodeSequenceManager(),
-            new DefaultNodeDisplayAdapter())
+        public WorkflowTabViewModel() : this(new NodeSequenceManager())
         {
         }
 
         /// <summary>
         /// 带依赖注入的构造函数
         /// </summary>
-        public WorkflowTabViewModel(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
+        public WorkflowTabViewModel(INodeSequenceManager sequenceManager)
         {
             _sequenceManager = sequenceManager ?? throw new ArgumentNullException(nameof(sequenceManager));
-            _displayAdapter = displayAdapter ?? throw new ArgumentNullException(nameof(displayAdapter));
 
             // 初始化节点工厂
-            _nodeFactory = new WorkflowNodeFactory(_sequenceManager, _displayAdapter);
+            _nodeFactory = new WorkflowNodeFactory(_sequenceManager);
 
             Id = Guid.NewGuid().ToString();
             Name = "工作流"; // 默认名称，可以被外部覆盖
@@ -172,7 +168,7 @@ namespace SunEyeVision.UI.ViewModels
                             // 直接使用LocalIndex属性释放索引到空洞池
                             if (node.LocalIndex >= 0)
                             {
-                                _sequenceManager.ReleaseLocalIndex(Id, node.AlgorithmType ?? string.Empty, node.LocalIndex);
+                                _sequenceManager.ReleaseLocalIndex(Id, node.ToolType ?? string.Empty, node.LocalIndex);
 
                                 VisionLogger.Instance.Log(
                                     LogLevel.Info,

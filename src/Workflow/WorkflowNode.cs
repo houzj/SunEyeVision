@@ -64,22 +64,32 @@ namespace SunEyeVision.Workflow
         public int LocalIndex { get; set; } = -1;
 
         /// <summary>
-        /// 节点名称 - 格式：{DisplayName}{LocalIndex}
+        /// 节点名称 - 格式：{GlobalIndex} {DispName}
         /// </summary>
         /// <remarks>
-        /// 节点名称由显示名称和局部序号直接拼接,无分隔符。
-        /// 示例：图像阈值化1, 高斯模糊2
+        /// 节点名称由全局序号和显示名称组成,用于序列化。
+        /// 示例：1 图像采集1, 2 高斯模糊2
         /// </remarks>
         public string Name { get; set; }
 
         /// <summary>
-        /// 算法类型名称（工具ID）
+        /// 节点显示名称 - 格式：{DisplayName}{LocalIndex}
+        /// </summary>
+        /// <remarks>
+        /// 节点显示名称由工具显示名称和局部序号组成,用于UI显示。
+        /// 示例：图像采集1, 高斯模糊2
+        /// 支持用户重命名。
+        /// </remarks>
+        public string DispName { get; set; }
+
+        /// <summary>
+        /// 工具类型（算法类型的简化表示，符合视觉软件行业标准）
         /// </summary>
         /// <remarks>
         /// 用于标识节点使用的工具类型。
         /// NodeType 从此类型动态推断。
         /// </remarks>
-        public string AlgorithmType { get; set; }
+        public string ToolType { get; set; }
 
         /// <summary>
         /// 节点参数
@@ -125,9 +135,9 @@ namespace SunEyeVision.Workflow
         #region 计算属性（从元数据推断）
 
         /// <summary>
-        /// 节点类型（从 AlgorithmType 动态推断）
+        /// 节点类型（从 ToolType 动态推断）
         /// </summary>
-        public NodeType NodeType => NodeTypeHelper.InferNodeTypeFromAlgorithmType(AlgorithmType);
+        public NodeType NodeType => NodeTypeHelper.InferNodeTypeFromToolType(ToolType);
 
         /// <summary>
         /// 显示名称（从工具元数据获取）
@@ -136,7 +146,7 @@ namespace SunEyeVision.Workflow
         {
             get
             {
-                var metadata = ToolRegistry.GetToolMetadata(AlgorithmType);
+                var metadata = ToolRegistry.GetToolMetadata(ToolType);
                 return metadata?.DisplayName ?? Name;
             }
         }
@@ -148,15 +158,10 @@ namespace SunEyeVision.Workflow
         {
             get
             {
-                var metadata = ToolRegistry.GetToolMetadata(AlgorithmType);
+                var metadata = ToolRegistry.GetToolMetadata(ToolType);
                 return metadata?.Icon ?? "?";
             }
         }
-
-        /// <summary>
-        /// 工具类型（算法类型的简化表示）
-        /// </summary>
-        public string ToolType => AlgorithmType;
 
         #endregion
 
@@ -170,11 +175,12 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public event Action<WorkflowNodeBase, AlgorithmResult> AfterExecute;
 
-        public WorkflowNodeBase(string id, string name, string algorithmType)
+        public WorkflowNodeBase(string id, string name, string dispName, string toolType)
         {
             Id = id;
             Name = name;
-            AlgorithmType = algorithmType;
+            DispName = dispName;
+            ToolType = toolType;
             Parameters = new GenericToolParameters();
             ParameterBindings = new ParameterBindingContainer();
         }
@@ -200,7 +206,7 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public virtual IToolPlugin? CreateInstance()
         {
-            throw new NotImplementedException($"Algorithm type '{AlgorithmType}' is not implemented.");
+            throw new NotImplementedException($"Tool type '{ToolType}' is not implemented.");
         }
 
         /// <summary>
@@ -212,8 +218,11 @@ namespace SunEyeVision.Workflow
             {
                 ["Id"] = Id,
                 ["Name"] = Name,
+                ["DispName"] = DispName,
+                ["LocalIndex"] = LocalIndex,
+                ["GlobalIndex"] = GlobalIndex,
                 ["NodeType"] = (int)NodeType,
-                ["AlgorithmType"] = AlgorithmType,
+                ["ToolType"] = ToolType,
                 ["IsEnabled"] = IsEnabled,
                 ["PositionX"] = PositionX,
                 ["PositionY"] = PositionY,
@@ -243,7 +252,8 @@ namespace SunEyeVision.Workflow
         {
             var id = dict.TryGetValue("Id", out var idVal) ? idVal?.ToString() ?? Guid.NewGuid().ToString() : Guid.NewGuid().ToString();
             var name = dict.TryGetValue("Name", out var nameVal) ? nameVal?.ToString() ?? "Node" : "Node";
-            var algorithmType = dict.TryGetValue("AlgorithmType", out var algoVal) ? algoVal?.ToString() ?? string.Empty : string.Empty;
+            var dispName = dict.TryGetValue("DispName", out var dispNameVal) ? dispNameVal?.ToString() ?? string.Empty : string.Empty;
+            var toolType = dict.TryGetValue("ToolType", out var toolTypeVal) ? toolTypeVal?.ToString() ?? string.Empty : string.Empty;
             var isEnabled = dict.TryGetValue("IsEnabled", out var enabledVal) && Convert.ToBoolean(enabledVal);
 
             // 读取位置属性
@@ -252,7 +262,11 @@ namespace SunEyeVision.Workflow
             var width = dict.TryGetValue("Width", out var wVal) ? Convert.ToDouble(wVal) : 140.0;
             var height = dict.TryGetValue("Height", out var hVal) ? Convert.ToDouble(hVal) : 90.0;
 
-            // 推断节点类型（优先读取 NodeType 字段，否则从 AlgorithmType 推断）
+            // 读取索引属性
+            var localIndex = dict.TryGetValue("LocalIndex", out var localIdx) ? Convert.ToInt32(localIdx) : -1;
+            var globalIndex = dict.TryGetValue("GlobalIndex", out var globalIdx) ? Convert.ToInt32(globalIdx) : -1;
+
+            // 推断节点类型（优先读取 NodeType 字段，否则从 ToolType 推断）
             NodeType nodeType = NodeType.Algorithm;
             if (dict.TryGetValue("NodeType", out var typeVal))
             {
@@ -263,11 +277,13 @@ namespace SunEyeVision.Workflow
             }
             else
             {
-                nodeType = NodeTypeHelper.InferNodeTypeFromAlgorithmType(algorithmType);
+                nodeType = NodeTypeHelper.InferNodeTypeFromToolType(toolType);
             }
 
-            var node = new WorkflowNodeBase(id, name, algorithmType)
+            var node = new WorkflowNodeBase(id, name, dispName, toolType)
             {
+                LocalIndex = localIndex,
+                GlobalIndex = globalIndex,
                 IsEnabled = isEnabled,
                 PositionX = positionX,
                 PositionY = positionY,
@@ -300,7 +316,8 @@ namespace SunEyeVision.Workflow
             var cloned = new WorkflowNodeBase(
                 Id,
                 $"{Name}_副本",
-                AlgorithmType
+                DispName,
+                ToolType
             )
             {
                 IsEnabled = IsEnabled,

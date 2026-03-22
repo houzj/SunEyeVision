@@ -73,7 +73,6 @@ namespace SunEyeVision.UI.ViewModels
         private string _title = "太阳眼视觉";
         private bool _isRunning = false;
         private string _status = "";
-        private string _selectedWorkflowName = "默认工作流";
         private string _currentCanvasTypeText = "原 Diagram (测试)";
 
         // 图像显示
@@ -177,15 +176,6 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _currentCanvasTypeText, value);
         }
 
-        public string SelectedWorkflowName
-        {
-            get => _selectedWorkflowName;
-            set => SetProperty(ref _selectedWorkflowName, value);
-        }
-
-        public ObservableCollection<string> Workflows { get; }
-
-        public ObservableCollection<Models.ToolItem> Tools { get; }
         public ToolboxViewModel Toolbox { get; }
 
         // 注意：已删除全局WorkflowNodes和WorkflowConnections集合
@@ -810,15 +800,6 @@ namespace SunEyeVision.UI.ViewModels
 
         public MainWindowViewModel()
         {
-            Workflows = new ObservableCollection<string>
-            {
-                "默认工作流",
-                "测试工作流",
-                "项目工作流",
-                "示例工作流"
-            };
-
-            Tools = new ObservableCollection<Models.ToolItem>();
             Toolbox = new ToolboxViewModel();
             // 删除全局 WorkflowNodes 和 WorkflowConnections 的初始化
 
@@ -886,8 +867,6 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化当前解决方案信息
             UpdateCurrentSolutionInfo();
 
-            InitializeTools();
-            // InitializeSampleNodes(); // 已禁用，暂时不加载测试节点
             InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
@@ -1107,66 +1086,12 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        private void InitializeTools()
-        {
-            Tools.Add(new Models.ToolItem("图像采集", "ImageAcquisition", "📷", "从文件或相机获取图像"));
-            Tools.Add(new Models.ToolItem("灰度化", "GrayScale", "🎨", "彩色图转换为灰度图"));
-            Tools.Add(new Models.ToolItem("高斯模糊", "GaussianBlur", "🌫️", "应用高斯模糊滤镜"));
-            Tools.Add(new Models.ToolItem("阈值化", "Threshold", "🔲", "图像转换为二值图像"));
-            Tools.Add(new Models.ToolItem("边缘检测", "EdgeDetection", "🔍", "检测图像中的边缘"));
-            Tools.Add(new Models.ToolItem("形态学", "Morphology", "📐", "腐蚀和膨胀等形态学运算"));
-        }
-
         private void InitializePropertyGroups()
         {
             // 初始化日志
             AddLog("✅ [系统] 系统启动成功");
             AddLog("✅ [设备] 相机1连接成功");
             AddLog("✅ [设备] 相机2连接成功");
-        }
-
-        private void InitializeSampleNodes()
-        {
-            if (WorkflowTabViewModel.SelectedTab != null)
-            {
-                // 准备要添加的节点和连接
-                var nodesToAdd = new List<Models.WorkflowNode>
-                {
-                    new Models.WorkflowNode("1", "图像采集_1", "image_capture")
-                    {
-                        Position = new System.Windows.Point(100, 100),
-                        IsSelected = false
-                    },
-                    new Models.WorkflowNode("2", "高斯模糊", "gaussian_blur")
-                    {
-                        Position = new System.Windows.Point(300, 100),
-                        IsSelected = false
-                    },
-                    new Models.WorkflowNode("3", "边缘检测", "edge_detection")
-                    {
-                        Position = new System.Windows.Point(500, 100),
-                        IsSelected = false
-                    }
-                };
-
-                var connectionsToAdd = new List<Models.WorkflowConnection>
-                {
-                    new Models.WorkflowConnection("conn_1", "1", "2")
-                    {
-                        SourcePosition = new System.Windows.Point(240, 145),
-                        TargetPosition = new System.Windows.Point(300, 145)
-                    },
-                    new Models.WorkflowConnection("conn_2", "2", "3")
-                    {
-                        SourcePosition = new System.Windows.Point(440, 145),
-                        TargetPosition = new System.Windows.Point(500, 145)
-                    }
-                };
-
-                // 批量添加，减少 UI 更新次数
-                AddRangeToCollection(WorkflowTabViewModel.SelectedTab.WorkflowNodes, nodesToAdd);
-                AddRangeToCollection(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connectionsToAdd);
-            }
         }
 
         private void ExecuteNewWorkflow()
@@ -1473,15 +1398,18 @@ namespace SunEyeVision.UI.ViewModels
             // 转换 UI 节点到底层节点
             foreach (var uiNode in tabInfo.WorkflowNodes)
             {
-                // 根据 AlgorithmType 确定 NodeType
-                var nodeTypeStr = DetermineNodeTypeFromAlgorithmType(uiNode.AlgorithmType).ToString();
+                // 根据 ToolType 确定 NodeType
+                var nodeTypeStr = DetermineNodeTypeFromToolType(uiNode.ToolType).ToString();
 
                 var workflowNode = new WorkflowWorkflowNode(
                     uiNode.Id,
                     uiNode.Name,
-                    uiNode.AlgorithmType ?? string.Empty
+                    uiNode.DispName ?? uiNode.Name,
+                    uiNode.ToolType ?? string.Empty
                 )
                 {
+                    LocalIndex = uiNode.LocalIndex,
+                    GlobalIndex = uiNode.GlobalIndex,
                     Parameters = uiNode.Parameters ?? new GenericToolParameters(),
                     IsEnabled = uiNode.IsEnabled,
                     PositionX = uiNode.Position.X,
@@ -1576,36 +1504,36 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 根据算法类型确定节点类型
         /// </summary>
-        private SunEyeVision.Core.Models.NodeType DetermineNodeTypeFromAlgorithmType(string algorithmType)
+        private SunEyeVision.Core.Models.NodeType DetermineNodeTypeFromToolType(string toolType)
         {
-            if (string.IsNullOrEmpty(algorithmType))
+            if (string.IsNullOrEmpty(toolType))
                 return SunEyeVision.Core.Models.NodeType.Algorithm;
 
             // 图像采集类工具作为起始节点
-            if (algorithmType.Contains("ImageCapture") ||
-                algorithmType.Contains("ImageAcquisition") ||
-                algorithmType.Contains("Camera") ||
-                algorithmType.Contains("image_capture"))
+            if (toolType.Contains("ImageCapture") ||
+                toolType.Contains("ImageAcquisition") ||
+                toolType.Contains("Camera") ||
+                toolType.Contains("image_capture"))
             {
                 return SunEyeVision.Core.Models.NodeType.Start;
             }
 
             // 图像载入类工具作为起始节点
-            if (algorithmType.Contains("ImageLoad") ||
-                algorithmType.Contains("image_load"))
+            if (toolType.Contains("ImageLoad") ||
+                toolType.Contains("image_load"))
             {
                 return SunEyeVision.Core.Models.NodeType.Start;
             }
 
             // 控制类节点
-            if (algorithmType.Contains("Subroutine") ||
-                algorithmType.Contains("subroutine"))
+            if (toolType.Contains("Subroutine") ||
+                toolType.Contains("subroutine"))
             {
                 return SunEyeVision.Core.Models.NodeType.Subroutine;
             }
 
-            if (algorithmType.Contains("Condition") ||
-                algorithmType.Contains("condition"))
+            if (toolType.Contains("Condition") ||
+                toolType.Contains("condition"))
             {
                 return SunEyeVision.Core.Models.NodeType.Condition;
             }
@@ -1649,7 +1577,7 @@ namespace SunEyeVision.UI.ViewModels
             foreach (var WorkflowNode in workflow.Nodes)
             {
                 nodeIndex++;
-                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {WorkflowNode.Name} (类型: {WorkflowNode.AlgorithmType})");
+                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {WorkflowNode.Name} (类型: {WorkflowNode.ToolType})");
                 LogInfo($"      节点ID: {WorkflowNode.Id}");
                 LogInfo($"      参数类型: {WorkflowNode.Parameters.GetType().Name}");
                 LogInfo($"      位置: ({WorkflowNode.PositionX}, {WorkflowNode.PositionY})");
@@ -1674,14 +1602,18 @@ namespace SunEyeVision.UI.ViewModels
                     var uiNode = new UIWorkflowNode(
                         WorkflowNode.Id,
                         WorkflowNode.Name,
-                        WorkflowNode.AlgorithmType
+                        WorkflowNode.DispName ?? WorkflowNode.Name,
+                        WorkflowNode.ToolType
                     )
                     {
                         Parameters = paramsClone,
                         IsEnabled = WorkflowNode.IsEnabled,
                         ParameterBindings = WorkflowNode.ParameterBindings,
                         // 恢复节点位置
-                        Position = new System.Windows.Point(WorkflowNode.PositionX, WorkflowNode.PositionY)
+                        Position = new System.Windows.Point(WorkflowNode.PositionX, WorkflowNode.PositionY),
+                        // 恢复索引属性
+                        LocalIndex = WorkflowNode.LocalIndex,
+                        GlobalIndex = WorkflowNode.GlobalIndex
                     };
 
                     nodesToLoad.Add(uiNode);
@@ -1734,6 +1666,17 @@ namespace SunEyeVision.UI.ViewModels
             // 将节点和连接复制到新的 ViewModel（批量添加）
             AddRangeToCollection(tabViewModel.WorkflowNodes, tabInfo.WorkflowNodes);
             AddRangeToCollection(tabViewModel.WorkflowConnections, tabInfo.WorkflowConnections);
+
+            // 初始化空洞池（从现有节点恢复索引池）
+            if (tabViewModel.SequenceManager != null)
+            {
+                tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.WorkflowNodes);
+                LogInfo($"✓ 空洞池已初始化");
+            }
+            else
+            {
+                LogWarning($"⚠️ SequenceManager 为空，无法初始化空洞池");
+            }
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
@@ -2011,7 +1954,7 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     new Models.PropertyItem { Label = "名称", Value = node.Name },
                     new Models.PropertyItem { Label = "ID", Value = node.Id },
-                    new Models.PropertyItem { Label = "类型", Value = node.AlgorithmType ?? "未知" }
+                    new Models.PropertyItem { Label = "类型", Value = node.ToolType ?? "未知" }
                 }
             };
             PropertyGroups.Add(basicGroup);
@@ -2058,7 +2001,7 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            AddLog($"➕ 添加节点: {node.Name} (ID={node.Id}, 类型={node.AlgorithmType})");
+            AddLog($"➕ 添加节点: {node.Name} (ID={node.Id}, 类型={node.ToolType})");
 
             var command = new AppCommands.AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
@@ -2216,7 +2159,7 @@ namespace SunEyeVision.UI.ViewModels
                 try
                 {
                     // 从 ToolRegistry 获取元数据
-                    var toolId = node.AlgorithmType ?? node.Name;
+                    var toolId = node.ToolType ?? node.Name;
                     var toolMetadata = ToolRegistry.GetToolMetadata(toolId);
 
                     AddLog($"🔧 尝试打开调试窗口：工具ID={toolId}，节点名称={node.Name}");
@@ -2763,35 +2706,35 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         private string InferNodeOutputType(Models.WorkflowNode node)
         {
-            // 根据算法类型推断
-            var algorithmType = node.AlgorithmType?.ToLower() ?? node.Name.ToLower();
+            // 根据工具类型推断
+            var toolType = node.ToolType?.ToLower() ?? node.Name.ToLower();
 
-            if (algorithmType.Contains("image") || algorithmType.Contains("capture") || 
-                algorithmType.Contains("load") || algorithmType.Contains("采集") || algorithmType.Contains("载入"))
+            if (toolType.Contains("image") || toolType.Contains("capture") ||
+                toolType.Contains("load") || toolType.Contains("采集") || toolType.Contains("载入"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("threshold") || algorithmType.Contains("阈值"))
+            else if (toolType.Contains("threshold") || toolType.Contains("阈值"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("gray") || algorithmType.Contains("灰度"))
+            else if (toolType.Contains("gray") || toolType.Contains("灰度"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("blur") || algorithmType.Contains("模糊"))
+            else if (toolType.Contains("blur") || toolType.Contains("模糊"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("edge") || algorithmType.Contains("边缘"))
+            else if (toolType.Contains("edge") || toolType.Contains("边缘"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("morphology") || algorithmType.Contains("形态"))
+            else if (toolType.Contains("morphology") || toolType.Contains("形态"))
             {
                 return "Mat";
             }
-            else if (algorithmType.Contains("region") || algorithmType.Contains("区域"))
+            else if (toolType.Contains("region") || toolType.Contains("区域"))
             {
                 return "RegionData";
             }

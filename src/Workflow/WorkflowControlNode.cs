@@ -47,16 +47,16 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public ValidationResult LastValidationResult { get; private set; }
 
-        public WorkflowControlNode(string id, string name, WorkflowControlType controlType)
-            : base(id, name, MapControlTypeToAlgorithmType(controlType))
+        public WorkflowControlNode(string id, string name, string dispName, WorkflowControlType controlType)
+            : base(id, name, dispName, MapControlTypeToToolType(controlType))
         {
             ControlType = controlType;
         }
 
         /// <summary>
-        /// 将WorkflowControlType映射到AlgorithmType字符串
+        /// 将WorkflowControlType映射到ToolType字符串
         /// </summary>
-        private static string MapControlTypeToAlgorithmType(WorkflowControlType controlType)
+        private static string MapControlTypeToToolType(WorkflowControlType controlType)
         {
             return controlType switch
             {

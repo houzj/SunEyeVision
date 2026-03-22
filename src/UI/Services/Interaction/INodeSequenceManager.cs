@@ -1,4 +1,5 @@
-﻿using SunEyeVision.UI.Views.Controls.Canvas;
+﻿using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Views.Controls.Canvas;
 
 namespace SunEyeVision.UI.Services.Interaction
 {
@@ -14,20 +15,20 @@ namespace SunEyeVision.UI.Services.Interaction
         int GetNextGlobalIndex();
 
         /// <summary>
-        /// 获取指定工作流和算法类型的下一个局部序号（自动填补空洞）
+        /// 获取指定工作流和工具类型的下一个局部序号（自动填补空洞）
         /// </summary>
         /// <param name="workflowId">工作流ID</param>
-        /// <param name="algorithmType">算法类型</param>
+        /// <param name="toolType">工具类型</param>
         /// <returns>局部序号</returns>
-        int GetNextLocalIndex(string workflowId, string algorithmType);
+        int GetNextLocalIndex(string workflowId, string toolType);
 
         /// <summary>
         /// 释放局部索引到空洞池
         /// </summary>
         /// <param name="workflowId">工作流ID</param>
-        /// <param name="algorithmType">算法类型</param>
+        /// <param name="toolType">工具类型</param>
         /// <param name="localIndex">要释放的局部索引</param>
-        void ReleaseLocalIndex(string workflowId, string algorithmType, int localIndex);
+        void ReleaseLocalIndex(string workflowId, string toolType, int localIndex);
 
         /// <summary>
         /// 释放全局索引到空洞池
@@ -53,5 +54,11 @@ namespace SunEyeVision.UI.Services.Interaction
         /// </summary>
         /// <param name="workflowId">工作流ID</param>
         void ResetWorkflow(string workflowId);
+
+        /// <summary>
+        /// 从现有节点初始化空洞池（加载解决方案时使用）
+        /// </summary>
+        /// <param name="nodes">现有节点列表</param>
+        void InitializeHolePoolsFromNodes(IEnumerable<WorkflowNode> nodes);
     }
 }

@@ -380,11 +380,12 @@ namespace SunEyeVision.UI.Services.Workflow
             try
             {
                 // 使用WorkflowNodeFactory创建节点(使用真实插件)
-                var toolId = uiNode.AlgorithmType ?? uiNode.Name;
+                var toolId = uiNode.ToolType ?? uiNode.Name;
                 var node = SunEyeVision.Workflow.WorkflowNodeFactory.CreateAlgorithmNode(
                     toolId,
                     uiNode.Id,
                     uiNode.Name,
+                    uiNode.DispName,
                     enableCaching: true,
                     enableRetry: false
                 );

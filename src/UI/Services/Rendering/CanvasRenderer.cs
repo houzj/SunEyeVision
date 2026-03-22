@@ -239,7 +239,7 @@ namespace SunEyeVision.UI.Services.Rendering
 
             var typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
             var text = new FormattedText(
-                node.AlgorithmType,
+                node.ToolType,
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 typeface,

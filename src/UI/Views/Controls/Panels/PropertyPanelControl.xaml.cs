@@ -394,7 +394,7 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                 {
                     new ModelsPropertyItem { Label = "名称:", Value = node.Name },
                     new ModelsPropertyItem { Label = "ID:", Value = node.Id },
-                    new ModelsPropertyItem { Label = "类型:", Value = node.AlgorithmType }
+                    new ModelsPropertyItem { Label = "类型:", Value = node.ToolType }
                 }
             };
 

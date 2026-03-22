@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using SunEyeVision.Plugin.SDK.Metadata;
 
@@ -23,18 +23,20 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 创建子程序节点
         /// </summary>
-        /// <param name="name">节点名称</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
         /// <param name="workflowId">子程序工作流ID</param>
         /// <returns>子程序节点实例</returns>
-        SubroutineNode CreateSubroutineNode(string name, string workflowId);
+        SubroutineNode CreateSubroutineNode(string nodeName, string dispName, string workflowId);
 
         /// <summary>
         /// 创建条件判断节点
         /// </summary>
-        /// <param name="name">节点名称</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
         /// <param name="conditionExpression">条件表达式</param>
         /// <returns>条件判断节点实例</returns>
-        ConditionNode CreateConditionNode(string name, string conditionExpression);
+        ConditionNode CreateConditionNode(string nodeName, string dispName, string conditionExpression);
 
         /// <summary>
         /// 执行子程序

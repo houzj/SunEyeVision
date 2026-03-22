@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Views.Controls.Canvas;
 
@@ -82,11 +83,11 @@ namespace SunEyeVision.UI.Services.Interaction
             }
         }
 
-        public int GetNextLocalIndex(string workflowId, string algorithmType)
+        public int GetNextLocalIndex(string workflowId, string toolType)
         {
             lock (_lockObject)
             {
-                var key = BuildContextKey(workflowId, algorithmType);
+                var key = BuildContextKey(workflowId, toolType);
 
                 if (!_workflowContexts.TryGetValue(key, out var context))
                 {
@@ -122,11 +123,11 @@ namespace SunEyeVision.UI.Services.Interaction
             }
         }
 
-        public void ReleaseLocalIndex(string workflowId, string algorithmType, int localIndex)
+        public void ReleaseLocalIndex(string workflowId, string toolType, int localIndex)
         {
             lock (_lockObject)
             {
-                var key = BuildContextKey(workflowId, algorithmType);
+                var key = BuildContextKey(workflowId, toolType);
 
                 if (!_workflowContexts.TryGetValue(key, out var context))
                 {
@@ -221,9 +222,74 @@ namespace SunEyeVision.UI.Services.Interaction
         /// <summary>
         /// 构建上下文键
         /// </summary>
-        private string BuildContextKey(string workflowId, string algorithmType)
+        private string BuildContextKey(string workflowId, string toolType)
         {
-            return $"{workflowId}#{algorithmType}";
+            return $"{workflowId}#{toolType}";
+        }
+
+        public void InitializeHolePoolsFromNodes(IEnumerable<WorkflowNode> nodes)
+        {
+            lock (_lockObject)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info, "开始从现有节点初始化空洞池", "NodeSequenceManager");
+
+                _globalHolePool.Clear();
+
+                // 计算全局空洞
+                var usedGlobalIndices = nodes.Select(n => n.GlobalIndex).Where(i => i >= 0).ToHashSet();
+                if (usedGlobalIndices.Count > 0)
+                {
+                    int maxGlobalIndex = usedGlobalIndices.Max();
+                    for (int i = 1; i <= maxGlobalIndex; i++)
+                    {
+                        if (!usedGlobalIndices.Contains(i))
+                        {
+                            _globalHolePool.Add(i);
+                        }
+                    }
+                    _globalIndex = maxGlobalIndex;
+                    VisionLogger.Instance.Log(LogLevel.Success, $"全局空洞池初始化完成: 最大索引={maxGlobalIndex}, 空洞数={_globalHolePool.Count}", "NodeSequenceManager");
+                }
+                else
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info, "没有发现有效的全局索引", "NodeSequenceManager");
+                }
+
+                // 计算局部空洞
+                var usedLocalIndices = new Dictionary<string, HashSet<int>>();
+                foreach (var node in nodes)
+                {
+                    if (!string.IsNullOrEmpty(node.ToolType) && node.LocalIndex >= 0)
+                    {
+                        if (!usedLocalIndices.ContainsKey(node.ToolType))
+                        {
+                            usedLocalIndices[node.ToolType] = new HashSet<int>();
+                        }
+                        usedLocalIndices[node.ToolType].Add(node.LocalIndex);
+                    }
+                }
+
+                _workflowContexts.Clear();
+                foreach (var kvp in usedLocalIndices)
+                {
+                    int maxLocalIndex = kvp.Value.Max();
+                    var context = new WorkflowIndexContext { MaxIndex = maxLocalIndex };
+                    for (int i = 1; i <= maxLocalIndex; i++)
+                    {
+                        if (!kvp.Value.Contains(i))
+                        {
+                            context.HolePool.Add(i);
+                        }
+                    }
+                    // 为每个工作流创建上下文（使用默认工作流ID）
+                    string defaultWorkflowId = "default";
+                    string key = BuildContextKey(defaultWorkflowId, kvp.Key);
+                    _workflowContexts[key] = context;
+                    VisionLogger.Instance.Log(LogLevel.Success, $"局部空洞池初始化完成: 工具类型={kvp.Key}, 最大索引={maxLocalIndex}, 空洞数={context.HolePool.Count}", "NodeSequenceManager");
+                }
+
+                VisionLogger.Instance.Log(LogLevel.Success, "空洞池初始化完成", "NodeSequenceManager");
+            }
         }
     }
 }

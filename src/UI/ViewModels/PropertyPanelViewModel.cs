@@ -92,7 +92,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 节点类型
         /// </summary>
-        public string NodeType => SelectedNode?.AlgorithmType ?? "";
+        public string NodeType => SelectedNode?.ToolType ?? "";
 
         /// <summary>
         /// 是否显示参数绑定区域
@@ -247,10 +247,10 @@ namespace SunEyeVision.UI.ViewModels
 
             // 基本信息
             Properties.Add(new PropertyItem("名称", SelectedNode.Name, "string", true));
-            Properties.Add(new PropertyItem("类型", SelectedNode.AlgorithmType, "string", false));
+            Properties.Add(new PropertyItem("类型", SelectedNode.ToolType, "string", false));
             Properties.Add(new PropertyItem("启用", SelectedNode.IsEnabled.ToString(), "boolean", true));
 
-            // 根据算法类型添加特定属性
+            // 根据工具类型添加特定属性
             AddAlgorithmSpecificProperties();
         }
 
@@ -274,11 +274,11 @@ namespace SunEyeVision.UI.ViewModels
             ParameterBindings.Clear();
             OnPropertyChanged(nameof(ShowParameterBindings));
 
-            if (SelectedNode == null || string.IsNullOrEmpty(SelectedNode.AlgorithmType))
+            if (SelectedNode == null || string.IsNullOrEmpty(SelectedNode.ToolType))
                 return;
 
             // 获取工具的参数定义
-            var parameterDefinitions = GetToolParameterDefinitions(SelectedNode.AlgorithmType);
+            var parameterDefinitions = GetToolParameterDefinitions(SelectedNode.ToolType);
 
             // 创建参数绑定ViewModel
             foreach (var paramDef in parameterDefinitions)
@@ -397,6 +397,7 @@ namespace SunEyeVision.UI.ViewModels
         {
             // 工具应通过 ToolMetadata.AlgorithmType 自描述参数
             // 如果执行到这里，说明工具未正确配置元数据
+            // 注意：这里参数名叫 algorithmType，但实际传入的是 ToolType
             System.Diagnostics.Debug.WriteLine(
                 $"[警告] 工具 '{algorithmType}' 未正确配置参数元数据。" +
                 $"请确保工具实现了 ITool<TParams, TResult> 接口。");

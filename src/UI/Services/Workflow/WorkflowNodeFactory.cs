@@ -1,5 +1,4 @@
-﻿using SunEyeVision.UI.Adapters;
-using SunEyeVision.UI.Services.Canvas;
+﻿using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Services.Interaction;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -15,7 +14,7 @@ namespace SunEyeVision.UI.Services.Workflow
     {
         private readonly INodeSequenceManager _sequenceManager;
 
-        public WorkflowNodeFactory(INodeSequenceManager sequenceManager, INodeDisplayAdapter displayAdapter)
+        public WorkflowNodeFactory(INodeSequenceManager sequenceManager)
         {
             _sequenceManager = sequenceManager ?? throw new ArgumentNullException(nameof(sequenceManager));
         }
@@ -68,11 +67,18 @@ namespace SunEyeVision.UI.Services.Workflow
 
             // 使用Guid生成节点ID
             string nodeId = Guid.NewGuid().ToString();
-            string nodeName = name ?? _sequenceManager.GenerateNodeName(displayName, localIndex);
+
+            // 生成 DispName（用于UI显示）
+            string dispName = $"{displayName}{localIndex}";
+
+            // 生成 Name（用于序列化）- 始终使用规范格式：{GlobalIndex} {DisplayName}{LocalIndex}
+            // 示例：1 图像采集1, 2 高斯模糊1
+            string nodeName = $"{globalIndex} {displayName}{localIndex}";
 
             var node = new WorkflowModel.WorkflowNode(
                 nodeId,
                 nodeName,
+                dispName,
                 algorithmType
             );
 

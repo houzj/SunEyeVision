@@ -69,16 +69,16 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 从算法类型名称推断节点类型
+        /// 从工具类型名称推断节点类型
         /// </summary>
-        /// <param name="algorithmType">算法类型名称</param>
+        /// <param name="toolType">工具类型名称</param>
         /// <returns>推断的节点类型</returns>
-        public static NodeType InferNodeTypeFromAlgorithmType(string algorithmType)
+        public static NodeType InferNodeTypeFromToolType(string toolType)
         {
-            if (string.IsNullOrWhiteSpace(algorithmType))
+            if (string.IsNullOrWhiteSpace(toolType))
                 return NodeType.Algorithm;
 
-            string typeName = algorithmType.ToLowerInvariant();
+            string typeName = toolType.ToLowerInvariant();
 
             if (typeName.Contains("imagecapture") || 
                 typeName.Contains("imageacquisition") || 

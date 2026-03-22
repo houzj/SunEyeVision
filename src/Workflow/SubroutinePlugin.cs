@@ -54,30 +54,36 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 创建子程序节点
         /// </summary>
-        public SubroutineNode CreateSubroutineNode(string name, string workflowId)
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
+        /// <param name="workflowId">子程序工作流ID</param>
+        /// <returns>创建的SubroutineNode</returns>
+        public SubroutineNode CreateSubroutineNode(string nodeName, string dispName, string workflowId)
         {
-            return new SubroutineNode
-            {
-                Name = name,
-                SubroutineId = workflowId,
-                SubroutineName = name,
-                IsLoop = false,
-                MaxIterations = 1
-            };
+            var node = new SubroutineNode(
+                Guid.NewGuid().ToString(),
+                nodeName,
+                dispName);
+            node.SubroutineId = workflowId;
+            node.SubroutineName = nodeName;
+            return node;
         }
 
         /// <summary>
         /// 创建条件判断节点
         /// </summary>
-        public ConditionNode CreateConditionNode(string name, string conditionExpression)
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
+        /// <param name="conditionExpression">条件表达式</param>
+        /// <returns>创建的ConditionNode</returns>
+        public ConditionNode CreateConditionNode(string nodeName, string dispName, string conditionExpression)
         {
-            return new ConditionNode
-            {
-                Name = name,
-                ConditionExpression = conditionExpression,
-                TrueValue = true,
-                FalseValue = false
-            };
+            var node = new ConditionNode(
+                Guid.NewGuid().ToString(),
+                nodeName,
+                dispName);
+            node.SetExpressionCondition(conditionExpression);
+            return node;
         }
 
         /// <summary>

@@ -185,8 +185,7 @@ namespace SunEyeVision.UI.Services.Rendering
                 // 名称
                 if (grid.Children[2] is TextBlock nameBlock)
                 {
-                    var adapter = Adapters.NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
-                    nameBlock.Text = adapter.GetDisplayText(node);
+                    nameBlock.Text = node.DispName ?? string.Empty;
                 }
             }
 

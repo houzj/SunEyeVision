@@ -64,11 +64,11 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// Publish node executed event
         /// </summary>
-        public void PublishNodeExecuted(string workflowId, string nodeId, string nodeName, string algorithmType, bool success, long durationMs, string errorMessage = null)
+        public void PublishNodeExecuted(string workflowId, string nodeId, string nodeName, string toolType, bool success, long durationMs, string errorMessage = null)
         {
             var eventData = new WorkflowNodeExecutedEvent(_source, workflowId, nodeId, nodeName)
             {
-                AlgorithmType = algorithmType,
+                ToolType = toolType,
                 Success = success,
                 ExecutionDurationMs = durationMs,
                 ErrorMessage = errorMessage
@@ -181,11 +181,11 @@ namespace SunEyeVision.Workflow
                 }
 
                 stopwatch.Stop();
-                _eventPublisher.PublishNodeExecuted(Id, node.Id, node.Name, node.AlgorithmType, success, stopwatch.ElapsedMilliseconds);
+                _eventPublisher.PublishNodeExecuted(Id, node.Id, node.Name, node.ToolType, success, stopwatch.ElapsedMilliseconds);
 
                 return new AlgorithmResult
                 {
-                    AlgorithmName = node.AlgorithmType,
+                    AlgorithmName = node.ToolType,
                     Success = true,
                     ResultImage = resultImage,
                     ExecutionTime = DateTime.Now
@@ -197,11 +197,11 @@ namespace SunEyeVision.Workflow
                 errorMessage = ex.Message;
                 stopwatch.Stop();
 
-                _eventPublisher.PublishNodeExecuted(Id, node.Id, node.Name, node.AlgorithmType, success, stopwatch.ElapsedMilliseconds, errorMessage);
+                _eventPublisher.PublishNodeExecuted(Id, node.Id, node.Name, node.ToolType, success, stopwatch.ElapsedMilliseconds, errorMessage);
 
                 return new AlgorithmResult
                 {
-                    AlgorithmName = node.AlgorithmType,
+                    AlgorithmName = node.ToolType,
                     Success = false,
                     ErrorMessage = errorMessage,
                     ExecutionTime = DateTime.Now

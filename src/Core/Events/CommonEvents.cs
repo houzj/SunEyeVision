@@ -64,9 +64,9 @@ namespace SunEyeVision.Core.Events
         public string NodeName { get; set; }
 
         /// <summary>
-        /// Algorithm type
+        /// Tool type
         /// </summary>
-        public string AlgorithmType { get; set; }
+        public string ToolType { get; set; }
 
         /// <summary>
         /// Execution success

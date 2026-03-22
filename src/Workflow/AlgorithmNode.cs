@@ -31,8 +31,8 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public ToolResults? LastToolResult { get; private set; }
 
-        public AlgorithmNode(string id, string name, IToolPlugin tool)
-            : base(id, name, "Algorithm")
+        public AlgorithmNode(string id, string name, string dispName, IToolPlugin tool)
+            : base(id, name, dispName, "Algorithm")
         {
             Tool = tool;
         }

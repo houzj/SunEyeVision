@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using SunEyeVision.Plugin.SDK.Core;
@@ -97,7 +97,7 @@ namespace SunEyeVision.Workflow
         public bool RightOperandIsLiteral { get; set; }
 
         public ConditionNode()
-            : base(Guid.NewGuid().ToString(), "Condition", WorkflowControlType.Condition)
+            : base(Guid.NewGuid().ToString(), "Condition", "Condition", WorkflowControlType.Condition)
         {
             TrueValue = true;
             FalseValue = false;
@@ -106,8 +106,8 @@ namespace SunEyeVision.Workflow
             RightOperandIsLiteral = true;
         }
 
-        public ConditionNode(string id, string name)
-            : base(id, name, WorkflowControlType.Condition)
+        public ConditionNode(string id, string name, string dispName)
+            : base(id, name, dispName, WorkflowControlType.Condition)
         {
             TrueValue = true;
             FalseValue = false;

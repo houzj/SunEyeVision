@@ -340,10 +340,12 @@ namespace SunEyeVision.UI.Services.Performance
 
             for (int i = 0; i < count; i++)
             {
+                var nodeName = $"{i + 1} 节点{i + 1}";
                 var node = new WorkflowNode(
                     id: $"node_{i}",
-                    name: $"节点{i + 1}",
-                    algorithmType: "测试算法"
+                    name: nodeName,
+                    dispName: $"节点{i + 1}",
+                    toolType: "测试算法"
                 )
                 {
                     Position = new Point(random.Next(50, 1500), random.Next(50, 1000))

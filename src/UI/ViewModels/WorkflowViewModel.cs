@@ -64,16 +64,16 @@ namespace SunEyeVision.UI.ViewModels
 
         private void InitializeSampleWorkflow()
         {
-            var node1 = new WorkflowNode("node1", "图像输入", "Input");
+            var node1 = new WorkflowNode("node1", "1 图像输入", "图像输入", "Input");
             node1.Position = new Point(50, 50);
 
-            var node2 = new WorkflowNode("node2", "高斯模糊", "Preprocess");
+            var node2 = new WorkflowNode("node2", "2 高斯模糊", "高斯模糊", "Preprocess");
             node2.Position = new Point(250, 50);
 
-            var node3 = new WorkflowNode("node3", "边缘检测", "Detection");
+            var node3 = new WorkflowNode("node3", "3 边缘检测", "边缘检测", "Detection");
             node3.Position = new Point(450, 50);
 
-            var node4 = new WorkflowNode("node4", "输出", "Output");
+            var node4 = new WorkflowNode("node4", "4 输出", "输出", "Output");
             node4.Position = new Point(650, 50);
 
             AddToCollection(Nodes, node1);
@@ -105,7 +105,7 @@ namespace SunEyeVision.UI.ViewModels
             if (string.IsNullOrEmpty(type)) return;
 
             var id = $"node{Nodes.Count + 1}";
-            var name = type switch
+            var dispName = type switch
             {
                 "Input" => "图像输入",
                 "Preprocess" => "高斯模糊",
@@ -114,7 +114,7 @@ namespace SunEyeVision.UI.ViewModels
                 _ => "新节点"
             };
 
-            var newNode = new WorkflowNode(id, name, type);
+            var newNode = new WorkflowNode(id, $"{Nodes.Count + 1} {dispName}", dispName, type);
             newNode.Position = new Point(100 + Nodes.Count * 200, 100);
             AddToCollection(Nodes, newNode);
             SelectedNode = newNode;

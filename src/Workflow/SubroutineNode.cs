@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using SunEyeVision.Plugin.SDK.Core;
@@ -129,7 +129,7 @@ namespace SunEyeVision.Workflow
         public int ExecutionCount { get; set; }
 
         public SubroutineNode()
-            : base(Guid.NewGuid().ToString(), "Subroutine", WorkflowControlType.Subroutine)
+            : base(Guid.NewGuid().ToString(), "Subroutine", "Subroutine", WorkflowControlType.Subroutine)
         {
             InputMappings = new List<ParameterMapping>();
             OutputMappings = new List<ParameterMapping>();
@@ -138,8 +138,8 @@ namespace SunEyeVision.Workflow
             LoopType = LoopType.FixedCount;
         }
 
-        public SubroutineNode(string id, string name)
-            : base(id, name, WorkflowControlType.Subroutine)
+        public SubroutineNode(string id, string name, string dispName)
+            : base(id, name, dispName, WorkflowControlType.Subroutine)
         {
             InputMappings = new List<ParameterMapping>();
             OutputMappings = new List<ParameterMapping>();

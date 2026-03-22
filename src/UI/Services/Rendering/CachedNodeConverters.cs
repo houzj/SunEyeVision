@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
-using SunEyeVision.UI.Adapters;
 using SunEyeVision.UI.Models;
+using SunEyeVision.UI.Adapters;
 
 namespace SunEyeVision.UI.Services.Rendering
 {
@@ -22,11 +22,15 @@ namespace SunEyeVision.UI.Services.Rendering
         private static readonly SolidColorBrush _lightYellowBrush;
         private static readonly SolidColorBrush _lightOrangeBrush;
         private static readonly SolidColorBrush _lightPurpleBrush;
+        private static readonly SolidColorBrush _lightRedBrush;
 
         // 预定义常用节点边框色
         private static readonly SolidColorBrush _orangeBorderBrush;
         private static readonly SolidColorBrush _blueBorderBrush;
         private static readonly SolidColorBrush _grayBorderBrush;
+        private static readonly SolidColorBrush _crimsonBorderBrush;
+        private static readonly SolidColorBrush _greenBorderBrush;
+        private static readonly SolidColorBrush _purpleBorderBrush;
 
         // 动态缓存（用于非常用颜色）
         private static readonly ConcurrentDictionary<Color, SolidColorBrush> _brushCache = new();
@@ -40,10 +44,14 @@ namespace SunEyeVision.UI.Services.Rendering
             _lightYellowBrush = CreateFrozenBrush(Color.FromRgb(255, 250, 230)); // #FFFAE6
             _lightOrangeBrush = CreateFrozenBrush(Color.FromRgb(255, 245, 230)); // #FFF5E6
             _lightPurpleBrush = CreateFrozenBrush(Color.FromRgb(245, 240, 255)); // #F5F0FF
+            _lightRedBrush = CreateFrozenBrush(Color.FromRgb(255, 240, 240)); // 淡红色背景
 
             _orangeBorderBrush = CreateFrozenBrush(Color.FromRgb(255, 149, 0)); // #ff9500
             _blueBorderBrush = CreateFrozenBrush(Color.FromRgb(0, 102, 204)); // #0066CC
             _grayBorderBrush = CreateFrozenBrush(Color.FromRgb(200, 200, 200)); // #C8C8C8
+            _crimsonBorderBrush = CreateFrozenBrush(Color.FromRgb(220, 20, 60)); // 猩红
+            _greenBorderBrush = CreateFrozenBrush(Color.FromRgb(34, 139, 34)); // 森林绿
+            _purpleBorderBrush = CreateFrozenBrush(Color.FromRgb(128, 0, 128)); // 紫色
         }
 
         private static SolidColorBrush CreateFrozenBrush(Color color)
@@ -73,57 +81,17 @@ namespace SunEyeVision.UI.Services.Rendering
         public static SolidColorBrush LightYellow => _lightYellowBrush;
         public static SolidColorBrush LightOrange => _lightOrangeBrush;
         public static SolidColorBrush LightPurple => _lightPurpleBrush;
+        public static SolidColorBrush LightRed => _lightRedBrush;
         public static SolidColorBrush OrangeBorder => _orangeBorderBrush;
         public static SolidColorBrush BlueBorder => _blueBorderBrush;
         public static SolidColorBrush GrayBorder => _grayBorderBrush;
+        public static SolidColorBrush CrimsonBorder => _crimsonBorderBrush;
+        public static SolidColorBrush GreenBorder => _greenBorderBrush;
+        public static SolidColorBrush PurpleBorder => _purpleBorderBrush;
     }
 
     /// <summary>
-    /// 缓存版节点显示文本转换器 - 避免重复创建字符串
-    /// </summary>
-    public class CachedNodeDisplayTextConverter : IValueConverter
-    {
-        // 显示文本缓存（节点ID -> 显示文本）
-        private static readonly ConcurrentDictionary<string, string> _textCache = new();
-
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is WorkflowNode node)
-            {
-                // 使用节点ID、名称和局部序号作为缓存键
-                var cacheKey = $"{node.Id}_{node.Name}_{node.LocalIndex}";
-                return _textCache.GetOrAdd(cacheKey, _ =>
-                {
-                    var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
-                    return adapter.GetDisplayText(node);
-                });
-            }
-            return string.Empty;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 清除缓存（当节点名称或索引变化时调用）
-        /// </summary>
-        public static void InvalidateCache(string nodeId)
-        {
-            // 移除以该节点ID开头的所有缓存项
-            foreach (var key in _textCache.Keys)
-            {
-                if (key.StartsWith(nodeId + "_"))
-                {
-                    _textCache.TryRemove(key, out _);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// 缓存版节点背景颜色转换器 - 使用预定义画刷避免重复创建
+    /// 缓存版节点背景颜色转换器 - 使用适配器获取背景色，然后使用缓存画刷
     /// </summary>
     public class CachedNodeBackgroundConverter : IValueConverter
     {
@@ -131,14 +99,11 @@ namespace SunEyeVision.UI.Services.Rendering
         {
             if (value is WorkflowNode node)
             {
-                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
+                // 使用适配器获取背景色
+                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 var color = adapter.GetBackgroundColor(node);
-
-                // 检查是否为常用颜色，使用预定义画刷
-                if (color == Colors.White)
-                    return CachedBrushes.White;
-
-                // 其他颜色使用动态缓存
+                
+                // 从缓存中获取对应的画刷
                 return CachedBrushes.GetOrCreateBrush(color);
             }
             return CachedBrushes.White;
@@ -151,7 +116,7 @@ namespace SunEyeVision.UI.Services.Rendering
     }
 
     /// <summary>
-    /// 缓存版节点边框颜色转换器 - 使用预定义画刷避免重复创建
+    /// 缓存版节点边框颜色转换器 - 使用适配器获取边框色，然后使用缓存画刷
     /// </summary>
     public class CachedNodeBorderConverter : IValueConverter
     {
@@ -159,20 +124,15 @@ namespace SunEyeVision.UI.Services.Rendering
         {
             if (value is WorkflowNode node)
             {
-                // 选中状态使用橙色边框
+                // 选中状态使用橙色边框（覆盖适配器设置）
                 if (node.IsSelected)
                     return CachedBrushes.OrangeBorder;
 
-                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
+                // 使用适配器获取边框色
+                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 var color = adapter.GetBorderColor(node);
-
-                // 检查是否为常用颜色
-                if (color == Color.FromRgb(255, 149, 0)) // #ff9500
-                    return CachedBrushes.OrangeBorder;
-                if (color == Color.FromRgb(0, 102, 204)) // #0066CC
-                    return CachedBrushes.BlueBorder;
-
-                // 其他颜色使用动态缓存
+                
+                // 从缓存中获取对应的画刷
                 return CachedBrushes.GetOrCreateBrush(color);
             }
             return CachedBrushes.OrangeBorder;

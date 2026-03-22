@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
@@ -17,7 +17,8 @@ namespace SunEyeVision.Workflow
         /// </summary>
         /// <param name="toolId">工具ID(统一标识符)</param>
         /// <param name="nodeId">节点ID</param>
-        /// <param name="nodeName">节点名称</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
         /// <param name="parameters">算法参数</param>
         /// <param name="enableCaching">是否启用缓存</param>
         /// <param name="enableRetry">是否启用重试</param>
@@ -26,11 +27,12 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
+            string dispName,
             ToolParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
         {
-            return CreateAlgorithmNode(toolId, nodeId, nodeName, parameters, enableCaching, enableRetry);
+            return CreateAlgorithmNode(toolId, nodeId, nodeName, dispName, parameters, enableCaching, enableRetry);
         }
 
         /// <summary>
@@ -38,7 +40,8 @@ namespace SunEyeVision.Workflow
         /// </summary>
         /// <param name="toolId">工具ID(统一标识符)</param>
         /// <param name="nodeId">节点ID</param>
-        /// <param name="nodeName">节点名称</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
         /// <param name="parameters">算法参数</param>
         /// <param name="enableCaching">是否启用缓存</param>
         /// <param name="enableRetry">是否启用重试</param>
@@ -47,6 +50,7 @@ namespace SunEyeVision.Workflow
             string toolId,
             string nodeId,
             string nodeName,
+            string dispName,
             ToolParameters? parameters = null,
             bool enableCaching = true,
             bool enableRetry = false)
@@ -76,12 +80,12 @@ namespace SunEyeVision.Workflow
                 }
 
                 // 创建AlgorithmNode
-                var algorithmNode = new AlgorithmNode(nodeId, nodeName, tool)
+                var algorithmNode = new AlgorithmNode(nodeId, nodeName, dispName, tool)
                 {
                     Parameters = parameters
                 };
 
-                Console.WriteLine($"[WorkflowNodeFactory] 创建AlgorithmNode: {nodeName} (ToolId: {toolId}, 缓存: {enableCaching}, 重试: {enableRetry})");
+                Console.WriteLine($"[WorkflowNodeFactory] 创建AlgorithmNode: {nodeName} (DispName: {dispName}, ToolId: {toolId}, 缓存: {enableCaching}, 重试: {enableRetry})");
 
                 return algorithmNode;
             }
@@ -107,6 +111,7 @@ namespace SunEyeVision.Workflow
                     config.ToolId,
                     config.NodeId,
                     config.NodeName,
+                    config.DispName,
                     config.Parameters,
                     config.EnableCaching,
                     config.EnableRetry);
@@ -126,12 +131,18 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 创建子程序节点
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
+        /// <param name="parameters">算法参数</param>
+        /// <returns>创建的SubroutineNode</returns>
         public static SubroutineNode CreateSubroutineNode(
             string nodeId,
             string nodeName,
+            string dispName,
             ToolParameters? parameters = null)
         {
-            var node = new SubroutineNode(nodeId, nodeName);
+            var node = new SubroutineNode(nodeId, nodeName, dispName);
             if (parameters != null)
             {
                 node.Parameters = parameters;
@@ -142,13 +153,20 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 创建条件节点
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="nodeName">节点名称（包含全局序号，用于序列化）</param>
+        /// <param name="dispName">节点显示名称（不含序号，用于UI显示）</param>
+        /// <param name="conditionExpression">条件表达式</param>
+        /// <param name="parameters">算法参数</param>
+        /// <returns>创建的ConditionNode</returns>
         public static ConditionNode CreateConditionNode(
             string nodeId,
             string nodeName,
+            string dispName,
             string conditionExpression,
             ToolParameters? parameters = null)
         {
-            var node = new ConditionNode(nodeId, nodeName);
+            var node = new ConditionNode(nodeId, nodeName, dispName);
             node.SetExpressionCondition(conditionExpression);
 
             if (parameters != null)
@@ -193,9 +211,14 @@ namespace SunEyeVision.Workflow
         public string NodeId { get; set; } = string.Empty;
 
         /// <summary>
-        /// 节点名称
+        /// 节点名称（包含全局序号，用于序列化）
         /// </summary>
         public string NodeName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 节点显示名称（不含序号，用于UI显示）
+        /// </summary>
+        public string DispName { get; set; } = string.Empty;
 
         /// <summary>
         /// 算法参数

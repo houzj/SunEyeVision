@@ -1821,11 +1821,14 @@ namespace SunEyeVision.UI.Views.Windows
 
                     // 创建新节点，使用ToolId作为AlgorithmType
 
+                    var nodeName = $"{tool.Name}1";
                     var node = new WorkflowNode(
 
                         Guid.NewGuid().ToString(),
 
-                        tool.Name,
+                        $"1 {nodeName}",
+
+                        nodeName,
 
                         tool.ToolId  // 使用ToolId而不是AlgorithmType
 

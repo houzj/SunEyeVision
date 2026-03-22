@@ -813,11 +813,11 @@ namespace SunEyeVision.Workflow
             var node = workflow.Nodes.FirstOrDefault(n => n.Id == nodeId);
             if (node == null) return;
             
-            // 通过 ToolRegistry 查找工具（通过 AlgorithmType 匹配显示名称或ID）
+            // 通过 ToolRegistry 查找工具（通过 ToolType 匹配显示名称或ID）
             var allMetadata = ToolRegistry.GetAllToolMetadata();
             var toolMetadata = allMetadata.FirstOrDefault(m =>
-                m.DisplayName == node.AlgorithmType ||
-                m.Id == node.AlgorithmType);
+                m.DisplayName == node.ToolType ||
+                m.Id == node.ToolType);
             if (toolMetadata == null) return;
             
             // 创建工具实例

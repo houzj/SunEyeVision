@@ -17,7 +17,7 @@ namespace SunEyeVision.UI.Converters.Node
         {
             if (value is WorkflowNode node)
             {
-                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
+                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 return adapter.GetDisplayText(node);
             }
             return string.Empty;
@@ -38,7 +38,7 @@ namespace SunEyeVision.UI.Converters.Node
         {
             if (value is WorkflowNode node)
             {
-                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
+                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 return new SolidColorBrush(adapter.GetBackgroundColor(node));
             }
             return new SolidColorBrush(Colors.White);
@@ -59,7 +59,7 @@ namespace SunEyeVision.UI.Converters.Node
         {
             if (value is WorkflowNode node)
             {
-                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.AlgorithmType);
+                var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 return new SolidColorBrush(adapter.GetBorderColor(node));
             }
             return new SolidColorBrush(Color.FromRgb(255, 149, 0)); // #ff9500
