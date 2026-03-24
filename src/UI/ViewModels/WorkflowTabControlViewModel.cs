@@ -82,6 +82,32 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 重置为默认状态（清空所有标签页并创建新的默认工作流）
+        /// </summary>
+        /// <remarks>
+        /// 用于删除解决方案后恢复到启动时的初始状态。
+        /// 与启动时保持一致，彻底清空节点和连接。
+        /// </remarks>
+        public void ResetToDefault()
+        {
+            // 清空现有标签页
+            Tabs.Clear();
+            
+            // 重置计数器和已使用编号
+            _workflowCounter = 1;
+            _usedWorkflowNumbers.Clear();
+            
+            // 创建新的默认工作流（新对象，彻底清空节点和连接）
+            var defaultWorkflow = new WorkflowTabViewModel
+            {
+                Name = "工作流1"
+            };
+            Tabs.Add(defaultWorkflow);
+            SelectedTab = defaultWorkflow;
+            _usedWorkflowNumbers.Add(1);
+        }
+
+        /// <summary>
         /// 添加新工作流
         /// </summary>
         public void AddWorkflow()

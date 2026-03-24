@@ -12,19 +12,20 @@ using SunEyeVision.Core.Services.Serialization;
 namespace SunEyeVision.Workflow;
 
 /// <summary>
-/// 解决方案（纯数据模型，元数据已分离到 SolutionMetadata）
+/// 解决方案（纯数据模型，最小元数据已内嵌）
 /// </summary>
 /// <remarks>
-/// 架构改进（2026-03-18）：
-/// - 元数据（Name、Description、times）已分离到 SolutionMetadata
-/// - Solution 只包含实际数据（Workflows、GlobalVariables等）
+/// 架构改进（2026-03-23）：
+/// - 最小元数据（Name、Description）内嵌到 Solution 类中
+/// - 完整元数据（CreatedTime、ModifiedTime等）存储在 SolutionMetadata
 /// - 通过 ID 与 SolutionMetadata 关联
 /// - FilePath 为运行时属性，不序列化到文件
-/// 
+/// - 元数据同步策略：延迟同步（保存/加载时同步）
+///
 /// 设计原则（rule-005）：
 /// - 最优和最合理：直接序列化，不需要转换层
 /// - JSON格式直观：使用 System.Text.Json 多态序列化
-/// - 单一职责：Solution 只负责存储实际数据
+/// - 单一职责：Solution 负责存储实际数据 + 最小元数据
 /// 
 /// 完全对齐VisionMaster架构，一个解决方案包含：
 /// - 工作流列表：执行逻辑定义
@@ -41,6 +42,28 @@ public class Solution : ObservableObject
     /// 解决方案ID（不可变，与 SolutionMetadata 关联）
     /// </summary>
     public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// 解决方案名称（最小元数据，序列化到文件）
+    /// </summary>
+    /// <remarks>
+    /// 说明：
+    /// - 内嵌到 Solution 文件中，确保直接加载时可获取名称
+    /// - 与 SolutionMetadata.Name 保持同步（延迟同步策略）
+    /// - 用于 UI 显示和文件名提示
+    /// </remarks>
+    public string Name { get; set; } = "新建解决方案";
+
+    /// <summary>
+    /// 解决方案描述（最小元数据，序列化到文件）
+    /// </summary>
+    /// <remarks>
+    /// 说明：
+    /// - 内嵌到 Solution 文件中，确保直接加载时可获取描述
+    /// - 与 SolutionMetadata.Description 保持同步（延迟同步策略）
+    /// - 用于解决方案的详细说明
+    /// </remarks>
+    public string Description { get; set; } = "";
 
     /// <summary>
     /// 解决方案版本

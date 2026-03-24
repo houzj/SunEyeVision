@@ -386,6 +386,7 @@ namespace SunEyeVision.UI.Services.Workflow
                     uiNode.Id,
                     uiNode.Name,
                     uiNode.DispName,
+                    uiNode.Parameters,  // ✅ 修复：传递UI节点的参数
                     enableCaching: true,
                     enableRetry: false
                 );

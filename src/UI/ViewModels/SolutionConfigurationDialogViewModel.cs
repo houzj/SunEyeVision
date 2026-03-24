@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Win32;
 using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.UI.Controls.Helpers;
 using SunEyeVision.UI.Views.Windows;
@@ -42,6 +43,11 @@ namespace SunEyeVision.UI.ViewModels
                     OnPropertyChanged(nameof(HasSelectedSolution));
                     OnPropertyChanged(nameof(SolutionStoragePath));
                     OnPropertyChanged(nameof(SolutionInfo));
+                    
+                    // ✅ 通知按钮文本和提示更新
+                    // 这些属性依赖 SelectedMetadata，必须在 SelectedMetadata 变化时通知
+                    OnPropertyChanged(nameof(ToggleDefaultButtonText));
+                    OnPropertyChanged(nameof(ToggleDefaultButtonToolTip));
                 }
             }
         }
@@ -50,8 +56,16 @@ namespace SunEyeVision.UI.ViewModels
         public string? SelectedMetadataId => SelectedMetadata?.Id;
 
         // 辅助属性：当前打开的解决方案ID（用于XAML数据触发器）
-        public string? CurrentSolutionId => _solutionManager.CurrentSolution?.Id
-                                           ?? _solutionManager.Settings.CurrentSolutionId;
+        /// <summary>
+        /// 当前打开的解决方案ID（用于XAML数据触发器）
+        /// </summary>
+        /// <remarks>
+        /// 语义说明：
+        /// - 只返回实际加载的解决方案ID（CurrentSolution）
+        /// - 不使用 Settings.CurrentSolutionId 的回退值
+        /// - 只有用户明确启动解决方案后，才显示"打开"状态
+        /// </remarks>
+        public string? CurrentSolutionId => _solutionManager.CurrentSolution?.Id;
 
         // 状态3：完整的 Solution 对象（懒加载，仅在启动时加载）
         private Solution? _selectedSolution;
@@ -129,6 +143,23 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
+        /// <summary>
+        /// 保存设置
+        /// </summary>
+        public void SaveSettings()
+        {
+            try
+            {
+                // ✅ 调用 SolutionManager 的公开方法
+                _solutionManager.SaveUserSettings();
+                LogInfo("设置已保存到文件");
+            }
+            catch (Exception ex)
+            {
+                LogError($"保存设置失败: {ex.Message}");
+            }
+        }
+
         #region 解决方案相关
 
         /// <summary>
@@ -140,6 +171,32 @@ namespace SunEyeVision.UI.ViewModels
         /// 选中的完整解决方案（懒加载）
         /// </summary>
         // public Solution? SelectedSolution { get; private set; }  // 已在构造函数前定义
+
+        /// <summary>
+        /// 切换默认按钮文本
+        /// </summary>
+        public string ToggleDefaultButtonText
+        {
+            get
+            {
+                if (SelectedMetadata == null)
+                    return "设为默认";
+                return SelectedMetadata.IsDefault ? "取消默认" : "设为默认";
+            }
+        }
+
+        /// <summary>
+        /// 切换默认按钮提示
+        /// </summary>
+        public string ToggleDefaultButtonToolTip
+        {
+            get
+            {
+                if (SelectedMetadata == null)
+                    return "设置默认解决方案";
+                return SelectedMetadata.IsDefault ? "取消默认解决方案" : "设置默认解决方案";
+            }
+        }
 
         /// <summary>
         /// 是否选中了解决方案
@@ -199,23 +256,31 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public ICommand SelectCommand { get; private set; } = null!;
 
+        /// <summary>
+        /// 切换默认解决方案命令（设为默认/取消默认）
+        /// </summary>
+        public ICommand ToggleDefaultCommand { get; private set; } = null!;
+
         private void InitializeCommands()
         {
             NewSolutionCommand = new RelayCommand(NewSolution, () => true);
             OpenSolutionCommand = new RelayCommand(OpenSolution, () => true);
             CopySolutionCommand = new RelayCommand(CopySolution, () => CanCopySolution());
-            
+
             // ✅ 使用公共版本：有参方法 + 无参 canExecute（使用 _ 忽略参数）
             EditSolutionCommand = new RelayCommand(EditSolution, _ => CanEditSolution());
-            
+
             SaveSolutionAsCommand = new RelayCommand(SaveSolutionAs, () => CanSaveSolutionAs());
             DeleteSolutionCommand = new RelayCommand(DeleteSolution, () => CanDeleteSolution());
-            
+
             // ✅ 使用公共版本：有参方法 + 无参 canExecute
             SelectCommand = new RelayCommand(SelectSolution, _ => true);
-            
+
+            // ✅ 新增：切换默认解决方案命令
+            ToggleDefaultCommand = new RelayCommand(ExecuteToggleDefault, CanToggleDefault);
+
             SkipCommand = new RelayCommand(Skip, () => true);
-            
+
             // ✅ 使用公共版本：有参方法 + 无参 canExecute
             LaunchCommand = new RelayCommand(Launch, _ => true);
         }
@@ -240,7 +305,8 @@ namespace SunEyeVision.UI.ViewModels
         {
             LogInfo("开始创建新解决方案");
 
-            var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            // ✅ 统一使用解决方案管理器的默认目录
+            var defaultPath = _solutionManager.SolutionsDirectory;
 
             try
             {
@@ -270,9 +336,9 @@ namespace SunEyeVision.UI.ViewModels
                             return;
                         }
 
-                        // 添加到UI列表
-                        SolutionMetadatas.Add(newMetadata);
-                        LogInfo($"添加到列表，当前数量: {SolutionMetadatas.Count}");
+                        // ✅ 移除手动添加，由 SolutionAdded 事件统一处理
+                        // SolutionMetadatas.Add(newMetadata);
+                        // LogInfo($"添加到列表，当前数量: {SolutionMetadatas.Count}");
 
                         // 设置选中状态
                         SelectedMetadata = newMetadata;
@@ -304,61 +370,73 @@ namespace SunEyeVision.UI.ViewModels
 
         private void OpenSolution()
         {
-            var initialPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            var selectedPath = FolderBrowserHelper.BrowseForFolder("选择解决方案目录", initialPath);
-
-            if (!string.IsNullOrEmpty(selectedPath))
+            // ✅ 使用 OpenFileDialog 直接选择 .solution 文件
+            var openFileDialog = new OpenFileDialog
             {
-                try
-                {
-                    var solution = _solutionManager.OpenSolution(selectedPath);
-                    if (solution != null)
-                    {
-                        // 获取元数据
-                        var metadata = _solutionManager.GetMetadata(solution.Id);
-                        if (metadata == null)
-                        {
-                            // 如果无法获取元数据，创建一个基本的
-                            metadata = new SolutionMetadata
-                            {
-                                Id = solution.Id,
-                                Version = solution.Version,
-                                FilePath = solution.FilePath ?? "",
-                                DirectoryPath = selectedPath,
-                                CreatedTime = System.IO.File.GetCreationTime(solution.FilePath!),
-                                ModifiedTime = System.IO.File.GetLastWriteTime(solution.FilePath!),
-                                Name = System.IO.Path.GetFileNameWithoutExtension(solution.FilePath),
-                                Description = ""
-                            };
-                            metadata.UpdateStatistics(solution);
-                        }
+                Title = "选择解决方案文件",
+                Filter = "解决方案文件 (*.solution)|*.solution|所有文件 (*.*)|*.*",
+                FilterIndex = 0,
+                InitialDirectory = _solutionManager.SolutionsDirectory
+            };
 
-                        // 检查是否已存在
-                        if (!SolutionMetadatas.Any(s => s.Id == solution.Id))
-                        {
-                            SolutionMetadatas.Add(metadata);
-                        }
+            var result = openFileDialog.ShowDialog();
+            if (result != true) return;
 
-                        // 设置选中状态
-                        SelectedMetadata = metadata;
-                        LogSuccess($"打开解决方案: {metadata.Name}");
-                    }
-                    else
-                    {
-                        MessageBox.Show("所选目录中没有找到有效的解决方案文件", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                catch (Exception ex)
+            var filePath = openFileDialog.FileName;
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                LogWarning("未选择文件");
+                return;
+            }
+
+            try
+            {
+                // ✅ 仅加载解决方案对象（不设置为当前解决方案）
+                var solution = _solutionManager.LoadSolutionOnly(filePath);
+                if (solution == null)
                 {
-                    LogError($"打开解决方案失败: {ex.Message}");
-                    MessageBox.Show($"打开解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("加载解决方案文件失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
                 }
+
+                // ✅ 从 Solution 读取元数据
+                var metadata = new SolutionMetadata
+                {
+                    Id = solution.Id,
+                    Name = solution.Name,  // 从 Solution 读取
+                    Description = solution.Description,  // 从 Solution 读取
+                    Version = solution.Version,
+                    FilePath = filePath,
+                    DirectoryPath = Path.GetDirectoryName(filePath) ?? "",
+                    CreatedTime = File.GetCreationTime(filePath),
+                    ModifiedTime = File.GetLastWriteTime(filePath)
+                };
+                metadata.UpdateStatistics(solution);
+
+                // 检查是否已存在
+                if (!SolutionMetadatas.Any(s => s.Id == solution.Id))
+                {
+                    SolutionMetadatas.Add(metadata);
+                }
+
+                // ✅ 注册已知解决方案（持久化到Settings）
+                _solutionManager.RegisterKnownSolution(metadata);
+
+                // 设置选中状态
+                SelectedMetadata = metadata;
+                LogSuccess($"打开解决方案: {metadata.Name}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"打开解决方案失败: {ex.Message}");
+                MessageBox.Show($"打开解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private bool CanSaveSolutionAs()
         {
-            return SelectedSolution != null;
+            return SelectedMetadata != null;
         }
 
         private void SaveSolutionAs()
@@ -381,26 +459,20 @@ namespace SunEyeVision.UI.ViewModels
 
                 if (result == true && !string.IsNullOrEmpty(dialog.SolutionName))
                 {
-                    // ✅ 文件级操作：直接复制文件，不加载完整 Solution 对象
                     var targetFilePath = Path.Combine(dialog.SolutionPath, $"{dialog.SolutionName}.solution");
 
-                    // 需要先打开当前解决方案（如果尚未打开）
-                    if (SelectedSolution == null)
-                    {
-                        _solutionManager.LoadSolutionOnly(SelectedMetadata.FilePath);
-                    }
+                    // 智能路由：根据是否另存为当前解决方案选择不同的实现
+                    bool isCurrentSolution = SelectedMetadata.Id == CurrentSolutionId;
 
-                    var newMetadata = _solutionManager.SaveAsSolution(targetFilePath);
-
-                    if (newMetadata != null)
+                    if (isCurrentSolution)
                     {
-                        SolutionMetadatas.Add(newMetadata);
-                        SelectedMetadata = newMetadata;
-                        LogSuccess($"解决方案另存为: {dialog.SolutionName}");
+                        // 另存为打开的解决方案
+                        SaveAsCurrentSolution(dialog.SolutionName, dialog.Description, targetFilePath);
                     }
                     else
                     {
-                        MessageBox.Show("另存为失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        // 另存为未打开的解决方案
+                        SaveAsUnopenedSolution(SelectedMetadata.FilePath, dialog.SolutionName, dialog.Description, targetFilePath);
                     }
                 }
             }
@@ -408,6 +480,52 @@ namespace SunEyeVision.UI.ViewModels
             {
                 LogError($"另存为失败: {ex.Message}");
                 MessageBox.Show($"另存为失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 另存为当前打开的解决方案
+        /// </summary>
+        private void SaveAsCurrentSolution(string newName, string newDescription, string targetFilePath)
+        {
+            LogInfo($"另存为当前打开的解决方案: {SelectedMetadata?.Name} -> {newName}");
+
+            // 调用 SolutionManager 的 SaveAsSolution（带参数版本）
+            var newMetadata = _solutionManager.SaveAsSolution(targetFilePath, newName, newDescription);
+
+            if (newMetadata != null)
+            {
+                // ✅ 移除手动添加，由 SolutionAdded 事件统一处理
+                // SolutionMetadatas.Add(newMetadata);
+                SelectedMetadata = newMetadata;
+                LogSuccess($"另存为当前解决方案成功: {newName}");
+            }
+            else
+            {
+                MessageBox.Show("另存为失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 另存为未打开的解决方案
+        /// </summary>
+        private void SaveAsUnopenedSolution(string sourcePath, string newName, string newDescription, string targetFilePath)
+        {
+            LogInfo($"另存为未打开的解决方案: {Path.GetFileNameWithoutExtension(sourcePath)} -> {newName}");
+
+            // 调用 SolutionManager 的 CopySolution（带参数版本）
+            var newMetadata = _solutionManager.CopySolution(sourcePath, newName, newDescription, Path.GetDirectoryName(targetFilePath));
+
+            if (newMetadata != null)
+            {
+                // ✅ 移除手动添加，由 SolutionAdded 事件统一处理
+                // SolutionMetadatas.Add(newMetadata);
+                SelectedMetadata = newMetadata;
+                LogSuccess($"另存为未打开的解决方案成功: {newName}");
+            }
+            else
+            {
+                MessageBox.Show("另存为失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -420,8 +538,31 @@ namespace SunEyeVision.UI.ViewModels
         {
             if (SelectedMetadata == null) return;
 
+            // 检查是否是当前打开的解决方案
+            bool isCurrentSolution = SelectedMetadata.Id == CurrentSolutionId;
+
+            // ✅ 根据是否是当前解决方案显示不同的提示信息
+            string message;
+            if (isCurrentSolution)
+            {
+                message = $"解决方案「{SelectedMetadata.Name}」当前正在使用中。\n\n" +
+                         $"删除此解决方案将会：\n" +
+                         $"• 自动关闭当前解决方案\n" +
+                         $"• 仅删除元数据，保留解决方案文件\n" +
+                         $"• 当前将处于无打开解决方案的状态\n\n" +
+                         $"确定要删除吗？";
+            }
+            else
+            {
+                message = $"确定要删除解决方案「{SelectedMetadata.Name}」吗？\n\n" +
+                         $"此操作将会：\n" +
+                         $"• 仅删除元数据，保留解决方案文件\n" +
+                         $"• 解决方案文件仍可手动打开\n\n" +
+                         $"此操作不可恢复！";
+            }
+
             var result = MessageBox.Show(
-                $"确定要删除解决方案「{SelectedMetadata.Name}」吗？此操作不可恢复！",
+                message,
                 "确认删除",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -432,14 +573,24 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     var solutionToDelete = SelectedMetadata;
 
-                    // 从列表中移除
+                    // 从列表中移除（在删除前先移除，避免事件触发时找不到）
                     SolutionMetadatas.Remove(solutionToDelete);
 
-                    // 从SolutionManager中删除
+                    // 从SolutionManager中删除（会自动关闭当前解决方案，如果需要）
                     _solutionManager.DeleteSolution(solutionToDelete.Id);
 
+                    // 清除选中状态
                     SelectedMetadata = null;
-                    LogSuccess($"删除解决方案: {solutionToDelete.Name}");
+
+                    // ✅ 根据删除场景记录不同的日志
+                    if (isCurrentSolution)
+                    {
+                        LogSuccess($"删除当前打开的解决方案: {solutionToDelete.Name} (已自动关闭)");
+                    }
+                    else
+                    {
+                        LogSuccess($"删除未打开的解决方案: {solutionToDelete.Name}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -454,27 +605,36 @@ namespace SunEyeVision.UI.ViewModels
             return SelectedMetadata != null;
         }
 
+        /// <summary>
+        /// 复制解决方案（文件级操作 + JSON元数据更新）
+        /// </summary>
         private void CopySolution()
         {
             if (SelectedMetadata == null) return;
 
             try
             {
-                // ✅ 文件级操作：不加载完整 Solution 对象
                 var baseName = SelectedMetadata.Name;
                 var copyName = GenerateUniqueCopyName(baseName);
-                var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                var targetDirectory = SelectedMetadata.DirectoryPath;
+
+                LogInfo($"开始复制解决方案: {SelectedMetadata.Name} -> {copyName}");
+                LogInfo($"目标目录: {targetDirectory}");
 
                 var newMetadata = _solutionManager.CopySolution(
                     SelectedMetadata.FilePath,
                     copyName,
-                    defaultPath);
+                    targetDirectory);
 
                 if (newMetadata != null)
                 {
-                    SolutionMetadatas.Add(newMetadata);
                     SelectedMetadata = newMetadata;
-                    LogSuccess($"复制解决方案: {copyName}");
+                    LogSuccess($"复制解决方案成功: {copyName} (Id={newMetadata.Id})");
+                }
+                else
+                {
+                    LogError("复制解决方案失败: SolutionManager.CopySolution 返回了 null");
+                    MessageBox.Show("复制解决方案失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -590,8 +750,16 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public bool SkipStartupConfig
         {
-            get => _solutionManager.Settings.SkipStartupConfig;  // ✅ 改进：使用 SolutionSettings
-            set => _solutionManager.Settings.SkipStartupConfig = value;
+            get => _solutionManager.Settings.SkipStartupConfig;
+            set
+            {
+                if (_solutionManager.Settings.SkipStartupConfig != value)
+                {
+                    _solutionManager.Settings.SkipStartupConfig = value;
+                    _solutionManager.MarkSettingsDirty();
+                    OnPropertyChanged(nameof(SkipStartupConfig));
+                }
+            }
         }
 
         /// <summary>
@@ -603,6 +771,48 @@ namespace SunEyeVision.UI.ViewModels
         /// 启动命令
         /// </summary>
         public ICommand LaunchCommand { get; private set; } = null!;
+
+        /// <summary>
+        /// 切换默认解决方案
+        /// </summary>
+        private void ExecuteToggleDefault(object? parameter)
+        {
+            if (SelectedMetadata == null)
+                return;
+
+            if (SelectedMetadata.IsDefault)
+            {
+                // 取消默认
+                _solutionManager.SetDefaultSolution("");
+                LogInfo($"取消默认解决方案: {SelectedMetadata.Name}");
+            }
+            else
+            {
+                // 设为默认
+                _solutionManager.SetDefaultSolution(SelectedMetadata.Id);
+                LogSuccess($"设置默认解决方案: {SelectedMetadata.Name}");
+            }
+
+            // 直接更新UI集合中的 IsDefault 属性，避免重新加载列表
+            // LoadSolutions() 会清空并重建对象，导致UI无法正确感知 IsDefault 变化
+            foreach (var metadata in SolutionMetadatas)
+            {
+                // 直接设置 IsDefault，触发 PropertyChanged
+                metadata.IsDefault = (metadata.Id == _solutionManager.Settings.DefaultSolutionId);
+            }
+
+            // 通知按钮文本属性变化
+            OnPropertyChanged(nameof(ToggleDefaultButtonText));
+            OnPropertyChanged(nameof(ToggleDefaultButtonToolTip));
+        }
+
+        /// <summary>
+        /// 是否可以切换默认解决方案
+        /// </summary>
+        private bool CanToggleDefault(object? parameter)
+        {
+            return SelectedMetadata != null;
+        }
 
         private void Skip()
         {
@@ -620,6 +830,15 @@ namespace SunEyeVision.UI.ViewModels
 
             if (metadataToLaunch != null)
             {
+                // [诊断] 记录双击的选项卡
+                LogInfo($"[诊断-双击] 双击的解决方案ID: {metadataToLaunch.Id}");
+                LogInfo($"[诊断-双击] 双击的解决方案名称: {metadataToLaunch.Name}");
+                LogInfo($"[诊断-双击] 双击的解决方案路径: {metadataToLaunch.FilePath}");
+                
+                // [诊断] 记录当前解决方案ID
+                LogInfo($"[诊断-双击] 当前解决方案ID: {_solutionManager.CurrentSolution?.Id ?? "null"}");
+                LogInfo($"[诊断-双击] 默认解决方案ID: {_solutionManager.Settings.DefaultSolutionId ?? "null"}");
+
                 // 如果参数传入的不是当前选中的解决方案，更新选中状态
                 if (SelectedMetadata?.Id != metadataToLaunch.Id)
                 {
@@ -633,8 +852,8 @@ namespace SunEyeVision.UI.ViewModels
                     SelectedSolution = fullSolution;
                     LogInfo($"加载完整解决方案对象: Id={fullSolution.Id}");
 
-                    _solutionManager.SetCurrentSolution(fullSolution);
-                    _solutionManager.Settings.CurrentSolutionId = fullSolution.Id;
+                    // ✅ 仅设置启动结果，不调用 SetCurrentSolutionSilently
+                    // 由调用方（App.xaml.cs 或 ExecuteShowSolutionConfiguration）决定如何处理
                     _isLaunched = true;
 
                     // 设置启动结果
@@ -713,13 +932,22 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         /// <remarks>
         /// 增量更新：直接添加到集合，不重新加载
+        /// 防御性编程：添加前检查是否已存在，避免重复添加
         /// </remarks>
         private void OnSolutionAdded(object? sender, SolutionMetadataEventArgs e)
         {
             if (e.Metadata != null)
             {
-                SolutionMetadatas.Add(e.Metadata);
-                LogInfo($"添加解决方案到列表: {e.Metadata.Name}");
+                // ✅ 防御性编程：检查是否已存在，避免重复添加
+                if (!SolutionMetadatas.Any(s => s.Id == e.Metadata.Id))
+                {
+                    SolutionMetadatas.Add(e.Metadata);
+                    LogInfo($"添加解决方案到列表: {e.Metadata.Name}");
+                }
+                else
+                {
+                    LogWarning($"解决方案已存在，跳过添加: {e.Metadata.Name} (Id={e.Metadata.Id})");
+                }
             }
         }
 
@@ -800,21 +1028,6 @@ namespace SunEyeVision.UI.ViewModels
             OnPropertyChanged(nameof(CurrentSolutionId));
             LogInfo($"当前解决方案变更: {e.Metadata?.Name}");
         }
-
-        /// <summary>
-        /// 加载解决方案的配方列表（已废弃：Recipe功能已在新架构中移除）
-        /// </summary>
-        /*
-        private void LoadRecipes(SolutionFile solution)
-        {
-            Recipes.Clear();
-            foreach (var recipe in solution.Recipes)
-            {
-                Recipes.Add(recipe);
-            }
-            LogInfo($"加载 {Recipes.Count} 个配方");
-        }
-        */
 
         /// <summary>
         /// 清理文件名（移除非法字符）

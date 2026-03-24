@@ -1,18 +1,18 @@
-﻿using System.Windows.Media;
+using System.Windows.Media;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Adapters;
 
 namespace SunEyeVision.UI.Adapters
 {
     /// <summary>
-    /// 处理节点显示适配器
+    /// 测量节点显示适配器
     /// </summary>
-    public class ProcessingNodeDisplayAdapter : ICategoryDisplayAdapter
+    public class MeasurementNodeDisplayAdapter : ICategoryDisplayAdapter
     {
         /// <summary>
         /// 支持的分类
         /// </summary>
-        public string[] SupportedCategories => new[] { "图像处理" };
+        public string[] SupportedCategories => new[] { "测量" };
 
         public string GetDisplayText(WorkflowNode node)
         {
@@ -21,17 +21,17 @@ namespace SunEyeVision.UI.Adapters
 
         public string GetIcon(WorkflowNode node)
         {
-            return "⚙️";
+            return "📐";
         }
 
         public Color GetBackgroundColor(WorkflowNode node)
         {
-            return Color.FromRgb(240, 255, 240); // 淡绿色背景
+            return Color.FromRgb(255, 249, 196); // #FFF9C4
         }
 
         public Color GetBorderColor(WorkflowNode node)
         {
-            return Color.FromRgb(34, 139, 34); // 森林绿
+            return Color.FromRgb(251, 192, 45); // #FBC02D
         }
     }
 }

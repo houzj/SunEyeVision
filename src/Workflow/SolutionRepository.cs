@@ -202,29 +202,31 @@ public class SolutionRepository
             var root = jsonDoc.RootElement;
 
             var metadata = SolutionMetadata.Create(filePath);
-            
-            // ✅ 从 JSON 读取 ID（仍在 Solution 中）
+
+            // ✅ 从 JSON 读取 ID（在 Solution 中）
             metadata.Id = root.TryGetProperty("Id", out var idElement) ? idElement.GetString() ?? "" : "";
-            
-            // ✅ Name 从文件名推断（去除 .solution 扩展名）
-            // 原因：Solution 类已不包含 Name 属性，JSON 文件中无此字段
-            metadata.Name = Path.GetFileNameWithoutExtension(filePath);
-            
-            // ✅ Version 从 JSON 读取（仍在 Solution 中）
-            metadata.Version = root.TryGetProperty("Version", out var verElement) 
-                ? verElement.GetString() ?? "1.0" 
+
+            // ✅ 从 JSON 读取 Name（最小元数据，在 Solution 中）
+            metadata.Name = root.TryGetProperty("Name", out var nameElement)
+                ? nameElement.GetString() ?? Path.GetFileNameWithoutExtension(filePath)
+                : Path.GetFileNameWithoutExtension(filePath);
+
+            // ✅ 从 JSON 读取 Description（最小元数据，在 Solution 中）
+            metadata.Description = root.TryGetProperty("Description", out var descElement)
+                ? descElement.GetString() ?? ""
+                : "";
+
+            // ✅ Version 从 JSON 读取（在 Solution 中）
+            metadata.Version = root.TryGetProperty("Version", out var verElement)
+                ? verElement.GetString() ?? "1.0"
                 : "1.0";
-            
-            // ✅ Description 设为空字符串（需要从 KnownSolutions 获取）
-            // 原因：Solution 类已不包含 Description 属性
-            metadata.Description = "";
-            
-            // ✅ 时间信息从文件系统读取（JSON 中已不存在）
+
+            // ✅ 时间信息从文件系统读取
             var fileInfo = new FileInfo(filePath);
             metadata.CreatedTime = fileInfo.CreationTime;
             metadata.ModifiedTime = fileInfo.LastWriteTime;
 
-            // ✅ 读取统计数据（仍在 Solution 中）
+            // ✅ 读取统计数据（在 Solution 中）
             if (root.TryGetProperty("Workflows", out var workflowsElement) && workflowsElement.ValueKind == JsonValueKind.Array)
             {
                 metadata.WorkflowCount = workflowsElement.GetArrayLength();
@@ -253,15 +255,18 @@ public class SolutionRepository
     /// <returns>是否成功</returns>
     public bool Save(Solution solution, string filePath)
     {
+        // ✅ 日志监控：生成唯一调用ID
+        long callId = System.Threading.Interlocked.Increment(ref _saveCallCount);
+
         if (solution == null)
         {
-            _logger.Log(LogLevel.Warning, "保存解决方案失败：解决方案对象为空", "SolutionRepository");
+            _logger.Log(LogLevel.Warning, $"[Save #{callId}] 保存解决方案失败：解决方案对象为空\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return false;
         }
 
         if (string.IsNullOrEmpty(filePath))
         {
-            _logger.Log(LogLevel.Warning, "保存解决方案失败：文件路径为空", "SolutionRepository");
+            _logger.Log(LogLevel.Warning, $"[Save #{callId}] 保存解决方案失败：文件路径为空\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return false;
         }
 
@@ -274,20 +279,55 @@ public class SolutionRepository
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
-                _logger.Log(LogLevel.Info, $"创建目录: {directory}", "SolutionRepository");
+                _logger.Log(LogLevel.Info, $"[Save #{callId}] 创建目录: {directory}", "SolutionRepository");
             }
 
             var json = JsonSerializer.Serialize(solution, WorkflowSerializationOptions.Default);
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);
-            _logger.Log(LogLevel.Success, $"保存解决方案成功: Id={solution.Id} -> {filePath}, 文件大小: {fileInfo.Length} 字节", "SolutionRepository");
+            _logger.Log(LogLevel.Success, $"[Save #{callId}] 保存解决方案成功: Id={solution.Id}, Name={solution.Name} -> {filePath}, 文件大小: {fileInfo.Length} 字节\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Log(LogLevel.Error, $"保存解决方案失败: {filePath}, 错误: {ex.Message}", "SolutionRepository", ex);
+            _logger.Log(LogLevel.Error, $"[Save #{callId}] 保存解决方案失败: {filePath}, 错误: {ex.Message}\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository", ex);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// 保存操作调用计数器（用于日志监控）
+    /// </summary>
+    private static long _saveCallCount = 0;
+
+    /// <summary>
+    /// 获取简短的调用堆栈（只显示前几层）
+    /// </summary>
+    private string GetShortStackTrace(int skipFrames)
+    {
+        try
+        {
+            var stackTrace = new System.Diagnostics.StackTrace(skipFrames);
+            var frames = stackTrace.GetFrames();
+            if (frames == null || frames.Length == 0)
+                return "";
+
+            var result = new System.Text.StringBuilder();
+            int maxFrames = Math.Min(5, frames.Length); // 最多显示5层
+            for (int i = 0; i < maxFrames; i++)
+            {
+                var method = frames[i].GetMethod();
+                if (method != null)
+                {
+                    result.AppendLine($"  at {method.DeclaringType?.Name}.{method.Name}");
+                }
+            }
+            return result.ToString();
+        }
+        catch
+        {
+            return "[堆栈获取失败]";
         }
     }
 
@@ -436,21 +476,24 @@ public class SolutionRepository
     /// <returns>是否成功</returns>
     public bool Copy(string sourcePath, string destPath, bool overwrite = false)
     {
+        // ✅ 日志监控：生成唯一调用ID
+        long callId = System.Threading.Interlocked.Increment(ref _copyCallCount);
+
         if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destPath))
         {
-            _logger.Log(LogLevel.Warning, "复制解决方案失败：路径为空", "SolutionRepository");
+            _logger.Log(LogLevel.Warning, $"[Copy #{callId}] 复制解决方案失败：路径为空\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return false;
         }
 
         if (!File.Exists(sourcePath))
         {
-            _logger.Log(LogLevel.Warning, $"复制解决方案失败：源文件不存在: {sourcePath}", "SolutionRepository");
+            _logger.Log(LogLevel.Warning, $"[Copy #{callId}] 复制解决方案失败：源文件不存在: {sourcePath}\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return false;
         }
 
         if (!overwrite && File.Exists(destPath))
         {
-            _logger.Log(LogLevel.Warning, $"复制解决方案失败：目标文件已存在: {destPath}", "SolutionRepository");
+            _logger.Log(LogLevel.Warning, $"[Copy #{callId}] 复制解决方案失败：目标文件已存在: {destPath}\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return false;
         }
 
@@ -464,15 +507,20 @@ public class SolutionRepository
             }
 
             File.Copy(sourcePath, destPath, overwrite);
-            _logger.Log(LogLevel.Success, $"复制解决方案成功: {sourcePath} -> {destPath}", "SolutionRepository");
+            _logger.Log(LogLevel.Success, $"[Copy #{callId}] 复制解决方案成功: {sourcePath} -> {destPath}, 覆盖={overwrite}\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Log(LogLevel.Error, $"复制解决方案失败: {sourcePath} -> {destPath}, 错误: {ex.Message}", "SolutionRepository", ex);
+            _logger.Log(LogLevel.Error, $"[Copy #{callId}] 复制解决方案失败: {sourcePath} -> {destPath}, 错误: {ex.Message}\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository", ex);
             return false;
         }
     }
+
+    /// <summary>
+    /// 复制操作调用计数器（用于日志监控）
+    /// </summary>
+    private static long _copyCallCount = 0;
 
     /// <summary>
     /// 移动/重命名解决方案文件

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.IO;
+
+// 别名：避免与 System.Windows.Shapes.Path 冲突
+using IOPath = System.IO.Path;
 
 using System.Collections.ObjectModel;
 
@@ -360,24 +364,45 @@ namespace SunEyeVision.UI.Views.Windows
             {
                 // 检查是否有当前解决方案
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                
+                // ==================== 场景1：没有打开的解决方案 ====================
                 if (solutionManager?.CurrentSolution == null)
                 {
-                    base.OnClosing(e);
+                    // ✅ 提示用户是否新建解决方案
+                    var result = System.Windows.MessageBox.Show(
+                        "当前没有打开的解决方案，是否新建一个解决方案？",
+                        "新建解决方案",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        if (CreateNewSolutionBeforeClosing(e))
+                        {
+                            base.OnClosing(e);
+                        }
+                    }
+                    else
+                    {
+                        _viewModel?.AddLog(LogLevel.Info, "未新建解决方案，直接关闭", LogSource.UIOperation);
+                        base.OnClosing(e);
+                    }
                     return;
                 }
 
+                // ==================== 场景2：有打开的解决方案 ====================
                 // 获取当前解决方案的元数据
                 var metadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
                 var solutionName = metadata?.Name ?? "未命名解决方案";
 
                 // 提示用户保存
-                var result = System.Windows.MessageBox.Show(
+                var saveResult = System.Windows.MessageBox.Show(
                     $"是否保存当前解决方案 '{solutionName}' 的修改？",
                     "保存解决方案",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
-                switch (result)
+                switch (saveResult)
                 {
                     case MessageBoxResult.Yes:
                         // 保存解决方案
@@ -420,6 +445,88 @@ namespace SunEyeVision.UI.Views.Windows
             }
 
             base.OnClosing(e);
+        }
+
+        /// <summary>
+        /// 关闭前创建新解决方案
+        /// </summary>
+        /// <param name="e">取消事件参数</param>
+        /// <returns>是否成功创建并保存解决方案</returns>
+        private bool CreateNewSolutionBeforeClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+
+                // ✅ 统一使用解决方案管理器的默认目录
+                var defaultPath = solutionManager.SolutionsDirectory;
+
+                var newDialog = new NewSolutionDialog(defaultPath)
+                {
+                    Owner = this,
+                    Title = "新建解决方案"
+                };
+
+                var result = newDialog.ShowDialog();
+
+                if (result != true || string.IsNullOrEmpty(newDialog.SolutionName))
+                {
+                    e.Cancel = true;
+                    return false;
+                }
+
+                // 创建元数据
+                var metadata = new SunEyeVision.Workflow.SolutionMetadata
+                {
+                    Name = newDialog.SolutionName,
+                    Description = newDialog.Description ?? "",
+                    DirectoryPath = newDialog.SolutionPath
+                };
+
+                // ✅ 修复：直接创建Solution对象并保存
+                // 流程：ViewModel → Solution → 文件
+                var solution = SunEyeVision.Workflow.Solution.Create();
+                solution.Id = metadata.Id;
+                solution.Name = metadata.Name;
+                solution.Description = metadata.Description ?? "";
+                solution.Version = metadata.Version ?? "1.0";
+
+                // 构建文件路径
+                var filePath = System.IO.Path.Combine(metadata.DirectoryPath, $"{metadata.Name}.solution");
+                solution.FilePath = filePath;
+
+                // 从ViewModel同步工作流
+                _viewModel?.AddLog(LogLevel.Info, $"开始同步工作流到解决方案: {metadata.Name}", LogSource.UIOperation);
+                foreach (var tab in _viewModel.WorkflowTabViewModel.Tabs)
+                {
+                    var workflow = new SunEyeVision.Workflow.Workflow(tab.Id, tab.Name);
+                    solution.Workflows.Add(workflow);
+                    
+                    // 同步节点数据
+                    _viewModel.SyncWorkflowFromUI(workflow, tab);
+                    
+                    _viewModel?.AddLog(LogLevel.Info, $"已同步工作流: {tab.Name}", LogSource.UIOperation);
+                }
+
+                // 直接保存Solution对象（不依赖CurrentSolution）
+                bool saveSuccess = solutionManager.SaveSolutionDirect(solution, filePath, metadata);
+                
+                if (!saveSuccess)
+                {
+                    System.Windows.MessageBox.Show("保存解决方案失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    e.Cancel = true;
+                    return false;
+                }
+                
+                _viewModel?.AddLog(LogLevel.Success, $"已创建并保存新解决方案: {metadata.Name} -> {filePath}", LogSource.UIOperation);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"创建解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                e.Cancel = true;
+                return false;
+            }
         }
 
         protected override void OnClosed(EventArgs e)

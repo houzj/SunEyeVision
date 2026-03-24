@@ -782,7 +782,6 @@ namespace SunEyeVision.UI.ViewModels
 
         // 解决方案管理
         public ICommand ShowSolutionConfigurationCommand { get; }
-        public ICommand SwitchProjectCommand { get; }
 
         // 管理器
         public ICommand ShowGlobalVariableManagerCommand { get; }
@@ -912,7 +911,6 @@ namespace SunEyeVision.UI.ViewModels
 
             // 解决方案管理
             ShowSolutionConfigurationCommand = new RelayCommand(ExecuteShowSolutionConfiguration);
-            SwitchProjectCommand = new RelayCommand(ExecuteSwitchProject);
 
             // 管理器
             ShowGlobalVariableManagerCommand = new RelayCommand(ExecuteShowGlobalVariableManager);
@@ -1279,6 +1277,7 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     LogInfo("没有当前解决方案，弹出新建对话框");
 
+                    // ✅ 统一使用解决方案管理器的默认目录
                     var defaultPath = solutionManager.SolutionsDirectory;
                     var dialog = new Views.Windows.NewSolutionDialog(defaultPath)
                     {
@@ -1298,15 +1297,21 @@ namespace SunEyeVision.UI.ViewModels
                         var newMetadata = solutionManager.CreateNewSolution(metadata);
                         LogSuccess($"创建新解决方案: {newMetadata.Name}");
 
-                        // 打开新创建的解决方案
-                        var solution = solutionManager.OpenSolution(newMetadata.FilePath);
+                        // 加载新创建的解决方案（不触发OpenSolution事件，避免UI被清空）
+                        var solution = solutionManager.LoadSolutionOnly(newMetadata.FilePath);
                         if (solution == null)
                         {
-                            LogError("打开新创建的解决方案失败");
+                            LogError("加载新创建的解决方案失败");
                             return;
                         }
 
-                        LogSuccess($"已打开解决方案: {newMetadata.Name}");
+                        // 静默设置当前解决方案（不触发事件）
+                        solutionManager.SetCurrentSolutionSilently(solution, newMetadata.FilePath);
+
+                        // 更新UI信息
+                        UpdateCurrentSolutionInfo();
+
+                        LogSuccess($"已设置当前解决方案: {newMetadata.Name}");
                     }
                     else
                     {
@@ -1376,6 +1381,16 @@ namespace SunEyeVision.UI.ViewModels
             if (currentSolution != null)
             {
                 LoadSolutionToWorkflowTabs(currentSolution);
+            }
+            else
+            {
+                // ✅ 重置为默认状态（当删除当前解决方案时）
+                // 与启动时保持一致，彻底清空节点和连接
+                if (WorkflowTabViewModel != null)
+                {
+                    WorkflowTabViewModel.ResetToDefault();
+                    LogInfo("已重置为默认状态（解决方案已关闭）");
+                }
             }
         }
 
@@ -1765,16 +1780,13 @@ namespace SunEyeVision.UI.ViewModels
                 else
                 {
                     // 设置第一个标签页为选中标签页
-                    if (WorkflowTabViewModel.SelectedTab == null && WorkflowTabViewModel.Tabs.Count > 0)
-                    {
-                        WorkflowTabViewModel.SelectedTab = WorkflowTabViewModel.Tabs[0];
-                        LogInfo($"已设置选中标签页: {WorkflowTabViewModel.SelectedTab.Name}");
-                        
-                        // 初始化SmartPathConverter（用于连接线渲染）
-                        Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
-                        Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
-                        LogInfo($"SmartPathConverter已初始化，节点数: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}，连接数: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
-                    }
+                    WorkflowTabViewModel.SelectedTab = WorkflowTabViewModel.Tabs[0];
+                    LogInfo($"已设置选中标签页: {WorkflowTabViewModel.SelectedTab.Name}");
+                    
+                    // 初始化SmartPathConverter（用于连接线渲染）
+                    Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
+                    Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+                    LogInfo($"SmartPathConverter已初始化，节点数: {WorkflowTabViewModel.SelectedTab.WorkflowNodes.Count}，连接数: {WorkflowTabViewModel.SelectedTab.WorkflowConnections.Count}");
                     
                     LogSuccess($"标签页创建成功，当前标签页: {WorkflowTabViewModel.SelectedTab?.Name ?? "（无）"}");
                 }
@@ -3541,6 +3553,13 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo("打开解决方案配置界面");
 
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+                
+                // [诊断] 记录打开前的状态
+                LogInfo($"[诊断-打开] 当前解决方案ID: {solutionManager.CurrentSolution?.Id ?? "null"}");
+                LogInfo($"[诊断-打开] 当前解决方案名称: {solutionManager.CurrentSolution?.Name ?? "null"}");
+                LogInfo($"[诊断-打开] 默认解决方案ID: {solutionManager.Settings.DefaultSolutionId ?? "null"}");
+                LogInfo($"[诊断-打开] Settings.CurrentSolutionId: {solutionManager.Settings.CurrentSolutionId ?? "null"}");
+
                 var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager);
 
                 var result = configDialog.ShowDialog();
@@ -3552,14 +3571,18 @@ namespace SunEyeVision.UI.ViewModels
 
                     try
                     {
-                        // 加载解决方案到工作流编辑器
-                        LoadSolutionToWorkflowTabs(solution);
+                        // 设置当前解决方案（会触发 CurrentSolutionChanged 事件自动加载工作流）
+                        solutionManager.SetCurrentSolution(solution);
 
                         var metadata = solutionManager.GetMetadata(solution.Id);
                         LogSuccess($"已加载解决方案: {metadata?.Name ?? "未命名"}");
 
                         // 更新标题
                         Title = $"太阳眼视觉 - {metadata?.Name ?? "未命名"}";
+                        
+                        // [诊断] 记录加载后的状态
+                        LogInfo($"[诊断-加载后] CurrentSolution: {solutionManager.CurrentSolution?.Name ?? "null"}");
+                        LogInfo($"[诊断-加载后] CurrentSolutionId: {solutionManager.Settings.CurrentSolutionId ?? "null"}");
                     }
                     catch (Exception ex)
                     {
@@ -3575,50 +3598,6 @@ namespace SunEyeVision.UI.ViewModels
             catch (Exception ex)
             {
                 LogError("打开解决方案配置界面失败", null, ex);
-            }
-        }
-
-        /// <summary>
-        /// 切换项目
-        /// </summary>
-        private void ExecuteSwitchProject()
-        {
-            try
-            {
-                LogInfo("切换解决方案");
-
-                var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-
-                var configDialog = new Views.Windows.SolutionConfigurationDialog(solutionManager, null);
-
-                var result = configDialog.ShowDialog();
-
-                if (result == true && configDialog.IsLaunched && configDialog.LaunchResult != null)
-                {
-                    var solution = configDialog.LaunchResult;
-
-                    try
-                    {
-                        solutionManager.SetCurrentSolution(solution);
-
-                        // 加载解决方案到工作流编辑器
-                        LoadSolutionToWorkflowTabs(solution);
-
-                        var metadata = solutionManager.GetMetadata(solution.Id);
-                        LogSuccess($"已切换到解决方案: {metadata?.Name ?? "未命名"}");
-
-                        // 更新标题
-                        Title = $"太阳眼视觉 - {metadata?.Name ?? "未命名"}";
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError($"切换解决方案失败: {ex.Message}", null, ex);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError("切换项目失败", null, ex);
             }
         }
 

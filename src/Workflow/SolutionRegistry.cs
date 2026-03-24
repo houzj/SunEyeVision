@@ -67,15 +67,18 @@ public class SolutionRegistry
     /// <returns>是否成功注册（true=新增，false=更新）</returns>
     public bool Register(SolutionMetadata metadata)
     {
+        // ✅ 日志监控：生成唯一调用ID
+        long callId = System.Threading.Interlocked.Increment(ref _registerCallCount);
+
         if (metadata == null)
         {
-            _logger.Log(LogLevel.Warning, "注册元数据失败：元数据对象为空", "SolutionRegistry");
+            _logger.Log(LogLevel.Warning, $"[Register #{callId}] 注册元数据失败：元数据对象为空\n堆栈: {GetShortStackTrace(3)}", "SolutionRegistry");
             return false;
         }
 
         if (string.IsNullOrEmpty(metadata.Id))
         {
-            _logger.Log(LogLevel.Warning, "注册元数据失败：解决方案ID为空", "SolutionRegistry");
+            _logger.Log(LogLevel.Warning, $"[Register #{callId}] 注册元数据失败：解决方案ID为空（Name={metadata.Name}）\n堆栈: {GetShortStackTrace(3)}", "SolutionRegistry");
             return false;
         }
 
@@ -87,11 +90,11 @@ public class SolutionRegistry
 
             if (isNew)
             {
-                _logger.Log(LogLevel.Success, $"注册新解决方案元数据: {metadata.Name} (Id={metadata.Id})", "SolutionRegistry");
+                _logger.Log(LogLevel.Success, $"[Register #{callId}] 注册新解决方案元数据: {metadata.Name} (Id={metadata.Id}, FilePath={metadata.FilePath})\n当前注册表数量: {_metadataMap.Count}\n堆栈: {GetShortStackTrace(4)}", "SolutionRegistry");
             }
             else
             {
-                _logger.Log(LogLevel.Info, $"更新解决方案元数据: {metadata.Name} (Id={metadata.Id})", "SolutionRegistry");
+                _logger.Log(LogLevel.Info, $"[Register #{callId}] 更新解决方案元数据: {metadata.Name} (Id={metadata.Id}, FilePath={metadata.FilePath})\n当前注册表数量: {_metadataMap.Count}\n堆栈: {GetShortStackTrace(4)}", "SolutionRegistry");
             }
 
             return isNew;
@@ -99,6 +102,41 @@ public class SolutionRegistry
         finally
         {
             _lock.ExitWriteLock();
+        }
+    }
+
+    /// <summary>
+    /// 注册操作调用计数器（用于日志监控）
+    /// </summary>
+    private static long _registerCallCount = 0;
+
+    /// <summary>
+    /// 获取简短的调用堆栈（只显示前几层）
+    /// </summary>
+    private string GetShortStackTrace(int skipFrames)
+    {
+        try
+        {
+            var stackTrace = new System.Diagnostics.StackTrace(skipFrames);
+            var frames = stackTrace.GetFrames();
+            if (frames == null || frames.Length == 0)
+                return "";
+
+            var result = new System.Text.StringBuilder();
+            int maxFrames = Math.Min(5, frames.Length); // 最多显示5层
+            for (int i = 0; i < maxFrames; i++)
+            {
+                var method = frames[i].GetMethod();
+                if (method != null)
+                {
+                    result.AppendLine($"  at {method.DeclaringType?.Name}.{method.Name}");
+                }
+            }
+            return result.ToString();
+        }
+        catch
+        {
+            return "[堆栈获取失败]";
         }
     }
 
@@ -271,6 +309,48 @@ public class SolutionRegistry
             int count = _metadataMap.Count;
             _metadataMap.Clear();
             _logger.Log(LogLevel.Info, $"清空解决方案元数据注册表: 清空了 {count} 条记录", "SolutionRegistry");
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
+        }
+    }
+
+    /// <summary>
+    /// 批量更新所有元数据的 IsDefault 标志
+    /// </summary>
+    /// <param name="defaultId">默认解决方案ID</param>
+    /// <remarks>
+    /// 设计说明：
+    /// 1. 直接修改内部字典中的原始对象，而不是修改克隆对象
+    /// 2. 克隆对象是临时的，修改克隆对象没有意义
+    /// 3. 下次调用 GetAll() 时，会从已更新的原始对象克隆
+    /// </remarks>
+    public void UpdateAllIsDefaultFlags(string defaultId)
+    {
+        _lock.EnterWriteLock();
+        try
+        {
+            int updatedCount = 0;
+
+            // 遍历内部字典中的原始对象
+            foreach (var metadata in _metadataMap.Values)
+            {
+                var newIsDefault = (metadata.Id == defaultId);
+
+                // 记录更新的数量
+                if (metadata.IsDefault != newIsDefault)
+                {
+                    updatedCount++;
+                }
+
+                // 直接修改原始对象的 IsDefault 属性
+                metadata.IsDefault = newIsDefault;
+            }
+
+            _logger.Log(LogLevel.Info,
+                $"批量更新元数据 IsDefault 标志完成: 默认ID={defaultId}, 更新数量={updatedCount}",
+                "SolutionRegistry");
         }
         finally
         {

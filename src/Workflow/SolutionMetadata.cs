@@ -39,6 +39,7 @@ public class SolutionMetadata : ObservableObject
     private DateTime _lastAccessTime = DateTime.Now;
     private int _workflowCount;
     private int _globalVariableCount;
+    private bool _isDefault;
 
     /// <summary>
     /// 解决方案ID
@@ -137,6 +138,15 @@ public class SolutionMetadata : ObservableObject
     {
         get => _globalVariableCount;
         set => SetProperty(ref _globalVariableCount, value);
+    }
+
+    /// <summary>
+    /// 是否为默认解决方案
+    /// </summary>
+    public bool IsDefault
+    {
+        get => _isDefault;
+        set => SetProperty(ref _isDefault, value);
     }
 
     /// <summary>
@@ -252,7 +262,8 @@ public class SolutionMetadata : ObservableObject
             ModifiedTime = _modifiedTime,
             LastAccessTime = _lastAccessTime,
             WorkflowCount = _workflowCount,
-            GlobalVariableCount = _globalVariableCount
+            GlobalVariableCount = _globalVariableCount,
+            IsDefault = _isDefault
         };
     }
 

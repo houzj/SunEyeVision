@@ -152,42 +152,92 @@
 
                     <!-- 顶部工具栏 -->
                     <Border Grid.Row="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,5">
-                        <StackPanel Orientation="Horizontal">
-                            <!-- 新建按钮 -->
-                            <Button Style="{StaticResource SuccessButtonStyle}"
-                                    Command="{Binding NewSolutionCommand}"
-                                    ToolTip="新建解决方案">
-                                ➕
+                        <DockPanel LastChildFill="True">
+                            <!-- 左侧操作按钮 -->
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                <!-- 新建按钮 -->
+                                <Button Style="{StaticResource SuccessButtonStyle}"
+                                        Command="{Binding NewSolutionCommand}"
+                                        ToolTip="新建解决方案">
+                                    ➕
+                                </Button>
+                                <!-- 载入按钮 -->
+                                <Button Style="{StaticResource SuccessButtonStyle}"
+                                        Command="{Binding OpenSolutionCommand}"
+                                        ToolTip="载入解决方案"
+                                        Margin="5,0,0,0">
+                                    📂
+                                </Button>
+                                <!-- 另存按钮 -->
+                                <Button Style="{StaticResource SuccessButtonStyle}"
+                                        Command="{Binding SaveSolutionAsCommand}"
+                                        ToolTip="另存解决方案"
+                                        Margin="5,0,0,0">
+                                    💾
+                                </Button>
+                                <!-- 复制按钮 -->
+                                <Button Style="{StaticResource SuccessButtonStyle}"
+                                        Command="{Binding CopySolutionCommand}"
+                                        ToolTip="复制解决方案"
+                                        Margin="5,0,0,0">
+                                    📋
+                                </Button>
+                                <!-- 删除按钮 -->
+                                <Button Style="{StaticResource DangerButtonStyle}"
+                                        Command="{Binding DeleteSolutionCommand}"
+                                        ToolTip="删除解决方案"
+                                        Margin="5,0,0,0">
+                                    🗑️
+                                </Button>
+                            </StackPanel>
+
+                            <!-- ✅ 新增：右侧切换默认按钮 -->
+                            <Button Content="{Binding ToggleDefaultButtonText}"
+                                    Command="{Binding ToggleDefaultCommand}"
+                                    ToolTip="{Binding ToggleDefaultButtonToolTip}"
+                                    DockPanel.Dock="Right"
+                                    Padding="8,4"
+                                    FontSize="11"
+                                    Cursor="Hand"
+                                    MaxWidth="100"
+                                    HorizontalAlignment="Right">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="#4CAF50"/>
+                                        <Setter Property="BorderBrush" Value="#4CAF50"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Setter Property="Padding" Value="8,4"/>
+                                        <Setter Property="FontSize" Value="11"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            CornerRadius="4"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#E8F5E9"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Foreground" Value="#BDBDBD"/>
+                                                            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+                                                            <Setter Property="Cursor" Value="Arrow"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
                             </Button>
-                            <!-- 载入按钮 -->
-                            <Button Style="{StaticResource SuccessButtonStyle}"
-                                    Command="{Binding OpenSolutionCommand}"
-                                    ToolTip="载入解决方案"
-                                    Margin="5,0,0,0">
-                                📂
-                            </Button>
-                            <!-- 另存按钮 -->
-                            <Button Style="{StaticResource SuccessButtonStyle}"
-                                    Command="{Binding SaveSolutionAsCommand}"
-                                    ToolTip="另存解决方案"
-                                    Margin="5,0,0,0">
-                                💾
-                            </Button>
-                            <!-- 复制按钮 -->
-                            <Button Style="{StaticResource SuccessButtonStyle}"
-                                    Command="{Binding CopySolutionCommand}"
-                                    ToolTip="复制解决方案"
-                                    Margin="5,0,0,0">
-                                📋
-                            </Button>
-                            <!-- 删除按钮 -->
-                            <Button Style="{StaticResource DangerButtonStyle}"
-                                    Command="{Binding DeleteSolutionCommand}"
-                                    ToolTip="删除解决方案"
-                                    Margin="5,0,0,0">
-                                🗑️
-                            </Button>
-                        </StackPanel>
+                        </DockPanel>
                     </Border>
 
                     <!-- 搜索框 -->
@@ -383,19 +433,14 @@
                                                         <ColumnDefinition Width="28"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <!-- 勾选图标 - 选中时才显示（绿色） -->
+                                                    <!-- ✅ 修改：勾选图标表示默认状态（而非选中状态） -->
                                                     <Grid Grid.Column="0" Width="20" Height="20">
                                                         <Grid.Style>
                                                             <Style TargetType="Grid">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Value="True">
-                                                                        <DataTrigger.Binding>
-                                                                            <MultiBinding Converter="{StaticResource EqualityConverter}">
-                                                                                <Binding Path="Id"/>
-                                                                                <Binding Path="DataContext.SelectedMetadataId" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                                                            </MultiBinding>
-                                                                        </DataTrigger.Binding>
+                                                                    <!-- ✅ 修改：默认解决方案时显示 -->
+                                                                    <DataTrigger Binding="{Binding IsDefault}" Value="True">
                                                                         <Setter Property="Visibility" Value="Visible"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>

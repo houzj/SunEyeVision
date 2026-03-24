@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -39,6 +39,8 @@ namespace SunEyeVision.Workflow;
 public class SolutionSettings : ObservableObject
 {
     private string _currentSolutionId = "";
+    private string _defaultSolutionId = "";
+    private string _basePath = "";  // 基准路径（用于相对路径转换）
 
     // ✅ 使用公共属性进行序列化，避免私有字段序列化问题
     // 内部使用锁保证线程安全，序列化时直接访问字典
@@ -54,6 +56,15 @@ public class SolutionSettings : ObservableObject
     {
         get => _currentSolutionId;
         set => SetProperty(ref _currentSolutionId, value);
+    }
+
+    /// <summary>
+    /// 默认解决方案ID（启动时自动打开）
+    /// </summary>
+    public string DefaultSolutionId
+    {
+        get => _defaultSolutionId;
+        set => SetProperty(ref _defaultSolutionId, value);
     }
 
     /// <summary>
@@ -115,33 +126,202 @@ public class SolutionSettings : ObservableObject
     }
 
     /// <summary>
+    /// 设置基准路径（用于计算相对路径）
+    /// </summary>
+    /// <param name="basePath">基准路径</param>
+    public void SetBasePath(string basePath)
+    {
+        if (string.IsNullOrEmpty(basePath))
+        {
+            _logger.Log(LogLevel.Warning, "设置基准路径失败：路径为空", "SolutionSettings");
+            return;
+        }
+
+        _basePath = Path.GetFullPath(basePath);
+        _logger.Log(LogLevel.Info, $"设置基准路径: {_basePath}", "SolutionSettings");
+    }
+
+    /// <summary>
+    /// 将绝对路径转换为相对路径
+    /// </summary>
+    /// <param name="absolutePath">绝对路径</param>
+    /// <returns>相对路径</returns>
+    private string ToRelativePath(string absolutePath)
+    {
+        if (string.IsNullOrEmpty(absolutePath))
+            return "";
+
+        if (string.IsNullOrEmpty(_basePath))
+            return absolutePath;  // 未设置基准路径，返回原路径
+
+        try
+        {
+            var result = Path.GetRelativePath(_basePath, absolutePath);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Warning, $"转换为相对路径失败: {absolutePath}, 错误: {ex.Message}", "SolutionSettings");
+            return absolutePath;
+        }
+    }
+
+    /// <summary>
+    /// 将相对路径转换为绝对路径
+    /// </summary>
+    /// <param name="relativePath">相对路径</param>
+    /// <returns>绝对路径</returns>
+    private string ToAbsolutePath(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+            return "";
+
+        if (string.IsNullOrEmpty(_basePath))
+            return relativePath;  // 未设置基准路径，返回原路径
+
+        try
+        {
+            var result = Path.Combine(_basePath, relativePath);
+            return Path.GetFullPath(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Warning, $"转换为绝对路径失败: {relativePath}, 错误: {ex.Message}", "SolutionSettings");
+            return relativePath;
+        }
+    }
+
+    /// <summary>
+    /// 元数据序列化辅助类（存储相对路径）
+    /// </summary>
+    private class SerializableSolutionMetadata
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string RelativePath { get; set; } = "";  // 相对路径
+        public string RelativeDirectoryPath { get; set; } = "";  // 相对目录路径
+        public DateTime CreatedTime { get; set; }
+        public DateTime ModifiedTime { get; set; }
+        public DateTime LastAccessTime { get; set; }
+        public int WorkflowCount { get; set; }
+        public int GlobalVariableCount { get; set; }
+    }
+
+    /// <summary>
+    /// 将元数据转换为可序列化对象（相对路径）
+    /// </summary>
+    private SerializableSolutionMetadata ToSerializable(SolutionMetadata metadata)
+    {
+        return new SerializableSolutionMetadata
+        {
+            Id = metadata.Id,
+            Name = metadata.Name,
+            Description = metadata.Description,
+            Version = metadata.Version,
+            RelativePath = ToRelativePath(metadata.FilePath),
+            RelativeDirectoryPath = ToRelativePath(metadata.DirectoryPath),
+            CreatedTime = metadata.CreatedTime,
+            ModifiedTime = metadata.ModifiedTime,
+            LastAccessTime = metadata.LastAccessTime,
+            WorkflowCount = metadata.WorkflowCount,
+            GlobalVariableCount = metadata.GlobalVariableCount
+        };
+    }
+
+    /// <summary>
+    /// 从可序列化对象还原元数据（绝对路径）
+    /// </summary>
+    private SolutionMetadata FromSerializable(SerializableSolutionMetadata serializable)
+    {
+        return new SolutionMetadata
+        {
+            Id = serializable.Id,
+            Name = serializable.Name,
+            Description = serializable.Description,
+            Version = serializable.Version,
+            FilePath = ToAbsolutePath(serializable.RelativePath),
+            DirectoryPath = ToAbsolutePath(serializable.RelativeDirectoryPath),
+            CreatedTime = serializable.CreatedTime,
+            ModifiedTime = serializable.ModifiedTime,
+            LastAccessTime = serializable.LastAccessTime,
+            WorkflowCount = serializable.WorkflowCount,
+            GlobalVariableCount = serializable.GlobalVariableCount
+        };
+    }
+
+    /// <summary>
     /// 添加到已知解决方案列表
     /// </summary>
     /// <param name="metadata">元数据对象</param>
     public void AddKnownSolution(SolutionMetadata metadata)
     {
+        // ✅ 日志监控：生成唯一调用ID
+        long callId = System.Threading.Interlocked.Increment(ref _addKnownSolutionCallCount);
+
         if (metadata == null)
         {
-            _logger.Log(LogLevel.Warning, "添加到已知解决方案失败：元数据为空", "SolutionSettings");
+            _logger.Log(LogLevel.Warning, $"[AddKnownSolution #{callId}] 添加到已知解决方案失败：元数据为空\n堆栈: {GetShortStackTrace(3)}", "SolutionSettings");
             return;
         }
 
         // 防御性检查：Id不能为空
         if (string.IsNullOrEmpty(metadata.Id))
         {
-            _logger.Log(LogLevel.Warning, $"添加到已知解决方案失败：元数据Id为空（Name={metadata.Name}）", "SolutionSettings");
+            _logger.Log(LogLevel.Warning, $"[AddKnownSolution #{callId}] 添加到已知解决方案失败：元数据Id为空（Name={metadata.Name}）\n堆栈: {GetShortStackTrace(3)}", "SolutionSettings");
             return;
         }
 
         lock (_knownSolutionsLock)
         {
+            bool alreadyExists = _knownSolutions.ContainsKey(metadata.Id);
+            int beforeCount = _knownSolutions.Count;
+
             // 更新最后访问时间
             metadata.UpdateLastAccessTime();
 
             // 添加或更新到字典
             _knownSolutions[metadata.Id] = metadata.Clone();
 
-            _logger.Log(LogLevel.Info, $"添加到已知解决方案: {metadata.Name} (Id={metadata.Id})", "SolutionSettings");
+            int afterCount = _knownSolutions.Count;
+
+            _logger.Log(LogLevel.Info, $"[AddKnownSolution #{callId}] 添加到已知解决方案: {metadata.Name} (Id={metadata.Id}, FilePath={metadata.FilePath})\n已存在={alreadyExists}, 添加前数量={beforeCount}, 添加后数量={afterCount}\n堆栈: {GetShortStackTrace(4)}", "SolutionSettings");
+        }
+    }
+
+    /// <summary>
+    /// 添加到已知解决方案操作调用计数器（用于日志监控）
+    /// </summary>
+    private static long _addKnownSolutionCallCount = 0;
+
+    /// <summary>
+    /// 获取简短的调用堆栈（只显示前几层）
+    /// </summary>
+    private string GetShortStackTrace(int skipFrames)
+    {
+        try
+        {
+            var stackTrace = new System.Diagnostics.StackTrace(skipFrames);
+            var frames = stackTrace.GetFrames();
+            if (frames == null || frames.Length == 0)
+                return "";
+
+            var result = new System.Text.StringBuilder();
+            int maxFrames = Math.Min(5, frames.Length); // 最多显示5层
+            for (int i = 0; i < maxFrames; i++)
+            {
+                var method = frames[i].GetMethod();
+                if (method != null)
+                {
+                    result.AppendLine($"  at {method.DeclaringType?.Name}.{method.Name}");
+                }
+            }
+            return result.ToString();
+        }
+        catch
+        {
+            return "[堆栈获取失败]";
         }
     }
 
@@ -246,6 +426,17 @@ public class SolutionSettings : ObservableObject
 
         UserPreferences[key] = value;
         _logger.Log(LogLevel.Info, $"设置偏好: {key} = {value}", "SolutionSettings");
+        
+        // ✅ 新增：映射并触发属性通知
+        // 将偏好键映射到对应的属性名
+        string propertyName = key switch
+        {
+            "SkipStartupConfig" => nameof(SkipStartupConfig),
+            _ => key  // 其他键直接使用原名称（如果有对应的属性）
+        };
+        
+        // 触发属性变更通知
+        OnPropertyChanged(propertyName);
     }
 
     /// <summary>
@@ -288,41 +479,76 @@ public class SolutionSettings : ObservableObject
         try
         {
             var json = File.ReadAllText(filePath);
-            var settings = JsonSerializer.Deserialize<SolutionSettings>(json, WorkflowSerializationOptions.Default);
 
-            if (settings != null)
+            // 临时反序列化对象（使用手动解析支持相对路径）
+            using var jsonDoc = JsonDocument.Parse(json);
+            var root = jsonDoc.RootElement;
+
+            // 加载基本属性
+            if (root.TryGetProperty("CurrentSolutionId", out var currentSolutionIdElement))
             {
-                // 加载基本属性
-                _currentSolutionId = settings.CurrentSolutionId;
+                _currentSolutionId = currentSolutionIdElement.GetString() ?? "";
+            }
 
-                // 加载用户偏好
-                if (settings.UserPreferences != null)
+            // 加载默认解决方案ID
+            if (root.TryGetProperty("DefaultSolutionId", out var defaultSolutionIdElement))
+            {
+                _defaultSolutionId = defaultSolutionIdElement.GetString() ?? "";
+            }
+
+            // 加载用户偏好
+            if (root.TryGetProperty("UserPreferences", out var userPreferencesElement) && userPreferencesElement.ValueKind == JsonValueKind.Object)
+            {
+                UserPreferences = new Dictionary<string, object>();
+                foreach (var prop in userPreferencesElement.EnumerateObject())
                 {
-                    UserPreferences = new Dictionary<string, object>(settings.UserPreferences);
+                    UserPreferences[prop.Name] = prop.Value.ToString();
                 }
+            }
 
-                // 加载已知解决方案列表（逐个添加，保持线程安全）
-                if (settings.KnownSolutions != null && settings.KnownSolutions.Count > 0)
+            // 加载已知解决方案列表（使用相对路径）
+            if (root.TryGetProperty("KnownSolutions", out var knownSolutionsElement) && knownSolutionsElement.ValueKind == JsonValueKind.Object)
+            {
+                lock (_knownSolutionsLock)
                 {
-                    lock (_knownSolutionsLock)
+                    _knownSolutions.Clear();
+                    foreach (var prop in knownSolutionsElement.EnumerateObject())
                     {
-                        foreach (var kvp in settings.KnownSolutions)
+                        try
                         {
-                            _knownSolutions[kvp.Key] = kvp.Value;
+                            // 尝试反序列化为新格式（相对路径）
+                            var serializableMetadata = JsonSerializer.Deserialize<SerializableSolutionMetadata>(prop.Value.GetRawText());
+                            if (serializableMetadata != null)
+                            {
+                                var metadata = FromSerializable(serializableMetadata);
+                                _knownSolutions[metadata.Id] = metadata;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // 如果新格式失败，尝试旧格式（绝对路径）
+                            try
+                            {
+                                var oldMetadata = JsonSerializer.Deserialize<SolutionMetadata>(prop.Value.GetRawText());
+                                if (oldMetadata != null)
+                                {
+                                    _knownSolutions[oldMetadata.Id] = oldMetadata;
+                                    _logger.Log(LogLevel.Info, $"使用旧格式加载解决方案: {oldMetadata.Name}", "SolutionSettings");
+                                }
+                            }
+                            catch
+                            {
+                                _logger.Log(LogLevel.Warning, $"加载已知解决方案失败（解决方案ID={prop.Name}）: {ex.Message}", "SolutionSettings");
+                            }
                         }
                     }
-
-                    _logger.Log(LogLevel.Success, $"加载已知解决方案列表成功: {settings.KnownSolutions.Count} 条记录", "SolutionSettings");
                 }
 
-                _logger.Log(LogLevel.Success, $"加载设置成功: {filePath}", "SolutionSettings");
-                return true;
+                _logger.Log(LogLevel.Success, $"加载已知解决方案列表成功: {_knownSolutions.Count} 条记录", "SolutionSettings");
             }
-            else
-            {
-                _logger.Log(LogLevel.Warning, $"加载设置失败：反序列化结果为null: {filePath}", "SolutionSettings");
-                return false;
-            }
+
+            _logger.Log(LogLevel.Success, $"加载设置成功: {filePath}", "SolutionSettings");
+            return true;
         }
         catch (Exception ex)
         {
@@ -353,7 +579,25 @@ public class SolutionSettings : ObservableObject
                 Directory.CreateDirectory(directory);
             }
 
-            var json = JsonSerializer.Serialize(this, WorkflowSerializationOptions.Default);
+            // 构建可序列化对象（使用相对路径）
+            var serializableKnownSolutions = new Dictionary<string, SerializableSolutionMetadata>();
+            lock (_knownSolutionsLock)
+            {
+                foreach (var kvp in _knownSolutions)
+                {
+                    serializableKnownSolutions[kvp.Key] = ToSerializable(kvp.Value);
+                }
+            }
+
+            var dataToSerialize = new
+            {
+                CurrentSolutionId = _currentSolutionId,
+                DefaultSolutionId = _defaultSolutionId,
+                UserPreferences = UserPreferences,
+                KnownSolutions = serializableKnownSolutions
+            };
+
+            var json = JsonSerializer.Serialize(dataToSerialize, WorkflowSerializationOptions.Default);
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);

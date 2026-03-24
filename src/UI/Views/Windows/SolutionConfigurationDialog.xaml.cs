@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Workflow;
 
@@ -42,7 +42,11 @@ public partial class SolutionConfigurationDialog : Window
     /// </summary>
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        // 如果已启动，直接关闭
+        // ✅ 统一保存设置（包括 SkipStartupConfig）
+        // 无论通过什么方式关闭，都统一保存设置
+        _viewModel.SaveSettings();
+
+        // 如果已启动（双击或点击启动按钮），直接关闭
         if (_viewModel.IsLaunched)
         {
             base.OnClosing(e);

@@ -61,10 +61,7 @@ public partial class App : Application
         ServiceInitializer.InitializeServices();
 
         // 使用默认路径
-        var defaultPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "SunEyeVision", "Solutions"
-        );
+        var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
         // 初始化解决方案管理器
         ServiceInitializer.InitializeSolutionManager(defaultPath);
@@ -98,8 +95,68 @@ public partial class App : Application
         switch (decision)
         {
             case StartupDecision.SkipConfiguration:
-                // 跳过配置，直接进入主界面
-                mainWindow.Show();
+                // 跳过配置，自动打开默认解决方案
+                var logger = SunEyeVision.Plugin.SDK.Logging.VisionLogger.Instance;
+                logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                    "启动决策: 跳过配置，准备加载默认解决方案", "App");
+                
+                try
+                {
+                    var defaultMetadata = solutionManager.GetDefaultSolutionMetadata();
+                    if (defaultMetadata != null)
+                    {
+                        logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                            $"找到默认解决方案元数据: Id={defaultMetadata.Id}, Name={defaultMetadata.Name}, FilePath={defaultMetadata.FilePath}", "App");
+                        
+                        // 使用 LoadSolutionOnly 加载解决方案
+                        logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                            "开始加载解决方案 (LoadSolutionOnly)...", "App");
+                        
+                        var solution = solutionManager.LoadSolutionOnly(defaultMetadata.FilePath);
+                        
+                        if (solution != null)
+                        {
+                            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
+                                $"解决方案加载成功: Id={solution.Id}, Name={solution.Name}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
+                            
+                            // 调用 SetCurrentSolution 设置当前解决方案
+                            // 这与配置对话框启动的流程保持一致
+                            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                                "开始设置当前解决方案 (SetCurrentSolution)...", "App");
+                            
+                            solutionManager.SetCurrentSolution(solution);
+                            
+                            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
+                                $"当前解决方案设置完成: CurrentSolution.Id={solutionManager.CurrentSolution?.Id}, CurrentFilePath={solutionManager.CurrentFilePath}", "App");
+                            
+                            mainWindow.Show();
+                            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
+                                $"主窗口已显示，自动打开默认解决方案完成: {defaultMetadata.Name}", "App");
+                        }
+                        else
+                        {
+                            // 默认解决方案加载失败，记录警告并显示主界面
+                            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Error,
+                                $"默认解决方案加载失败: {defaultMetadata.Name} (LoadSolutionOnly 返回 null)", "App");
+                            mainWindow.Show();
+                        }
+                    }
+                    else
+                    {
+                        // 没有设置默认解决方案，直接显示主界面
+                        logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Warning,
+                            "未找到默认解决方案元数据，将显示空白主界面", "App");
+                        mainWindow.Show();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Error,
+                        $"自动打开默认解决方案异常: {ex.Message}\n堆栈: {ex.StackTrace}", "App", ex);
+                    MessageBox.Show($"自动打开默认解决方案失败: {ex.Message}",
+                        "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    mainWindow.Show();
+                }
                 break;
 
             case StartupDecision.ShowConfiguration:
@@ -115,6 +172,10 @@ public partial class App : Application
     /// </summary>
     private void ShowConfigurationDialog(MainWindow mainWindow, string? preselectSolutionId = null)
     {
+        var logger = SunEyeVision.Plugin.SDK.Logging.VisionLogger.Instance;
+        logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+            "启动决策: 显示配置对话框", "App");
+        
         var solutionManager = ServiceInitializer.SolutionManager;
         var configDialog = new SolutionConfigurationDialog(solutionManager, preselectSolutionId);
 
@@ -127,27 +188,43 @@ public partial class App : Application
 
             if (solution != null)
             {
+                logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                    $"用户从配置对话框启动解决方案: Id={solution.Id}, Name={solution.Name}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
+                
                 try
                 {
+                    logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                        "开始设置当前解决方案 (SetCurrentSolution)...", "App");
+                    
                     solutionManager.SetCurrentSolution(solution);
+                    
+                    logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
+                        $"当前解决方案设置完成: CurrentSolution.Id={solutionManager.CurrentSolution?.Id}, CurrentFilePath={solutionManager.CurrentFilePath}", "App");
+                    
                     mainWindow.Show();
-                    // Debug.WriteLine($"[App] 加载解决方案: Id={solution.Id}");
+                    logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
+                        "主窗口已显示，从配置对话框启动完成", "App");
                 }
                 catch (Exception ex)
                 {
-                    // Debug.WriteLine($"[App] 加载解决方案失败: {ex.Message}");
+                    logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Error,
+                        $"设置当前解决方案失败: {ex.Message}\n堆栈: {ex.StackTrace}", "App", ex);
                     MessageBox.Show($"加载解决方案失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     mainWindow.Show();
                 }
             }
             else
             {
+                logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Warning,
+                    "配置对话框返回的 LaunchResult 为 null", "App");
                 mainWindow.Show();
             }
         }
         else
         {
             // 用户点击跳过或取消
+            logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
+                "用户跳过或取消配置对话框", "App");
             mainWindow.Show();
         }
     }
@@ -421,6 +498,10 @@ public partial class App : Application
     /// </summary>
     protected override void OnExit(ExitEventArgs e)
     {
+        // 保存用户设置
+        var solutionManager = ServiceInitializer.SolutionManager;
+        solutionManager?.SaveUserSettings();
+
         // 停止监控定时器
         _monitorTimer?.Stop();
 
