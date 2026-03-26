@@ -39,4 +39,11 @@
     <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
   </PropertyGroup>
 
+  <!-- 所有工具插件统一引用 System.Text.Json (用于 JsonDerivedType 特性) -->
+  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\tools\'))">
+    <PackageReference Include="System.Text.Json" Version="10.0.3" />
+  </ItemGroup>
+
+
+
 </Project>

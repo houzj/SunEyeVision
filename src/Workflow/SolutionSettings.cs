@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -7,7 +7,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Models;
-using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Workflow;
 
@@ -557,59 +556,79 @@ public class SolutionSettings : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 保存设置到文件
-    /// </summary>
-    /// <param name="filePath">配置文件路径</param>
-    /// <returns>是否成功</returns>
-    public bool Save(string filePath)
+/// <summary>
+/// 保存设置到文件
+/// </summary>
+/// <param name="filePath">配置文件路径</param>
+/// <returns>是否成功</returns>
+public bool Save(string filePath)
+{
+    if (string.IsNullOrEmpty(filePath))
     {
-        if (string.IsNullOrEmpty(filePath))
-        {
-            _logger.Log(LogLevel.Warning, "保存设置失败：文件路径为空", "SolutionSettings");
-            return false;
-        }
-
-        try
-        {
-            // 确保目录存在
-            var directory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            // 构建可序列化对象（使用相对路径）
-            var serializableKnownSolutions = new Dictionary<string, SerializableSolutionMetadata>();
-            lock (_knownSolutionsLock)
-            {
-                foreach (var kvp in _knownSolutions)
-                {
-                    serializableKnownSolutions[kvp.Key] = ToSerializable(kvp.Value);
-                }
-            }
-
-            var dataToSerialize = new
-            {
-                CurrentSolutionId = _currentSolutionId,
-                DefaultSolutionId = _defaultSolutionId,
-                UserPreferences = UserPreferences,
-                KnownSolutions = serializableKnownSolutions
-            };
-
-            var json = JsonSerializer.Serialize(dataToSerialize, WorkflowSerializationOptions.Default);
-            File.WriteAllText(filePath, json);
-
-            var fileInfo = new FileInfo(filePath);
-            _logger.Log(LogLevel.Success, $"保存设置成功: {filePath}, 文件大小: {fileInfo.Length} 字节", "SolutionSettings");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.Log(LogLevel.Error, $"保存设置失败: {filePath}, 错误: {ex.Message}", "SolutionSettings", ex);
-            return false;
-        }
+        _logger.Log(LogLevel.Warning, "保存设置失败：文件路径为空", "SolutionSettings");
+        return false;
     }
+
+    try
+    {
+        // 确保目录存在
+        var directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        // 构建可序列化对象（使用相对路径）
+        var serializableKnownSolutions = new Dictionary<string, SerializableSolutionMetadata>();
+        lock (_knownSolutionsLock)
+        {
+            foreach (var kvp in _knownSolutions)
+            {
+                serializableKnownSolutions[kvp.Key] = ToSerializable(kvp.Value);
+            }
+        }
+
+        var dataToSerialize = new
+        {
+            CurrentSolutionId = _currentSolutionId,
+            DefaultSolutionId = _defaultSolutionId,
+            UserPreferences = UserPreferences,
+            KnownSolutions = serializableKnownSolutions
+        };
+
+        // 使用独立的序列化选项，避免触发 WorkflowSerializationOptions.Default 的初始化
+        // 这是因为 SolutionSettings.Save() 不涉及 ToolParameters 类型
+        var json = JsonSerializer.Serialize(dataToSerialize, SettingsSerializationOptions);
+        File.WriteAllText(filePath, json);
+
+        var fileInfo = new FileInfo(filePath);
+        _logger.Log(LogLevel.Success, $"保存设置成功: {filePath}, 文件大小: {fileInfo.Length} 字节", "SolutionSettings");
+        return true;
+    }
+    catch (Exception ex)
+    {
+        _logger.Log(LogLevel.Error, $"保存设置失败: {filePath}, 错误: {ex.Message}", "SolutionSettings", ex);
+        return false;
+    }
+}
+
+/// <summary>
+/// 设置文件的独立序列化选项
+/// </summary>
+/// <remarks>
+/// 为什么使用独立选项：
+/// - SolutionSettings.Save() 不涉及 ToolParameters 类型
+/// - 避免 WorkflowSerializationOptions.Default 的初始化触发 ParameterTypeRegistry
+/// - 确保在任何时候都可以安全保存设置文件
+/// </remarks>
+private static readonly JsonSerializerOptions SettingsSerializationOptions = new()
+{
+    WriteIndented = true,
+    PropertyNamingPolicy = null,  // 保持 PascalCase
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    PropertyNameCaseInsensitive = true
+};
 
     /// <summary>
     /// 获取设置统计信息

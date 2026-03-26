@@ -60,7 +60,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         /// <param name="message">日志消息</param>
         /// <param name="source">来源标识</param>
-        protected void LogWarning(string message, string? source = null)
+        public void LogWarning(string message, string? source = null)
         {
             var logger = VisionLogger.Instance;
             logger.Warning(message, source ?? GetLogSource());

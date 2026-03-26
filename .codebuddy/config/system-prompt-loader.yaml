@@ -1,0 +1,89 @@
+# 系统提示词加载配置
+# 此配置文件用于在 AI 助手启动时自动加载系统提示词
+
+system_prompt:
+  # 系统提示词文件路径
+  file: .codebuddy/system-prompt.md
+
+  # 加载时机
+  load_on:
+    - conversation_start  # 每次对话开始时加载
+    - task_request       # 收到任务请求时加载
+
+  # 强制执行规则
+  enforce_rules:
+    - name: "规则检查清单"
+      file: .codebuddy/rules-checklist.md
+      enforce_mode: "strict"  # strict | warning | disabled
+
+    - name: "方案设计思维模板"
+      file: .codebuddy/solution-design-template.md
+      enforce_mode: "strict"
+
+    - name: "规则强制执行提示词"
+      file: .codebuddy/rules/rule-enforcement-prompt.md
+      enforce_mode: "strict"
+
+  # 工作流程
+  workflow:
+    step1_understand_problem:
+      name: "理解用户问题"
+      required: true
+      description: "识别用户需求、涉及文件、问题层级"
+
+    step2_retrieve_rules:
+      name: "检索相关规则"
+      required: true
+      description: "根据问题类型搜索相关规则并读取详情"
+
+    step3_execute_checklist:
+      name: "执行规则检查清单"
+      required: true
+      description: "逐项检查规则遵守情况"
+
+    step4_design_solution:
+      name: "设计方案"
+      required: true
+      description: "提供详细的解决方案，明确标注遵循的规则"
+
+    step5_self_review:
+      name: "自我审查"
+      required: true
+      description: "对照规则进行自我审查"
+
+  # 违规处理
+  violation_handling:
+    on_violation:
+      action: "stop_and_fix"  # stop_and_fix | warn_only | continue
+
+    strict_rules:
+      - rule-001  # 属性更改通知统一规范
+      - rule-003  # 日志系统使用规范
+      - rule-008  # 原型设计期代码纯净原则
+      - rule-010  # 方案系统实现规范
+
+    high_priority_rules:
+      - rule-002  # 命名规范
+      - rule-011  # 临时文件自动清理规则
+      - rule-012  # 参数系统约束条件
+
+  # 验证要求
+  validation:
+    require_checklist: true
+    require_rule_tags: true
+    require_self_review: true
+    require_verification_list: true
+
+  # 输出格式
+  output_format:
+    include_rule_tags: true
+    include_verification_list: true
+    include_self_review: true
+    include_risk_assessment: true
+
+  # 元数据
+  metadata:
+    version: "1.0"
+    created: "2026-03-24"
+    author: "SunEyeVision Team"
+    description: "AI 助手系统提示词加载配置"

@@ -13,6 +13,8 @@ using System.Runtime.InteropServices;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.Services.Monitoring;
+using SunEyeVision.Core.Services.Serialization;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI;
 
@@ -57,20 +59,48 @@ public partial class App : Application
         // 注册文件关联（仅当前用户，无需管理员权限）
         RegisterFileAssociation();
 
-        // 初始化服务（包括节点显示适配器）
-        ServiceInitializer.InitializeServices();
+        // ===== P0优化：调整启动顺序，先加载插件 =====
+        // 原因：SolutionSettings.Save() 使用 WorkflowSerializationOptions.Default
+        // 会触发 ParameterTypeRegistry.EnsureInitialized()，需要插件已加载
+        // 解决：在任何可能触发序列化操作之前加载插件
 
-        // 使用默认路径
-        var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
-        // 初始化解决方案管理器
-        ServiceInitializer.InitializeSolutionManager(defaultPath);
-
-        // 初始化插件管理器
+        // 1. 初始化插件管理器（在任何其他初始化之前）
         var pluginManager = new PluginManager();
-        // 插件路径: 相对于主程序目录下的 plugins/ 子目录
         string pluginsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         pluginManager.LoadPlugins(pluginsPath);
+
+        // 2. 标记插件已加载（全局状态）
+        PluginLoader.MarkAsLoaded();
+
+        // ===== 诊断：验证 ParameterTypeRegistry 配置有效性 =====
+        var logger = VisionLogger.Instance;
+        logger.Log(LogLevel.Info,
+            $"📊 [App] 插件加载后诊断:\n{ParameterTypeRegistry.GetDiagnosticInfo()}",
+            "App");
+
+        // 验证配置
+        var validationError = ParameterTypeRegistry.ValidateConfiguration();
+        if (validationError != null)
+        {
+            logger.Log(LogLevel.Error,
+                $"❌ [App] ParameterTypeRegistry 配置验证失败: {validationError}",
+                "App");
+        }
+        else
+        {
+            logger.Log(LogLevel.Success,
+                "✅ [App] ParameterTypeRegistry 配置验证通过",
+                "App");
+        }
+
+        // 3. 初始化服务（包括节点显示适配器）
+        ServiceInitializer.InitializeServices();
+
+        // 4. 使用默认路径
+        var defaultPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+        // 5. 初始化解决方案管理器
+        ServiceInitializer.InitializeSolutionManager(defaultPath);
 
         // 初始化DispatcherTimer监控
         InitializeMonitoring();
@@ -117,7 +147,7 @@ public partial class App : Application
                         if (solution != null)
                         {
                             logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Success,
-                                $"解决方案加载成功: Id={solution.Id}, Name={solution.Name}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
+                                $"解决方案加载成功: Id={solution.Id}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
                             
                             // 调用 SetCurrentSolution 设置当前解决方案
                             // 这与配置对话框启动的流程保持一致
@@ -189,7 +219,7 @@ public partial class App : Application
             if (solution != null)
             {
                 logger.Log(SunEyeVision.Plugin.SDK.Logging.LogLevel.Info,
-                    $"用户从配置对话框启动解决方案: Id={solution.Id}, Name={solution.Name}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
+                    $"用户从配置对话框启动解决方案: Id={solution.Id}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}", "App");
                 
                 try
                 {

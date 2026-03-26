@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Services.Serialization;
+using SunEyeVision.Plugin.Infrastructure.Managers.Plugin;
 
 namespace SunEyeVision.Workflow;
 
@@ -31,21 +32,11 @@ namespace SunEyeVision.Workflow;
 ///
 /// 架构原则（rule-004）：
 /// - 反序列化前确保插件已加载（方案2）
-/// - 使用双重检查锁定模式保证线程安全
+/// - 使用 PluginLoader 全局状态管理
 /// </remarks>
 public class SolutionRepository
 {
     private readonly ILogger _logger;
-
-    /// <summary>
-    /// 插件加载状态标记（volatile保证多线程可见性）
-    /// </summary>
-    private static volatile bool _pluginsLoaded = false;
-
-    /// <summary>
-    /// 插件加载锁（双重检查锁定模式）
-    /// </summary>
-    private static readonly object _pluginsLock = new object();
 
     /// <summary>
     /// 构造函数
@@ -57,67 +48,30 @@ public class SolutionRepository
     }
 
     /// <summary>
-    /// 确保插件已加载（双重检查锁定模式）
+    /// 确保插件已加载（使用全局状态管理）
     /// </summary>
     /// <remarks>
     /// Fail Fast 原则：在反序列化前确保插件已加载，避免运行时失败。
-    /// 使用双重检查锁定模式保证线程安全，避免重复加载插件。
+    /// 使用 PluginLoader 全局状态管理，确保插件只加载一次。
     ///
-    /// 设计决策（rule-004）：
-    /// - 选择方案2：确保插件在反序列化前加载
-    /// - 理由：符合工业软件标准（VisionMaster、Halcon等），Fail Fast 原则
-    /// - 性能：仅第一次加载时加锁，后续检查无性能影响
+    /// 架构改进（rule-004）：
+    /// - 使用 PluginLoader 全局状态替代本地静态字段
+    /// - 与 App.OnStartup() 的插件加载逻辑解耦
+    /// - 避免重复加载插件
     /// </remarks>
     /// <returns>是否成功加载</returns>
     private bool EnsurePluginsLoaded()
     {
-        // 第一次检查（无锁）
-        if (_pluginsLoaded) return true;
-
-        lock (_pluginsLock)
+        // 检查全局状态
+        if (PluginLoader.IsLoaded)
         {
-            // 第二次检查（有锁）
-            if (_pluginsLoaded) return true;
-
-            try
-            {
-                _logger.Log(LogLevel.Info, "开始加载插件（反序列化前）", "SolutionRepository");
-
-                // 获取插件目录
-                var pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
-                if (!Directory.Exists(pluginsPath))
-                {
-                    _logger.Log(LogLevel.Warning, $"插件目录不存在: {pluginsPath}", "SolutionRepository");
-                    return false;
-                }
-
-                // 使用 PluginManager 加载插件
-                var pluginManager = new Plugin.Infrastructure.Managers.Plugin.PluginManager();
-                pluginManager.LoadPlugins(pluginsPath);
-
-                // 验证加载结果
-                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                var toolAssemblies = loadedAssemblies
-                    .Where(a => a.GetName().Name?.StartsWith("SunEyeVision.Tool.") == true)
-                    .ToList();
-
-                _logger.Log(LogLevel.Success, $"插件加载完成，共加载 {toolAssemblies.Count} 个工具插件", "SolutionRepository");
-
-                foreach (var assembly in toolAssemblies)
-                {
-                    _logger.Log(LogLevel.Info, $"  - {assembly.GetName().Name} (Version={assembly.GetName().Version})", "SolutionRepository");
-                }
-
-                // 标记插件已加载
-                _pluginsLoaded = true;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, $"插件加载失败: {ex.Message}", "SolutionRepository", ex);
-                return false;
-            }
+            _logger.Log(LogLevel.Info, "插件已加载（全局状态），跳过重复检查", "SolutionRepository");
+            return true;
         }
+
+        // 如果未加载，触发全局加载
+        _logger.Log(LogLevel.Info, "插件未加载，触发全局加载", "SolutionRepository");
+        return PluginLoader.EnsureLoaded();
     }
 
 
@@ -286,7 +240,7 @@ public class SolutionRepository
             File.WriteAllText(filePath, json);
 
             var fileInfo = new FileInfo(filePath);
-            _logger.Log(LogLevel.Success, $"[Save #{callId}] 保存解决方案成功: Id={solution.Id}, Name={solution.Name} -> {filePath}, 文件大小: {fileInfo.Length} 字节\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
+            _logger.Log(LogLevel.Success, $"[Save #{callId}] 保存解决方案成功: Id={solution.Id} -> {filePath}, 文件大小: {fileInfo.Length} 字节\n堆栈: {GetShortStackTrace(3)}", "SolutionRepository");
             return true;
         }
         catch (Exception ex)

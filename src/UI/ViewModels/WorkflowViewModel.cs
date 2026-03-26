@@ -58,46 +58,6 @@ namespace SunEyeVision.UI.ViewModels
             SelectNodeCommand = new RelayCommand<WorkflowNode>(node => SelectedNode = node);
             ClearSelectionCommand = new RelayCommand(ExecuteClearSelection);
             DeleteSelectedCommand = new RelayCommand(ExecuteDeleteSelected, () => SelectedNode != null || SelectedConnection != null);
-
-            InitializeSampleWorkflow();
-        }
-
-        private void InitializeSampleWorkflow()
-        {
-            var node1 = new WorkflowNode("node1", "1 图像输入", "图像输入", "Input");
-            node1.Position = new Point(50, 50);
-
-            var node2 = new WorkflowNode("node2", "2 高斯模糊", "高斯模糊", "Preprocess");
-            node2.Position = new Point(250, 50);
-
-            var node3 = new WorkflowNode("node3", "3 边缘检测", "边缘检测", "Detection");
-            node3.Position = new Point(450, 50);
-
-            var node4 = new WorkflowNode("node4", "4 输出", "输出", "Output");
-            node4.Position = new Point(650, 50);
-
-            AddToCollection(Nodes, node1);
-            AddToCollection(Nodes, node2);
-            AddToCollection(Nodes, node3);
-            AddToCollection(Nodes, node4);
-
-            var conn1 = new WorkflowConnection("conn1", "node1", "node2");
-            var conn2 = new WorkflowConnection("conn2", "node2", "node3");
-            var conn3 = new WorkflowConnection("conn3", "node3", "node4");
-
-            // 初始化Y坐标
-            conn1.SourcePosition = new Point(190, 95);
-            conn1.TargetPosition = new Point(250, 95);
-
-            conn2.SourcePosition = new Point(390, 95);
-            conn2.TargetPosition = new Point(450, 95);
-
-            conn3.SourcePosition = new Point(590, 95);
-            conn3.TargetPosition = new Point(650, 95);
-
-            AddToCollection(Connections, conn1);
-            AddToCollection(Connections, conn2);
-            AddToCollection(Connections, conn3);
         }
 
         private void ExecuteAddNode(string? type)

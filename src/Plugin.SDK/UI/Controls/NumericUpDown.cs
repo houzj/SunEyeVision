@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
@@ -387,6 +388,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private static void OnIntValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (NumericUpDown)d;
+
+            PluginLogger.Info($"[OnIntValueChanged] {control.Name ?? "unnamed"}: {e.OldValue} → {e.NewValue}", "NumericUpDown");
 
             // 同步 Value
             if (!control._isSyncingValues)

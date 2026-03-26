@@ -98,49 +98,7 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
-        /// <summary>
 
-        /// 将日志添加到UI界面
-
-        /// </summary>
-
-        private void AddLogToUI(string message)
-
-        {
-
-            if (_viewModel != null)
-
-            {
-
-                // 将日志添加到 LogText（如果存在）
-
-                var currentLog = _viewModel.LogText ?? "";
-
-                var newLog = $"{DateTime.Now:HH:mm:ss.fff} {message}\n";
-
-                // 只保留最后500行
-
-                var lines = (currentLog + newLog).Split('\n');
-
-                if (lines.Length > 500)
-
-                {
-
-                    _viewModel.LogText = string.Join("\n", lines.Skip(lines.Length - 500));
-
-                }
-
-                else
-
-                {
-
-                    _viewModel.LogText = currentLog + newLog;
-
-                }
-
-            }
-
-        }
 
 
 
@@ -485,10 +443,9 @@ namespace SunEyeVision.UI.Views.Windows
 
                 // ✅ 修复：直接创建Solution对象并保存
                 // 流程：ViewModel → Solution → 文件
+                // Name 和 Description 由 SolutionMetadata 统一管理
                 var solution = SunEyeVision.Workflow.Solution.Create();
                 solution.Id = metadata.Id;
-                solution.Name = metadata.Name;
-                solution.Description = metadata.Description ?? "";
                 solution.Version = metadata.Version ?? "1.0";
 
                 // 构建文件路径
@@ -1926,20 +1883,15 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
-                    // 创建新节点，使用ToolId作为AlgorithmType
+                    // 使用工厂创建新节点（遵循rule-008: 原型设计期代码纯净原则）
+                    var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
+                    if (selectedTab == null)
+                    {
+                        _viewModel.LogWarning("没有选中工作流标签页");
+                        return;
+                    }
 
-                    var nodeName = $"{tool.Name}1";
-                    var node = new WorkflowNode(
-
-                        Guid.NewGuid().ToString(),
-
-                        $"1 {nodeName}",
-
-                        nodeName,
-
-                        tool.ToolId  // 使用ToolId而不是AlgorithmType
-
-                    );
+                    var node = selectedTab.WorkflowNodeFactory.CreateNode(tool.ToolId);
 
 
 

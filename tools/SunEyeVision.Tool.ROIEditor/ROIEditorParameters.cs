@@ -1,12 +1,19 @@
 ﻿using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Validation;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.ROIEditor
 {
     /// <summary>
     /// ROI编辑器参数
     /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "ROIEditor"。
+    /// System.Text.Json 会自动添加 "$type" 字段并在反序列化时识别。
+    /// </remarks>
+    [JsonDerivedType(typeof(ROIEditorParameters), "ROIEditor")]
     public class ROIEditorParameters : ToolParameters
     {
         /// <summary>

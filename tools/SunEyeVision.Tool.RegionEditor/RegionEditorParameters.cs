@@ -2,12 +2,18 @@ using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.Validation;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.RegionEditor
 {
     /// <summary>
     /// 区域编辑器参数
     /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "RegionEditor"。
+    /// </remarks>
+    [JsonDerivedType(typeof(RegionEditorParameters), "RegionEditor")]
     public class RegionEditorParameters : ToolParameters
     {
         /// <summary>

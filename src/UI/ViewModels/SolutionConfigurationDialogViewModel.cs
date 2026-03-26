@@ -400,18 +400,25 @@ namespace SunEyeVision.UI.ViewModels
                     return;
                 }
 
-                // ✅ 从 Solution 读取元数据
-                var metadata = new SolutionMetadata
+                // ✅ 尝试从已知解决方案中获取元数据，否则创建新的
+                var metadata = _solutionManager.Settings.KnownSolutions.Values
+                    .FirstOrDefault(m => m.FilePath == filePath);
+
+                if (metadata == null)
                 {
-                    Id = solution.Id,
-                    Name = solution.Name,  // 从 Solution 读取
-                    Description = solution.Description,  // 从 Solution 读取
-                    Version = solution.Version,
-                    FilePath = filePath,
-                    DirectoryPath = Path.GetDirectoryName(filePath) ?? "",
-                    CreatedTime = File.GetCreationTime(filePath),
-                    ModifiedTime = File.GetLastWriteTime(filePath)
-                };
+                    // 创建新的元数据（使用文件名作为名称）
+                    metadata = new SolutionMetadata
+                    {
+                        Id = solution.Id,
+                        Name = Path.GetFileNameWithoutExtension(filePath),
+                        Description = "",
+                        Version = solution.Version,
+                        FilePath = filePath,
+                        DirectoryPath = Path.GetDirectoryName(filePath) ?? "",
+                        CreatedTime = File.GetCreationTime(filePath),
+                        ModifiedTime = File.GetLastWriteTime(filePath)
+                    };
+                }
                 metadata.UpdateStatistics(solution);
 
                 // 检查是否已存在

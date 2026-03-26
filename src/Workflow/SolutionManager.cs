@@ -182,8 +182,7 @@ public class SolutionManager
         // 创建新的 Solution 对象（纯数据模型，自动创建默认配方）
         var solution = Solution.Create();
         solution.Version = metadata.Version;
-        solution.Name = metadata.Name;  // ✅ 同步 Name
-        solution.Description = metadata.Description;  // ✅ 同步 Description
+        // Name 和 Description 由 SolutionMetadata 统一管理，不再同步到 Solution
 
         // 添加默认工作流
         var defaultWorkflow = solution.AddWorkflow("工作流1");
@@ -291,31 +290,34 @@ public class SolutionManager
         CurrentSolution = solution;
         CurrentFilePath = filePath;
 
-        // ✅ 同步元数据：Solution → Settings（加载时同步）
+        // ✅ 获取元数据（名称和描述由 SolutionMetadata 统一管理）
         SolutionMetadata? metadata = _settings.KnownSolutions.Values
             .FirstOrDefault(m => m.FilePath == filePath);
 
         if (metadata == null)
         {
-            // 如果 Settings 中没有，创建新的元数据
-            metadata = new SolutionMetadata
+            // 如果 Settings 中没有，从文件加载元数据
+            metadata = _repository.LoadMetadata(filePath);
+            if (metadata == null)
             {
-                Id = solution.Id,
-                Name = solution.Name,  // 从 Solution 同步
-                Description = solution.Description,  // 从 Solution 同步
-                Version = solution.Version,
-                FilePath = filePath,
-                DirectoryPath = Path.GetDirectoryName(filePath) ?? "",
-                CreatedTime = File.GetCreationTime(filePath),
-                ModifiedTime = File.GetLastWriteTime(filePath)
-            };
+                // 如果加载失败，创建一个基本的元数据（使用文件名作为名称）
+                metadata = new SolutionMetadata
+                {
+                    Id = solution.Id,
+                    Name = Path.GetFileNameWithoutExtension(filePath),
+                    Description = "",
+                    Version = solution.Version,
+                    FilePath = filePath,
+                    DirectoryPath = Path.GetDirectoryName(filePath) ?? "",
+                    CreatedTime = File.GetCreationTime(filePath),
+                    ModifiedTime = File.GetLastWriteTime(filePath)
+                };
+            }
             metadata.UpdateStatistics(solution);
         }
         else
         {
-            // 如果 Settings 中已有，同步 Solution 的 Name 和 Description
-            metadata.Name = solution.Name;  // 从 Solution 同步
-            metadata.Description = solution.Description;  // 从 Solution 同步
+            // 如果 Settings 中已有，更新文件路径和时间戳
             metadata.FilePath = filePath;
             metadata.DirectoryPath = Path.GetDirectoryName(filePath) ?? "";
             metadata.ModifiedTime = File.GetLastWriteTime(filePath);
@@ -389,7 +391,7 @@ public class SolutionManager
             }
 
             _logger.Log(LogLevel.Success,
-                $"[LoadSolutionOnly] 加载成功: Solution.Id={solution.Id}, Name={solution.Name}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}",
+                $"[LoadSolutionOnly] 加载成功: Solution.Id={solution.Id}, Workflows={solution.Workflows.Count}, GlobalVariables={solution.GlobalVariables?.Count ?? 0}, Devices={solution.Devices?.Count ?? 0}",
                 "SolutionManager");
 
             return solution;
@@ -445,7 +447,7 @@ public class SolutionManager
     {
         try
         {
-            _logger.Log(LogLevel.Info, $"[SaveSolutionDirect] 开始保存解决方案: {solution.Name} -> {filePath}", "SolutionManager");
+            _logger.Log(LogLevel.Info, $"[SaveSolutionDirect] 开始保存解决方案: Id={solution.Id} -> {filePath}", "SolutionManager");
 
             // 保存到文件
             bool success = _repository.Save(solution, filePath);
@@ -472,7 +474,7 @@ public class SolutionManager
                 ForceSaveSettings();
             }
 
-            _logger.Log(LogLevel.Success, $"[SaveSolutionDirect] 解决方案保存成功: {solution.Name}", "SolutionManager");
+            _logger.Log(LogLevel.Success, $"[SaveSolutionDirect] 解决方案保存成功: Id={solution.Id}", "SolutionManager");
             return true;
         }
         catch (Exception ex)
@@ -502,15 +504,9 @@ public class SolutionManager
             return false;
         }
 
-        // ✅ 同步元数据：Settings → Solution（保存时同步）
+        // ✅ 获取元数据（名称和描述由 SolutionMetadata 统一管理）
         var metadata = _settings.KnownSolutions.Values
             .FirstOrDefault(m => m.Id == CurrentSolution.Id);
-
-        if (metadata != null)
-        {
-            CurrentSolution.Name = metadata.Name;  // 从 Settings 同步
-            CurrentSolution.Description = metadata.Description;  // 从 Settings 同步
-        }
 
         // 保存文件
         bool success = _repository.Save(CurrentSolution, savePath);
@@ -524,18 +520,22 @@ public class SolutionManager
         // ✅ 更新元数据
         if (metadata == null)
         {
-            // 如果元数据不存在（不应该发生），创建一个基本的元数据
-            metadata = new SolutionMetadata
+            // 如果元数据不存在（不应该发生），从文件加载或创建一个基本的元数据
+            metadata = _repository.LoadMetadata(savePath);
+            if (metadata == null)
             {
-                Id = CurrentSolution.Id,
-                Name = CurrentSolution.Name,
-                Description = CurrentSolution.Description,
-                Version = CurrentSolution.Version,
-                FilePath = savePath,
-                DirectoryPath = Path.GetDirectoryName(savePath) ?? "",
-                CreatedTime = File.GetCreationTime(savePath),
-                ModifiedTime = DateTime.Now
-            };
+                metadata = new SolutionMetadata
+                {
+                    Id = CurrentSolution.Id,
+                    Name = Path.GetFileNameWithoutExtension(savePath),
+                    Description = "",
+                    Version = CurrentSolution.Version,
+                    FilePath = savePath,
+                    DirectoryPath = Path.GetDirectoryName(savePath) ?? "",
+                    CreatedTime = File.GetCreationTime(savePath),
+                    ModifiedTime = DateTime.Now
+                };
+            }
         }
         else
         {
@@ -929,13 +929,7 @@ public class SolutionManager
             if (isCurrentSolution)
             {
                 // ✅ 优化：克隆并修改 CurrentSolution，一次性保存（避免两次写入）
-                // 获取原描述（如果未提供新描述）
-                string descriptionToUse = newDescription ?? CurrentSolution.Description ?? "";
-                if (string.IsNullOrEmpty(newDescription))
-                {
-                    var sourceMetadata = _repository.LoadMetadata(sourcePath);
-                    descriptionToUse = sourceMetadata?.Description ?? "";
-                }
+                // 名称和描述由 SolutionMetadata 统一管理，不需要同步到 Solution
 
                 // 克隆 CurrentSolution（使用序列化/反序列化）
                 var json = JsonSerializer.Serialize(CurrentSolution, WorkflowSerializationOptions.Default);
@@ -946,14 +940,12 @@ public class SolutionManager
                     return null;
                 }
 
-                // 修改克隆对象的元数据
+                // 修改克隆对象的 ID 和路径
                 newSolution.Id = newSolutionId;
-                newSolution.Name = newName;
-                newSolution.Description = descriptionToUse;
                 newSolution.FilePath = targetFilePath;
                 newSolution.Version = "1.0";  // 新解决方案版本重置为 1.0
 
-                // 一次性保存克隆对象（包含新元数据）
+                // 一次性保存克隆对象
                 success = _repository.Save(newSolution, targetFilePath);
                 _logger.Log(LogLevel.Info, "另存为：克隆并保存当前解决方案到新文件（一次性完成）", "SolutionManager");
             }
@@ -970,27 +962,16 @@ public class SolutionManager
                 return null;
             }
 
-            // ==================== 步骤2：更新JSON文件中的元数据（仅适用于复制的文件） ====================
-            // 对于当前解决方案，已经在保存前修改了元数据，无需再更新
+            // ==================== 步骤2：更新JSON文件中的ID（仅适用于复制的文件） ====================
+            // 对于当前解决方案，已经在保存前修改了ID，无需再更新
+            // Name 和 Description 由 SolutionMetadata 统一管理
             if (!isCurrentSolution)
             {
-                // 获取原描述（如果未提供新描述）
-                string descriptionToUse = newDescription ?? "";
-                if (string.IsNullOrEmpty(newDescription))
-                {
-                    var sourceMetadata = _repository.LoadMetadata(sourcePath);
-                    descriptionToUse = sourceMetadata?.Description ?? "";
-                }
-
-                bool updateSuccess = UpdateSolutionMetadataInFile(
-                    targetFilePath,
-                    newSolutionId,
-                    newName,
-                    descriptionToUse);
+                bool updateSuccess = UpdateSolutionIdInFile(targetFilePath, newSolutionId);
 
                 if (!updateSuccess)
                 {
-                    _logger.Log(LogLevel.Error, $"复制/另存为解决方案失败：更新JSON文件元数据失败", "SolutionManager");
+                    _logger.Log(LogLevel.Error, $"复制/另存为解决方案失败：更新JSON文件ID失败", "SolutionManager");
                     // 删除已复制的文件
                     try { File.Delete(targetFilePath); } catch { }
                     return null;
@@ -1008,9 +989,11 @@ public class SolutionManager
             }
 
             // ==================== 步骤4：注册元数据 ====================
-            // 更新路径和时间戳
+            // 更新路径、名称、描述和时间戳
             metadata.FilePath = targetFilePath;
             metadata.DirectoryPath = targetDir;
+            metadata.Name = newName;  // 设置新名称
+            metadata.Description = newDescription ?? metadata.Description;  // 设置新描述（如果提供）
             metadata.CreatedTime = DateTime.Now;
             metadata.ModifiedTime = DateTime.Now;
 
@@ -1072,26 +1055,22 @@ public class SolutionManager
     }
 
     /// <summary>
-    /// 更新解决方案文件中的元数据（Id, Name, Description）
+    /// 更新解决方案文件中的 ID
     /// </summary>
     /// <param name="filePath">解决方案文件路径</param>
     /// <param name="newId">新的解决方案ID</param>
-    /// <param name="newName">新的名称</param>
-    /// <param name="newDescription">新的描述</param>
     /// <returns>是否成功</returns>
     /// <remarks>
-    /// 优化说明（2026-03-24）：
-    /// 1. 使用 JsonDocument 读取JSON文件（高性能，低内存）
-    /// 2. 使用 Utf8JsonWriter 修改并写入JSON文件（保持格式化）
-    /// 3. 直接修改 Solution.Id, Name, Description，不加载完整Solution对象
-    /// 4. 确保JSON文件和内存元数据的一致性
+    /// 架构改进（2026-03-25）：
+    /// - Name 和 Description 由 SolutionMetadata 统一管理，不再存储在 Solution 文件中
+    /// - 此方法仅更新 Solution.Id
     /// </remarks>
-    private bool UpdateSolutionMetadataInFile(string filePath, string newId, string newName, string newDescription)
+    private bool UpdateSolutionIdInFile(string filePath, string newId)
     {
         try
         {
-            _logger.Log(LogLevel.Info, $"开始更新JSON文件元数据: {filePath}", "SolutionManager");
-            _logger.Log(LogLevel.Info, $"新ID: {newId}, 新名称: {newName}, 新描述: {newDescription}", "SolutionManager");
+            _logger.Log(LogLevel.Info, $"开始更新JSON文件ID: {filePath}", "SolutionManager");
+            _logger.Log(LogLevel.Info, $"新ID: {newId}", "SolutionManager");
 
             // 读取JSON文件
             var jsonContent = File.ReadAllText(filePath);
@@ -1105,8 +1084,6 @@ public class SolutionManager
             writer.WriteStartObject();
 
             bool idUpdated = false;
-            bool nameUpdated = false;
-            bool descriptionUpdated = false;
 
             // 遍历所有属性
             foreach (var property in root.EnumerateObject())
@@ -1117,17 +1094,11 @@ public class SolutionManager
                     idUpdated = true;
                     _logger.Log(LogLevel.Info, $"✓ 更新 Solution.Id: {newId}", "SolutionManager");
                 }
-                else if (property.NameEquals("Name") && !nameUpdated)
+                // 移除 Name 和 Description 字段（由 SolutionMetadata 管理）
+                else if (property.NameEquals("Name") || property.NameEquals("Description"))
                 {
-                    writer.WriteString("Name", newName);
-                    nameUpdated = true;
-                    _logger.Log(LogLevel.Info, $"✓ 更新 Solution.Name: {newName}", "SolutionManager");
-                }
-                else if (property.NameEquals("Description") && !descriptionUpdated)
-                {
-                    writer.WriteString("Description", newDescription);
-                    descriptionUpdated = true;
-                    _logger.Log(LogLevel.Info, $"✓ 更新 Solution.Description: {newDescription}", "SolutionManager");
+                    // 跳过这些字段，不再写入
+                    _logger.Log(LogLevel.Info, $"✓ 跳过字段: {property.Name}（由 SolutionMetadata 管理）", "SolutionManager");
                 }
                 else
                 {
@@ -1136,21 +1107,11 @@ public class SolutionManager
                 }
             }
 
-            // 如果文件中没有这些字段，添加它们
+            // 如果文件中没有 Id 字段，添加它
             if (!idUpdated)
             {
                 writer.WriteString("Id", newId);
                 _logger.Log(LogLevel.Info, $"✓ 添加 Solution.Id: {newId}", "SolutionManager");
-            }
-            if (!nameUpdated)
-            {
-                writer.WriteString("Name", newName);
-                _logger.Log(LogLevel.Info, $"✓ 添加 Solution.Name: {newName}", "SolutionManager");
-            }
-            if (!descriptionUpdated)
-            {
-                writer.WriteString("Description", newDescription);
-                _logger.Log(LogLevel.Info, $"✓ 添加 Solution.Description: {newDescription}", "SolutionManager");
             }
 
             writer.WriteEndObject();
@@ -1160,12 +1121,12 @@ public class SolutionManager
             var newJsonContent = System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
             File.WriteAllText(filePath, newJsonContent);
 
-            _logger.Log(LogLevel.Success, $"JSON文件元数据更新成功", "SolutionManager");
+            _logger.Log(LogLevel.Success, $"JSON文件ID更新成功", "SolutionManager");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Log(LogLevel.Error, $"更新JSON文件元数据失败: {filePath}, 错误: {ex.Message}", "SolutionManager", ex);
+            _logger.Log(LogLevel.Error, $"更新JSON文件ID失败: {filePath}, 错误: {ex.Message}", "SolutionManager", ex);
             return false;
         }
     }
@@ -1728,7 +1689,7 @@ public class SolutionManager
 
         // 诊断日志：开始设置
         _logger.Log(LogLevel.Info, 
-            $"[诊断] 开始设置当前解决方案: Solution.Id={solution.Id}, Name={solution.Name}", 
+            $"[诊断] 开始设置当前解决方案: Solution.Id={solution.Id}", 
             "SolutionManager");
 
         // 直接设置，不重复加载（避免违背惰性加载）
@@ -1764,14 +1725,28 @@ public class SolutionManager
                     "SolutionManager");
             }
 
-            // 如果元数据不存在，从 Solution 对象创建临时元数据
-            metadata = SolutionMetadata.FromSolution(solution);
+            // 如果元数据不存在，从文件路径创建临时元数据
+            var filePath = solution.FilePath;
+            metadata = !string.IsNullOrEmpty(filePath) 
+                ? _repository.LoadMetadata(filePath) 
+                : SolutionMetadata.Create(solution.Id);
+            
+            if (metadata == null)
+            {
+                metadata = new SolutionMetadata
+                {
+                    Id = solution.Id,
+                    Name = !string.IsNullOrEmpty(filePath) ? Path.GetFileNameWithoutExtension(filePath) : solution.Id,
+                    Description = "",
+                    FilePath = filePath ?? ""
+                };
+            }
             
             // ✅ 关键修复：将临时元数据添加到缓存
             _cache.Set(solution.Id, metadata);
             
             _logger.Log(LogLevel.Warning, 
-                $"创建临时元数据并缓存: Solution.Id={solution.Id}, Name={solution.Name}", 
+                $"创建临时元数据并缓存: Solution.Id={solution.Id}", 
                 "SolutionManager");
         }
         else
@@ -1789,7 +1764,7 @@ public class SolutionManager
         CurrentSolutionChanged?.Invoke(this, currentSolutionArgs);
 
         _logger.Log(LogLevel.Info, 
-            $"设置当前解决方案成功: Id={CurrentSolution.Id}, Name={CurrentSolution.Name}", 
+            $"设置当前解决方案成功: Id={CurrentSolution.Id}", 
             "SolutionManager");
     }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using OpenCvSharp;
@@ -7,6 +7,7 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.GaussianBlur.Views;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.GaussianBlur
 {
@@ -15,6 +16,11 @@ namespace SunEyeVision.Tool.GaussianBlur
     /// <summary>
     /// 高斯模糊参数
     /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "GaussianBlur"。
+    /// </remarks>
+    [JsonDerivedType(typeof(GaussianBlurParameters), "GaussianBlur")]
     public class GaussianBlurParameters : ToolParameters
     {
         private int _kernelSize = 5;

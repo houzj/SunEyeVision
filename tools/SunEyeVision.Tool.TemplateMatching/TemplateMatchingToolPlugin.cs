@@ -10,9 +10,18 @@ using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.TemplateMatching.Views;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.TemplateMatching
 {
+    /// <summary>
+    /// 模板匹配参数
+    /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "TemplateMatching"。
+    /// </remarks>
+    [JsonDerivedType(typeof(TemplateMatchingParameters), "TemplateMatching")]
     public class TemplateMatchingParameters : ToolParameters
     {
         public double Threshold { get; set; } = 0.8;

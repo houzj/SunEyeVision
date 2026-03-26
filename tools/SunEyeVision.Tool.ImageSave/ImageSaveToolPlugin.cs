@@ -11,9 +11,18 @@ using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.ImageSave.Views;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.ImageSave
 {
+    /// <summary>
+    /// 图像保存参数
+    /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "ImageSave"。
+    /// </remarks>
+    [JsonDerivedType(typeof(ImageSaveParameters), "ImageSave")]
     public class ImageSaveParameters : ToolParameters
     {
         public string OutputPath { get; set; } = "output/image.png";

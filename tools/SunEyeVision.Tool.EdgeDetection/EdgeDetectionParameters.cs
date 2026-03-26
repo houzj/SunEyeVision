@@ -1,12 +1,18 @@
 ﻿using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Validation;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.EdgeDetection
 {
     /// <summary>
     /// 边缘检测工具参数
     /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "EdgeDetection"。
+    /// </remarks>
+    [JsonDerivedType(typeof(EdgeDetectionParameters), "EdgeDetection")]
     public class EdgeDetectionParameters : ToolParameters
     {
         #region 基本参数

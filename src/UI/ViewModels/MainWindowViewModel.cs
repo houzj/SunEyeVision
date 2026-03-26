@@ -1416,6 +1416,10 @@ namespace SunEyeVision.UI.ViewModels
                 // 根据 ToolType 确定 NodeType
                 var nodeTypeStr = DetermineNodeTypeFromToolType(uiNode.ToolType).ToString();
 
+                // 🔍 日志：参数同步前检查
+                var paramType = uiNode.Parameters?.GetType().Name ?? "null";
+                var paramSummary = uiNode.Parameters?.GetParameterSummary() ?? "(无参数)";
+
                 var workflowNode = new WorkflowWorkflowNode(
                     uiNode.Id,
                     uiNode.Name,
@@ -1430,6 +1434,11 @@ namespace SunEyeVision.UI.ViewModels
                     PositionX = uiNode.Position.X,
                     PositionY = uiNode.Position.Y
                 };
+
+                // 🔍 日志：参数同步完成
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"📤 [参数同步] 节点: {uiNode.Name} | 类型: {paramType} | 值: {paramSummary}",
+                    "MainWindowViewModel");
 
                 // 转换参数绑定
                 if (uiNode.ParameterBindings != null && uiNode.ParameterBindings.Count > 0)
@@ -1476,6 +1485,8 @@ namespace SunEyeVision.UI.ViewModels
 
             var solution = solutionManager.CurrentSolution;
 
+            LogInfo($"[参数监控] 开始保存解决方案: Id={solution.Id}");
+
             // 1. 同步工作流
             // 清空现有的工作流列表
             solution.Workflows.Clear();
@@ -1485,6 +1496,8 @@ namespace SunEyeVision.UI.ViewModels
             {
                 foreach (var tab in WorkflowTabViewModel.Tabs)
                 {
+                    LogInfo($"[参数监控] 处理工作流Tab: {tab.Name}");
+
                     // 查找现有工作流或创建新工作流
                     var workflow = solution.Workflows.FirstOrDefault(w => w.Id == tab.Id);
                     if (workflow == null)
@@ -1504,6 +1517,22 @@ namespace SunEyeVision.UI.ViewModels
 
                     // 同步工作流数据
                     UpdateWorkflowFromUI(workflow, tab);
+
+                    // 添加日志：记录同步后的Workflow节点参数状态
+                    LogInfo($"[参数监控] 同步后的Workflow节点参数状态:");
+                    foreach (var node in workflow.Nodes)
+                    {
+                        LogInfo($"  节点 - ID:{node.Id}, 名称:{node.Name}, 参数类型:{node.Parameters?.GetType().Name ?? "null"}");
+
+                        if (node.Parameters != null)
+                        {
+                            var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
+                            foreach (var meta in runtimeMetadata)
+                            {
+                                LogInfo($"    └─ {meta.DisplayName} = {meta.Value?.ToString() ?? "null"}");
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1513,7 +1542,7 @@ namespace SunEyeVision.UI.ViewModels
             // - Devices：通过 DeviceManagerViewModel 直接操作（实时同步）
             // 无需在此同步
 
-            LogInfo("UI数据已同步到解决方案");
+            LogSuccess($"[参数监控] UI数据已同步到解决方案，工作流数量: {solution.Workflows.Count}");
         }
 
         /// <summary>
@@ -3555,8 +3584,11 @@ namespace SunEyeVision.UI.ViewModels
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
                 
                 // [诊断] 记录打开前的状态
+                var currentMetadata = solutionManager.CurrentSolution != null 
+                    ? solutionManager.GetMetadata(solutionManager.CurrentSolution.Id) 
+                    : null;
                 LogInfo($"[诊断-打开] 当前解决方案ID: {solutionManager.CurrentSolution?.Id ?? "null"}");
-                LogInfo($"[诊断-打开] 当前解决方案名称: {solutionManager.CurrentSolution?.Name ?? "null"}");
+                LogInfo($"[诊断-打开] 当前解决方案名称: {currentMetadata?.Name ?? "null"}");
                 LogInfo($"[诊断-打开] 默认解决方案ID: {solutionManager.Settings.DefaultSolutionId ?? "null"}");
                 LogInfo($"[诊断-打开] Settings.CurrentSolutionId: {solutionManager.Settings.CurrentSolutionId ?? "null"}");
 
@@ -3581,7 +3613,10 @@ namespace SunEyeVision.UI.ViewModels
                         Title = $"太阳眼视觉 - {metadata?.Name ?? "未命名"}";
                         
                         // [诊断] 记录加载后的状态
-                        LogInfo($"[诊断-加载后] CurrentSolution: {solutionManager.CurrentSolution?.Name ?? "null"}");
+                        var loadedMetadata = solutionManager.CurrentSolution != null 
+                            ? solutionManager.GetMetadata(solutionManager.CurrentSolution.Id) 
+                            : null;
+                        LogInfo($"[诊断-加载后] CurrentSolution: {loadedMetadata?.Name ?? "null"}");
                         LogInfo($"[诊断-加载后] CurrentSolutionId: {solutionManager.Settings.CurrentSolutionId ?? "null"}");
                     }
                     catch (Exception ex)

@@ -6,6 +6,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Metadata;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
@@ -26,6 +27,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     public class BindableParameter : Control
     {
         #region 依赖属性
+
+        // IntValue 属性变化回调
+        private static void OnIntValuePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (BindableParameter)d;
+            PluginLogger.Info($"[IntValue] {control.Label}: {e.OldValue} → {e.NewValue}", "BindableParameter");
+        }
 
         // ===== 标签属性 =====
         public static readonly DependencyProperty LabelProperty =
@@ -54,7 +62,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         // ===== Int 值 =====
         public static readonly DependencyProperty IntValueProperty =
             DependencyProperty.Register(nameof(IntValue), typeof(int), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIntValuePropertyChanged));
 
         public static readonly DependencyProperty IntMinimumProperty =
             DependencyProperty.Register(nameof(IntMinimum), typeof(int), typeof(BindableParameter),

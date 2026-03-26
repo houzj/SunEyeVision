@@ -144,9 +144,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 4. UI绑定友好，继承ObservableObject支持属性变更通知
     /// 5. 参数只定义一次，UI直接绑定Parameters属性
     /// 
-    /// 多态序列化：
-    /// 使用 [JsonPolymorphic] 特性支持派生类的多态序列化。
-    /// 序列化时自动添加 "$type" 字段标识具体类型。
+    /// 多态序列化（双层机制）：
+    /// 1. 基类特性：[JsonPolymorphic] 提供多态配置入口，[JsonDerivedType] 注册已知派生类
+    /// 2. 动态注册：ParameterTypeRegistry 在运行时扫描并注册插件派生类型
+    /// 
+    /// 为什么需要双层机制：
+    /// - 基类特性提供多态配置的入口点（必需）
+    /// - 动态注册机制支持插件架构（基类编译时不知道插件派生类）
+    /// - 两者配合才能完整支持可扩展的插件系统
     /// 
     /// 使用示例：
     /// <code>
@@ -384,6 +389,45 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
         #endregion
 
+        /// <summary>
+        /// 获取参数摘要（用于日志输出）
+        /// </summary>
+        /// <returns>参数值的简要描述</returns>
+        public string GetParameterSummary()
+        {
+            var properties = GetSaveableProperties()
+                .Where(p => p.Name != nameof(Version) && p.Name != nameof(Context))
+                .Take(5)  // 最多显示5个参数
+                .ToList();
+
+            if (!properties.Any())
+                return "(无参数)";
+
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var prop in properties)
+            {
+                var value = prop.GetValue(this);
+                var displayAttr = prop.GetCustomAttribute<ParameterDisplayAttribute>();
+                var displayName = displayAttr?.DisplayName ?? prop.Name;
+                
+                // 简化显示
+                var valueStr = value switch
+                {
+                    null => "null",
+                    string s => s.Length > 20 ? s.Substring(0, 20) + "..." : s,
+                    _ => value.ToString()
+                };
+                
+                parts.Add($"{displayName}={valueStr}");
+            }
+
+            var result = string.Join(", ", parts);
+            if (properties.Count < GetSaveableProperties().Count(p => p.Name != nameof(Version) && p.Name != nameof(Context)))
+                result += " ...";
+
+            return result;
+        }
+
         #region 参数特性查询方法
 
         /// <summary>
@@ -420,368 +464,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             var prop = GetType().GetProperty(propertyName);
             if (prop == null) return false;
             return !prop.IsDefined(typeof(IgnoreDisplayAttribute));
-        }
-
-        #endregion
-
-        #region 类型解析辅助方法
-
-        /// <summary>
-        /// 从 AssemblyQualifiedName 中提取程序集名称（忽略版本号）
-        /// </summary>
-        /// <param name="assemblyQualifiedName">完整的类型标识符</param>
-        /// <returns>程序集名称（不含版本号），失败返回 null</returns>
-        /// <remarks>
-        /// 示例：
-        /// 输入: "SunEyeVision.Tool.Threshold.ThresholdParameters, SunEyeVision.Tool.Threshold, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"
-        /// 输出: "SunEyeVision.Tool.Threshold"
-        /// </remarks>
-        private static string? ExtractAssemblyNameWithoutVersion(string assemblyQualifiedName)
-        {
-            try
-            {
-                // AssemblyQualifiedName 格式: "TypeName, AssemblyName, Version=..., Culture=..., PublicKeyToken=..."
-                // 我们只需要 AssemblyName 部分（TypeName 和 AssemblyName 之间的逗号后，Version 之前）
-                var parts = assemblyQualifiedName.Split(',');
-                if (parts.Length >= 2)
-                {
-                    return parts[1].Trim();
-                }
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 从 AssemblyQualifiedName 中提取类型名称
-        /// </summary>
-        /// <param name="assemblyQualifiedName">完整的类型标识符</param>
-        /// <returns>类型名称（含命名空间），失败返回 null</returns>
-        /// <remarks>
-        /// 示例：
-        /// 输入: "SunEyeVision.Tool.Threshold.ThresholdParameters, SunEyeVision.Tool.Threshold, Version=1.0.0.0"
-        /// 输出: "SunEyeVision.Tool.Threshold.ThresholdParameters"
-        /// </remarks>
-        private static string? ExtractTypeName(string assemblyQualifiedName)
-        {
-            try
-            {
-                // AssemblyQualifiedName 格式: "TypeName, AssemblyName, ..."
-                var commaIndex = assemblyQualifiedName.IndexOf(',');
-                if (commaIndex > 0)
-                {
-                    return assemblyQualifiedName.Substring(0, commaIndex).Trim();
-                }
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region 序列化支持
-
-        /// <summary>
-        /// 转换为可序列化字典（用于项目文件保存）
-        /// </summary>
-        /// <remarks>
-        /// 支持 Enum、Point、Rect 等特殊类型的序列化。
-        /// 仅保存标记为可保存的属性（未标记 IgnoreSave）。
-        /// </remarks>
-        public virtual Dictionary<string, object?> ToSerializableDictionary()
-        {
-            var dict = new Dictionary<string, object?>
-            {
-                ["$type"] = GetType().AssemblyQualifiedName,
-                ["Version"] = Version
-            };
-
-            foreach (var prop in GetSaveableProperties())
-            {
-                if (!prop.CanRead) continue;
-
-                var value = prop.GetValue(this);
-                dict[prop.Name] = SerializeValue(value);
-            }
-
-            return dict;
-        }
-
-        /// <summary>
-        /// 从字典加载参数值
-        /// </summary>
-        public void LoadFromDictionary(Dictionary<string, object?> dict)
-        {
-            if (dict == null) return;
-
-            // 恢复版本
-            if (dict.TryGetValue("Version", out var version) && version is int v)
-            {
-                Version = v;
-            }
-
-            foreach (var prop in GetSaveableProperties())
-            {
-                if (!prop.CanWrite) continue;
-                if (!dict.TryGetValue(prop.Name, out var value) || value == null) continue;
-
-                try
-                {
-                    var deserializedValue = DeserializeValue(value, prop.PropertyType);
-                    prop.SetValue(this, deserializedValue);
-                }
-                catch
-                {
-                    // 反序列化失败时保留默认值
-                }
-            }
-        }
-
-        /// <summary>
-        /// 从字典创建强类型参数实例（静态工厂方法）
-        /// </summary>
-        public static T? FromDictionary<T>(Dictionary<string, object?> dict) where T : ToolParameters
-        {
-            if (dict == null) return null;
-
-            // 尝试从字典中的类型信息创建实例
-            if (dict.TryGetValue("$type", out var typeName) && typeName is string typeStr)
-            {
-                var type = Type.GetType(typeStr);
-                if (type != null && typeof(T).IsAssignableFrom(type))
-                {
-                    var instance = Activator.CreateInstance(type) as T;
-                    instance?.LoadFromDictionary(dict);
-                    return instance;
-                }
-            }
-
-            // 回退到直接创建泛型类型
-            var result = Activator.CreateInstance<T>();
-            result.LoadFromDictionary(dict);
-            return result;
-        }
-
-        /// <summary>
-        /// 从字典创建参数实例（非泛型版本）
-        /// </summary>
-        /// <remarks>
-        /// 增强的类型解析逻辑，支持版本兼容性：
-        /// 1. 优先使用忽略版本号的程序集查找（兼容不同版本）
-        /// 2. 回退到 Type.GetType()（标准方法）
-        /// 3. 回退到短标识符映射（兼容旧格式）
-        ///
-        /// 设计原则（rule-004）：
-        /// - 提供多层回退机制，提高成功率
-        /// - 忽略版本号，提高版本兼容性
-        /// - 详细日志记录，便于调试
-        /// </remarks>
-        public static ToolParameters? CreateFromDictionary(Dictionary<string, object?> dict)
-        {
-            if (dict == null) return null;
-
-            if (!dict.TryGetValue("$type", out var typeName) || typeName is not string typeStr)
-            {
-                return null;
-            }
-
-            var logger = VisionLogger.Instance;
-            logger.Log(LogLevel.Info, $"尝试解析类型标识符: {typeStr}", "ToolParameters");
-
-            Type? type = null;
-
-            // 方法1：通过程序集名称查找（忽略版本号）✅ 优先使用
-            var assemblyName = ExtractAssemblyNameWithoutVersion(typeStr);
-            var typeNameOnly = ExtractTypeName(typeStr);
-
-            if (!string.IsNullOrEmpty(assemblyName) && !string.IsNullOrEmpty(typeNameOnly))
-            {
-                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                var assembly = loadedAssemblies.FirstOrDefault(a =>
-                    a.GetName().Name == assemblyName);
-
-                if (assembly != null)
-                {
-                    type = assembly.GetType(typeNameOnly);
-                    if (type != null)
-                    {
-                        logger.Log(LogLevel.Success, $"方法1成功: 通过程序集名称找到类型 (Assembly={assemblyName}, Type={typeNameOnly})", "ToolParameters");
-                    }
-                }
-                else
-                {
-                    logger.Log(LogLevel.Warning, $"方法1失败: 未找到程序集 {assemblyName}", "ToolParameters");
-                }
-            }
-
-            // 方法2：Type.GetType()（标准方法，会检查版本号）⚠️ 可能因版本不匹配失败
-            if (type == null)
-            {
-                type = Type.GetType(typeStr);
-                if (type != null)
-                {
-                    logger.Log(LogLevel.Success, $"方法2成功: Type.GetType() 找到类型", "ToolParameters");
-                }
-                else
-                {
-                    logger.Log(LogLevel.Warning, "方法2失败: Type.GetType() 未找到类型（可能是版本号不匹配）", "ToolParameters");
-                }
-            }
-
-            // 方法3：短标识符映射（兼容旧格式）
-            if (type == null)
-            {
-                type = typeStr switch
-                {
-                    "Generic" => typeof(GenericToolParameters),
-                    _ => null
-                };
-                if (type != null)
-                {
-                    logger.Log(LogLevel.Success, $"方法3成功: 短标识符映射找到类型 (标识符={typeStr})", "ToolParameters");
-                }
-                else
-                {
-                    logger.Log(LogLevel.Warning, "方法3失败: 短标识符映射未找到类型", "ToolParameters");
-                }
-            }
-
-            // 验证类型
-            if (type == null)
-            {
-                logger.Log(LogLevel.Error, $"所有方法均失败: 无法解析类型 {typeStr}", "ToolParameters");
-                return null;
-            }
-
-            if (!typeof(ToolParameters).IsAssignableFrom(type))
-            {
-                logger.Log(LogLevel.Error, $"类型验证失败: {type.FullName} 不是 ToolParameters 的派生类", "ToolParameters");
-                return null;
-            }
-
-            // 创建实例
-            try
-            {
-                var instance = Activator.CreateInstance(type) as ToolParameters;
-                if (instance == null)
-                {
-                    logger.Log(LogLevel.Error, $"实例创建失败: {type.FullName}", "ToolParameters");
-                    return null;
-                }
-
-                instance?.LoadFromDictionary(dict);
-                logger.Log(LogLevel.Success, $"参数实例创建成功: {type.FullName}", "ToolParameters");
-                return instance;
-            }
-            catch (Exception ex)
-            {
-                logger.Log(LogLevel.Error, $"实例创建异常: {type.FullName}, 错误: {ex.Message}", "ToolParameters", ex);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 序列化单个值
-        /// </summary>
-        private static object? SerializeValue(object? value)
-        {
-            if (value == null) return null;
-
-            var type = value.GetType();
-
-            // 枚举转字符串
-            if (type.IsEnum)
-                return value.ToString();
-
-            // OpenCvSharp Point
-            if (value is OpenCvSharp.Point point)
-                return $"{point.X},{point.Y}";
-
-            // OpenCvSharp Point2d
-            if (value is OpenCvSharp.Point2d point2d)
-                return $"{point2d.X},{point2d.Y}";
-
-            // OpenCvSharp Rect
-            if (value is OpenCvSharp.Rect rect)
-                return $"{rect.X},{rect.Y},{rect.Width},{rect.Height}";
-
-            // OpenCvSharp Rect2d
-            if (value is OpenCvSharp.Rect2d rect2d)
-                return $"{rect2d.X},{rect2d.Y},{rect2d.Width},{rect2d.Height}";
-
-            // OpenCvSharp Size
-            if (value is OpenCvSharp.Size size)
-                return $"{size.Width},{size.Height}";
-
-            // 其他类型直接返回
-            return value;
-        }
-
-        /// <summary>
-        /// 反序列化单个值
-        /// </summary>
-        private static object? DeserializeValue(object? value, Type targetType)
-        {
-            if (value == null) return null;
-
-            // 如果已经是目标类型
-            if (targetType.IsAssignableFrom(value.GetType()))
-                return value;
-
-            var strValue = value as string;
-
-            // 枚举
-            if (targetType.IsEnum && strValue != null)
-                return Enum.Parse(targetType, strValue);
-
-            // OpenCvSharp Point
-            if (targetType == typeof(OpenCvSharp.Point) && strValue != null)
-            {
-                var parts = strValue.Split(',');
-                if (parts.Length == 2)
-                    return new OpenCvSharp.Point(int.Parse(parts[0]), int.Parse(parts[1]));
-            }
-
-            // OpenCvSharp Point2d
-            if (targetType == typeof(OpenCvSharp.Point2d) && strValue != null)
-            {
-                var parts = strValue.Split(',');
-                if (parts.Length == 2)
-                    return new OpenCvSharp.Point2d(double.Parse(parts[0]), double.Parse(parts[1]));
-            }
-
-            // OpenCvSharp Rect
-            if (targetType == typeof(OpenCvSharp.Rect) && strValue != null)
-            {
-                var parts = strValue.Split(',');
-                if (parts.Length == 4)
-                    return new OpenCvSharp.Rect(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]), int.Parse(parts[3]));
-            }
-
-            // OpenCvSharp Rect2d
-            if (targetType == typeof(OpenCvSharp.Rect2d) && strValue != null)
-            {
-                var parts = strValue.Split(',');
-                if (parts.Length == 4)
-                    return new OpenCvSharp.Rect2d(double.Parse(parts[0]), double.Parse(parts[1]), double.Parse(parts[2]), double.Parse(parts[3]));
-            }
-
-            // OpenCvSharp Size
-            if (targetType == typeof(OpenCvSharp.Size) && strValue != null)
-            {
-                var parts = strValue.Split(',');
-                if (parts.Length == 2)
-                    return new OpenCvSharp.Size(int.Parse(parts[0]), int.Parse(parts[1]));
-            }
-
-            // 尝试直接转换
-            return Convert.ChangeType(value, targetType);
         }
 
         #endregion
@@ -912,28 +594,5 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 获取所有参数名称
         /// </summary>
         public IEnumerable<string> GetParameterNames() => _values.Keys;
-
-        /// <summary>
-        /// 转换为可序列化字典
-        /// </summary>
-        /// <remarks>
-        /// 修复：必须序列化内部字典 _values 的所有参数值
-        /// </remarks>
-        public override Dictionary<string, object?> ToSerializableDictionary()
-        {
-            var dict = new Dictionary<string, object?>
-            {
-                ["$type"] = GetType().AssemblyQualifiedName,
-                ["Version"] = Version
-            };
-
-            // 序列化所有参数值
-            foreach (var kvp in _values)
-            {
-                dict[kvp.Key] = kvp.Value;
-            }
-
-            return dict;
-        }
     }
 }

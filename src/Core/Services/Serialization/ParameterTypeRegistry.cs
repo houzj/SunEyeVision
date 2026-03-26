@@ -1,0 +1,527 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
+
+namespace SunEyeVision.Core.Services.Serialization
+{
+    /// <summary>
+    /// 参数类型注册中心
+    /// </summary>
+    /// <remarks>
+    /// 多态序列化配置 - 动态注册插件派生类型。
+    /// 
+    /// 设计原则（rule-008: 原型设计期代码纯净原则）：
+    /// - 不考虑向后兼容，直接使用最优方案
+    /// 
+    /// 设计原则（rule-010: 方案系统实现规范）：
+    /// - 优先使用 System.Text.Json 原生多态序列化
+    /// - 使用 DefaultJsonTypeInfoResolver 动态注册派生类型
+    /// - 派生类的 [JsonDerivedType] 特性作为元数据被扫描注册
+    /// 
+    /// 设计原则（rule-012: 参数系统约束条件）：
+    /// - 保持工具注册机制不变
+    /// - 修复参数类型注册逻辑
+    /// 
+    /// 双层机制说明：
+    /// 1. 基类特性（ToolParameters）：
+    ///    - [JsonPolymorphic] 提供多态配置入口（必需）
+    ///    - [JsonDerivedType(typeof(GenericToolParameters), "Generic")] 注册已知派生类
+    /// 
+    /// 2. 动态注册（此类实现）：
+    ///    - 使用 DefaultJsonTypeInfoResolver + 修饰器模式
+    ///    - 在运行时扫描并注册插件派生类型
+    ///    - 支持插件架构（基类编译时不知道插件派生类）
+    /// 
+    /// 主动注册模式：
+    /// - ToolRegistry.RegisterTool 触发 ParameterTypeRegistry.RegisterParameterType
+    /// - 确保在反序列化之前，所有参数类型已注册到多态配置中
+    /// - 避免修饰器延迟执行导致的初始化时序问题
+    /// 
+    /// 修复记录（2026-03-26）：
+    /// - 问题：WithAddedModifier() 返回 IJsonTypeInfoResolver 而非 DefaultJsonTypeInfoResolver
+    /// - 修复：将 _typeResolver 类型改为 IJsonTypeInfoResolver，移除强制转换
+    /// </remarks>
+    public static class ParameterTypeRegistry
+    {
+        private static JsonSerializerOptions? _serializationOptions;
+        private static JsonPolymorphismOptions? _polymorphismOptions;
+        
+        /// <summary>
+        /// 类型解析器（使用接口类型，因为 WithAddedModifier 返回 IJsonTypeInfoResolver）
+        /// </summary>
+        private static IJsonTypeInfoResolver? _typeResolver;
+        
+        private static bool _isInitialized = false;
+        private static readonly object _lock = new();
+        
+        // 已注册的类型集合（用于去重）
+        private static readonly HashSet<Type> _registeredTypes = new();
+        
+        // 诊断计数器（用于验证修复有效性）
+        private static int _modifierCallCount = 0;
+        private static DateTime? _firstModifierCallTime;
+        private static DateTime? _lastModifierCallTime;
+
+        /// <summary>
+        /// 序列化选项（包含多态配置）
+        /// </summary>
+        public static JsonSerializerOptions SerializationOptions
+        {
+            get
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    "🔍 [SerializationOptions] 首次访问，触发初始化",
+                    "ParameterTypeRegistry");
+                EnsureInitialized();
+                return _serializationOptions!;
+            }
+        }
+
+        /// <summary>
+        /// 确保类型注册已完成
+        /// </summary>
+        private static void EnsureInitialized()
+        {
+            if (_isInitialized && _serializationOptions != null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"✓ [EnsureInitialized] 已初始化，跳过 - 已注册类型数: {_registeredTypes.Count}",
+                    "ParameterTypeRegistry");
+                return;
+            }
+
+            lock (_lock)
+            {
+                if (_isInitialized && _serializationOptions != null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"✓ [EnsureInitialized] 已初始化（锁内二次检查），跳过 - 已注册类型数: {_registeredTypes.Count}",
+                        "ParameterTypeRegistry");
+                    return;
+                }
+
+                try
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        "🔧 [EnsureInitialized] 开始初始化...",
+                        "ParameterTypeRegistry");
+                    
+                    InitializeSerializationOptions();
+                    _isInitialized = true;
+                    
+                    // 输出诊断报告
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"✅ [EnsureInitialized] 初始化完成\n{GetDiagnosticInfo()}",
+                        "ParameterTypeRegistry");
+                }
+                catch (Exception ex)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Error,
+                        $"❌ [EnsureInitialized] 初始化失败: {ex.GetType().Name} - {ex.Message}\n" +
+                        $"堆栈: {ex.StackTrace}",
+                        "ParameterTypeRegistry", ex);
+
+                    // 回退：创建基础选项（不包含动态注册）
+                    _serializationOptions = CreateFallbackOptions();
+                    
+                    // 确保 _polymorphismOptions 存在，以便后续注册可以继续
+                    if (_polymorphismOptions == null)
+                    {
+                        _polymorphismOptions = new JsonPolymorphismOptions
+                        {
+                            TypeDiscriminatorPropertyName = "$type",
+                            IgnoreUnrecognizedTypeDiscriminators = false
+                        };
+                        _polymorphismOptions.DerivedTypes.Add(
+                            new JsonDerivedType(typeof(GenericToolParameters), "Generic"));
+                        _registeredTypes.Add(typeof(GenericToolParameters));
+                        
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            "⚠️ [EnsureInitialized] 回退模式：创建了基础多态配置，但不包含 TypeInfoResolver",
+                            "ParameterTypeRegistry");
+                    }
+                    
+                    _isInitialized = true;
+                    
+                    // 输出回退诊断报告
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"⚠️ [EnsureInitialized] 使用回退配置\n{GetDiagnosticInfo()}",
+                        "ParameterTypeRegistry");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 初始化序列化选项（创建空的多态配置）
+        /// </summary>
+        private static void InitializeSerializationOptions()
+        {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                "📝 [InitializeSerializationOptions] 开始创建序列化选项",
+                "ParameterTypeRegistry");
+            
+            // 创建多态配置（初始只包含 GenericToolParameters）
+            _polymorphismOptions = new JsonPolymorphismOptions
+            {
+                TypeDiscriminatorPropertyName = "$type",
+                IgnoreUnrecognizedTypeDiscriminators = false
+            };
+            VisionLogger.Instance.Log(LogLevel.Info,
+                "📝 [InitializeSerializationOptions] JsonPolymorphismOptions 已创建",
+                "ParameterTypeRegistry");
+
+            // 注册 GenericToolParameters 作为默认回退类型
+            _polymorphismOptions.DerivedTypes.Add(
+                new JsonDerivedType(typeof(GenericToolParameters), "Generic"));
+            _registeredTypes.Add(typeof(GenericToolParameters));
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"📝 [InitializeSerializationOptions] 已注册默认类型: GenericToolParameters → 'Generic'",
+                "ParameterTypeRegistry");
+
+            // 创建类型解析器
+            var defaultResolver = new DefaultJsonTypeInfoResolver();
+            VisionLogger.Instance.Log(LogLevel.Info,
+                "📝 [InitializeSerializationOptions] DefaultJsonTypeInfoResolver 已创建",
+                "ParameterTypeRegistry");
+
+            // 添加类型修饰器，将多态配置应用到 ToolParameters 类型
+            // 关键修复：WithAddedModifier 返回 IJsonTypeInfoResolver，不需要强制转换
+            _typeResolver = defaultResolver.WithAddedModifier(ApplyPolymorphismOptions);
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"✅ [InitializeSerializationOptions] 类型修饰器已添加并应用 | " +
+                $"Resolver类型: {_typeResolver.GetType().Name}",
+                "ParameterTypeRegistry");
+
+            _serializationOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = null,  // PascalCase（符合视觉软件行业标准）
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNameCaseInsensitive = true,
+                IncludeFields = true,
+                TypeInfoResolver = _typeResolver
+            };
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"✅ [InitializeSerializationOptions] JsonSerializerOptions 已创建 | " +
+                $"TypeInfoResolver 已设置: {_serializationOptions.TypeInfoResolver != null} | " +
+                $"等待插件参数类型注册...",
+                "ParameterTypeRegistry");
+        }
+
+        /// <summary>
+        /// 将多态配置应用到 ToolParameters 类型
+        /// </summary>
+        private static void ApplyPolymorphismOptions(JsonTypeInfo typeInfo)
+        {
+            // 更新诊断计数器
+            _modifierCallCount++;
+            var currentTime = DateTime.Now;
+            if (_firstModifierCallTime == null)
+                _firstModifierCallTime = currentTime;
+            _lastModifierCallTime = currentTime;
+
+            if (typeInfo.Type != typeof(ToolParameters))
+            {
+                // 记录非目标类型的调用（用于诊断修饰器调用频率）
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"🎯 [修饰器调用#{_modifierCallCount}] 跳过非目标类型: {typeInfo.Type.Name}",
+                    "ParameterTypeRegistry");
+                return;
+            }
+
+            // 🔍 关键诊断：记录修饰器执行时机
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"🎯 [修饰器执行#{_modifierCallCount}] ApplyPolymorphismOptions 被调用 | " +
+                $"TargetType: {typeInfo.Type.FullName} | " +
+                $"_polymorphismOptions 为 null: {_polymorphismOptions == null} | " +
+                $"DerivedTypes 数量: {_polymorphismOptions?.DerivedTypes.Count ?? 0}",
+                "ParameterTypeRegistry");
+            
+            // 🔍 关键诊断：列出所有已注册的派生类型
+            if (_polymorphismOptions != null)
+            {
+                var derivedTypes = string.Join(", ", 
+                    _polymorphismOptions.DerivedTypes.Select(dt => 
+                        $"{dt.DerivedType.Name}({dt.TypeDiscriminator})"));
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"🎯 [修饰器执行#{_modifierCallCount}] 已注册派生类型: {derivedTypes}",
+                    "ParameterTypeRegistry");
+            }
+
+            typeInfo.PolymorphismOptions = _polymorphismOptions;
+            
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"✅ [修饰器执行#{_modifierCallCount}] PolymorphismOptions 已应用到 {typeInfo.Type.Name}",
+                "ParameterTypeRegistry");
+        }
+
+        /// <summary>
+        /// 注册参数类型（由 ToolRegistry.RegisterTool 调用）
+        /// </summary>
+        /// <param name="parameterType">参数类型（ToolParameters 的派生类）</param>
+        /// <param name="typeDiscriminator">类型鉴别器（从 [JsonDerivedType] 特性提取）</param>
+        public static void RegisterParameterType(Type parameterType, string typeDiscriminator)
+        {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"📝 [注册请求] 参数类型: {parameterType.FullName}, 鉴别器: '{typeDiscriminator}'",
+                "ParameterTypeRegistry");
+            
+            if (parameterType == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    "⚠️ [注册失败] 参数类型为 null，跳过注册",
+                    "ParameterTypeRegistry");
+                return;
+            }
+
+            if (!typeof(ToolParameters).IsAssignableFrom(parameterType))
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"⚠️ [注册失败] 类型 {parameterType.Name} 不是 ToolParameters 的派生类，跳过注册",
+                    "ParameterTypeRegistry");
+                return;
+            }
+
+            if (parameterType == typeof(GenericToolParameters))
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    "✓ [注册跳过] GenericToolParameters 已在初始化时注册",
+                    "ParameterTypeRegistry");
+                // GenericToolParameters 已在初始化时注册
+                return;
+            }
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"🔍 [注册前] 调用 EnsureInitialized...",
+                "ParameterTypeRegistry");
+            EnsureInitialized();
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"🔍 [注册前] EnsureInitialized 完成，当前已注册类型数: {_registeredTypes.Count}",
+                "ParameterTypeRegistry");
+
+            lock (_lock)
+            {
+                // 检查是否已注册
+                if (_registeredTypes.Contains(parameterType))
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"✓ [注册跳过] 参数类型 {parameterType.Name} 已注册，跳过重复注册",
+                        "ParameterTypeRegistry");
+                    return;
+                }
+
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"🔍 [注册中] _polymorphismOptions 为 null: {_polymorphismOptions == null}, " +
+                    $"DerivedTypes 数量: {_polymorphismOptions?.DerivedTypes.Count ?? 0}",
+                    "ParameterTypeRegistry");
+
+                // 添加到多态配置
+                _polymorphismOptions!.DerivedTypes.Add(
+                    new JsonDerivedType(parameterType, typeDiscriminator));
+
+                // 记录已注册
+                _registeredTypes.Add(parameterType);
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"✅ [注册成功] {parameterType.FullName} → '{typeDiscriminator}' | " +
+                    $"DerivedTypes 总数: {_polymorphismOptions.DerivedTypes.Count}",
+                    "ParameterTypeRegistry");
+            }
+        }
+
+        /// <summary>
+        /// 批量注册参数类型（从程序集扫描）
+        /// </summary>
+        /// <remarks>
+        /// 用于兼容旧代码，支持从程序集扫描注册所有派生类型。
+        /// 但推荐使用主动注册模式（RegisterParameterType）。
+        /// </remarks>
+        public static void ScanAndRegisterFromCurrentDomain()
+        {
+            EnsureInitialized();
+
+            int registeredCount = 0;
+            int scannedAssemblyCount = 0;
+            int errorAssemblyCount = 0;
+
+            var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"开始扫描程序集: 共 {allAssemblies.Length} 个程序集",
+                "ParameterTypeRegistry");
+
+            foreach (var assembly in allAssemblies)
+            {
+                scannedAssemblyCount++;
+                var assemblyName = assembly.GetName().Name ?? "Unknown";
+
+                try
+                {
+                    var allTypes = assembly.GetTypes();
+                    var derivedTypes = allTypes
+                        .Where(t => t.IsClass && !t.IsAbstract)
+                        .Where(t => typeof(ToolParameters).IsAssignableFrom(t))
+                        .Where(t => t != typeof(GenericToolParameters))
+                        .ToList();
+
+                    if (derivedTypes.Any())
+                    {
+                        VisionLogger.Instance.Log(LogLevel.Info,
+                            $"程序集 [{assemblyName}] 包含 {derivedTypes.Count} 个 ToolParameters 派生类",
+                            "ParameterTypeRegistry");
+                    }
+
+                    foreach (var derivedType in derivedTypes)
+                    {
+                        // 从 [JsonDerivedType] 特性获取类型标识符
+                        var jsonDerivedAttr = derivedType.GetCustomAttribute<JsonDerivedTypeAttribute>();
+                        if (jsonDerivedAttr != null)
+                        {
+                            string typeDiscriminator = jsonDerivedAttr.TypeDiscriminator?.ToString() ?? derivedType.Name;
+                            RegisterParameterType(derivedType, typeDiscriminator);
+                            registeredCount++;
+                        }
+                        else
+                        {
+                            VisionLogger.Instance.Log(LogLevel.Warning,
+                                $"派生类 {derivedType.FullName} 缺少 [JsonDerivedType] 特性，无法注册",
+                                "ParameterTypeRegistry");
+                        }
+                    }
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    errorAssemblyCount++;
+                    var loaderErrors = string.Join(", ", ex.LoaderExceptions.Select(e => e?.Message));
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"程序集 [{assemblyName}] 类型加载失败: {loaderErrors}",
+                        "ParameterTypeRegistry");
+                }
+                catch (Exception ex)
+                {
+                    errorAssemblyCount++;
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"程序集 [{assemblyName}] 扫描失败: {ex.Message}",
+                        "ParameterTypeRegistry");
+                }
+            }
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"程序集扫描完成: 扫描 {scannedAssemblyCount} 个，错误 {errorAssemblyCount} 个，注册 {registeredCount} 个类型",
+                "ParameterTypeRegistry");
+        }
+
+        /// <summary>
+        /// 获取已注册的类型数量
+        /// </summary>
+        public static int GetRegisteredTypeCount()
+        {
+            lock (_lock)
+            {
+                return _registeredTypes.Count;
+            }
+        }
+
+        /// <summary>
+        /// 获取诊断信息（用于验证修复有效性）
+        /// </summary>
+        public static string GetDiagnosticInfo()
+        {
+            lock (_lock)
+            {
+                var derivedTypesList = _polymorphismOptions != null
+                    ? string.Join(", ", _polymorphismOptions.DerivedTypes.Select(dt => 
+                        $"{dt.DerivedType.Name}({dt.TypeDiscriminator})"))
+                    : "null";
+
+                return $"[ParameterTypeRegistry 诊断报告]\n" +
+                       $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                       $"初始化状态: {(_isInitialized ? "✅ 已初始化" : "❌ 未初始化")}\n" +
+                       $"序列化选项: {(_serializationOptions != null ? "✅ 已创建" : "❌ 未创建")}\n" +
+                       $"类型解析器: {(_typeResolver != null ? $"✅ {_typeResolver.GetType().Name}" : "❌ 未创建")}\n" +
+                       $"多态配置: {(_polymorphismOptions != null ? "✅ 已创建" : "❌ 未创建")}\n" +
+                       $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                       $"修饰器调用次数: {_modifierCallCount}\n" +
+                       $"首次调用时间: {_firstModifierCallTime?.ToString("HH:mm:ss.fff") ?? "未调用"}\n" +
+                       $"最后调用时间: {_lastModifierCallTime?.ToString("HH:mm:ss.fff") ?? "未调用"}\n" +
+                       $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                       $"已注册类型数: {_registeredTypes.Count}\n" +
+                       $"派生类型列表: {derivedTypesList}\n" +
+                       $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+            }
+        }
+
+        /// <summary>
+        /// 验证配置有效性（用于运行时检查）
+        /// </summary>
+        /// <returns>验证结果，null 表示有效，否则返回错误消息</returns>
+        public static string? ValidateConfiguration()
+        {
+            var errors = new List<string>();
+
+            if (!_isInitialized)
+                errors.Add("未初始化");
+
+            if (_serializationOptions == null)
+                errors.Add("序列化选项为 null");
+            else if (_serializationOptions.TypeInfoResolver == null)
+                errors.Add("TypeInfoResolver 为 null");
+
+            if (_polymorphismOptions == null)
+                errors.Add("多态配置为 null");
+            else if (_polymorphismOptions.DerivedTypes.Count == 0)
+                errors.Add("派生类型列表为空");
+
+            if (_modifierCallCount == 0)
+                errors.Add("修饰器从未被调用（可能配置未正确应用）");
+
+            return errors.Count == 0 ? null : string.Join("; ", errors);
+        }
+
+        /// <summary>
+        /// 清除所有注册的类型（用于测试）
+        /// </summary>
+        public static void ClearRegistrations()
+        {
+            lock (_lock)
+            {
+                _polymorphismOptions?.DerivedTypes.Clear();
+                _registeredTypes.Clear();
+
+                // 重新注册 GenericToolParameters
+                if (_polymorphismOptions != null)
+                {
+                    _polymorphismOptions.DerivedTypes.Add(
+                        new JsonDerivedType(typeof(GenericToolParameters), "Generic"));
+                    _registeredTypes.Add(typeof(GenericToolParameters));
+                }
+
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    "参数类型注册已清除",
+                    "ParameterTypeRegistry");
+            }
+        }
+
+        /// <summary>
+        /// 创建回退选项（用于初始化失败时）
+        /// </summary>
+        private static JsonSerializerOptions CreateFallbackOptions()
+        {
+            return new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = null,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNameCaseInsensitive = true,
+                IncludeFields = true
+            };
+        }
+    }
+}

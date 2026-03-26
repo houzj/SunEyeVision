@@ -47,6 +47,11 @@ namespace SunEyeVision.UI.ViewModels
         private readonly IWorkflowNodeFactory _nodeFactory;
 
         /// <summary>
+        /// 节点工厂（公共访问）
+        /// </summary>
+        public IWorkflowNodeFactory WorkflowNodeFactory => _nodeFactory;
+
+        /// <summary>
         /// 命令管理器
         /// </summary>
         public AppCommands.CommandManager CommandManager { get; }

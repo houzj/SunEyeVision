@@ -6,6 +6,9 @@ using System.Linq;
 using System.Windows;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.Performance;
+using SunEyeVision.UI.Services.Workflow;
+using SunEyeVision.UI.Services.Canvas;
+using SunEyeVision.UI.Services.Interaction;
 
 namespace SunEyeVision.UI.Services.Performance
 {
@@ -16,10 +19,14 @@ namespace SunEyeVision.UI.Services.Performance
     public class PerformanceBenchmark
     {
         private readonly PerformanceMonitor _monitor;
+        private readonly IWorkflowNodeFactory _nodeFactory;
+        private readonly INodeSequenceManager _sequenceManager;
 
         public PerformanceBenchmark()
         {
             _monitor = new PerformanceMonitor();
+            _sequenceManager = new NodeSequenceManager();
+            _nodeFactory = new WorkflowNodeFactory(_sequenceManager);
         }
 
         /// <summary>
@@ -340,16 +347,13 @@ namespace SunEyeVision.UI.Services.Performance
 
             for (int i = 0; i < count; i++)
             {
-                var nodeName = $"{i + 1} 节点{i + 1}";
-                var node = new WorkflowNode(
-                    id: $"node_{i}",
-                    name: nodeName,
-                    dispName: $"节点{i + 1}",
-                    toolType: "测试算法"
-                )
-                {
-                    Position = new Point(random.Next(50, 1500), random.Next(50, 1000))
-                };
+                // 使用工厂创建节点（遵循rule-008: 原型设计期代码纯净原则）
+                var node = _nodeFactory.CreateNode(
+                    "测试算法",
+                    name: $"{i + 1} 节点{i + 1}",
+                    workflowId: "benchmark_workflow"
+                );
+                node.Position = new Point(random.Next(50, 1500), random.Next(50, 1000));
                 nodes.Add(node);
             }
 

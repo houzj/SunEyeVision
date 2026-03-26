@@ -1,9 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media.Imaging;
+using OpenCvSharp;
+using OpenCvSharp.WpfExtensions;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
@@ -19,71 +23,94 @@ using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 namespace SunEyeVision.Tool.Threshold.Views
 {
     /// <summary>
-    /// 阈值化工具调试窗口 - 使用XAML Tabs架构
+    /// 阈值化工具调试窗口 - 直接绑定参数架构
     /// </summary>
+    /// <remarks>
+    /// 架构优化（rule-008）：
+    /// - 直接持有参数引用，零拷贝实时同步
+    /// - 直接绑定到参数对象，不经过 ViewModel 中转
+    /// - 调试窗口独立，每个节点一个窗口
+    /// </remarks>
     public partial class ThresholdToolDebugWindow : BaseToolDebugWindow
     {
+        #region 字段
+
         // XAML控件引用（命名约定：字段名 = _ + XAML控件名）
         private ImageSourceSelector? _imageSourceSelector;
         private BindableParameter? _thresholdParam;
         private BindableParameter? _maxValueParam;
+        private ComboBox? _thresholdTypeComboBox;
         private RegionEditorControl? _regionEditor;
         private Image? _outputImage;
         private TextBlock? _statusText;
 
-        private ThresholdToolViewModel _viewModel = null!;
+        // 参数引用（零拷贝，与 WorkflowNode.Parameters 同一个实例）
+        private ThresholdParameters _parameters = null!;
+
+        // 数据提供者
         private WorkflowDataSourceProvider _dataProvider = null!;
         private RegionEditorIntegration _regionEditorIntegration = null!;
 
-        // 节点引用（用于配置持久化）
-        private object? _currentNode;
-        private System.Reflection.PropertyInfo? _parametersProperty;
+        // 执行状态
+        private double _executionTimeMs;
+
+        #endregion
+
+        #region 事件
 
         public event EventHandler<ThresholdResults>? ToolExecutionCompleted;
+
+        #endregion
+
+        #region 图像源管理
+
+        /// <summary>
+        /// 当前选中的图像源
+        /// </summary>
+        public ImageSourceInfo? SelectedImageSource { get; set; }
+
+        /// <summary>
+        /// 可用图像源列表
+        /// </summary>
+        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; } = new();
+
+        #endregion
+
+        #region 构造函数
 
         public ThresholdToolDebugWindow()
         {
             InitializeComponent();
 
-            // 初始化ViewModel
-            _viewModel = new ThresholdToolViewModel();
-            DataContext = _viewModel;
+            // 初始化默认参数
+            _parameters = new ThresholdParameters();
 
             // 解析XAML中命名的控件引用
             ResolveNamedControls();
-            PluginLogger.Info($"[ThresholdToolDebugWindow构造函数] ResolveNamedControls完成，_regionEditor={(_regionEditor != null ? "已找到" : "未找到")}", "ThresholdTool");
 
             // 初始化绑定和事件
             SetupBindingsAndEvents();
 
             // 初始化RegionEditor
             InitializeRegionEditor();
-
-            // 订阅区域数据变更事件
-            PluginLogger.Info($"[ThresholdToolDebugWindow构造函数] 准备订阅事件，_regionEditor={(_regionEditor != null ? "已找到" : "未找到")}", "ThresholdTool");
-            if (_regionEditor != null)
-            {
-                _regionEditor.RegionDataChanged += OnRegionDataChanged;
-                PluginLogger.Info("✓ 已订阅区域数据变更事件", "ThresholdTool");
-            }
-            else
-            {
-                PluginLogger.Error("❌ 无法订阅区域数据变更事件：_regionEditor 为 null", "ThresholdTool");
-            }
         }
 
         public ThresholdToolDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
             : this()
         {
-            _viewModel.Initialize(toolId, toolPlugin, toolMetadata);
-            NodeName = _viewModel.ToolName;
-            
+            Tool = toolPlugin;
+            NodeName = toolMetadata?.DisplayName ?? "图像阈值化";
+
             if (_dataProvider != null)
             {
-                _viewModel.PopulateImageSources(_dataProvider);
+                PopulateImageSources(_dataProvider);
                 _regionEditorIntegration?.SetCurrentNodeId(toolId);
             }
         }
+
+        #endregion
+
+        #region 参数绑定
 
         /// <summary>
         /// 设置绑定和事件
@@ -94,12 +121,12 @@ namespace SunEyeVision.Tool.Threshold.Views
             if (_imageSourceSelector != null)
                 _imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
 
-            // 参数绑定
+            // 直接绑定到参数对象
             if (_thresholdParam != null)
             {
-                var binding = new Binding("Parameters.Threshold")
+                var binding = new Binding("Threshold")
                 {
-                    Source = _viewModel,
+                    Source = _parameters,
                     Mode = BindingMode.TwoWay
                 };
                 _thresholdParam.SetBinding(BindableParameter.IntValueProperty, binding);
@@ -107,14 +134,101 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             if (_maxValueParam != null)
             {
-                var binding = new Binding("Parameters.MaxValue")
+                var binding = new Binding("MaxValue")
                 {
-                    Source = _viewModel,
+                    Source = _parameters,
                     Mode = BindingMode.TwoWay
                 };
                 _maxValueParam.SetBinding(BindableParameter.IntValueProperty, binding);
             }
+
+            // 阈值类型 ComboBox 事件
+            if (_thresholdTypeComboBox != null)
+            {
+                _thresholdTypeComboBox.SelectionChanged += OnThresholdTypeChanged;
+                UpdateThresholdTypeComboBox();
+            }
+
+            // 区域编辑器事件
+            if (_regionEditor != null)
+            {
+                _regionEditor.RegionDataChanged += OnRegionDataChanged;
+            }
         }
+
+        /// <summary>
+        /// 阈值类型变更事件
+        /// </summary>
+        private void OnThresholdTypeChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_thresholdTypeComboBox == null || _parameters == null) return;
+
+            var selectedItem = _thresholdTypeComboBox.SelectedItem as ComboBoxItem;
+            var typeStr = selectedItem?.Content?.ToString() ?? "Binary";
+
+            _parameters.Type = ParseThresholdType(typeStr);
+            _parameters.AdaptiveMethod = ParseAdaptiveMethod(typeStr);
+        }
+
+        /// <summary>
+        /// 更新 ComboBox 显示
+        /// </summary>
+        private void UpdateThresholdTypeComboBox()
+        {
+            if (_thresholdTypeComboBox == null || _parameters == null) return;
+
+            var typeStr = _parameters.Type switch
+            {
+                ThresholdType.Binary => "Binary",
+                ThresholdType.BinaryInv => "BinaryInv",
+                ThresholdType.Trunc => "Trunc",
+                ThresholdType.ToZero => "ToZero",
+                ThresholdType.ToZeroInv => "ToZeroInv",
+                _ => "Binary"
+            };
+
+            foreach (ComboBoxItem item in _thresholdTypeComboBox.Items)
+            {
+                if (item.Content?.ToString() == typeStr)
+                {
+                    item.IsSelected = true;
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 解析阈值类型字符串
+        /// </summary>
+        private static ThresholdType ParseThresholdType(string typeStr)
+        {
+            return typeStr switch
+            {
+                "Binary" => ThresholdType.Binary,
+                "BinaryInv" => ThresholdType.BinaryInv,
+                "Trunc" => ThresholdType.Trunc,
+                "ToZero" => ThresholdType.ToZero,
+                "ToZeroInv" => ThresholdType.ToZeroInv,
+                _ => ThresholdType.Binary
+            };
+        }
+
+        /// <summary>
+        /// 解析自适应方法字符串
+        /// </summary>
+        private static AdaptiveMethod ParseAdaptiveMethod(string typeStr)
+        {
+            return typeStr switch
+            {
+                "AdaptiveMean" => AdaptiveMethod.Mean,
+                "AdaptiveGaussian" => AdaptiveMethod.Gaussian,
+                _ => AdaptiveMethod.Mean
+            };
+        }
+
+        #endregion
+
+        #region RegionEditor
 
         private void InitializeRegionEditor()
         {
@@ -122,172 +236,93 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             if (_regionEditor != null)
             {
-                // ✅ 使用 RegionEditorControl 已经创建的 ViewModel
-                // 这样可以确保按钮和参数面板使用同一个 ViewModel 实例
                 var regionEditorViewModel = _regionEditor.ViewModel;
                 _regionEditorIntegration = new RegionEditorIntegration(regionEditorViewModel);
-                _regionEditorIntegration.SetCurrentNodeId(_viewModel.ToolId);
             }
         }
 
         private void OnRegionDataChanged(object? sender, RegionData? region)
         {
-            if (region == null)
-            {
-                PluginLogger.Warning("⚠️ 区域数据变更事件：区域为null", "ThresholdTool");
-                return;
-            }
+            if (region == null) return;
 
-            PluginLogger.Info("═══════════════════════════════════════", "ThresholdTool");
-            PluginLogger.Info("🎯 区域数据已变更", "ThresholdTool");
-            PluginLogger.Info($"✓ 区域名称: {region.Name}", "ThresholdTool");
-            PluginLogger.Info($"✓ 区域ID: {region.Id}", "ThresholdTool");
-            PluginLogger.Info($"✓ 形状类型: {region.GetShapeType()}", "ThresholdTool");
-
-            if (region.Parameters is ShapeParameters shapeDef)
-            {
-                PluginLogger.Info($"✓ 中心点: ({shapeDef.CenterX:F2}, {shapeDef.CenterY:F2})", "ThresholdTool");
-                PluginLogger.Info($"✓ 尺寸: {shapeDef.Width:F2} × {shapeDef.Height:F2}", "ThresholdTool");
-                PluginLogger.Info($"✓ 角度: {shapeDef.Angle:F2}°", "ThresholdTool");
-            }
-
+            PluginLogger.Info($"区域数据已变更: {region.Name} ({region.GetShapeType()})", "ThresholdTool");
             SaveRegionInfoToNode(region);
-            PluginLogger.Info("═══════════════════════════════════════", "ThresholdTool");
         }
 
         private void SaveRegionInfoToNode(RegionData region)
         {
-            if (_currentNode == null || _parametersProperty == null)
-            {
-                PluginLogger.Warning("⚠️ 无法保存区域信息：节点或参数属性为空", "ThresholdTool");
-                return;
-            }
-
-            var parameters = _parametersProperty.GetValue(_currentNode) as IDictionary<string, object>;
-            if (parameters == null)
-            {
-                parameters = new Dictionary<string, object>();
-                _parametersProperty.SetValue(_currentNode, parameters);
-            }
-
-            var regionInfo = new Dictionary<string, object>
-            {
-                ["RegionId"] = region.Id,
-                ["RegionName"] = region.Name,
-                ["ShapeType"] = region.GetShapeType()?.ToString() ?? "Unknown",
-                ["Mode"] = region.GetMode().ToString()
-            };
-
-            if (region.Parameters is ShapeParameters shapeDef)
-            {
-                regionInfo["CenterX"] = shapeDef.CenterX;
-                regionInfo["CenterY"] = shapeDef.CenterY;
-                regionInfo["Width"] = shapeDef.Width;
-                regionInfo["Height"] = shapeDef.Height;
-                regionInfo["Angle"] = shapeDef.Angle;
-            }
-
-            parameters["CurrentRegion"] = regionInfo;
-
-            // 验证保存
-            var saved = parameters["CurrentRegion"] as IDictionary<string, object>;
-            if (saved != null)
-            {
-                PluginLogger.Success($"✓ 验证成功：节点参数中的区域信息包含 {saved.Count} 项", "ThresholdTool");
-            }
+            PluginLogger.Success($"区域信息已保存: {region.Id}", "ThresholdTool");
         }
 
-        private void OnImageSourceChanged(object sender, RoutedEventArgs e)
-        {
-            if (_imageSourceSelector != null)
-                _viewModel.SelectedImageSource = _imageSourceSelector.SelectedImageSource;
-        }
+        #endregion
 
         #region 数据提供者设置
 
         public void SetDataProvider(WorkflowDataSourceProvider dataProvider)
         {
             _dataProvider = dataProvider;
-            _viewModel.PopulateImageSources(dataProvider);
-            _regionEditorIntegration?.SetCurrentNodeId(_viewModel.ToolId);
-            RestoreImageSourceSelection();
+            PopulateImageSources(dataProvider);
         }
 
         public void SetCurrentNode(object node)
         {
-            _currentNode = node;
-            _parametersProperty = node?.GetType().GetProperty("Parameters");
-            LoadConfigFromNode();
-        }
+            if (node == null) return;
 
-        #endregion
+            var parametersProperty = node.GetType().GetProperty("Parameters");
+            if (parametersProperty == null) return;
 
-        #region 配置持久化
-
-        private void LoadConfigFromNode()
-        {
-            if (_currentNode == null || _parametersProperty == null) return;
-
-            try
+            var parameters = parametersProperty.GetValue(node) as ToolParameters;
+            if (parameters is ThresholdParameters thresholdParams)
             {
-                var parameters = _parametersProperty.GetValue(_currentNode) as IDictionary<string, object>;
-                if (parameters == null) return;
-                
-                _viewModel.LoadFromNodeParameters(parameters);
+                // 直接设置参数引用（零拷贝）
+                _parameters = thresholdParams;
+
+                // 重新建立绑定
+                SetupBindingsAndEvents();
+
+                PluginLogger.Success($"参数引用已设置: Threshold={thresholdParams.Threshold}", "ThresholdTool");
             }
-            catch (Exception ex)
+            else
             {
-                PluginLogger.Error($"加载配置失败: {ex.Message}", "ThresholdTool");
+                PluginLogger.Warning($"参数类型不匹配: 期望 ThresholdParameters，实际 {parameters?.GetType().Name}", "ThresholdTool");
             }
         }
 
-        private void SaveConfigToNode()
+        /// <summary>
+        /// 填充可用图像源列表
+        /// </summary>
+        private void PopulateImageSources(WorkflowDataSourceProvider dataProvider)
         {
-            if (_currentNode == null || _parametersProperty == null) return;
+            AvailableImageSources.Clear();
 
-            try
+            if (dataProvider == null) return;
+
+            var nodeOutputs = dataProvider.GetParentNodeOutputs("Mat");
+
+            foreach (var nodeOutput in nodeOutputs)
             {
-                var parameters = _parametersProperty.GetValue(_currentNode) as IDictionary<string, object>;
-                if (parameters == null)
+                if (nodeOutput.DataType == "Mat" ||
+                    nodeOutput.Children.Any(c => c.DataType == "Mat"))
                 {
-                    parameters = new Dictionary<string, object>();
-                    _parametersProperty.SetValue(_currentNode, parameters);
-                }
-
-                _viewModel.SaveToNodeParameters(parameters);
-            }
-            catch (Exception ex)
-            {
-                PluginLogger.Error($"保存配置失败: {ex.Message}", "ThresholdTool");
-            }
-        }
-
-        private void RestoreImageSourceSelection()
-        {
-            if (_currentNode == null || _parametersProperty == null || _dataProvider == null) return;
-
-            try
-            {
-                var parameters = _parametersProperty.GetValue(_currentNode) as IDictionary<string, object>;
-                var (savedNodeId, savedOutputPort) = ThresholdToolViewModel.GetSavedImageSource(parameters);
-
-                if (!string.IsNullOrEmpty(savedNodeId))
-                {
-                    var matchedSource = _viewModel.AvailableImageSources.FirstOrDefault(s =>
-                        s.NodeId == savedNodeId &&
-                        (string.IsNullOrEmpty(savedOutputPort) || s.OutputPortName == savedOutputPort));
-
-                    if (matchedSource != null)
+                    var imageSource = new ImageSourceInfo
                     {
-                        _viewModel.SelectedImageSource = matchedSource;
-                        if (_imageSourceSelector != null)
-                            _imageSourceSelector.SelectedImageSource = matchedSource;
+                        NodeId = nodeOutput.NodeId,
+                        NodeName = nodeOutput.NodeName,
+                        OutputPortName = "Output"
+                    };
+
+                    if (nodeOutput.DataType != "Mat" && nodeOutput.Children.Any())
+                    {
+                        var matChild = nodeOutput.Children.FirstOrDefault(c =>
+                            c.PropertyPath == "OutputImage" && c.DataType == "Mat");
+                        if (matChild != null)
+                        {
+                            imageSource.OutputPortName = matChild.PropertyPath;
+                        }
                     }
+
+                    AvailableImageSources.Add(imageSource);
                 }
-            }
-            catch (Exception ex)
-            {
-                PluginLogger.Error($"恢复图像源选择失败: {ex.Message}", "ThresholdTool");
             }
         }
 
@@ -295,13 +330,6 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #region 主窗口ImageControl绑定
 
-        /// <summary>
-        /// 设置主窗口的ImageControl - 绑定到RegionEditor
-        /// </summary>
-        /// <remarks>
-        /// 当主窗口传递ImageControl时，RegionEditorControl会在该ImageControl的OverlayCanvas上绘制区域。
-        /// 这样用户在调试窗口点击绘制按钮时，区域会显示在主窗口的图像上。
-        /// </remarks>
         public override void SetMainImageControl(ImageControl? imageControl)
         {
             base.SetMainImageControl(imageControl);
@@ -309,11 +337,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             if (_regionEditor != null && imageControl != null)
             {
                 _regionEditor.SetMainImageControl(imageControl);
-                System.Diagnostics.Debug.WriteLine("[ThresholdToolDebugWindow] ✓ RegionEditor 已绑定到主窗口 ImageControl");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[ThresholdToolDebugWindow] ⚠ 绑定失败 - RegionEditor: {_regionEditor != null}, ImageControl: {imageControl != null}");
             }
         }
 
@@ -323,92 +346,138 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         protected override void OnExecuteRequested()
         {
-            if (_viewModel.SelectedImageSource == null)
+            if (SelectedImageSource == null)
             {
-                if (_statusText != null) _statusText.Text = "⚠️ 请选择输入图像源";
+                if (_statusText != null) _statusText.Text = "请选择输入图像源";
                 return;
             }
 
             if (_dataProvider == null)
             {
-                if (_statusText != null) _statusText.Text = "⚠️ 数据提供者未初始化";
+                if (_statusText != null) _statusText.Text = "数据提供者未初始化";
                 return;
             }
 
-            if (!_dataProvider.HasNodeOutput(_viewModel.SelectedImageSource.NodeId))
+            if (!_dataProvider.HasNodeOutput(SelectedImageSource.NodeId))
             {
-                if (_statusText != null) _statusText.Text = "⚠️ 图像源节点尚未执行，请先执行前驱节点";
+                if (_statusText != null) _statusText.Text = "图像源节点尚未执行，请先执行前驱节点";
                 return;
             }
 
             var imageMat = _dataProvider.GetCurrentBindingValue(
-                _viewModel.SelectedImageSource.NodeId,
+                SelectedImageSource.NodeId,
                 "Output",
-                _viewModel.SelectedImageSource.OutputPortName
-            ) as OpenCvSharp.Mat;
+                SelectedImageSource.OutputPortName
+            ) as Mat;
 
             if (imageMat == null || imageMat.Empty())
             {
-                if (_statusText != null) _statusText.Text = "⚠️ 无法获取图像数据或图像为空";
+                if (_statusText != null) _statusText.Text = "无法获取图像数据或图像为空";
                 return;
             }
 
-            _viewModel.ExecutionCompleted -= OnViewModelExecutionCompleted;
-            _viewModel.ExecutionCompleted += OnViewModelExecutionCompleted;
-
-            _viewModel.RunToolWithImage(imageMat);
-
-            if (_regionEditor != null)
-            {
-                var regions = _regionEditor.ResolveAllRegions();
-                // 可将regions传递给工具进行ROI处理
-            }
-
-            base.OnExecuteRequested();
+            ExecuteTool(imageMat);
         }
 
-        private void OnViewModelExecutionCompleted(object? sender, RunResult result)
+        /// <summary>
+        /// 执行工具
+        /// </summary>
+        private void ExecuteTool(Mat inputImage)
         {
-            Dispatcher.Invoke(() =>
+            // 直接转换为强类型工具
+            if (Tool is not ThresholdTool thresholdTool)
             {
-                if (result.IsSuccess && result.ToolResult is ThresholdResults thresholdResult)
-                {
-                    if (_statusText != null)
-                        _statusText.Text = $"✅ 执行成功 - 阈值: {thresholdResult.ThresholdUsed:F0}";
+                if (_statusText != null) _statusText.Text = "工具实例无效";
+                return;
+            }
 
-                    if (_outputImage != null && _viewModel.OutputImage != null)
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                // 克隆参数用于执行（线程安全）
+                var runParams = (ThresholdParameters)_parameters.Clone();
+
+                // 执行工具（返回强类型 ThresholdResults）
+                ThresholdResults result = thresholdTool.Run(inputImage, runParams);
+
+                stopwatch.Stop();
+                _executionTimeMs = stopwatch.ElapsedMilliseconds;
+
+                // 更新UI
+                Dispatcher.Invoke(() =>
+                {
+                    if (result.IsSuccess)
                     {
-                        _outputImage.Source = _viewModel.OutputImage;
-                    }
+                        if (_statusText != null)
+                            _statusText.Text = $"执行成功 - 阈值: {result.ThresholdUsed:F0}ms";
 
-                    ToolExecutionCompleted?.Invoke(this, thresholdResult);
-                }
-                else
+                        if (_outputImage != null && result.OutputImage != null)
+                        {
+                            _outputImage.Source = result.OutputImage.ToBitmapSource();
+                        }
+
+                        ToolExecutionCompleted?.Invoke(this, result);
+                    }
+                    else
+                    {
+                        if (_statusText != null)
+                            _statusText.Text = $"执行失败 - {result.ErrorMessage}";
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _executionTimeMs = stopwatch.ElapsedMilliseconds;
+
+                Dispatcher.Invoke(() =>
                 {
                     if (_statusText != null)
-                        _statusText.Text = $"❌ 执行失败 - {result.ErrorMessage}";
-                }
-            });
+                        _statusText.Text = $"执行异常: {ex.Message}";
+                });
+
+                PluginLogger.Error($"工具执行异常: {ex.Message}", "ThresholdTool");
+            }
         }
 
         protected override void OnResetRequested()
         {
-            _viewModel.ResetParameters();
+            _parameters = new ThresholdParameters();
+            SetupBindingsAndEvents();
+
             if (_statusText != null) _statusText.Text = "参数已重置";
             base.OnResetRequested();
         }
 
+        #endregion
+
+        #region 窗口关闭
+
         protected override void OnClosed(System.EventArgs e)
         {
+            if (_parameters != null)
+            {
+                PluginLogger.Info($"调试窗口关闭 - 最终参数: Threshold={_parameters.Threshold}", "ThresholdTool");
+            }
+
             if (_regionEditor != null)
             {
                 _regionEditor.RegionDataChanged -= OnRegionDataChanged;
-                PluginLogger.Info("✓ 已取消区域数据变更事件订阅", "ThresholdTool");
             }
 
-            SaveConfigToNode();
             _regionEditorIntegration?.Dispose();
             base.OnClosed(e);
+        }
+
+        #endregion
+
+        #region 图像源选择事件
+
+        private void OnImageSourceChanged(object sender, RoutedEventArgs e)
+        {
+            if (_imageSourceSelector != null)
+                SelectedImageSource = _imageSourceSelector.SelectedImageSource;
         }
 
         #endregion

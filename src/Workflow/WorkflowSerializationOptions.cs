@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json;
 using SunEyeVision.Core.Services.Serialization;
 
@@ -50,8 +50,12 @@ namespace SunEyeVision.Workflow
                     {
                         if (_default == null)
                         {
-                            // 创建新的选项实例，基于 Core 的基础配置
-                            _default = new JsonSerializerOptions(JsonSerializationOptions.Default);
+                            // 直接使用 ParameterTypeRegistry.SerializationOptions
+                            // 这确保动态多态类型注册生效
+                            _default = new JsonSerializerOptions(ParameterTypeRegistry.SerializationOptions);
+                            
+                            // ★ 关键：手动复制 TypeInfoResolver（复制构造函数不会复制它）
+                            _default.TypeInfoResolver = ParameterTypeRegistry.SerializationOptions.TypeInfoResolver;
                             
                             // 注册 Workflow 层的转换器
                             _default.Converters.Add(new WorkflowJsonConverter());
@@ -86,8 +90,15 @@ namespace SunEyeVision.Workflow
                     {
                         if (_compact == null)
                         {
-                            // 创建新的选项实例，基于 Core 的紧凑配置
-                            _compact = new JsonSerializerOptions(JsonSerializationOptions.Compact);
+                            // 直接使用 ParameterTypeRegistry.SerializationOptions
+                            // 这确保动态多态类型注册生效
+                            _compact = new JsonSerializerOptions(ParameterTypeRegistry.SerializationOptions)
+                            {
+                                WriteIndented = false
+                            };
+                            
+                            // ★ 关键：手动复制 TypeInfoResolver（复制构造函数不会复制它）
+                            _compact.TypeInfoResolver = ParameterTypeRegistry.SerializationOptions.TypeInfoResolver;
                             
                             // 注册 Workflow 层的转换器
                             _compact.Converters.Add(new WorkflowJsonConverter());

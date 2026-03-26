@@ -10,9 +10,18 @@ using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Tool.OCR.Views;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.OCR
 {
+    /// <summary>
+    /// OCR识别参数
+    /// </summary>
+    /// <remarks>
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "OCR"。
+    /// </remarks>
+    [JsonDerivedType(typeof(OCRParameters), "OCR")]
     public class OCRParameters : ToolParameters
     {
         public string Language { get; set; } = "CN";

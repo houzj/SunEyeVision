@@ -38,7 +38,7 @@ namespace SunEyeVision.Workflow
                 {
                     try
                     {
-                        var nodeDict = JsonElementToDictionary(nodeElement);
+                        var nodeDict = JsonElementToDictionary(nodeElement, options);
 
                         if (nodeDict != null)
                         {
@@ -110,13 +110,75 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 将 JsonElement 转换为 Dictionary<string, object>
         /// </summary>
-        private Dictionary<string, object?> JsonElementToDictionary(JsonElement element)
+        /// <remarks>
+        /// 特殊处理：Parameters 字段直接反序列化为 ToolParameters 对象
+        /// </remarks>
+        private Dictionary<string, object?> JsonElementToDictionary(JsonElement element, JsonSerializerOptions options)
         {
             var dict = new Dictionary<string, object?>();
 
             foreach (var property in element.EnumerateObject())
             {
-                dict[property.Name] = JsonElementToObject(property.Value);
+                // 特殊处理 Parameters 字段：直接反序列化为 ToolParameters 对象
+                if (property.Name == "Parameters")
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"📥 [参数反序列化开始] 准备反序列化 Parameters 字段",
+                        "WorkflowJsonConverter");
+                    
+                    // 🔍 关键诊断：输出原始 JSON 内容
+                    var rawText = property.Value.GetRawText();
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"📥 [参数反序列化] 原始 JSON: {rawText.Substring(0, Math.Min(200, rawText.Length))}...",
+                        "WorkflowJsonConverter");
+                    
+                    // 🔍 关键诊断：检查 options 中的 TypeInfoResolver
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"📥 [参数反序列化] JsonSerializerOptions 配置: " +
+                        $"WriteIndented={options.WriteIndented}, " +
+                        $"PropertyNamingPolicy={options.PropertyNamingPolicy?.GetType().Name ?? "null"}, " +
+                        $"TypeInfoResolver={options.TypeInfoResolver?.GetType().Name ?? "null"}",
+                        "WorkflowJsonConverter");
+                    
+                    try
+                    {
+                        var parameters = JsonSerializer.Deserialize<ToolParameters>(
+                            property.Value.GetRawText(),
+                            options
+                        );
+                        if (parameters != null)
+                        {
+                            // 🔍 详细日志：参数反序列化成功
+                            var paramType = parameters.GetType().Name;
+                            var paramValues = parameters.GetParameterSummary();
+                            VisionLogger.Instance.Log(LogLevel.Success,
+                                $"✅ [参数反序列化成功] 类型: {paramType} | 值: {paramValues}",
+                                "WorkflowJsonConverter");
+                            dict[property.Name] = parameters;
+                        }
+                        else
+                        {
+                            VisionLogger.Instance.Log(LogLevel.Warning,
+                                $"⚠️ [参数反序列化失败] 结果为 null，使用 GenericToolParameters",
+                                "WorkflowJsonConverter");
+                            dict[property.Name] = new GenericToolParameters();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        VisionLogger.Instance.Log(LogLevel.Error,
+                            $"❌ [参数反序列化异常] 错误: {ex.Message}",
+                            "WorkflowJsonConverter", ex);
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"⚠️ [参数反序列化失败] 使用 GenericToolParameters 作为回退",
+                            "WorkflowJsonConverter");
+                        dict[property.Name] = new GenericToolParameters();
+                    }
+                }
+                else
+                {
+                    dict[property.Name] = JsonElementToObject(property.Value, options);
+                }
             }
 
             return dict;
@@ -125,7 +187,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 将 JsonElement 转换为相应的 C# 对象
         /// </summary>
-        private object? JsonElementToObject(JsonElement element)
+        private object? JsonElementToObject(JsonElement element, JsonSerializerOptions options)
         {
             switch (element.ValueKind)
             {
@@ -146,12 +208,12 @@ namespace SunEyeVision.Workflow
                 case JsonValueKind.Null:
                     return null;
                 case JsonValueKind.Object:
-                    return JsonElementToDictionary(element);
+                    return JsonElementToDictionary(element, options);
                 case JsonValueKind.Array:
                     var list = new List<object?>();
                     foreach (var item in element.EnumerateArray())
                     {
-                        list.Add(JsonElementToObject(item));
+                        list.Add(JsonElementToObject(item, options));
                     }
                     return list;
                 default:

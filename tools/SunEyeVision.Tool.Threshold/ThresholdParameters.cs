@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Validation;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Tool.Threshold
 {
@@ -31,7 +32,12 @@ namespace SunEyeVision.Tool.Threshold
     /// <remarks>
     /// 参数类继承 ObservableObject，自带属性变化通知，UI 可直接绑定。
     /// 使用 SetProperty 实现属性，自动触发 PropertyChanged 事件和日志记录。
+    /// 
+    /// 多态序列化（rule-010: 方案系统实现规范）：
+    /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "Threshold"。
+    /// System.Text.Json 会自动添加 "$type" 字段并在反序列化时识别。
     /// </remarks>
+    [JsonDerivedType(typeof(ThresholdParameters), "Threshold")]
     public class ThresholdParameters : ToolParameters
     {
         #region 私有字段
@@ -55,7 +61,12 @@ namespace SunEyeVision.Tool.Threshold
         public int Threshold
         {
             get => _threshold;
-            set => SetProperty(ref _threshold, value, "阈值");
+            set
+            {
+                // 🔍 诊断日志：Threshold setter 被调用
+                System.Diagnostics.Debug.WriteLine($"[ThresholdParameters.Threshold] setter被调用: {_threshold} → {value}");
+                SetProperty(ref _threshold, value, "阈值");
+            }
         }
 
         /// <summary>

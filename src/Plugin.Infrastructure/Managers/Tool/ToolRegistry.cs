@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
 {
@@ -39,6 +42,73 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
             lock (_lock)
             {
                 _toolTypes[attr.Id] = toolType;
+                
+                // 提取参数类型信息（用于诊断）
+                Type? paramsType = null;
+                Type? resultType = null;
+                foreach (var iface in toolType.GetInterfaces())
+                {
+                    if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IToolPlugin<,>))
+                    {
+                        var genericArgs = iface.GetGenericArguments();
+                        if (genericArgs.Length >= 2)
+                        {
+                            paramsType = genericArgs[0];
+                            resultType = genericArgs[1];
+                            break;
+                        }
+                    }
+                }
+                
+                // 主动注册参数类型到多态序列化配置
+                if (paramsType != null && typeof(ToolParameters).IsAssignableFrom(paramsType))
+                {
+                    RegisterParameterTypeToRegistry(paramsType);
+                }
+                
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"工具注册成功: {attr.DisplayName} (Id={attr.Id}, ParamsType={paramsType?.Name ?? "未指定"}, ResultType={resultType?.Name ?? "未指定"})",
+                    "ToolRegistry");
+            }
+        }
+
+        /// <summary>
+        /// 注册参数类型到 ParameterTypeRegistry
+        /// </summary>
+        /// <param name="paramsType">参数类型</param>
+        private static void RegisterParameterTypeToRegistry(Type paramsType)
+        {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"🔄 [ToolRegistry → ParameterTypeRegistry] 开始注册参数类型: {paramsType.FullName}",
+                "ToolRegistry");
+            
+            try
+            {
+                // 从 [JsonDerivedType] 特性提取类型鉴别器
+                var jsonDerivedAttr = paramsType.GetCustomAttribute<JsonDerivedTypeAttribute>();
+                string typeDiscriminator = jsonDerivedAttr?.TypeDiscriminator?.ToString() ?? paramsType.Name;
+                
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"🔄 [ToolRegistry → ParameterTypeRegistry] 提取鉴别器: '{typeDiscriminator}' " +
+                    $"(来源: {(jsonDerivedAttr != null ? "JsonDerivedType特性" : "类型名称")})",
+                    "ToolRegistry");
+
+                // 调用 ParameterTypeRegistry 进行注册
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"🔄 [ToolRegistry → ParameterTypeRegistry] 调用 ParameterTypeRegistry.RegisterParameterType...",
+                    "ToolRegistry");
+                
+                ParameterTypeRegistry.RegisterParameterType(paramsType, typeDiscriminator);
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"✅ [ToolRegistry → ParameterTypeRegistry] 参数类型注册完成: {paramsType.Name} → '{typeDiscriminator}'",
+                    "ToolRegistry");
+            }
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"❌ [ToolRegistry → ParameterTypeRegistry] 参数类型注册失败: {paramsType.Name}, 错误: {ex.Message}",
+                    "ToolRegistry");
             }
         }
 
@@ -142,11 +212,33 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         /// <returns>参数实例</returns>
         public static ToolParameters CreateParameters(string toolId)
         {
+            VisionLogger.Instance.Log(LogLevel.Info, $"[ToolRegistry.CreateParameters] 开始创建参数实例 - toolId={toolId}", "ToolRegistry");
+
             var tool = CreateToolInstance(toolId);
             if (tool != null)
             {
-                return (ToolParameters)Activator.CreateInstance(tool.ParamsType)!;
+                VisionLogger.Instance.Log(LogLevel.Info, $"[ToolRegistry.CreateParameters] 工具实例创建成功 - tool类型={tool.GetType().Name}, ParamsType={tool.ParamsType?.Name ?? "null"}", "ToolRegistry");
+
+                if (tool.ParamsType == null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Error, $"[ToolRegistry.CreateParameters] 参数类型为null - toolId={toolId}", "ToolRegistry");
+                    return new GenericToolParameters();
+                }
+
+                try
+                {
+                    var paramsInstance = (ToolParameters)Activator.CreateInstance(tool.ParamsType)!;
+                    VisionLogger.Instance.Log(LogLevel.Success, $"[ToolRegistry.CreateParameters] 参数创建成功 - 类型={paramsInstance.GetType().FullName}", "ToolRegistry");
+                    return paramsInstance;
+                }
+                catch (Exception ex)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Error, $"[ToolRegistry.CreateParameters] 参数创建失败 - toolId={toolId}, ParamsType={tool.ParamsType.FullName}, 错误={ex.Message}", "ToolRegistry");
+                    return new GenericToolParameters();
+                }
             }
+
+            VisionLogger.Instance.Log(LogLevel.Warning, $"[ToolRegistry.CreateParameters] 工具实例创建失败 - toolId={toolId}", "ToolRegistry");
             return new GenericToolParameters();
         }
 

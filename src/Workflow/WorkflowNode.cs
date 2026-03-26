@@ -181,7 +181,7 @@ namespace SunEyeVision.Workflow
             Name = name;
             DispName = dispName;
             ToolType = toolType;
-            Parameters = new GenericToolParameters();
+            Parameters = null!;
             ParameterBindings = new ParameterBindingContainer();
         }
 
@@ -212,6 +212,12 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 获取节点的可序列化数据
         /// </summary>
+        /// <remarks>
+        /// 优化说明（rule-008: 原型设计期代码纯净原则）：
+        /// - 直接序列化 ToolParameters 实例，无需 Dictionary 转换层
+        /// - System.Text.Json 会自动处理多态序列化
+        /// - $type 字段自动添加，类型信息不丢失
+        /// </remarks>
         public Dictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>
@@ -228,7 +234,7 @@ namespace SunEyeVision.Workflow
                 ["PositionY"] = PositionY,
                 ["Width"] = Width,
                 ["Height"] = Height,
-                ["Parameters"] = Parameters.ToSerializableDictionary()
+                ["Parameters"] = Parameters  // 直接序列化对象，无需转换
             };
 
             // 始终序列化参数绑定，即使为空
@@ -292,11 +298,35 @@ namespace SunEyeVision.Workflow
             };
 
             // 恢复参数
-            if (dict.TryGetValue("Parameters", out var paramsVal) && paramsVal is Dictionary<string, object?> paramsDict)
+            if (dict.TryGetValue("Parameters", out var paramsVal) && paramsVal != null)
             {
-                var restored = ToolParameters.CreateFromDictionary(paramsDict);
-                if (restored != null)
-                    node.Parameters = restored;
+                // 参数对象已经由 JsonSerializer 直接反序列化
+                // 无需使用 Dictionary 转换层
+                if (paramsVal is ToolParameters parameters)
+                {
+                    node.Parameters = parameters;
+                    // 🔍 详细日志：节点参数恢复成功
+                    var paramSummary = parameters.GetParameterSummary();
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"✅ [节点参数恢复] 节点: {name} | 类型: {parameters.GetType().Name} | 值: {paramSummary}",
+                        "WorkflowNode");
+                }
+                else
+                {
+                    // 如果参数为 null 或类型不匹配，创建新的 GenericToolParameters
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"⚠️ [节点参数恢复] 节点: {name} | 参数类型不匹配: {paramsVal?.GetType().Name ?? "null"} | 使用 GenericToolParameters",
+                        "WorkflowNode");
+                    node.Parameters = new GenericToolParameters();
+                }
+            }
+            else
+            {
+                // 参数为空时创建默认参数
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"⚠️ [节点参数恢复] 节点: {name} | 参数为空，使用 GenericToolParameters",
+                    "WorkflowNode");
+                node.Parameters = new GenericToolParameters();
             }
 
             // 恢复参数绑定
