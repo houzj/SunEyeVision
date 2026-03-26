@@ -332,6 +332,68 @@
 
             <Separator/>
 
+            <!-- 设备管理组 -->
+            <Button ToolTip="相机管理"
+                    Padding="8,4"
+                    Margin="2"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ShowCameraManagerCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="M2,8 L6,8 L7,5 L13,5 L14,8 L18,8 L18,17 L2,17 Z M7.5,12.5 A3.5,3.5 0 1,0 14.5,12.5 A3.5,3.5 0 1,0 7.5,12.5 M10,8 L10,6 M12,8 L12,6"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          StrokeThickness="1.5"
+                          Stretch="Uniform"
+                          Width="16" Height="16"
+                          VerticalAlignment="Center"/>
+                    <TextBlock Text="相机" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="通讯管理"
+                    Padding="8,4"
+                    Margin="2"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ShowCommunicationManagerCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <Path Data="M4,12 L12,4 M4,4 L12,12 M2,8 L4,8 M10,8 L14,8 M8,2 L8,4 M8,10 L8,14"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          StrokeThickness="2"
+                          Stretch="Uniform"
+                          Width="16" Height="16"
+                          VerticalAlignment="Center"/>
+                    <TextBlock Text="通讯" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                </StackPanel>
+            </Button>
+            <Button ToolTip="全局变量管理"
+                    Padding="8,4"
+                    Margin="2"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ShowGlobalVariableManagerCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <Canvas Width="16" Height="14" VerticalAlignment="Center">
+                        <!-- 背景圆角矩形 -->
+                        <Path Data="M2,2 L14,2 Q16,2 16,4 L16,12 Q16,14 14,14 L2,14 Q0,14 0,12 L0,4 Q0,2 2,2"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Opacity="0.15"
+                              Stretch="Uniform"
+                              Width="14" Height="12"
+                              Canvas.Left="1" Canvas.Top="1"/>
+                        <!-- 边框 -->
+                        <Path Data="M2,1 L14,1 Q15,1 15,3 L15,11 Q15,13 14,13 L2,13 Q1,13 1,12 L1,3 Q1,1 2,1"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1"
+                              Fill="Transparent"
+                              Stretch="Uniform"
+                              Width="16" Height="14"/>
+                        <!-- var 文字简化版 -->
+                        <TextBlock Text="var" FontSize="8" FontWeight="Bold" Canvas.Left="2" Canvas.Top="3"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Canvas>
+                    <TextBlock Text="变量" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
             <TextBlock x:Name="ZoomTextBlock" Text="缩放: 100%" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12" Foreground="#666666"/>
         </ToolBar>
 

@@ -5,8 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="全局变量管理器"
-        Width="800"
-        Height="600"
+        Width="1000"
+        Height="700"
+        MinWidth="800"
+        MinHeight="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         Background="#F5F5F5">
@@ -17,7 +19,7 @@
             <Setter Property="Background" Value="#2196F3"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="Padding" Value="15,6"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -25,7 +27,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
+                                CornerRadius="3"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                             VerticalAlignment="Center"/>
@@ -46,10 +48,10 @@
 
         <!-- 次要按钮样式 -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#9E9E9E"/>
+            <Setter Property="Background" Value="#757575"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="Padding" Value="15,6"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -57,14 +59,14 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
+                                CornerRadius="3"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                             VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#757575"/>
+                                <Setter Property="Background" Value="#616161"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Background" Value="#E0E0E0"/>
@@ -80,22 +82,26 @@
         <Style x:Key="ToolbarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#424242"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="36"/>
-            <Setter Property="Height" Value="36"/>
-            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4">
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                             VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E0E0E0"/>
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                                <Setter Property="BorderBrush" Value="#BDBDBD"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="#BDBDBD"/>
@@ -107,33 +113,196 @@
             </Setter>
         </Style>
 
-        <!-- 删除按钮样式 -->
+        <!-- 危险按钮样式 -->
         <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
             <Setter Property="Foreground" Value="#F44336"/>
+        </Style>
+
+        <!-- 分组标签样式 -->
+        <Style x:Key="GroupTabStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="Foreground" Value="#2196F3"/>
+                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 开关按钮样式（参考图像预览器的自动切换开关） -->
+        <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="BackgroundBorder"
+                                Background="#BDBDBD"
+                                BorderBrush="#BDBDBD"
+                                BorderThickness="0"
+                                CornerRadius="10"
+                                Width="40"
+                                Height="20">
+                            <Rectangle x:Name="SwitchEllipse"
+                                       Width="16"
+                                       Height="16"
+                                       Fill="White"
+                                       RadiusX="8"
+                                       RadiusY="8"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       Margin="2,0,0,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="#4CAF50"/>
+                                <Setter TargetName="BackgroundBorder" Property="BorderBrush" Value="#4CAF50"/>
+                                <Setter TargetName="SwitchEllipse" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="SwitchEllipse" Property="Margin" Value="0,0,2,0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
     </Window.Resources>
 
     <Grid Margin="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="Auto"/>
+            <!-- 工具栏 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 分组标签栏 -->
             <RowDefinition Height="*"/>
-            <RowDefinition Height="50"/>
+            <!-- DataGrid -->
+            <RowDefinition Height="Auto"/>
+            <!-- 底部按钮 -->
         </Grid.RowDefinitions>
 
         <!-- 工具栏 -->
-        <ToolBar Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-            <Button Content="+" ToolTip="添加变量" Command="{Binding AddVariableCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
-            <Button Content="-" ToolTip="删除变量" Command="{Binding DeleteVariableCommand}" Style="{StaticResource DangerButtonStyle}"/>
-            <Button Content="✕" ToolTip="清空变量" Command="{Binding ClearVariablesCommand}" Style="{StaticResource DangerButtonStyle}"/>
-            <Separator/>
-            <Button Content="💾" ToolTip="保存" Command="{Binding SaveCommand}" Style="{StaticResource ToolbarButtonStyle}"/>
-        </ToolBar>
+        <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 0: 添加变量 -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 1: 删除变量 -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 2: 分隔线 -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 3: 导入 -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 4: 导出 -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- 5: 搜索框 -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- 6: 保存 -->
+                </Grid.ColumnDefinitions>
+
+                <!-- 添加按钮 -->
+                <Button Grid.Column="0" Content="➕ 添加变量" Command="{Binding AddVariableCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,8,0"/>
+
+                <!-- 删除按钮 -->
+                <Button Grid.Column="1" Content="➖ 删除变量" Command="{Binding DeleteVariableCommand}"
+                        Style="{StaticResource DangerButtonStyle}" Margin="0,0,8,0"/>
+
+                <!-- 分组分隔线 -->
+                <Separator Grid.Column="2" Margin="8,0"/>
+
+                <!-- 导入 -->
+                <Button Grid.Column="3" Content="📥 导入" Command="{Binding ImportCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
+
+                <!-- 导出 -->
+                <Button Grid.Column="4" Content="📤 导出" Command="{Binding ExportCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,8,0"/>
+
+                <!-- 搜索框 -->
+                <TextBox Grid.Column="5" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center" Padding="8,5" Margin="16,0"
+                         Width="200" HorizontalAlignment="Right">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+
+                <!-- 保存按钮 -->
+                <Button Grid.Column="6" Content="💾 保存" Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <!-- 分组标签栏 (VisionMaster风格 - 水平标签) -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 分组标签 -->
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding Groups}" VerticalAlignment="Bottom">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <RadioButton Content="{Binding DisplayName}"
+                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                        Style="{StaticResource GroupTabStyle}"
+                                        GroupName="VariableGroups"
+                                        Checked="GroupRadioButton_Checked"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 添加分组按钮 -->
+                <Button Grid.Column="1" Content="➕ 新建分组" Command="{Binding AddGroupCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}" Margin="8,8"/>
+            </Grid>
+        </Border>
 
         <!-- DataGrid -->
-        <DataGrid Grid.Row="1"
-                  Margin="16"
+        <DataGrid Grid.Row="2"
+                  Margin="16,0"
                   AutoGenerateColumns="False"
-                  ItemsSource="{Binding Variables}"
+                  ItemsSource="{Binding CurrentVariables}"
                   SelectedItem="{Binding SelectedVariable}"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
@@ -143,20 +312,128 @@
                   Background="White"
                   BorderBrush="#E0E0E0"
                   BorderThickness="1"
-                  HorizontalGridLinesBrush="#F0F0F0">
+                  HorizontalGridLinesBrush="#F0F0F0"
+                  RowHeight="28"
+                  FontSize="12">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="1*" IsReadOnly="False"/>
-                <DataGridTextColumn Header="类型" Binding="{Binding Type}" Width="100" IsReadOnly="False"/>
-                <DataGridTextColumn Header="值" Binding="{Binding Value}" Width="1*" IsReadOnly="False"/>
-                <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="2*" IsReadOnly="False"/>
-                <DataGridCheckBoxColumn Header="只读" Binding="{Binding IsReadOnly}" Width="60"/>
+                <!-- 序号 -->
+                <DataGridTextColumn Header="序号" Binding="{Binding Index}" Width="50" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 名称 -->
+                <DataGridTextColumn Header="名称" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="120" IsReadOnly="False"/>
+
+                <!-- 注释 -->
+                <DataGridTextColumn Header="注释" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="150" IsReadOnly="False"/>
+
+                <!-- 类型 -->
+                <DataGridComboBoxColumn Header="类型" 
+                                        SelectedItemBinding="{Binding Type, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="100">
+                    <DataGridComboBoxColumn.ItemsSource>
+                        <x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                            <sys:String>Integer</sys:String>
+                            <sys:String>Float</sys:String>
+                            <sys:String>String</sys:String>
+                            <sys:String>Boolean</sys:String>
+                            <sys:String>Int64</sys:String>
+                            <sys:String>Double</sys:String>
+                            <sys:String>Byte</sys:String>
+                            <sys:String>Point</sys:String>
+                            <sys:String>Rectangle</sys:String>
+                            <sys:String>Size</sys:String>
+                            <sys:String>Array</sys:String>
+                            <sys:String>List</sys:String>
+                            <sys:String>Image</sys:String>
+                        </x:Array>
+                    </DataGridComboBoxColumn.ItemsSource>
+                </DataGridComboBoxColumn>
+
+                <!-- 当前值 -->
+                <DataGridTextColumn Header="当前值" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="120" IsReadOnly="False"/>
+
+                <!-- 输入来源 -->
+                <DataGridTextColumn Header="输入来源"
+                                    Binding="{Binding InputSource, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="100" IsReadOnly="False"/>
+
+                <!-- 目标输出 -->
+                <DataGridTextColumn Header="目标输出"
+                                    Binding="{Binding OutputTarget, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="100" IsReadOnly="False"/>
+
+                <!-- 初始化（滑动开关） -->
+                <DataGridTemplateColumn Header="初始化" Width="65">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ToggleButton IsChecked="{Binding IsInitialized, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Style="{StaticResource SwitchToggleButton}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- 操作（行内删除按钮） -->
+                <DataGridTemplateColumn Header="操作" Width="55" CanUserResize="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="✕"
+                                    FontSize="13"
+                                    FontWeight="Bold"
+                                    Foreground="#F44336"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Padding="4"
+                                    ToolTip="删除此变量"
+                                    Command="{Binding DataContext.DeleteVariableCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="ButtonBorder"
+                                                            Background="Transparent"
+                                                            CornerRadius="3"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#FFEBEE"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 
         <!-- 底部按钮 -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0">
-            <Button Content="保存" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="80" Margin="0,0,10,0"/>
-            <Button Content="关闭" Click="Close_Click" Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
-        </StackPanel>
+        <Border Grid.Row="3" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="16,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="保存" Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" Width="80" Margin="0,0,10,0"/>
+                <Button Content="关闭" Click="Close_Click"
+                        Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
