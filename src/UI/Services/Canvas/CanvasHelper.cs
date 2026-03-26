@@ -87,7 +87,7 @@ namespace SunEyeVision.UI.Services.Canvas
         /// </summary>
         public static Rect GetNodeRect(WorkflowNode node)
         {
-            return new Rect(node.Position.X, node.Position.Y, node.StyleConfig.NodeWidth, node.StyleConfig.NodeHeight);
+            return new Rect(node.Position.X, node.Position.Y, node.StyleConfigTyped.NodeWidth, node.StyleConfigTyped.NodeHeight);
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace SunEyeVision.UI.Services.Canvas
                 Math.Abs(endPoint.X - startPoint.X),
                 Math.Abs(endPoint.Y - startPoint.Y));
 
-            return nodes.Where(n => rect.Contains(new Point(n.Position.X + n.StyleConfig.NodeWidth / 2, n.Position.Y + n.StyleConfig.NodeHeight / 2))).ToList();
+            return nodes.Where(n => rect.Contains(new Point(n.Position.X + n.StyleConfigTyped.NodeWidth / 2, n.Position.Y + n.StyleConfigTyped.NodeHeight / 2))).ToList();
         }
 
         /// <summary>
@@ -123,9 +123,9 @@ namespace SunEyeVision.UI.Services.Canvas
                 var corners = new[]
                 {
                     new Point(node.Position.X, node.Position.Y),
-                    new Point(node.Position.X + node.StyleConfig.NodeWidth, node.Position.Y),
-                    new Point(node.Position.X, node.Position.Y + node.StyleConfig.NodeHeight),
-                    new Point(node.Position.X + node.StyleConfig.NodeWidth, node.Position.Y + node.StyleConfig.NodeHeight)
+                    new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y),
+                    new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight),
+                    new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight)
                 };
 
                 foreach (var corner in corners)
@@ -159,7 +159,7 @@ namespace SunEyeVision.UI.Services.Canvas
         public static Rect GetNodeBounds(WorkflowNode node)
         {
             if (node == null) return Rect.Empty;
-            return new Rect(node.Position.X, node.Position.Y, node.StyleConfig.NodeWidth, node.StyleConfig.NodeHeight);
+            return new Rect(node.Position.X, node.Position.Y, node.StyleConfigTyped.NodeWidth, node.StyleConfigTyped.NodeHeight);
         }
 
         /// <summary>
@@ -172,11 +172,11 @@ namespace SunEyeVision.UI.Services.Canvas
             // 根据端口名称计算位置
             return portName switch
             {
-                "LeftPort" => new Point(node.Position.X, node.Position.Y + node.StyleConfig.NodeHeight / 2),
-                "RightPort" => new Point(node.Position.X + node.StyleConfig.NodeWidth, node.Position.Y + node.StyleConfig.NodeHeight / 2),
-                "TopPort" => new Point(node.Position.X + node.StyleConfig.NodeWidth / 2, node.Position.Y),
-                "BottomPort" => new Point(node.Position.X + node.StyleConfig.NodeWidth / 2, node.Position.Y + node.StyleConfig.NodeHeight),
-                _ => new Point(node.Position.X + node.StyleConfig.NodeWidth / 2, node.Position.Y + node.StyleConfig.NodeHeight / 2)
+                "LeftPort" => new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2),
+                "RightPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2),
+                "TopPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y),
+                "BottomPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight),
+                _ => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2)
             };
         }
 
@@ -188,10 +188,10 @@ namespace SunEyeVision.UI.Services.Canvas
 
             return new Dictionary<string, Point>
             {
-                { "LeftPort", new Point(node.Position.X, node.Position.Y + node.StyleConfig.NodeHeight / 2) },
-                { "RightPort", new Point(node.Position.X + node.StyleConfig.NodeWidth, node.Position.Y + node.StyleConfig.NodeHeight / 2) },
-                { "TopPort", new Point(node.Position.X + node.StyleConfig.NodeWidth / 2, node.Position.Y) },
-                { "BottomPort", new Point(node.Position.X + node.StyleConfig.NodeWidth / 2, node.Position.Y + node.StyleConfig.NodeHeight) }
+                { "LeftPort", new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2) },
+                { "RightPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2) },
+                { "TopPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y) },
+                { "BottomPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight) }
             };
         }
 
@@ -210,8 +210,8 @@ namespace SunEyeVision.UI.Services.Canvas
         {
             if (node == null) return new Point(0, 0);
             return new Point(
-                node.Position.X + node.StyleConfig.NodeWidth / 2,
-                node.Position.Y + node.StyleConfig.NodeHeight / 2
+                node.Position.X + node.StyleConfigTyped.NodeWidth / 2,
+                node.Position.Y + node.StyleConfigTyped.NodeHeight / 2
             );
         }
     }

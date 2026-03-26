@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Models;
@@ -36,14 +37,14 @@ public class Workflow : ObservableObject
     }
 
     /// <summary>
-    /// 节点列表
+    /// 节点列表（ObservableCollection 支持UI直接绑定）
     /// </summary>
-    public List<WorkflowNodeBase> Nodes { get; set; } = new();
+    public ObservableCollection<WorkflowNodeBase> Nodes { get; set; } = new();
 
     /// <summary>
-    /// 连接列表
+    /// 连接列表（ObservableCollection 支持UI直接绑定）
     /// </summary>
-    public List<Connection> Connections { get; set; } = new();
+    public ObservableCollection<Connection> Connections { get; set; } = new();
 
     /// <summary>
     /// 节点添加事件
@@ -266,8 +267,14 @@ public class Workflow : ObservableObject
 
         Nodes.Remove(node);
 
-        // 移除相关连接
-        Connections.RemoveAll(c => c.SourceNode == nodeId || c.TargetNode == nodeId);
+        // 移除相关连接（ObservableCollection 不支持 RemoveAll，使用循环删除）
+        for (int i = Connections.Count - 1; i >= 0; i--)
+        {
+            if (Connections[i].SourceNode == nodeId || Connections[i].TargetNode == nodeId)
+            {
+                Connections.RemoveAt(i);
+            }
+        }
 
         // 触发节点移除事件
         NodeRemoved?.Invoke(this, new WorkflowNodeEventArgs { Node = node, Workflow = this });

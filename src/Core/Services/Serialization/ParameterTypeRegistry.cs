@@ -62,11 +62,6 @@ namespace SunEyeVision.Core.Services.Serialization
         
         // 已注册的类型集合（用于去重）
         private static readonly HashSet<Type> _registeredTypes = new();
-        
-        // 诊断计数器（用于验证修复有效性）
-        private static int _modifierCallCount = 0;
-        private static DateTime? _firstModifierCallTime;
-        private static DateTime? _lastModifierCallTime;
 
         /// <summary>
         /// 序列化选项（包含多态配置）
@@ -220,46 +215,10 @@ namespace SunEyeVision.Core.Services.Serialization
         /// </summary>
         private static void ApplyPolymorphismOptions(JsonTypeInfo typeInfo)
         {
-            // 更新诊断计数器
-            _modifierCallCount++;
-            var currentTime = DateTime.Now;
-            if (_firstModifierCallTime == null)
-                _firstModifierCallTime = currentTime;
-            _lastModifierCallTime = currentTime;
-
             if (typeInfo.Type != typeof(ToolParameters))
-            {
-                // 记录非目标类型的调用（用于诊断修饰器调用频率）
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"🎯 [修饰器调用#{_modifierCallCount}] 跳过非目标类型: {typeInfo.Type.Name}",
-                    "ParameterTypeRegistry");
                 return;
-            }
-
-            // 🔍 关键诊断：记录修饰器执行时机
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"🎯 [修饰器执行#{_modifierCallCount}] ApplyPolymorphismOptions 被调用 | " +
-                $"TargetType: {typeInfo.Type.FullName} | " +
-                $"_polymorphismOptions 为 null: {_polymorphismOptions == null} | " +
-                $"DerivedTypes 数量: {_polymorphismOptions?.DerivedTypes.Count ?? 0}",
-                "ParameterTypeRegistry");
-            
-            // 🔍 关键诊断：列出所有已注册的派生类型
-            if (_polymorphismOptions != null)
-            {
-                var derivedTypes = string.Join(", ", 
-                    _polymorphismOptions.DerivedTypes.Select(dt => 
-                        $"{dt.DerivedType.Name}({dt.TypeDiscriminator})"));
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"🎯 [修饰器执行#{_modifierCallCount}] 已注册派生类型: {derivedTypes}",
-                    "ParameterTypeRegistry");
-            }
 
             typeInfo.PolymorphismOptions = _polymorphismOptions;
-            
-            VisionLogger.Instance.Log(LogLevel.Success,
-                $"✅ [修饰器执行#{_modifierCallCount}] PolymorphismOptions 已应用到 {typeInfo.Type.Name}",
-                "ParameterTypeRegistry");
         }
 
         /// <summary>
@@ -447,41 +406,10 @@ namespace SunEyeVision.Core.Services.Serialization
                        $"类型解析器: {(_typeResolver != null ? $"✅ {_typeResolver.GetType().Name}" : "❌ 未创建")}\n" +
                        $"多态配置: {(_polymorphismOptions != null ? "✅ 已创建" : "❌ 未创建")}\n" +
                        $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                       $"修饰器调用次数: {_modifierCallCount}\n" +
-                       $"首次调用时间: {_firstModifierCallTime?.ToString("HH:mm:ss.fff") ?? "未调用"}\n" +
-                       $"最后调用时间: {_lastModifierCallTime?.ToString("HH:mm:ss.fff") ?? "未调用"}\n" +
-                       $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                        $"已注册类型数: {_registeredTypes.Count}\n" +
                        $"派生类型列表: {derivedTypesList}\n" +
                        $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
             }
-        }
-
-        /// <summary>
-        /// 验证配置有效性（用于运行时检查）
-        /// </summary>
-        /// <returns>验证结果，null 表示有效，否则返回错误消息</returns>
-        public static string? ValidateConfiguration()
-        {
-            var errors = new List<string>();
-
-            if (!_isInitialized)
-                errors.Add("未初始化");
-
-            if (_serializationOptions == null)
-                errors.Add("序列化选项为 null");
-            else if (_serializationOptions.TypeInfoResolver == null)
-                errors.Add("TypeInfoResolver 为 null");
-
-            if (_polymorphismOptions == null)
-                errors.Add("多态配置为 null");
-            else if (_polymorphismOptions.DerivedTypes.Count == 0)
-                errors.Add("派生类型列表为空");
-
-            if (_modifierCallCount == 0)
-                errors.Add("修饰器从未被调用（可能配置未正确应用）");
-
-            return errors.Count == 0 ? null : string.Join("; ", errors);
         }
 
         /// <summary>

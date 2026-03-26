@@ -317,10 +317,6 @@ namespace SunEyeVision.UI.Services.Interaction
             {
                 _viewModel.AddConnectionToWorkflow(connection);
             }
-            else
-            {
-                _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections.Add(connection);
-            }
 
             return connection;
         }

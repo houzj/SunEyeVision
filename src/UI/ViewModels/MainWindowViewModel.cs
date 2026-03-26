@@ -31,8 +31,7 @@ using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
-using UIWorkflowNode = SunEyeVision.UI.Models.WorkflowNode;
-using WorkflowWorkflowNode = SunEyeVision.Workflow.WorkflowNodeBase;
+using WorkflowNodeBase = SunEyeVision.Workflow.WorkflowNodeBase;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -182,7 +181,7 @@ namespace SunEyeVision.UI.ViewModels
         // 所有节点和连接现在通过 WorkflowTabViewModel.SelectedTab 访问
         // 确保每个Tab都是独立的
 
-        private Models.WorkflowNode? _selectedNode;
+        private WorkflowNodeBase? _selectedNode;
         private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
         private Models.ImageInputSource? _activeInputSource; // 新增：活动输入源
@@ -243,7 +242,7 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _selectedDisplayImageSourceIndex, value);
         }
 
-        public Models.WorkflowNode? SelectedNode
+        public WorkflowNodeBase? SelectedNode
         {
             get => _selectedNode;
             set
@@ -259,7 +258,7 @@ namespace SunEyeVision.UI.ViewModels
                     var executionResult = value != null ? _workflowContext.GetNodeResult(value.Id) : null;
                     if (executionResult?.ToolResult != null)
                     {
-                        _nodeResultManager.RefreshResultDisplay(value, executionResult.ToolResult);
+                        _nodeResultManager.RefreshResultDisplay((Models.WorkflowNode?)value, executionResult.ToolResult);
                     }
                     else
                     {
@@ -268,12 +267,12 @@ namespace SunEyeVision.UI.ViewModels
                     }
 
                     // 更新图像显示数据源（当前节点 + 父节点）
-                    UpdateDisplayImageSources(value);
+                    UpdateDisplayImageSources((Models.WorkflowNode?)value);
 
                     // 节点选中状态变化时更新图像预览（整合了 ActiveNodeImageData 更新逻辑）
-                    UpdateImagePreviewVisibility(value);
+                    UpdateImagePreviewVisibility((Models.WorkflowNode?)value);
                     // 加载节点属性
-                    LoadNodeProperties(value);
+                    LoadNodeProperties((Models.WorkflowNode?)value);
                 }
             }
         }
@@ -286,7 +285,7 @@ namespace SunEyeVision.UI.ViewModels
         /// ★ 防闪烁优化：移除不必要的清空操作，直接刷新显示
         /// </remarks>
         /// <param name="node">要选中的节点</param>
-        public void ForceSelectNode(Models.WorkflowNode node)
+        public void ForceSelectNode(WorkflowNodeBase node)
         {
             // 更新选中状态
             if (_selectedNode != node)
@@ -298,10 +297,10 @@ namespace SunEyeVision.UI.ViewModels
                 // ★ 优化：即使引用相同，也只刷新结果，不清空（防止闪烁）
                 if (node?.LastResult != null)
                 {
-                    _nodeResultManager.RefreshResultDisplay(node, node.LastResult);
+                    _nodeResultManager.RefreshResultDisplay((Models.WorkflowNode?)node, (Plugin.SDK.Execution.Results.ToolResults?)node.LastResult);
                 }
-                UpdateDisplayImageSources(node);
-                UpdateImagePreviewVisibility(node);
+                UpdateDisplayImageSources((Models.WorkflowNode?)node);
+                UpdateImagePreviewVisibility((Models.WorkflowNode?)node);
             }
         }
 
@@ -1182,7 +1181,7 @@ namespace SunEyeVision.UI.ViewModels
                 }
 
                 // 更新工作流节点（从 UI 层同步到底层）
-                UpdateWorkflowFromUI(workflow, selectedTab);
+                // 注意：节点已直接引用 Solution.Workflow.Nodes，无需手动同步
 
                 // 保存工作流
                 var success = _workflowEngine.SaveWorkflow(workflowId, _currentWorkflowFilePath);
@@ -1239,7 +1238,7 @@ namespace SunEyeVision.UI.ViewModels
                     }
 
                     // 更新工作流（从 UI 层同步）
-                    UpdateWorkflowFromUI(workflow, selectedTab);
+                    // 注意：节点已直接引用 Solution.Workflow.Nodes，无需手动同步
 
                     // 保存工作流
                     var success = _workflowEngine.SaveWorkflow(workflowId, filePath);
@@ -1395,83 +1394,6 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 同步UI层的工作流到底层工作流（公开接口）
-        /// </summary>
-        public void SyncWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, WorkflowTabViewModel tabInfo)
-        {
-            UpdateWorkflowFromUI(workflow, tabInfo);
-        }
-
-        /// <summary>
-        /// 从 UI 层同步到底层工作流
-        /// </summary>
-        private void UpdateWorkflowFromUI(SunEyeVision.Workflow.Workflow workflow, WorkflowTabViewModel tabInfo)
-        {
-            // 清空现有节点
-            workflow.Nodes.Clear();
-
-            // 转换 UI 节点到底层节点
-            foreach (var uiNode in tabInfo.WorkflowNodes)
-            {
-                // 根据 ToolType 确定 NodeType
-                var nodeTypeStr = DetermineNodeTypeFromToolType(uiNode.ToolType).ToString();
-
-                // 🔍 日志：参数同步前检查
-                var paramType = uiNode.Parameters?.GetType().Name ?? "null";
-                var paramSummary = uiNode.Parameters?.GetParameterSummary() ?? "(无参数)";
-
-                var workflowNode = new WorkflowWorkflowNode(
-                    uiNode.Id,
-                    uiNode.Name,
-                    uiNode.DispName ?? uiNode.Name,
-                    uiNode.ToolType ?? string.Empty
-                )
-                {
-                    LocalIndex = uiNode.LocalIndex,
-                    GlobalIndex = uiNode.GlobalIndex,
-                    Parameters = uiNode.Parameters ?? new GenericToolParameters(),
-                    IsEnabled = uiNode.IsEnabled,
-                    PositionX = uiNode.Position.X,
-                    PositionY = uiNode.Position.Y
-                };
-
-                // 🔍 日志：参数同步完成
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"📤 [参数同步] 节点: {uiNode.Name} | 类型: {paramType} | 值: {paramSummary}",
-                    "MainWindowViewModel");
-
-                // 转换参数绑定
-                if (uiNode.ParameterBindings != null && uiNode.ParameterBindings.Count > 0)
-                {
-                    workflowNode.ParameterBindings = uiNode.ParameterBindings;
-                }
-
-                workflow.Nodes.Add(workflowNode);
-            }
-
-            // 清空现有连接
-            workflow.Connections.Clear();
-
-            // 转换 UI 连接到底层连接
-            foreach (var uiConn in tabInfo.WorkflowConnections)
-            {
-                // 添加连接
-                var connection = new Connection
-                {
-                    Id = uiConn.Id,
-                    SourceNode = uiConn.SourceNodeId,
-                    SourcePort = uiConn.SourcePort ?? "output",
-                    TargetNode = uiConn.TargetNodeId,
-                    TargetPort = uiConn.TargetPort ?? "input"
-                };
-                workflow.Connections.Add(connection);
-            }
-
-            // 更新工作流元数据
-            workflow.Name = tabInfo.Name;
-        }
-
-        /// <summary>
         /// 同步UI数据到Solution对象
         /// </summary>
         /// <param name="solutionManager">解决方案管理器</param>
@@ -1485,64 +1407,72 @@ namespace SunEyeVision.UI.ViewModels
 
             var solution = solutionManager.CurrentSolution;
 
-            LogInfo($"[参数监控] 开始保存解决方案: Id={solution.Id}");
+            if (WorkflowTabViewModel == null)
+                return;
 
-            // 1. 同步工作流
-            // 清空现有的工作流列表
-            solution.Workflows.Clear();
-
-            // 从 WorkflowTabViewModel 同步工作流
-            if (WorkflowTabViewModel != null)
+            foreach (var tab in WorkflowTabViewModel.Tabs)
             {
-                foreach (var tab in WorkflowTabViewModel.Tabs)
-                {
-                    LogInfo($"[参数监控] 处理工作流Tab: {tab.Name}");
+                var workflow = solution.Workflows.FirstOrDefault(w => w.Id == tab.Id);
 
-                    // 查找现有工作流或创建新工作流
-                    var workflow = solution.Workflows.FirstOrDefault(w => w.Id == tab.Id);
-                    if (workflow == null)
+                if (workflow == null)
+                {
+                    // 如果 Solution 中没有对应的 Workflow，创建一个
+                    workflow = new SunEyeVision.Workflow.Workflow(tab.Id, tab.Name);
+                    solution.Workflows.Add(workflow);
+                }
+                else
+                {
+                    // 更新名称
+                    if (workflow.Name != tab.Name)
                     {
-                        workflow = new SunEyeVision.Workflow.Workflow
-                        {
-                            Id = tab.Id,
-                            Name = tab.Name
-                        };
-                        solution.Workflows.Add(workflow);
-                    }
-                    else
-                    {
-                        // 更新现有工作流的名称（确保名称同步）
                         workflow.Name = tab.Name;
                     }
+                }
 
-                    // 同步工作流数据
-                    UpdateWorkflowFromUI(workflow, tab);
-
-                    // 添加日志：记录同步后的Workflow节点参数状态
-                    LogInfo($"[参数监控] 同步后的Workflow节点参数状态:");
-                    foreach (var node in workflow.Nodes)
+                // 同步节点：将 UI 集合中的节点同步到 Solution.Workflow.Nodes
+                // 只添加 Solution 中不存在的节点（新增的节点通过 AddNodeToWorkflow 已同步）
+                foreach (var node in tab.WorkflowNodes)
+                {
+                    if (!workflow.Nodes.Contains(node))
                     {
-                        LogInfo($"  节点 - ID:{node.Id}, 名称:{node.Name}, 参数类型:{node.Parameters?.GetType().Name ?? "null"}");
-
-                        if (node.Parameters != null)
-                        {
-                            var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
-                            foreach (var meta in runtimeMetadata)
-                            {
-                                LogInfo($"    └─ {meta.DisplayName} = {meta.Value?.ToString() ?? "null"}");
-                            }
-                        }
+                        workflow.Nodes.Add(node);
                     }
                 }
+
+                // 移除 Solution 中已从 UI 删除的节点
+                var nodesToRemove = workflow.Nodes
+                    .Where(n => !tab.WorkflowNodes.Contains(n))
+                    .ToList();
+                foreach (var node in nodesToRemove)
+                {
+                    workflow.Nodes.Remove(node);
+                }
+
+                // 同步连接：将 UI 集合中的连接同步到 Solution.Workflow.Connections
+                foreach (var conn in tab.WorkflowConnections)
+                {
+                    if (!workflow.Connections.Any(c => c.Id == conn.Id))
+                    {
+                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
+                        {
+                            Id = conn.Id,
+                            SourceNode = conn.SourceNodeId,
+                            TargetNode = conn.TargetNodeId,
+                            SourcePort = conn.SourcePort,
+                            TargetPort = conn.TargetPort
+                        });
+                    }
+                }
+
+                // 移除 Solution 中已从 UI 删除的连接
+                var connsToRemove = workflow.Connections
+                    .Where(c => !tab.WorkflowConnections.Any(tc => tc.Id == c.Id))
+                    .ToList();
+                foreach (var conn in connsToRemove)
+                {
+                    workflow.Connections.Remove(conn);
+                }
             }
-
-            // 节点参数已直接存储在 WorkflowNode.Parameters 中，无需额外同步
-            // - GlobalVariables：通过 GlobalVariableManagerViewModel 直接操作（实时同步）
-            // - Communications：通过 CommunicationManagerViewModel 直接操作（实时同步）
-            // - Devices：通过 DeviceManagerViewModel 直接操作（实时同步）
-            // 无需在此同步
-
-            LogSuccess($"[参数监控] UI数据已同步到解决方案，工作流数量: {solution.Workflows.Count}");
         }
 
         /// <summary>
@@ -1594,96 +1524,42 @@ namespace SunEyeVision.UI.ViewModels
         /// 为加载的工作流创建新的标签页
         /// </summary>
         /// <remarks>
-        /// 创建流程（rule-003 日志系统使用规范）：
-        /// 1. 创建 WorkflowTabInfo 实例
-        /// 2. 转换底层节点到 UI 节点
-        /// 3. 转换底层连接到 UI 连接
-        /// 4. 批量添加到 tabInfo（避免触发多次集合变更事件）
-        /// 5. 记录详细的转换日志
+        /// 优化说明（2026-03-26）：
+        /// - 节点直接引用 Solution.Workflow.Nodes 中的对象
+        /// - 不再克隆节点，消除 WorkflowTabInfo 中转层
+        /// - UI 属性已在 WorkflowNodeBase 中定义
         /// </remarks>
         private void CreateWorkflowTab(SunEyeVision.Workflow.Workflow workflow, string? filePath)
         {
             LogInfo($"创建标签页: {workflow.Name}");
-            
-            var tabInfo = new Models.WorkflowTabInfo
-            {
-                WorkflowId = workflow.Id,
-                Name = workflow.Name,
-                FilePath = filePath,
-                IsModified = false,
-                Workflow = workflow
-            };
 
-            // 转换底层节点到 UI 节点（先收集，再批量添加）
-            var nodesToLoad = new List<UIWorkflowNode>();
+            // 创建 WorkflowTabViewModel
+            var tabViewModel = new ViewModels.WorkflowTabViewModel();
+            tabViewModel.Id = workflow.Id;
+            tabViewModel.Name = workflow.Name;
+
+            // 使用统一转换方法将 WorkflowNodeBase → WorkflowNode
+            // 确保位置、参数、尺寸等属性完整传递
             int nodeIndex = 0;
-            
-            foreach (var WorkflowNode in workflow.Nodes)
+            foreach (var workflowNode in workflow.Nodes)
             {
                 nodeIndex++;
-                LogInfo($"  [{nodeIndex}/{workflow.Nodes.Count}] 加载节点: {WorkflowNode.Name} (类型: {WorkflowNode.ToolType})");
-                LogInfo($"      节点ID: {WorkflowNode.Id}");
-                LogInfo($"      参数类型: {WorkflowNode.Parameters.GetType().Name}");
-                LogInfo($"      位置: ({WorkflowNode.PositionX}, {WorkflowNode.PositionY})");
-
                 try
                 {
-                    // 直接使用 ToolParameters，不再转换为 Dictionary
-                    var paramsClone = WorkflowNode.Parameters.Clone();
-                    LogInfo($"      参数数量: {paramsClone.GetRuntimeParameterMetadata().Count}");
-
-                    // 记录关键参数值
-                    var runtimeMetadata = paramsClone.GetRuntimeParameterMetadata();
-                    if (runtimeMetadata.Count > 0)
-                    {
-                        var paramSample = runtimeMetadata.Take(3);
-                        var paramStr = string.Join(", ", paramSample.Select(meta => $"{meta.DisplayName}={meta.Value}"));
-                        if (runtimeMetadata.Count > 3)
-                            paramStr += "...";
-                        LogInfo($"      参数示例: {paramStr}");
-                    }
-
-                    var uiNode = new UIWorkflowNode(
-                        WorkflowNode.Id,
-                        WorkflowNode.Name,
-                        WorkflowNode.DispName ?? WorkflowNode.Name,
-                        WorkflowNode.ToolType
-                    )
-                    {
-                        Parameters = paramsClone,
-                        IsEnabled = WorkflowNode.IsEnabled,
-                        ParameterBindings = WorkflowNode.ParameterBindings,
-                        // 恢复节点位置
-                        Position = new System.Windows.Point(WorkflowNode.PositionX, WorkflowNode.PositionY),
-                        // 恢复索引属性
-                        LocalIndex = WorkflowNode.LocalIndex,
-                        GlobalIndex = WorkflowNode.GlobalIndex
-                    };
-
-                    nodesToLoad.Add(uiNode);
+                    tabViewModel.WorkflowNodes.Add(Models.WorkflowNode.FromBase(workflowNode));
                 }
                 catch (Exception ex)
                 {
-                    LogError($"      节点加载失败: {ex.Message}", null, ex);
+                    LogError($"节点加载失败 [{nodeIndex}/{workflow.Nodes.Count}]: {workflowNode.Name} - {ex.Message}");
                 }
             }
 
-            LogInfo($"节点转换完成，待添加数量: {nodesToLoad.Count}/{workflow.Nodes.Count}");
-            
-            // 批量添加节点到 tabInfo
-            AddRangeToCollection(tabInfo.WorkflowNodes, nodesToLoad);
-            LogInfo($"✓ 节点已添加到标签页");
+            LogInfo($"节点加载完成，数量: {tabViewModel.WorkflowNodes.Count}/{workflow.Nodes.Count}");
 
-            // 转换底层连接到 UI 连接（先收集，再批量添加）
-            var connectionsToLoad = new List<WorkflowConnection>();
-            int connIndex = 0;
-            
+            // 转换连接（UI 层 WorkflowConnection 与数据层 Connection 是独立类）
             foreach (var conn in workflow.Connections)
             {
-                connIndex++;
-                LogInfo($"  [{connIndex}/{workflow.Connections.Count}] 加载连接: {conn.SourceNode}.{conn.SourcePort} -> {conn.TargetNode}.{conn.TargetPort}");
-                
-                var connection = new WorkflowConnection
+                var connection = new Models.WorkflowConnection
                 {
                     Id = conn.Id,
                     SourceNodeId = conn.SourceNode,
@@ -1691,40 +1567,20 @@ namespace SunEyeVision.UI.ViewModels
                     SourcePort = conn.SourcePort,
                     TargetPort = conn.TargetPort
                 };
-
-                connectionsToLoad.Add(connection);
+                tabViewModel.WorkflowConnections.Add(connection);
             }
 
-            LogInfo($"连接转换完成，待添加数量: {connectionsToLoad.Count}/{workflow.Connections.Count}");
-            
-            // 批量添加连接到 tabInfo
-            AddRangeToCollection(tabInfo.WorkflowConnections, connectionsToLoad);
-            LogInfo($"✓ 连接已添加到标签页");
-
-            // 创建 WorkflowTabViewModel
-            var tabViewModel = new ViewModels.WorkflowTabViewModel();
-
-            // 设置属性
-            tabViewModel.Name = tabInfo.Name;
-
-            // 将节点和连接复制到新的 ViewModel（批量添加）
-            AddRangeToCollection(tabViewModel.WorkflowNodes, tabInfo.WorkflowNodes);
-            AddRangeToCollection(tabViewModel.WorkflowConnections, tabInfo.WorkflowConnections);
+            LogInfo($"连接加载完成，数量: {tabViewModel.WorkflowConnections.Count}/{workflow.Connections.Count}");
 
             // 初始化空洞池（从现有节点恢复索引池）
             if (tabViewModel.SequenceManager != null)
             {
                 tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.WorkflowNodes);
-                LogInfo($"✓ 空洞池已初始化");
-            }
-            else
-            {
-                LogWarning($"⚠️ SequenceManager 为空，无法初始化空洞池");
             }
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
-            LogInfo($"✓ 标签页已添加: {tabInfo.Name}");
+            LogInfo($"标签页已添加: {workflow.Name}");
         }
 
         /// <summary>
@@ -2037,21 +1893,31 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 添加节点到当前工作流
         /// </summary>
-        public void AddNodeToWorkflow(UIWorkflowNode node)
+        public void AddNodeToWorkflow(WorkflowNodeBase node)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
             AddLog($"➕ 添加节点: {node.Name} (ID={node.Id}, 类型={node.ToolType})");
 
-            var command = new AppCommands.AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, node);
+            // 添加到 UI 集合（通过命令模式，支持撤销）
+            var uiNode = Models.WorkflowNode.FromBase(node);
+            var command = new AppCommands.AddNodeCommand(WorkflowTabViewModel.SelectedTab.WorkflowNodes, uiNode);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+            // 同时添加到 Solution.Workflow.Nodes（同一对象引用）
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
+            if (workflow != null && !workflow.Nodes.Contains(node))
+            {
+                workflow.Nodes.Add(node);
+            }
         }
 
         /// <summary>
         /// 从当前工作流删除节点（通过命令模式）
         /// </summary>
-        public void DeleteNodeFromWorkflow(UIWorkflowNode node)
+        public void DeleteNodeFromWorkflow(WorkflowNodeBase node)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
@@ -2061,16 +1927,24 @@ namespace SunEyeVision.UI.ViewModels
             var command = new AppCommands.DeleteNodeCommand(
                 WorkflowTabViewModel.SelectedTab.WorkflowNodes,
                 WorkflowTabViewModel.SelectedTab.WorkflowConnections,
-                node);
+                Models.WorkflowNode.FromBase(node));
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+            // 同时从 Solution.Workflow.Nodes 删除
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
+            if (workflow != null)
+            {
+                workflow.Nodes.Remove(node);
+            }
         }
 
         /// <summary>
         /// 移动节点到新位置（通过命令模式）
         /// </summary>
-        public void MoveNode(UIWorkflowNode node, Point newPosition)
+        public void MoveNode(WorkflowNodeBase node, Point newPosition)
         {
-            var command = new AppCommands.MoveNodeCommand(node, node.Position, newPosition);
+            var command = new AppCommands.MoveNodeCommand(Models.WorkflowNode.FromBase(node), node.Position, newPosition);
             if (WorkflowTabViewModel.SelectedTab != null)
             {
                 WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
@@ -2092,6 +1966,22 @@ namespace SunEyeVision.UI.ViewModels
 
             var command = new AppCommands.AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+            // 同步到 Solution.Workflow.Connections
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
+            if (workflow != null)
+            {
+                var conn = new SunEyeVision.Workflow.Connection
+                {
+                    Id = connection.Id,
+                    SourceNode = connection.SourceNodeId,
+                    TargetNode = connection.TargetNodeId,
+                    SourcePort = connection.SourcePort,
+                    TargetPort = connection.TargetPort
+                };
+                workflow.Connections.Add(conn);
+            }
         }
 
         /// <summary>
@@ -2111,6 +2001,16 @@ namespace SunEyeVision.UI.ViewModels
 
             var command = new AppCommands.DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+
+            // 同时从 Solution.Workflow.Connections 删除
+            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
+            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
+            if (workflow != null)
+            {
+                var target = workflow.Connections.FirstOrDefault(c => c.Id == connection.Id);
+                if (target != null)
+                    workflow.Connections.Remove(target);
+            }
         }
 
         /// <summary>
@@ -2986,16 +2886,6 @@ namespace SunEyeVision.UI.ViewModels
                         }
                         
                         // 注意：不再刷新 ActiveInputSource，因为输入源不应该被执行结果修改
-                        // 向后兼容：刷新 ImageData（已过时）
-#pragma warning disable CS0618
-                        if (e.Node.ImageData != null)
-                        {
-                            var temp = e.Node.ImageData;
-                            ActiveNodeImageData = null;
-                            ActiveNodeImageData = temp;
-                            AddLog($"📷 [兼容] 已刷新节点 {e.Node.Name} 的图像预览, 图像数={temp.ImageCount}");
-                        }
-#pragma warning restore CS0618
                     });
                 }
             }
@@ -3384,11 +3274,6 @@ namespace SunEyeVision.UI.ViewModels
             {
                 // 新架构：确保 InputSource 已初始化
                 var inputSource = selectedNode.EnsureInputSource();
-                
-#pragma warning disable CS0618 // 向后兼容
-                // 向后兼容：确保 ImageData 已初始化
-                selectedNode.ImageData ??= new Models.NodeImageData(selectedNode.Id);
-#pragma warning restore CS0618
 
                 // 检查是否是同一节点
                 bool isSameNode = _currentDisplayNodeId == selectedNode.Id;
@@ -3399,10 +3284,6 @@ namespace SunEyeVision.UI.ViewModels
                     _currentDisplayNodeId = selectedNode.Id;
                     inputSource.PrepareForDisplay();
                     ActiveInputSource = inputSource;
-#pragma warning disable CS0618 // 向后兼容
-                    selectedNode.ImageData.PrepareForDisplay();
-                    ActiveNodeImageData = selectedNode.ImageData;
-#pragma warning restore CS0618
                 }
 
                 // 只有真正变化时才设置
@@ -3466,11 +3347,6 @@ namespace SunEyeVision.UI.ViewModels
                     _currentDisplayNodeId = sourceLoadNode.Id;
                     sourceInputSource.PrepareForDisplay();
                     ActiveInputSource = sourceInputSource;
-#pragma warning disable CS0618 // 向后兼容
-                    var sourceImageData = sourceLoadNode.ImageData;
-                    sourceImageData?.PrepareForDisplay();
-                    ActiveNodeImageData = sourceImageData;
-#pragma warning restore CS0618
                 }
                 
                 if (!ShowImagePreview)
@@ -3499,7 +3375,7 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public void ForceRefreshImagePreview()
         {
-            UpdateImagePreviewVisibility(_selectedNode);
+            UpdateImagePreviewVisibility((Models.WorkflowNode?)_selectedNode);
         }
 
         /// <summary>

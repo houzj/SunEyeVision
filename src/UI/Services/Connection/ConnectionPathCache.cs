@@ -274,21 +274,21 @@ namespace SunEyeVision.UI.Services.Connection
             var sourceNodeRect = new Rect(
                 sourceNode.Position.X,
                 sourceNode.Position.Y,
-                sourceNode.StyleConfig.NodeWidth,
-                sourceNode.StyleConfig.NodeHeight);
+                sourceNode.StyleConfigTyped.NodeWidth,
+                sourceNode.StyleConfigTyped.NodeHeight);
 
             var targetNodeRect = new Rect(
                 targetNode.Position.X,
                 targetNode.Position.Y,
-                targetNode.StyleConfig.NodeWidth,
-                targetNode.StyleConfig.NodeHeight);
+                targetNode.StyleConfigTyped.NodeWidth,
+                targetNode.StyleConfigTyped.NodeHeight);
 
             // 计算所有节点边界（用于碰撞检测）
             var allNodeRects = _nodes.Select(n => new Rect(
                 n.Position.X,
                 n.Position.Y,
-                n.StyleConfig.NodeWidth,
-                n.StyleConfig.NodeHeight)).ToArray();
+                n.StyleConfigTyped.NodeWidth,
+                n.StyleConfigTyped.NodeHeight)).ToArray();
 
             // 根据端口方向计算箭头尾部位置（路径终点）
             var arrowTailPos = CalculateArrowTailPosition(targetPos, targetDirection);

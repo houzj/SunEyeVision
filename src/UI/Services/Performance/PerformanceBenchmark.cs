@@ -84,7 +84,7 @@ namespace SunEyeVision.UI.Services.Performance
                 {
                     // 模拟渲染操作
                     var position = node.Position;
-                    var size = new Size(node.StyleConfig.NodeWidth, node.StyleConfig.NodeHeight);
+                    var size = new Size(node.StyleConfigTyped.NodeWidth, node.StyleConfigTyped.NodeHeight);
                 }
 
                 stopwatch.Stop();
@@ -193,8 +193,8 @@ namespace SunEyeVision.UI.Services.Performance
                     var bounds = new Rect(
                         node.Position.X,
                         node.Position.Y,
-                        node.StyleConfig.NodeWidth,
-                        node.StyleConfig.NodeHeight);
+                        node.StyleConfigTyped.NodeWidth,
+                        node.StyleConfigTyped.NodeHeight);
                 }
 
                 stopwatch.Stop();

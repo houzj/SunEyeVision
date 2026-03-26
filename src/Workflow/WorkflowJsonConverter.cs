@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Workflow
 {
     /// <summary>
-    /// 工作流 JSON 转换器 - 支持强类型参数的序列化/反序列化
+    /// 工作流 JSON 转换器 - 直接序列化 WorkflowNodeBase
     /// </summary>
+    /// <remarks>
+    /// 优化说明（rule-010: 方案系统实现规范）：
+    /// - 删除 Dictionary 转换层，直接序列化 WorkflowNodeBase 对象
+    /// - System.Text.Json 自动处理多态序列化（如有子类需要 [JsonPolymorphic]）
+    /// - Parameters 通过 ToolParameters 自身的 [JsonPolymorphic] 处理多态
+    /// </remarks>
     public class WorkflowJsonConverter : JsonConverter<Workflow>
     {
         public override Workflow Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -30,26 +36,43 @@ namespace SunEyeVision.Workflow
             // 创建工作流实例
             var workflow = new Workflow(id, name);
 
-            // 反序列化节点（使用 FromDictionary 方法恢复强类型参数）
+            // 直接反序列化节点（无需 Dictionary 转换层）
             if (root.TryGetProperty("Nodes", out var nodesElement))
             {
-                workflow.Nodes = new List<WorkflowNodeBase>();
+                workflow.Nodes = new ObservableCollection<WorkflowNodeBase>();
                 foreach (var nodeElement in nodesElement.EnumerateArray())
                 {
                     try
                     {
-                        var nodeDict = JsonElementToDictionary(nodeElement, options);
-
-                        if (nodeDict != null)
+                        var node = JsonSerializer.Deserialize<WorkflowNodeBase>(
+                            nodeElement.GetRawText(), options);
+                        if (node != null)
                         {
-                            var node = WorkflowNodeBase.FromDictionary(nodeDict);
                             workflow.Nodes.Add(node);
                         }
                     }
                     catch (Exception ex)
                     {
-                        // 跳过无法解析的节点，继续处理其他节点
-                        VisionLogger.Instance.Log(LogLevel.Warning, $"Failed to deserialize node: {ex.Message}", "WorkflowJsonConverter");
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"节点标准反序列化失败，尝试旧格式兼容: {ex.Message}", "WorkflowJsonConverter");
+
+                        // 最终降级：兼容旧格式（Dictionary 方式的 JSON）
+                        try
+                        {
+                            var node = ReadNodeLegacyFormat(nodeElement, options);
+                            if (node != null)
+                            {
+                                workflow.Nodes.Add(node);
+                                VisionLogger.Instance.Log(LogLevel.Warning,
+                                    $"节点使用旧格式兼容加载: {node.Name}", "WorkflowJsonConverter");
+                            }
+                        }
+                        catch (Exception legacyEx)
+                        {
+                            VisionLogger.Instance.Log(LogLevel.Error,
+                                $"Failed to deserialize node: {ex.Message}, legacy fallback also failed: {legacyEx.Message}",
+                                "WorkflowJsonConverter");
+                        }
                     }
                 }
             }
@@ -59,20 +82,23 @@ namespace SunEyeVision.Workflow
             {
                 try
                 {
-                    workflow.Connections = JsonSerializer.Deserialize<List<Connection>>(
+                    var connList = JsonSerializer.Deserialize<List<Connection>>(
                         connElement.GetRawText(),
                         options
-                    ) ?? new List<Connection>();
+                    );
+                    workflow.Connections = connList != null
+                        ? new ObservableCollection<Connection>(connList)
+                        : new ObservableCollection<Connection>();
                 }
                 catch (Exception ex)
                 {
                     VisionLogger.Instance.Log(LogLevel.Warning, $"Failed to deserialize connections: {ex.Message}", "WorkflowJsonConverter");
-                    workflow.Connections = new List<Connection>();
+                    workflow.Connections = new ObservableCollection<Connection>();
                 }
             }
             else
             {
-                workflow.Connections = new List<Connection>();
+                workflow.Connections = new ObservableCollection<Connection>();
             }
 
             return workflow;
@@ -86,13 +112,12 @@ namespace SunEyeVision.Workflow
             writer.WriteString("Id", value.Id);
             writer.WriteString("Name", value.Name);
 
-            // 写入节点（使用 ToDictionary 方法保留强类型信息）
+            // 直接序列化节点（无需 Dictionary 转换层）
             writer.WritePropertyName("Nodes");
             writer.WriteStartArray();
             foreach (var node in value.Nodes)
             {
-                var nodeDict = node.ToDictionary();
-                JsonSerializer.Serialize(writer, nodeDict, options);
+                JsonSerializer.Serialize(writer, node, options);
             }
             writer.WriteEndArray();
 
@@ -100,125 +125,54 @@ namespace SunEyeVision.Workflow
             writer.WritePropertyName("Connections");
             JsonSerializer.Serialize(writer, value.Connections, options);
 
-            // PortConnections 已移除
-            // writer.WritePropertyName("PortConnections");
-            // JsonSerializer.Serialize(writer, value.PortConnections, options);
-
             writer.WriteEndObject();
         }
 
         /// <summary>
-        /// 将 JsonElement 转换为 Dictionary<string, object>
+        /// 兼容旧格式（Dictionary 方式的 JSON）的节点加载
         /// </summary>
-        /// <remarks>
-        /// 特殊处理：Parameters 字段直接反序列化为 ToolParameters 对象
-        /// </remarks>
-        private Dictionary<string, object?> JsonElementToDictionary(JsonElement element, JsonSerializerOptions options)
+        private WorkflowNodeBase? ReadNodeLegacyFormat(JsonElement nodeElement, JsonSerializerOptions options)
         {
             var dict = new Dictionary<string, object?>();
 
-            foreach (var property in element.EnumerateObject())
+            foreach (var property in nodeElement.EnumerateObject())
             {
-                // 特殊处理 Parameters 字段：直接反序列化为 ToolParameters 对象
                 if (property.Name == "Parameters")
                 {
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"📥 [参数反序列化开始] 准备反序列化 Parameters 字段",
-                        "WorkflowJsonConverter");
-                    
-                    // 🔍 关键诊断：输出原始 JSON 内容
-                    var rawText = property.Value.GetRawText();
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"📥 [参数反序列化] 原始 JSON: {rawText.Substring(0, Math.Min(200, rawText.Length))}...",
-                        "WorkflowJsonConverter");
-                    
-                    // 🔍 关键诊断：检查 options 中的 TypeInfoResolver
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"📥 [参数反序列化] JsonSerializerOptions 配置: " +
-                        $"WriteIndented={options.WriteIndented}, " +
-                        $"PropertyNamingPolicy={options.PropertyNamingPolicy?.GetType().Name ?? "null"}, " +
-                        $"TypeInfoResolver={options.TypeInfoResolver?.GetType().Name ?? "null"}",
-                        "WorkflowJsonConverter");
-                    
                     try
                     {
                         var parameters = JsonSerializer.Deserialize<ToolParameters>(
-                            property.Value.GetRawText(),
-                            options
-                        );
-                        if (parameters != null)
-                        {
-                            // 🔍 详细日志：参数反序列化成功
-                            var paramType = parameters.GetType().Name;
-                            var paramValues = parameters.GetParameterSummary();
-                            VisionLogger.Instance.Log(LogLevel.Success,
-                                $"✅ [参数反序列化成功] 类型: {paramType} | 值: {paramValues}",
-                                "WorkflowJsonConverter");
-                            dict[property.Name] = parameters;
-                        }
-                        else
-                        {
-                            VisionLogger.Instance.Log(LogLevel.Warning,
-                                $"⚠️ [参数反序列化失败] 结果为 null，使用 GenericToolParameters",
-                                "WorkflowJsonConverter");
-                            dict[property.Name] = new GenericToolParameters();
-                        }
+                            property.Value.GetRawText(), options);
+                        dict[property.Name] = parameters ?? new GenericToolParameters();
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        VisionLogger.Instance.Log(LogLevel.Error,
-                            $"❌ [参数反序列化异常] 错误: {ex.Message}",
-                            "WorkflowJsonConverter", ex);
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"⚠️ [参数反序列化失败] 使用 GenericToolParameters 作为回退",
-                            "WorkflowJsonConverter");
                         dict[property.Name] = new GenericToolParameters();
                     }
                 }
                 else
                 {
-                    dict[property.Name] = JsonElementToObject(property.Value, options);
+                    dict[property.Name] = JsonElementToSimpleObject(property.Value);
                 }
             }
 
-            return dict;
+            return WorkflowNodeBase.FromDictionary(dict!);
         }
 
         /// <summary>
-        /// 将 JsonElement 转换为相应的 C# 对象
+        /// 将 JsonElement 转换为简单对象（仅用于旧格式兼容）
         /// </summary>
-        private object? JsonElementToObject(JsonElement element, JsonSerializerOptions options)
+        private static object? JsonElementToSimpleObject(JsonElement element)
         {
-            switch (element.ValueKind)
+            return element.ValueKind switch
             {
-                case JsonValueKind.String:
-                    return element.GetString();
-                case JsonValueKind.Number:
-                    if (element.TryGetInt32(out int intVal))
-                        return intVal;
-                    if (element.TryGetInt64(out long longVal))
-                        return longVal;
-                    if (element.TryGetDouble(out double doubleVal))
-                        return doubleVal;
-                    return element.GetDecimal();
-                case JsonValueKind.True:
-                    return true;
-                case JsonValueKind.False:
-                    return false;
-                case JsonValueKind.Null:
-                    return null;
-                case JsonValueKind.Object:
-                    return JsonElementToDictionary(element, options);
-                case JsonValueKind.Array:
-                    var list = new List<object?>();
-                    foreach (var item in element.EnumerateArray())
-                    {
-                        list.Add(JsonElementToObject(item, options));
-                    }
-                    return list;
-                default:
-                    return element.ToString();
-            }
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt32(out var i) ? i : element.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                _ => element.GetRawText()
+            };
         }
     }
 }

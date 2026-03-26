@@ -458,11 +458,27 @@ namespace SunEyeVision.UI.Views.Windows
                 {
                     var workflow = new SunEyeVision.Workflow.Workflow(tab.Id, tab.Name);
                     solution.Workflows.Add(workflow);
-                    
-                    // 同步节点数据
-                    _viewModel.SyncWorkflowFromUI(workflow, tab);
-                    
-                    _viewModel?.AddLog(LogLevel.Info, $"已同步工作流: {tab.Name}", LogSource.UIOperation);
+
+                    // 同步节点数据（同一对象引用）
+                    foreach (var node in tab.WorkflowNodes)
+                    {
+                        workflow.Nodes.Add(node);
+                    }
+
+                    // 同步连接数据
+                    foreach (var conn in tab.WorkflowConnections)
+                    {
+                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
+                        {
+                            Id = conn.Id,
+                            SourceNode = conn.SourceNodeId,
+                            TargetNode = conn.TargetNodeId,
+                            SourcePort = conn.SourcePort,
+                            TargetPort = conn.TargetPort
+                        });
+                    }
+
+                    _viewModel?.AddLog(LogLevel.Info, $"已同步工作流: {tab.Name}, 节点数={tab.WorkflowNodes.Count}, 连接数={tab.WorkflowConnections.Count}", LogSource.UIOperation);
                 }
 
                 // 直接保存Solution对象（不依赖CurrentSolution）
@@ -507,6 +523,10 @@ namespace SunEyeVision.UI.Views.Windows
         /// <summary>
         /// 同步UI层的工作流到底层解决方案
         /// </summary>
+        /// <remarks>
+        /// 节点已直接引用 Solution.Workflow.Nodes，无需重建 Workflow。
+        /// 与 MainWindowViewModel.SaveSolutionData 保持一致的同步逻辑。
+        /// </remarks>
         private void SyncWorkflowsToSolution()
         {
             if (_viewModel?.WorkflowTabViewModel == null || _viewModel?.WorkflowTabViewModel.Tabs == null)
@@ -517,21 +537,55 @@ namespace SunEyeVision.UI.Views.Windows
                 return;
 
             var solution = solutionManager.CurrentSolution;
-            
-            // 清空工作流列表
-            solution.Workflows.Clear();
-            
-            // 同步每个工作流
-            foreach (var workflowTab in _viewModel.WorkflowTabViewModel.Tabs)
+
+            foreach (var tab in _viewModel.WorkflowTabViewModel.Tabs)
             {
-                // 创建新的工作流对象
-                var workflow = new SunEyeVision.Workflow.Workflow(workflowTab.Id, workflowTab.Name);
-                
-                // 同步节点和连接
-                _viewModel.SyncWorkflowFromUI(workflow, workflowTab);
-                
-                // 添加到解决方案
-                solution.Workflows.Add(workflow);
+                var workflow = solution.Workflows.FirstOrDefault(w => w.Id == tab.Id);
+
+                if (workflow == null)
+                {
+                    workflow = new SunEyeVision.Workflow.Workflow(tab.Id, tab.Name);
+                    solution.Workflows.Add(workflow);
+                }
+                else if (workflow.Name != tab.Name)
+                {
+                    workflow.Name = tab.Name;
+                }
+
+                // 同步节点
+                foreach (var node in tab.WorkflowNodes)
+                {
+                    if (!workflow.Nodes.Contains(node))
+                        workflow.Nodes.Add(node);
+                }
+
+                var nodesToRemove = workflow.Nodes
+                    .Where(n => !tab.WorkflowNodes.Contains(n))
+                    .ToList();
+                foreach (var node in nodesToRemove)
+                    workflow.Nodes.Remove(node);
+
+                // 同步连接
+                foreach (var conn in tab.WorkflowConnections)
+                {
+                    if (!workflow.Connections.Any(c => c.Id == conn.Id))
+                    {
+                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
+                        {
+                            Id = conn.Id,
+                            SourceNode = conn.SourceNodeId,
+                            TargetNode = conn.TargetNodeId,
+                            SourcePort = conn.SourcePort,
+                            TargetPort = conn.TargetPort
+                        });
+                    }
+                }
+
+                var connsToRemove = workflow.Connections
+                    .Where(c => !tab.WorkflowConnections.Any(tc => tc.Id == c.Id))
+                    .ToList();
+                foreach (var conn in connsToRemove)
+                    workflow.Connections.Remove(conn);
             }
         }
 

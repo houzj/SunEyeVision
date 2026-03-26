@@ -74,8 +74,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 var nodeRect = new Rect(
                     node.Position.X,
                     node.Position.Y,
-                    node.StyleConfig.NodeWidth,
-                    node.StyleConfig.NodeHeight);
+                    node.StyleConfigTyped.NodeWidth,
+                    node.StyleConfigTyped.NodeHeight);
 
                 if (visibleArea.IntersectsWith(nodeRect))
                 {
@@ -120,14 +120,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     var sourceRect = new Rect(
                         sourceNode.Position.X,
                         sourceNode.Position.Y,
-                        sourceNode.StyleConfig.NodeWidth,
-                        sourceNode.StyleConfig.NodeHeight);
+                        sourceNode.StyleConfigTyped.NodeWidth,
+                        sourceNode.StyleConfigTyped.NodeHeight);
 
                     var targetRect = new Rect(
                         targetNode.Position.X,
                         targetNode.Position.Y,
-                        targetNode.StyleConfig.NodeWidth,
-                        targetNode.StyleConfig.NodeHeight);
+                        targetNode.StyleConfigTyped.NodeWidth,
+                        targetNode.StyleConfigTyped.NodeHeight);
 
                     // 检查源节点、目标节点或路径是否在可见区域
                     if (visibleArea.IntersectsWith(sourceRect) ||

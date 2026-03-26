@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Workflow;
@@ -12,290 +8,91 @@ using SunEyeVision.Plugin.SDK.Models;
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
-    /// 工作流节点模型 - UI层专用
+    /// 工作流节点模型 - UI 层扩展属性
     /// </summary>
     /// <remarks>
-    /// 优化说明：
-    /// - 继承 WorkflowNodeBase 基类，避免字段重复
-    /// - 只添加UI层特有的状态属性（IsSelected, IsVisible, Status, Position, StyleConfig）
-    /// - 数据冗余从60%降至0%
+    /// 重构说明（2026-03-26）：
+    /// - 继承 WorkflowNodeBase，不再重复实现 INotifyPropertyChanged
+    /// - WorkflowNodeBase 已包含 Position, IsSelected, IsVisible, Status 等属性
+    /// - 本类仅添加 UI 层特有的强类型属性和计算属性
     ///
-    /// 注意：此类不继承 ObservableObject，原因：
-    /// 1. 需要支持属性变更批处理（BeginPropertyBatch/EndPropertyBatch）
-    /// 2. 需要扩展事件（PropertyChanging、PropertyChangedExtended）
-    /// 3. 有特殊的批处理延迟优化逻辑
-    ///
-    /// 如果需要属性通知功能，直接使用内置的 SetProperty/OnPropertyChanged 方法。
-    ///
-    /// 重构说明：
-    /// - 2026-03-21: 重命名为 WorkflowNode，消除与基类的命名冲突
-    /// - 基类: SunEyeVision.Workflow.WorkflowNodeBase
+    /// 数据源统一：
+    /// - UI 直接绑定 Solution.Workflow.Nodes（ObservableCollection）
+    /// - 不再需要同步代码
     /// </remarks>
-    public class WorkflowNode : SunEyeVision.Workflow.WorkflowNodeBase, INotifyPropertyChanged
+    public class WorkflowNode : WorkflowNodeBase
     {
-        #region UI层特有属性
-
-        private Point _position;
-        private bool _isSelected;
-        private bool _isVisible = true;
-        private string _status = "待运行";
-        private NodeStyleConfig _styleConfig = NodeStyles.Standard;
-
-        // UI层特有的缓存属性
-        private NodeOutputCache? _outputCache;
-        private ImageInputSource? _inputSource;
-        private ToolResults? _lastResult;
-
-        // 向后兼容属性（已过时，但保留以支持旧代码）
-        [Obsolete("使用 InputSource 替代")]
-        private NodeImageData? _imageData;
-
-        // 4A: 智能属性变更批处理机制
-        private readonly HashSet<string> _pendingPropertyChanges = new HashSet<string>();
-        private bool _isBatchingProperties = false;
-        private DispatcherTimer? _batchTimer;
-
         /// <summary>
-        /// 节点输出缓存（UI层专用）
+        /// 节点输出缓存（UI 层专用，强类型）
         /// </summary>
-        public NodeOutputCache? OutputCache
+        public new NodeOutputCache? OutputCache
         {
-            get => _outputCache;
-            set
-            {
-                if (_outputCache != value)
-                {
-                    _outputCache = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => base.OutputCache as NodeOutputCache;
+            set => base.OutputCache = value;
         }
 
         /// <summary>
-        /// 节点输入源（UI层专用）
+        /// 节点输入源（UI 层专用，强类型）
         /// </summary>
-        public ImageInputSource? InputSource
+        public new ImageInputSource? InputSource
         {
-            get => _inputSource;
-            set
-            {
-                if (_inputSource != value)
-                {
-                    _inputSource = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => base.InputSource as ImageInputSource;
+            set => base.InputSource = value;
         }
 
         /// <summary>
-        /// 最近一次执行结果（UI层专用）
+        /// 最近一次执行结果（UI 层专用，强类型）
         /// </summary>
-        public ToolResults? LastResult
+        public new ToolResults? LastResult
         {
-            get => _lastResult;
-            set
-            {
-                if (_lastResult != value)
-                {
-                    _lastResult = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => base.LastResult as ToolResults;
+            set => base.LastResult = value;
         }
 
         /// <summary>
-        /// 确保输入源已初始化
+        /// 节点样式配置（UI 层专用，强类型）
         /// </summary>
-        public ImageInputSource EnsureInputSource()
+        public NodeStyleConfig StyleConfigTyped
         {
-            if (_inputSource == null)
-            {
-                _inputSource = new ImageInputSource(Id);
-                OnPropertyChanged(nameof(InputSource));
-            }
-            return _inputSource;
+            get => base.StyleConfig as NodeStyleConfig ?? NodeStyles.Standard;
+            set => base.StyleConfig = value;
         }
 
-        /// <summary>
-        /// 节点样式配置（用于完全解耦样式和逻辑）
-        /// </summary>
-        public NodeStyleConfig StyleConfig
-        {
-            get => _styleConfig;
-            set
-            {
-                if (_styleConfig != value)
-                {
-                    _styleConfig = value ?? NodeStyles.Standard;
-                    _styleConfig.Validate();
-                    OnPropertyChanged();
-                    // 触发端口位置属性变更
-                    OnPropertyChanged(nameof(TopPortPosition));
-                    OnPropertyChanged(nameof(BottomPortPosition));
-                    OnPropertyChanged(nameof(LeftPortPosition));
-                    OnPropertyChanged(nameof(RightPortPosition));
-                }
-            }
-        }
+        #region 端口位置计算属性
 
         /// <summary>
-        /// 属性变更前事件
+        /// 获取上方连接点位置（动态计算）
         /// </summary>
-        public event Action<WorkflowNode, string>? PropertyChanging;
+        public Point TopPortPosition => StyleConfigTyped.GetTopPortPosition(Position);
 
         /// <summary>
-        /// 属性变更后事件（扩展的标准PropertyChanged）
+        /// 获取下方连接点位置（动态计算）
         /// </summary>
-        public event Action<WorkflowNode, string>? PropertyChangedExtended;
+        public Point BottomPortPosition => StyleConfigTyped.GetBottomPortPosition(Position);
 
         /// <summary>
-        /// 节点位置（UI层专用）
+        /// 获取左侧连接点位置（动态计算）
         /// </summary>
-        public Point Position
-        {
-            get => _position;
-            set
-            {
-                if (_position != value)
-                {
-                    _position = value;
-                    // 位置更新必须实时，不使用批处理
-                    // 拖拽时节点位置必须立即更新，否则会出现延迟和闪烁
-                    OnPropertyChanged(nameof(Position));
-                    OnPropertyChanged(nameof(PositionX));
-                    OnPropertyChanged(nameof(PositionY));
-                    // 端口位置依赖于Position，也必须立即更新
-                    OnPropertyChanged(nameof(TopPortPosition));
-                    OnPropertyChanged(nameof(BottomPortPosition));
-                    OnPropertyChanged(nameof(LeftPortPosition));
-                    OnPropertyChanged(nameof(RightPortPosition));
-                }
-            }
-        }
+        public Point LeftPortPosition => StyleConfigTyped.GetLeftPortPosition(Position);
 
         /// <summary>
-        /// Node X coordinate for binding
+        /// 获取右侧连接点位置（动态计算）
         /// </summary>
-        public double PositionX
-        {
-            get => Position.X;
-            set
-            {
-                if (Position.X != value)
-                {
-                    Position = new Point(value, Position.Y);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 获取上方连接点位置（动态计算，完全解耦）
-        /// </summary>
-        public Point TopPortPosition => _styleConfig.GetTopPortPosition(Position);
-
-        /// <summary>
-        /// 获取下方连接点位置（动态计算，完全解耦）
-        /// </summary>
-        public Point BottomPortPosition => _styleConfig.GetBottomPortPosition(Position);
-
-        /// <summary>
-        /// 获取左侧连接点位置（动态计算，完全解耦）
-        /// </summary>
-        public Point LeftPortPosition => _styleConfig.GetLeftPortPosition(Position);
-
-        /// <summary>
-        /// 获取右侧连接点位置（动态计算，完全解耦）
-        /// </summary>
-        public Point RightPortPosition => _styleConfig.GetRightPortPosition(Position);
+        public Point RightPortPosition => StyleConfigTyped.GetRightPortPosition(Position);
 
         /// <summary>
         /// 获取节点边界矩形（用于框选等操作）
         /// </summary>
-        public Rect NodeRect => _styleConfig.GetNodeRect(Position);
+        public Rect NodeRect => StyleConfigTyped.GetNodeRect(Position);
 
         /// <summary>
         /// 获取节点中心点（用于距离计算）
         /// </summary>
-        public Point NodeCenter => _styleConfig.GetNodeCenter(Position);
-
-        /// <summary>
-        /// Node Y coordinate for binding
-        /// </summary>
-        public double PositionY
-        {
-            get => Position.Y;
-            set
-            {
-                if (Position.Y != value)
-                {
-                    Position = new Point(Position.X, value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 是否被选中（UI层专用）
-        /// </summary>
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set
-            {
-                if (_isSelected != value)
-                {
-                    _isSelected = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        /// <summary>
-        /// 节点是否可见（UI层专用，用于虚拟化渲染）
-        /// </summary>
-        public bool IsVisible
-        {
-            get => _isVisible;
-            set
-            {
-                if (_isVisible != value)
-                {
-                    _isVisible = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        /// <summary>
-        /// 节点状态（UI层专用）
-        /// </summary>
-        public string Status
-        {
-            get => _status;
-            set
-            {
-                if (_status != value)
-                {
-                    _status = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+        public Point NodeCenter => StyleConfigTyped.GetNodeCenter(Position);
 
         #endregion
 
-        #region 向后兼容属性（已过时）
-
-        /// <summary>
-        /// 节点图像数据（已过时，使用 InputSource 替代）
-        /// </summary>
-        [Obsolete("使用 InputSource 替代")]
-        public NodeImageData? ImageData
-        {
-            get => _imageData;
-            set => _imageData = value;
-        }
-
-
+        #region 类型判断属性
 
         /// <summary>
         /// 是否为图像采集节点（基于 ToolType 计算）
@@ -316,151 +113,84 @@ namespace SunEyeVision.UI.Models
 
         #endregion
 
-        #region 继承自基类的属性（直接使用）
+        /// <summary>
+        /// 确保输入源已初始化
+        /// </summary>
+        public ImageInputSource EnsureInputSource()
+        {
+            if (InputSource == null)
+            {
+                InputSource = new ImageInputSource(Id);
+                OnPropertyChanged(nameof(InputSource));
+            }
+            return InputSource;
+        }
 
-        // Id, Name, ToolType, Parameters, ParameterBindings, IsEnabled,
-        // PositionX, PositionY, Width, Height, NodeType, DisplayName, Icon
-        // 这些属性都继承自基类 SunEyeVision.Workflow.WorkflowNodeBase
-
-        #endregion
-
-        public event PropertyChangedEventHandler? PropertyChanged;
+        #region 构造函数
 
         public WorkflowNode(string id, string name, string dispName, string toolType)
             : base(id, name, dispName, toolType)
         {
-            Position = new Point(PositionX, PositionY);
+            // 初始化样式配置
+            StyleConfigTyped = NodeStyles.Standard;
         }
 
+        /// <summary>
+        /// 供 System.Text.Json 反序列化使用的无参构造函数
+        /// </summary>
+        [System.Text.Json.Serialization.JsonConstructor]
+        public WorkflowNode() : base()
+        {
+            StyleConfigTyped = NodeStyles.Standard;
+        }
 
+        #endregion
+
+        #region 类型转换
 
         /// <summary>
-        /// 确保Timer已初始化（延迟初始化模式）
+        /// 从 WorkflowNodeBase 创建 UI 层 WorkflowNode（数据层 → UI 层的统一转换入口）
         /// </summary>
-        private void EnsureTimerInitialized()
+        /// <remarks>
+        /// 如果 baseNode 本身就是 WorkflowNode，直接返回；
+        /// 否则创建新的 WorkflowNode 并完整复制所有属性。
+        /// 确保加载解决方案时不丢失位置、参数、尺寸等信息。
+        /// </remarks>
+        public static WorkflowNode FromBase(WorkflowNodeBase baseNode)
         {
-            if (_batchTimer == null)
+            if (baseNode is WorkflowNode existing)
+                return existing;
+
+            var node = new WorkflowNode(
+                baseNode.Id,
+                baseNode.Name,
+                baseNode.DispName ?? baseNode.Name,
+                baseNode.ToolType)
             {
-                _batchTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(16)
-                };
-                _batchTimer.Tick += OnBatchTimerTick;
-            }
-        }
-
-        /// <summary>
-        /// 4A: 开始属性变更批处理（用于批量更新节点位置）
-        /// </summary>
-        public void BeginPropertyBatch()
-        {
-            _isBatchingProperties = true;
-            _pendingPropertyChanges.Clear();
-            EnsureTimerInitialized();
-            _batchTimer?.Stop();
-        }
-
-        /// <summary>
-        /// 4A: 结束属性变更批处理并触发所有挂起的属性变更
-        /// </summary>
-        public void EndPropertyBatch()
-        {
-            _isBatchingProperties = false;
-
-            if (_pendingPropertyChanges.Count > 0)
-            {
-                // 立即触发所有挂起的属性变更
-                foreach (var propertyName in _pendingPropertyChanges)
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
-                _pendingPropertyChanges.Clear();
-            }
-        }
-
-        /// <summary>
-        /// 4A: 批处理定时器触发 - 在延迟后触发所有挂起的属性变更
-        /// </summary>
-        private void OnBatchTimerTick(object? sender, EventArgs e)
-        {
-            _batchTimer?.Stop();
-
-            if (_pendingPropertyChanges.Count > 0)
-            {
-                foreach (var propertyName in _pendingPropertyChanges)
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
-                _pendingPropertyChanges.Clear();
-            }
-        }
-
-        /// <summary>
-        /// 4A: 智能属性变更通知（支持批处理）
-        /// </summary>
-        protected void OnPropertyChangedSmart(string propertyName, bool batchPositionChanges = false)
-        {
-            // 如果是位置相关属性且启用了批处理，则加入批处理队列
-            if (batchPositionChanges && _isBatchingProperties)
-            {
-                _pendingPropertyChanges.Add(propertyName);
-
-                // 启动批处理定时器（如果尚未启动）
-                EnsureTimerInitialized();
-                if (_batchTimer != null && !_batchTimer.IsEnabled)
-                {
-                    _batchTimer.Start();
-                }
-                return;
-            }
-
-            // 正常情况立即触发属性变更
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// 触发属性变更前事件
-        /// </summary>
-        protected void OnPropertyChanging(string propertyName)
-        {
-            PropertyChanging?.Invoke(this, propertyName);
-        }
-
-        /// <summary>
-        /// 触发属性变更后事件（扩展）
-        /// </summary>
-        protected void OnPropertyChangedExtended(string propertyName)
-        {
-            PropertyChangedExtended?.Invoke(this, propertyName);
-        }
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// 从基类节点创建UI模型
-        /// </summary>
-        public static WorkflowNode FromWorkflowNode(SunEyeVision.Workflow.WorkflowNodeBase baseNode)
-        {
-            return new WorkflowNode(baseNode.Id, baseNode.Name, baseNode.DispName, baseNode.ToolType)
-            {
-                LocalIndex = baseNode.LocalIndex,
                 GlobalIndex = baseNode.GlobalIndex,
-                Parameters = baseNode.Parameters,
-                ParameterBindings = baseNode.ParameterBindings,
-                IsEnabled = baseNode.IsEnabled,
-                Position = new Point(baseNode.PositionX, baseNode.PositionY),
+                LocalIndex = baseNode.LocalIndex,
+                PositionX = baseNode.PositionX,
+                PositionY = baseNode.PositionY,
                 Width = baseNode.Width,
-                Height = baseNode.Height
+                Height = baseNode.Height,
+                IsEnabled = baseNode.IsEnabled,
+                Parameters = baseNode.Parameters,
+                ParameterBindings = baseNode.ParameterBindings
             };
+
+            return node;
         }
+
+        #endregion
     }
 
     /// <summary>
-    /// 工作流连接线模型
+    /// 工作流连接线模型（UI 层专用，保留独立类）
     /// </summary>
+    /// <remarks>
+    /// 连接线包含大量 UI 渲染相关属性（路径数据、箭头位置等），
+    /// 与数据层 Connection 类差异较大，因此保持独立。
+    /// </remarks>
     public class WorkflowConnection : ObservableObject
     {
         private string _id = string.Empty;
@@ -468,9 +198,9 @@ namespace SunEyeVision.UI.Models
         private string _targetNodeId = string.Empty;
         private string _sourcePort = "output";
         private string _targetPort = "input";
-        private System.Windows.Point _sourcePosition;
-        private System.Windows.Point _targetPosition;
-        private System.Windows.Point _arrowPosition;
+        private Point _sourcePosition;
+        private Point _targetPosition;
+        private Point _arrowPosition;
         private double _arrowAngle = 0;
         private ConnectionStatus _status = ConnectionStatus.Idle;
         private bool _showPathPoints = false;
@@ -520,7 +250,7 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 箭头位置 - 箭头尾部的实际显示位置
         /// </summary>
-        public System.Windows.Point ArrowPosition
+        public Point ArrowPosition
         {
             get => _arrowPosition;
             set
@@ -595,7 +325,7 @@ namespace SunEyeVision.UI.Models
         /// <summary>
         /// 连线路径点集合（拐点）
         /// </summary>
-        public System.Collections.ObjectModel.ObservableCollection<System.Windows.Point> PathPoints { get; set; } = new System.Collections.ObjectModel.ObservableCollection<System.Windows.Point>();
+        public System.Collections.ObjectModel.ObservableCollection<Point> PathPoints { get; set; } = new();
 
         /// <summary>
         /// 是否被选中
@@ -617,7 +347,7 @@ namespace SunEyeVision.UI.Models
             set => SetProperty(ref _isVisible, value);
         }
 
-        public System.Windows.Point SourcePosition
+        public Point SourcePosition
         {
             get => _sourcePosition;
             set
@@ -700,21 +430,12 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 6B: 触发路径相关属性的更新（优化：只触发PathUpdateCounter，其他属性通过绑定自动更新）。
+        /// 触发路径相关属性的更新
         /// </summary>
         public void InvalidatePath()
         {
-            // 只触发PathUpdateCounter，其他属性在XAML中通过PathUpdateCounter自动更新
-            // 这样可以将PropertyChanged事件（4个）减少到1个，性能提升83%。
             _pathUpdateCounter++;
             OnPropertyChanged(nameof(PathUpdateCounter));
-
-            // 移除这些不必要的PropertyChanged（通过绑定自动更新）：
-            // OnPropertyChanged(nameof(PathData));         // 通过MultiBinding自动更新
-            // OnPropertyChanged(nameof(ArrowPosition));     // 在转换器中计算。
-            // OnPropertyChanged(nameof(ArrowAngle));        // 在转换器中计算。
-            // OnPropertyChanged(nameof(ArrowX));           // 通过ArrowPosition自动更新
-            // OnPropertyChanged(nameof(ArrowY));           // 通过ArrowPosition自动更新
         }
     }
 

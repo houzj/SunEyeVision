@@ -13,7 +13,6 @@ using System.Runtime.InteropServices;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Services;
 using SunEyeVision.UI.Services.Monitoring;
-using SunEyeVision.Core.Services.Serialization;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI;
@@ -71,27 +70,6 @@ public partial class App : Application
 
         // 2. 标记插件已加载（全局状态）
         PluginLoader.MarkAsLoaded();
-
-        // ===== 诊断：验证 ParameterTypeRegistry 配置有效性 =====
-        var logger = VisionLogger.Instance;
-        logger.Log(LogLevel.Info,
-            $"📊 [App] 插件加载后诊断:\n{ParameterTypeRegistry.GetDiagnosticInfo()}",
-            "App");
-
-        // 验证配置
-        var validationError = ParameterTypeRegistry.ValidateConfiguration();
-        if (validationError != null)
-        {
-            logger.Log(LogLevel.Error,
-                $"❌ [App] ParameterTypeRegistry 配置验证失败: {validationError}",
-                "App");
-        }
-        else
-        {
-            logger.Log(LogLevel.Success,
-                "✅ [App] ParameterTypeRegistry 配置验证通过",
-                "App");
-        }
 
         // 3. 初始化服务（包括节点显示适配器）
         ServiceInitializer.InitializeServices();

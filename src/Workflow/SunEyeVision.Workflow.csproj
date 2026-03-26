@@ -10,6 +10,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SunEyeVision.Workflow.xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>

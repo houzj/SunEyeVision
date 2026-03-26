@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using System.Windows;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Models;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 
 namespace SunEyeVision.Workflow
@@ -12,27 +15,24 @@ namespace SunEyeVision.Workflow
     /// 工作流节点基类
     /// </summary>
     /// <remarks>
-    /// 优化说明：
-    /// - 移除冗余字段：Type, ParametersTypeName, Index, NodeTypeIcon
-    /// - 添加计算属性：NodeType, DisplayName, Icon, ToolType
-    /// - 核心字段：8个（Id, LocalIndex, Name, AlgorithmType, Parameters, ParameterBindings, IsEnabled, PositionX, PositionY, Width, Height）
+    /// 优化说明（2026-03-26 重构）：
+    /// - 继承 ObservableObject，支持属性通知
+    /// - UI 层专有属性使用 [JsonIgnore] 标记，不参与序列化
+    /// - 消除 UI.Models.WorkflowNode 副本，直接使用此类
+    /// - 单一数据源：Solution.Workflow.Nodes 直接被 UI 绑定
     ///
-    /// ID优化说明：
-    /// - 节点ID使用Guid，确保全局唯一性和稳定性
-    /// - LocalIndex作为独立属性存储，支持hole pool机制
-    /// - 节点显示名称格式：{DisplayName}{LocalIndex}（无分隔符）
+    /// 核心字段（序列化）：
+    /// - Id, Name, DispName, ToolType
+    /// - LocalIndex, GlobalIndex
+    /// - Parameters, ParameterBindings
+    /// - IsEnabled, PositionX, PositionY, Width, Height
     ///
-    /// 设计原则：
-    /// - 节点类型从 AlgorithmType 动态推断
-    /// - 显示名称从工具元数据获取
-    /// - 图标从工具元数据获取
-    ///
-    /// 重构说明：
-    /// - 2026-03-21: 重命名为 WorkflowNodeBase，消除命名冲突
-    /// - 2026-03-22: 优化节点ID系统，使用Guid替代组合格式，LocalIndex独立存储
-    /// - UI 层派生类为 WorkflowNode（SunEyeVision.UI.Models）
+    /// UI 专有属性（不序列化）：
+    /// - IsSelected, IsVisible, Status
+    /// - OutputCache, InputSource, LastResult
+    /// - StyleConfig (存储为基本类型)
     /// </remarks>
-    public class WorkflowNodeBase
+    public class WorkflowNodeBase : ObservableObject
     {
         #region 核心字段（8个）
 
@@ -92,6 +92,53 @@ namespace SunEyeVision.Workflow
         public string ToolType { get; set; }
 
         /// <summary>
+        /// 是否启用
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        private double _positionX = 0;
+        /// <summary>
+        /// 节点位置X坐标
+        /// </summary>
+        public double PositionX
+        {
+            get => _positionX;
+            set
+            {
+                if (SetProperty(ref _positionX, value))
+                {
+                    OnPropertyChanged(nameof(Position));
+                }
+            }
+        }
+
+        private double _positionY = 0;
+        /// <summary>
+        /// 节点位置Y坐标
+        /// </summary>
+        public double PositionY
+        {
+            get => _positionY;
+            set
+            {
+                if (SetProperty(ref _positionY, value))
+                {
+                    OnPropertyChanged(nameof(Position));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 节点宽度
+        /// </summary>
+        public double Width { get; set; } = 140;
+
+        /// <summary>
+        /// 节点高度
+        /// </summary>
+        public double Height { get; set; } = 90;
+
+        /// <summary>
         /// 节点参数
         /// </summary>
         public ToolParameters Parameters { get; set; }
@@ -105,43 +152,120 @@ namespace SunEyeVision.Workflow
         /// </remarks>
         public ParameterBindingContainer ParameterBindings { get; set; }
 
-        /// <summary>
-        /// 是否启用
-        /// </summary>
-        public bool IsEnabled { get; set; } = true;
+        #endregion
+
+        #region UI 层专有属性（不序列化）
+
+        private bool _isSelected;
+        private bool _isVisible = true;
+        private string _status = "待运行";
+        private object? _outputCache;
+        private object? _inputSource;
+        private object? _lastResult;
+        private object? _styleConfig;
 
         /// <summary>
-        /// 节点位置X坐标
+        /// 节点位置（UI 层专用，不序列化，基于 PositionX/PositionY 计算）
         /// </summary>
-        public double PositionX { get; set; } = 0;
+        [JsonIgnore]
+        public Point Position
+        {
+            get => new Point(PositionX, PositionY);
+            set
+            {
+                if (PositionX != value.X || PositionY != value.Y)
+                {
+                    PositionX = value.X;
+                    PositionY = value.Y;
+                    OnPropertyChanged(nameof(Position));
+                }
+            }
+        }
 
         /// <summary>
-        /// 节点位置Y坐标
+        /// 是否被选中（UI 层专用，不序列化）
         /// </summary>
-        public double PositionY { get; set; } = 0;
+        [JsonIgnore]
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
 
         /// <summary>
-        /// 节点宽度
+        /// 节点是否可见（UI 层专用，用于虚拟化渲染，不序列化）
         /// </summary>
-        public double Width { get; set; } = 140;
+        [JsonIgnore]
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set => SetProperty(ref _isVisible, value);
+        }
 
         /// <summary>
-        /// 节点高度
+        /// 节点状态（UI 层专用，不序列化）
         /// </summary>
-        public double Height { get; set; } = 90;
+        [JsonIgnore]
+        public string Status
+        {
+            get => _status;
+            set => SetProperty(ref _status, value);
+        }
+
+        /// <summary>
+        /// 节点输出缓存（UI 层专用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public object? OutputCache
+        {
+            get => _outputCache;
+            set => SetProperty(ref _outputCache, value);
+        }
+
+        /// <summary>
+        /// 节点输入源（UI 层专用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public object? InputSource
+        {
+            get => _inputSource;
+            set => SetProperty(ref _inputSource, value);
+        }
+
+        /// <summary>
+        /// 最近一次执行结果（UI 层专用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public object? LastResult
+        {
+            get => _lastResult;
+            set => SetProperty(ref _lastResult, value);
+        }
+
+        /// <summary>
+        /// 节点样式配置（UI 层专用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public object? StyleConfig
+        {
+            get => _styleConfig;
+            set => SetProperty(ref _styleConfig, value);
+        }
 
         #endregion
 
-        #region 计算属性（从元数据推断）
+        #region 计算属性（从元数据推断，不序列化）
 
         /// <summary>
-        /// 节点类型（从 ToolType 动态推断）
+        /// 节点类型（从 ToolType 动态推断，不序列化）
         /// </summary>
+        [JsonIgnore]
         public NodeType NodeType => NodeTypeHelper.InferNodeTypeFromToolType(ToolType);
 
         /// <summary>
-        /// 显示名称（从工具元数据获取）
+        /// 显示名称（从工具元数据获取，不序列化）
         /// </summary>
+        [JsonIgnore]
         public string DisplayName
         {
             get
@@ -152,8 +276,9 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 节点图标（从工具元数据获取）
+        /// 节点图标（从工具元数据获取，不序列化）
         /// </summary>
+        [JsonIgnore]
         public string Icon
         {
             get
@@ -175,13 +300,30 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public event Action<WorkflowNodeBase, AlgorithmResult> AfterExecute;
 
+        /// <summary>
+        /// 供 System.Text.Json 反序列化使用的无参构造函数
+        /// </summary>
+        [JsonConstructor]
+        public WorkflowNodeBase()
+        {
+            Id = Guid.NewGuid().ToString();
+            Name = string.Empty;
+            DispName = string.Empty;
+            ToolType = string.Empty;
+            Parameters = new GenericToolParameters();
+            ParameterBindings = new ParameterBindingContainer();
+        }
+
+        /// <summary>
+        /// 创建节点的参数化构造函数
+        /// </summary>
         public WorkflowNodeBase(string id, string name, string dispName, string toolType)
         {
             Id = id;
             Name = name;
             DispName = dispName;
             ToolType = toolType;
-            Parameters = null!;
+            Parameters = new GenericToolParameters();
             ParameterBindings = new ParameterBindingContainer();
         }
 
@@ -210,49 +352,7 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
-        /// 获取节点的可序列化数据
-        /// </summary>
-        /// <remarks>
-        /// 优化说明（rule-008: 原型设计期代码纯净原则）：
-        /// - 直接序列化 ToolParameters 实例，无需 Dictionary 转换层
-        /// - System.Text.Json 会自动处理多态序列化
-        /// - $type 字段自动添加，类型信息不丢失
-        /// </remarks>
-        public Dictionary<string, object> ToDictionary()
-        {
-            var dict = new Dictionary<string, object>
-            {
-                ["Id"] = Id,
-                ["Name"] = Name,
-                ["DispName"] = DispName,
-                ["LocalIndex"] = LocalIndex,
-                ["GlobalIndex"] = GlobalIndex,
-                ["NodeType"] = (int)NodeType,
-                ["ToolType"] = ToolType,
-                ["IsEnabled"] = IsEnabled,
-                ["PositionX"] = PositionX,
-                ["PositionY"] = PositionY,
-                ["Width"] = Width,
-                ["Height"] = Height,
-                ["Parameters"] = Parameters  // 直接序列化对象，无需转换
-            };
-
-            // 始终序列化参数绑定，即使为空
-            if (ParameterBindings != null)
-            {
-                dict["ParameterBindings"] = ParameterBindings.ToDictionary();
-            }
-            else
-            {
-                var defaultBindings = new ParameterBindingContainer { NodeId = Id };
-                dict["ParameterBindings"] = defaultBindings.ToDictionary();
-            }
-
-            return dict;
-        }
-
-        /// <summary>
-        /// 从字典创建节点
+        /// 从字典创建节点（仅用于兼容旧格式 JSON 的反序列化）
         /// </summary>
         public static WorkflowNodeBase FromDictionary(Dictionary<string, object> dict)
         {

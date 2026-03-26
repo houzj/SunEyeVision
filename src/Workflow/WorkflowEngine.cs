@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -214,12 +215,12 @@ namespace SunEyeVision.Workflow
                     // Ensure collections are initialized if null
                     if (workflow.Nodes == null)
                     {
-                        workflow.Nodes = new List<WorkflowNodeBase>();
+                        workflow.Nodes = new ObservableCollection<WorkflowNodeBase>();
                     }
 
                     if (workflow.Connections == null)
                     {
-                        workflow.Connections = new List<Connection>();
+                        workflow.Connections = new ObservableCollection<Connection>();
                     }
 
                     Workflows[workflow.Id] = workflow;
