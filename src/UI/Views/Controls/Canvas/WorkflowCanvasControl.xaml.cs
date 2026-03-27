@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using System.Collections.Generic;
 
@@ -27,7 +27,7 @@ using SunEyeVision.UI.Services.Connection;
 using SunEyeVision.UI.Services.Rendering;
 
 using SunEyeVision.UI.Services.Path;
-
+using SunEyeVision.UI.Services.PathCalculators;
 using SunEyeVision.UI.Converters.Path;
 
 using SunEyeVision.UI.Views.Windows;
@@ -2007,45 +2007,47 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// </summary>
 
         private void UpdateTempConnectionPath(Point startPoint, Point endPoint)
-
         {
-
             if (_tempConnectionGeometry == null)
-
                 return;
 
+            var calculator = PathCalculatorFactory.CreateCalculator();
+            var sourceDirection = PortDirectionExtensions.FromPortName(_dragConnectionSourcePort ?? "RightPort");
+            var targetDirection = InferTargetDirection(startPoint, endPoint);
 
-
-            // 创建简单的直线路径
-
-            var figure = new PathFigure
-
-            {
-
-                StartPoint = startPoint,
-
-                IsClosed = false
-
-            };
-
-            
-
-            var lineSegment = new LineSegment(endPoint, true);
-
-            figure.Segments.Add(lineSegment);
-
-            
+            var pathPoints = calculator.CalculateOrthogonalPath(startPoint, endPoint, sourceDirection, targetDirection);
+            var geometry = calculator.CreatePathGeometry(pathPoints);
 
             _tempConnectionGeometry.Figures.Clear();
-
-            _tempConnectionGeometry.Figures.Add(figure);
-
+            foreach (var figure in geometry.Figures)
+            {
+                _tempConnectionGeometry.Figures.Add(figure);
+            }
         }
+
+        
 
 
 
         /// <summary>
+        /// 根据起点和鼠标位置推算目标端口方向
+        /// </summary>
+        private PortDirection InferTargetDirection(Point source, Point mouse)
+        {
+            double dx = mouse.X - source.X;
+            double dy = mouse.Y - source.Y;
 
+            if (Math.Abs(dx) > Math.Abs(dy))
+            {
+                return dx > 0 ? PortDirection.Left : PortDirection.Right;
+            }
+            else
+            {
+                return dy > 0 ? PortDirection.Top : PortDirection.Bottom;
+            }
+        }
+
+        /// <summary>
         /// 端口鼠标左键释放 - 结束拖拽连接线
 
         /// </summary>
@@ -2858,6 +2860,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             bool clickedPort = false;
 
+            bool clickedConnection = false;
+
             DependencyObject? current = originalSource;
 
 
@@ -2896,15 +2900,32 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 }
 
+                // 检查是否点击了连接线命中区域的透明宽Path（StrokeThickness > 10 且 DataContext 为 WorkflowConnection）
+                if (current is Path path && path.StrokeThickness > 10)
+                {
+                    // 查找父级 Canvas 的 DataContext 是否为 WorkflowConnection
+                    var parent = VisualTreeHelper.GetParent(path);
+                    while (parent != null)
+                    {
+                        if (parent is System.Windows.Controls.Canvas canvas && canvas.DataContext is WorkflowConnection)
+                        {
+                            clickedConnection = true;
+                            break;
+                        }
+                        parent = VisualTreeHelper.GetParent(parent);
+                    }
+                    if (clickedConnection) break;
+                }
+
                 current = VisualTreeHelper.GetParent(current);
 
             }
 
 
 
-            // 如果点击的是有 WorkflowNode Tag 的 Border 或端口 Ellipse，则由节点的事件处理，不触发框选
+            // 如果点击的是有 WorkflowNode Tag 的 Border 或端口 Ellipse 或连接线命中区域，则由节点/连线的事件处理，不触发框选
 
-            if (clickedNode != null || clickedPort)
+            if (clickedNode != null || clickedPort || clickedConnection)
 
             {
 
@@ -3030,56 +3051,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     var currentPoint = e.GetPosition(WorkflowCanvas);
 
-
-
                     // 获取源节点的连接点位置
-
                     var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
-
-
-
-                    // 计算智能直角折线路径
-
-                    var pathPoints = CalculateSmartPath(sourcePort, currentPoint);
-
-
-
-                    // 更新临时连接线
-
-                    if (_tempConnectionGeometry != null)
-
-                    {
-
-                        _tempConnectionGeometry.Figures.Clear();
-
-                        var pathFigure = new PathFigure
-
-                        {
-
-                            StartPoint = sourcePort,
-
-                            IsClosed = false
-
-                        };
-
-
-
-                        // 添加路径点
-
-                        foreach (var point in pathPoints)
-
-                        {
-
-                            pathFigure.Segments.Add(new LineSegment(point, true));
-
-                        }
-
-
-
-                        _tempConnectionGeometry.Figures.Add(pathFigure);
-
-                    }
-
+                    // 使用路径计算器更新临时连接线（与实际连线风格一致）
+                    UpdateTempConnectionPath(sourcePort, currentPoint);
 
 
                     // 动态高亮目标端口
@@ -3388,11 +3363,19 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 }
 
+                // 框选连接线
+                int selectedConnCount = 0;
+                foreach (var conn in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections)
+                {
+                    conn.IsSelected = IsConnectionInRect(conn, selectionRect);
+                    if (conn.IsSelected) selectedConnCount++;
+                }
+
 
 
                 // 更新框选信息显示
 
-                SelectionBox?.SetItemCount(selectedCount);
+                SelectionBox?.SetItemCount(selectedCount + selectedConnCount);
 
             }
 
@@ -4096,6 +4079,17 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 }
 
+                // 清除连接线选中
+                foreach (var conn in _viewModel.WorkflowTabViewModel.SelectedTab.WorkflowConnections)
+                {
+                    conn.IsSelected = false;
+                }
+            }
+
+            // 清除 ViewModel 的 SelectedConnection
+            if (_viewModel != null)
+            {
+                _viewModel.SelectedConnection = null;
             }
 
         }
@@ -4188,69 +4182,89 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         #region 辅助方法
 
+        /// <summary>
+        /// 判断连接线（正交折线）是否与矩形区域相交
+        /// </summary>
+        private static bool IsConnectionInRect(WorkflowConnection connection, Rect selectionRect)
+        {
+            if (selectionRect.IsEmpty) return false;
 
+            // 收集所有路径点（起点 + 拐点 + 终点）
+            var points = new List<Point> { connection.SourcePosition };
+            foreach (var pt in connection.PathPoints)
+            {
+                points.Add(pt);
+            }
+            points.Add(connection.TargetPosition);
 
-        #region 智能路径计算
+            // 检查每个线段是否与矩形相交
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                if (LineSegmentIntersectsRect(points[i], points[i + 1], selectionRect))
+                    return true;
+            }
 
-
+            return false;
+        }
 
         /// <summary>
-
-        /// 计算智能直角折线路径（与实际连接使用相同的逻辑）
-
+        /// 判断线段是否与矩形相交
         /// </summary>
-
-        private List<Point> CalculateSmartPath(Point start, Point end)
-
+        private static bool LineSegmentIntersectsRect(Point p1, Point p2, Rect rect)
         {
+            // 情况1：任一端点在矩形内
+            if (rect.Contains(p1) || rect.Contains(p2))
+                return true;
 
-            var points = new List<Point>();
+            // 情况2：线段与矩形四条边相交
+            var topLeft = new Point(rect.Left, rect.Top);
+            var topRight = new Point(rect.Right, rect.Top);
+            var bottomLeft = new Point(rect.Left, rect.Bottom);
+            var bottomRight = new Point(rect.Right, rect.Bottom);
 
-            double deltaX = Math.Abs(end.X - start.X);
-
-            double deltaY = Math.Abs(end.Y - start.Y);
-
-
-
-            bool isHorizontal = deltaX > deltaY;
-
-
-
-            if (isHorizontal)
-
-            {
-
-                // 水平方向：先水平移动到中间点，再垂直移动到目标Y，最后水平移动到目标X
-
-                double midX = (start.X + end.X) / 2;
-
-                points.Add(new Point(midX, start.Y));
-
-                points.Add(new Point(midX, end.Y));
-
-            }
-
-            else
-
-            {
-
-                // 垂直方向：先垂直移动到中间点，再水平移动到目标X，最后垂直移动到目标Y
-
-                double midY = (start.Y + end.Y) / 2;
-
-                points.Add(new Point(start.X, midY));
-
-                points.Add(new Point(end.X, midY));
-
-            }
-
-
-
-            points.Add(end);
-
-            return points;
-
+            return LineSegmentsIntersect(p1, p2, topLeft, topRight) ||
+                   LineSegmentsIntersect(p1, p2, topRight, bottomRight) ||
+                   LineSegmentsIntersect(p1, p2, bottomRight, bottomLeft) ||
+                   LineSegmentsIntersect(p1, p2, bottomLeft, topLeft);
         }
+
+        /// <summary>
+        /// 判断两条线段是否相交（跨乘积法）
+        /// </summary>
+        private static bool LineSegmentsIntersect(Point p1, Point p2, Point p3, Point p4)
+        {
+            double d1 = CrossProduct(p3, p4, p1);
+            double d2 = CrossProduct(p3, p4, p2);
+            double d3 = CrossProduct(p1, p2, p3);
+            double d4 = CrossProduct(p1, p2, p4);
+
+            if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+                return true;
+
+            if (Math.Abs(d1) < double.Epsilon && IsOnSegment(p3, p4, p1)) return true;
+            if (Math.Abs(d2) < double.Epsilon && IsOnSegment(p3, p4, p2)) return true;
+            if (Math.Abs(d3) < double.Epsilon && IsOnSegment(p1, p2, p3)) return true;
+            if (Math.Abs(d4) < double.Epsilon && IsOnSegment(p1, p2, p4)) return true;
+
+            return false;
+        }
+
+        private static double CrossProduct(Point p1, Point p2, Point p)
+        {
+            return (p2.X - p1.X) * (p.Y - p1.Y) - (p2.Y - p1.Y) * (p.X - p1.X);
+        }
+
+        private static bool IsOnSegment(Point p1, Point p2, Point p)
+        {
+            return p.X >= Math.Min(p1.X, p2.X) && p.X <= Math.Max(p1.X, p2.X) &&
+                   p.Y >= Math.Min(p1.Y, p2.Y) && p.Y <= Math.Max(p1.Y, p2.Y);
+        }
+
+
+
+
+
 
 
 
@@ -4537,36 +4551,72 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
         /// <summary>
-
-        /// 连接线鼠标左键点击事件 - 切换中间点的显示/隐藏
-
+        /// 连接线命中区域悬停进入
         /// </summary>
-
-        private void ConnectionLine_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-
+        private void ConnectionHitArea_MouseEnter(object sender, MouseEventArgs e)
         {
-
-            if (sender is Path path && path.DataContext is WorkflowConnection connection)
-
+            if (sender is Path hitPath)
             {
+                var parentCanvas = hitPath.Parent as System.Windows.Controls.Canvas;
+                if (parentCanvas?.DataContext is WorkflowConnection connection)
+                {
+                    connection.IsHovered = true;
+                }
+            }
+        }
 
-                // 切换 ShowPathPoints 属性
+        /// <summary>
+        /// 连接线命中区域悬停离开
+        /// </summary>
+        private void ConnectionHitArea_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is Path hitPath)
+            {
+                var parentCanvas = hitPath.Parent as System.Windows.Controls.Canvas;
+                if (parentCanvas?.DataContext is WorkflowConnection connection)
+                {
+                    connection.IsHovered = false;
+                }
+            }
+        }
 
-                connection.ShowPathPoints = !connection.ShowPathPoints;
+        /// <summary>
+        /// 连接线命中区域点击 - 选中/取消选中连接线 + 切换中间点显示
+        /// </summary>
+        private void ConnectionHitArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Path hitPath) return;
 
+            // DataContext 绑定在父 Canvas 上，需要向上查找
+            var parentCanvas = hitPath.Parent as System.Windows.Controls.Canvas;
+            if (parentCanvas?.DataContext is not WorkflowConnection connection) return;
 
+            var tab = _viewModel?.WorkflowTabViewModel?.SelectedTab;
+            if (tab == null) return;
 
-                // 标记事件已处理，防止事件继续传播
+            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
+                                 (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
-                // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
-
-            // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
-
-            // 从而导致临时连接线无法隐藏
-
+            if (!isMultiSelect)
+            {
+                // 单选模式：清除所有节点和连接线选中
+                ClearAllSelections();
+                // 设置当前连接线选中
+                connection.IsSelected = true;
+                _viewModel.SelectedConnection = connection;
+            }
+            else
+            {
+                // 多选模式：切换当前连接线选中状态
+                connection.IsSelected = !connection.IsSelected;
+                _viewModel.SelectedConnection = connection.IsSelected ? connection : null;
             }
 
+            // 阻止事件冒泡，避免触发框选
+            e.Handled = true;
         }
+
+
 
 
 
@@ -4624,7 +4674,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-        #endregion
 
 
 

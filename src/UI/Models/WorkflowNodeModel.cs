@@ -206,6 +206,7 @@ namespace SunEyeVision.UI.Models
         private bool _showPathPoints = false;
         private string _pathData = string.Empty;
         private bool _isSelected = false;
+        private bool _isHovered = false;
         private int _pathUpdateCounter = 0;
 
         public string Id
@@ -334,6 +335,15 @@ namespace SunEyeVision.UI.Models
         {
             get => _isSelected;
             set => SetProperty(ref _isSelected, value);
+        }
+
+        /// <summary>
+        /// 鼠标是否悬停在连线上
+        /// </summary>
+        public bool IsHovered
+        {
+            get => _isHovered;
+            set => SetProperty(ref _isHovered, value);
         }
 
         private bool _isVisible = true;

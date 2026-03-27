@@ -227,7 +227,7 @@ namespace SunEyeVision.UI.Services.Interaction
             return $"{workflowId}#{toolType}";
         }
 
-        public void InitializeHolePoolsFromNodes(IEnumerable<WorkflowNode> nodes)
+        public void InitializeHolePoolsFromNodes(string workflowId, IEnumerable<WorkflowNode> nodes)
         {
             lock (_lockObject)
             {
@@ -281,9 +281,7 @@ namespace SunEyeVision.UI.Services.Interaction
                             context.HolePool.Add(i);
                         }
                     }
-                    // 为每个工作流创建上下文（使用默认工作流ID）
-                    string defaultWorkflowId = "default";
-                    string key = BuildContextKey(defaultWorkflowId, kvp.Key);
+                    string key = BuildContextKey(workflowId, kvp.Key);
                     _workflowContexts[key] = context;
                     VisionLogger.Instance.Log(LogLevel.Success, $"局部空洞池初始化完成: 工具类型={kvp.Key}, 最大索引={maxLocalIndex}, 空洞数={context.HolePool.Count}", "NodeSequenceManager");
                 }

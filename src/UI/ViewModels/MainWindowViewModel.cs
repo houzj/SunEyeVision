@@ -1575,7 +1575,7 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化空洞池（从现有节点恢复索引池）
             if (tabViewModel.SequenceManager != null)
             {
-                tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.WorkflowNodes);
+                tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.Id, tabViewModel.WorkflowNodes);
             }
 
             // 添加到标签页视图模型
@@ -2048,6 +2048,18 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 清除所有连接线选中状态
+        /// </summary>
+        private void ClearConnectionSelections()
+        {
+            if (WorkflowTabViewModel.SelectedTab == null) return;
+            foreach (var conn in WorkflowTabViewModel.SelectedTab.WorkflowConnections)
+            {
+                conn.IsSelected = false;
+            }
+        }
+
+        /// <summary>
         /// 判断是否可以删除选中节点
         /// </summary>
         private bool CanDeleteSelectedNodes()
@@ -2055,41 +2067,62 @@ namespace SunEyeVision.UI.ViewModels
             if (WorkflowTabViewModel.SelectedTab == null)
                 return false;
 
-            return WorkflowTabViewModel.SelectedTab.WorkflowNodes.Any(n => n.IsSelected);
+            return WorkflowTabViewModel.SelectedTab.WorkflowNodes.Any(n => n.IsSelected)
+                || WorkflowTabViewModel.SelectedTab.WorkflowConnections.Any(c => c.IsSelected);
         }
 
         /// <summary>
-        /// 执行删除选中节点
+        /// 执行删除选中节点和连接线
         /// </summary>
         private void ExecuteDeleteSelectedNodes()
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            var selectedNodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes.Where(n => n.IsSelected).ToList();
-            var selectedCount = selectedNodes.Count;
-            if (selectedCount == 0)
+            var selectedNodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes
+                .Where(n => n.IsSelected).ToList();
+            var selectedConnections = WorkflowTabViewModel.SelectedTab.WorkflowConnections
+                .Where(c => c.IsSelected).ToList();
+
+            if (selectedNodes.Count == 0 && selectedConnections.Count == 0)
                 return;
 
+            // 构建提示信息
+            var parts = new List<string>();
+            if (selectedNodes.Count > 0) parts.Add($"{selectedNodes.Count} 个节点");
+            if (selectedConnections.Count > 0) parts.Add($"{selectedConnections.Count} 条连接线");
+
             var result = System.Windows.MessageBox.Show(
-                $"确定要删除选中的 {selectedCount} 个节点吗？",
+                $"确定要删除选中的 {string.Join("和 ", parts)} 吗？",
                 "确认删除",
                 System.Windows.MessageBoxButton.YesNo,
                 System.Windows.MessageBoxImage.Question);
 
             if (result == System.Windows.MessageBoxResult.Yes)
             {
-                var command = new AppCommands.BatchDeleteNodesCommand(
-                    WorkflowTabViewModel.SelectedTab.WorkflowNodes,
-                    WorkflowTabViewModel.SelectedTab.WorkflowConnections,
-                    selectedNodes);
-                WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+                // 1. 先删除选中的连接线
+                foreach (var conn in selectedConnections.ToList())
+                {
+                    DeleteConnectionFromWorkflow(conn);
+                }
 
-                // 清除选中状态
+                // 2. 再删除选中的节点（BatchDeleteNodesCommand 会自动清理关联连接线）
+                if (selectedNodes.Count > 0)
+                {
+                    var command = new AppCommands.BatchDeleteNodesCommand(
+                        WorkflowTabViewModel.SelectedTab.WorkflowNodes,
+                        WorkflowTabViewModel.SelectedTab.WorkflowConnections,
+                        selectedNodes);
+                    WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+                }
+
+                // 3. 清除选中状态
                 SelectedNode = null;
+                SelectedConnection = null;
                 ClearNodeSelections();
+                ClearConnectionSelections();
 
-                AddLog($"🗑️ 已删除 {selectedCount} 个节点");
+                AddLog($"🗑️ 已删除 {string.Join("和 ", parts)}");
             }
         }
 

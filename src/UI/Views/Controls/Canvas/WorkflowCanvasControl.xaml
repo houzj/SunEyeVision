@@ -115,9 +115,9 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Canvas>
-                        <!-- 连接线 -->
+                        <!-- 连接线 - 仅视觉显示层，不参与命中测试 -->
                         <Path Loaded="Path_Loaded"
-                              MouseLeftButtonDown="ConnectionLine_MouseLeftButtonDown">
+                              IsHitTestVisible="False">
                             <Path.Data>
                                 <MultiBinding Converter="{StaticResource SmartPathMultiConverter}">
                                     <Binding Path="."/>
@@ -129,23 +129,42 @@
                                     <Setter Property="Stroke" Value="{Binding StatusColor}"/>
                                     <Setter Property="StrokeThickness" Value="2"/>
                                     <Setter Property="StrokeLineJoin" Value="Round"/>
-                                    <Setter Property="Cursor" Value="Hand"/>
-                                    <!-- 6D: 移除默认的DropShadowEffect，仅在鼠标悬停时启用（性能提升） -->
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                     <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
+                                        <DataTrigger Binding="{Binding IsHovered}" Value="True">
                                             <Setter Property="Stroke" Value="#0066CC"/>
-                                            <Setter Property="StrokeThickness" Value="3"/>
-                                            <!-- 6D: 降低BlurRadius从5降到3，减少阴影计算开销 -->
+                                            <Setter Property="StrokeThickness" Value="2.5"/>
                                             <Setter Property="Effect">
                                                 <Setter.Value>
-                                                    <DropShadowEffect Color="#0066CC" BlurRadius="3" ShadowDepth="1" Opacity="0.6"/>
+                                                    <DropShadowEffect Color="#0066CC" BlurRadius="4" ShadowDepth="0" Opacity="0.6"/>
                                                 </Setter.Value>
                                             </Setter>
-                                        </Trigger>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="#FF6600"/>
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#FF6600" BlurRadius="4" ShadowDepth="0" Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Path.Style>
+                        </Path>
+
+                        <!-- 透明宽命中线 - 始终透明，仅负责点击选中交互 -->
+                        <Path Stroke="Transparent" StrokeThickness="14" Fill="Transparent"
+                              Cursor="Hand"
+                              MouseEnter="ConnectionHitArea_MouseEnter"
+                              MouseLeave="ConnectionHitArea_MouseLeave"
+                              MouseLeftButtonDown="ConnectionHitArea_MouseLeftButtonDown">
+                            <Path.Data>
+                                <MultiBinding Converter="{StaticResource SmartPathMultiConverter}">
+                                    <Binding Path="."/>
+                                    <Binding Path="PathUpdateCounter"/>
+                                </MultiBinding>
+                            </Path.Data>
                         </Path>
 
                         <!-- 连接线拐点（中间点）标记 -->
@@ -218,8 +237,8 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
+                    <!-- Border 直接作为根元素，选中虚线在内部装饰层实现，消除选中跳动 -->
                     <Border Width="160" Height="40"
-                            Background="{Binding Converter={StaticResource NodeBackgroundColorConverter}}"
                             CornerRadius="20"
                             BorderThickness="0"
                             BorderBrush="Transparent"
@@ -230,7 +249,17 @@
                             MouseEnter="Node_MouseEnter"
                             MouseLeave="Node_MouseLeave"
                             x:Name="NodeBorder">
+                        <Border.Background>
+                            <Binding Converter="{StaticResource NodeBackgroundColorConverter}"/>
+                        </Border.Background>
                         <Grid>
+                            <!-- 虚线选中装饰层：与 Border 同尺寸，仅选中时可见 -->
+                            <Rectangle RadiusX="19" RadiusY="19"
+                                       Stroke="#FF6600" StrokeThickness="1.5"
+                                       StrokeDashArray="6,3"
+                                       Fill="Transparent"
+                                       IsHitTestVisible="False"
+                                       Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             <!-- 节点内容 -->
                             <Grid Margin="12,0,12,0">
                                 <Grid.ColumnDefinitions>
@@ -327,23 +356,19 @@
                             <Style TargetType="Border">
                                 <Setter Property="Effect" Value="{x:Null}"/>
                                 <Style.Triggers>
+                                    <!-- 选中状态：橙色发光，虚线描边由内部 Rectangle 负责 -->
                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="BorderBrush" Value="#ff6600"/>
-                                        <Setter Property="BorderThickness" Value="3"/>
-                                        <!-- 6D: 大幅降低BlurRadius从10降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#ff6600" BlurRadius="3" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#FF6600" BlurRadius="6" ShadowDepth="0" Opacity="0.4"/>
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
+                                    <!-- 悬停状态：轻柔阴影提升，不改变边框 -->
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="BorderBrush" Value="#ff7700"/>
-                                        <Setter Property="BorderThickness" Value="3"/>
-                                        <!-- 6D: 大幅降低BlurRadius从5降到3，显著减少阴影计算开销 -->
                                         <Setter Property="Effect">
                                             <Setter.Value>
-                                                <DropShadowEffect Color="#ff7700" BlurRadius="3" ShadowDepth="0"/>
+                                                <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
                                             </Setter.Value>
                                         </Setter>
                                     </Trigger>

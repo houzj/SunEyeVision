@@ -99,11 +99,8 @@ namespace SunEyeVision.UI.Services.Rendering
         {
             if (value is WorkflowNode node)
             {
-                // 使用适配器获取背景色
                 var adapter = NodeDisplayAdapterFactory.GetAdapter(node.ToolType);
                 var color = adapter.GetBackgroundColor(node);
-                
-                // 从缓存中获取对应的画刷
                 return CachedBrushes.GetOrCreateBrush(color);
             }
             return CachedBrushes.White;

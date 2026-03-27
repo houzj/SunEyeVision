@@ -58,7 +58,8 @@ namespace SunEyeVision.UI.Services.Interaction
         /// <summary>
         /// 从现有节点初始化空洞池（加载解决方案时使用）
         /// </summary>
+        /// <param name="workflowId">工作流ID</param>
         /// <param name="nodes">现有节点列表</param>
-        void InitializeHolePoolsFromNodes(IEnumerable<WorkflowNode> nodes);
+        void InitializeHolePoolsFromNodes(string workflowId, IEnumerable<WorkflowNode> nodes);
     }
 }
