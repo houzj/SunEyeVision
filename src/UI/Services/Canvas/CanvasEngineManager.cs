@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.UI.Views.Controls;
@@ -26,8 +26,6 @@ namespace SunEyeVision.UI.Services.Canvas
             return engineType.ToLower() switch
             {
                 "workflow" => new WorkflowCanvasEngine(),
-                "native" => new NativeDiagramEngine(),
-                "test" => new TestCanvasEngine(),
                 _ => throw new ArgumentException($"不支持的画布引擎类型: {engineType}")
             };
         }

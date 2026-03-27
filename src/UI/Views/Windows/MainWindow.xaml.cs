@@ -70,7 +70,6 @@ namespace SunEyeVision.UI.Views.Windows
 
         private WorkflowCanvasControl? _currentWorkflowCanvas = null;  // 当前显示的WorkflowCanvasControl
 
-        private NativeDiagramControl? _currentNativeDiagram = null;  // 当前显示的NativeDiagramControl
 
 
 
@@ -226,40 +225,6 @@ namespace SunEyeVision.UI.Views.Windows
         }
 
 
-
-        /// <summary>
-
-        /// NativeDiagramControl Loaded事件处理
-
-        /// </summary>
-
-        private void NativeDiagramControl_Loaded(object sender, RoutedEventArgs e)
-
-        {
-
-            // 缓存 NativeDiagramControl 引用
-
-            if (sender is NativeDiagramControl nativeDiagram)
-
-            {
-
-                _currentNativeDiagram = nativeDiagram;
-
-
-
-                // 延迟更新缩放显示，确保DiagramViewModel已初始化
-
-                Dispatcher.BeginInvoke(new Action(() =>
-
-                {
-
-                    UpdateZoomDisplay();
-
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
-
-            }
-
-        }
 
 
 
@@ -760,10 +725,6 @@ namespace SunEyeVision.UI.Views.Windows
         private void WorkflowCanvasControl_Loaded(object sender, RoutedEventArgs e)
 
         {
-
-            // 清除 NativeDiagram 缓存（当前加载的是 WorkflowCanvas）
-
-            _currentNativeDiagram = null;
 
 
 
@@ -1976,317 +1937,21 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
-        /// <summary>
 
-        /// 获取当前活动的NativeDiagramControl
 
-        /// </summary>
 
-        private NativeDiagramControl? GetCurrentNativeDiagramControl()
 
-        {
 
 
 
-            if (_viewModel.WorkflowTabViewModel.SelectedTab == null)
 
-            {
 
-                return null;
 
-            }
 
 
 
-            var canvasType = _viewModel.WorkflowTabViewModel.SelectedTab.CanvasType;
 
 
-
-            // 只有当前画布类型是NativeDiagram时才返回
-
-            if (canvasType != CanvasType.NativeDiagram)
-
-            {
-
-                return null;
-
-            }
-
-
-
-            // 直接返回缓存的引用（通过 NativeDiagramControl_Loaded 事件缓存）
-
-            if (_currentNativeDiagram != null)
-
-            {
-
-                return _currentNativeDiagram;
-
-            }
-
-
-
-            return null;
-
-        }
-
-
-
-        /// <summary>
-
-        /// 获取NativeDiagramControl的DiagramViewModel
-
-        /// </summary>
-
-        private DiagramViewModel? GetNativeDiagramViewModel()
-
-        {
-
-
-
-            var nativeDiagram = GetCurrentNativeDiagramControl();
-
-            if (nativeDiagram == null)
-
-            {
-
-                return null;
-
-            }
-
-
-
-            // 使用公开的 GetDiagramViewModel 方法
-
-            var diagramViewModel = nativeDiagram.GetDiagramViewModel();
-
-
-
-            if (diagramViewModel != null)
-
-            {
-
-            }
-
-            else
-
-            {
-
-            }
-
-
-
-
-
-            return diagramViewModel;
-
-        }
-
-
-
-        /// <summary>
-
-        /// NativeDiagramControl的放大
-
-        /// </summary>
-
-        private void NativeDiagramZoomIn()
-
-        {
-
-
-
-            var diagramViewModel = GetNativeDiagramViewModel();
-
-            if (diagramViewModel != null)
-
-            {
-
-                var oldZoom = diagramViewModel.ZoomValue;
-
-                var newZoom = Math.Min(diagramViewModel.MaximumZoomValue, diagramViewModel.ZoomValue + 0.1);
-
-                diagramViewModel.ZoomValue = newZoom;
-
-
-
-                UpdateZoomDisplay();
-
-            }
-
-            else
-
-            {
-
-            }
-
-
-
-        }
-
-
-
-        /// <summary>
-
-        /// NativeDiagramControl的缩小
-
-        /// </summary>
-
-        private void NativeDiagramZoomOut()
-
-        {
-
-
-
-            var diagramViewModel = GetNativeDiagramViewModel();
-
-            if (diagramViewModel != null)
-
-            {
-
-                var oldZoom = diagramViewModel.ZoomValue;
-
-                var newZoom = Math.Max(diagramViewModel.MinimumZoomValue, diagramViewModel.ZoomValue - 0.1);
-
-                diagramViewModel.ZoomValue = newZoom;
-
-
-
-                UpdateZoomDisplay();
-
-            }
-
-            else
-
-            {
-
-            }
-
-
-
-        }
-
-
-
-        /// <summary>
-
-        /// NativeDiagramControl的重置
-
-        /// </summary>
-
-        private void NativeDiagramZoomReset()
-
-        {
-
-
-
-            var diagramViewModel = GetNativeDiagramViewModel();
-
-            if (diagramViewModel != null)
-
-            {
-
-                var oldZoom = diagramViewModel.ZoomValue;
-
-                diagramViewModel.ZoomValue = 1.0;
-
-
-
-                UpdateZoomDisplay();
-
-            }
-
-            else
-
-            {
-
-            }
-
-
-
-        }
-
-
-
-        /// <summary>
-
-        /// NativeDiagramControl的适应窗口
-
-        /// </summary>
-
-        private void NativeDiagramZoomFit()
-
-        {
-
-
-
-            var diagramViewModel = GetNativeDiagramViewModel();
-
-            if (diagramViewModel == null)
-
-            {
-
-                return;
-
-            }
-
-
-
-            var nativeDiagram = GetCurrentNativeDiagramControl();
-
-            if (nativeDiagram == null)
-
-            {
-
-                return;
-
-            }
-
-
-
-            var scrollViewer = FindVisualParent<ScrollViewer>(nativeDiagram);
-
-            if (scrollViewer != null)
-
-            {
-
-                var viewportWidth = scrollViewer.ViewportWidth;
-
-                var viewportHeight = scrollViewer.ViewportHeight;
-
-                
-
-
-
-                // 画布是10000x10000
-
-                var scaleX = (viewportWidth * 0.9) / 10000;
-
-                var scaleY = (viewportHeight * 0.9) / 10000;
-
-                var newScale = Math.Min(scaleX, scaleY);
-
-                
-
-                newScale = Math.Max(0.25, Math.Min(3.0, newScale));
-
-                diagramViewModel.ZoomValue = newScale;
-
-
-
-                UpdateZoomDisplay();
-
-            }
-
-            else
-
-            {
-
-            }
-
-
-
-        }
 
 
 
@@ -2338,15 +2003,9 @@ namespace SunEyeVision.UI.Views.Windows
 
             
 
-            if (canvasType == CanvasType.NativeDiagram)
 
-            {
 
-                NativeDiagramZoomIn();
-
-            }
-
-            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+           if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
 
             {
 
@@ -2432,15 +2091,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             
 
-            if (canvasType == CanvasType.NativeDiagram)
-
-            {
-
-                NativeDiagramZoomOut();
-
-            }
-
-            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+          if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
 
             {
 
@@ -2508,17 +2159,9 @@ namespace SunEyeVision.UI.Views.Windows
 
             var canvasType = GetCurrentCanvasType();
 
-            
 
-            if (canvasType == CanvasType.NativeDiagram)
 
-            {
-
-                NativeDiagramZoomFit();
-
-            }
-
-            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+            if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
 
             {
 
@@ -2594,15 +2237,7 @@ namespace SunEyeVision.UI.Views.Windows
 
 
 
-            if (canvasType == CanvasType.NativeDiagram)
-
-            {
-
-                NativeDiagramZoomReset();
-
-            }
-
-            else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+             if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
 
             {
 
@@ -2904,31 +2539,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                     var canvasType = GetCurrentCanvasType();
 
-
-
-                    if (canvasType == CanvasType.NativeDiagram)
-
-                    {
-
-                        var diagramViewModel = GetNativeDiagramViewModel();
-
-                        if (diagramViewModel != null)
-
-                        {
-
-                            percentage = (int)(diagramViewModel.ZoomValue * 100);
-
-                        }
-
-                        else
-
-                        {
-
-                        }
-
-                    }
-
-                    else if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
+                    if (_viewModel.WorkflowTabViewModel.SelectedTab != null)
 
                     {
 
@@ -3676,29 +3287,6 @@ namespace SunEyeVision.UI.Views.Windows
 
                     break;
 
-
-
-                case CanvasType.NativeDiagram:
-
-                    // 查找当前显示的NativeDiagramControl
-
-                    var nativeDiagram = FindVisualChild<NativeDiagramControl>(this);
-
-                    if (nativeDiagram != null)
-
-                    {
-
-                        nativeDiagram.SetPathCalculator(pathCalculatorType);
-
-                    }
-
-                    else
-
-                    {
-
-                    }
-
-                    break;
 
             }
 

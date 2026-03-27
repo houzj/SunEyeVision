@@ -29,7 +29,7 @@
                 <ResourceDictionary Source="../Resources/AppResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <convertersUI:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-            <convertersPath:SmartPathConverter x:Key="SmartPathConverter" ControlOffset="60" GridSize="20" NodeMargin="30"/>
+            <convertersPath:SmartPathConverter x:Key="SmartPathConverter"/>
             <converters:ContinuousRunIconTriangleInLoopConverter x:Key="ContinuousRunIconTriangleInLoopConverter"/>
             <convertersVisibility:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
             <convertersUI:ExpandIconConverter x:Key="ExpandIconConverter"/>
@@ -325,9 +325,7 @@
             <Button ToolTip="切换到正交折线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToWorkflowCanvas_Click">
                 <TextBlock Text="🗂️" FontSize="14" VerticalAlignment="Center"/>
             </Button>
-            <Button ToolTip="切换到贝塞尔曲线画布" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="SwitchToNativeDiagram_Click">
-                <TextBlock Text="〰️" FontSize="14" VerticalAlignment="Center"/>
-            </Button>
+
             -->
 
             <Separator/>
@@ -809,17 +807,6 @@
                                             </DataTemplate>
                                         </canvas:CanvasTemplateSelector.WorkflowCanvasTemplate>
 
-                                        <canvas:CanvasTemplateSelector.NativeDiagramTemplate>
-                                            <DataTemplate>
-                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                                             VerticalScrollBarVisibility="Auto"
-                                                             Background="#F5F8FC">
-                                                    <canvas:NativeDiagramControl
-                                                        DataContext="{Binding}"
-                                                        Loaded="NativeDiagramControl_Loaded"/>
-                                                </ScrollViewer>
-                                            </DataTemplate>
-                                        </canvas:CanvasTemplateSelector.NativeDiagramTemplate>
                                     </canvas:CanvasTemplateSelector>
                                 </ContentControl.ContentTemplateSelector>
                             </ContentControl>

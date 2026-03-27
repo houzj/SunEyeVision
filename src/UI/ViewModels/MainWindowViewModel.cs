@@ -964,7 +964,6 @@ namespace SunEyeVision.UI.ViewModels
             CurrentCanvasTypeText = canvasType switch
             {
                 Views.Controls.Canvas.CanvasType.WorkflowCanvas => "工作流画布",
-                Views.Controls.Canvas.CanvasType.NativeDiagram => "原生 Diagram (测试)",
                 _ => "未知类型"
             };
             }

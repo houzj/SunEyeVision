@@ -430,12 +430,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                 {
 
-                    var calculatorType = Services.PathCalculators.PathCalculatorFactory.CurrentCalculatorType;
-
-                    // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas DataContextChanged] 当前路径计算器类型: {calculatorType}");
-
-
-
                     var calculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator();
 
                     // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? 路径计算器实例创建成功");
@@ -587,8 +581,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         );
 
                         SmartPathConverter.PathCache = _connectionPathCache;
-
-                        // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas DataContextChanged] ? OrthogonalPathCalculator 备用方案已启用");
 
                     }
 
@@ -1044,7 +1036,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         /// <summary>
 
-        /// 设置路径计算器（支持运行时切换）
+        /// 重新初始化路径计算器（当前只支持贝塞尔曲线计算器）
 
         /// </summary>
 
@@ -1052,59 +1044,41 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         {
 
-
-
             try
 
             {
 
-                // 解析路径计算器类型
+                // 创建新的路径计算器实例
 
-                if (System.Enum.TryParse<Services.PathCalculators.PathCalculatorType>(pathCalculatorType, true, out var type))
-
-                {
-
-                    // 创建新的路径计算器实例
-
-                    var newCalculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator(type);
+                var newCalculator = Services.PathCalculators.PathCalculatorFactory.CreateCalculator();
 
 
 
-                    // 替换ConnectionPathCache
+                // 替换ConnectionPathCache
 
-                    if (CurrentWorkflowTab != null)
-
-                    {
-
-                        _connectionPathCache = new ConnectionPathCache(
-
-                            CurrentWorkflowTab.WorkflowNodes,
-
-                            newCalculator
-
-                        );
-
-
-
-                        // 更新SmartPathConverter的缓存引用
-
-                        SmartPathConverter.PathCache = _connectionPathCache;
-
-
-
-                        // 刷新所有连接路径
-
-                        RefreshAllConnectionPaths();
-
-
-
-                    }
-
-                }
-
-                else
+                if (CurrentWorkflowTab != null)
 
                 {
+
+                    _connectionPathCache = new ConnectionPathCache(
+
+                        CurrentWorkflowTab.WorkflowNodes,
+
+                        newCalculator
+
+                    );
+
+
+
+                    // 更新SmartPathConverter的缓存引用
+
+                    SmartPathConverter.PathCache = _connectionPathCache;
+
+
+
+                    // 刷新所有连接路径
+
+                    RefreshAllConnectionPaths();
 
                 }
 
@@ -1113,6 +1087,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             catch (System.Exception ex)
 
             {
+
+                // 忽略异常
 
             }
 
@@ -2002,20 +1978,58 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         /// <summary>
 
-        /// 更新临时连接线路径
+        /// 更新临时连接线路径（优化版）
 
         /// </summary>
 
-        private void UpdateTempConnectionPath(Point startPoint, Point endPoint)
+        /// <param name="startPoint">起点（源端口位置）</param>
+
+        /// <param name="endPoint">终点（鼠标位置或目标端口位置）</param>
+
+        /// <param name="targetNode">目标节点（可选）</param>
+
+        /// <param name="targetPortName">目标端口名称（可选）</param>
+
+        private void UpdateTempConnectionPath(
+            Point startPoint,
+            Point endPoint,
+            WorkflowNode? targetNode = null,
+            string? targetPortName = null)
         {
             if (_tempConnectionGeometry == null)
                 return;
 
             var calculator = PathCalculatorFactory.CreateCalculator();
             var sourceDirection = PortDirectionExtensions.FromPortName(_dragConnectionSourcePort ?? "RightPort");
-            var targetDirection = InferTargetDirection(startPoint, endPoint);
 
-            var pathPoints = calculator.CalculateOrthogonalPath(startPoint, endPoint, sourceDirection, targetDirection);
+            // 根据是否有目标节点，计算目标位置和方向
+            Point targetPosition;
+            PortDirection targetDirection;
+
+            if (targetNode != null && !string.IsNullOrEmpty(targetPortName))
+            {
+                // 情况1：有目标节点 - 使用实际端口位置和方向
+                targetPosition = GetPortPositionByName(targetNode, targetPortName);
+                targetDirection = PortDirectionExtensions.FromPortName(targetPortName);
+
+                System.Diagnostics.Debug.WriteLine($"[预览线] 使用实际端口: {targetPortName}, 位置: ({targetPosition.X:F1}, {targetPosition.Y:F1})");
+            }
+            else
+            {
+                // 情况2：无目标节点 - 使用鼠标位置和推断方向
+                targetPosition = endPoint;
+                targetDirection = InferTargetDirection(startPoint, endPoint);
+
+                System.Diagnostics.Debug.WriteLine($"[预览线] 使用鼠标位置: ({targetPosition.X:F1}, {targetPosition.Y:F1}), 推断方向: {targetDirection}");
+            }
+
+            // 统一使用贝塞尔曲线计算器
+            var pathPoints = calculator.CalculateOrthogonalPath(
+                startPoint,
+                targetPosition,
+                sourceDirection,
+                targetDirection);
+
             var geometry = calculator.CreatePathGeometry(pathPoints);
 
             _tempConnectionGeometry.Figures.Clear();
@@ -2044,6 +2058,31 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             else
             {
                 return dy > 0 ? PortDirection.Top : PortDirection.Bottom;
+            }
+        }
+
+        /// <summary>
+        /// 智能推断最佳目标端口
+        /// </summary>
+        /// <param name="source">源端口位置</param>
+        /// <param name="mouse">鼠标位置</param>
+        /// <param name="targetNode">目标节点</param>
+        /// <returns>最佳端口名称</returns>
+        private string InferBestPort(Point source, Point mouse, WorkflowNode targetNode)
+        {
+            var dx = mouse.X - source.X;
+            var dy = mouse.Y - source.Y;
+
+            // 根据相对位置选择最合适的端口
+            if (Math.Abs(dx) > Math.Abs(dy))
+            {
+                // 水平方向为主
+                return dx > 0 ? "LeftPort" : "RightPort";
+            }
+            else
+            {
+                // 垂直方向为主
+                return dy > 0 ? "TopPort" : "BottomPort";
             }
         }
 
@@ -3053,8 +3092,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     // 获取源节点的连接点位置
                     var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
-                    // 使用路径计算器更新临时连接线（与实际连线风格一致）
-                    UpdateTempConnectionPath(sourcePort, currentPoint);
 
 
                     // 动态高亮目标端口
@@ -3064,6 +3101,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     var hitPorts = new List<(Ellipse port, string portName)>();
 
                     int hitTestCount = 0;
+
+                    // 用于预览线的目标节点和端口信息
+                    WorkflowNode? targetNode = null;
+                    string? targetPortName = null;
 
 
 
@@ -3167,13 +3208,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     {
 
-                        var targetPortName = hitPorts[0].portName;
+                        var portName = hitPorts[0].portName;
 
 
 
                         // 找到端口所属的节点
 
                         Border? portBorder = null;
+                        WorkflowNode? portNode = null;
 
                         foreach (var hitPort in hitPorts)
 
@@ -3194,20 +3236,25 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                                     {
 
                                         portBorder = border;
+                                        portNode = node;
 
                                         // 只在端口变化时才高亮和记录
 
-                                        if (_lastHighlightedPort != targetPortName)
+                                        if (_lastHighlightedPort != portName)
 
                                         {
 
-                                            _portHighlighter?.HighlightSpecificPort(border, targetPortName);
+                                            _portHighlighter?.HighlightSpecificPort(border, portName);
 
-                                            _directHitTargetPort = targetPortName;
+                                            _directHitTargetPort = portName;
 
-                                            _lastHighlightedPort = targetPortName;
+                                            _lastHighlightedPort = portName;
 
                                         }
+                                        
+                                        // ✅ 提取目标节点和端口信息
+                                        targetNode = node;
+                                        targetPortName = portName;
 
                                         break;
 
@@ -3286,6 +3333,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                                 _highlightedTargetNodeBorder = nearest.border;
 
                             }
+                            
+                            // ✅ 提取目标节点信息，智能推断最佳端口
+                            targetNode = nearest.node;
+                            targetPortName = InferBestPort(sourcePort, currentPoint, nearest.node);
 
                         }
 
@@ -3298,6 +3349,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         }
 
                     }
+                    
+                    // ✅ 使用优化的预览线计算（统一使用贝塞尔曲线计算器）
+                    UpdateTempConnectionPath(sourcePort, currentPoint, targetNode, targetPortName);
 
                     // 注意：这里不再隐藏端口，保持目标节点的端口可见直到拖拽结束
 

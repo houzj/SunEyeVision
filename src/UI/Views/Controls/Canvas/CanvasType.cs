@@ -1,22 +1,13 @@
-using System.ComponentModel;
-
 namespace SunEyeVision.UI.Views.Controls.Canvas
 {
     /// <summary>
-    /// 画布类型枚举
+    /// 画布类型
     /// </summary>
     public enum CanvasType
     {
         /// <summary>
-        /// 原始的WorkflowCanvasControl
+        /// WorkflowCanvasControl 画布
         /// </summary>
-        [Description("WorkflowCanvasControl")]
-        WorkflowCanvas,
-
-        /// <summary>
-        /// 原生AIStudio.Wpf.DiagramDesigner控件（使用贝塞尔曲线连接）。
-        /// </summary>
-        [Description("NativeDiagramControl")]
-        NativeDiagram
+        WorkflowCanvas
     }
 }
