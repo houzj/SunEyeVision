@@ -8,7 +8,7 @@ namespace SunEyeVision.UI.Commands
     /// <summary>
     /// 添加节点命令
     /// </summary>
-    public class AddNodeCommand : ICommand
+    public class AddNodeCommand : IUndoableCommand
     {
         private readonly ObservableCollection<WorkflowNode> _nodes;
         private readonly WorkflowNode _node;
@@ -19,16 +19,21 @@ namespace SunEyeVision.UI.Commands
             _node = node;
         }
 
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return true;
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             _nodes.Add(_node);
+        }
+
+        public void Undo()
+        {
+            _nodes.Remove(_node);
         }
     }
 }

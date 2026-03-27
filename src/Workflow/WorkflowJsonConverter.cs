@@ -82,23 +82,23 @@ namespace SunEyeVision.Workflow
             {
                 try
                 {
-                    var connList = JsonSerializer.Deserialize<List<Connection>>(
+                    var connList = JsonSerializer.Deserialize<List<WorkflowConnection>>(
                         connElement.GetRawText(),
                         options
                     );
                     workflow.Connections = connList != null
-                        ? new ObservableCollection<Connection>(connList)
-                        : new ObservableCollection<Connection>();
+                        ? new ObservableCollection<WorkflowConnection>(connList)
+                        : new ObservableCollection<WorkflowConnection>();
                 }
                 catch (Exception ex)
                 {
                     VisionLogger.Instance.Log(LogLevel.Warning, $"Failed to deserialize connections: {ex.Message}", "WorkflowJsonConverter");
-                    workflow.Connections = new ObservableCollection<Connection>();
+                    workflow.Connections = new ObservableCollection<WorkflowConnection>();
                 }
             }
             else
             {
-                workflow.Connections = new ObservableCollection<Connection>();
+                workflow.Connections = new ObservableCollection<WorkflowConnection>();
             }
 
             return workflow;

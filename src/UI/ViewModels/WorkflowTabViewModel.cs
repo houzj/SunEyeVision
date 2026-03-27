@@ -13,6 +13,7 @@ using SunEyeVision.UI.Views.Controls.Canvas;
 using SunEyeVision.UI.Services.Interaction;
 using SunEyeVision.UI.Services.Workflow;
 
+
 namespace SunEyeVision.UI.ViewModels
 {
     /// <summary>
@@ -26,7 +27,7 @@ namespace SunEyeVision.UI.ViewModels
         private RunMode _runMode;
         private WorkflowState _state;
         private ObservableCollection<Models.WorkflowNode> _workflowNodes;
-        private ObservableCollection<Models.WorkflowConnection> _workflowConnections;
+        private ObservableCollection<WorkflowConnection> _workflowConnections;
         private ScaleTransform _scaleTransform;
         private double _currentScale;
         private CanvasType _canvasType;
@@ -75,7 +76,7 @@ namespace SunEyeVision.UI.ViewModels
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
-            WorkflowConnections = new ObservableCollection<Models.WorkflowConnection>();
+            WorkflowConnections = new ObservableCollection<WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
             CanvasType = CanvasType.WorkflowCanvas; // 默认使用 WorkflowCanvas，每个工作流独立
@@ -211,7 +212,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 连接线集合
         /// </summary>
-        public ObservableCollection<Models.WorkflowConnection> WorkflowConnections
+        public ObservableCollection<WorkflowConnection> WorkflowConnections
         {
             get => _workflowConnections;
             set

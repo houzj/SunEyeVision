@@ -465,17 +465,10 @@ namespace SunEyeVision.UI.Views.Windows
                         workflow.Nodes.Add(node);
                     }
 
-                    // 同步连接数据
+                    // 同步连接数据（共享引用，直接加载）
                     foreach (var conn in tab.WorkflowConnections)
                     {
-                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
-                        {
-                            Id = conn.Id,
-                            SourceNode = conn.SourceNodeId,
-                            TargetNode = conn.TargetNodeId,
-                            SourcePort = conn.SourcePort,
-                            TargetPort = conn.TargetPort
-                        });
+                        workflow.Connections.Add(conn);
                     }
 
                     _viewModel?.AddLog(LogLevel.Info, $"已同步工作流: {tab.Name}, 节点数={tab.WorkflowNodes.Count}, 连接数={tab.WorkflowConnections.Count}", LogSource.UIOperation);
@@ -565,19 +558,13 @@ namespace SunEyeVision.UI.Views.Windows
                 foreach (var node in nodesToRemove)
                     workflow.Nodes.Remove(node);
 
-                // 同步连接
+
+                // 同步连接（共享引用，直接加载）
                 foreach (var conn in tab.WorkflowConnections)
                 {
                     if (!workflow.Connections.Any(c => c.Id == conn.Id))
                     {
-                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
-                        {
-                            Id = conn.Id,
-                            SourceNode = conn.SourceNodeId,
-                            TargetNode = conn.TargetNodeId,
-                            SourcePort = conn.SourcePort,
-                            TargetPort = conn.TargetPort
-                        });
+                        workflow.Connections.Add(conn);
                     }
                 }
 

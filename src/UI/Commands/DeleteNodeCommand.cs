@@ -2,39 +2,42 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SunEyeVision.UI.Models;
+using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Commands
 {
     /// <summary>
     /// 删除节点命令
     /// </summary>
-    public class DeleteNodeCommand : ICommand
+    public class DeleteNodeCommand : IUndoableCommand
     {
         private readonly ObservableCollection<WorkflowNode> _nodes;
         private readonly ObservableCollection<WorkflowConnection> _connections;
         private readonly WorkflowNode _node;
-        private readonly System.Collections.Generic.List<WorkflowConnection> _deletedConnections;
+        private readonly List<WorkflowConnection> _deletedConnections;
+        private int _nodeIndex;
 
         public DeleteNodeCommand(ObservableCollection<WorkflowNode> nodes, ObservableCollection<WorkflowConnection> connections, WorkflowNode node)
         {
             _nodes = nodes;
             _connections = connections;
             _node = node;
-            _deletedConnections = new System.Collections.Generic.List<WorkflowConnection>();
+            _nodeIndex = nodes.IndexOf(node);
+            _deletedConnections = new List<WorkflowConnection>();
 
             // 收集需要删除的连接
             var relatedConnections = _connections.Where(c => c.SourceNodeId == node.Id || c.TargetNodeId == node.Id).ToList();
             _deletedConnections.AddRange(relatedConnections);
         }
 
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return true;
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             // 删除连接
             foreach (var connection in _deletedConnections)
@@ -44,6 +47,21 @@ namespace SunEyeVision.UI.Commands
 
             // 删除节点
             _nodes.Remove(_node);
+        }
+
+        public void Undo()
+        {
+            // 恢复节点到原位置
+            if (_nodeIndex >= 0 && _nodeIndex <= _nodes.Count)
+                _nodes.Insert(_nodeIndex, _node);
+            else
+                _nodes.Add(_node);
+
+            // 恢复连接
+            foreach (var connection in _deletedConnections)
+            {
+                _connections.Add(connection);
+            }
         }
     }
 }

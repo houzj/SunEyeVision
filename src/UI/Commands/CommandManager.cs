@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SunEyeVision.UI.Models;
+using SunEyeVision.Workflow;
 
 namespace SunEyeVision.UI.Commands
 {
@@ -11,8 +12,8 @@ namespace SunEyeVision.UI.Commands
     /// </summary>
     public class CommandManager
     {
-        private readonly Stack<ICommand> _undoStack = new Stack<ICommand>();
-        private readonly Stack<ICommand> _redoStack = new Stack<ICommand>();
+        private readonly Stack<IUndoableCommand> _undoStack = new Stack<IUndoableCommand>();
+        private readonly Stack<IUndoableCommand> _redoStack = new Stack<IUndoableCommand>();
         private readonly ObservableCollection<WorkflowNode> _nodes;
         private readonly ObservableCollection<WorkflowConnection> _connections;
 
@@ -25,7 +26,7 @@ namespace SunEyeVision.UI.Commands
         public bool CanUndo => _undoStack.Count > 0;
         public bool CanRedo => _redoStack.Count > 0;
 
-        public string LastCommandDescription => _undoStack.Count > 0 ? _undoStack.Peek().GetType().Name : "d";
+        public string LastCommandDescription => _undoStack.Count > 0 ? _undoStack.Peek().GetType().Name : "";
 
         /// <summary>
         /// 命令状态变更事件
@@ -37,7 +38,7 @@ namespace SunEyeVision.UI.Commands
             CommandStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void Execute(ICommand command)
+        public void Execute(IUndoableCommand command)
         {
             command.Execute(null);
             _undoStack.Push(command);
@@ -50,6 +51,7 @@ namespace SunEyeVision.UI.Commands
             if (CanUndo)
             {
                 var command = _undoStack.Pop();
+                command.Undo();
                 _redoStack.Push(command);
                 OnCommandStateChanged();
             }
@@ -60,6 +62,7 @@ namespace SunEyeVision.UI.Commands
             if (CanRedo)
             {
                 var command = _redoStack.Pop();
+                command.Execute(null);
                 _undoStack.Push(command);
                 OnCommandStateChanged();
             }

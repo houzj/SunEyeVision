@@ -220,7 +220,7 @@ namespace SunEyeVision.Workflow
 
                     if (workflow.Connections == null)
                     {
-                        workflow.Connections = new ObservableCollection<Connection>();
+                        workflow.Connections = new ObservableCollection<WorkflowConnection>();
                     }
 
                     Workflows[workflow.Id] = workflow;

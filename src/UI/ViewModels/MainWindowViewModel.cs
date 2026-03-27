@@ -312,7 +312,7 @@ namespace SunEyeVision.UI.ViewModels
             get => _showPropertyPanel;
             set => SetProperty(ref _showPropertyPanel, value);
         }
-        public Models.WorkflowConnection? SelectedConnection { get; set; }
+        public WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
         // 工作流标签页
@@ -1448,30 +1448,7 @@ namespace SunEyeVision.UI.ViewModels
                     workflow.Nodes.Remove(node);
                 }
 
-                // 同步连接：将 UI 集合中的连接同步到 Solution.Workflow.Connections
-                foreach (var conn in tab.WorkflowConnections)
-                {
-                    if (!workflow.Connections.Any(c => c.Id == conn.Id))
-                    {
-                        workflow.Connections.Add(new SunEyeVision.Workflow.Connection
-                        {
-                            Id = conn.Id,
-                            SourceNode = conn.SourceNodeId,
-                            TargetNode = conn.TargetNodeId,
-                            SourcePort = conn.SourcePort,
-                            TargetPort = conn.TargetPort
-                        });
-                    }
-                }
-
-                // 移除 Solution 中已从 UI 删除的连接
-                var connsToRemove = workflow.Connections
-                    .Where(c => !tab.WorkflowConnections.Any(tc => tc.Id == c.Id))
-                    .ToList();
-                foreach (var conn in connsToRemove)
-                {
-                    workflow.Connections.Remove(conn);
-                }
+                // 连接数据通过共享 Solution 资源实现，无需手动同步
             }
         }
 
@@ -1556,18 +1533,10 @@ namespace SunEyeVision.UI.ViewModels
 
             LogInfo($"节点加载完成，数量: {tabViewModel.WorkflowNodes.Count}/{workflow.Nodes.Count}");
 
-            // 转换连接（UI 层 WorkflowConnection 与数据层 Connection 是独立类）
+            // 加载连接（WorkflowConnection 已统一为共享引用，直接加载）
             foreach (var conn in workflow.Connections)
             {
-                var connection = new Models.WorkflowConnection
-                {
-                    Id = conn.Id,
-                    SourceNodeId = conn.SourceNode,
-                    TargetNodeId = conn.TargetNode,
-                    SourcePort = conn.SourcePort,
-                    TargetPort = conn.TargetPort
-                };
-                tabViewModel.WorkflowConnections.Add(connection);
+                tabViewModel.WorkflowConnections.Add(conn);
             }
 
             LogInfo($"连接加载完成，数量: {tabViewModel.WorkflowConnections.Count}/{workflow.Connections.Count}");
@@ -1952,35 +1921,41 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 添加连接到当前工作流（通过命令模式）
+        /// 添加连接到当前工作流（通过命令模式，支持连线覆盖）
         /// </summary>
         public void AddConnectionToWorkflow(WorkflowConnection connection)
         {
             if (WorkflowTabViewModel.SelectedTab == null)
                 return;
 
-            // 获取节点名称用于日志
-            var sourceNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
-            var targetNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
-            AddLog($"🔗 创建连接: {sourceNode?.Name ?? connection.SourceNodeId} → {targetNode?.Name ?? connection.TargetNodeId}");
+            var connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
 
-            var command = new AppCommands.AddConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
-            WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+            // 检查是否已存在相同端口对连接（两节点间有且仅有一条连线）
+            var existingConnection = connections.FirstOrDefault(c =>
+                c.SourceNodeId == connection.SourceNodeId &&
+                c.TargetNodeId == connection.TargetNodeId &&
+                c.SourcePort == connection.SourcePort &&
+                c.TargetPort == connection.TargetPort);
 
-            // 同步到 Solution.Workflow.Connections
-            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
-            if (workflow != null)
+            if (existingConnection != null)
             {
-                var conn = new SunEyeVision.Workflow.Connection
-                {
-                    Id = connection.Id,
-                    SourceNode = connection.SourceNodeId,
-                    TargetNode = connection.TargetNodeId,
-                    SourcePort = connection.SourcePort,
-                    TargetPort = connection.TargetPort
-                };
-                workflow.Connections.Add(conn);
+                // 覆盖：用新连接替换旧连接
+                var sourceNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+                var targetNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
+                AddLog($"🔗 覆盖连接: {sourceNode?.Name ?? connection.SourceNodeId} → {targetNode?.Name ?? connection.TargetNodeId}");
+
+                var command = new AppCommands.ReplaceConnectionCommand(connections, existingConnection, connection);
+                WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
+            }
+            else
+            {
+                // 新建连接
+                var sourceNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.SourceNodeId);
+                var targetNode = WorkflowTabViewModel.SelectedTab.WorkflowNodes.FirstOrDefault(n => n.Id == connection.TargetNodeId);
+                AddLog($"🔗 创建连接: {sourceNode?.Name ?? connection.SourceNodeId} → {targetNode?.Name ?? connection.TargetNodeId}");
+
+                var command = new AppCommands.AddConnectionCommand(connections, connection);
+                WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
             }
         }
 
@@ -2001,16 +1976,6 @@ namespace SunEyeVision.UI.ViewModels
 
             var command = new AppCommands.DeleteConnectionCommand(WorkflowTabViewModel.SelectedTab.WorkflowConnections, connection);
             WorkflowTabViewModel.SelectedTab.CommandManager.Execute(command);
-
-            // 同时从 Solution.Workflow.Connections 删除
-            var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-            var workflow = solutionManager?.CurrentSolution?.Workflows.FirstOrDefault(w => w.Id == WorkflowTabViewModel.SelectedTab.Id);
-            if (workflow != null)
-            {
-                var target = workflow.Connections.FirstOrDefault(c => c.Id == connection.Id);
-                if (target != null)
-                    workflow.Connections.Remove(target);
-            }
         }
 
         /// <summary>

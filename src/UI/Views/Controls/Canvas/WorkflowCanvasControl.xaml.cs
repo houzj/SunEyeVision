@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using System.Collections.Generic;
 
@@ -4183,25 +4183,31 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         #region 辅助方法
 
         /// <summary>
-        /// 判断连接线（正交折线）是否与矩形区域相交
+        /// 判断连接线是否与矩形区域相交
         /// </summary>
-        private static bool IsConnectionInRect(WorkflowConnection connection, Rect selectionRect)
+        private bool IsConnectionInRect(WorkflowConnection connection, Rect selectionRect)
         {
             if (selectionRect.IsEmpty) return false;
 
-            // 收集所有路径点（起点 + 拐点 + 终点）
-            var points = new List<Point> { connection.SourcePosition };
-            foreach (var pt in connection.PathPoints)
-            {
-                points.Add(pt);
-            }
-            points.Add(connection.TargetPosition);
+            // 从 PathCache 获取实际渲染的 PathGeometry（支持贝塞尔/正交/任意曲线）
+            var pathGeometry = _connectionPathCache?.GetPath(connection);
+            if (pathGeometry == null) return false;
 
-            // 检查每个线段是否与矩形相交
-            for (int i = 0; i < points.Count - 1; i++)
+            // 将曲线展平为折线段（容差0.5像素，足够精确且高效）
+            var flattened = pathGeometry.GetFlattenedPathGeometry(0.5, ToleranceType.Relative);
+
+            foreach (var figure in flattened.Figures)
             {
-                if (LineSegmentIntersectsRect(points[i], points[i + 1], selectionRect))
-                    return true;
+                var start = figure.StartPoint;
+                foreach (var segment in figure.Segments)
+                {
+                    if (segment is LineSegment lineSeg)
+                    {
+                        if (LineSegmentIntersectsRect(start, lineSeg.Point, selectionRect))
+                            return true;
+                        start = lineSeg.Point;
+                    }
+                }
             }
 
             return false;

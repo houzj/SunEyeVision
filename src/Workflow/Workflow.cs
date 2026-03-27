@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json.Serialization;
+using System.Windows;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Models;
 
@@ -44,7 +46,7 @@ public class Workflow : ObservableObject
     /// <summary>
     /// 连接列表（ObservableCollection 支持UI直接绑定）
     /// </summary>
-    public ObservableCollection<Connection> Connections { get; set; } = new();
+    public ObservableCollection<WorkflowConnection> Connections { get; set; } = new();
 
     /// <summary>
     /// 节点添加事件
@@ -94,12 +96,12 @@ public class Workflow : ObservableObject
         // 克隆连接
         foreach (var connection in Connections)
         {
-            cloned.Connections.Add(new Connection
+            cloned.Connections.Add(new WorkflowConnection
             {
                 Id = Guid.NewGuid().ToString(),
-                SourceNode = connection.SourceNode,
+                SourceNodeId = connection.SourceNodeId,
                 SourcePort = connection.SourcePort,
-                TargetNode = connection.TargetNode,
+                TargetNodeId = connection.TargetNodeId,
                 TargetPort = connection.TargetPort
             });
         }
@@ -138,14 +140,14 @@ public class Workflow : ObservableObject
             var nodeIdsSet = new HashSet<string>(Nodes.Select(n => n.Id));
             foreach (var connection in Connections)
             {
-                if (!nodeIdsSet.Contains(connection.SourceNode))
+                if (!nodeIdsSet.Contains(connection.SourceNodeId))
                 {
-                    errors.Add($"连接源节点不存在: {connection.SourceNode}");
+                    errors.Add($"连接源节点不存在: {connection.SourceNodeId}");
                 }
 
-                if (!nodeIdsSet.Contains(connection.TargetNode))
+                if (!nodeIdsSet.Contains(connection.TargetNodeId))
                 {
-                    errors.Add($"连接目标节点不存在: {connection.TargetNode}");
+                    errors.Add($"连接目标节点不存在: {connection.TargetNodeId}");
                 }
             }
 
@@ -153,8 +155,8 @@ public class Workflow : ObservableObject
             var connectedNodes = new HashSet<string>();
             foreach (var connection in Connections)
             {
-                connectedNodes.Add(connection.SourceNode);
-                connectedNodes.Add(connection.TargetNode);
+                connectedNodes.Add(connection.SourceNodeId);
+                connectedNodes.Add(connection.TargetNodeId);
             }
 
             var isolatedNodes = Nodes
@@ -189,7 +191,7 @@ public class Workflow : ObservableObject
 
             foreach (var connection in Connections)
             {
-                graph[connection.SourceNode].Add(connection.TargetNode);
+                graph[connection.SourceNodeId].Add(connection.TargetNodeId);
             }
 
             var visited = new HashSet<string>();
@@ -270,7 +272,7 @@ public class Workflow : ObservableObject
         // 移除相关连接（ObservableCollection 不支持 RemoveAll，使用循环删除）
         for (int i = Connections.Count - 1; i >= 0; i--)
         {
-            if (Connections[i].SourceNode == nodeId || Connections[i].TargetNode == nodeId)
+            if (Connections[i].SourceNodeId == nodeId || Connections[i].TargetNodeId == nodeId)
             {
                 Connections.RemoveAt(i);
             }
@@ -285,7 +287,7 @@ public class Workflow : ObservableObject
     /// <summary>
     /// 添加连接
     /// </summary>
-    public void AddConnection(Connection connection)
+    public void AddConnection(WorkflowConnection connection)
     {
         Connections.Add(connection);
     }
@@ -296,13 +298,13 @@ public class Workflow : ObservableObject
     /// <param name="sourceNodeId">源节点ID</param>
     /// <param name="targetNodeId">目标节点ID</param>
     /// <returns>创建的连接</returns>
-    public Connection ConnectNodes(string sourceNodeId, string targetNodeId)
+    public WorkflowConnection ConnectNodes(string sourceNodeId, string targetNodeId)
     {
-        var connection = new Connection
+        var connection = new WorkflowConnection
         {
             Id = Guid.NewGuid().ToString(),
-            SourceNode = sourceNodeId,
-            TargetNode = targetNodeId,
+            SourceNodeId = sourceNodeId,
+            TargetNodeId = targetNodeId,
             SourcePort = "output",
             TargetPort = "input"
         };
@@ -339,7 +341,7 @@ public class Workflow : ObservableObject
 
             foreach (var connection in Connections)
             {
-                graph[connection.SourceNode].Add(connection.TargetNode);
+                graph[connection.SourceNodeId].Add(connection.TargetNodeId);
             }
 
             var visited = new HashSet<string>();
@@ -418,7 +420,7 @@ public class Workflow : ObservableObject
 
             foreach (var connection in Connections)
             {
-                inDegree[connection.TargetNode]++;
+                inDegree[connection.TargetNodeId]++;
             }
 
             // 使用队列进行拓扑排序
@@ -444,12 +446,12 @@ public class Workflow : ObservableObject
                     visited.Add(nodeId);
 
                     // 更新相邻节点的入度
-                    foreach (var connection in Connections.Where(c => c.SourceNode == nodeId))
+                    foreach (var connection in Connections.Where(c => c.SourceNodeId == nodeId))
                     {
-                        inDegree[connection.TargetNode]--;
-                        if (inDegree[connection.TargetNode] == 0)
+                        inDegree[connection.TargetNodeId]--;
+                        if (inDegree[connection.TargetNodeId] == 0)
                         {
-                            queue.Enqueue(connection.TargetNode);
+                            queue.Enqueue(connection.TargetNodeId);
                         }
                     }
                 }
@@ -462,34 +464,275 @@ public class Workflow : ObservableObject
     }
 
     /// <summary>
-    /// 连接类
+    /// 工作流连接线（统一模型，UI层和数据层共享同一引用）
     /// </summary>
-    public class Connection
+    /// <remarks>
+    /// 重构说明（2026-03-27）：
+    /// - 合并原 UI 层 WorkflowConnection 和数据层 Connection 为单一类
+    /// - UI 渲染属性（路径数据、箭头位置等）使用 [JsonIgnore] 隔离
+    /// - 数据属性（SourceNodeId/TargetNodeId 等）参与序列化
+    /// - 与节点相同策略：通过共享 Solution 资源实现零同步
+    /// </remarks>
+    public class WorkflowConnection : ObservableObject
     {
+        private string _id = string.Empty;
+        private string _sourceNodeId = string.Empty;
+        private string _targetNodeId = string.Empty;
+        private string _sourcePort = "output";
+        private string _targetPort = "input";
+        private Point _sourcePosition;
+        private Point _targetPosition;
+        private Point _arrowPosition;
+        private double _arrowAngle = 0;
+        private ConnectionStatus _status = ConnectionStatus.Idle;
+        private bool _showPathPoints = false;
+        private string _pathData = string.Empty;
+        private bool _isSelected = false;
+        private bool _isHovered = false;
+        private int _pathUpdateCounter = 0;
+        private bool _isVisible = true;
+
         /// <summary>
         /// 连接唯一标识符
         /// </summary>
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id
+        {
+            get => _id;
+            set => SetProperty(ref _id, value);
+        }
 
         /// <summary>
         /// 源节点ID
         /// </summary>
-        public string SourceNode { get; set; } = "";
-
-        /// <summary>
-        /// 源端口名称
-        /// </summary>
-        public string SourcePort { get; set; } = "";
+        public string SourceNodeId
+        {
+            get => _sourceNodeId;
+            set => SetProperty(ref _sourceNodeId, value);
+        }
 
         /// <summary>
         /// 目标节点ID
         /// </summary>
-        public string TargetNode { get; set; } = "";
+        public string TargetNodeId
+        {
+            get => _targetNodeId;
+            set => SetProperty(ref _targetNodeId, value);
+        }
+
+        /// <summary>
+        /// 源端口名称
+        /// </summary>
+        public string SourcePort
+        {
+            get => _sourcePort;
+            set => SetProperty(ref _sourcePort, value);
+        }
 
         /// <summary>
         /// 目标端口名称
         /// </summary>
-        public string TargetPort { get; set; } = "";
+        public string TargetPort
+        {
+            get => _targetPort;
+            set => SetProperty(ref _targetPort, value);
+        }
+
+        /// <summary>
+        /// 箭头角度（UI渲染用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public double ArrowAngle
+        {
+            get => _arrowAngle;
+            set => SetProperty(ref _arrowAngle, value);
+        }
+
+        /// <summary>
+        /// 箭头位置（UI渲染用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public Point ArrowPosition
+        {
+            get => _arrowPosition;
+            set
+            {
+                if (SetProperty(ref _arrowPosition, value))
+                {
+                    OnPropertyChanged(nameof(ArrowX));
+                    OnPropertyChanged(nameof(ArrowY));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public double ArrowX => ArrowPosition.X;
+
+        [JsonIgnore]
+        public double ArrowY => ArrowPosition.Y;
+
+        [JsonIgnore]
+        public double ArrowSize => 10;
+
+        [JsonIgnore]
+        public double ArrowScale => 1.0;
+
+        /// <summary>
+        /// 连接状态（UI渲染用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public ConnectionStatus Status
+        {
+            get => _status;
+            set => SetProperty(ref _status, value);
+        }
+
+        [JsonIgnore]
+        public string StatusColor => Status switch
+        {
+            ConnectionStatus.Idle => "#666666",
+            ConnectionStatus.Transmitting => "#FF9500",
+            ConnectionStatus.Completed => "#34C759",
+            ConnectionStatus.Error => "#FF3B30",
+            _ => "#666666"
+        };
+
+        [JsonIgnore]
+        public bool ShowPathPoints
+        {
+            get => _showPathPoints;
+            set => SetProperty(ref _showPathPoints, value);
+        }
+
+        /// <summary>
+        /// 连线路径数据（UI渲染用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public string PathData
+        {
+            get => _pathData;
+            set => SetProperty(ref _pathData, value);
+        }
+
+        [JsonIgnore]
+        public ObservableCollection<Point> PathPoints { get; set; } = new();
+
+        [JsonIgnore]
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+
+        [JsonIgnore]
+        public bool IsHovered
+        {
+            get => _isHovered;
+            set => SetProperty(ref _isHovered, value);
+        }
+
+        [JsonIgnore]
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set => SetProperty(ref _isVisible, value);
+        }
+
+        [JsonIgnore]
+        public Point SourcePosition
+        {
+            get => _sourcePosition;
+            set
+            {
+                if (SetProperty(ref _sourcePosition, value))
+                {
+                    OnPropertyChanged(nameof(StartX));
+                    OnPropertyChanged(nameof(StartY));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public Point TargetPosition
+        {
+            get => _targetPosition;
+            set
+            {
+                if (SetProperty(ref _targetPosition, value))
+                {
+                    OnPropertyChanged(nameof(EndX));
+                    OnPropertyChanged(nameof(EndY));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public double StartX => SourcePosition.X;
+
+        [JsonIgnore]
+        public double StartY => SourcePosition.Y;
+
+        [JsonIgnore]
+        public double EndX => TargetPosition.X;
+
+        [JsonIgnore]
+        public double EndY => TargetPosition.Y;
+
+        public WorkflowConnection()
+        {
+            Id = string.Empty;
+            SourceNodeId = string.Empty;
+            TargetNodeId = string.Empty;
+            SourcePosition = new Point(0, 0);
+            TargetPosition = new Point(0, 0);
+            ArrowPosition = new Point(0, 0);
+        }
+
+        public WorkflowConnection(string id, string sourceNodeId, string targetNodeId)
+        {
+            Id = id;
+            SourceNodeId = sourceNodeId;
+            TargetNodeId = targetNodeId;
+            SourcePosition = new Point(0, 0);
+            TargetPosition = new Point(0, 0);
+            ArrowPosition = new Point(0, 0);
+        }
+
+        /// <summary>
+        /// 路径更新计数器（UI渲染用，不序列化）
+        /// </summary>
+        [JsonIgnore]
+        public int PathUpdateCounter
+        {
+            get => _pathUpdateCounter;
+            private set
+            {
+                if (_pathUpdateCounter != value)
+                {
+                    _pathUpdateCounter = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 触发路径相关属性的更新
+        /// </summary>
+        public void InvalidatePath()
+        {
+            _pathUpdateCounter++;
+            OnPropertyChanged(nameof(PathUpdateCounter));
+        }
+    }
+
+    /// <summary>
+    /// 连接状态
+    /// </summary>
+    public enum ConnectionStatus
+    {
+        Idle,
+        Transmitting,
+        Completed,
+        Error
     }
 
     /// <summary>

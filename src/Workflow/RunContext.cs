@@ -127,12 +127,12 @@ public class RunContext
     /// <summary>
     /// 获取节点的输入连接
     /// </summary>
-    public List<Connection> GetInputConnections(string nodeId)
+    public List<WorkflowConnection> GetInputConnections(string nodeId)
     {
-        var connections = new List<Connection>();
+        var connections = new List<WorkflowConnection>();
         foreach (var conn in Workflow.Connections)
         {
-            if (conn.TargetNode == nodeId)
+            if (conn.TargetNodeId == nodeId)
                 connections.Add(conn);
         }
         return connections;
@@ -141,12 +141,12 @@ public class RunContext
     /// <summary>
     /// 获取节点的输出连接
     /// </summary>
-    public List<Connection> GetOutputConnections(string nodeId)
+    public List<WorkflowConnection> GetOutputConnections(string nodeId)
     {
-        var connections = new List<Connection>();
+        var connections = new List<WorkflowConnection>();
         foreach (var conn in Workflow.Connections)
         {
-            if (conn.SourceNode == nodeId)
+            if (conn.SourceNodeId == nodeId)
                 connections.Add(conn);
         }
         return connections;
