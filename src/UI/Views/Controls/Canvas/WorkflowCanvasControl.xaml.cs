@@ -28,6 +28,7 @@ using SunEyeVision.UI.Services.Rendering;
 
 using SunEyeVision.UI.Services.Path;
 using SunEyeVision.UI.Services.PathCalculators;
+using SunEyeVision.UI.Services.Canvas;
 using SunEyeVision.UI.Converters.Path;
 
 using SunEyeVision.UI.Views.Windows;
@@ -122,9 +123,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
     private Path? _tempConnectionLine = null; // 临时连接线（用于拖拽时显示）
 
-    private PathGeometry? _tempConnectionGeometry = null; // 临时连接线路径几何
+        private PathGeometry? _tempConnectionGeometry = null; // 临时连接线路径几何
 
-    private Border? _highlightedTargetNodeBorder = null; // 拖拽时高亮的目标节点Border（用于显示端口）
+        private Border? _highlightedTargetNodeBorder = null; // 拖拽时高亮的目标节点Border（用于显示端口）
+
+        private ScrollViewer? _parentScrollViewer = null; // 父级 ScrollViewer 引用（用于视口边界限制）
 
 
 
@@ -859,6 +862,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ════════════════════════════════════");
 
             // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] ? WorkflowCanvasControl Loaded Event Triggered");
+
+            // 获取父级 ScrollViewer（用于视口边界限制）
+            _parentScrollViewer = FindVisualParent<ScrollViewer>(this);
+
+            // System.Diagnostics.Debug.WriteLine("[WorkflowCanvas_Loaded] Parent ScrollViewer: " + (_parentScrollViewer != null ? "Found" : "Not Found"));
 
 
 
@@ -1624,6 +1632,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
+                        // 应用边界限制
+                        newPos = CanvasHelper.ClampNodeToBounds(selectedNodes[i], newPos, WorkflowCanvas, _parentScrollViewer);
+
+
+
                         // 直接设置位置，立即触发PropertyChanged
 
                         // 这会立即更新Canvas绑定，节点位置实时跟随鼠标
@@ -1689,6 +1702,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         _initialNodePosition.Y + totalOffset.Y
 
                     );
+
+
+
+                    // 应用边界限制
+                    newPos = CanvasHelper.ClampNodeToBounds(_draggedNode, newPos, WorkflowCanvas, _parentScrollViewer);
 
 
 
@@ -4887,6 +4905,21 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             }
 
+        }
+
+        /// <summary>
+        /// 查找指定类型的视觉父级
+        /// </summary>
+        private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+
+            if (parentObject == null) return null;
+
+            if (parentObject is T parent)
+                return parent;
+
+            return FindVisualParent<T>(parentObject);
         }
 
     }

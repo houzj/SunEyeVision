@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.UI.Models;
@@ -6,6 +6,7 @@ using SunEyeVision.UI.ViewModels;
 using SunEyeVision.UI;
 using SunEyeVision.UI.Views.Controls.Canvas;
 using SunEyeVision.UI.Views.Windows;
+using SunEyeVision.UI.Services.Canvas;
 
 namespace SunEyeVision.UI.Services.Interaction
 {
@@ -215,7 +216,8 @@ namespace SunEyeVision.UI.Services.Interaction
                 LogTimestamp("Drop", $"✓ 节点创建完成: Id={newNode.Id}, Name={newNode.Name}");
 #endif
 
-                newNode.Position = dropPosition;
+                // 应用边界限制（使用新的统一方法，默认策略为 Both - 画布和视口都限制）
+                newNode.Position = CanvasHelper.ClampNodeToBounds(newNode, dropPosition, canvas);
 #if DEBUG
                 LogTimestamp("Drop", "✓ 节点属性设置完成");
 #endif

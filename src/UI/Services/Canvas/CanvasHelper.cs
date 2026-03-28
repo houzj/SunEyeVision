@@ -9,10 +9,40 @@ using SunEyeVision.UI.Models;
 namespace SunEyeVision.UI.Services.Canvas
 {
     /// <summary>
+    /// 节点边界限制策略
+    /// </summary>
+    public enum NodeBoundaryLimitStrategy
+    {
+        /// <summary>
+        /// 不限制
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// 仅画布边界（Canvas.ActualWidth/Height）
+        /// </summary>
+        CanvasOnly,
+
+        /// <summary>
+        /// 仅视口边界（ScrollViewer.ViewportWidth/Height）
+        /// </summary>
+        ViewportOnly,
+
+        /// <summary>
+        /// 两者都限制（取交集）
+        /// </summary>
+        Both
+    }
+
+    /// <summary>
     /// 画布辅助?- 提供画布相关的通用辅助方法
     /// </summary>
     public static class CanvasHelper
     {
+        /// <summary>
+        /// 节点边界限制策略（默认：两者都限制）
+        /// </summary>
+        public static NodeBoundaryLimitStrategy BoundaryLimitStrategy = NodeBoundaryLimitStrategy.Both;
         /// <summary>
         /// 判断点是否在端口?        /// </summary>
         /// <param name="point">要检测的?/param>
@@ -213,6 +243,106 @@ namespace SunEyeVision.UI.Services.Canvas
                 node.Position.X + node.StyleConfigTyped.NodeWidth / 2,
                 node.Position.Y + node.StyleConfigTyped.NodeHeight / 2
             );
+        }
+
+        /// <summary>
+        /// 限制节点在画布边界内
+        /// </summary>
+        /// <param name="node">工作流节点</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="canvas">画布控件</param>
+        /// <returns>限制后的位置</returns>
+        public static Point ClampNodeToCanvasBounds(WorkflowNode node, Point targetPosition, System.Windows.Controls.Canvas canvas)
+        {
+            if (canvas == null)
+                return targetPosition;
+
+            double nodeWidth = node.StyleConfigTyped.NodeWidth;
+            double nodeHeight = node.StyleConfigTyped.NodeHeight;
+
+            // 动态获取画布尺寸
+            double canvasWidth = canvas.ActualWidth;
+            double canvasHeight = canvas.ActualHeight;
+
+            // 内边距为 0
+            const double BOUNDARY_PADDING = 0;
+
+            double minX = BOUNDARY_PADDING;
+            double minY = BOUNDARY_PADDING;
+            double maxX = canvasWidth - BOUNDARY_PADDING - nodeWidth;
+            double maxY = canvasHeight - BOUNDARY_PADDING - nodeHeight;
+
+            double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
+            double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);
+
+            return new Point(clampedX, clampedY);
+        }
+
+        /// <summary>
+        /// 限制节点在 ScrollViewer 的可见视口内
+        /// </summary>
+        /// <param name="node">工作流节点</param>
+        /// <param name="targetPosition">目标位置（Canvas 坐标系）</param>
+        /// <param name="scrollViewer">ScrollViewer 控件</param>
+        /// <returns>限制后的位置</returns>
+        public static Point ClampNodeToViewportBounds(WorkflowNode node, Point targetPosition, ScrollViewer scrollViewer)
+        {
+            if (scrollViewer == null)
+                return targetPosition;
+
+            double nodeWidth = node.StyleConfigTyped.NodeWidth;
+            double nodeHeight = node.StyleConfigTyped.NodeHeight;
+
+            // 获取 ScrollViewer 的视口信息（Canvas 坐标系）
+            double viewportLeft = scrollViewer.HorizontalOffset;
+            double viewportTop = scrollViewer.VerticalOffset;
+            double viewportRight = viewportLeft + scrollViewer.ViewportWidth;
+            double viewportBottom = viewportTop + scrollViewer.ViewportHeight;
+
+            // 内边距为 0
+            const double BOUNDARY_PADDING = 0;
+
+            double minX = viewportLeft + BOUNDARY_PADDING;
+            double minY = viewportTop + BOUNDARY_PADDING;
+            double maxX = viewportRight - BOUNDARY_PADDING - nodeWidth;
+            double maxY = viewportBottom - BOUNDARY_PADDING - nodeHeight;
+
+            double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
+            double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);
+
+            return new Point(clampedX, clampedY);
+        }
+
+        /// <summary>
+        /// 根据当前策略限制节点位置
+        /// </summary>
+        /// <param name="node">工作流节点</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="canvas">画布控件</param>
+        /// <param name="scrollViewer">ScrollViewer 控件（可选）</param>
+        /// <returns>限制后的位置</returns>
+        public static Point ClampNodeToBounds(WorkflowNode node, Point targetPosition, System.Windows.Controls.Canvas canvas, ScrollViewer scrollViewer = null)
+        {
+            // 根据策略执行限制
+            switch (BoundaryLimitStrategy)
+            {
+                case NodeBoundaryLimitStrategy.None:
+                    return targetPosition;
+
+                case NodeBoundaryLimitStrategy.CanvasOnly:
+                    return ClampNodeToCanvasBounds(node, targetPosition, canvas);
+
+                case NodeBoundaryLimitStrategy.ViewportOnly:
+                    return ClampNodeToViewportBounds(node, targetPosition, scrollViewer);
+
+                case NodeBoundaryLimitStrategy.Both:
+                    // 先限制到画布，再限制到视口（取交集）
+                    var canvasClamped = ClampNodeToCanvasBounds(node, targetPosition, canvas);
+                    return ClampNodeToViewportBounds(node, canvasClamped, scrollViewer);
+
+                default:
+                    return targetPosition;
+            }
         }
     }
 }
