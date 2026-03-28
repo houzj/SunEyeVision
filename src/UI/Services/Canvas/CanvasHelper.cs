@@ -284,33 +284,57 @@ namespace SunEyeVision.UI.Services.Canvas
         /// <param name="node">工作流节点</param>
         /// <param name="targetPosition">目标位置（Canvas 坐标系）</param>
         /// <param name="scrollViewer">ScrollViewer 控件</param>
+        /// <param name="canvas">Canvas 控件（用于坐标转换）</param>
         /// <returns>限制后的位置</returns>
-        public static Point ClampNodeToViewportBounds(WorkflowNode node, Point targetPosition, ScrollViewer scrollViewer)
+        public static Point ClampNodeToViewportBounds(WorkflowNode node, Point targetPosition, ScrollViewer scrollViewer, System.Windows.Controls.Canvas canvas)
         {
-            if (scrollViewer == null)
+            if (scrollViewer == null || canvas == null)
                 return targetPosition;
 
             double nodeWidth = node.StyleConfigTyped.NodeWidth;
             double nodeHeight = node.StyleConfigTyped.NodeHeight;
 
-            // 获取 ScrollViewer 的视口信息（Canvas 坐标系）
-            double viewportLeft = scrollViewer.HorizontalOffset;
-            double viewportTop = scrollViewer.VerticalOffset;
-            double viewportRight = viewportLeft + scrollViewer.ViewportWidth;
-            double viewportBottom = viewportTop + scrollViewer.ViewportHeight;
+            try
+            {
+                // 使用 TransformToVisual 将 ScrollViewer 的可见区域转换为 Canvas 坐标系
+                // 这样可以正确处理 ScaleTransform 和平移的组合场景
+                var transform = scrollViewer.TransformToVisual(canvas);
 
-            // 内边距为 0
-            const double BOUNDARY_PADDING = 0;
+                // 定义 ScrollViewer 的可见区域的四个角点（ScrollViewer 自身坐标系）
+                var scrollViewerTopLeft = new Point(0, 0);
+                var scrollViewerBottomRight = new Point(
+                    scrollViewer.ViewportWidth,
+                    scrollViewer.ViewportHeight
+                );
 
-            double minX = viewportLeft + BOUNDARY_PADDING;
-            double minY = viewportTop + BOUNDARY_PADDING;
-            double maxX = viewportRight - BOUNDARY_PADDING - nodeWidth;
-            double maxY = viewportBottom - BOUNDARY_PADDING - nodeHeight;
+                // 转换为 Canvas 坐标系（自动考虑 ScaleTransform 和平移）
+                var canvasTopLeft = transform.Transform(scrollViewerTopLeft);
+                var canvasBottomRight = transform.Transform(scrollViewerBottomRight);
 
-            double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
-            double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);
+                // 计算视口边界（Canvas 坐标系）
+                double viewportLeft = canvasTopLeft.X;
+                double viewportTop = canvasTopLeft.Y;
+                double viewportRight = canvasBottomRight.X;
+                double viewportBottom = canvasBottomRight.Y;
 
-            return new Point(clampedX, clampedY);
+                // 内边距为 0
+                const double BOUNDARY_PADDING = 0;
+
+                double minX = viewportLeft + BOUNDARY_PADDING;
+                double minY = viewportTop + BOUNDARY_PADDING;
+                double maxX = viewportRight - BOUNDARY_PADDING - nodeWidth;
+                double maxY = viewportBottom - BOUNDARY_PADDING - nodeHeight;
+
+                double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
+                double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);
+
+                return new Point(clampedX, clampedY);
+            }
+            catch (Exception)
+            {
+                // 如果转换失败，返回原始位置
+                return targetPosition;
+            }
         }
 
         /// <summary>
@@ -333,12 +357,12 @@ namespace SunEyeVision.UI.Services.Canvas
                     return ClampNodeToCanvasBounds(node, targetPosition, canvas);
 
                 case NodeBoundaryLimitStrategy.ViewportOnly:
-                    return ClampNodeToViewportBounds(node, targetPosition, scrollViewer);
+                    return ClampNodeToViewportBounds(node, targetPosition, scrollViewer, canvas);
 
                 case NodeBoundaryLimitStrategy.Both:
                     // 先限制到画布，再限制到视口（取交集）
                     var canvasClamped = ClampNodeToCanvasBounds(node, targetPosition, canvas);
-                    return ClampNodeToViewportBounds(node, canvasClamped, scrollViewer);
+                    return ClampNodeToViewportBounds(node, canvasClamped, scrollViewer, canvas);
 
                 default:
                     return targetPosition;

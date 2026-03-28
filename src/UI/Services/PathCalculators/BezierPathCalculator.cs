@@ -12,9 +12,15 @@ namespace SunEyeVision.UI.Services.PathCalculators
     {
         /// <summary>最小曲线距离</summary>
         private const double MinCurveDistance = 15.0;
-        
-        /// <summary>控制点偏移比例</summary>
-        private const double ControlPointOffsetRatio = 0.5;
+
+        /// <summary>基础控制点偏移比例（降低到30%，减少曲线张力）</summary>
+        private const double BaseControlRatio = 0.3;
+
+        /// <summary>最小控制点偏移（防止短距离时曲线过平）</summary>
+        private const double MinControlOffset = 50.0;
+
+        /// <summary>最大控制点偏移（防止长距离时曲线过度拉伸）</summary>
+        private const double MaxControlOffset = 150.0;
 
         /// <summary>
         /// 计算路径点集合（基础方法）
@@ -53,11 +59,12 @@ namespace SunEyeVision.UI.Services.PathCalculators
 
         /// <summary>
         /// 计算贝塞尔曲线控制点
-        /// 
-        /// 算法原理：
-        /// 1. 控制点偏移量 = 两点距离 × 0.5
-        /// 2. 控制点沿端口切线方向延伸
-        /// 3. 保持曲线平滑自然
+        ///
+        /// 算法原理（Miro+Figma混合策略）：
+        /// 1. 使用主轴距离（非总距离）计算基础偏移量
+        /// 2. 基础比例为30%，范围限制在50px-150px
+        /// 3. 根据端口方向相对关系动态调整
+        /// 4. 目标：曲线自然流畅，避免"太着急"的转弯
         /// </summary>
         private Point[] CalculateBezierControlPoints(
             Point sourcePosition,
@@ -75,14 +82,83 @@ namespace SunEyeVision.UI.Services.PathCalculators
                 return new Point[] { sourcePosition, targetPosition };
             }
 
-            // 统一使用距离的一半作为偏移量
-            double offset = distance * ControlPointOffsetRatio;
+            // 智能计算控制点偏移量
+            double offset = CalculateSmartControlOffset(
+                sourcePosition,
+                targetPosition,
+                sourceDirection,
+                targetDirection);
 
             // 根据端口方向计算控制点
             var controlPoint1 = GetControlPoint(sourcePosition, sourceDirection, offset);
             var controlPoint2 = GetControlPoint(targetPosition, targetDirection, offset);
 
             return new Point[] { sourcePosition, controlPoint1, controlPoint2, targetPosition };
+        }
+
+        /// <summary>
+        /// 智能计算控制点偏移量
+        ///
+        /// 策略：
+        /// 1. 使用主轴距离（水平/垂直距离较大者）而非总距离
+        /// 2. 基础偏移 = 主轴距离 × 30%
+        /// 3. 偏移量限制在50px-150px之间
+        /// 4. 根据端口方向关系动态调整：
+        ///    - 相对方向（如Right→Left）：降低偏移量（×0.8）
+        ///    - 相同方向（如Right→Right）：增加偏移量（×1.1）
+        /// </summary>
+        private double CalculateSmartControlOffset(
+            Point sourcePosition,
+            Point targetPosition,
+            PortDirection sourceDirection,
+            PortDirection targetDirection)
+        {
+            double dx = targetPosition.X - sourcePosition.X;
+            double dy = targetPosition.Y - sourcePosition.Y;
+            double absDx = Math.Abs(dx);
+            double absDy = Math.Abs(dy);
+
+            // 使用主轴距离（水平或垂直距离较大者）
+            double mainAxisDistance = Math.Max(absDx, absDy);
+
+            // 计算基础偏移量（30%）
+            double ratioOffset = mainAxisDistance * BaseControlRatio;
+
+            // 限制偏移量范围（50px-150px）
+            double finalOffset = Math.Clamp(ratioOffset, MinControlOffset, MaxControlOffset);
+
+            // 根据端口方向关系动态调整
+            if (AreOppositeDirections(sourceDirection, targetDirection))
+            {
+                // 相对方向（如Right→Left, Top→Bottom），降低偏移量使曲线更紧凑
+                finalOffset *= 0.8;
+            }
+            else if (AreSameDirection(sourceDirection, targetDirection))
+            {
+                // 相同方向（如Right→Right），增加偏移量使曲线更平滑
+                finalOffset *= 1.1;
+            }
+
+            return finalOffset;
+        }
+
+        /// <summary>
+        /// 判断两个端口方向是否相对（如Right→Left, Top→Bottom）
+        /// </summary>
+        private bool AreOppositeDirections(PortDirection dir1, PortDirection dir2)
+        {
+            return (dir1 == PortDirection.Left && dir2 == PortDirection.Right) ||
+                   (dir1 == PortDirection.Right && dir2 == PortDirection.Left) ||
+                   (dir1 == PortDirection.Top && dir2 == PortDirection.Bottom) ||
+                   (dir1 == PortDirection.Bottom && dir2 == PortDirection.Top);
+        }
+
+        /// <summary>
+        /// 判断两个端口方向是否相同
+        /// </summary>
+        private bool AreSameDirection(PortDirection dir1, PortDirection dir2)
+        {
+            return dir1 == dir2;
         }
 
         /// <summary>
