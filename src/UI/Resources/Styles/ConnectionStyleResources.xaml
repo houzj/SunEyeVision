@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                   xmlns:sys="clr-namespace:System;assembly=mscorlib"
-                   xmlns:helpers="clr-namespace:SunEyeVision.UI.Helpers">
+                   xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ======================================== -->
     <!-- 连接线尺寸参数 -->
@@ -22,9 +21,6 @@
     <!-- 临时连接线粗细（拖拽连接时） -->
     <sys:Double x:Key="TempConnectionLineThickness">2</sys:Double>
 
-    <!-- 端口高亮粗细 -->
-    <sys:Double x:Key="PortHighlightedStrokeThickness">3</sys:Double>
-    
     <!-- ======================================== -->
     <!-- 连接线颜色参数 -->
     <!-- ======================================== -->
@@ -41,14 +37,6 @@
     <Color x:Key="PreviewLineDashColor">#666666</Color>
 
     <!-- ======================================== -->
-    <!-- 端口高亮颜色参数 -->
-    <!-- ======================================== -->
-
-    <!-- 端口高亮颜色 -->
-    <Color x:Key="PortHighlightedFillColor">#FFC800</Color>        <!-- 金色填充 -->
-    <Color x:Key="PortHighlightedStrokeColor">#FF6400</Color>       <!-- 深橙色边框 -->
-    
-    <!-- ======================================== -->
     <!-- 连接线笔刷资源 -->
     <!-- ======================================== -->
     
@@ -59,10 +47,6 @@
     <!-- 临时连接线笔刷（拖拽连接时） -->
     <SolidColorBrush x:Key="TempConnectionLineBrush" Color="{DynamicResource TempConnectionLineColor}"/>
 
-    <!-- 端口高亮笔刷 -->
-    <SolidColorBrush x:Key="PortHighlightedFillBrush" Color="{DynamicResource PortHighlightedFillColor}"/>
-    <SolidColorBrush x:Key="PortHighlightedStrokeBrush" Color="{DynamicResource PortHighlightedStrokeColor}"/>
-    
     <!-- ======================================== -->
     <!-- 连接线样式 -->
     <!-- ======================================== -->
@@ -97,18 +81,4 @@
         <Setter Property="Canvas.ZIndex" Value="-1"/>
     </Style>
 
-    <!-- ======================================== -->
-    <!-- 端口高亮样式（通过附加属性触发） -->
-    <!-- ======================================== -->
-
-    <Style x:Key="PortEllipseHighlightedStyle" TargetType="Ellipse" BasedOn="{StaticResource PortEllipseStyle}">
-        <Style.Triggers>
-            <Trigger Property="helpers:PortHighlighterHelper.IsHighlighted" Value="True">
-                <Setter Property="Fill" Value="{DynamicResource PortHighlightedFillBrush}"/>
-                <Setter Property="Stroke" Value="{DynamicResource PortHighlightedStrokeBrush}"/>
-                <Setter Property="StrokeThickness" Value="{DynamicResource PortHighlightedStrokeThickness}"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-    
 </ResourceDictionary>

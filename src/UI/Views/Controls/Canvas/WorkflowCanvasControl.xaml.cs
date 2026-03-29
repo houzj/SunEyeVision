@@ -62,8 +62,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         private WorkflowDragDropHandler? _dragDropHandler;
 
-        private WorkflowPortHighlighter? _portHighlighter;
-
         private WorkflowConnectionCreator? _connectionCreator;
 
         private PortPositionService? _portPositionService; // 端口位置查询服务
@@ -970,16 +968,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     // 初始化辅助类（需要ViewModel）
 
-                    if (_portHighlighter == null)
-
-                    {
-
-                        _portHighlighter = new WorkflowPortHighlighter(_viewModel);
-
-                        // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? PortHighlighter 初始化成功");
-
-                    }
-
                     if (_connectionCreator == null)
 
                     {
@@ -989,6 +977,9 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         // System.Diagnostics.Debug.WriteLine($"[WorkflowCanvas_Loaded] ? ConnectionCreator 初始化成功");
 
                     }
+
+
+
 
 
 
@@ -3374,7 +3365,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                                         {
 
-                                            _portHighlighter?.HighlightSpecificPort(border, portName);
+                                            // ✅ 不做任何操作，IsMouseOver 自动触发橙色效果
 
                                             _directHitTargetPort = portName;
 
@@ -3412,8 +3403,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                             {
 
-                                _portHighlighter?.ClearTargetPortHighlight();
-
                                 _directHitTargetPort = null;
 
                                 _lastHighlightedPort = null;
@@ -3440,9 +3429,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-                            // 高亮目标端口
-
-                            _portHighlighter?.HighlightTargetPort(nearest.border, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
+                            // ✅ 移除智能推荐逻辑，让用户通过 IsMouseOver 选择
+                            // 端口会自动显示，用户移动鼠标到想要连接的端口即可触发橙色高亮
 
 
 
@@ -3471,25 +3459,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         }
 
                         else
-
                         {
-
-                            _portHighlighter?.ClearTargetPortHighlight();
-
+                            // 没有命中目标节点（命中的是源节点），隐藏之前显示的端口
+                            if (_highlightedTargetNodeBorder != null)
+                            {
+                                SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                                _highlightedTargetNodeBorder = null;
+                            }
                         }
-
                     }
-
                     else
                     {
-                        // ⭐ 新增：没有命中任何节点或端口，隐藏之前高亮的节点端口
+                        // ⭐ 没有命中任何节点或端口，隐藏之前高亮的节点端口
                         if (_highlightedTargetNodeBorder != null)
                         {
                             SetPortsVisibility(_highlightedTargetNodeBorder, false);
                             _highlightedTargetNodeBorder = null;
                         }
-                        // 清除端口高亮
-                        _portHighlighter?.ClearTargetPortHighlight();
+                        // 清除命中记录
                         _directHitTargetPort = null;
                         _lastHighlightedPort = null;
                     }
@@ -4027,7 +4014,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                         {
 
-                            _portHighlighter?.HighlightSpecificPort(targetBorder, nearestPort.portName);
+                            // ✅ 不做任何高亮，端口已经显示，用户可以通过 IsMouseOver 选择
 
                         }
 
@@ -4077,9 +4064,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-                            // 高亮显示目标节点的端口（使用智能选择）
+                            // ✅ 移除智能推荐逻辑，直接显示端口让用户选择
+                            // 端口会自动显示，用户移动鼠标到想要连接的端口即可触发橙色高亮
+                            SetPortsVisibility(targetBorder, true);
 
-                            _portHighlighter?.HighlightTargetPort(targetBorder, _dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
 
                         }
 
@@ -4208,8 +4196,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 }
 
 
-
-                _portHighlighter?.ClearTargetPortHighlight(); // 清除端口高亮
 
                 SetPortsVisibility(false); // 隐藏所有端口
 
