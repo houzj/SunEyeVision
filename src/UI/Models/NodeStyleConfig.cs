@@ -1,42 +1,86 @@
-using System;
+﻿using System;
 using System.Windows;
+using System.Windows.Media;
 
 namespace SunEyeVision.UI.Models
 {
     /// <summary>
     /// 节点样式配置 - 完全解耦样式与逻辑
+    /// 从ResourceDictionary统一管理样式参数
     /// </summary>
     public class NodeStyleConfig
     {
-        /// <summary>
-        /// 节点宽度
-        /// </summary>
-        public double NodeWidth { get; set; } = 160;
+        private static readonly ResourceDictionary _resources;
+
+        static NodeStyleConfig()
+        {
+            try
+            {
+                _resources = new ResourceDictionary
+                {
+                    Source = new Uri("/SunEyeVision.UI;component/Resources/Styles/NodeStyleResources.xaml",
+                                    UriKind.Relative)
+                };
+            }
+            catch (Exception ex)
+            {
+                // 降级到硬编码默认值
+                _resources = new ResourceDictionary();
+                _resources["NodeWidth"] = 160.0;
+                _resources["NodeHeight"] = 40.0;
+                _resources["PortSize"] = 10.0;
+                _resources["PortMargin"] = 10.0;
+                _resources["NodeCornerRadius"] = 20.0;
+                _resources["NodeContentMargin"] = new Thickness(12, 0, 12, 0);
+                
+                System.Diagnostics.Debug.WriteLine($"NodeStyleConfig资源加载失败，使用默认值: {ex.Message}");
+            }
+        }
+
+        private T GetResource<T>(string key) where T : class
+        {
+            return _resources[key] as T;
+        }
+
+        private double GetDouble(string key)
+        {
+            return (double)_resources[key];
+        }
+
+        private Thickness GetThickness(string key)
+        {
+            return (Thickness)_resources[key];
+        }
 
         /// <summary>
-        /// 节点高度
+        /// 节点宽度（从资源读取）
         /// </summary>
-        public double NodeHeight { get; set; } = 40;
+        public double NodeWidth => GetDouble("NodeWidth");
 
         /// <summary>
-        /// 端口大小（直径）
+        /// 节点高度（从资源读取）
         /// </summary>
-        public double PortSize { get; set; } = 10;
+        public double NodeHeight => GetDouble("NodeHeight");
 
         /// <summary>
-        /// 端口外边距（端口距离节点的距离）
+        /// 端口大小（直径）（从资源读取）
         /// </summary>
-        public double PortMargin { get; set; } = 10;
+        public double PortSize => GetDouble("PortSize");
 
         /// <summary>
-        /// 节点圆角半径
+        /// 端口外边距（端口距离节点的距离）（从资源读取）
         /// </summary>
-        public double CornerRadius { get; set; } = 20;
+        public double PortMargin => GetDouble("PortMargin");
 
         /// <summary>
-        /// 节点内容边距
+        /// 节点圆角半径（从资源读取）
         /// </summary>
-        public double ContentMargin { get; set; } = 12;
+        public double CornerRadius => GetDouble("NodeCornerRadiusDouble");
+
+        /// <summary>
+        /// 节点内容边距（从资源读取）
+        /// </summary>
+        public double ContentMargin => GetThickness("NodeContentMargin").Left;
 
         /// <summary>
         /// 芯片厚度
@@ -113,50 +157,32 @@ namespace SunEyeVision.UI.Models
     }
 
     /// <summary>
-    /// 预定义的节点样式
+    /// 预定义的节点样式（保留以提供快速样式切换）
+    /// 注意：这些样式现在通过修改ResourceDictionary来实现
     /// </summary>
     public static class NodeStyles
     {
         /// <summary>
-        /// 标准节点样式（当前默认）
+        /// 标准节点样式（当前默认，从资源读取）
         /// </summary>
-        public static readonly NodeStyleConfig Standard = new NodeStyleConfig
-        {
-            NodeWidth = 160,
-            NodeHeight = 40,
-            PortSize = 10,
-            PortMargin = 10,
-            CornerRadius = 20,
-            ContentMargin = 12,
-            ChipThickness = 2
-        };
+        public static readonly NodeStyleConfig Standard = new NodeStyleConfig();
 
         /// <summary>
         /// 紧凑节点样式（小尺寸）
+        /// 注意：需要通过ResourceDictionary切换主题或样式
         /// </summary>
         public static readonly NodeStyleConfig Compact = new NodeStyleConfig
         {
-            NodeWidth = 120,
-            NodeHeight = 30,
-            PortSize = 8,
-            PortMargin = 8,
-            CornerRadius = 15,
-            ContentMargin = 10,
-            ChipThickness = 1.5
+            // 紧凑样式暂不实现，等待主题系统完善
         };
 
         /// <summary>
         /// 大型节点样式（大尺寸）
+        /// 注意：需要通过ResourceDictionary切换主题或样式
         /// </summary>
         public static readonly NodeStyleConfig Large = new NodeStyleConfig
         {
-            NodeWidth = 200,
-            NodeHeight = 60,
-            PortSize = 12,
-            PortMargin = 12,
-            CornerRadius = 25,
-            ContentMargin = 15,
-            ChipThickness = 3
+            // 大型样式暂不实现，等待主题系统完善
         };
     }
 }

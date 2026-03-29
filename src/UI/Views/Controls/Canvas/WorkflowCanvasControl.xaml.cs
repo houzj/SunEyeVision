@@ -44,7 +44,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 {
 
     /// <summary>
-
     /// WorkflowCanvasControl.xaml 的交互逻辑
 
     /// 纯画布控件，负责节点和连线的显示、拖拽、连接等交互

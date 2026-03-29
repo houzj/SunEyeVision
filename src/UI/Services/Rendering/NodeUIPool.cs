@@ -21,9 +21,8 @@ namespace SunEyeVision.UI.Services.Rendering
 
         // 池配置
         private const int DefaultPoolSize = 10;
-        private const double DefaultNodeWidth = 160;
-        private const double DefaultNodeHeight = 40;
-        private const double DefaultCornerRadius = 20;
+        // 从 NodeStyleConfig 读取默认值
+        private static readonly NodeStyleConfig _styleConfig = NodeStyles.Standard;
 
         // 预定义画刷
         private static readonly SolidColorBrush _defaultBackground = CachedBrushes.White;
@@ -97,10 +96,10 @@ namespace SunEyeVision.UI.Services.Rendering
         {
             var border = new Border
             {
-                Width = DefaultNodeWidth,
-                Height = DefaultNodeHeight,
+                Width = _styleConfig.NodeWidth,
+                Height = _styleConfig.NodeHeight,
                 Background = _defaultBackground,
-                CornerRadius = new CornerRadius(DefaultCornerRadius),
+                CornerRadius = new CornerRadius(_styleConfig.CornerRadius),
                 BorderThickness = new Thickness(2),
                 BorderBrush = _defaultBorderBrush
             };

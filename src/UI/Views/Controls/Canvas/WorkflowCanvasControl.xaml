@@ -11,6 +11,7 @@
              xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls"
              xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
              xmlns:rendering="clr-namespace:SunEyeVision.UI.Services.Rendering"
+             xmlns:helpers="clr-namespace:SunEyeVision.UI.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1000">
 
@@ -39,26 +40,7 @@
         <!-- 箭头填充颜色 -->
         <SolidColorBrush x:Key="ArrowBrush" Color="#666666"/>
 
-        <!-- 端口椭圆样式（共享资源） -->
-        <Style x:Key="PortEllipseStyle" TargetType="Ellipse">
-            <Setter Property="Fill" Value="#0066CC"/>
-            <Setter Property="Stroke" Value="#FFFFFF"/>
-            <Setter Property="StrokeThickness" Value="2"/>
-            <Setter Property="Width" Value="20"/>
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Cursor" Value="Cross"/>
-            <Setter Property="Panel.ZIndex" Value="10"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Fill" Value="#FF6600"/>
-                    <Setter Property="Width" Value="24"/>
-                    <Setter Property="Height" Value="24"/>
-                    <Setter Property="StrokeThickness" Value="3"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- 节点背景样式 -->
+        <!-- 节点背景样式（保留用于转换器） -->
         <SolidColorBrush x:Key="NodeBackground" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="NodeHeaderBackground" Color="#0066CC"/>
         <SolidColorBrush x:Key="NodeFooterBackground" Color="#F0F8FF"/>
@@ -231,23 +213,23 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style>
-        <!-- Position表示HitArea中心点(180x60)，Canvas.Left/Top需要左上角坐标 -->
-        <!-- 左上角 = 中心点 - (HitAreaWidth/2, HitAreaHeight/2) = Position - (90, 30) -->
+        <!-- Position表示HitArea中心点，Canvas.Left/Top需要左上角坐标 -->
+        <!-- 左上角 = 中心点 - (HitAreaWidth/2, HitAreaHeight/2) -->
         <Setter Property="Canvas.Left" Value="{Binding Position.X, Converter={StaticResource PointCenterToOffsetConverter}, ConverterParameter=-90, Mode=OneWay}"/>
         <Setter Property="Canvas.Top" Value="{Binding Position.Y, Converter={StaticResource PointCenterToOffsetConverter}, ConverterParameter=-30, Mode=OneWay}"/>
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <!-- HitArea Border: 260x140，用于命中测试，Position表示其中心点 -->
-                    <Border Width="180" Height="60"
+                    <!-- HitArea Border: 用于命中测试，Position表示其中心点 -->
+                    <Border Width="{DynamicResource HitAreaWidth}" Height="{DynamicResource HitAreaHeight}"
                             Background="Transparent"
                             Tag="{Binding}"
                             x:Name="HitAreaBorder">
                         <Grid>
-                            <!-- NodeBorder: 160x40，视觉显示元素，居中于HitArea -->
-                            <Border Width="160" Height="40"
-                                    CornerRadius="20"
+                            <!-- NodeBorder: 视觉显示元素，居中于HitArea -->
+                            <Border Width="{DynamicResource NodeWidth}" Height="{DynamicResource NodeHeight}"
+                                    CornerRadius="{DynamicResource NodeCornerRadius}"
                                     BorderThickness="0"
                                     BorderBrush="Transparent"
                                     HorizontalAlignment="Center"
@@ -262,14 +244,14 @@
                                 </Border.Background>
                                 <Grid>
                                     <!-- 虚线选中装饰层：与 Border 同尺寸，仅选中时可见 -->
-                                    <Rectangle RadiusX="19" RadiusY="19"
-                                               Stroke="#FF6600" StrokeThickness="1.5"
+                                    <Rectangle RadiusX="{DynamicResource NodeCornerRadiusDouble}" RadiusY="{DynamicResource NodeCornerRadiusDouble}"
+                                               Stroke="{DynamicResource NodeSelectedDashBrush}" StrokeThickness="1.5"
                                                StrokeDashArray="6,3"
                                                Fill="Transparent"
                                                IsHitTestVisible="False"
                                                Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             <!-- 节点内容 -->
-                            <Grid Margin="12,0,12,0">
+                            <Grid Margin="{DynamicResource NodeContentMargin}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -279,33 +261,25 @@
                                 <!-- 节点类型图标 -->
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding Icon}"
-                                           FontSize="18"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
+                                           Style="{DynamicResource NodeIconStyle}"/>
 
                                 <!-- 全局序号 -->
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding GlobalIndex, StringFormat='{}{0}'}"
-                                           FontSize="13"
-                                           FontWeight="Bold"
-                                           Foreground="#ff9500"
-                                           VerticalAlignment="Center"
+                                           Style="{DynamicResource NodeGlobalIndexStyle}"
                                            Margin="0,0,8,0"
                                            Visibility="Visible"/>
 
                                 <!-- 节点显示名称 -->
                                 <TextBlock Grid.Column="2"
                                            Text="{Binding DispName}"
-                                           FontSize="13"
-                                           FontWeight="Medium"
-                                           Foreground="#333333"
-                                           VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           Style="{DynamicResource NodeTextStyle}"/>
                             </Grid>
 
                             <!-- 连接点 - 上 -->
                             <Ellipse Name="TopPortEllipse"
-                                     Style="{StaticResource PortEllipseStyle}"
+                                     Style="{DynamicResource PortEllipseHighlightedStyle}"
+                                     helpers:PortHighlighterHelper.IsHighlighted="False"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Top"
                                      Margin="0,-10,0,0"
@@ -319,7 +293,8 @@
 
                             <!-- 连接点 - 下 -->
                             <Ellipse Name="BottomPortEllipse"
-                                     Style="{StaticResource PortEllipseStyle}"
+                                     Style="{DynamicResource PortEllipseHighlightedStyle}"
+                                     helpers:PortHighlighterHelper.IsHighlighted="False"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Bottom"
                                      Margin="0,0,0,-10"
@@ -333,7 +308,8 @@
 
                             <!-- 连接点 - 左 -->
                             <Ellipse Name="LeftPortEllipse"
-                                     Style="{StaticResource PortEllipseStyle}"
+                                     Style="{DynamicResource PortEllipseHighlightedStyle}"
+                                     helpers:PortHighlighterHelper.IsHighlighted="False"
                                      HorizontalAlignment="Left"
                                      VerticalAlignment="Center"
                                      Margin="-10,0,0,0"
@@ -347,7 +323,8 @@
 
                             <!-- 连接点 - 右 -->
                             <Ellipse Name="RightPortEllipse"
-                                     Style="{StaticResource PortEllipseStyle}"
+                                     Style="{DynamicResource PortEllipseHighlightedStyle}"
+                                     helpers:PortHighlighterHelper.IsHighlighted="False"
                                      HorizontalAlignment="Right"
                                      VerticalAlignment="Center"
                                      Margin="0,0,-10,0"
@@ -392,13 +369,7 @@
 
         <!-- 拖拽连接时的临时连接线 -->
         <Path x:Name="TempConnectionLine"
-              Stroke="#FF6600"
-              StrokeThickness="2"
-              StrokeDashArray="5,5"
-              StrokeLineJoin="Round"
-              Fill="Transparent"
-              Canvas.ZIndex="-1"
-              IsHitTestVisible="False"
+              Style="{DynamicResource TempConnectionLineStyle}"
               Visibility="Collapsed">
             <Path.Data>
                 <PathGeometry x:Name="TempConnectionGeometry" />

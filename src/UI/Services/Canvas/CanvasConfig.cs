@@ -1,5 +1,5 @@
-using System.Windows;
-using SunEyeVision.UI.Services.Canvas;
+﻿using System.Windows;
+using SunEyeVision.UI.Models;
 
 namespace SunEyeVision.UI.Services.Canvas
 {
@@ -399,8 +399,8 @@ namespace SunEyeVision.UI.Services.Canvas
             public const bool ShowConnectionInfo = false;
         }
 
-        // 向后兼容的属性
-        public static double NodeWidth => Node.DefaultWidth;
-        public static double NodeHeight => Node.DefaultHeight;
+        // 向后兼容的属性（从NodeStyleConfig读取）
+        public static double NodeWidth => NodeStyles.Standard.NodeWidth;
+        public static double NodeHeight => NodeStyles.Standard.NodeHeight;
     }
 }

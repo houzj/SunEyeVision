@@ -7,6 +7,7 @@ using SunEyeVision.UI.Models;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.UI.Views.Controls.Canvas;
 using SunEyeVision.UI.Services.Rendering;
+using SunEyeVision.UI.Helpers;
 
 namespace SunEyeVision.UI.Services.Interaction
 {
@@ -18,9 +19,6 @@ namespace SunEyeVision.UI.Services.Interaction
         private readonly MainWindowViewModel? _viewModel;
         private Ellipse? _highlightedTargetPort;
         private Border? _highlightedTargetBorder;
-        private Brush? _originalPortFill;
-        private Brush? _originalPortStroke;
-        private double _originalPortStrokeThickness;
         private string _lastHighlightedPort = "";
         private int _highlightCounter = 0;
 
@@ -83,44 +81,32 @@ namespace SunEyeVision.UI.Services.Interaction
                 _highlightedTargetPort = portElement;
                 _highlightedTargetBorder = nodeBorder;
 
-                // 保存原始样式
-                _originalPortFill = portElement.Fill;
-                _originalPortStroke = portElement.Stroke;
-                _originalPortStrokeThickness = portElement.StrokeThickness;
+                // 使用附加属性设置高亮状态
+                PortHighlighterHelper.SetIsHighlighted(portElement, true);
 
-                // 设置高亮样式
-                portElement.Fill = new SolidColorBrush(Color.FromRgb(255, 200, 0)); // 金色填充
-                portElement.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 0)); // 深橙色边?
-                portElement.StrokeThickness = 3;
-
-                // 只在端口变化时记录日?
+                // 只在端口变化时记录日志
                 if (_lastHighlightedPort != portName && _highlightCounter % 5 == 0)
                 {
-    
+
                 }
             }
         }
 
         /// <summary>
-        /// 清除目标端口的高?
+        /// 清除目标端口的高亮
         /// </summary>
         public void ClearTargetPortHighlight()
         {
-            if (_highlightedTargetPort != null && _originalPortFill != null)
+            if (_highlightedTargetPort != null)
             {
-                // 恢复原始样式
-                _highlightedTargetPort.Fill = _originalPortFill;
-                _highlightedTargetPort.Stroke = _originalPortStroke ?? new SolidColorBrush(Colors.Transparent);
-                _highlightedTargetPort.StrokeThickness = _originalPortStrokeThickness;
+                // 使用附加属性清除高亮状态
+                PortHighlighterHelper.SetIsHighlighted(_highlightedTargetPort, false);
 
                 // 隐藏端口，确保不响应鼠标事件
                 _highlightedTargetPort.Visibility = Visibility.Collapsed;
             }
 
             _highlightedTargetPort = null;
-            _originalPortFill = null;
-            _originalPortStroke = null;
-            _originalPortStrokeThickness = 0;
         }
 
         /// <summary>

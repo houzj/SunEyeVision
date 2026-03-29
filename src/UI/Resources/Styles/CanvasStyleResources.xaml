@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ======================================== -->
+    <!-- Canvas 网格背景参数 -->
+    <!-- ======================================== -->
+    
+    <!-- 网格尺寸 -->
+    <sys:Double x:Key="GridMajorSize">100</sys:Double>
+    <sys:Double x:Key="GridMinorSize">20</sys:Double>
+    
+    <!-- 网格线粗细 -->
+    <sys:Double x:Key="GridMajorThickness">1</sys:Double>
+    <sys:Double x:Key="GridMinorThickness">0.5</sys:Double>
+    
+    <!-- ======================================== -->
+    <!-- Canvas 颜色参数 -->
+    <!-- ======================================== -->
+    
+    <!-- 背景颜色 -->
+    <Color x:Key="CanvasBackgroundColor">#F5F5F5</Color>
+    <Color x:Key="CanvasBackgroundAlternateColor">#FAFAFA</Color>
+    
+    <!-- 网格颜色 -->
+    <Color x:Key="GridMajorLineColor">#CCCCCC</Color>
+    <Color x:Key="GridMinorLineColor">#E0E0E0</Color>
+    
+    <!-- 框选框颜色 -->
+    <Color x:Key="SelectionBoxStrokeColor">#0066CC</Color>
+    <Color x:Key="SelectionBoxFillColor">#0066CC</Color>
+    
+    <!-- ======================================== -->
+    <!-- Canvas 笔刷资源 -->
+    <!-- ======================================== -->
+    
+    <!-- 背景笔刷 -->
+    <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="{DynamicResource CanvasBackgroundColor}"/>
+    <SolidColorBrush x:Key="CanvasBackgroundAlternateBrush" Color="{DynamicResource CanvasBackgroundAlternateColor}"/>
+    
+    <!-- 网格线笔刷 -->
+    <SolidColorBrush x:Key="GridMajorLineBrush" Color="{DynamicResource GridMajorLineColor}"/>
+    <SolidColorBrush x:Key="GridMinorLineBrush" Color="{DynamicResource GridMinorLineColor}"/>
+    
+    <!-- 框选框笔刷 -->
+    <SolidColorBrush x:Key="SelectionBoxStrokeBrush" Color="{DynamicResource SelectionBoxStrokeColor}"/>
+    <SolidColorBrush x:Key="SelectionBoxFillBrush" Color="{DynamicResource SelectionBoxFillColor}"/>
+    
+    <!-- ======================================== -->
+    <!-- Canvas 样式 -->
+    <!-- ======================================== -->
+    
+    <!-- 框选框样式 -->
+    <Style x:Key="SelectionBoxStyle" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource SelectionBoxStrokeBrush}"/>
+        <Setter Property="BorderThickness" Value="1.5"/>
+        <Setter Property="Background" Value="{DynamicResource SelectionBoxFillBrush}"/>
+        <Setter Property="Opacity" Value="0.2"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+    </Style>
+    
+</ResourceDictionary>
