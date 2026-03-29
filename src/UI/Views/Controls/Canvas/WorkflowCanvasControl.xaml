@@ -222,7 +222,7 @@
                 <DataTemplate>
                     <!-- HitArea Border: 用于命中测试，Position表示其中心点 -->
                     <Border Width="{DynamicResource HitAreaWidth}" Height="{DynamicResource HitAreaHeight}"
-                            Background="Transparent"
+                            Background="#FF000080"
                             Tag="{Binding}"
                             x:Name="HitAreaBorder">
                         <Grid>

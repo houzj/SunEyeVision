@@ -1128,137 +1128,66 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// </summary>
 
         private void TestNodeHitForPortDisplay(Point mousePosition)
-
         {
-
-            // 执行命中测试
-
-            var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePosition) as PointHitTestResult;
-
-            
-
-            if (hitTestResult == null)
-
-            {
-
-                // 没有命中任何元素，隐藏端口
-
-                if (_highlightedTargetNodeBorder != null)
-
-                {
-
-                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
-
-                    _highlightedTargetNodeBorder = null;
-
-                }
-
-                return;
-
-            }
-
-            
-
-            // 查找鼠标下的 Border（节点容器）
-
-            Border? hitBorder = null;
-
-            var visual = hitTestResult.VisualHit;
-
-            
-
-            while (visual != null && hitBorder == null)
-
-            {
-
-                if (visual is Border border && border.Name == "NodeBorder")
-
-                {
-
-                    hitBorder = border;
-
-                    break;
-
-                }
-
-                
-
-                // 检查父元素
-
-                var parent = VisualTreeHelper.GetParent(visual);
-
-                if (parent != null)
-
-                {
-
-                    visual = parent as Visual;
-
-                }
-
-                else
-
-                {
-
-                    break;
-
-                }
-
-            }
-
-            
+            // 使用统一的命中测试方法
+            var hitBorder = FindNodeBorderByHitTest(mousePosition);
 
             // 处理命中结果
-
             if (hitBorder != null && hitBorder.Tag is WorkflowNode node)
-
             {
-
                 // 鼠标在节点上
-
                 if (hitBorder != _highlightedTargetNodeBorder)
-
                 {
-
                     // 隐藏之前高亮的节点端口
-
                     if (_highlightedTargetNodeBorder != null)
-
                     {
-
                         SetPortsVisibility(_highlightedTargetNodeBorder, false);
-
                     }
 
-                    
-
                     // 显示当前节点的端口
-
                     SetPortsVisibility(hitBorder, true);
-
                     _highlightedTargetNodeBorder = hitBorder;
-
                 }
-
             }
-
             else
-
             {
-
                 // 鼠标不在节点上，隐藏端口
-
                 if (_highlightedTargetNodeBorder != null)
-
                 {
-
                     SetPortsVisibility(_highlightedTargetNodeBorder, false);
-
                     _highlightedTargetNodeBorder = null;
+                }
+            }
+        }
 
+        /// <summary>
+        /// 通过命中测试查找节点Border（统一的向上遍历逻辑）
+        /// </summary>
+        /// <param name="mousePosition">鼠标位置</param>
+        /// <returns>命中的节点Border（可能是HitAreaBorder或NodeBorder），未命中返回null</returns>
+        private Border? FindNodeBorderByHitTest(Point mousePosition)
+        {
+            var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePosition) as PointHitTestResult;
+
+            if (hitTestResult == null)
+                return null;
+
+            // 向上遍历查找 Border（统一的命中测试逻辑）
+            var visual = hitTestResult.VisualHit;
+            while (visual != null)
+            {
+                // 同时检查 HitAreaBorder 和 NodeBorder
+                // 这样可以确保鼠标在整个 HitArea 区域（180x60）内都能命中节点
+                if (visual is Border border && (border.Name == "HitAreaBorder" || border.Name == "NodeBorder"))
+                {
+                    return border;
                 }
 
+                // 向上查找父元素
+                visual = VisualTreeHelper.GetParent(visual) as Visual;
             }
 
+            return null;
         }
 
 
@@ -3212,7 +3141,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                     var currentPoint = e.GetPosition(WorkflowCanvas);
 
                     // 获取源节点的连接点位置
-                    var sourcePort = GetPortPosition(_dragConnectionSourceNode, _dragConnectionStartPoint);
+                    var sourcePort = GetPortPositionByName(_dragConnectionSourceNode, _dragConnectionSourcePort ?? "RightPort");
 
 
                     // 动态高亮目标端口
@@ -3265,48 +3194,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                             }
 
-
-
-                        if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
-
-                        {
-
-                            // 动态计算节点中心（完全解耦）
-
-                            var nodeCenter = hitNode.NodeCenter;
-
-                            double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
-
-                            hitNodes.Add((hitNode, hitBorder, distance));
-
-                        }
-
-                            DependencyObject? current = result.VisualHit as DependencyObject;
-
-                            for (int depth = 0; current != null && depth < 10; depth++)
-
-                            {
-
-                                if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
-
-                                {
-
-                                    // 动态计算节点中心（完全解耦）
-
-                                    var nodeCenter = currentBorderNode.NodeCenter;
-
-                                    double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
-
-                                    hitNodes.Add((currentBorderNode, currentBorder, distance));
-
-                                    break;
-
-                                }
-
-                                current = VisualTreeHelper.GetParent(current);
-
-                            }
-
                             return HitTestResultBehavior.Continue;
 
                         },
@@ -3321,7 +3208,23 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     }
 
+                    // 如果没有直接命中端口，检查是否命中节点
+                    if (hitPorts.Count == 0)
+                    {
+                        // 使用统一的命中测试方法
+                        var nodeBorder = FindNodeBorderByHitTest(currentPoint);
 
+                        if (nodeBorder != null && nodeBorder.Tag is WorkflowNode node)
+                        {
+                            // 排除源节点
+                            if (node != _dragConnectionSourceNode)
+                            {
+                                var nodeCenter = node.NodeCenter;
+                                double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
+                                hitNodes.Add((node, nodeBorder, distance));
+                            }
+                        }
+                    }
 
                     // 优先处理命中的端口（需要排除源节点的端口）
 
@@ -4548,87 +4451,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-        /// <summary>
 
-        /// 获取节点的连接点位置
-
-        /// </summary>
-
-        private Point GetPortPosition(WorkflowNode node, Point clickPoint)
-
-        {
-
-            // 计算点击点相对于节点中心的偏移
-
-            double nodeCenterX = node.Position.X + 70;  // 节点宽度的一半
-
-            double nodeCenterY = node.Position.Y + 45;  // 节点高度的一半
-
-            double offsetX = clickPoint.X - nodeCenterX;
-
-            double offsetY = clickPoint.Y - nodeCenterY;
-
-
-
-            // 判断点击的是哪个连接点
-
-            Point portPosition;
-
-            if (Math.Abs(offsetX) > Math.Abs(offsetY))
-
-            {
-
-                // 水平方向（左右）
-
-                if (offsetX > 0)
-
-                {
-
-                    portPosition = node.RightPortPosition;
-
-                }
-
-                else
-
-                {
-
-                    portPosition = node.LeftPortPosition;
-
-                }
-
-            }
-
-            else
-
-            {
-
-                // 垂直方向（上下）
-
-                if (offsetY > 0)
-
-                {
-
-                    portPosition = node.BottomPortPosition;
-
-                }
-
-                else
-
-                {
-
-                    portPosition = node.TopPortPosition;
-
-                }
-
-            }
-
-
-
-            // 根据点击的连接点确定实际连接位置
-
-            return portPosition;
-
-        }
 
 
 
