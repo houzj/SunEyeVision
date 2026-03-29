@@ -267,15 +267,13 @@ namespace SunEyeVision.UI.Services.Node
 
             foreach (var node in SelectedNodes)
             {
-                var nodeX = node.Position.X;
-                var nodeY = node.Position.Y;
-                var nodeWidth = CanvasConfig.NodeWidth;
-                var nodeHeight = CanvasConfig.NodeHeight;
+                // 使用节点的NodeRect计算边界（Position为HitArea中心点）
+                var nodeRect = node.NodeRect;
 
-                minX = Math.Min(minX, nodeX);
-                minY = Math.Min(minY, nodeY);
-                maxX = Math.Max(maxX, nodeX + nodeWidth);
-                maxY = Math.Max(maxY, nodeY + nodeHeight);
+                minX = Math.Min(minX, nodeRect.X);
+                minY = Math.Min(minY, nodeRect.Y);
+                maxX = Math.Max(maxX, nodeRect.X + nodeRect.Width);
+                maxY = Math.Max(maxY, nodeRect.Y + nodeRect.Height);
             }
 
             return new Rect(minX, minY, maxX - minX, maxY - minY);
@@ -290,12 +288,8 @@ namespace SunEyeVision.UI.Services.Node
 
             var nodesInRect = _allNodes.Where(node =>
             {
-                var nodeRect = new Rect(
-                    node.Position.X,
-                    node.Position.Y,
-                    CanvasConfig.NodeWidth,
-                    CanvasConfig.NodeHeight
-                );
+                // 使用节点的NodeRect（Position为HitArea中心点）
+                var nodeRect = node.NodeRect;
                 return selectionRect.IntersectsWith(nodeRect);
             }).ToList();
 

@@ -230,16 +230,14 @@ namespace SunEyeVision.UI.Services.Node
                 return new Point(0, 0);
             }
 
-            var nodeCenterX = node.Position.X + CanvasConfig.NodeWidth / 2;
-            var nodeCenterY = node.Position.Y + CanvasConfig.NodeHeight / 2;
-
+            // 使用节点的StyleConfigTyped获取端口位置（Position为HitArea中心点）
             return direction switch
             {
-                PortDirection.Top => new Point(nodeCenterX, node.Position.Y),
-                PortDirection.Bottom => new Point(nodeCenterX, node.Position.Y + CanvasConfig.NodeHeight),
-                PortDirection.Left => new Point(node.Position.X, nodeCenterY),
-                PortDirection.Right => new Point(node.Position.X + CanvasConfig.NodeWidth, nodeCenterY),
-                _ => new Point(nodeCenterX, nodeCenterY)
+                PortDirection.Top => node.TopPortPosition,
+                PortDirection.Bottom => node.BottomPortPosition,
+                PortDirection.Left => node.LeftPortPosition,
+                PortDirection.Right => node.RightPortPosition,
+                _ => node.NodeCenter
             };
         }
 

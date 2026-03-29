@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="SunEyeVision.UI.Views.Controls.Canvas.WorkflowCanvasControl"
+<UserControl x:Class="SunEyeVision.UI.Views.Controls.Canvas.WorkflowCanvasControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -19,6 +19,7 @@
         <convertersPath:SmartPathMultiConverter x:Key="SmartPathMultiConverter"/>
         <convertersUI:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <convertersPath:PointOffsetConverter x:Key="PointOffsetConverter"/>
+        <converters:PointCenterToOffsetConverter x:Key="PointCenterToOffsetConverter"/>
 
         <!-- 使用缓存的节点转换器（性能优化） -->
         <rendering:CachedNodeBackgroundConverter x:Key="NodeBackgroundColorConverter"/>
@@ -230,36 +231,43 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style>
-                    <!-- 6C: 改为OneWay绑定，消除不必要的反向绑定开销 -->
-                    <Setter Property="Canvas.Left" Value="{Binding Position.X, Mode=OneWay}"/>
-                    <Setter Property="Canvas.Top" Value="{Binding Position.Y, Mode=OneWay}"/>
+        <!-- Position表示HitArea中心点(180x60)，Canvas.Left/Top需要左上角坐标 -->
+        <!-- 左上角 = 中心点 - (HitAreaWidth/2, HitAreaHeight/2) = Position - (90, 30) -->
+        <Setter Property="Canvas.Left" Value="{Binding Position.X, Converter={StaticResource PointCenterToOffsetConverter}, ConverterParameter=-90, Mode=OneWay}"/>
+        <Setter Property="Canvas.Top" Value="{Binding Position.Y, Converter={StaticResource PointCenterToOffsetConverter}, ConverterParameter=-30, Mode=OneWay}"/>
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <!-- Border 直接作为根元素，选中虚线在内部装饰层实现，消除选中跳动 -->
-                    <Border Width="160" Height="40"
-                            CornerRadius="20"
-                            BorderThickness="0"
-                            BorderBrush="Transparent"
-                            MouseLeftButtonDown="Node_MouseLeftButtonDown"
-                            MouseLeftButtonUp="Node_MouseLeftButtonUp"
-                            MouseMove="Node_MouseMove"
+                    <!-- HitArea Border: 260x140，用于命中测试，Position表示其中心点 -->
+                    <Border Width="180" Height="60"
+                            Background="Transparent"
                             Tag="{Binding}"
-                            MouseEnter="Node_MouseEnter"
-                            MouseLeave="Node_MouseLeave"
-                            x:Name="NodeBorder">
-                        <Border.Background>
-                            <Binding Converter="{StaticResource NodeBackgroundColorConverter}"/>
-                        </Border.Background>
+                            x:Name="HitAreaBorder">
                         <Grid>
-                            <!-- 虚线选中装饰层：与 Border 同尺寸，仅选中时可见 -->
-                            <Rectangle RadiusX="19" RadiusY="19"
-                                       Stroke="#FF6600" StrokeThickness="1.5"
-                                       StrokeDashArray="6,3"
-                                       Fill="Transparent"
-                                       IsHitTestVisible="False"
-                                       Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            <!-- NodeBorder: 160x40，视觉显示元素，居中于HitArea -->
+                            <Border Width="160" Height="40"
+                                    CornerRadius="20"
+                                    BorderThickness="0"
+                                    BorderBrush="Transparent"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    MouseLeftButtonDown="Node_MouseLeftButtonDown"
+                                    MouseLeftButtonUp="Node_MouseLeftButtonUp"
+                                    MouseMove="Node_MouseMove"
+                                    Tag="{Binding}"
+                                    x:Name="NodeBorder">
+                                <Border.Background>
+                                    <Binding Converter="{StaticResource NodeBackgroundColorConverter}"/>
+                                </Border.Background>
+                                <Grid>
+                                    <!-- 虚线选中装饰层：与 Border 同尺寸，仅选中时可见 -->
+                                    <Rectangle RadiusX="19" RadiusY="19"
+                                               Stroke="#FF6600" StrokeThickness="1.5"
+                                               StrokeDashArray="6,3"
+                                               Fill="Transparent"
+                                               IsHitTestVisible="False"
+                                               Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             <!-- 节点内容 -->
                             <Grid Margin="12,0,12,0">
                                 <Grid.ColumnDefinitions>
@@ -375,6 +383,8 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
+                    </Border>
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

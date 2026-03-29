@@ -213,6 +213,29 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
+        /// <summary>
+
+        /// 是否正在拖拽连接线（用于预览线显示控制）
+
+        /// </summary>
+
+        public static readonly DependencyProperty IsDraggingConnectionProperty =
+
+            DependencyProperty.Register(
+
+                nameof(IsDraggingConnection),
+
+                typeof(bool),
+
+                typeof(WorkflowCanvasControl),
+
+                new PropertyMetadata(false));
+
+
+
+
+
+
         private static void OnShowBoundingRectangleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
 
         {
@@ -1110,47 +1133,137 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         /// <summary>
 
-        /// 节点鼠标进入事件（显示连接点）
+        /// 非拖拽状态下的节点命中测试（用于端口显示）
 
         /// </summary>
 
-        private void Node_MouseEnter(object sender, MouseEventArgs e)
+        private void TestNodeHitForPortDisplay(Point mousePosition)
 
         {
 
-            if (sender is Border border && border.Tag is WorkflowNode node)
+            // 执行命中测试
 
-        {
+            var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePosition) as PointHitTestResult;
 
-            SetPortsVisibility(border, true);
+            
 
-        }
-
-        }
-
-
-
-        /// <summary>
-
-        /// 节点鼠标离开事件（隐藏连接点）
-
-        /// </summary>
-
-        private void Node_MouseLeave(object sender, MouseEventArgs e)
-
-        {
-
-            if (sender is Border border && border.Tag is WorkflowNode node)
+            if (hitTestResult == null)
 
             {
 
-                // 如果没有正在拖拽连接，则隐藏当前节点的端口
+                // 没有命中任何元素，隐藏端口
 
-                if (!_isDraggingConnection)
+                if (_highlightedTargetNodeBorder != null)
 
                 {
 
-                    SetPortsVisibility(border, false);
+                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
+
+                    _highlightedTargetNodeBorder = null;
+
+                }
+
+                return;
+
+            }
+
+            
+
+            // 查找鼠标下的 Border（节点容器）
+
+            Border? hitBorder = null;
+
+            var visual = hitTestResult.VisualHit;
+
+            
+
+            while (visual != null && hitBorder == null)
+
+            {
+
+                if (visual is Border border && border.Name == "NodeBorder")
+
+                {
+
+                    hitBorder = border;
+
+                    break;
+
+                }
+
+                
+
+                // 检查父元素
+
+                var parent = VisualTreeHelper.GetParent(visual);
+
+                if (parent != null)
+
+                {
+
+                    visual = parent as Visual;
+
+                }
+
+                else
+
+                {
+
+                    break;
+
+                }
+
+            }
+
+            
+
+            // 处理命中结果
+
+            if (hitBorder != null && hitBorder.Tag is WorkflowNode node)
+
+            {
+
+                // 鼠标在节点上
+
+                if (hitBorder != _highlightedTargetNodeBorder)
+
+                {
+
+                    // 隐藏之前高亮的节点端口
+
+                    if (_highlightedTargetNodeBorder != null)
+
+                    {
+
+                        SetPortsVisibility(_highlightedTargetNodeBorder, false);
+
+                    }
+
+                    
+
+                    // 显示当前节点的端口
+
+                    SetPortsVisibility(hitBorder, true);
+
+                    _highlightedTargetNodeBorder = hitBorder;
+
+                }
+
+            }
+
+            else
+
+            {
+
+                // 鼠标不在节点上，隐藏端口
+
+                if (_highlightedTargetNodeBorder != null)
+
+                {
+
+                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
+
+                    _highlightedTargetNodeBorder = null;
 
                 }
 
@@ -3367,13 +3480,23 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         }
 
                     }
-                    
+
+                    else
+                    {
+                        // ⭐ 新增：没有命中任何节点或端口，隐藏之前高亮的节点端口
+                        if (_highlightedTargetNodeBorder != null)
+                        {
+                            SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                            _highlightedTargetNodeBorder = null;
+                        }
+                        // 清除端口高亮
+                        _portHighlighter?.ClearTargetPortHighlight();
+                        _directHitTargetPort = null;
+                        _lastHighlightedPort = null;
+                    }
+
                     // ✅ 使用优化的预览线计算（统一使用贝塞尔曲线计算器）
                     UpdateTempConnectionPath(sourcePort, currentPoint, targetNode, targetPortName);
-
-                    // 注意：这里不再隐藏端口，保持目标节点的端口可见直到拖拽结束
-
-                    // 这样确保拖拽结束时也能命中目标节点的端口
 
                 }
 
@@ -3383,9 +3506,19 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-            // 处理框选
+            // 非拖拽状态下的端口显示检测
 
-            if (!_isBoxSelecting) return;
+            if (!_isBoxSelecting)
+
+            {
+
+                TestNodeHitForPortDisplay(mousePos);
+
+                return;
+
+            }
+
+
 
 
 

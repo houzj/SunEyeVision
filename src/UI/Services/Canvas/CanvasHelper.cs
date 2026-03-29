@@ -113,15 +113,22 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 计算节点矩形
+        /// 计算节点矩形（Position为HitArea中心点）
         /// </summary>
         public static Rect GetNodeRect(WorkflowNode node)
         {
-            return new Rect(node.Position.X, node.Position.Y, node.StyleConfigTyped.NodeWidth, node.StyleConfigTyped.NodeHeight);
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
+            return new Rect(
+                node.Position.X - halfWidth,
+                node.Position.Y - halfHeight,
+                node.StyleConfigTyped.NodeWidth,
+                node.StyleConfigTyped.NodeHeight
+            );
         }
 
         /// <summary>
-        /// 查找指定区域内的节点
+        /// 查找指定区域内的节点（Position为HitArea中心点）
         /// </summary>
         public static List<WorkflowNode> FindNodesInRegion(
             Point startPoint,
@@ -134,11 +141,12 @@ namespace SunEyeVision.UI.Services.Canvas
                 Math.Abs(endPoint.X - startPoint.X),
                 Math.Abs(endPoint.Y - startPoint.Y));
 
-            return nodes.Where(n => rect.Contains(new Point(n.Position.X + n.StyleConfigTyped.NodeWidth / 2, n.Position.Y + n.StyleConfigTyped.NodeHeight / 2))).ToList();
+            return nodes.Where(n => rect.Contains(n.Position)).ToList();
         }
 
         /// <summary>
-        /// 计算吸附?        /// </summary>
+        /// 计算吸附点（Position为HitArea中心点）
+        /// </summary>
         public static Point FindSnapPoint(
             Point point,
             IList<WorkflowNode> nodes,
@@ -149,13 +157,15 @@ namespace SunEyeVision.UI.Services.Canvas
 
             foreach (var node in nodes)
             {
-                // 检查四个角
+                // 检查四个角（基于中心点计算）
+                var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+                var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
                 var corners = new[]
                 {
-                    new Point(node.Position.X, node.Position.Y),
-                    new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y),
-                    new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight),
-                    new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight)
+                    new Point(node.Position.X - halfWidth, node.Position.Y - halfHeight),
+                    new Point(node.Position.X + halfWidth, node.Position.Y - halfHeight),
+                    new Point(node.Position.X - halfWidth, node.Position.Y + halfHeight),
+                    new Point(node.Position.X + halfWidth, node.Position.Y + halfHeight)
                 };
 
                 foreach (var corner in corners)
@@ -184,44 +194,58 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 获取节点边界矩形
+        /// 获取节点边界矩形（Position为HitArea中心点）
         /// </summary>
         public static Rect GetNodeBounds(WorkflowNode node)
         {
             if (node == null) return Rect.Empty;
-            return new Rect(node.Position.X, node.Position.Y, node.StyleConfigTyped.NodeWidth, node.StyleConfigTyped.NodeHeight);
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
+            return new Rect(
+                node.Position.X - halfWidth,
+                node.Position.Y - halfHeight,
+                node.StyleConfigTyped.NodeWidth,
+                node.StyleConfigTyped.NodeHeight
+            );
         }
 
         /// <summary>
-        /// 获取端口位置
+        /// 获取端口位置（Position为HitArea中心点）
         /// </summary>
         public static Point GetPortPosition(WorkflowNode node, string portName)
         {
             if (node == null || string.IsNullOrEmpty(portName)) return new Point(0, 0);
 
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
+
             // 根据端口名称计算位置
             return portName switch
             {
-                "LeftPort" => new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2),
-                "RightPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2),
-                "TopPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y),
-                "BottomPort" => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight),
-                _ => new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2)
+                "LeftPort" => new Point(node.Position.X - halfWidth, node.Position.Y),
+                "RightPort" => new Point(node.Position.X + halfWidth, node.Position.Y),
+                "TopPort" => new Point(node.Position.X, node.Position.Y - halfHeight),
+                "BottomPort" => new Point(node.Position.X, node.Position.Y + halfHeight),
+                _ => new Point(node.Position.X, node.Position.Y)
             };
         }
 
         /// <summary>
-        /// 获取节点所有端口位?        /// </summary>
+        /// 获取节点所有端口位置（Position为HitArea中心点）
+        /// </summary>
         public static Dictionary<string, Point> GetAllPortPositions(WorkflowNode node)
         {
             if (node == null) return new Dictionary<string, Point>();
 
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
+
             return new Dictionary<string, Point>
             {
-                { "LeftPort", new Point(node.Position.X, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2) },
-                { "RightPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth, node.Position.Y + node.StyleConfigTyped.NodeHeight / 2) },
-                { "TopPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y) },
-                { "BottomPort", new Point(node.Position.X + node.StyleConfigTyped.NodeWidth / 2, node.Position.Y + node.StyleConfigTyped.NodeHeight) }
+                { "LeftPort", new Point(node.Position.X - halfWidth, node.Position.Y) },
+                { "RightPort", new Point(node.Position.X + halfWidth, node.Position.Y) },
+                { "TopPort", new Point(node.Position.X, node.Position.Y - halfHeight) },
+                { "BottomPort", new Point(node.Position.X, node.Position.Y + halfHeight) }
             };
         }
 
@@ -235,18 +259,16 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 获取节点中心?        /// </summary>
+        /// 获取节点中心点（Position本身就是中心点）
+        /// </summary>
         public static Point GetNodeCenter(WorkflowNode node)
         {
             if (node == null) return new Point(0, 0);
-            return new Point(
-                node.Position.X + node.StyleConfigTyped.NodeWidth / 2,
-                node.Position.Y + node.StyleConfigTyped.NodeHeight / 2
-            );
+            return node.Position;
         }
 
         /// <summary>
-        /// 限制节点在画布边界内
+        /// 限制节点在画布边界内（Position为HitArea中心点）
         /// </summary>
         /// <param name="node">工作流节点</param>
         /// <param name="targetPosition">目标位置</param>
@@ -257,8 +279,8 @@ namespace SunEyeVision.UI.Services.Canvas
             if (canvas == null)
                 return targetPosition;
 
-            double nodeWidth = node.StyleConfigTyped.NodeWidth;
-            double nodeHeight = node.StyleConfigTyped.NodeHeight;
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
 
             // 动态获取画布尺寸
             double canvasWidth = canvas.ActualWidth;
@@ -267,10 +289,10 @@ namespace SunEyeVision.UI.Services.Canvas
             // 内边距为 0
             const double BOUNDARY_PADDING = 0;
 
-            double minX = BOUNDARY_PADDING;
-            double minY = BOUNDARY_PADDING;
-            double maxX = canvasWidth - BOUNDARY_PADDING - nodeWidth;
-            double maxY = canvasHeight - BOUNDARY_PADDING - nodeHeight;
+            double minX = halfWidth + BOUNDARY_PADDING;
+            double minY = halfHeight + BOUNDARY_PADDING;
+            double maxX = canvasWidth - halfWidth - BOUNDARY_PADDING;
+            double maxY = canvasHeight - halfHeight - BOUNDARY_PADDING;
 
             double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
             double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);
@@ -279,7 +301,7 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
-        /// 限制节点在 ScrollViewer 的可见视口内
+        /// 限制节点在 ScrollViewer 的可见视口内（Position为HitArea中心点）
         /// </summary>
         /// <param name="node">工作流节点</param>
         /// <param name="targetPosition">目标位置（Canvas 坐标系）</param>
@@ -291,8 +313,8 @@ namespace SunEyeVision.UI.Services.Canvas
             if (scrollViewer == null || canvas == null)
                 return targetPosition;
 
-            double nodeWidth = node.StyleConfigTyped.NodeWidth;
-            double nodeHeight = node.StyleConfigTyped.NodeHeight;
+            var halfWidth = node.StyleConfigTyped.NodeWidth / 2;
+            var halfHeight = node.StyleConfigTyped.NodeHeight / 2;
 
             try
             {
@@ -320,10 +342,10 @@ namespace SunEyeVision.UI.Services.Canvas
                 // 内边距为 0
                 const double BOUNDARY_PADDING = 0;
 
-                double minX = viewportLeft + BOUNDARY_PADDING;
-                double minY = viewportTop + BOUNDARY_PADDING;
-                double maxX = viewportRight - BOUNDARY_PADDING - nodeWidth;
-                double maxY = viewportBottom - BOUNDARY_PADDING - nodeHeight;
+                double minX = viewportLeft + halfWidth + BOUNDARY_PADDING;
+                double minY = viewportTop + halfHeight + BOUNDARY_PADDING;
+                double maxX = viewportRight - halfWidth - BOUNDARY_PADDING;
+                double maxY = viewportBottom - halfHeight - BOUNDARY_PADDING;
 
                 double clampedX = Math.Clamp(targetPosition.X, minX, maxX);
                 double clampedY = Math.Clamp(targetPosition.Y, minY, maxY);

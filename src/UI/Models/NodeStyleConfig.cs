@@ -59,22 +59,24 @@ namespace SunEyeVision.UI.Models
         }
 
         /// <summary>
-        /// 计算节点的边界矩形
+        /// 计算节点的边界矩形（Position为HitArea中心点）
         /// </summary>
         public Rect GetNodeRect(Point position)
         {
-            return new Rect(position.X, position.Y, NodeWidth, NodeHeight);
+            return new Rect(
+                position.X - NodeWidth / 2,
+                position.Y - NodeHeight / 2,
+                NodeWidth,
+                NodeHeight
+            );
         }
 
         /// <summary>
-        /// 计算节点中心点
+        /// 计算节点中心点（Position本身就是中心点）
         /// </summary>
         public Point GetNodeCenter(Point position)
         {
-            return new Point(
-                position.X + NodeWidth / 2,
-                position.Y + NodeHeight / 2
-            );
+            return position;
         }
 
         /// <summary>
@@ -82,10 +84,7 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public Point GetTopPortPosition(Point position)
         {
-            return new Point(
-                position.X + NodeWidth / 2,
-                position.Y
-            );
+            return new Point(position.X, position.Y - NodeHeight / 2);
         }
 
         /// <summary>
@@ -93,10 +92,7 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public Point GetBottomPortPosition(Point position)
         {
-            return new Point(
-                position.X + NodeWidth / 2,
-                position.Y + NodeHeight
-            );
+            return new Point(position.X, position.Y + NodeHeight / 2);
         }
 
         /// <summary>
@@ -104,10 +100,7 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public Point GetLeftPortPosition(Point position)
         {
-            return new Point(
-                position.X,
-                position.Y + NodeHeight / 2
-            );
+            return new Point(position.X - NodeWidth / 2, position.Y);
         }
 
         /// <summary>
@@ -115,10 +108,7 @@ namespace SunEyeVision.UI.Models
         /// </summary>
         public Point GetRightPortPosition(Point position)
         {
-            return new Point(
-                position.X + NodeWidth,
-                position.Y + NodeHeight / 2
-            );
+            return new Point(position.X + NodeWidth / 2, position.Y);
         }
     }
 
