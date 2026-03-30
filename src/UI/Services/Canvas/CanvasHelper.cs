@@ -360,6 +360,70 @@ namespace SunEyeVision.UI.Services.Canvas
         }
 
         /// <summary>
+        /// ✅ 批量拖拽：计算全局允许的最大偏移量（确保所有节点统一移动）
+        /// </summary>
+        /// <param name="nodes">要移动的节点列表</param>
+        /// <param name="initialPositions">节点的初始位置</param>
+        /// <param name="requestedOffset">请求的偏移量</param>
+        /// <param name="canvas">画布控件</param>
+        /// <param name="scrollViewer">ScrollViewer 控件（可选）</param>
+        /// <returns>全局允许的最大偏移量</returns>
+        public static Point CalculateGlobalAllowedOffset(
+            List<WorkflowNode> nodes,
+            Point[] initialPositions,
+            Point requestedOffset,
+            System.Windows.Controls.Canvas canvas,
+            ScrollViewer scrollViewer = null)
+        {
+            double globalAllowedOffsetX = requestedOffset.X;
+            double globalAllowedOffsetY = requestedOffset.Y;
+
+            // 遍历所有节点，计算每个节点的允许偏移量
+            for (int i = 0; i < nodes.Count && i < initialPositions.Length; i++)
+            {
+                var node = nodes[i];
+                var initialPos = initialPositions[i];
+                var targetPos = new Point(initialPos.X + requestedOffset.X, initialPos.Y + requestedOffset.Y);
+
+                // 应用边界限制
+                var clampedPos = ClampNodeToBounds(node, targetPos, canvas, scrollViewer);
+
+                // 计算实际允许的偏移量
+                var allowedOffsetX = clampedPos.X - initialPos.X;
+                var allowedOffsetY = clampedPos.Y - initialPos.Y;
+
+                // 根据拖拽方向，取最小值（确保所有节点都能移动）
+                if (requestedOffset.X > 0)
+                {
+                    // 向右拖拽：取最小值（遇到右边界时受限）
+                    if (allowedOffsetX < globalAllowedOffsetX)
+                        globalAllowedOffsetX = allowedOffsetX;
+                }
+                else if (requestedOffset.X < 0)
+                {
+                    // 向左拖拽：取最大值（遇到左边界时受限）
+                    if (allowedOffsetX > globalAllowedOffsetX)
+                        globalAllowedOffsetX = allowedOffsetX;
+                }
+
+                if (requestedOffset.Y > 0)
+                {
+                    // 向下拖拽：取最小值（遇到下边界时受限）
+                    if (allowedOffsetY < globalAllowedOffsetY)
+                        globalAllowedOffsetY = allowedOffsetY;
+                }
+                else if (requestedOffset.Y < 0)
+                {
+                    // 向上拖拽：取最大值（遇到上边界时受限）
+                    if (allowedOffsetY > globalAllowedOffsetY)
+                        globalAllowedOffsetY = allowedOffsetY;
+                }
+            }
+
+            return new Point(globalAllowedOffsetX, globalAllowedOffsetY);
+        }
+
+        /// <summary>
         /// 根据当前策略限制节点位置
         /// </summary>
         /// <param name="node">工作流节点</param>

@@ -1899,22 +1899,30 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                     // 位置更新必须实时响应鼠标移动，否则会出现延迟和闪烁
 
+                    // ✅ 关键修复：计算全局允许的最大偏移量（确保所有节点统一移动）
+                    var globalAllowedOffset = CanvasHelper.CalculateGlobalAllowedOffset(
+                        selectedNodes,
+                        _selectedNodesInitialPositions,
+                        new Point(totalOffset.X, totalOffset.Y),
+                        WorkflowCanvas,
+                        _parentScrollViewer);
+
                     for (int i = 0; i < selectedNodes.Count && i < _selectedNodesInitialPositions.Length; i++)
 
                     {
 
                         var newPos = new System.Windows.Point(
 
-                            _selectedNodesInitialPositions[i].X + totalOffset.X,
+                            _selectedNodesInitialPositions[i].X + globalAllowedOffset.X,
 
-                            _selectedNodesInitialPositions[i].Y + totalOffset.Y
+                            _selectedNodesInitialPositions[i].Y + globalAllowedOffset.Y
 
                         );
 
 
 
-                        // 应用边界限制
-                        newPos = CanvasHelper.ClampNodeToBounds(selectedNodes[i], newPos, WorkflowCanvas, _parentScrollViewer);
+                        // ✅ 不再需要单独应用边界限制（全局偏移已经考虑了边界限制）
+                        // newPos = CanvasHelper.ClampNodeToBounds(selectedNodes[i], newPos, WorkflowCanvas, _parentScrollViewer);
 
 
 
