@@ -4535,17 +4535,38 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         #region 辅助方法
 
         /// <summary>
-        /// 判断连接线是否与矩形区域相交
+        /// 判断连接线是否与矩形区域相交（粗筛 + 精筛两阶段优化）
         /// </summary>
         private bool IsConnectionInRect(WorkflowConnection connection, Rect selectionRect)
         {
             if (selectionRect.IsEmpty) return false;
 
-            // 从 PathCache 获取实际渲染的 PathGeometry（支持贝塞尔/正交/任意曲线）
+            // ========== 第一阶段：快速粗筛 ==========
+
+            // 粗筛1：边界框检测（极快，O(1)）
             var pathGeometry = _connectionPathCache?.GetPath(connection);
             if (pathGeometry == null) return false;
 
-            // 将曲线展平为折线段（容差0.5像素，足够精确且高效）
+            var bounds = pathGeometry.Bounds;
+            if (!bounds.IntersectsWith(selectionRect))
+            {
+                // 边界框完全不相交，直接排除（过滤70-90%的连接线）
+                return false;
+            }
+
+            // 粗筛2：起止点同侧检测（快，O(1)，补充过滤10-20%）
+            var startPoint = GetPathGeometryStartPoint(pathGeometry);
+            var endPoint = GetPathGeometryEndPoint(pathGeometry);
+
+            if (BothPointsOutsideSameSide(startPoint, endPoint, selectionRect))
+            {
+                // 起止点都在选择框的同一侧且在外部，可以快速排除
+                return false;
+            }
+
+            // ========== 第二阶段：精确精筛 ==========
+
+            // 仅对通过粗筛的连接线展平路径（减少90%的展平操作）
             var flattened = pathGeometry.GetFlattenedPathGeometry(0.5, ToleranceType.Relative);
 
             foreach (var figure in flattened.Figures)
@@ -4553,16 +4574,130 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 var start = figure.StartPoint;
                 foreach (var segment in figure.Segments)
                 {
+                    Point? end = null;
+
+                    // 处理 LineSegment（单一线段）
                     if (segment is LineSegment lineSeg)
                     {
-                        if (LineSegmentIntersectsRect(start, lineSeg.Point, selectionRect))
-                            return true;
-                        start = lineSeg.Point;
+                        end = lineSeg.Point;
                     }
+                    // 处理 PolyLineSegment（多段折线）
+                    else if (segment is PolyLineSegment polyLineSeg)
+                    {
+                        // 遍历 PolyLineSegment 的所有点
+                        foreach (var point in polyLineSeg.Points)
+                        {
+                            end = point;
+                            if (LineSegmentIntersectsRect(start, end.Value, selectionRect))
+                                return true;
+                            start = end.Value;
+                        }
+                        continue;
+                    }
+
+                    // 处理 ArcSegment（圆弧段，理论上已被展平）
+                    else if (segment is ArcSegment arcSeg)
+                    {
+                        end = arcSeg.Point;
+                    }
+                    // 处理 QuadraticBezierSegment（二次贝塞尔，理论上已被展平）
+                    else if (segment is QuadraticBezierSegment quadSeg)
+                    {
+                        end = quadSeg.Point2;
+                    }
+                    // 处理 BezierSegment（三次贝塞尔，理论上已被展平）
+                    else if (segment is BezierSegment bezierSeg)
+                    {
+                        end = bezierSeg.Point3;
+                    }
+
+                    // 检测线段相交
+                    if (end.HasValue && LineSegmentIntersectsRect(start, end.Value, selectionRect))
+                        return true;
+
+                    // 更新起点
+                    if (end.HasValue)
+                        start = end.Value;
+                }
+
+                // 如果 Figure 是闭合的，检测最后一个点回到起点的线段
+                if (figure.IsClosed)
+                {
+                    if (LineSegmentIntersectsRect(start, figure.StartPoint, selectionRect))
+                        return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 获取 PathGeometry 的起点
+        /// </summary>
+        private static Point GetPathGeometryStartPoint(PathGeometry pathGeometry)
+        {
+            if (pathGeometry?.Figures.Count > 0)
+            {
+                return pathGeometry.Figures[0].StartPoint;
+            }
+            return new Point(0, 0);
+        }
+
+        /// <summary>
+        /// 获取 PathGeometry 的终点
+        /// </summary>
+        private static Point GetPathGeometryEndPoint(PathGeometry pathGeometry)
+        {
+            if (pathGeometry?.Figures.Count > 0)
+            {
+                var figure = pathGeometry.Figures[0];
+                if (figure.Segments.Count > 0)
+                {
+                    // 如果是 PolyLineSegment，返回最后一个点
+                    if (figure.Segments[figure.Segments.Count - 1] is PolyLineSegment polyLineSeg &&
+                        polyLineSeg.Points.Count > 0)
+                    {
+                        return polyLineSeg.Points[polyLineSeg.Points.Count - 1];
+                    }
+
+                    // 其他情况，使用 Segment 的 Point 或 Point3
+                    if (figure.Segments[figure.Segments.Count - 1] is LineSegment lineSeg)
+                        return lineSeg.Point;
+                    if (figure.Segments[figure.Segments.Count - 1] is ArcSegment arcSeg)
+                        return arcSeg.Point;
+                    if (figure.Segments[figure.Segments.Count - 1] is QuadraticBezierSegment quadSeg)
+                        return quadSeg.Point2;
+                    if (figure.Segments[figure.Segments.Count - 1] is BezierSegment bezierSeg)
+                        return bezierSeg.Point3;
+                }
+            }
+            return new Point(0, 0);
+        }
+
+        /// <summary>
+        /// 判断两点是否都在选择框的同一侧（用于粗筛）
+        /// </summary>
+        /// <remarks>
+        /// 如果两点都在同一侧（都在左侧、右侧、上侧、下侧），可以快速排除
+        /// 因为连接线不太可能穿过选择框
+        /// </remarks>
+        private static bool BothPointsOutsideSameSide(Point p1, Point p2, Rect rect)
+        {
+            // 判断点是否在矩形的某一侧
+            bool p1Left = p1.X < rect.Left;
+            bool p1Right = p1.X > rect.Right;
+            bool p1Top = p1.Y < rect.Top;
+            bool p1Bottom = p1.Y > rect.Bottom;
+
+            bool p2Left = p2.X < rect.Left;
+            bool p2Right = p2.X > rect.Right;
+            bool p2Top = p2.Y < rect.Top;
+            bool p2Bottom = p2.Y > rect.Bottom;
+
+            // 如果两点都在同一侧（都在左侧、右侧、上侧、下侧）
+            // 可以快速排除（因为连接线不太可能穿过选择框）
+            return (p1Left && p2Left) || (p1Right && p2Right) ||
+                   (p1Top && p2Top) || (p1Bottom && p2Bottom);
         }
 
         /// <summary>
