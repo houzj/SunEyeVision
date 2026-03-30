@@ -3192,38 +3192,46 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
-
-            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
-
-                               (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-
-
+            // ✅ 检查是否按住 Ctrl 键（只有按住 Ctrl 才能启动框选）
+            bool isCtrlPressed = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 
             // 记录鼠标按下时的初始位置（用于拖动阈值判断）
             _mouseDownPosition = e.GetPosition(WorkflowCanvas);
             _boxSelectStart = _mouseDownPosition;
 
-            // 如果不是多选模式，清除所有选择
-            if (!isMultiSelect)
+            // ✅ 只有按住 Ctrl 键时才启动框选
+            if (isCtrlPressed)
             {
+                // 检查是否也按住 Shift 键（多选模式）
+                bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+                // 如果不是多选模式，清除所有选择
+                if (!isMultiSelect)
+                {
+                    ClearAllSelections();
+                }
+
+                // 启动框选
+                _isBoxSelecting = true;
+                _boxSelectStart = e.GetPosition(WorkflowCanvas);
+
+                // 开始框选
+                SelectionBox?.StartSelection(_boxSelectStart);
+
+                WorkflowCanvas.CaptureMouse();
+            }
+            else
+            {
+                // ✅ 没有按住 Ctrl 键时，只清除选择，不启动框选
                 ClearAllSelections();
             }
-
-            // ✅ 直接设置 _isBoxSelecting = true（与旧版本一致）
-            _isBoxSelecting = true;
-            _boxSelectStart = e.GetPosition(WorkflowCanvas);
-
-            // 开始框选
-            SelectionBox?.StartSelection(_boxSelectStart);
-
-            WorkflowCanvas.CaptureMouse();
 
             // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
 
             // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
 
             // 从而导致临时连接线无法隐藏
+
 
         }
 
