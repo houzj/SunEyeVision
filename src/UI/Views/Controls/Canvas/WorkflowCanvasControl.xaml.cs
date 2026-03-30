@@ -126,6 +126,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         private ScrollViewer? _parentScrollViewer = null; // 父级 ScrollViewer 引用（用于视口边界限制）
 
+        // 平移相关
+        private bool _isPanning = false;
+        private Point _panStartPosition;
+        private Point _panStartPositionInScrollViewer;
+        private const double PanSpeedFactor = 1.3; // 平移速度系数（1.5表示平移速度是鼠标移动速度的1.5倍）
+
 
 
         // 连接线路径缓存
@@ -3199,7 +3205,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             _mouseDownPosition = e.GetPosition(WorkflowCanvas);
             _boxSelectStart = _mouseDownPosition;
 
-            // ✅ 只有按住 Ctrl 键时才启动框选
+            // ✅ 如果按住 Ctrl 键，启动框选
             if (isCtrlPressed)
             {
                 // 检查是否也按住 Shift 键（多选模式）
@@ -3222,8 +3228,15 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
             else
             {
-                // ✅ 没有按住 Ctrl 键时，只清除选择，不启动框选
+                // ✅ 没有按住 Ctrl 键时，清除选择并启动平移
                 ClearAllSelections();
+
+                // 启动平移
+                _isPanning = true;
+                _panStartPosition = e.GetPosition(WorkflowCanvas);
+                _panStartPositionInScrollViewer = e.GetPosition(null);  // 相对ScrollViewer的位置
+                WorkflowCanvas.CaptureMouse();
+                Cursor = Cursors.Hand;  // 显示手型光标
             }
 
             // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
@@ -3258,8 +3271,27 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 _lastIsBoxSelecting = _isBoxSelecting;
             }
 
+            // ✅ 处理平移
+            if (_isPanning)
+            {
+                var currentMousePos = e.GetPosition(null);  // 相对ScrollViewer的位置
+                var deltaX = currentMousePos.X - _panStartPositionInScrollViewer.X;
+                var deltaY = currentMousePos.Y - _panStartPositionInScrollViewer.Y;
 
+                // ✅ 关键修复：更新起始位置为当前位置，以便下一次计算增量
+                _panStartPositionInScrollViewer = currentMousePos;
 
+                // 获取ScrollViewer并调整滚动位置
+                var scrollViewer = FindScrollViewer();
+                if (scrollViewer != null)
+                {
+                    // 应用速度系数，使平移更平滑
+                    scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - deltaX * PanSpeedFactor);
+                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - deltaY * PanSpeedFactor);
+                }
+
+                return;
+            }
 
             // 处理拖拽连接
 
@@ -4289,6 +4321,15 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
+            // ✅ 结束平移
+            if (_isPanning)
+            {
+                _isPanning = false;
+                WorkflowCanvas.ReleaseMouseCapture();
+                Cursor = Cursors.Arrow;  // 恢复默认光标
+                return;
+            }
+
             if (!_isBoxSelecting)
 
             {
@@ -5064,6 +5105,14 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             }
 
+        }
+
+        /// <summary>
+        /// 查找父级 ScrollViewer
+        /// </summary>
+        private ScrollViewer? FindScrollViewer()
+        {
+            return FindVisualParent<ScrollViewer>(this);
         }
 
         /// <summary>
