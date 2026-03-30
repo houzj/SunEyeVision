@@ -166,10 +166,15 @@ namespace SunEyeVision.UI.Services.Interaction
 
                     if (delta.X != 0 || delta.Y != 0)
                     {
+                        // 创建批量移动命令（新API：只需传入节点列表）
                         var batchCommand = new Commands.BatchMoveNodesCommand(
-                            new List<WorkflowNode>(selectedNodes),
-                            delta
+                            new List<WorkflowNode>(selectedNodes)
                         );
+
+                        // 应用移动
+                        batchCommand.UpdatePositions(delta);
+
+                        // 执行命令（用于撤销/重做支持）
                         _viewModel.WorkflowTabViewModel.SelectedTab.CommandManager.Execute(batchCommand);
                     }
                 }

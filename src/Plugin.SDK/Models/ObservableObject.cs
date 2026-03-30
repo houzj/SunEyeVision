@@ -161,6 +161,7 @@ namespace SunEyeVision.Plugin.SDK.Models
     /// 3. 可选的属性变更监控（通过 displayName 参数启用）
     /// 4. 自动追踪修改者信息（通过 StackTrace）
     /// 5. 扩展点支持子类自定义行为
+    /// 6. 批量通知抑制（避免频繁的属性变更通知）
     ///
     /// 使用方式：
     /// <code>
@@ -177,11 +178,20 @@ namespace SunEyeVision.Plugin.SDK.Models
     ///     get => _threshold;
     ///     set => SetProperty(ref _threshold, value, "阈值");
     /// }
+    ///
+    /// // 批量更新抑制通知
+    /// using (BeginSuppressNotifications())
+    /// {
+    ///     // 多次修改属性
+    ///     Property1 = value1;
+    ///     Property2 = value2;
+    ///     Property3 = value3;
+    /// } // 离开 using 块时，一次性触发所有属性变更通知
     /// </code>
     /// </remarks>
     public abstract class ObservableObject : INotifyPropertyChanged
     {
-        private static readonly string Version = "V5.0_20260310_性能优化版";
+        private static readonly string Version = "V6.0_20260330_批量通知抑制版";
 
         /// <summary>
         /// 静态构造函数：输出版本信息，确认代码已加载
@@ -199,6 +209,107 @@ namespace SunEyeVision.Plugin.SDK.Models
         public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
+        /// 通知抑制深度计数器
+        /// </summary>
+        private int _suppressNotificationDepth = 0;
+
+        /// <summary>
+        /// 在抑制通知期间记录变更的属性
+        /// </summary>
+        private readonly HashSet<string> _changedProperties = new HashSet<string>();
+
+        /// <summary>
+        /// 是否正在抑制通知
+        /// </summary>
+        protected bool IsSuppressingNotification => _suppressNotificationDepth > 0;
+
+        /// <summary>
+        /// 批量通知抑制上下文
+        /// </summary>
+        private class NotificationSuppressor : IDisposable
+        {
+            private readonly ObservableObject _target;
+            private bool _disposed = false;
+
+            public NotificationSuppressor(ObservableObject target)
+            {
+                _target = target;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                    return;
+
+                _disposed = true;
+                _target.EndSuppressNotifications();
+            }
+        }
+
+        /// <summary>
+        /// 开始抑制属性变更通知
+        /// </summary>
+        /// <returns>IDisposable 对象，用于结束抑制</returns>
+        /// <remarks>
+        /// 使用方式：
+        /// <code>
+        /// using (BeginSuppressNotifications())
+        /// {
+        ///     Property1 = value1;  // 不会立即触发通知
+        ///     Property2 = value2;  // 不会立即触发通知
+        ///     Property3 = value3;  // 不会立即触发通知
+        /// } // 离开 using 块时，一次性触发所有属性变更通知
+        /// </code>
+        /// </remarks>
+        public IDisposable BeginSuppressNotifications()
+        {
+            _suppressNotificationDepth++;
+            return new NotificationSuppressor(this);
+        }
+
+        /// <summary>
+        /// 结束抑制属性变更通知
+        /// </summary>
+        private void EndSuppressNotifications()
+        {
+            _suppressNotificationDepth--;
+
+            if (_suppressNotificationDepth == 0)
+            {
+                // 抑制结束，触发所有变更的属性通知
+                if (_changedProperties.Count > 0)
+                {
+                    var propertiesToNotify = new List<string>(_changedProperties);
+                    _changedProperties.Clear();
+
+                    foreach (var propertyName in propertiesToNotify)
+                    {
+                        OnPropertyChangedDirect(propertyName);
+                    }
+                }
+            }
+            else if (_suppressNotificationDepth < 0)
+            {
+                // 防御性编程：抑制深度不应该为负
+                _suppressNotificationDepth = 0;
+            }
+        }
+
+        /// <summary>
+        /// 直接触发属性变更通知（绕过抑制机制）
+        /// </summary>
+        /// <param name="propertyName">属性名称</param>
+        private void OnPropertyChangedDirect(string? propertyName)
+        {
+            var propertyChanged = PropertyChanged;
+            if (propertyChanged == null)
+                return;
+
+            var args = new PropertyChangedEventArgs(propertyName);
+            propertyChanged.Invoke(this, args);
+        }
+
+        /// <summary>
         /// 触发属性变更通知
         /// </summary>
         /// <param name="propertyName">属性名称（自动获取）</param>
@@ -206,18 +317,21 @@ namespace SunEyeVision.Plugin.SDK.Models
         /// 性能优化版本：
         /// - 正常情况：直接触发事件，不输出日志
         /// - 超阈值情况：输出详细性能分析日志
+        /// - 批量更新：在抑制期间记录变更，抑制结束后一次性触发
         /// </remarks>
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
-            var propertyChanged = PropertyChanged;
-            if (propertyChanged == null)
+            // 如果正在抑制通知，记录变更但不立即触发
+            if (IsSuppressingNotification)
             {
+                if (!string.IsNullOrEmpty(propertyName))
+                {
+                    _changedProperties.Add(propertyName);
+                }
                 return;
             }
 
-            // 简单调用：不监控性能
-            var args = new PropertyChangedEventArgs(propertyName);
-            propertyChanged.Invoke(this, args);
+            OnPropertyChangedDirect(propertyName);
         }
 
         /// <summary>
