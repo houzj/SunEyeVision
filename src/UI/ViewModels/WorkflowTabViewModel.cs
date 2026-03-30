@@ -55,7 +55,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 命令管理器
         /// </summary>
-        public AppCommands.CommandManager CommandManager { get; }
+        public AppCommands.CommandManager CommandManager { get; private set; }
 
         public WorkflowTabViewModel() : this(new NodeSequenceManager())
         {
@@ -76,17 +76,18 @@ namespace SunEyeVision.UI.ViewModels
             State = WorkflowState.Stopped;
             RunMode = RunMode.Single;
             WorkflowNodes = new ObservableCollection<Models.WorkflowNode>();
-            WorkflowConnections = new ObservableCollection<WorkflowConnection>();
+            // ✅ 优化：创建临时的连接集合，稍后通过 SetConnections 方法绑定外部集合
+            _workflowConnections = new ObservableCollection<WorkflowConnection>();
             CurrentScale = 1.0;
             ScaleTransform = new ScaleTransform(1.0, 1.0);
             CanvasType = CanvasType.WorkflowCanvas; // 默认使用 WorkflowCanvas，每个工作流独立
 
-            // 初始化命令管理器
-            CommandManager = new CommandManager(WorkflowNodes, WorkflowConnections);
+            // 初始化命令管理器（使用临时连接集合）
+            CommandManager = new CommandManager(WorkflowNodes, _workflowConnections);
 
             // 订阅节点和连接集合变化事件
             WorkflowNodes.CollectionChanged += (s, e) => OnWorkflowNodesChanged(s, e);
-            WorkflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
+            _workflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
         }
 
         /// <summary>
@@ -207,6 +208,40 @@ namespace SunEyeVision.UI.ViewModels
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 设置连接集合（直接绑定外部集合，实现自动同步）
+        /// </summary>
+        /// <param name="connections">外部连接集合（通常是 Solution.Workflow.Connections）</param>
+        /// <remarks>
+        /// 注意：此方法会替换内部的连接集合引用，所有对连接的操作都会直接影响外部集合
+        /// </remarks>
+        public void SetConnections(ObservableCollection<WorkflowConnection> connections)
+        {
+            if (connections == null)
+            {
+                throw new ArgumentNullException(nameof(connections));
+            }
+
+            // 备份当前集合中的连接（如果有）
+            var tempConnections = new List<WorkflowConnection>(_workflowConnections);
+
+            // 取消旧集合的事件订阅
+            _workflowConnections.CollectionChanged -= (s, e) => OnWorkflowConnectionsChanged(s, e);
+
+            // ✅ 优化：直接绑定外部集合，实现自动同步
+            _workflowConnections = connections;
+
+            // 订阅新集合的事件
+            _workflowConnections.CollectionChanged += (s, e) => OnWorkflowConnectionsChanged(s, e);
+
+            // 通知属性变化
+            OnPropertyChanged(nameof(WorkflowConnections));
+
+            // ✅ 由于 CommandManager 持有的是旧集合的引用，我们需要重新创建 CommandManager
+            // TODO: 考虑优化 CommandManager 设计，支持动态更新集合引用
+            CommandManager = new CommandManager(WorkflowNodes, _workflowConnections);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
@@ -75,6 +75,8 @@ namespace SunEyeVision.UI.ViewModels
             {
                 Name = "工作流1"
             };
+            // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
+            defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
             SelectedTab = defaultWorkflow;
             _workflowCounter = 1;
@@ -92,16 +94,18 @@ namespace SunEyeVision.UI.ViewModels
         {
             // 清空现有标签页
             Tabs.Clear();
-            
+
             // 重置计数器和已使用编号
             _workflowCounter = 1;
             _usedWorkflowNumbers.Clear();
-            
+
             // 创建新的默认工作流（新对象，彻底清空节点和连接）
             var defaultWorkflow = new WorkflowTabViewModel
             {
                 Name = "工作流1"
             };
+            // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
+            defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
             SelectedTab = defaultWorkflow;
             _usedWorkflowNumbers.Add(1);
@@ -117,6 +121,8 @@ namespace SunEyeVision.UI.ViewModels
             {
                 Name = $"工作流{nextNumber}"
             };
+            // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
+            newWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(newWorkflow);
             _usedWorkflowNumbers.Add(nextNumber);
             _workflowCounter = Math.Max(_workflowCounter, nextNumber);

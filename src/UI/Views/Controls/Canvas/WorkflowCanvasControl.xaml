@@ -8,7 +8,6 @@
              xmlns:convertersNode="clr-namespace:SunEyeVision.UI.Converters.Node"
              xmlns:convertersVisibility="clr-namespace:SunEyeVision.UI.Converters.Visibility"
              xmlns:convertersUI="clr-namespace:SunEyeVision.UI.Converters.UI"
-             xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls"
              xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
              xmlns:rendering="clr-namespace:SunEyeVision.UI.Services.Rendering"
              mc:Ignorable="d"
@@ -61,7 +60,9 @@
                 Drop="WorkflowCanvas_Drop"
                 PreviewMouseLeftButtonDown="WorkflowCanvas_PreviewMouseLeftButtonDown"
                 PreviewMouseMove="WorkflowCanvas_PreviewMouseMove"
-                PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp">
+                PreviewMouseLeftButtonUp="WorkflowCanvas_PreviewMouseLeftButtonUp"
+                GotFocus="WorkflowCanvas_GotFocus"
+                LostFocus="WorkflowCanvas_LostFocus">
 
         <!-- 网格背景 -->
         <Canvas.Background>
@@ -222,7 +223,7 @@
                 <DataTemplate>
                     <!-- HitArea Border: 用于命中测试，Position表示其中心点 -->
                     <Border Width="{DynamicResource HitAreaWidth}" Height="{DynamicResource HitAreaHeight}"
-                            Background="#FF000080"
+                            Background="Transparent"
                             Tag="{Binding}"
                             x:Name="HitAreaBorder">
                         <Grid>
