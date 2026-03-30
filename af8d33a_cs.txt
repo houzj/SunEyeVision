@@ -86,8 +86,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         private System.Windows.Point[]? _selectedNodesInitialPositions;
 
-        private System.Windows.Point _mouseDownPosition; // 记录鼠标按下时的初始位置（用于拖动阈值判断）
-
 
 
         // 连接模式相关
@@ -113,6 +111,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
     private Border? _highlightedTargetBorder = null; // 高亮的目标节点Border（用于恢复原始样式）
 
     private Ellipse? _highlightedTargetPort = null; // 高亮的目标端口（Ellipse）
+
+    private int _dragMoveCounter = 0; // 拖拽移动计数器，用于减少日志输出频率
 
     private string? _lastHighlightedPort = null; // 上次高亮的端口名称
 
@@ -148,14 +148,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         // 性能优化组件
         private NodeUIPool? _nodeUIPool;
-
-
-
-
-
-        private bool _lastIsDraggingConnection = false; // 上次的拖拽连接状态
-
-        private bool _lastIsBoxSelecting = false; // 上次的框选状态
         private NodeRenderScheduler? _renderScheduler;
 
 
@@ -571,210 +563,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
                                             _connectionPathCache.MarkNodeDirty(node.Id);
 
-                                            // 🔍 关键日志：记录新节点添加
-                                            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                Plugin.SDK.Logging.LogLevel.Info,
-                                                $"[CollectionChanged] 新节点添加 - 节点ID: {node.Id}, 节点名称: {node.Name}, 位置: ({node.Position.X:F1}, {node.Position.Y:F1}), 节点总数: {workflowTab.WorkflowNodes.Count}, Canvas聚焦={WorkflowCanvas.IsFocused}",
-                                                "WorkflowCanvasControl");
-
-                                            // 🔍 调试日志：尝试查找新节点对应的UI元素
-                                            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
-                                            {
-                                                // 📌 关键日志：记录查找时刻Canvas状态
-                                                Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                    Plugin.SDK.Logging.LogLevel.Info,
-                                                    $"[CollectionChanged] 开始查找新节点UI - 节点ID: {node.Id}, CanvasLoaded={WorkflowCanvas.IsLoaded}, CanvasVisible={WorkflowCanvas.IsVisible}, CanvasSize={WorkflowCanvas.ActualWidth}x{WorkflowCanvas.ActualHeight}, 节点位置=({node.Position.X:F1}, {node.Position.Y:F1})",
-                                                    "WorkflowCanvasControl");
-
-                                                // WPF 兼容的命中测试方法
-                                                var hitTestResults = new List<Border>();
-                                                VisualTreeHelper.HitTest(
-                                                    WorkflowCanvas,
-                                                    null,
-                                                    result =>
-                                                    {
-                                                        if (result.VisualHit is Border border &&
-                                                            border.Tag is WorkflowNode wn &&
-                                                            wn.Id == node.Id)
-                                                        {
-                                                            hitTestResults.Add(border);
-                                                        }
-                                                        return HitTestResultBehavior.Continue;
-                                                    },
-                                                    new PointHitTestParameters(node.Position));
-
-                                                // 📌 关键日志：详细记录找到的Border信息
-                                                if (hitTestResults.Any())
-                                                {
-                                                    foreach (var border in hitTestResults)
-                                                    {
-                                                        var borderPos = new Point();
-                                                        var borderSize = new Size();
-                                                        if (border.Child is FrameworkElement child)
-                                                        {
-                                                            // 修复：Border 在 DataTemplate 内部，Canvas.Left/Top 在父级 ContentPresenter 上
-                                                            borderPos = GetBorderPosition(border);
-                                                            borderSize = new Size(border.ActualWidth, border.ActualHeight);
-                                                        }
-                                                        var zIndex = System.Windows.Controls.Panel.GetZIndex(border);
-                                                        var opacity = border.Opacity;
-                                                        var visibility = border.Visibility;
-                                                        var isLoaded = border.IsLoaded;
-                                                        var isVisible = border.IsVisible;
-                                                        var renderTransform = border.RenderTransform;
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    // 📌 关键日志：查找失败，扫描Canvas所有Border
-                                                    var allBorders = new List<Border>();
-                                                    VisualTreeHelper.HitTest(
-                                                        WorkflowCanvas,
-                                                        null,
-                                                        result =>
-                                                        {
-                                                            if (result.VisualHit is Border border)
-                                                            {
-                                                                allBorders.Add(border);
-                                                            }
-                                                            return HitTestResultBehavior.Stop; // 只找第一个
-                                                        },
-                                                        new PointHitTestParameters(node.Position));
-
-                                                    Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                        Plugin.SDK.Logging.LogLevel.Warning,
-                                                        $"[CollectionChanged] 未找到目标节点Border - 节点ID: {node.Id}, 节点位置=({node.Position.X:F1}, {node.Position.Y:F1}), 该位置命中的Border数={allBorders.Count}, Border名称={string.Join(", ", allBorders.Select(b => b.Name))}",
-                                                        "WorkflowCanvasControl");
-
-                                                    // 📌 扫描Canvas中所有Border元素
-                                                    var canvasBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
-                                                    var nodeBorders = canvasBorders.Where(b => b.Tag is WorkflowNode).ToList();
-                                                    var targetNodeBorder = nodeBorders.FirstOrDefault(b => (b.Tag as WorkflowNode)?.Id == node.Id);
-
-                                                    string targetBorderInfo;
-                                                    if (targetNodeBorder != null)
-                                                    {
-                                                        // 修复：Border 在 DataTemplate 内部，Canvas.Left/Top 在父级 ContentPresenter 上
-                                                        var borderPos = GetBorderPosition(targetNodeBorder);
-                                                        targetBorderInfo = "存在(Name=" + targetNodeBorder.Name + ", Position=(" + borderPos.X.ToString("F1") + ", " + borderPos.Y.ToString("F1") + "))";
-                                                    }
-                                                    else
-                                                    {
-                                                        targetBorderInfo = "不存在";
-                                                    }
-
-                                                    // 注释掉：该日志导致编译错误
-                                                    // var scanResultMessage = "[CollectionChanged] Canvas扫描结果 - 总Border数=" + canvasBorders.Count.ToString() + ", 节点Border数=" + nodeBorders.Count.ToString() + ", 目标节点Border=" + targetBorderInfo;
-                                                    // Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                    //     Plugin.SDK.Logging.LogLevel.Warning,
-                                                    //     scanResultMessage,
-                                                    //     "WorkflowCanvasControl");
-                                                }
-                                            }));
                                         }
 
-                                    }
-
-                                    // 处理删除的节点：清理相关状态引用
-                                    if (args.OldItems != null)
-                                    {
-                                        // 🔍 诊断日志：记录删除前的状态
-                                        Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                            Plugin.SDK.Logging.LogLevel.Info,
-                                            $"[CollectionChanged] 节点删除前状态 - Canvas聚焦={WorkflowCanvas.IsFocused}, _isDraggingConnection={_isDraggingConnection}, _isBoxSelecting={_isBoxSelecting}, _dragConnectionSourceNode={(_dragConnectionSourceNode?.Name ?? "null")}, 删除节点数: {args.OldItems.Count}",
-                                            "WorkflowCanvasControl");
-
-                                        foreach (WorkflowNode node in args.OldItems)
-                                        {
-                                            // 🔍 诊断日志：记录被删除节点的UI状态
-                                            var allBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
-                                            var deletedNodeBorders = allBorders.Where(b => b.Tag is WorkflowNode wn && wn.Id == node.Id).ToList();
-
-                                            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                Plugin.SDK.Logging.LogLevel.Info,
-                                                $"[CollectionChanged] 节点删除 - 节点ID: {node.Id}, 节点名称: {node.Name}, 位置: ({node.Position.X:F1}, {node.Position.Y:F1}), 找到的Border数: {deletedNodeBorders.Count}",
-                                                "WorkflowCanvasControl");
-
-                                            if (deletedNodeBorders.Any())
-                                            {
-                                                foreach (var border in deletedNodeBorders)
-                                                {
-                                                    // 修复：Border 在 DataTemplate 内部，Canvas.Left/Top 在父级 ContentPresenter 上
-                                                    var borderPos = GetBorderPosition(border);
-                                                    var borderSize = new Size(border.ActualWidth, border.ActualHeight);
-                                                    var zIndex = System.Windows.Controls.Panel.GetZIndex(border);
-                                                    Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                        Plugin.SDK.Logging.LogLevel.Info,
-                                                        $"[CollectionChanged] 删除节点Border - 节点ID: {node.Id}, BorderName={border.Name}, Border位置=({borderPos.X:F1}, {borderPos.Y:F1}), Border大小={borderSize.Width:F1}x{borderSize.Height:F1}, ZIndex={zIndex}, IsHitTestVisible={border.IsHitTestVisible}, IsEnabled={border.IsEnabled}, Opacity={border.Opacity:F2}, Visibility={border.Visibility}, IsLoaded={border.IsLoaded}, IsVisible={border.IsVisible}",
-                                                        "WorkflowCanvasControl");
-                                                }
-                                            }
-
-                                            // 1. 清理高亮的目标节点Border
-                                            if (_highlightedTargetNodeBorder?.Tag is WorkflowNode highlightedNode && highlightedNode.Id == node.Id)
-                                            {
-                                                SetPortsVisibility(_highlightedTargetNodeBorder, false);
-                                                _highlightedTargetNodeBorder = null;
-                                            }
-
-                                            // 2. 清理高亮的目标Border（用于端口高亮）
-                                            if (_highlightedTargetBorder?.Tag is WorkflowNode targetBorderNode && targetBorderNode.Id == node.Id)
-                                            {
-                                                // 清空状态
-                                                _highlightedTargetBorder = null;
-                                                _highlightedTargetPort = null;
-                                                _lastHighlightedPort = "";
-                                            }
-
-                                            // 3. 清理拖拽连接的源节点Border
-                                            if (_dragConnectionSourceBorder?.Tag is WorkflowNode sourceBorderNode && sourceBorderNode.Id == node.Id)
-                                            {
-                                                SetPortsVisibility(_dragConnectionSourceBorder, false);
-                                                _dragConnectionSourceBorder = null;
-                                                _dragConnectionSourceNode = null;
-                                            }
-
-                                            // 4. 清理缓存
-                                            _connectionPathCache.MarkNodeDirty(node.Id);
-
-                                            // 🔍 关键日志：记录节点删除清理
-                                            var highlightedTargetNodeBorderCleared = (_highlightedTargetNodeBorder?.Tag as WorkflowNode)?.Id == node.Id;
-                                            var highlightedTargetBorderCleared = (_highlightedTargetBorder?.Tag as WorkflowNode)?.Id == node.Id;
-                                            var dragConnectionSourceBorderCleared = (_dragConnectionSourceBorder?.Tag as WorkflowNode)?.Id == node.Id;
-
-                                            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                Plugin.SDK.Logging.LogLevel.Info,
-                                                $"[CollectionChanged] 节点删除清理完成 - 节点ID: {node.Id}, 清理的状态引用: HighlightedTargetNodeBorder={highlightedTargetNodeBorderCleared}, HighlightedTargetBorder={highlightedTargetBorderCleared}, DragConnectionSourceBorder={dragConnectionSourceBorderCleared}",
-                                                "WorkflowCanvasControl");
-                                        }
-
-                                        // 📌 关键日志：删除后扫描Canvas中的节点Border
-                                        Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
-                                        {
-                                            var allBorders = WorkflowVisualHelper.FindAllVisualChildren<Border>(WorkflowCanvas);
-                                            var nodeBorders = allBorders.Where(b => b.Tag is WorkflowNode).ToList();
-                                            var workflowNodes = workflowTab.WorkflowNodes;
-
-
-
-                                            if (nodeBorders.Count != workflowNodes.Count)
-                                            {
-                                                Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                                                    Plugin.SDK.Logging.LogLevel.Warning,
-                                                    $"[CollectionChanged] Border与Nodes数量不一致 - Border数={nodeBorders.Count}, Nodes数={workflowNodes.Count}, 差异={nodeBorders.Count - workflowNodes.Count}",
-                                                    "WorkflowCanvasControl");
-
-                                                // 列出所有节点Border的信息
-                                                foreach (var border in nodeBorders)
-                                                {
-                                                    if (border.Tag is WorkflowNode wn)
-                                                    {
-                                                        // 修复：Border 在 DataTemplate 内部，Canvas.Left/Top 在父级 ContentPresenter 上
-                                                        var borderPos = GetBorderPosition(border);
-                                                    }
-                                                }
-                                            }
-                                        }));
                                     }
 
                                 }
@@ -1377,52 +1167,19 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         /// <returns>命中的节点Border（可能是HitAreaBorder或NodeBorder），未命中返回null</returns>
         private Border? FindNodeBorderByHitTest(Point mousePosition)
         {
-            // 🔍 调试日志：检查 Canvas 状态
-            bool canvasIsLoaded = WorkflowCanvas.IsLoaded;
-            bool canvasIsVisible = WorkflowCanvas.IsVisible;
-            double canvasWidth = WorkflowCanvas.ActualWidth;
-            double canvasHeight = WorkflowCanvas.ActualHeight;
-
-            if (!canvasIsLoaded || !canvasIsVisible || canvasWidth <= 0 || canvasHeight <= 0)
-            {
-                // 状态异常，不执行命中测试
-                return null;
-            }
-
-            // 执行命中测试
             var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePosition) as PointHitTestResult;
 
             if (hitTestResult == null)
-            {
                 return null;
-            }
 
             // 向上遍历查找 Border（统一的命中测试逻辑）
             var visual = hitTestResult.VisualHit;
-            int traverseCount = 0;
-            var traversedTypes = new List<string>();
-
             while (visual != null)
             {
-                traverseCount++;
-                traversedTypes.Add(visual.GetType().Name);
-
                 // 同时检查 HitAreaBorder 和 NodeBorder
                 // 这样可以确保鼠标在整个 HitArea 区域（180x60）内都能命中节点
                 if (visual is Border border && (border.Name == "HitAreaBorder" || border.Name == "NodeBorder"))
                 {
-                    // 修复：Border 在 DataTemplate 内部，Canvas.Left/Top 在父级 ContentPresenter 上
-                    var borderPos = GetBorderPosition(border);
-                    var borderSize = new Size(border.ActualWidth, border.ActualHeight);
-                    var zIndex = System.Windows.Controls.Panel.GetZIndex(border);
-                    var isHitTestVisible = border.IsHitTestVisible;
-                    var isEnabled = border.IsEnabled;
-                    var opacity = border.Opacity;
-                    var visibility = border.Visibility;
-                    var isLoaded = border.IsLoaded;
-                    var isVisible = border.IsVisible;
-                    var renderTransform = border.RenderTransform;
-
                     return border;
                 }
 
@@ -2097,44 +1854,46 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         {
 
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
+
+            System.Diagnostics.Debug.WriteLine("[Port_MouseLeftButtonDown] 🔹 触发");
+
+
+
             var mousePos = e.GetPosition(WorkflowCanvas);
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
 
 
 
             if (sender is not Ellipse ellipse || ellipse.Tag is not string portName)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ⚠️ 提前返回: sender类型={sender?.GetType().Name ?? "null"}, Tag类型={(sender is Ellipse el ? el.Tag?.GetType().Name ?? "null" : "N/A")}");
+
                 return;
+
             }
 
-            // 🔍 关键日志：记录端口详细信息
-            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                Plugin.SDK.Logging.LogLevel.Info,
-                $"[Port_MouseLeftButtonDown] 端口点击 - 端口名称: {portName}, Ellipse名称: {ellipse.Name}, 可见性: {ellipse.Visibility}, 是否拖拽中: {_isDraggingConnection}",
-                "WorkflowCanvasControl");
 
-            // 🔍 调试日志：记录端口在视觉树中的状态
-            if (ellipse.Visibility == Visibility.Visible)
-            {
-                Point ellipsePosition = ellipse.TransformToAncestor(WorkflowCanvas).Transform(new Point(0, 0));
-                Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                    Plugin.SDK.Logging.LogLevel.Success,
-                    $"[Port_MouseLeftButtonDown] 端口可见且可点击 - 端口名称: {portName}, 位置: ({ellipsePosition.X:F1}, {ellipsePosition.Y:F1}), 实际尺寸: {ellipse.ActualWidth:F1}x{ellipse.ActualHeight:F1}",
-                    "WorkflowCanvasControl");
-            }
-            else
-            {
-                Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                    Plugin.SDK.Logging.LogLevel.Warning,
-                    $"[Port_MouseLeftButtonDown] ⚠️ 端口不可见，可能无法点击 - 端口名称: {portName}, 可见性: {ellipse.Visibility}",
-                    "WorkflowCanvasControl");
-            }
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ? Ellipse: Name={ellipse.Name}, Tag={portName}, Visibility={ellipse.Visibility}");
+
+
 
             // 保护：如果已经在拖拽状态，直接返回，不启动新的拖拽
 
             if (_isDraggingConnection)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ❌ 已在拖拽状态，跳过");
+
                 e.Handled = true;
+
                 return;
+
             }
 
 
@@ -2172,9 +1931,18 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
             if (border == null || node == null)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ⚠️ 未找到父节点: border={border != null}, node={node?.Name ?? "null"}");
+
                 return;
+
             }
+
+
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✅ 找到父节点: {node.Name} (Id={node.Id})");
 
 
 
@@ -2188,6 +1956,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             _dragConnectionSourcePort = portName;
 
+
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] 🎯🎯🎯 拖拽状态已设置: _isDraggingConnection=True, 源节点={node.Name}, 源端口={portName}");
+
+
+
             // 保持源节点的端口可见
 
             SetPortsVisibility(border, true);
@@ -2199,7 +1973,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             Point portPosition = GetPortPositionByName(node, portName);
 
             _dragConnectionStartPoint = portPosition;
+
             _dragConnectionEndPoint = portPosition;
+
+
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] 端口位置: ({portPosition.X:F1}, {portPosition.Y:F1})");
 
 
 
@@ -2208,16 +1987,30 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             if (_tempConnectionLine != null && _tempConnectionGeometry != null)
 
             {
+
                 _tempConnectionLine.Visibility = Visibility.Visible;
+
                 UpdateTempConnectionPath(portPosition, portPosition);
-            }
-            else
-            {
-                // 临时连接线未初始化
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✅ 临时连接线已显示");
+
             }
 
+            else
+
+            {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ⚠️ 临时连接线未初始化: _tempConnectionLine={_tempConnectionLine != null}, _tempConnectionGeometry={_tempConnectionGeometry != null}");
+
+            }
+
+
+
             // 捕获鼠标
+
             ellipse.CaptureMouse();
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonDown] ✅ 鼠标已捕获");
 
 
 
@@ -2227,6 +2020,7 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             e.Handled = true;
 
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════════════════════════");
 
         }
 
@@ -2267,12 +2061,16 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 // 情况1：有目标节点 - 使用实际端口位置和方向
                 targetPosition = GetPortPositionByName(targetNode, targetPortName);
                 targetDirection = PortDirectionExtensions.FromPortName(targetPortName);
+
+                System.Diagnostics.Debug.WriteLine($"[预览线] 使用实际端口: {targetPortName}, 位置: ({targetPosition.X:F1}, {targetPosition.Y:F1})");
             }
             else
             {
                 // 情况2：无目标节点 - 使用鼠标位置和推断方向
                 targetPosition = endPoint;
                 targetDirection = InferTargetDirection(startPoint, endPoint);
+
+                System.Diagnostics.Debug.WriteLine($"[预览线] 使用鼠标位置: ({targetPosition.X:F1}, {targetPosition.Y:F1}), 推断方向: {targetDirection}");
             }
 
             // 统一使用贝塞尔曲线计算器
@@ -2313,7 +2111,30 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
         }
 
+        /// <summary>
+        /// 智能推断最佳目标端口
+        /// </summary>
+        /// <param name="source">源端口位置</param>
+        /// <param name="mouse">鼠标位置</param>
+        /// <param name="targetNode">目标节点</param>
+        /// <returns>最佳端口名称</returns>
+        private string InferBestPort(Point source, Point mouse, WorkflowNode targetNode)
+        {
+            var dx = mouse.X - source.X;
+            var dy = mouse.Y - source.Y;
 
+            // 根据相对位置选择最合适的端口
+            if (Math.Abs(dx) > Math.Abs(dy))
+            {
+                // 水平方向为主
+                return dx > 0 ? "LeftPort" : "RightPort";
+            }
+            else
+            {
+                // 垂直方向为主
+                return dy > 0 ? "TopPort" : "BottomPort";
+            }
+        }
 
         /// <summary>
         /// 端口鼠标左键释放 - 结束拖拽连接线
@@ -2323,9 +2144,19 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
         private void Port_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
 
         {
+
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 🔹 触发, _isDraggingConnection={_isDraggingConnection}");
+
+
+
             if (!_isDraggingConnection || _dragConnectionSourceNode == null)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ❌ 提前返回: _isDraggingConnection={_isDraggingConnection}, _dragConnectionSourceNode={(_dragConnectionSourceNode?.Name ?? "null")}");
+
                 return;
+
             }
 
 
@@ -2346,19 +2177,43 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             var mousePos = e.GetPosition(WorkflowCanvas);
 
+            System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})");
+
+
+
             var hitTestResult = VisualTreeHelper.HitTest(WorkflowCanvas, mousePos);
 
 
 
-            if (hitTestResult?.VisualHit is Ellipse targetEllipse &&
-                targetEllipse.Tag is string targetPortName &&
-                targetEllipse.Name.Contains("PortEllipse"))
+            if (hitTestResult?.VisualHit is not null)
+
             {
-                // 🔍 关键日志：记录目标端口命中成功
-                Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-                    Plugin.SDK.Logging.LogLevel.Success,
-                    $"[Port_MouseLeftButtonUp] 目标端口命中成功 - 端口名称: {targetPortName}, Ellipse名称: {targetEllipse.Name}, 鼠标位置: ({mousePos.X:F1}, {mousePos.Y:F1})",
-                    "WorkflowCanvasControl");
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 命中测试: VisualHit类型={hitTestResult.VisualHit.GetType().Name}");
+
+            }
+
+            else
+
+            {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ⚠️ 命中测试: 未命中任何视觉元素");
+
+            }
+
+
+
+            if (hitTestResult?.VisualHit is Ellipse targetEllipse &&
+
+                targetEllipse.Tag is string targetPortName &&
+
+                targetEllipse.Name.Contains("PortEllipse"))
+
+            {
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✅ 目标Ellipse: Name={targetEllipse.Name}, Tag={targetPortName}");
+
+
 
                 // 获取目标节点 - 向上遍历视觉树找到 Border (Ellipse → Grid → Border)
 
@@ -2389,7 +2244,15 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 if (targetBorder?.Tag is WorkflowNode targetNode &&
 
                     targetNode != _dragConnectionSourceNode)
+
                 {
+
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ✅ 目标节点: {targetNode.Name} (Id={targetNode.Id})");
+
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 源节点: {_dragConnectionSourceNode.Name}, 源端口: {_dragConnectionSourcePort ?? "RightPort"}, 目标端口: {targetPortName}");
+
+
+
                     // 创建连接
 
                     var connectionCreated = CreateConnectionBetweenPorts(
@@ -2403,6 +2266,12 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                         targetPortName
 
                     );
+
+
+
+                    System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] 连接创建结果: {connectionCreated}");
+
+
 
                     // 连接创建成功后，阻止事件冒泡，避免触发节点选择导致图像预览器被隐藏
 
@@ -2427,8 +2296,11 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             }
 
             else
+
             {
-                // 未命中有效端口，不做任何操作
+
+                System.Diagnostics.Debug.WriteLine($"[Port_MouseLeftButtonUp] ⚠️ 未命中有效的端口Ellipse: hitTestResult={hitTestResult != null}, isEllipse={hitTestResult?.VisualHit is Ellipse}, Name={(hitTestResult?.VisualHit as Ellipse)?.Name ?? "null"}");
+
             }
 
 
@@ -2670,64 +2542,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
         /// <summary>
-        /// 获取 Border 的 Canvas 位置（左上角）
-        /// Border 在 DataTemplate 内部，Canvas.Left/Top 设置在父级 ContentPresenter 上
-        /// </summary>
-        /// <param name="border">目标 Border</param>
-        /// <returns>Border 左上角的 Canvas 坐标</returns>
-        private Point GetBorderPosition(Border border)
-        {
-            if (border == null)
-                return new Point(double.NaN, double.NaN);
-
-            var parent = VisualTreeHelper.GetParent(border);
-            if (parent is ContentPresenter contentPresenter)
-            {
-                double left = WpfCanvas.GetLeft(contentPresenter);
-                double top = WpfCanvas.GetTop(contentPresenter);
-                return new Point(left, top);
-            }
-
-            return new Point(double.NaN, double.NaN);
-        }
-
-        /// <summary>
-        /// 获取 HitAreaBorder 的中心点位置
-        /// HitAreaBorder 尺寸: 180x60，左上角 = 中心点 - (90, 30)
-        /// </summary>
-        /// <param name="hitAreaBorder">HitAreaBorder</param>
-        /// <returns>HitAreaBorder 的中心点坐标</returns>
-        private Point GetHitAreaCenterPoint(Border hitAreaBorder)
-        {
-            Point topLeft = GetBorderPosition(hitAreaBorder);
-            if (double.IsNaN(topLeft.X) || double.IsNaN(topLeft.Y))
-                return new Point(double.NaN, double.NaN);
-
-            return new Point(topLeft.X + 90, topLeft.Y + 30); // HitArea 尺寸: 180x60，半尺寸: (90, 30)
-        }
-
-        /// <summary>
-        /// 获取 NodeBorder 的中心点位置
-        /// NodeBorder 尺寸: 160x40，居中于 HitAreaBorder
-        /// 中心点 = HitArea 中心点
-        /// </summary>
-        /// <param name="nodeBorder">NodeBorder</param>
-        /// <returns>NodeBorder 的中心点坐标</returns>
-        private Point GetNodeCenterPoint(Border nodeBorder)
-        {
-            Point topLeft = GetBorderPosition(nodeBorder);
-            if (double.IsNaN(topLeft.X) || double.IsNaN(topLeft.Y))
-                return new Point(double.NaN, double.NaN);
-
-            // NodeBorder (160x40) 居中于 HitAreaBorder (180x60)
-            // HitArea 左上角 = Node 左上角 - (10, 10)
-            // HitArea 中心点 = (Node 左上角 + (80, 20))
-            return new Point(topLeft.X + 90, topLeft.Y + 30);
-        }
-
-
-
-        /// <summary>
 
         /// 在两个端口之间创建连接
 
@@ -2741,11 +2555,24 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         {
 
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] 🔹 开始创建连接");
+
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - 源节点: {sourceNode?.Name ?? "null"}, 源端口: {sourcePort}");
+
+            System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts]   - 目标节点: {targetNode?.Name ?? "null"}, 目标端口: {targetPort}");
+
+            
+
             var selectedTab = _viewModel?.WorkflowTabViewModel.SelectedTab;
 
             if (selectedTab == null)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ⚠️ selectedTab 为 null, _viewModel={(_viewModel != null ? "已设置" : "null")}");
+
                 return false;
+
             }
 
 
@@ -2765,8 +2592,13 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             
 
             if (existingConnection != null)
+
             {
+
+                System.Diagnostics.Debug.WriteLine($"[CreateConnectionBetweenPorts] ⚠️ 连接已存在: {existingConnection.Id} (源端口={sourcePort}, 目标端口={targetPort})");
+
                 return false;
+
             }
 
 
@@ -3192,46 +3024,47 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
-            // ✅ 检查是否按住 Ctrl 键（只有按住 Ctrl 才能启动框选）
-            bool isCtrlPressed = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+            // 检查是否按住 Shift 或 Ctrl 键（多选模式）
 
-            // 记录鼠标按下时的初始位置（用于拖动阈值判断）
-            _mouseDownPosition = e.GetPosition(WorkflowCanvas);
-            _boxSelectStart = _mouseDownPosition;
+            bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ||
 
-            // ✅ 只有按住 Ctrl 键时才启动框选
-            if (isCtrlPressed)
+                               (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+
+
+
+            // 开始框选
+
+            _isBoxSelecting = true;
+
+            _boxSelectStart = e.GetPosition(WorkflowCanvas);
+
+
+
+            // 如果不是多选模式，清除所有选择
+
+            if (!isMultiSelect)
+
             {
-                // 检查是否也按住 Shift 键（多选模式）
-                bool isMultiSelect = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 
-                // 如果不是多选模式，清除所有选择
-                if (!isMultiSelect)
-                {
-                    ClearAllSelections();
-                }
-
-                // 启动框选
-                _isBoxSelecting = true;
-                _boxSelectStart = e.GetPosition(WorkflowCanvas);
-
-                // 开始框选
-                SelectionBox?.StartSelection(_boxSelectStart);
-
-                WorkflowCanvas.CaptureMouse();
-            }
-            else
-            {
-                // ✅ 没有按住 Ctrl 键时，只清除选择，不启动框选
                 ClearAllSelections();
+
             }
+
+
+
+            // 开始显示框选框
+
+            SelectionBox?.StartSelection(_boxSelectStart);
+
+
+
+            WorkflowCanvas.CaptureMouse();
 
             // 不设置 e.Handled，让事件冒泡到 Port_MouseLeftButtonUp
 
             // 设置 e.Handled = true 会导致 Port_MouseLeftButtonUp 无法被触发，
 
             // 从而导致临时连接线无法隐藏
-
 
         }
 
@@ -3249,16 +3082,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
             var mousePos = e.GetPosition(WorkflowCanvas);
 
-            bool stateChanged = (_isDraggingConnection != _lastIsDraggingConnection) ||
-                              (_isBoxSelecting != _lastIsBoxSelecting);
-
-            if (stateChanged)
-            {
-                _lastIsDraggingConnection = _isDraggingConnection;
-                _lastIsBoxSelecting = _isBoxSelecting;
-            }
-
-
 
 
             // 处理拖拽连接
@@ -3266,6 +3089,10 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
             if (_isDraggingConnection)
 
             {
+
+                _dragMoveCounter++;
+
+
 
                 // 保护：如果状态不一致（_isDraggingConnection=true 但 _dragConnectionSourceNode=null），立即重置状态
 
@@ -3318,6 +3145,8 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
                     // 动态高亮目标端口
+
+                    var hitNodes = new List<(WorkflowNode node, Border border, double distance)>();
 
                     var hitPorts = new List<(Ellipse port, string portName)>();
 
@@ -3373,6 +3202,29 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
 
 
+                    if (_dragMoveCounter % 100 == 0)
+
+                    {
+
+                    }
+
+                    // 如果没有直接命中端口，检查是否命中节点
+                    if (hitPorts.Count == 0)
+                    {
+                        // 使用统一的命中测试方法
+                        var nodeBorder = FindNodeBorderByHitTest(currentPoint);
+
+                        if (nodeBorder != null && nodeBorder.Tag is WorkflowNode node)
+                        {
+                            // 排除源节点
+                            if (node != _dragConnectionSourceNode)
+                            {
+                                var nodeCenter = node.NodeCenter;
+                                double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
+                                hitNodes.Add((node, nodeBorder, distance));
+                            }
+                        }
+                    }
 
                     // 优先处理命中的端口（需要排除源节点的端口）
 
@@ -3461,100 +3313,71 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                             }
 
                         }
-                        else
-                        {
-                            // ✅ 命中目标节点端口，显示该节点的所有端口
-                            if (_highlightedTargetNodeBorder != portBorder)
-                            {
-                                if (_highlightedTargetNodeBorder != null)
-                                {
-                                    SetPortsVisibility(_highlightedTargetNodeBorder, false);
-                                }
-                                _highlightedTargetNodeBorder = portBorder;
-                            }
-                            SetPortsVisibility(portBorder, true);
-                        }
-
 
                     }
-                    else
+
+                    else if (hitNodes.Count > 0)
+
                     {
-                        // ⭐ 没有命中任何端口，检查是否命中了目标节点
-                        var hitNodes = new List<(WorkflowNode node, Border border, double distance)>();
 
-                        VisualTreeHelper.HitTest(WorkflowCanvas, null,
-                            result =>
-                            {
-                                // 如果找到 Border 且带有 WorkflowNode Tag，计算距离并记录
-                                if (result.VisualHit is Border hitBorder && hitBorder.Tag is WorkflowNode hitNode)
-                                {
-                                    if (hitNode != _dragConnectionSourceNode)
-                                    {
-                                        var nodeCenter = hitNode.NodeCenter;
-                                        double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
-                                        hitNodes.Add((hitNode, hitBorder, distance));
-                                    }
-                                }
+                        var nearest = hitNodes.OrderBy(n => n.distance).First();
 
-                                // 对于任何命中的元素，都向上查找带有WorkflowNode Tag的Border
-                                DependencyObject? current = result.VisualHit as DependencyObject;
-                                int depth = 0;
-                                while (current != null && depth < 30)
-                                {
-                                    depth++;
-                                    if (current is Border currentBorder && currentBorder.Tag is WorkflowNode currentBorderNode)
-                                    {
-                                        if (currentBorderNode != _dragConnectionSourceNode)
-                                        {
-                                            var nodeCenter = currentBorderNode.NodeCenter;
-                                            double distance = Math.Sqrt(Math.Pow(currentPoint.X - nodeCenter.X, 2) + Math.Pow(currentPoint.Y - nodeCenter.Y, 2));
-                                            hitNodes.Add((currentBorderNode, currentBorder, distance));
-                                        }
-                                        break;
-                                    }
-                                    current = VisualTreeHelper.GetParent(current);
-                                }
+                        if (nearest.node != _dragConnectionSourceNode)
 
-                                return HitTestResultBehavior.Continue;
-                            },
-                            new PointHitTestParameters(currentPoint));
-
-                        if (hitNodes.Count > 0)
                         {
-                            var nearest = hitNodes.OrderBy(n => n.distance).First();
-                            const double MaxDistance = 150.0; // 最大容错距离150px
 
-                            if (nearest.distance <= MaxDistance)
+                            // 显示目标节点的所有端口（因为鼠标没有真正进入目标节点）
+
+                            SetPortsVisibility(nearest.border, true);
+
+
+
+                            // ✅ 移除智能推荐逻辑，让用户通过 IsMouseOver 选择
+                            // 端口会自动显示，用户移动鼠标到想要连接的端口即可触发橙色高亮
+
+
+
+                            // 保存高亮的节点Border，用于后续清理（即使鼠标离开也保持显示）
+
+                            if (_highlightedTargetNodeBorder != nearest.border)
+
                             {
-                                // ✅ 命中目标节点（但未命中端口），显示该节点的所有端口
-                                if (_highlightedTargetNodeBorder != nearest.border)
-                                {
-                                    if (_highlightedTargetNodeBorder != null)
-                                    {
-                                        SetPortsVisibility(_highlightedTargetNodeBorder, false);
-                                    }
-                                    _highlightedTargetNodeBorder = nearest.border;
-                                }
-                                SetPortsVisibility(nearest.border, true);
-                            }
-                            else
-                            {
-                                // 隐藏之前高亮的节点端口
+
                                 if (_highlightedTargetNodeBorder != null)
+
                                 {
+
                                     SetPortsVisibility(_highlightedTargetNodeBorder, false);
-                                    _highlightedTargetNodeBorder = null;
+
                                 }
+
+                                _highlightedTargetNodeBorder = nearest.border;
+
                             }
+                            
+                            // ✅ 提取目标节点信息，智能推断最佳端口
+                            targetNode = nearest.node;
+                            targetPortName = InferBestPort(sourcePort, currentPoint, nearest.node);
+
                         }
+
                         else
                         {
-                            // 没有命中任何节点或端口，隐藏之前高亮的节点端口
+                            // 没有命中目标节点（命中的是源节点），隐藏之前显示的端口
                             if (_highlightedTargetNodeBorder != null)
                             {
                                 SetPortsVisibility(_highlightedTargetNodeBorder, false);
                                 _highlightedTargetNodeBorder = null;
                             }
+                        }
+                    }
+                    else
+                    {
+                        // ⭐ 没有命中任何节点或端口，隐藏之前高亮的节点端口
+                        if (_highlightedTargetNodeBorder != null)
+                        {
+                            SetPortsVisibility(_highlightedTargetNodeBorder, false);
+                            _highlightedTargetNodeBorder = null;
                         }
                         // 清除命中记录
                         _directHitTargetPort = null;
@@ -3569,8 +3392,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
                 return;
 
             }
-
-
 
 
 
@@ -4446,45 +4267,6 @@ namespace SunEyeVision.UI.Views.Controls.Canvas
 
         }
 
-
-        /// <summary>
-        /// Canvas 获得焦点
-        /// </summary>
-
-        private void WorkflowCanvas_GotFocus(object sender, RoutedEventArgs e)
-
-        {
-
-
-
-            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-
-                Plugin.SDK.Logging.LogLevel.Info,
-
-                $"[Canvas_GotFocus] 画布获得焦点 - 节点数: {_viewModel?.WorkflowTabViewModel?.SelectedTab?.WorkflowNodes.Count ?? 0}",
-
-                "WorkflowCanvasControl");
-
-        }
-
-
-        /// <summary>
-        /// Canvas 失去焦点
-        /// </summary>
-
-        private void WorkflowCanvas_LostFocus(object sender, RoutedEventArgs e)
-
-        {
-
-            Plugin.SDK.Logging.VisionLogger.Instance?.Log(
-
-                Plugin.SDK.Logging.LogLevel.Warning,
-
-                $"[Canvas_LostFocus] 画布失去焦点 - 节点数: {_viewModel?.WorkflowTabViewModel?.SelectedTab?.WorkflowNodes.Count ?? 0}",
-
-                "WorkflowCanvasControl");
-
-        }
 
 
         #endregion

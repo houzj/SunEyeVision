@@ -1447,7 +1447,9 @@ namespace SunEyeVision.UI.ViewModels
                     workflow.Nodes.Remove(node);
                 }
 
-                // 连接数据通过共享 Solution 资源实现，无需手动同步
+                // ✅ 优化：连接数据通过直接绑定 Solution.Workflow.Connections 实现，自动同步，无需手动操作
+                // UI 层的 WorkflowTabViewModel.WorkflowConnections 直接引用 Solution 层的 workflow.Connections
+                // 删除、添加连接会自动同步到 Solution，保存时无需额外同步代码
             }
         }
 
@@ -1504,6 +1506,7 @@ namespace SunEyeVision.UI.ViewModels
         /// - 节点直接引用 Solution.Workflow.Nodes 中的对象
         /// - 不再克隆节点，消除 WorkflowTabInfo 中转层
         /// - UI 属性已在 WorkflowNodeBase 中定义
+        /// - 优化说明（2026-03-30）：连接集合直接绑定，实现自动同步
         /// </remarks>
         private void CreateWorkflowTab(SunEyeVision.Workflow.Workflow workflow, string? filePath)
         {
@@ -1532,13 +1535,9 @@ namespace SunEyeVision.UI.ViewModels
 
             LogInfo($"节点加载完成，数量: {tabViewModel.WorkflowNodes.Count}/{workflow.Nodes.Count}");
 
-            // 加载连接（WorkflowConnection 已统一为共享引用，直接加载）
-            foreach (var conn in workflow.Connections)
-            {
-                tabViewModel.WorkflowConnections.Add(conn);
-            }
-
-            LogInfo($"连接加载完成，数量: {tabViewModel.WorkflowConnections.Count}/{workflow.Connections.Count}");
+            // ✅ 优化：直接绑定 Solution 层的连接集合，实现自动同步
+            tabViewModel.SetConnections(workflow.Connections);
+            LogInfo($"连接绑定完成，数量: {workflow.Connections.Count}");
 
             // 初始化空洞池（从现有节点恢复索引池）
             if (tabViewModel.SequenceManager != null)
@@ -2255,6 +2254,9 @@ namespace SunEyeVision.UI.ViewModels
                     Name = workflowName,
                     Id = Guid.NewGuid().ToString()
                 };
+
+                // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
+                newWorkflowTab.SetConnections(new ObservableCollection<WorkflowConnection>());
 
                 // 添加到标签页集合
                 WorkflowTabViewModel.Tabs.Add(newWorkflowTab);
