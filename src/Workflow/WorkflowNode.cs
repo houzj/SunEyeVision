@@ -163,6 +163,8 @@ namespace SunEyeVision.Workflow
         private object? _inputSource;
         private object? _lastResult;
         private object? _styleConfig;
+        private Type? _debugWindowType;
+        private Type? _nodeStyleType;
 
         /// <summary>
         /// 节点位置（UI 层专用，不序列化，基于 PositionX/PositionY 计算）
@@ -250,6 +252,76 @@ namespace SunEyeVision.Workflow
         {
             get => _styleConfig;
             set => SetProperty(ref _styleConfig, value);
+        }
+
+        /// <summary>
+        /// 调试窗口类型（UI 层专用，不序列化）
+        /// </summary>
+        /// <remarks>
+        /// 从工具元数据传递而来，用于创建节点专用的调试窗口。
+        /// </remarks>
+        [JsonIgnore]
+        public Type? DebugWindowType
+        {
+            get => _debugWindowType;
+            set => SetProperty(ref _debugWindowType, value);
+        }
+
+        /// <summary>
+        /// 节点样式类型（UI 层专用，不序列化）
+        /// </summary>
+        /// <remarks>
+        /// 从工具元数据传递而来，用于动态创建节点样式实例。
+        /// </remarks>
+        [JsonIgnore]
+        public Type? NodeStyleType
+        {
+            get => _nodeStyleType;
+            set => SetProperty(ref _nodeStyleType, value);
+        }
+
+        /// <summary>
+        /// 获取节点样式配置实例（由 UI 层调用）
+        /// </summary>
+        /// <remarks>
+        /// 根据 NodeStyleType 动态创建样式实例。
+        /// 如果 NodeStyleType 为 null，UI 层应使用默认的 StandardNodeStyle。
+        /// </remarks>
+        /// <returns>节点样式实例，如果创建失败返回 null</returns>
+        public object? GetStyleConfig()
+        {
+            try
+            {
+                if (_nodeStyleType == null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"NodeStyleType 为 null，UI 层应使用默认样式",
+                        "WorkflowNode");
+                    return null;
+                }
+
+                // 使用反射创建样式实例
+                var styleInstance = Activator.CreateInstance(_nodeStyleType);
+                if (styleInstance != null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"创建节点样式成功: {_nodeStyleType.Name}",
+                        "WorkflowNode");
+                    return styleInstance;
+                }
+
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"无法创建节点样式实例: {_nodeStyleType.Name}",
+                    "WorkflowNode");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Error,
+                    $"创建节点样式失败: {ex.Message}",
+                    "WorkflowNode", ex);
+                return null;
+            }
         }
 
         #endregion

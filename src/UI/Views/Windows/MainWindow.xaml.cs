@@ -1,4 +1,47 @@
-﻿using System;
+﻿public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
+{
+    // 情况1: 没有选中节点 → 隐藏
+    if (selectedNode == null)
+    {
+        ShowImagePreview = false;
+        ActiveInputSource = null;
+        return;
+    }
+
+    // 情况2: 选中图像载入节点 → 显示
+    if (selectedNode.IsImageLoadNode)
+    {
+        var inputSource = selectedNode.EnsureInputSource();
+        inputSource.PrepareForDisplay();  // 清空缩略图
+        ActiveInputSource = inputSource;
+        ShowImagePreview = true;
+        return;
+    }
+
+    // 情况3: 选中图像采集节点 → 隐藏
+    if (selectedNode.IsImageCaptureNode)
+    {
+        ShowImagePreview = false;
+        ActiveInputSource = null;
+        return;
+    }
+
+    // 情况4: 选中处理节点 → 查找上游图像载入节点
+    var sourceLoadNode = FindUpstreamImageLoadNode(selectedNode);
+    if (sourceLoadNode != null)
+    {
+        var sourceInputSource = sourceLoadNode.InputSource ?? sourceLoadNode.EnsureInputSource();
+        sourceInputSource.PrepareForDisplay();  // 清空缩略图
+        ActiveInputSource = sourceInputSource;
+        ShowImagePreview = true;
+    }
+    else
+    {
+        ShowImagePreview = false;
+        ActiveInputSource = null;
+    }
+}
+using System;
 using System.IO;
 
 // 别名：避免与 System.Windows.Shapes.Path 冲突
@@ -287,7 +330,7 @@ namespace SunEyeVision.UI.Views.Windows
             {
                 // 检查是否有当前解决方案
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-                
+
                 // ==================== 场景1：没有打开的解决方案 ====================
                 if (solutionManager?.CurrentSolution == null)
                 {
@@ -441,14 +484,14 @@ namespace SunEyeVision.UI.Views.Windows
 
                 // 直接保存Solution对象（不依赖CurrentSolution）
                 bool saveSuccess = solutionManager.SaveSolutionDirect(solution, filePath, metadata);
-                
+
                 if (!saveSuccess)
                 {
                     System.Windows.MessageBox.Show("保存解决方案失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     e.Cancel = true;
                     return false;
                 }
-                
+
                 _viewModel?.AddLog(LogLevel.Success, $"已创建并保存新解决方案: {metadata.Name} -> {filePath}", LogSource.UIOperation);
                 return true;
             }
@@ -572,7 +615,7 @@ namespace SunEyeVision.UI.Views.Windows
                     System.Diagnostics.Debug.WriteLine("[MainWindow] ❌ ImagePreviewContent 为 null，无法订阅事件");
 
                 }
-                
+
                 // ★ 设置 OverlayCanvas 引用到 NodeResultManager
                 if (ImageDisplayContent != null)
                 {
@@ -668,14 +711,14 @@ namespace SunEyeVision.UI.Views.Windows
             }
 
         }
-        
+
         /// <summary>
         /// 获取 MainWindowViewModel 中的 NodeResultManager
         /// </summary>
         private Services.Workflow.NodeResultManager? GetNodeResultManager(ViewModels.MainWindowViewModel viewModel)
         {
             // 通过反射获取私有字段
-            var field = typeof(ViewModels.MainWindowViewModel).GetField("_nodeResultManager", 
+            var field = typeof(ViewModels.MainWindowViewModel).GetField("_nodeResultManager",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return field?.GetValue(viewModel) as Services.Workflow.NodeResultManager;
         }
@@ -886,7 +929,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 scrollViewer.SizeChanged += ScrollViewer_SizeChanged;
 
-                
+
 
                 // 初始检查 - 需要传入TabControl的视觉树根元素来查找两个按钮
 
@@ -956,19 +999,19 @@ namespace SunEyeVision.UI.Views.Windows
 
             var fixedButton = FindChildByName<Border>(tabControl, "FixedAddButtonBorder");
 
-            
+
 
             if (scrollableButton == null || fixedButton == null)
 
                 return;
 
-            
+
 
             // ScrollableWidth > 0 表示有滚动条,即TabItems超出了可视区域
 
             bool isOverflow = scrollViewer.ScrollableWidth > 0;
 
-            
+
 
             if (isOverflow)
 
@@ -1054,7 +1097,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             var selectedTab = _viewModel.WorkflowTabViewModel.SelectedTab;
 
-            
+
 
             // 优化：更新WorkflowCanvasControl的DataContext（ObservableCollection会自动通知UI更新）
 
@@ -1092,7 +1135,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 _isTabItemClick = false;
 
-                
+
 
                 // 应用缩放
 
@@ -1534,7 +1577,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 _viewModel.WorkflowTabViewModel.SelectedTab = workflow;
 
-                
+
 
                 // 触发 RunWorkflowCommand 的 Execute 方法
 
@@ -1542,7 +1585,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 _viewModel.RunWorkflowCommand.Execute(null);
 
-                
+
 
                 _viewModel.StatusText = $"单次运行: {workflow.Name}";
 
@@ -2061,7 +2104,7 @@ namespace SunEyeVision.UI.Views.Windows
 
             var workflow = _viewModel.WorkflowTabViewModel.SelectedTab;
 
-            
+
 
             // 更新CurrentScale
 
@@ -2608,7 +2651,7 @@ namespace SunEyeVision.UI.Views.Windows
         {
             System.Diagnostics.Debug.WriteLine($"[MainWindow] ToggleFullscreen_Click 被调用");
             System.Diagnostics.Debug.WriteLine($"[MainWindow] ImageDisplayContent 是否为 null: {ImageDisplayContent == null}");
-            
+
             if (ImageDisplayContent != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] ImageDisplayContent.IsFullscreen: {ImageDisplayContent.IsFullscreen}");
@@ -2718,13 +2761,13 @@ namespace SunEyeVision.UI.Views.Windows
 
             double currentImageHeight = RightPanelGrid.RowDefinitions[0].ActualHeight;
 
-            
+
 
             // 实时记录拖动过程中的位置变化（用于调试）
 
             System.Diagnostics.Debug.WriteLine($"[分隔条拖动中] 当前位置: {currentImageHeight:F2}");
 
-            
+
 
             // 注意：由于ShowsPreview="False"，GridSplitter会自动调整相邻Row的高度
 

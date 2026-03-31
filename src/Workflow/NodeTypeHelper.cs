@@ -24,9 +24,9 @@ namespace SunEyeVision.Workflow
         public static NodeType InferNodeType(string toolId)
         {
             var metadata = ToolRegistry.GetToolMetadata(toolId);
-            if (metadata?.AlgorithmType != null)
+            if (metadata?.ToolType != null)
             {
-                return DetermineNodeType(metadata.AlgorithmType);
+                return DetermineNodeType(metadata.ToolType);
             }
 
             return NodeType.Algorithm;

@@ -25,8 +25,29 @@ namespace SunEyeVision.Tool.ImageSave
     [JsonDerivedType(typeof(ImageSaveParameters), "ImageSave")]
     public class ImageSaveParameters : ToolParameters
     {
-        public string OutputPath { get; set; } = "output/image.png";
-        public string OutputFormat { get; set; } = "png";
+        private string _outputPath = "output/image.png";
+        private string _outputFormat = "png";
+
+        /// <summary>
+        /// 输出文件路径
+        /// </summary>
+        [ParameterDisplay(DisplayName = "输出路径", Description = "图像保存的文件路径", Group = "基本参数", Order = 1)]
+        public string OutputPath
+        {
+            get => _outputPath;
+            set => SetProperty(ref _outputPath, value, "输出路径");
+        }
+
+        /// <summary>
+        /// 输出文件格式
+        /// </summary>
+        [ParameterDisplay(DisplayName = "输出格式", Description = "图像保存格式（png, jpg, bmp等）", Group = "基本参数", Order = 2)]
+        public string OutputFormat
+        {
+            get => _outputFormat;
+            set => SetProperty(ref _outputFormat, value, "输出格式");
+        }
+
         public override ValidationResult Validate()
         {
             var r = new ValidationResult();
@@ -39,9 +60,23 @@ namespace SunEyeVision.Tool.ImageSave
     {
         public string SavedPath { get; set; } = "";
         public long FileSize { get; set; }
+        public string OutputFormatUsed { get; set; } = "";
+
+        /// <summary>
+        /// 获取结果项列表
+        /// </summary>
+        public override IReadOnlyList<ResultItem> GetResultItems()
+        {
+            var items = new List<ResultItem>();
+            items.AddText("SavedPath", SavedPath);
+            items.AddNumeric("FileSize", FileSize, "字节");
+            items.AddText("OutputFormatUsed", OutputFormatUsed);
+            items.AddNumeric("ExecutionTimeMs", ExecutionTimeMs, "ms");
+            return items;
+        }
     }
 
-    [Tool("image_save", "图像保存", Description = "保存图像到文件", Icon = "💾", Category = "输出")]
+    [Tool("image_save", "图像保存", Description = "保存图像到文件", Icon = "💾", Category = "输出", Version = "2.0.0", HasDebugWindow = true)]
     public class ImageSaveTool : IToolPlugin<ImageSaveParameters, ImageSaveResults>
     {
         public bool HasDebugWindow => true;
@@ -55,9 +90,27 @@ namespace SunEyeVision.Tool.ImageSave
         {
             var result = new ImageSaveResults();
             var sw = Stopwatch.StartNew();
+
             try
             {
-                if (image == null || image.Empty()) { result.SetError("输入图像为空"); return result; }
+                // 验证参数
+                var validationResult = parameters.Validate();
+                if (!validationResult.IsValid)
+                {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    return result;
+                }
+
+                // 验证输入图像
+                if (image == null || image.Empty())
+                {
+                    parameters.LogWarning("输入图像为空");
+                    result.SetError("输入图像为空");
+                    return result;
+                }
+
+                parameters.LogInfo($"开始保存图像: 路径={parameters.OutputPath}, 格式={parameters.OutputFormat}");
 
                 var dir = Path.GetDirectoryName(parameters.OutputPath);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
@@ -65,12 +118,22 @@ namespace SunEyeVision.Tool.ImageSave
 
                 var path = Path.ChangeExtension(parameters.OutputPath, $".{parameters.OutputFormat}");
                 Cv2.ImWrite(path, image);
-                
+
                 result.SavedPath = path;
                 result.FileSize = new FileInfo(path).Length;
+                result.OutputFormatUsed = parameters.OutputFormat;
                 result.SetSuccess(sw.ElapsedMilliseconds);
+
+                parameters.LogInfo($"图像保存完成: {result.SavedPath}, 大小={result.FileSize}字节, 耗时{sw.ElapsedMilliseconds}ms");
             }
-            catch (Exception ex) { result.SetError($"保存失败: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                parameters.LogError($"图像保存异常: {ex.Message}", ex);
+                result.SetError($"保存失败: {ex.Message}");
+                result.ExecutionTimeMs = sw.ElapsedMilliseconds;
+            }
+
             return result;
         }
     }

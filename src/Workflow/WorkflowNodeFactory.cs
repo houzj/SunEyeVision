@@ -82,7 +82,9 @@ namespace SunEyeVision.Workflow
                 // 创建AlgorithmNode
                 var algorithmNode = new AlgorithmNode(nodeId, nodeName, dispName, tool)
                 {
-                    Parameters = parameters
+                    Parameters = parameters,
+                    DebugWindowType = metadata.DebugWindowType,
+                    NodeStyleType = metadata.NodeStyleType
                 };
 
                 Console.WriteLine($"[WorkflowNodeFactory] 创建AlgorithmNode: {nodeName} (DispName: {dispName}, ToolId: {toolId}, 缓存: {enableCaching}, 重试: {enableRetry})");

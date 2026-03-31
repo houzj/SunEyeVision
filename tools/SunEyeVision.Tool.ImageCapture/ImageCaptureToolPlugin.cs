@@ -24,8 +24,30 @@ namespace SunEyeVision.Tool.ImageCapture
     [JsonDerivedType(typeof(ImageCaptureParameters), "ImageCapture")]
     public class ImageCaptureParameters : ToolParameters
     {
-        public int CameraId { get; set; }
-        public int Timeout { get; set; } = 5000;
+        private int _cameraId = 0;
+        private int _timeout = 5000;
+
+        /// <summary>
+        /// 相机设备ID
+        /// </summary>
+        [ParameterDisplay(DisplayName = "相机ID", Description = "相机设备ID（0表示第一个相机）", Group = "基本参数", Order = 1)]
+        public int CameraId
+        {
+            get => _cameraId;
+            set => SetProperty(ref _cameraId, value, "相机ID");
+        }
+
+        /// <summary>
+        /// 采集超时时间
+        /// </summary>
+        [ParameterRange(1000, 30000, Step = 1000)]
+        [ParameterDisplay(DisplayName = "超时时间", Description = "采集超时时间（毫秒）", Group = "基本参数", Order = 2)]
+        public int Timeout
+        {
+            get => _timeout;
+            set => SetProperty(ref _timeout, value, "超时时间");
+        }
+
         public override ValidationResult Validate()
         {
             var r = new ValidationResult();
@@ -39,9 +61,26 @@ namespace SunEyeVision.Tool.ImageCapture
         [Param(DisplayName = "输出图像", Description = "采集的图像数据", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public DateTime CaptureTime { get; set; }
+        public int CameraIdUsed { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+
+        /// <summary>
+        /// 获取结果项列表
+        /// </summary>
+        public override IReadOnlyList<ResultItem> GetResultItems()
+        {
+            var items = new List<ResultItem>();
+            items.AddNumeric("CameraIdUsed", CameraIdUsed, "");
+            items.AddNumeric("Width", Width, "像素");
+            items.AddNumeric("Height", Height, "像素");
+            items.AddText("CaptureTime", CaptureTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            items.AddNumeric("ExecutionTimeMs", ExecutionTimeMs, "ms");
+            return items;
+        }
     }
 
-    [Tool("image_capture", "图像采集", Description = "从相机采集图像", Icon = "📷", Category = "采集")]
+    [Tool("image_capture", "图像采集", Description = "从相机采集图像", Icon = "📷", Category = "采集", Version = "2.0.0", HasDebugWindow = true)]
     public class ImageCaptureTool : IToolPlugin<ImageCaptureParameters, ImageCaptureResults>
     {
         public bool HasDebugWindow => true;
@@ -55,15 +94,40 @@ namespace SunEyeVision.Tool.ImageCapture
         {
             var result = new ImageCaptureResults();
             var sw = Stopwatch.StartNew();
+
             try
             {
+                // 验证参数
+                var validationResult = parameters.Validate();
+                if (!validationResult.IsValid)
+                {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    return result;
+                }
+
+                parameters.LogInfo($"开始图像采集: 相机ID={parameters.CameraId}, 超时={parameters.Timeout}ms");
+
                 // TODO: 实际相机采集实现
                 // 这里返回一个占位图像
                 result.OutputImage = new Mat(480, 640, MatType.CV_8UC3, Scalar.Black);
                 result.CaptureTime = DateTime.Now;
+                result.CameraIdUsed = parameters.CameraId;
+                result.Width = result.OutputImage.Width;
+                result.Height = result.OutputImage.Height;
+
                 result.SetSuccess(sw.ElapsedMilliseconds);
+
+                parameters.LogInfo($"图像采集完成: {result.Width}x{result.Height}, 耗时{sw.ElapsedMilliseconds}ms");
             }
-            catch (Exception ex) { result.SetError($"采集失败: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                parameters.LogError($"图像采集异常: {ex.Message}", ex);
+                result.SetError($"采集失败: {ex.Message}");
+                result.ExecutionTimeMs = sw.ElapsedMilliseconds;
+            }
+
             return result;
         }
     }

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
@@ -187,7 +187,7 @@ namespace SunEyeVision.UI.ViewModels
                     tool.Category,
                     tool.Icon,
                     tool.Description,
-                    tool.AlgorithmType?.Name,
+                    tool.ToolType?.Name,
                     false // HasDebugInterface 已删除，默认为 false
                 );
                 // 设置真正的工具ID

@@ -26,7 +26,17 @@ namespace SunEyeVision.Tool.ColorConvert
     [JsonDerivedType(typeof(ColorConvertParameters), "ColorConvert")]
     public class ColorConvertParameters : ToolParameters
     {
-        public string TargetColorSpace { get; set; } = "GRAY";
+        private string _targetColorSpace = "GRAY";
+
+        /// <summary>
+        /// 目标颜色空间
+        /// </summary>
+        [ParameterDisplay(DisplayName = "目标颜色空间", Description = "转换的目标颜色空间（GRAY, RGB, HSV, Lab, XYZ, YCrCb）", Group = "基本参数", Order = 1)]
+        public string TargetColorSpace
+        {
+            get => _targetColorSpace;
+            set => SetProperty(ref _targetColorSpace, value, "目标颜色空间");
+        }
 
         public override ValidationResult Validate()
         {
@@ -44,13 +54,27 @@ namespace SunEyeVision.Tool.ColorConvert
         public Mat? OutputImage { get; set; }
         public string TargetColorSpaceUsed { get; set; } = "";
         public int OutputChannels { get; set; }
+        public int InputChannels { get; set; }
+
+        /// <summary>
+        /// 获取结果项列表
+        /// </summary>
+        public override IReadOnlyList<ResultItem> GetResultItems()
+        {
+            var items = new List<ResultItem>();
+            items.AddText("TargetColorSpaceUsed", TargetColorSpaceUsed);
+            items.AddNumeric("InputChannels", InputChannels, "通道");
+            items.AddNumeric("OutputChannels", OutputChannels, "通道");
+            items.AddNumeric("ExecutionTimeMs", ExecutionTimeMs, "ms");
+            return items;
+        }
     }
 
     #endregion
 
     #region 工具实现
 
-    [Tool("color_convert", "颜色空间转换", Description = "转换图像颜色空间", Icon = "🎨", Category = "图像处理")]
+    [Tool("color_convert", "颜色空间转换", Description = "转换图像颜色空间", Icon = "🎨", Category = "图像处理", Version = "2.0.0", HasDebugWindow = true)]
     public class ColorConvertTool : IToolPlugin<ColorConvertParameters, ColorConvertResults>
     {
         public bool HasDebugWindow => true;
@@ -67,11 +91,24 @@ namespace SunEyeVision.Tool.ColorConvert
 
             try
             {
+                // 验证参数
+                var validationResult = parameters.Validate();
+                if (!validationResult.IsValid)
+                {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    return result;
+                }
+
+                // 验证输入图像
                 if (image == null || image.Empty())
                 {
+                    parameters.LogWarning("输入图像为空");
                     result.SetError("输入图像为空");
                     return result;
                 }
+
+                parameters.LogInfo($"开始颜色空间转换: {image.Channels()}通道 → {parameters.TargetColorSpace}");
 
                 var outputImage = new Mat();
                 var colorCode = GetColorConversionCode(parameters.TargetColorSpace, image.Channels());
@@ -79,12 +116,18 @@ namespace SunEyeVision.Tool.ColorConvert
 
                 result.OutputImage = outputImage;
                 result.TargetColorSpaceUsed = parameters.TargetColorSpace;
+                result.InputChannels = image.Channels();
                 result.OutputChannels = outputImage.Channels();
                 result.SetSuccess(stopwatch.ElapsedMilliseconds);
+
+                parameters.LogInfo($"颜色空间转换完成: 输出{result.OutputChannels}通道, 耗时{stopwatch.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
+                stopwatch.Stop();
+                parameters.LogError($"颜色空间转换异常: {ex.Message}", ex);
                 result.SetError($"处理失败: {ex.Message}");
+                result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
             }
 
             return result;

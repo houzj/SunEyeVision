@@ -217,10 +217,10 @@ namespace SunEyeVision.UI.Views.Windows
         /// </summary>
         private List<RuntimeParameterMetadata>? GetParameterMetadataFromAlgorithmType()
         {
-            if (_toolMetadata?.AlgorithmType == null)
+            if (_toolMetadata?.ToolType == null)
                 return null;
 
-            var toolType = _toolMetadata.AlgorithmType;
+            var toolType = _toolMetadata.ToolType;
             
             // 尝试从泛型接口 ITool<TParams, TResult> 获取参数类型
             var interfaces = toolType.GetInterfaces();

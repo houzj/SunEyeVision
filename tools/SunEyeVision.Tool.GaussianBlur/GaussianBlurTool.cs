@@ -75,6 +75,22 @@ namespace SunEyeVision.Tool.GaussianBlur
         public Mat? OutputImage { get; set; }
         public int KernelSizeUsed { get; set; }
         public double SigmaUsed { get; set; }
+        public int InputWidth { get; set; }
+        public int InputHeight { get; set; }
+
+        /// <summary>
+        /// 获取结果项列表
+        /// </summary>
+        public override IReadOnlyList<ResultItem> GetResultItems()
+        {
+            var items = new List<ResultItem>();
+            items.AddNumeric("KernelSizeUsed", KernelSizeUsed, "像素");
+            items.AddNumeric("SigmaUsed", SigmaUsed, "标准差");
+            items.AddNumeric("InputWidth", InputWidth, "像素");
+            items.AddNumeric("InputHeight", InputHeight, "像素");
+            items.AddNumeric("ExecutionTimeMs", ExecutionTimeMs, "ms");
+            return items;
+        }
     }
 
     #endregion
@@ -105,8 +121,19 @@ namespace SunEyeVision.Tool.GaussianBlur
 
             try
             {
+                // 验证参数
+                var validationResult = parameters.Validate();
+                if (!validationResult.IsValid)
+                {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    return result;
+                }
+
+                // 验证输入图像
                 if (image == null || image.Empty())
                 {
+                    parameters.LogWarning("输入图像为空");
                     result.SetError("输入图像为空");
                     return result;
                 }
@@ -119,17 +146,19 @@ namespace SunEyeVision.Tool.GaussianBlur
                 result.OutputImage = outputImage;
                 result.KernelSizeUsed = parameters.KernelSize;
                 result.SigmaUsed = parameters.Sigma;
-                
+                result.InputWidth = image.Width;
+                result.InputHeight = image.Height;
+
                 stopwatch.Stop();
                 result.SetSuccess(stopwatch.ElapsedMilliseconds);
 
-                parameters.LogInfo($"高斯模糊处理完成，耗时 {stopwatch.ElapsedMilliseconds}ms");
+                parameters.LogSuccess($"高斯模糊处理完成: {result.InputWidth}x{result.InputHeight}, 耗时{stopwatch.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                parameters.LogError($"处理失败: {ex.Message}", ex);
-                result.SetError($"处理失败: {ex.Message}");
+                parameters.LogError($"高斯模糊异常: {ex.Message}", ex);
+                result.SetError($"处理失败: {ex.Message}", ex);
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
             }
 

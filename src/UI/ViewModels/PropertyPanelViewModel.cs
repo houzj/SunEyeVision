@@ -343,10 +343,10 @@ namespace SunEyeVision.UI.ViewModels
             try
             {
                 var toolMetadata = ToolRegistry.GetToolMetadata(algorithmType);
-                if (toolMetadata?.AlgorithmType != null)
+                if (toolMetadata?.ToolType != null)
                 {
                     // 从 AlgorithmType 获取参数类型并反射获取范围信息
-                    var toolType = toolMetadata.AlgorithmType;
+                    var toolType = toolMetadata.ToolType;
                     var interfaces = toolType.GetInterfaces();
                     
                     foreach (var iface in interfaces)

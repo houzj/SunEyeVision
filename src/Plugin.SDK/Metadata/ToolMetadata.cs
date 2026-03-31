@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Plugin.SDK.Metadata
@@ -55,7 +56,27 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         /// 算法类型必须实现 IToolPlugin 接口。
         /// 类型信息从 AlgorithmType 动态推断。
         /// </remarks>
-        public Type? AlgorithmType { get; set; }
+        public Type? ToolType { get; set; }
+
+        /// <summary>
+        /// 调试窗口类型 - 工具专用的调试窗口
+        /// </summary>
+        /// <remarks>
+        /// 工具可以指定自己的调试窗口类型，以便在节点双击时打开。
+        /// 如果为 null，则使用默认的调试窗口创建机制。
+        /// </remarks>
+        [JsonIgnore]
+        public Type? DebugWindowType { get; set; }
+
+        /// <summary>
+        /// 节点样式类型 - 工具专用的节点样式
+        /// </summary>
+        /// <remarks>
+        /// 工具可以指定自己的节点样式类型，以便节点根据工具类型使用不同的样式。
+        /// 如果为 null，则使用默认的 StandardNodeStyle。
+        /// </remarks>
+        [JsonIgnore]
+        public Type? NodeStyleType { get; set; }
 
         #endregion
 
@@ -73,7 +94,7 @@ namespace SunEyeVision.Plugin.SDK.Metadata
                 Description = description,
                 Icon = icon,
                 Category = category,
-                AlgorithmType = toolType
+                ToolType = toolType
             };
         }
 
@@ -108,7 +129,9 @@ namespace SunEyeVision.Plugin.SDK.Metadata
                 Description = Description,
                 Icon = Icon,
                 Category = Category,
-                AlgorithmType = AlgorithmType
+                ToolType = ToolType,
+                DebugWindowType = DebugWindowType,
+                NodeStyleType = NodeStyleType
             };
         }
 

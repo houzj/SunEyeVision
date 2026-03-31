@@ -13,7 +13,7 @@ using SunEyeVision.Tool.EdgeDetection.Views;
 
 namespace SunEyeVision.Tool.EdgeDetection
 {
-    [Tool("edge_detection", "边缘检测", Description = "检测图像中的边缘", Icon = "📐", Category = "图像处理")]
+    [Tool("edge_detection", "边缘检测", Description = "检测图像中的边缘", Icon = "📐", Category = "图像处理", Version = "2.0.0", HasDebugWindow = true)]
     public class EdgeDetectionTool : IToolPlugin<EdgeDetectionParameters, EdgeDetectionResults>
     {
         public bool HasDebugWindow => true;
@@ -30,11 +30,27 @@ namespace SunEyeVision.Tool.EdgeDetection
 
             try
             {
+                // 验证参数
+                var validationResult = parameters.Validate();
+                if (!validationResult.IsValid)
+                {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
+                    return result;
+                }
+
+                // 验证输入图像
                 if (image == null || image.Empty())
                 {
+                    parameters.LogWarning("输入图像为空");
                     result.SetError("输入图像为空");
                     return result;
                 }
+
+                parameters.LogInfo($"开始边缘检测: 阈值1={parameters.Threshold1}, 阈值2={parameters.Threshold2}, 孔径={parameters.ApertureSize}");
+
+                // 记录输入尺寸
+                result.InputSize = new OpenCvSharp.Size(image.Width, image.Height);
 
                 // 确保输入是灰度图
                 Mat grayImage = image;
@@ -42,6 +58,7 @@ namespace SunEyeVision.Tool.EdgeDetection
                 {
                     grayImage = new Mat();
                     Cv2.CvtColor(image, grayImage, ColorConversionCodes.BGR2GRAY);
+                    parameters.LogInfo($"已将图像转换为灰度，原图通道数: {image.Channels()}");
                 }
 
                 var outputImage = new Mat();
@@ -55,15 +72,21 @@ namespace SunEyeVision.Tool.EdgeDetection
                 result.Threshold1Used = parameters.Threshold1;
                 result.Threshold2Used = parameters.Threshold2;
                 result.ApertureSizeUsed = parameters.ApertureSize;
-                result.InputSize = new OpenCvSharp.Size(image.Width, image.Height);
+
+                stopwatch.Stop();
                 result.SetSuccess(stopwatch.ElapsedMilliseconds);
+
+                parameters.LogSuccess($"边缘检测完成: 检测到{result.EdgeCount}个边缘, 耗时{stopwatch.ElapsedMilliseconds}ms");
 
                 if (grayImage != image)
                     grayImage.Dispose();
             }
             catch (Exception ex)
             {
-                result.SetError($"处理失败: {ex.Message}");
+                stopwatch.Stop();
+                parameters.LogError($"边缘检测异常: {ex.Message}", ex);
+                result.SetError($"处理失败: {ex.Message}", ex);
+                result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
             }
 
             return result;
