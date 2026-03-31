@@ -4,7 +4,7 @@
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
         xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
-        Title="阈值化工具调试" Height="700" Width="400">
+        Title="阈值化工具调试" Height="600" Width="400">
     
     <ui:BaseToolDebugWindow.Tabs>
         <!-- Tab1: 输入配置 -->
@@ -21,7 +21,7 @@
                                FontWeight="Medium"
                                Margin="0,16,0,4"
                                Foreground="#333333"/>
-                    <region:RegionEditorControl x:Name="regionEditor" Height="300"/>
+                    <region:RegionEditorControl x:Name="regionEditor" VerticalContentAlignment="Stretch"/>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

@@ -146,11 +146,11 @@ namespace SunEyeVision.Plugin.SDK.UI
 
             // 设置窗口属性
             Title = "工具调试";
-            Height = 500;
+            Height = 700;
             Width = 400;
             MinHeight = 400;
             MinWidth = 350;
-            MaxHeight = 600;
+            MaxHeight = 900;
             MaxWidth = 450;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
@@ -175,29 +175,8 @@ namespace SunEyeVision.Plugin.SDK.UI
 
             // 主Grid
             var mainGrid = new Grid();
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            // 标题栏
-            var titleBorder = new Border
-            {
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E0E0E0")),
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                Padding = new Thickness(12, 6, 12, 6)
-            };
-            Grid.SetRow(titleBorder, 0);
-
-            PART_TitleText = new TextBlock
-            {
-                FontSize = 16,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#333333")),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            titleBorder.Child = PART_TitleText;
-            mainGrid.Children.Add(titleBorder);
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
 
             // TabControl
             _tabControl = new TabControl
@@ -210,7 +189,7 @@ namespace SunEyeVision.Plugin.SDK.UI
                 Source = this,
                 Path = new PropertyPath(nameof(Tabs))
             });
-            Grid.SetRow(_tabControl, 1);
+            Grid.SetRow(_tabControl, 0);
             mainGrid.Children.Add(_tabControl);
 
             // 底部按钮栏
@@ -221,7 +200,7 @@ namespace SunEyeVision.Plugin.SDK.UI
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(12, 8, 12, 8)
             };
-            Grid.SetRow(bottomBorder, 2);
+            Grid.SetRow(bottomBorder, 1);
 
             var buttonPanel = new StackPanel
             {

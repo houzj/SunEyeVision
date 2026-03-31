@@ -759,7 +759,6 @@ namespace SunEyeVision.UI.ViewModels
         public ICommand RedoCommand { get; }
         public ICommand DeleteSelectedNodesCommand { get; }
         public ICommand OpenDebugWindowCommand { get; }
-        public ICommand ToggleBoundingRectangleCommand { get; }
         public ICommand TogglePathPointsCommand { get; }
 
         // 所有工作流
@@ -887,7 +886,6 @@ namespace SunEyeVision.UI.ViewModels
             RedoCommand = new RelayCommand(ExecuteRedo, CanExecuteRedo);
             DeleteSelectedNodesCommand = new RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
             OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
-            ToggleBoundingRectangleCommand = new RelayCommand(ExecuteToggleBoundingRectangle);
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
 
             // 所有工作流
@@ -2739,42 +2737,6 @@ namespace SunEyeVision.UI.ViewModels
             return "Mat";
         }
 
-        /// <summary>
-        /// 切换显示包围矩形
-        /// </summary>
-        private void ExecuteToggleBoundingRectangle()
-        {
-            AddLog("[ToggleBoundingRectangle] ========== 切换显示包围矩形 ==========");
-
-            try
-            {
-                var mainWindow = System.Windows.Application.Current.MainWindow as Views.Windows.MainWindow;
-                if (mainWindow == null)
-                {
-                    AddLog("[ToggleBoundingRectangle] ❌ MainWindow为null");
-                    return;
-                }
-
-                AddLog("[ToggleBoundingRectangle] 获取 MainWindow 成功");
-
-                // 使用 MainWindow 获取当前 WorkflowCanvasControl
-                var workflowCanvas = mainWindow.GetCurrentWorkflowCanvas();
-                if (workflowCanvas == null)
-                {
-                    AddLog("[ToggleBoundingRectangle] 无法获取 WorkflowCanvasControl");
-                    return;
-                }
-
-                AddLog("[ToggleBoundingRectangle] 获取 WorkflowCanvasControl 成功");
-
-                ToggleBoundingRectangleOnCanvas(workflowCanvas);
-            }
-            catch (Exception ex)
-            {
-                AddLog($"[ToggleBoundingRectangle] 错误: {ex.Message}");
-                AddLog($"[ToggleBoundingRectangle] 堆栈: {ex.StackTrace}");
-            }
-        }
 
         /// <summary>
         /// 在指定的 WorkflowCanvasControl 中切换显示包围矩形
@@ -3345,21 +3307,6 @@ namespace SunEyeVision.UI.ViewModels
                 if (!ShowImagePreview)
                 {
                     ShowImagePreview = true;
-                }
-                return;
-            }
-
-            // 2.5 选中图像采集节点时，隐藏图像预览（相机实时采集不需要预览器）
-            if (selectedNode.IsImageCaptureNode)
-            {
-                if (ShowImagePreview || ActiveInputSource != null || _currentDisplayNodeId != null)
-                {
-                    ShowImagePreview = false;
-                    ActiveInputSource = null;
-#pragma warning disable CS0618 // 向后兼容
-                    ActiveNodeImageData = null;
-#pragma warning restore CS0618
-                    _currentDisplayNodeId = null;
                 }
                 return;
             }

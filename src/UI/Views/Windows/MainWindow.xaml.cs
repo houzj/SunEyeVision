@@ -1,46 +1,4 @@
-﻿public void UpdateImagePreviewVisibility(Models.WorkflowNode? selectedNode)
-{
-    // 情况1: 没有选中节点 → 隐藏
-    if (selectedNode == null)
-    {
-        ShowImagePreview = false;
-        ActiveInputSource = null;
-        return;
-    }
-
-    // 情况2: 选中图像载入节点 → 显示
-    if (selectedNode.IsImageLoadNode)
-    {
-        var inputSource = selectedNode.EnsureInputSource();
-        inputSource.PrepareForDisplay();  // 清空缩略图
-        ActiveInputSource = inputSource;
-        ShowImagePreview = true;
-        return;
-    }
-
-    // 情况3: 选中图像采集节点 → 隐藏
-    if (selectedNode.IsImageCaptureNode)
-    {
-        ShowImagePreview = false;
-        ActiveInputSource = null;
-        return;
-    }
-
-    // 情况4: 选中处理节点 → 查找上游图像载入节点
-    var sourceLoadNode = FindUpstreamImageLoadNode(selectedNode);
-    if (sourceLoadNode != null)
-    {
-        var sourceInputSource = sourceLoadNode.InputSource ?? sourceLoadNode.EnsureInputSource();
-        sourceInputSource.PrepareForDisplay();  // 清空缩略图
-        ActiveInputSource = sourceInputSource;
-        ShowImagePreview = true;
-    }
-    else
-    {
-        ShowImagePreview = false;
-        ActiveInputSource = null;
-    }
-}
+﻿
 using System;
 using System.IO;
 
@@ -174,6 +132,9 @@ namespace SunEyeVision.UI.Views.Windows
             SwitchToDefaultConfiguration();
 
         }
+
+
+
 
 
 

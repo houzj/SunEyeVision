@@ -51,14 +51,14 @@
                                             Minimum="0" Maximum="9999"
                                             SmallChange="1" LargeChange="10"
                                             DecimalPlaces="3"
-                                            Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                            Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                         <ctrl:NumericUpDown Grid.Column="3"
                                             Value="{Binding Parameters.CenterY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                             Minimum="0" Maximum="9999"
                                             SmallChange="1" LargeChange="10"
                                             DecimalPlaces="3"
-                                            Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                            Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                     </Grid>
                 </Border>
 
@@ -83,14 +83,14 @@
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="高度:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
                                                 Value="{Binding Parameters.Height, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -114,7 +114,7 @@
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -142,14 +142,14 @@
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="高度:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
                                                 Value="{Binding Parameters.Height, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="1" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         </Grid>
 
                         <!-- 旋转角度 -->
@@ -199,14 +199,14 @@
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
                                                 Value="{Binding Parameters.StartY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         </Grid>
 
                         <!-- 终点 -->
@@ -223,14 +223,14 @@
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                             <TextBlock Grid.Column="2" Text="Y:" Style="{StaticResource LabelStyle}" Margin="8,2,4,2"/>
                             <ctrl:NumericUpDown Grid.Column="3"
                                                 Value="{Binding Parameters.EndY, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                                 Minimum="0" Maximum="9999"
                                                 SmallChange="1" LargeChange="10"
                                                 DecimalPlaces="3"
-                                                Width="100" Height="24" Margin="4,2" HorizontalAlignment="Left"/>
+                                                Width="100" Margin="4,2" HorizontalAlignment="Left"/>
                         </Grid>
 
                         <!-- 长度信息 -->
