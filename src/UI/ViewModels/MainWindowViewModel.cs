@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -1271,6 +1272,7 @@ namespace SunEyeVision.UI.ViewModels
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
 
                 // 1. 如果没有当前解决方案，弹出新建对话框
+                SolutionMetadata? metadata = null;
                 if (solutionManager.CurrentSolution == null)
                 {
                     LogInfo("没有当前解决方案，弹出新建对话框");
@@ -1284,32 +1286,40 @@ namespace SunEyeVision.UI.ViewModels
 
                     if (dialog.ShowDialog() == true)
                     {
-                        // 创建新解决方案
-                        var metadata = new SolutionMetadata
+                        // 创建新解决方案元数据
+                        metadata = new SolutionMetadata
                         {
                             Name = dialog.SolutionName,
                             Description = dialog.Description ?? "",
                             DirectoryPath = dialog.SolutionPath
                         };
 
-                        var newMetadata = solutionManager.CreateNewSolution(metadata);
-                        LogSuccess($"创建新解决方案: {newMetadata.Name}");
+                        // 构建文件路径
+                        var filePath = string.IsNullOrEmpty(metadata.FilePath)
+                            ? Path.Combine(metadata.DirectoryPath, $"{metadata.Name}.solution")
+                            : metadata.FilePath;
 
-                        // 加载新创建的解决方案（不触发OpenSolution事件，避免UI被清空）
-                        var solution = solutionManager.LoadSolutionOnly(newMetadata.FilePath);
-                        if (solution == null)
-                        {
-                            LogError("加载新创建的解决方案失败");
-                            return;
-                        }
+                        // ✅ 直接创建 Solution 对象（不使用 CreateNewSolution）
+                        // CreateNewSolution 是用于解决方案管理器的"新建解决方案"功能，会创建默认工作流
+                        // 这里是"保存功能"，不应该创建默认工作流，而是同步 UI 中的数据
+                        var solution = SunEyeVision.Workflow.Solution.Create();
+                        solution.Version = metadata.Version;
+                        solution.FilePath = filePath;
 
-                        // 静默设置当前解决方案（不触发事件）
-                        solutionManager.SetCurrentSolutionSilently(solution, newMetadata.FilePath);
+                        // ✅ 不添加默认工作流，保持 Workflows 为空
 
-                        // 更新UI信息
-                        UpdateCurrentSolutionInfo();
+                        LogSuccess($"创建新解决方案对象: {metadata.Name}");
 
-                        LogSuccess($"已设置当前解决方案: {newMetadata.Name}");
+                        // ✅ 静默设置为当前解决方案（不触发事件）
+                        // 注意：SetCurrentSolutionSilently 会设置 CurrentSolution 和 CurrentFilePath
+                        solutionManager.SetCurrentSolutionSilently(solution, filePath);
+
+                        // ✅ 更新必要的UI属性（不调用 UpdateCurrentSolutionInfo，避免触发事件）
+                        CurrentSolutionName = metadata.Name;
+                        CurrentSolutionPath = filePath;
+                        OnPropertyChanged(nameof(HasCurrentSolution));
+
+                        LogSuccess($"已设置当前解决方案: {metadata.Name}");
                     }
                     else
                     {
@@ -1319,13 +1329,17 @@ namespace SunEyeVision.UI.ViewModels
                 }
 
                 // 2. 同步UI数据到Solution对象
+                // SaveSolutionData 会遍历 UI 中的 Tabs，为每个 Tab 创建 workflow 并同步节点
                 SaveSolutionData(solutionManager);
 
-                // 3. 保存解决方案
+                // 3. 保存解决方案（此时 Solution 已包含 UI 中的工作流和节点）
                 solutionManager.SaveSolution();
 
-                var savedMetadata = solutionManager.GetMetadata(solutionManager.CurrentSolution.Id);
-                LogSuccess($"已保存当前解决方案: {savedMetadata?.Name ?? "未命名"}");
+                // 4. 注册元数据（保存完成后注册）
+                // 注意：SaveSolution 已经自动注册元数据，这里不需要再次注册
+                // 因为 SaveSolution 内部会调用 _settings.KnownSolutions 和 _registry.Register
+                var solutionName = metadata?.Name ?? CurrentSolutionName;
+                LogSuccess($"已保存当前解决方案: {solutionName}");
             }
             catch (Exception ex)
             {
@@ -1450,6 +1464,33 @@ namespace SunEyeVision.UI.ViewModels
                 // ✅ 优化：连接数据通过直接绑定 Solution.Workflow.Connections 实现，自动同步，无需手动操作
                 // UI 层的 WorkflowTabViewModel.WorkflowConnections 直接引用 Solution 层的 workflow.Connections
                 // 删除、添加连接会自动同步到 Solution，保存时无需额外同步代码
+            }
+
+            // ✅ 删除 Solution 中所有不在 UI 标签页中的工作流（解决创建新方案时多余工作流的问题）
+            // 例如：创建新方案时默认创建的空"工作流1"会被删除，只保留UI中已编辑的工作流
+            // 注意：需要处理同名但不同 ID 的情况（重命名而不是删除）
+            var workflowsToRemove = solution.Workflows
+                .Where(w => !WorkflowTabViewModel.Tabs.Any(t => t.Id == w.Id))
+                .ToList();
+
+            foreach (var workflow in workflowsToRemove)
+            {
+                // 检查是否存在同名但不同 ID 的 UI 标签页
+                var existingTab = WorkflowTabViewModel.Tabs.FirstOrDefault(t => t.Name == workflow.Name && t.Id != workflow.Id);
+                
+                if (existingTab != null)
+                {
+                    // ✅ 存在同名工作流，重命名而不是删除（保留数据）
+                    LogWarning($"发现同名工作流: {workflow.Name} (SolutionId={workflow.Id}, UITabId={existingTab.Id})");
+                    LogWarning($"重命名 Solution 工作流以避免冲突: {workflow.Name} → {workflow.Name}_old");
+                    workflow.Name = $"{workflow.Name}_old";
+                }
+                else
+                {
+                    // ✅ 不存在同名工作流，可以安全删除
+                    LogInfo($"删除 Solution 中多余的工作流: {workflow.Name} (Id={workflow.Id})");
+                    solution.Workflows.Remove(workflow);
+                }
             }
         }
 
@@ -1588,8 +1629,23 @@ namespace SunEyeVision.UI.ViewModels
 
                 // 清空现有标签页
                 var oldTabCount = WorkflowTabViewModel.Tabs.Count;
+                
+                // 重置所有工作流的节点序号管理器（防止全局索引污染）
+                foreach (var tab in WorkflowTabViewModel.Tabs)
+                {
+                    if (tab.SequenceManager != null)
+                    {
+                        LogInfo($"重置工作流 {tab.Name} 的节点序号管理器");
+                        tab.SequenceManager.Reset();
+                    }
+                }
+                
                 WorkflowTabViewModel.Tabs.Clear();
                 LogInfo($"已清空 {oldTabCount} 个现有标签页");
+
+                // 重置工作流编号计数器（防止工作流序号污染）
+                WorkflowTabViewModel.ResetWorkflowNumberCounter();
+                LogInfo($"已重置工作流编号计数器");
 
                 // 为每个工作流创建标签页
                 int totalNodes = 0;

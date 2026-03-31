@@ -304,21 +304,7 @@
 
             <Separator/>
 
-            <!-- 视图控制组 -->
-            <Button ToolTip="放大" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomIn_Click">
-                <TextBlock Text="🔍+" FontSize="14" VerticalAlignment="Center"/>
-            </Button>
-            <Button ToolTip="缩小" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomOut_Click">
-                <TextBlock Text="🔍-" FontSize="14" VerticalAlignment="Center"/>
-            </Button>
-            <Button ToolTip="适应窗口" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomFit_Click">
-                <TextBlock Text="🗂️" FontSize="16" VerticalAlignment="Center"/>
-            </Button>
-            <Button ToolTip="100%" Padding="8,4" Margin="2" Style="{StaticResource SecondaryButton}" Click="ZoomReset_Click">
-                <TextBlock Text="1:1" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
-            </Button>
 
-            <Separator/>
 
             <!-- 画布切换组 - 已禁用，默认使用 WorkflowCanvasControl + BezierPathCalculator -->
             <!--

@@ -92,6 +92,15 @@ namespace SunEyeVision.UI.ViewModels
         /// </remarks>
         public void ResetToDefault()
         {
+            // 重置所有工作流的节点序号管理器（防止全局索引污染）
+            foreach (var tab in Tabs)
+            {
+                if (tab.SequenceManager != null)
+                {
+                    tab.SequenceManager.Reset();
+                }
+            }
+
             // 清空现有标签页
             Tabs.Clear();
 
@@ -109,6 +118,31 @@ namespace SunEyeVision.UI.ViewModels
             Tabs.Add(defaultWorkflow);
             SelectedTab = defaultWorkflow;
             _usedWorkflowNumbers.Add(1);
+        }
+
+        /// <summary>
+        /// 重置工作流编号计数器（防止方案切换时的编号污染）
+        /// </summary>
+        /// <remarks>
+        /// 用于加载新方案时重置工作流编号，确保新方案的工作流从1开始编号。
+        /// 与 ResetToDefault() 不同，此方法只重置编号计数器，不创建默认工作流。
+        /// </remarks>
+        public void ResetWorkflowNumberCounter()
+        {
+            // 重置计数器和已使用编号
+            _workflowCounter = 0;
+            _usedWorkflowNumbers.Clear();
+
+            // 从已加载的标签页中恢复编号（在加载方案后调用）
+            foreach (var tab in Tabs)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(tab.Name, @"工作流(\d+)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int number))
+                {
+                    _usedWorkflowNumbers.Add(number);
+                    _workflowCounter = Math.Max(_workflowCounter, number);
+                }
+            }
         }
 
         /// <summary>
