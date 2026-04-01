@@ -1,40 +1,39 @@
-<Solution>
-  <Folder Name="/src/" />
-  <Folder Name="/src/Core/">
-    <Project Path="src/Core/SunEyeVision.Core.csproj" />
+﻿<Solution>
+  <Folder Name="/Src/" />
+  <Folder Name="/Src/Core/">
+    <Project Path="Src/Core/SunEyeVision.Core.csproj" />
   </Folder>
-  <Folder Name="/src/DeviceDriver/">
-    <Project Path="src/DeviceDriver/SunEyeVision.DeviceDriver.csproj" />
+  <Folder Name="/Src/DeviceDriver/">
+    <Project Path="Src/DeviceDriver/SunEyeVision.DeviceDriver.csproj" />
   </Folder>
-  <Folder Name="/src/Plugin.Infrastructure/">
-    <Project Path="src/Plugin.Infrastructure/SunEyeVision.Plugin.Infrastructure.csproj" />
+  <Folder Name="/Src/Plugin.Infrastructure/">
+    <Project Path="Src/Plugin.Infrastructure/SunEyeVision.Plugin.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Plugin.SDK/">
-    <Project Path="src/Plugin.SDK/SunEyeVision.Plugin.SDK.csproj" />
+  <Folder Name="/Src/Plugin.SDK/">
+    <Project Path="Src/Plugin.SDK/SunEyeVision.Plugin.SDK.csproj" />
   </Folder>
-  <Folder Name="/src/UI/">
-    <Project Path="src/UI/SunEyeVision.UI.csproj" />
+  <Folder Name="/Src/UI/">
+    <Project Path="Src/UI/SunEyeVision.UI.csproj" />
   </Folder>
-  <Folder Name="/src/Workflow/">
-    <Project Path="src/Workflow/SunEyeVision.Workflow.csproj" />
+  <Folder Name="/Src/Workflow/">
+    <Project Path="Src/Workflow/SunEyeVision.Workflow.csproj" />
   </Folder>
-  <Folder Name="/tools/">
-    <Project Path="tools/DispatcherAnalyzer/DispatcherAnalyzer.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ColorConvert/SunEyeVision.Tool.ColorConvert.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.EdgeDetection/SunEyeVision.Tool.EdgeDetection.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.GaussianBlur/SunEyeVision.Tool.GaussianBlur.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ImageCapture/SunEyeVision.Tool.ImageCapture.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ImageLoad/SunEyeVision.Tool.ImageLoad.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ImageSave/SunEyeVision.Tool.ImageSave.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.OCR/SunEyeVision.Tool.OCR.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.RegionEditor/SunEyeVision.Tool.RegionEditor.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ROICrop/SunEyeVision.Tool.ROICrop.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.ROIEditor/SunEyeVision.Tool.ROIEditor.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.TemplateMatching/SunEyeVision.Tool.TemplateMatching.csproj" />
-    <Project Path="tools/SunEyeVision.Tool.Threshold/SunEyeVision.Tool.Threshold.csproj" />
+  <Folder Name="/Tools/">
+    <Project Path="Tools/SunEyeVision.Tool.ColorConvert/SunEyeVision.Tool.ColorConvert.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.EdgeDetection/SunEyeVision.Tool.EdgeDetection.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.GaussianBlur/SunEyeVision.Tool.GaussianBlur.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.ImageCapture/SunEyeVision.Tool.ImageCapture.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.ImageLoad/SunEyeVision.Tool.ImageLoad.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.ImageSave/SunEyeVision.Tool.ImageSave.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.OCR/SunEyeVision.Tool.OCR.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.RegionEditor/SunEyeVision.Tool.RegionEditor.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.ROICrop/SunEyeVision.Tool.ROICrop.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.ROIEditor/SunEyeVision.Tool.ROIEditor.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.TemplateMatching/SunEyeVision.Tool.TemplateMatching.csproj" />
+    <Project Path="Tools/SunEyeVision.Tool.Threshold/SunEyeVision.Tool.Threshold.csproj" />
   </Folder>
-  <Folder Name="/utilities/">
-    <Project Path="utilities/ApiDocGenerator/ApiDocGenerator.csproj" />
-    <Project Path="utilities/RuleChecker/RuleChecker.csproj" />
+  <Folder Name="/Utilities/">
+    <Project Path="Utilities/ApiDocGenerator/ApiDocGenerator.csproj" />
+    <Project Path="Utilities/DispatcherAnalyzer/DispatcherAnalyzer.csproj" />
   </Folder>
 </Solution>
