@@ -32,15 +32,15 @@
     <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
   </PropertyGroup>
 
-  <!-- 工具插件特殊配置 (通过项目路径识别：位于 tools/ 目录下) -->
-  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\tools\'))">
+  <!-- 工具插件特殊配置 (通过 IsToolPlugin 标记识别) -->
+  <PropertyGroup Condition="'$(IsToolPlugin)'=='true'">
     <!-- 工具插件输出到 plugins 子目录 -->
     <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\plugins\</OutDir>
     <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
   </PropertyGroup>
 
   <!-- 所有工具插件统一引用 System.Text.Json (用于 JsonDerivedType 特性) -->
-  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\tools\'))">
+  <ItemGroup Condition="'$(IsToolPlugin)'=='true'">
     <PackageReference Include="System.Text.Json" Version="10.0.3" />
   </ItemGroup>
 

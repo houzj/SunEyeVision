@@ -9,6 +9,10 @@
     <RootNamespace>SunEyeVision.Tool.ColorConvert</RootNamespace>
     <AssemblyName>SunEyeVision.Tool.ColorConvert</AssemblyName>
     <IsToolPlugin>true</IsToolPlugin>
+
+    <!-- 工具插件输出到 plugins 子目录 -->
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
