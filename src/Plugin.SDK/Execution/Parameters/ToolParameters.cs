@@ -11,129 +11,6 @@ using ValidationResult = SunEyeVision.Plugin.SDK.Validation.ValidationResult;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
-    /// <summary>
-    /// 参数范围特性
-    /// </summary>
-    /// <remarks>
-    /// 用于标注参数的有效范围，支持自动验证和UI生成。
-    /// 
-    /// 使用示例：
-    /// <code>
-    /// public class CircleFindParams : ToolParamsBase
-    /// {
-    ///     [ParameterRange(0.1, 1000.0)]
-    ///     public double MinRadius { get; set; } = 5.0;
-    ///     
-    ///     [ParameterRange(0.1, 1000.0)]
-    ///     public double MaxRadius { get; set; } = 50.0;
-    ///     
-    ///     [ParameterRange(0, 255)]
-    ///     public int Threshold { get; set; } = 128;
-    /// }
-    /// </code>
-    /// </remarks>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class ParameterRangeAttribute : Attribute
-    {
-        /// <summary>
-        /// 最小值
-        /// </summary>
-        public double Min { get; }
-
-        /// <summary>
-        /// 最大值
-        /// </summary>
-        public double Max { get; }
-
-        /// <summary>
-        /// 步进值（用于UI滑块）
-        /// </summary>
-        public double Step { get; set; } = 1.0;
-
-        /// <summary>
-        /// 单位（用于UI显示）
-        /// </summary>
-        public string? Unit { get; set; }
-
-        /// <summary>
-        /// 显示格式（用于UI显示）
-        /// </summary>
-        public string? DisplayFormat { get; set; }
-
-        /// <summary>
-        /// 创建参数范围特性
-        /// </summary>
-        /// <param name="min">最小值</param>
-        /// <param name="max">最大值</param>
-        public ParameterRangeAttribute(double min, double max)
-        {
-            Min = min;
-            Max = max;
-        }
-    }
-
-    /// <summary>
-    /// 参数显示特性 - UI渲染的唯一元数据来源
-    /// </summary>
-    /// <remarks>
-    /// 此特性与 ParameterRangeAttribute 配合使用，构成参数定义的唯一真实来源。
-    /// UI层通过反射读取这些特性生成界面，无需手动维护ParameterMetadata。
-    /// 
-    /// 使用示例：
-    /// <code>
-    /// [ParameterRange(0, 255, Step = 1)]
-    /// [ParameterDisplay(DisplayName = "阈值", Description = "二值化阈值", 
-    ///                   Group = "基本参数", Order = 1, SupportsBinding = true)]
-    /// public int Threshold { get; set; } = 128;
-    /// </code>
-    /// </remarks>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class ParameterDisplayAttribute : Attribute
-    {
-        /// <summary>
-        /// 显示名称（UI标签）
-        /// </summary>
-        public string? DisplayName { get; set; }
-
-        /// <summary>
-        /// 描述信息（工具提示）
-        /// </summary>
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// 分组名称（用于参数分组显示）
-        /// </summary>
-        public string? Group { get; set; }
-
-        /// <summary>
-        /// 显示顺序（越小越靠前）
-        /// </summary>
-        public int Order { get; set; } = int.MaxValue;
-
-        /// <summary>
-        /// 是否只读
-        /// </summary>
-        public bool IsReadOnly { get; set; }
-
-        /// <summary>
-        /// 是否高级参数（默认折叠）
-        /// </summary>
-        public bool IsAdvanced { get; set; }
-
-        /// <summary>
-        /// 是否支持调试模式下实时修改
-        /// </summary>
-        public bool EditableInDebug { get; set; } = true;
-
-        /// <summary>
-        /// 是否支持数据绑定（从上游节点获取值）
-        /// </summary>
-        public bool SupportsBinding { get; set; } = true;
-    }
-
-    /// <summary>
-    /// 工具参数基类
-    /// </summary>
     /// <remarks>
     /// 所有工具参数类的基类，提供参数验证、克隆、元数据功能和属性变更通知。
     /// 
@@ -204,28 +81,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public virtual ValidationResult Validate()
         {
             var result = new ValidationResult();
-            var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var prop in properties)
-            {
-                // 跳过Version和Context属性
-                if (prop.Name == nameof(Version) || prop.Name == nameof(Context)) continue;
-
-                var value = prop.GetValue(this);
-                var rangeAttr = prop.GetCustomAttribute<ParameterRangeAttribute>();
-
-                if (rangeAttr != null && value != null)
-                {
-                    double numValue = Convert.ToDouble(value);
-                    if (numValue < rangeAttr.Min || numValue > rangeAttr.Max)
-                    {
-                        var displayAttr = prop.GetCustomAttribute<ParameterDisplayAttribute>();
-                        var displayName = displayAttr?.DisplayName ?? prop.Name;
-                        result.AddError($"{displayName} 值 {numValue} 超出范围 [{rangeAttr.Min}, {rangeAttr.Max}]");
-                    }
-                }
-            }
-
+            // 子类重写此方法实现验证逻辑
             return result;
         }
 
@@ -265,84 +121,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             }
         }
 
-        /// <summary>
-        /// 获取运行时参数元数据
-        /// </summary>
-        public IReadOnlyList<RuntimeParameterMetadata> GetRuntimeParameterMetadata()
-        {
-            var metadata = new List<RuntimeParameterMetadata>();
-            var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var prop in properties)
-            {
-                if (prop.Name == nameof(Version) || prop.Name == nameof(Context)) continue;
-
-                var rangeAttr = prop.GetCustomAttribute<ParameterRangeAttribute>();
-                var displayAttr = prop.GetCustomAttribute<ParameterDisplayAttribute>();
-
-                metadata.Add(new RuntimeParameterMetadata
-                {
-                    Name = prop.Name,
-                    Type = prop.PropertyType,
-                    Value = prop.GetValue(this),
-                    Min = rangeAttr?.Min,
-                    Max = rangeAttr?.Max,
-                    Step = rangeAttr?.Step ?? 1.0,
-                    Unit = rangeAttr?.Unit,
-                    DisplayName = displayAttr?.DisplayName ?? prop.Name,
-                    Description = displayAttr?.Description,
-                    Group = displayAttr?.Group,
-                    Order = displayAttr?.Order ?? int.MaxValue,
-                    IsReadOnly = displayAttr?.IsReadOnly ?? false,
-                    IsAdvanced = displayAttr?.IsAdvanced ?? false,
-                    EditableInDebug = displayAttr?.EditableInDebug ?? true,
-                    SupportsBinding = displayAttr?.SupportsBinding ?? true
-                });
-            }
-
-            return metadata;
-        }
-
         #region 参数分类查询方法
-
-        /// <summary>
-        /// 获取所有输入参数属性
-        /// </summary>
-        public IEnumerable<PropertyInfo> GetInputParameterProperties()
-        {
-            return GetPropertiesByCategory(ParamCategory.Input);
-        }
-
-        /// <summary>
-        /// 获取所有输出参数属性
-        /// </summary>
-        public IEnumerable<PropertyInfo> GetOutputParameterProperties()
-        {
-            return GetPropertiesByCategory(ParamCategory.Output);
-        }
-
-        /// <summary>
-        /// 获取所有配置参数属性
-        /// </summary>
-        public IEnumerable<PropertyInfo> GetConfigParameterProperties()
-        {
-            return GetPropertiesByCategory(ParamCategory.Config);
-        }
-
-        /// <summary>
-        /// 获取所有运行时参数属性
-        /// </summary>
-        public IEnumerable<PropertyInfo> GetRuntimeParameterProperties()
-        {
-            return GetPropertiesByCategory(ParamCategory.Runtime);
-        }
 
         /// <summary>
         /// 获取可绑定的输入参数属性
         /// </summary>
         public IEnumerable<PropertyInfo> GetBindableInputProperties()
         {
-            return GetInputParameterProperties()
+            return GetAllParameterProperties()
                 .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)));
         }
 
@@ -361,8 +147,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public IEnumerable<PropertyInfo> GetDisplayableProperties()
         {
             return GetAllParameterProperties()
-                .Where(p => !p.IsDefined(typeof(IgnoreDisplayAttribute)))
-                .OrderBy(p => p.GetCustomAttribute<ParamAttribute>()?.Order ?? int.MaxValue);
+                .Where(p => !p.IsDefined(typeof(IgnoreDisplayAttribute)));
         }
 
         /// <summary>
@@ -372,19 +157,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             return GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.Name != nameof(Version));
-        }
-
-        /// <summary>
-        /// 根据分类获取参数属性
-        /// </summary>
-        private IEnumerable<PropertyInfo> GetPropertiesByCategory(ParamCategory category)
-        {
-            return GetAllParameterProperties()
-                .Where(p =>
-                {
-                    var paramAttr = p.GetCustomAttribute<ParamAttribute>();
-                    return paramAttr != null && paramAttr.Category == category;
-                });
         }
 
         #endregion
@@ -407,8 +179,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             foreach (var prop in properties)
             {
                 var value = prop.GetValue(this);
-                var displayAttr = prop.GetCustomAttribute<ParameterDisplayAttribute>();
-                var displayName = displayAttr?.DisplayName ?? prop.Name;
+                var displayName = prop.Name;
                 
                 // 简化显示
                 var valueStr = value switch
@@ -448,12 +219,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             var prop = GetType().GetProperty(propertyName);
             if (prop == null) return false;
 
-            var paramAttr = prop.GetCustomAttribute<ParamAttribute>();
-            if (paramAttr == null) return false;
-
-            // 只有输入参数且没有IgnoreBind标记的才支持绑定
-            return paramAttr.Category == ParamCategory.Input && 
-                   !prop.IsDefined(typeof(IgnoreBindAttribute));
+            // 没有IgnoreBind标记的参数都支持绑定
+            return !prop.IsDefined(typeof(IgnoreBindAttribute));
         }
 
         /// <summary>
@@ -467,91 +234,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// 运行时参数元数据 - 用于运行时参数值跟踪和内省
-    /// </summary>
-    /// <remarks>
-    /// UI层直接使用此结构进行渲染，无需额外的ParameterMetadata层。
-    /// 数据来源于ToolParameters属性上的特性标注。
-    /// </remarks>
-    public sealed class RuntimeParameterMetadata
-    {
-        /// <summary>
-        /// 参数名称
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 参数类型
-        /// </summary>
-        public Type Type { get; set; } = typeof(object);
-
-        /// <summary>
-        /// 当前值
-        /// </summary>
-        public object? Value { get; set; }
-
-        /// <summary>
-        /// 最小值（如果适用）
-        /// </summary>
-        public double? Min { get; set; }
-
-        /// <summary>
-        /// 最大值（如果适用）
-        /// </summary>
-        public double? Max { get; set; }
-
-        /// <summary>
-        /// 步进值
-        /// </summary>
-        public double Step { get; set; } = 1.0;
-
-        /// <summary>
-        /// 单位
-        /// </summary>
-        public string? Unit { get; set; }
-
-        /// <summary>
-        /// 显示名称
-        /// </summary>
-        public string DisplayName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 描述
-        /// </summary>
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// 分组
-        /// </summary>
-        public string? Group { get; set; }
-
-        /// <summary>
-        /// 显示顺序
-        /// </summary>
-        public int Order { get; set; }
-
-        /// <summary>
-        /// 是否只读
-        /// </summary>
-        public bool IsReadOnly { get; set; }
-
-        /// <summary>
-        /// 是否高级参数
-        /// </summary>
-        public bool IsAdvanced { get; set; }
-
-        /// <summary>
-        /// 是否支持调试模式下实时修改
-        /// </summary>
-        public bool EditableInDebug { get; set; } = true;
-
-        /// <summary>
-        /// 是否支持数据绑定
-        /// </summary>
-        public bool SupportsBinding { get; set; } = true;
     }
 
     /// <summary>

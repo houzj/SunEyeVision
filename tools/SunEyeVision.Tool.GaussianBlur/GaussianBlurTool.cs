@@ -29,8 +29,6 @@ namespace SunEyeVision.Tool.GaussianBlur
         /// <summary>
         /// 高斯核大小，必须为奇数
         /// </summary>
-        [ParameterRange(3, 99, Step = 2)]
-        [ParameterDisplay(DisplayName = "核大小", Description = "高斯核大小，必须为奇数", Group = "基本参数", Order = 1)]
         public int KernelSize
         {
             get => _kernelSize;
@@ -45,8 +43,6 @@ namespace SunEyeVision.Tool.GaussianBlur
         /// <summary>
         /// 高斯核的标准差
         /// </summary>
-        [ParameterRange(0.1, 10.0, Step = 0.1)]
-        [ParameterDisplay(DisplayName = "标准差", Description = "高斯核的标准差", Group = "基本参数", Order = 2)]
         public double Sigma
         {
             get => _sigma;
@@ -71,7 +67,6 @@ namespace SunEyeVision.Tool.GaussianBlur
     /// </summary>
     public class GaussianBlurResults : ToolResults
     {
-        [SunEyeVision.Plugin.SDK.Metadata.Param(DisplayName = "输出图像", Description = "模糊处理后的图像", Category = SunEyeVision.Plugin.SDK.Metadata.ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public int KernelSizeUsed { get; set; }
         public double SigmaUsed { get; set; }

@@ -27,7 +27,6 @@ namespace SunEyeVision.Tool.ImageLoad
         /// <summary>
         /// 图像文件路径
         /// </summary>
-        [ParameterDisplay(DisplayName = "文件路径", Description = "要载入的图像文件路径", Group = "基本参数", Order = 1)]
         public string FilePath
         {
             get => _filePath;
@@ -50,7 +49,6 @@ namespace SunEyeVision.Tool.ImageLoad
     /// </summary>
     public class ImageLoadResults : ToolResults
     {
-        [Param(DisplayName = "输出图像", Description = "载入的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         public int Width { get; set; }

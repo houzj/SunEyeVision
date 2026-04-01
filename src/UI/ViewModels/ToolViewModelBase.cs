@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Input;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
@@ -277,25 +278,54 @@ namespace SunEyeVision.UI.ViewModels
             if (parameters == null)
                 return;
 
-            var runtimeParams = parameters.GetRuntimeParameterMetadata();
-            foreach (var param in runtimeParams)
+            // 获取所有参数属性（排除Version和Context）
+            var parameterProperties = parameters.GetAllParameterProperties();
+            foreach (var prop in parameterProperties)
             {
-                ParameterBindingViewModelBase bindingVm;
+                if (prop.Name == nameof(Version) || prop.Name == "Context")
+                    continue;
 
-                // 检查是否为图像类型
-                if (_imageDataSourceService != null && ImageDataSourceService.IsImageType(param.Type))
+                try
                 {
-                    // 创建图像参数绑定
-                    bindingVm = CreateImageParameterBinding(param);
-                }
-                else
-                {
-                    // 创建普通参数绑定
-                    bindingVm = CreateStandardParameterBinding(param);
-                }
+                    var value = prop.GetValue(parameters);
+                    var paramType = prop.PropertyType;
+                    var paramValue = value;
 
-                bindingVm.BindingChanged += OnBindingChanged;
-                ParameterBindings.Add(bindingVm);
+                    // 检查是否标记为不显示
+                    var hasIgnoreDisplayAttr = prop.GetCustomAttribute<IgnoreDisplayAttribute>() != null;
+
+                    // 检查是否为图像类型
+                    if (_imageDataSourceService != null && ImageDataSourceService.IsImageType(paramType))
+                    {
+                        // 创建图像参数绑定
+                        var bindingVm = CreateImageParameterBinding(
+                            prop.Name,
+                            prop.Name,  // 使用属性名作为显示名
+                            paramType,
+                            null,
+                            paramValue
+                        );
+                        bindingVm.BindingChanged += OnBindingChanged;
+                        ParameterBindings.Add(bindingVm);
+                    }
+                    else if (!hasIgnoreDisplayAttr)
+                    {
+                        // 创建普通参数绑定
+                        var bindingVm = CreateStandardParameterBinding(
+                            prop.Name,
+                            prop.Name,  // 使用属性名作为显示名
+                            paramType,
+                            paramValue,
+                            null
+                        );
+                        bindingVm.BindingChanged += OnBindingChanged;
+                        ParameterBindings.Add(bindingVm);
+                    }
+                }
+                catch
+                {
+                    // 读取属性失败，跳过
+                }
             }
 
             // 加载数据源
@@ -369,33 +399,39 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 创建图像参数绑定ViewModel
         /// </summary>
-        protected virtual ImageParameterBindingViewModel CreateImageParameterBinding(RuntimeParameterMetadata param)
+        protected virtual ImageParameterBindingViewModel CreateImageParameterBinding(
+            string name,
+            string displayName,
+            Type type,
+            string? description,
+            object? value)
         {
             return new ImageParameterBindingViewModel(
-                param.Name,
-                param.DisplayName,
+                name,
+                displayName,
                 _dataSourceQueryService!,
                 _thumbnailLoader,
-                param.Type,
-                param.Description);
+                type,
+                description);
         }
 
         /// <summary>
         /// 创建标准参数绑定ViewModel
         /// </summary>
-        protected virtual ParameterBindingViewModel CreateStandardParameterBinding(RuntimeParameterMetadata param)
+        protected virtual ParameterBindingViewModel CreateStandardParameterBinding(
+            string name,
+            string displayName,
+            Type type,
+            object? value,
+            string? description)
         {
             return new ParameterBindingViewModel(
-                param.Name,
-                param.DisplayName,
-                param.Type,
-                param.Value,
-                param.Description,
-                _dataSourceQueryService,
-                param.Min,
-                param.Max,
-                param.Step,
-                param.Unit);
+                name,
+                displayName,
+                type,
+                value,
+                description,
+                _dataSourceQueryService);
         }
 
         #endregion

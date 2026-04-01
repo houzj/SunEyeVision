@@ -468,11 +468,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         public IEnumerable<PropertyInfo> GetOutputParameterProperties()
         {
             return GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p =>
-                {
-                    var paramAttr = p.GetCustomAttribute<ParamAttribute>();
-                    return paramAttr != null && paramAttr.Category == ParamCategory.Output;
-                });
+                .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)));
         }
 
         /// <summary>

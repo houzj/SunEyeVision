@@ -225,12 +225,24 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         /// </summary>
         private void LoadFromToolParameters(ToolParameters parameters)
         {
-            var metadata = parameters.GetRuntimeParameterMetadata();
-            foreach (var param in metadata)
+            // 获取所有参数属性（排除Version和Context）
+            var properties = parameters.GetAllParameterProperties();
+            foreach (var prop in properties)
             {
-                if (param.Value != null)
+                if (prop.Name == "Version" || prop.Name == "Context")
+                    continue;
+
+                try
                 {
-                    ParamValues[param.Name] = param.Value;
+                    var value = prop.GetValue(parameters);
+                    if (value != null)
+                    {
+                        ParamValues[prop.Name] = value;
+                    }
+                }
+                catch
+                {
+                    // 读取失败，跳过该参数
                 }
             }
         }

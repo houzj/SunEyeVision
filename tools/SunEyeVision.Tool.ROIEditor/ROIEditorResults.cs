@@ -24,7 +24,6 @@ namespace SunEyeVision.Tool.ROIEditor
         /// <summary>
         /// 输出图像（带ROI标记）
         /// </summary>
-        [Param(DisplayName = "输出图像", Description = "带ROI标记的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         public override IReadOnlyList<ResultItem> GetResultItems()

@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using SunEyeVision.UI.Services.Logging;
 using SunEyeVision.UI.ViewModels;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.UI.Views.Controls.Panels
 {
@@ -403,8 +404,8 @@ namespace SunEyeVision.UI.Views.Controls.Panels
             // 参数配置
             if (node.Parameters != null)
             {
-                var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
-                if (runtimeMetadata.Count > 0)
+                var parameterProperties = node.Parameters.GetAllParameterProperties().ToList();
+                if (parameterProperties.Count > 0)
                 {
                     var paramGroup = new ModelsPropertyGroup
                     {
@@ -413,13 +414,24 @@ namespace SunEyeVision.UI.Views.Controls.Panels
                         Parameters = new ObservableCollection<ModelsPropertyItem>()
                     };
 
-                    foreach (var meta in runtimeMetadata)
+                    foreach (var prop in parameterProperties)
                     {
-                        paramGroup.Parameters.Add(new ModelsPropertyItem
+                        if (prop.Name == nameof(ToolParameters.Version) || prop.Name == nameof(ToolParameters.Context))
+                            continue;
+
+                        try
                         {
-                            Label = $"{meta.DisplayName}:",
-                            Value = meta.Value?.ToString() ?? ""
-                        });
+                            var value = prop.GetValue(node.Parameters);
+                            paramGroup.Parameters.Add(new ModelsPropertyItem
+                            {
+                                Label = $"{prop.Name}:",
+                                Value = value?.ToString() ?? ""
+                            });
+                        }
+                        catch
+                        {
+                            // 读取失败，跳过
+                        }
                     }
 
                     PropertyGroups.Add(paramGroup);

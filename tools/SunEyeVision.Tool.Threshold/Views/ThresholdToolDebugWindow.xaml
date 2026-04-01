@@ -8,7 +8,7 @@
     
     <ui:BaseToolDebugWindow.Tabs>
         <!-- Tab1: 输入配置 -->
-        <TabItem Header="输入配置" IsSelected="True">
+        <TabItem Header="基本参数" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
                     <controls:ImageSourceSelector
@@ -27,7 +27,7 @@
         </TabItem>
 
         <!-- Tab2: 阈值参数 -->
-        <TabItem Header="阈值参数">
+        <TabItem Header="运行参数">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
                     <controls:BindableParameter
@@ -67,7 +67,7 @@
         </TabItem>
 
         <!-- Tab3: 执行结果 -->
-        <TabItem Header="执行结果">
+        <TabItem Header="结果显示">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
                     <TextBlock Text="输出图像"

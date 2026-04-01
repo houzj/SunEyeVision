@@ -19,6 +19,7 @@
     <Project Path="Src/Workflow/SunEyeVision.Workflow.csproj" />
   </Folder>
   <Folder Name="/Tools/">
+    <Project Path="tools/SunEyeVision.Tool.Blob/SunEyeVision.Tool.Blob.csproj" />
     <Project Path="Tools/SunEyeVision.Tool.ColorConvert/SunEyeVision.Tool.ColorConvert.csproj" />
     <Project Path="Tools/SunEyeVision.Tool.EdgeDetection/SunEyeVision.Tool.EdgeDetection.csproj" />
     <Project Path="Tools/SunEyeVision.Tool.GaussianBlur/SunEyeVision.Tool.GaussianBlur.csproj" />

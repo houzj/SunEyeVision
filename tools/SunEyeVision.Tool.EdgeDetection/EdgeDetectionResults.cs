@@ -15,7 +15,6 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// 输出图像（边缘检测结果）
         /// </summary>
-        [Param(DisplayName = "输出图像", Description = "边缘检测处理后的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         /// <summary>

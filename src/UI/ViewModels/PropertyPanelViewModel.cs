@@ -259,13 +259,19 @@ namespace SunEyeVision.UI.ViewModels
             if (SelectedNode == null || SelectedNode.Parameters == null)
                 return;
 
-            // 从 ToolParameters 动态提取属性
-            var runtimeMetadata = SelectedNode.Parameters.GetRuntimeParameterMetadata();
-            foreach (var meta in runtimeMetadata)
+            // 使用反射直接获取属性
+            var properties = SelectedNode.Parameters.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.CanWrite)
+                .Where(p => p.Name != nameof(SelectedNode.Parameters.Version))
+                .OrderBy(p => p.Name);
+
+            foreach (var prop in properties)
             {
-                var type = meta.Type?.Name ?? "object";
-                var value = meta.Value?.ToString() ?? "";
-                Properties.Add(new PropertyItem(meta.DisplayName, value, type, true));
+                var type = prop.PropertyType?.Name ?? "object";
+                var value = prop.GetValue(SelectedNode.Parameters)?.ToString() ?? "";
+                var displayName = prop.Name;  // 使用属性名
+                Properties.Add(new PropertyItem(displayName, value, type, true));
             }
         }
 
@@ -360,20 +366,26 @@ namespace SunEyeVision.UI.ViewModels
                                 var defaultParams = Activator.CreateInstance(paramsType) as ToolParameters;
                                 if (defaultParams != null)
                                 {
-                                    var runtimeMetadata = defaultParams.GetRuntimeParameterMetadata();
-                                    foreach (var meta in runtimeMetadata)
+                                    // 使用反射直接获取属性
+                                    var properties = paramsType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                        .Where(p => p.CanRead && p.CanWrite)
+                                        .Where(p => p.Name != nameof(defaultParams.Version))
+                                        .OrderBy(p => p.Name);
+                                    
+                                    foreach (var prop in properties)
                                     {
+                                        var value = prop.GetValue(defaultParams);
                                         definitions.Add(new ParameterDefinition(
-                                            meta.Name,
-                                            meta.DisplayName,
-                                            meta.Type,
-                                            meta.Value,
-                                            meta.Description)
+                                            prop.Name,
+                                            prop.Name,
+                                            prop.PropertyType,
+                                            value,
+                                            "")
                                         {
-                                            Min = meta.Min,
-                                            Max = meta.Max,
-                                            Step = meta.Step,
-                                            Unit = meta.Unit
+                                            Min = null,
+                                            Max = null,
+                                            Step = 1.0,
+                                            Unit = null
                                         });
                                     }
                                     return definitions;

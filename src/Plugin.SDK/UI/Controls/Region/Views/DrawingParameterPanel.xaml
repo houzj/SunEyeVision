@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
              xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Models"
-             xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters"
+             xmlns:conv="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters"
              xmlns:ctrl="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls">
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <converters:ShapeTypeToVisibilityConverter x:Key="ShapeTypeToVisibilityConverter"/>
-        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <conv:ShapeTypeToVisibilityConverter x:Key="ShapeTypeToVisibilityConverter"/>
+        <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         
         <!-- 标签样式 -->

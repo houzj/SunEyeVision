@@ -20,15 +20,11 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// 第一个滞后阈值(0-255)
         /// </summary>
-        [ParameterRange(0, 255, Step = 1, Unit = "灰度值")]
-        [ParameterDisplay(DisplayName = "低阈值", Description = "Canny边缘检测的第一个滞后阈值", Group = "基本参数", Order = 1)]
         public double Threshold1 { get; set; } = 50.0;
 
         /// <summary>
         /// 第二个滞后阈值(0-255)
         /// </summary>
-        [ParameterRange(0, 255, Step = 1, Unit = "灰度值")]
-        [ParameterDisplay(DisplayName = "高阈值", Description = "Canny边缘检测的第二个滞后阈值", Group = "基本参数", Order = 2)]
         public double Threshold2 { get; set; } = 150.0;
 
         #endregion
@@ -38,8 +34,6 @@ namespace SunEyeVision.Tool.EdgeDetection
         /// <summary>
         /// Sobel算子的孔径大小(3、5、7)
         /// </summary>
-        [ParameterRange(3, 7, Step = 2)]
-        [ParameterDisplay(DisplayName = "孔径大小", Description = "Sobel算子的孔径大小(3、5、7)", Group = "高级参数", Order = 3, IsAdvanced = true)]
         public int ApertureSize { get; set; } = 3;
 
         #endregion

@@ -30,7 +30,6 @@ namespace SunEyeVision.Tool.RegionEditor
         /// <summary>
         /// 输出图像（带区域标记）
         /// </summary>
-        [Param(DisplayName = "输出图像", Description = "带区域标记的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         public override IReadOnlyList<ResultItem> GetResultItems()

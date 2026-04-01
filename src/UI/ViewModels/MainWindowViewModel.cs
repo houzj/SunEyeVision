@@ -1666,7 +1666,7 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         if (node.Parameters != null)
                         {
-                            totalParams += node.Parameters.GetRuntimeParameterMetadata().Count;
+                            totalParams += node.Parameters.GetAllParameterProperties().Count();
                         }
                     }
                 }
@@ -1887,14 +1887,25 @@ namespace SunEyeVision.UI.ViewModels
 
             if (node.Parameters != null)
             {
-                var runtimeMetadata = node.Parameters.GetRuntimeParameterMetadata();
-                foreach (var meta in runtimeMetadata)
+                var parameterProperties = node.Parameters.GetAllParameterProperties();
+                foreach (var prop in parameterProperties)
                 {
-                    paramGroup.Parameters.Add(new Models.PropertyItem
+                    if (prop.Name == nameof(ToolParameters.Version) || prop.Name == nameof(ToolParameters.Context))
+                        continue;
+
+                    try
                     {
-                        Label = meta.DisplayName,
-                        Value = meta.Value?.ToString() ?? ""
-                    });
+                        var value = prop.GetValue(node.Parameters);
+                        paramGroup.Parameters.Add(new Models.PropertyItem
+                        {
+                            Label = prop.Name,
+                            Value = value?.ToString() ?? ""
+                        });
+                    }
+                    catch
+                    {
+                        // 读取失败，跳过
+                    }
                 }
             }
             PropertyGroups.Add(paramGroup);

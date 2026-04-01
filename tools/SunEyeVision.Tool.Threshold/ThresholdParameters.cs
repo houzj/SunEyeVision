@@ -56,24 +56,16 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 二值化阈值(0-255)
         /// </summary>
-        [ParameterRange(0, 255, Step = 1)]
-        [ParameterDisplay(DisplayName = "阈值", Description = "二值化的阈值", Group = "基本参数", Order = 1)]
         public int Threshold
         {
             get => _threshold;
-            set
-            {
-                // 🔍 诊断日志：Threshold setter 被调用
-                System.Diagnostics.Debug.WriteLine($"[ThresholdParameters.Threshold] setter被调用: {_threshold} → {value}");
-                SetProperty(ref _threshold, value, "阈值");
-            }
+            set=> SetProperty(ref _threshold, value, "阈值");
+
         }
 
         /// <summary>
         /// 超过阈值时使用的最大值(0-255)
         /// </summary>
-        [ParameterRange(0, 255, Step = 1)]
-        [ParameterDisplay(DisplayName = "最大值", Description = "超过阈值时使用的最大值", Group = "基本参数", Order = 2)]
         public int MaxValue
         {
             get => _maxValue;
@@ -83,7 +75,6 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 二值化方法
         /// </summary>
-        [ParameterDisplay(DisplayName = "阈值类型", Description = "二值化方法", Group = "基本参数", Order = 3)]
         public ThresholdType Type
         {
             get => _type;
@@ -93,7 +84,6 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 是否反转二值化结果
         /// </summary>
-        [ParameterDisplay(DisplayName = "反转结果", Description = "是否反转二值化结果", Group = "基本参数", Order = 6)]
         public bool Invert
         {
             get => _invert;
@@ -107,7 +97,6 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 自适应阈值方法
         /// </summary>
-        [ParameterDisplay(DisplayName = "自适应方法", Description = "自适应阈值方法", Group = "高级参数", Order = 4, IsAdvanced = true)]
         public AdaptiveMethod AdaptiveMethod
         {
             get => _adaptiveMethod;
@@ -117,8 +106,6 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 计算阈值的邻域大小(奇数, 3-31)
         /// </summary>
-        [ParameterRange(3, 31, Step = 2)]
-        [ParameterDisplay(DisplayName = "块大小", Description = "计算阈值的邻域大小(奇数)", Group = "高级参数", Order = 5, IsAdvanced = true)]
         public int BlockSize
         {
             get => _blockSize;

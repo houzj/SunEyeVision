@@ -8,13 +8,12 @@ namespace SunEyeVision.UI.ViewModels
     /// <summary>
     /// 参数项ViewModel - 支持数据绑定配置
     /// </summary>
-    /// <remarks>
-    /// 重构说明：已改用 RuntimeParameterMetadata 替代 ParameterMetadata。
-    /// 参数元数据直接从 ToolParameters 特性读取，避免冗余层。
-    /// </remarks>
     public class ParameterItemViewModel : ObservableObject
     {
-        private readonly RuntimeParameterMetadata _metadata;
+        private readonly string _name;
+        private readonly string _displayName;
+        private readonly Type _type;
+        private readonly string? _description;
         private ParameterBinding _binding;
         private bool _isBindingPopupOpen;
 
@@ -23,32 +22,27 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 参数名称
         /// </summary>
-        public string Name => _metadata.Name;
+        public string Name => _name;
 
         /// <summary>
         /// 显示名称
         /// </summary>
-        public string DisplayName => _metadata.DisplayName;
+        public string DisplayName => _displayName;
 
         /// <summary>
         /// 参数描述
         /// </summary>
-        public string? Description => _metadata.Description;
-
-        /// <summary>
-        /// 参数分类
-        /// </summary>
-        public string? Category => _metadata.Group;
+        public string? Description => _description;
 
         /// <summary>
         /// 参数类型
         /// </summary>
-        public Type ParameterType => _metadata.Type;
+        public Type ParameterType => _type;
 
         /// <summary>
         /// 是否支持数据绑定
         /// </summary>
-        public bool SupportsBinding => _metadata.SupportsBinding;
+        public bool SupportsBinding => true;
 
         /// <summary>
         /// 当前绑定配置
@@ -212,39 +206,39 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 数值最小值
         /// </summary>
-        public double? MinValue => _metadata.Min;
+        public double? MinValue => null;
 
         /// <summary>
         /// 数值最大值
         /// </summary>
-        public double? MaxValue => _metadata.Max;
+        public double? MaxValue => null;
 
         /// <summary>
         /// 是否只读
         /// </summary>
-        public bool IsReadOnly => _metadata.IsReadOnly;
+        public bool IsReadOnly => false;
 
         /// <summary>
         /// 是否为数值类型
         /// </summary>
-        public bool IsNumericType => 
-            _metadata.Type == typeof(int) || _metadata.Type == typeof(long) ||
-            _metadata.Type == typeof(double) || _metadata.Type == typeof(float) || _metadata.Type == typeof(decimal);
+        public bool IsNumericType =>
+            _type == typeof(int) || _type == typeof(long) ||
+            _type == typeof(double) || _type == typeof(float) || _type == typeof(decimal);
 
         /// <summary>
         /// 是否为布尔类型
         /// </summary>
-        public bool IsBoolType => _metadata.Type == typeof(bool);
+        public bool IsBoolType => _type == typeof(bool);
 
         /// <summary>
         /// 是否为枚举类型
         /// </summary>
-        public bool IsEnumType => _metadata.Type.IsEnum;
+        public bool IsEnumType => _type.IsEnum;
 
         /// <summary>
         /// 是否为字符串类型
         /// </summary>
-        public bool IsStringType => _metadata.Type == typeof(string);
+        public bool IsStringType => _type == typeof(string);
 
         #endregion
 
@@ -252,15 +246,21 @@ namespace SunEyeVision.UI.ViewModels
 
         #region 构造函数
 
-        public ParameterItemViewModel(RuntimeParameterMetadata metadata)
+        public ParameterItemViewModel(string name, string displayName, Type type, object? value, string? description = null)
         {
-            _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
-            _binding = ParameterBinding.CreateConstant(metadata.Name, metadata.Value);
+            _name = name ?? throw new ArgumentNullException(nameof(name));
+            _displayName = displayName ?? name;
+            _type = type ?? throw new ArgumentNullException(nameof(type));
+            _description = description;
+            _binding = ParameterBinding.CreateConstant(name, value);
         }
 
-        public ParameterItemViewModel(RuntimeParameterMetadata metadata, ParameterBinding binding)
+        public ParameterItemViewModel(string name, string displayName, Type type, ParameterBinding binding, string? description = null)
         {
-            _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
+            _name = name ?? throw new ArgumentNullException(nameof(name));
+            _displayName = displayName ?? name;
+            _type = type ?? throw new ArgumentNullException(nameof(type));
+            _description = description;
             _binding = binding ?? throw new ArgumentNullException(nameof(binding));
         }
 

@@ -15,7 +15,6 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 输出图像（二值化后的图像）
         /// </summary>
-        [Param(DisplayName = "输出图像", Description = "二值化处理后的输出图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
 
         /// <summary>

@@ -30,7 +30,6 @@ namespace SunEyeVision.Tool.ImageCapture
         /// <summary>
         /// 相机设备ID
         /// </summary>
-        [ParameterDisplay(DisplayName = "相机ID", Description = "相机设备ID（0表示第一个相机）", Group = "基本参数", Order = 1)]
         public int CameraId
         {
             get => _cameraId;
@@ -40,8 +39,6 @@ namespace SunEyeVision.Tool.ImageCapture
         /// <summary>
         /// 采集超时时间
         /// </summary>
-        [ParameterRange(1000, 30000, Step = 1000)]
-        [ParameterDisplay(DisplayName = "超时时间", Description = "采集超时时间（毫秒）", Group = "基本参数", Order = 2)]
         public int Timeout
         {
             get => _timeout;
@@ -58,7 +55,6 @@ namespace SunEyeVision.Tool.ImageCapture
 
     public class ImageCaptureResults : ToolResults
     {
-        [Param(DisplayName = "输出图像", Description = "采集的图像数据", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public DateTime CaptureTime { get; set; }
         public int CameraIdUsed { get; set; }

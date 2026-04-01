@@ -31,7 +31,6 @@ namespace SunEyeVision.Tool.ImageSave
         /// <summary>
         /// 输出文件路径
         /// </summary>
-        [ParameterDisplay(DisplayName = "输出路径", Description = "图像保存的文件路径", Group = "基本参数", Order = 1)]
         public string OutputPath
         {
             get => _outputPath;
@@ -41,7 +40,6 @@ namespace SunEyeVision.Tool.ImageSave
         /// <summary>
         /// 输出文件格式
         /// </summary>
-        [ParameterDisplay(DisplayName = "输出格式", Description = "图像保存格式（png, jpg, bmp等）", Group = "基本参数", Order = 2)]
         public string OutputFormat
         {
             get => _outputFormat;

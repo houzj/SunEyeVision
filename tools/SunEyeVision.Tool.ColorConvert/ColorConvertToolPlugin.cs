@@ -31,7 +31,6 @@ namespace SunEyeVision.Tool.ColorConvert
         /// <summary>
         /// 目标颜色空间
         /// </summary>
-        [ParameterDisplay(DisplayName = "目标颜色空间", Description = "转换的目标颜色空间（GRAY, RGB, HSV, Lab, XYZ, YCrCb）", Group = "基本参数", Order = 1)]
         public string TargetColorSpace
         {
             get => _targetColorSpace;
@@ -50,7 +49,6 @@ namespace SunEyeVision.Tool.ColorConvert
 
     public class ColorConvertResults : ToolResults
     {
-        [Param(DisplayName = "输出图像", Description = "颜色空间转换后的图像", Category = ParamCategory.Output)]
         public Mat? OutputImage { get; set; }
         public string TargetColorSpaceUsed { get; set; } = "";
         public int OutputChannels { get; set; }
