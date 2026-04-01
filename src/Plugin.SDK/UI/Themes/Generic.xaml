@@ -626,4 +626,248 @@
         </Setter>
     </Style>
 
+    <!-- ToggleSwitch 样式 - 简洁专业版 -->
+    <Style TargetType="{x:Type controls:ToggleSwitch}">
+        <Setter Property="SwitchWidth" Value="42"/>
+        <Setter Property="SwitchHeight" Value="22"/>
+        <Setter Property="CornerRadius" Value="11"/>
+        <Setter Property="OnBackground" Value="#FF7F00"/>
+        <Setter Property="OffBackground" Value="#D9D9D9"/>
+        <Setter Property="ThumbColor" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ToggleSwitch}">
+                    <Border x:Name="SwitchBorder"
+                            Background="{TemplateBinding OffBackground}"
+                            BorderBrush="{TemplateBinding OffBackground}"
+                            BorderThickness="1"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Width="{TemplateBinding SwitchWidth}"
+                            Height="{TemplateBinding SwitchHeight}">
+                        <Grid>
+                            <!-- 滑块 -->
+                            <Border x:Name="ThumbBorder"
+                                    Background="{TemplateBinding ThumbColor}"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Width="{Binding SwitchHeight, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Height="{Binding SwitchHeight, RelativeSource={RelativeSource TemplatedParent}}"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="1,0"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- 开启状态 -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SwitchBorder" Property="Background" 
+                                    Value="{Binding OnBackground, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <Setter TargetName="SwitchBorder" Property="BorderBrush" 
+                                    Value="{Binding OnBackground, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <Setter TargetName="ThumbBorder" Property="HorizontalAlignment" Value="Right"/>
+                        </Trigger>
+                        <!-- 禁用状态 -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="SwitchBorder" Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                        <!-- 深色主题 - 关闭状态 -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsDarkTheme" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="SwitchBorder" Property="Background" Value="#555555"/>
+                            <Setter TargetName="SwitchBorder" Property="BorderBrush" Value="#555555"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- RangeSlider 样式 -->
+    <Style TargetType="{x:Type controls:RangeSlider}">
+        <Setter Property="Height" Value="22"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:RangeSlider}">
+                    <!-- 使用 Canvas 支持滑块绝对定位 -->
+                    <Canvas x:Name="PART_Canvas"
+                            Height="22"
+                            VerticalAlignment="Center">
+                        
+                        <!-- 轨道 -->
+                        <Border x:Name="PART_Track"
+                                Canvas.Top="9"
+                                Height="4"
+                                Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                Background="#E0E0E0"
+                                CornerRadius="2"/>
+
+                        <!-- 选中范围填充 -->
+                        <Border x:Name="PART_RangeFill"
+                                Canvas.Top="9"
+                                Height="4"
+                                Background="{StaticResource PrimaryBrush}"
+                                CornerRadius="2"/>
+
+                        <!-- 最小值滑块 -->
+                        <Thumb x:Name="PART_MinThumb"
+                               Canvas.Top="1"
+                               Width="14"
+                               Height="20"
+                               Background="White"
+                               BorderBrush="{StaticResource PrimaryBrush}"
+                               BorderThickness="2"
+                               Cursor="Hand">
+                            <Thumb.Style>
+                                <Style TargetType="Thumb">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="2"/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Thumb.Style>
+                        </Thumb>
+
+                        <!-- 最大值滑块 -->
+                        <Thumb x:Name="PART_MaxThumb"
+                               Canvas.Top="1"
+                               Width="14"
+                               Height="20"
+                               Background="White"
+                               BorderBrush="{StaticResource PrimaryBrush}"
+                               BorderThickness="2"
+                               Cursor="Hand">
+                            <Thumb.Style>
+                                <Style TargetType="Thumb">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="2"/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Thumb.Style>
+                        </Thumb>
+                    </Canvas>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- RangeInputControl 样式 -->
+    <Style TargetType="{x:Type controls:RangeInputControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:RangeInputControl}">
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,0,8">
+                        <StackPanel>
+                            <!-- 第一行：标签 + 数值输入 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 标签 -->
+                                <TextBlock Grid.Column="0"
+                                           Text="{TemplateBinding Label}"
+                                           Style="{StaticResource LabelStyle}"
+                                           MinWidth="60"
+                                           Margin="0,0,12,0"/>
+
+                                <!-- 最小值输入 -->
+                                <controls:NumericUpDown x:Name="PART_MinNumeric"
+                                                        Grid.Column="1"
+                                                        Width="80"
+                                                        Value="{Binding MinValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                        Minimum="{TemplateBinding Minimum}"
+                                                        Maximum="{TemplateBinding Maximum}"
+                                                        SmallChange="{TemplateBinding SmallChange}"
+                                                        LargeChange="{TemplateBinding LargeChange}"
+                                                        DecimalPlaces="{TemplateBinding DecimalPlaces}"
+                                                        ShowSlider="False"
+                                                        ShowUpDownButtons="True"/>
+
+                                <!-- 分隔符 -->
+                                <TextBlock Grid.Column="2"
+                                           Text="-"
+                                           Margin="4,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource LabelSecondaryBrush}"/>
+
+                                <!-- 最大值输入 -->
+                                <controls:NumericUpDown x:Name="PART_MaxNumeric"
+                                                        Grid.Column="3"
+                                                        Width="80"
+                                                        Value="{Binding MaxValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                        Minimum="{TemplateBinding Minimum}"
+                                                        Maximum="{TemplateBinding Maximum}"
+                                                        SmallChange="{TemplateBinding SmallChange}"
+                                                        LargeChange="{TemplateBinding LargeChange}"
+                                                        DecimalPlaces="{TemplateBinding DecimalPlaces}"
+                                                        ShowSlider="False"
+                                                        ShowUpDownButtons="True"/>
+
+                                <!-- 单位 -->
+                                <TextBlock Grid.Column="4"
+                                           Text="{TemplateBinding Unit}"
+                                           Margin="4,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource LabelSecondaryBrush}"
+                                           Visibility="{Binding Unit, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+
+                            <!-- 第二行：范围滑块（获得焦点时显示） -->
+                            <Border x:Name="PART_SliderPanel"
+                                    Visibility="Collapsed"
+                                    Margin="0,6,0,0"
+                                    Padding="0,4">
+                                <controls:RangeSlider x:Name="PART_RangeSlider"
+                                                      Minimum="{TemplateBinding Minimum}"
+                                                      Maximum="{TemplateBinding Maximum}"
+                                                      MinValue="{Binding MinValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                      MaxValue="{Binding MaxValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                      SmallChange="{TemplateBinding SmallChange}"
+                                                      LargeChange="{TemplateBinding LargeChange}"
+                                                      MinGap="{TemplateBinding MinGap}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- 滑块展开控制 -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ShowSlider" Value="True"/>
+                                <Condition Property="IsSliderExpanded" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="PART_SliderPanel" Property="Visibility" Value="Visible"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

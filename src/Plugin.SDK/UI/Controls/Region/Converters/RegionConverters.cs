@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
 {
@@ -44,10 +45,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            PluginLogger.Info($"BoolToVisibilityConverter.Convert - value: {value}, type: {value?.GetType().Name ?? "null"}", "BoolToVisibilityConverter");
+            
             if (value is bool b)
             {
-                return b ? Visibility.Visible : Visibility.Collapsed;
+                var result = b ? Visibility.Visible : Visibility.Collapsed;
+                PluginLogger.Info($"转换结果: {b} -> {result}", "BoolToVisibilityConverter");
+                return result;
             }
+            
+            PluginLogger.Warning($"值不是 bool 类型: {value?.GetType().Name ?? "null"}", "BoolToVisibilityConverter");
             return Visibility.Collapsed;
         }
 

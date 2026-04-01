@@ -4,7 +4,12 @@
         xmlns:ui="clr-namespace:SunEyeVision.Plugin.SDK.UI;assembly=SunEyeVision.Plugin.SDK"
         xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
         xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
+        xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters;assembly=SunEyeVision.Plugin.SDK"
         Title="阈值化工具调试" Height="600" Width="400">
+    
+    <ui:BaseToolDebugWindow.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </ui:BaseToolDebugWindow.Resources>
     
     <ui:BaseToolDebugWindow.Tabs>
         <!-- Tab1: 输入配置 -->
@@ -66,36 +71,366 @@
             </ScrollViewer>
         </TabItem>
 
-        <!-- Tab3: 执行结果 -->
+        <!-- Tab3: 结果显示 -->
         <TabItem Header="结果显示">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
-                <StackPanel>
-                    <TextBlock Text="输出图像"
-                               FontSize="13"
-                               FontWeight="Medium"
-                               Margin="0,0,0,8"
-                               Foreground="#333333"/>
-                    <Border Background="#F5F5F5"
-                            Height="200"
-                            CornerRadius="4"
-                            Margin="0,0,0,16">
-                        <Image x:Name="outputImage"
-                               Stretch="Uniform"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                    </Border>
-
-                    <TextBlock Text="执行状态"
-                               FontSize="13"
-                               FontWeight="Medium"
-                               Margin="0,0,0,8"
-                               Foreground="#333333"/>
-                    <TextBlock x:Name="statusText"
-                               FontSize="12"
-                               Foreground="#666666"
-                               TextWrapping="Wrap"/>
-                </StackPanel>
-            </ScrollViewer>
+            <Grid Background="#F5F5F5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <ScrollViewer Grid.Row="0" Padding="12,12,12,8">
+                    <StackPanel>
+                        <!-- 结果判断分组 -->
+                        <Expander Header="结果判断" 
+                                  IsExpanded="True" 
+                                  BorderBrush="#E0E0E0" 
+                                  BorderThickness="1" 
+                                  Margin="0,0,0,8"
+                                  Background="White">
+                            <StackPanel Margin="16,8">
+                                <!-- 输出为空判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="输出为空判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbEmptyCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                
+                                <!-- 白色像素比例判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="白色像素比例判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbWhitePixelRatioCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                <controls:RangeInputControl
+                                    x:Name="rangeWhitePixelRatio"
+                                    Label="范围:"
+                                    Unit="%"
+                                    Minimum="0"
+                                    Maximum="100"
+                                    MinValue="0"
+                                    MaxValue="100"
+                                    DecimalPlaces="1"
+                                    Margin="0,8,0,0"/>
+                                
+                                <!-- 输出均值判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="输出均值判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbMeanCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                <controls:RangeInputControl
+                                    x:Name="rangeMean"
+                                    Label="范围:"
+                                    Unit=""
+                                    Minimum="0"
+                                    Maximum="255"
+                                    MinValue="0"
+                                    MaxValue="255"
+                                    DecimalPlaces="1"
+                                    Margin="0,8,0,0"/>
+                                
+                                <!-- 输出面积判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="输出面积判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbAreaCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                <controls:RangeInputControl
+                                    x:Name="rangeArea"
+                                    Label="范围:"
+                                    Unit="px²"
+                                    Minimum="0"
+                                    Maximum="1000000"
+                                    MinValue="0"
+                                    MaxValue="1000000"
+                                    DecimalPlaces="0"
+                                    Margin="0,8,0,0"/>
+                                
+                                <!-- 质心X判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="质心X判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbCentroidXCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                <controls:RangeInputControl
+                                    x:Name="rangeCentroidX"
+                                    Label="范围:"
+                                    Unit=""
+                                    Minimum="0"
+                                    Maximum="10000"
+                                    MinValue="0"
+                                    MaxValue="10000"
+                                    DecimalPlaces="1"
+                                    Margin="0,8,0,0"/>
+                                
+                                <!-- 质心Y判断 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="质心Y判断" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <controls:ToggleSwitch x:Name="cbCentroidYCheck" 
+                                                           HorizontalAlignment="Right" 
+                                                           VerticalAlignment="Center"/>
+                                </Grid>
+                                <controls:RangeInputControl
+                                    x:Name="rangeCentroidY"
+                                    Label="范围:"
+                                    Unit=""
+                                    Minimum="0"
+                                    Maximum="10000"
+                                    MinValue="0"
+                                    MaxValue="10000"
+                                    DecimalPlaces="1"
+                                    Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Expander>
+                        
+                        <!-- 图像显示分组 -->
+                        <Expander Header="图像显示" 
+                                  IsExpanded="True" 
+                                  BorderBrush="#E0E0E0" 
+                                  BorderThickness="1" 
+                                  Margin="0,0,0,8"
+                                  Background="White">
+                            <StackPanel Margin="16,8">
+                                <!-- 输出图像 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="输出图像" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="👁" 
+                                                Width="32" 
+                                                Height="28" 
+                                                Margin="0,0,4,0"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnToggleOutputImageVisibility"
+                                                ToolTip="显示/隐藏"/>
+                                        <Button Content="✏" 
+                                                Width="32" 
+                                                Height="28"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnOpenOutputImageStyle"
+                                                ToolTip="样式设置"/>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- 阈值分界线 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="阈值分界线" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="👁" 
+                                                Width="32" 
+                                                Height="28" 
+                                                Margin="0,0,4,0"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnToggleThresholdLineVisibility"
+                                                ToolTip="显示/隐藏"/>
+                                        <Button Content="✏" 
+                                                Width="32" 
+                                                Height="28"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnOpenThresholdLineStyle"
+                                                ToolTip="样式设置"/>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- ROI区域 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="ROI区域" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="👁" 
+                                                Width="32" 
+                                                Height="28" 
+                                                Margin="0,0,4,0"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnToggleRegionVisibility"
+                                                ToolTip="显示/隐藏"/>
+                                        <Button Content="✏" 
+                                                Width="32" 
+                                                Height="28"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnOpenRegionStyle"
+                                                ToolTip="样式设置"/>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- 直方图 -->
+                                <Grid Height="36">
+                                    <TextBlock Text="直方图" VerticalAlignment="Center" Foreground="#333333"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="👁" 
+                                                Width="32" 
+                                                Height="28" 
+                                                Margin="0,0,4,0"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnToggleHistogramVisibility"
+                                                ToolTip="显示/隐藏"/>
+                                        <Button Content="✏" 
+                                                Width="32" 
+                                                Height="28"
+                                                FontSize="14"
+                                                Foreground="#999999"
+                                                Click="OnOpenHistogramStyle"
+                                                ToolTip="样式设置"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+                        
+                        <!-- 文本显示分组 -->
+                        <Expander Header="文本显示" 
+                                  IsExpanded="True" 
+                                  BorderBrush="#E0E0E0" 
+                                  BorderThickness="1"
+                                  Background="White">
+                            <Grid Margin="16,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- 内容 -->
+                                <TextBlock Grid.Column="0" Grid.Row="0" 
+                                           Text="内容:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <TextBox Grid.Column="1" Grid.Row="0"
+                                         x:Name="txtContent"
+                                         Text="结果: {Result}"
+                                         Margin="8,0,0,8"
+                                         Height="32"
+                                         VerticalContentAlignment="Center"/>
+                                
+                                <!-- OK颜色 -->
+                                <TextBlock Grid.Column="0" Grid.Row="1" 
+                                           Text="OK颜色:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <Button Grid.Column="1" Grid.Row="1"
+                                        x:Name="btnOkColor"
+                                        Background="#00C800"
+                                        Width="120" 
+                                        Height="28" 
+                                        HorizontalAlignment="Left"
+                                        Margin="8,0,0,8"
+                                        Click="OnOkColorClick"
+                                        ToolTip="点击选择颜色"/>
+                                
+                                <!-- NG颜色 -->
+                                <TextBlock Grid.Column="0" Grid.Row="2" 
+                                           Text="NG颜色:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <Button Grid.Column="1" Grid.Row="2"
+                                        x:Name="btnNgColor"
+                                        Background="#FF0000"
+                                        Width="120" 
+                                        Height="28" 
+                                        HorizontalAlignment="Left"
+                                        Margin="8,0,0,8"
+                                        Click="OnNgColorClick"
+                                        ToolTip="点击选择颜色"/>
+                                
+                                <!-- 字号 -->
+                                <TextBlock Grid.Column="0" Grid.Row="3" 
+                                           Text="字号:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <controls:NumericUpDown Grid.Column="1" Grid.Row="3"
+                                                        x:Name="numFontSize"
+                                                        Value="14"
+                                                        Minimum="8"
+                                                        Maximum="72"
+                                                        DecimalPlaces="1"
+                                                        Margin="8,0,0,8"/>
+                                
+                                <!-- 透明度 -->
+                                <TextBlock Grid.Column="0" Grid.Row="4" 
+                                           Text="透明度:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <controls:NumericUpDown Grid.Column="1" Grid.Row="4"
+                                                        x:Name="numTextOpacity"
+                                                        Value="1.0"
+                                                        Minimum="0"
+                                                        Maximum="1"
+                                                        DecimalPlaces="2"
+                                                        Margin="8,0,0,8"/>
+                                
+                                <!-- 位置 -->
+                                <TextBlock Grid.Column="0" Grid.Row="5" 
+                                           Text="位置X:" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#333333"/>
+                                <StackPanel Grid.Column="1" Grid.Row="5" 
+                                            Orientation="Horizontal" 
+                                            Margin="8,0,0,0">
+                                    <controls:NumericUpDown x:Name="numPositionX"
+                                                            Width="80"
+                                                            Value="10"
+                                                            Minimum="0"
+                                                            Maximum="10000"
+                                                            DecimalPlaces="1"/>
+                                    <TextBlock Text="Y:" 
+                                               VerticalAlignment="Center" 
+                                               Margin="8,0"
+                                               Foreground="#333333"/>
+                                    <controls:NumericUpDown x:Name="numPositionY"
+                                                            Width="80"
+                                                            Value="10"
+                                                            Minimum="0"
+                                                            Maximum="10000"
+                                                            DecimalPlaces="1"/>
+                                </StackPanel>
+                            </Grid>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- 底部按钮栏 -->
+                <Border Grid.Row="1" 
+                        Background="White" 
+                        BorderBrush="#E0E0E0" 
+                        BorderThickness="0,1,0,0" 
+                        Padding="12,8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="连续执行" 
+                                Width="80"
+                                Height="32"
+                                Margin="0,0,8,0"
+                                Click="OnContinuousExecute"/>
+                        <Button Content="执行" 
+                                Width="80"
+                                Height="32"
+                                Margin="0,0,8,0"
+                                Click="OnExecuteClick"
+                                Background="#FF7F00"
+                                Foreground="White"/>
+                        <Button Content="确定" 
+                                Width="80"
+                                Height="32"
+                                Click="OnConfirmClick"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </TabItem>
     </ui:BaseToolDebugWindow.Tabs>
     

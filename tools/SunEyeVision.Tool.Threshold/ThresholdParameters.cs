@@ -2,6 +2,7 @@
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Validation;
 using System.Text.Json.Serialization;
+using SunEyeVision.Tool.Threshold.Models;
 
 namespace SunEyeVision.Tool.Threshold
 {
@@ -116,6 +117,25 @@ namespace SunEyeVision.Tool.Threshold
                 SetProperty(ref _blockSize, value, "块大小");
             }
         }
+
+        #endregion
+
+        #region 结果显示配置
+
+        /// <summary>
+        /// 结果判断配置
+        /// </summary>
+        public ThresholdResultConfig ResultConfig { get; set; } = new();
+
+        /// <summary>
+        /// 图像显示配置
+        /// </summary>
+        public ThresholdDisplayConfig DisplayConfig { get; set; } = new();
+
+        /// <summary>
+        /// 文本显示配置
+        /// </summary>
+        public ThresholdTextConfig TextConfig { get; set; } = new();
 
         #endregion
 

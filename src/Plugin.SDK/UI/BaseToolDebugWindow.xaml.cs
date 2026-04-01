@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 
@@ -307,6 +308,8 @@ namespace SunEyeVision.Plugin.SDK.UI
             var type = GetType();
             var flags = BindingFlags.NonPublic | BindingFlags.Instance;
             
+            PluginLogger.Info($"ResolveNamedControls - 类型: {type.Name}", "BaseToolDebugWindow");
+            
             foreach (var field in type.GetFields(flags))
             {
                 // 只处理以_开头且不以Property结尾的字段
@@ -320,8 +323,22 @@ namespace SunEyeVision.Plugin.SDK.UI
                 if (control != null && field.FieldType.IsInstanceOfType(control))
                 {
                     field.SetValue(this, control);
+                    PluginLogger.Success($"控件已解析: {field.Name} -> {controlName} ({control.GetType().Name})", "BaseToolDebugWindow");
+                }
+                else
+                {
+                    if (control == null)
+                    {
+                        PluginLogger.Warning($"控件未找到: {controlName} (字段: {field.Name})", "BaseToolDebugWindow");
+                    }
+                    else
+                    {
+                        PluginLogger.Warning($"类型不匹配: {controlName} (期望: {field.FieldType.Name}, 实际: {control.GetType().Name})", "BaseToolDebugWindow");
+                    }
                 }
             }
+            
+            PluginLogger.Info("ResolveNamedControls 完成", "BaseToolDebugWindow");
         }
 
         #endregion

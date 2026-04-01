@@ -206,6 +206,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _textBox.PreviewKeyDown -= OnTextBoxKeyDown;
                 _textBox.PreviewMouseWheel -= OnTextBoxMouseWheel;
                 _textBox.LostFocus -= OnTextBoxLostFocus;
+                _textBox.GotFocus -= OnTextBoxGotFocus;
             }
             if (_increaseButton != null)
                 _increaseButton.Click -= OnIncreaseButtonClick;
@@ -224,6 +225,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _textBox.PreviewKeyDown += OnTextBoxKeyDown;
                 _textBox.PreviewMouseWheel += OnTextBoxMouseWheel;
                 _textBox.LostFocus += OnTextBoxLostFocus;
+                _textBox.GotFocus += OnTextBoxGotFocus;
                 UpdateText();
             }
             if (_increaseButton != null)
@@ -235,20 +237,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         protected override void OnGotFocus(RoutedEventArgs e)
         {
             base.OnGotFocus(e);
+            
+            // 记录调试日志
+            PluginLogger.Info($"[OnGotFocus] 控件获得焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+            
             // 聚焦时自动展开滑块
             if (ShowSlider)
             {
                 IsSliderExpanded = true;
+                PluginLogger.Info($"[OnGotFocus] 滑块已展开: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
             }
         }
 
         protected override void OnLostFocus(RoutedEventArgs e)
         {
             base.OnLostFocus(e);
+            
+            // 记录调试日志
+            PluginLogger.Info($"[OnLostFocus] 控件失去焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+            
             // 失去焦点时自动折叠滑块
             if (ShowSlider)
             {
                 IsSliderExpanded = false;
+                PluginLogger.Info($"[OnLostFocus] 滑块已折叠: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
             }
         }
 
@@ -446,9 +458,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
+        private void OnTextBoxGotFocus(object sender, RoutedEventArgs e)
+        {
+            // 记录调试日志
+            PluginLogger.Info($"[OnTextBoxGotFocus] TextBox获得焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+            
+            // 当 TextBox 获得焦点时，触发 NumericUpDown 的 GotFocus 事件
+            OnGotFocus(e);
+            
+            // 记录调试日志
+            PluginLogger.Info($"[OnTextBoxGotFocus] 触发OnGotFocus后: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+        }
+
         private void OnTextBoxLostFocus(object sender, RoutedEventArgs e)
         {
+            // 记录调试日志
+            PluginLogger.Info($"[OnTextBoxLostFocus] TextBox失去焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+            
+            // 当 TextBox 失去焦点时，先处理文本解析
             ParseAndApplyText();
+            // 然后触发 NumericUpDown 的 LostFocus 事件
+            OnLostFocus(e);
+            
+            // 记录调试日志
+            PluginLogger.Info($"[OnTextBoxLostFocus] 触发OnLostFocus后: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
         }
 
         private void OnIncreaseButtonClick(object sender, RoutedEventArgs e)
