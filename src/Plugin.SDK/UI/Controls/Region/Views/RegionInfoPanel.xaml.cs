@@ -22,18 +22,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             }
 
             InitializeComponent();
+
+            // 绑定颜色选择按钮点击事件
+            SelectColorButton.Click += SelectColorButton_Click;
         }
 
         private void SelectColorButton_Click(object sender, RoutedEventArgs e)
         {
-            // 简化实现：使用预设颜色列表
-            // 实际项目中应该使用专业的颜色选择器控件
-            if (DataContext is ViewModels.RegionEditorViewModel viewModel && 
-                viewModel.SelectedRegion != null)
-            {
-                // 默认设置为红色
-                viewModel.SelectedRegion.DisplayColor = 0xFFFF0000;
-            }
+            // 打开颜色选择器弹窗
+            ColorPickerPopup.IsOpen = true;
         }
     }
 }

@@ -311,78 +311,69 @@
                                 <TextBlock Grid.Column="0" Grid.Row="0" 
                                            Text="内容:" 
                                            VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
+                                           HorizontalAlignment="Right"
+                                           Foreground="#333333"
+                                           Margin="0,0,8,8"/>
                                 <TextBox Grid.Column="1" Grid.Row="0"
                                          x:Name="txtContent"
                                          Text="结果: {Result}"
-                                         Margin="8,0,0,8"
+                                         HorizontalAlignment="Stretch"
                                          Height="32"
                                          VerticalContentAlignment="Center"/>
                                 
                                 <!-- OK颜色 -->
-                                <TextBlock Grid.Column="0" Grid.Row="1" 
-                                           Text="OK颜色:" 
-                                           VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
-                                <Button Grid.Column="1" Grid.Row="1"
-                                        x:Name="btnOkColor"
-                                        Background="#00C800"
-                                        Width="120" 
-                                        Height="28" 
-                                        HorizontalAlignment="Left"
-                                        Margin="8,0,0,8"
-                                        Click="OnOkColorClick"
-                                        ToolTip="点击选择颜色"/>
+                                <controls:ColorSelector Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
+                                                        x:Name="okColorSelector"
+                                                        Label="OK颜色"
+                                                        Margin="0,0,0,8"/>
                                 
                                 <!-- NG颜色 -->
-                                <TextBlock Grid.Column="0" Grid.Row="2" 
-                                           Text="NG颜色:" 
-                                           VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
-                                <Button Grid.Column="1" Grid.Row="2"
-                                        x:Name="btnNgColor"
-                                        Background="#FF0000"
-                                        Width="120" 
-                                        Height="28" 
-                                        HorizontalAlignment="Left"
-                                        Margin="8,0,0,8"
-                                        Click="OnNgColorClick"
-                                        ToolTip="点击选择颜色"/>
+                                <controls:ColorSelector Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
+                                                        x:Name="ngColorSelector"
+                                                        Label="NG颜色"
+                                                        Margin="0,0,0,8"/>
                                 
                                 <!-- 字号 -->
                                 <TextBlock Grid.Column="0" Grid.Row="3" 
                                            Text="字号:" 
                                            VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
+                                           HorizontalAlignment="Right"
+                                           Foreground="#333333"
+                                           Margin="0,0,8,8"/>
                                 <controls:NumericUpDown Grid.Column="1" Grid.Row="3"
                                                         x:Name="numFontSize"
                                                         Value="14"
                                                         Minimum="8"
                                                         Maximum="72"
                                                         DecimalPlaces="1"
-                                                        Margin="8,0,0,8"/>
+                                                        HorizontalAlignment="Left"
+                                                        Width="120"/>
                                 
                                 <!-- 透明度 -->
                                 <TextBlock Grid.Column="0" Grid.Row="4" 
                                            Text="透明度:" 
                                            VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
+                                           HorizontalAlignment="Right"
+                                           Foreground="#333333"
+                                           Margin="0,0,8,8"/>
                                 <controls:NumericUpDown Grid.Column="1" Grid.Row="4"
                                                         x:Name="numTextOpacity"
                                                         Value="1.0"
                                                         Minimum="0"
                                                         Maximum="1"
                                                         DecimalPlaces="2"
-                                                        Margin="8,0,0,8"/>
+                                                        HorizontalAlignment="Left"
+                                                        Width="120"/>
                                 
                                 <!-- 位置 -->
                                 <TextBlock Grid.Column="0" Grid.Row="5" 
                                            Text="位置X:" 
                                            VerticalAlignment="Center" 
-                                           Foreground="#333333"/>
+                                           HorizontalAlignment="Right"
+                                           Foreground="#333333"
+                                           Margin="0,0,8,0"/>
                                 <StackPanel Grid.Column="1" Grid.Row="5" 
-                                            Orientation="Horizontal" 
-                                            Margin="8,0,0,0">
+                                            Orientation="Horizontal">
                                     <controls:NumericUpDown x:Name="numPositionX"
                                                             Width="80"
                                                             Value="10"

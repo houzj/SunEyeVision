@@ -2,13 +2,17 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls"
                     xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Converters"
-                    xmlns:metadata="clr-namespace:SunEyeVision.Plugin.SDK.Metadata">
+                    xmlns:metadata="clr-namespace:SunEyeVision.Plugin.SDK.Metadata"
+                    xmlns:themes="clr-namespace:SunEyeVision.Plugin.SDK.UI.Themes">
 
     <!-- 转换器 -->
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     <converters:BindingTypeToBoolConverter x:Key="BindingTypeToBoolConverter"/>
     <converters:BindingTypeToVisibilityConverter x:Key="BindingTypeToVisibilityConverter"/>
     <converters:DataTypeToVisibilityConverter x:Key="DataTypeToVisibilityConverter"/>
+    <converters:UIntToColorConverter x:Key="UIntToColorConverter"/>
+    <converters:ColorToRgbStringConverter x:Key="ColorToRgbStringConverter"/>
+    <converters:UIntToBrushConverter x:Key="UIntToBrushConverter"/>
 
     <!-- 颜色定义 -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="#1890FF"/>
@@ -45,57 +49,6 @@
         <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,4,0,4"/>
-    </Style>
-
-    <!-- ParamSlider 样式 -->
-    <Style TargetType="{x:Type controls:ParamSlider}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:ParamSlider}">
-                    <StackPanel Margin="0,0,0,12">
-                        <!-- 标签行 -->
-                        <Grid Margin="0,0,0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{TemplateBinding Label}" 
-                                       Style="{StaticResource LabelStyle}"/>
-                            <TextBlock Grid.Column="2" 
-                                       Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0:F0}}"
-                                       Style="{StaticResource LabelSecondaryStyle}"
-                                       FontWeight="Medium"/>
-                        </Grid>
-                        
-                        <!-- 滑块行 -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto" MinWidth="60"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <Slider Grid.Column="0"
-                                    Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                    Minimum="{TemplateBinding Minimum}"
-                                    Maximum="{TemplateBinding Maximum}"
-                                    SmallChange="{TemplateBinding SmallChange}"
-                                    LargeChange="{TemplateBinding LargeChange}"
-                                    TickFrequency="{TemplateBinding TickFrequency}"
-                                    IsSnapToTickEnabled="{TemplateBinding IsSnapToTickEnabled}"
-                                    VerticalAlignment="Center"/>
-                            
-                            <TextBox Grid.Column="1"
-                                     Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource BaseInputStyle}"
-                                     TextAlignment="Center"
-                                     Margin="8,0,0,0"
-                                     Visibility="{TemplateBinding ShowTextBox, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                        </Grid>
-                    </StackPanel>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- ParamComboBox 样式 - 水平布局 -->
@@ -864,6 +817,225 @@
                             </MultiTrigger.Conditions>
                             <Setter TargetName="PART_SliderPanel" Property="Visibility" Value="Visible"/>
                         </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ColorPicker 样式 -->
+    <Style TargetType="{x:Type controls:ColorPicker}">
+        <Setter Property="Width" Value="320"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ColorPicker}">
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12">
+                        <StackPanel>
+                            <!-- 选项卡 -->
+                            <TabControl x:Name="PART_TabControl">
+                                <!-- 默认选项卡 -->
+                                <TabItem Header="默认">
+                                    <StackPanel Margin="0,12,0,0">
+                                        <!-- 主题颜色 -->
+                                        <TextBlock Text="主题颜色"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource LabelSecondaryBrush}"
+                                                   Margin="0,0,0,8"/>
+                                        <UniformGrid x:Name="PART_ThemeColorsPanel"
+                                                     Columns="10"
+                                                     Rows="6"
+                                                     HorizontalAlignment="Left"/>
+                                        
+                                        <!-- 标准颜色 -->
+                                        <TextBlock Text="标准颜色"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource LabelSecondaryBrush}"
+                                                   Margin="0,12,0,8"/>
+                                        <UniformGrid x:Name="PART_StandardColorsPanel"
+                                                     Columns="10"
+                                                     Rows="1"
+                                                     HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </TabItem>
+
+                                <!-- 更多选项卡 -->
+                                <TabItem Header="更多">
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- 左侧：HSV 颜色选择面板 -->
+                                        <Canvas x:Name="PART_HsvCanvas"
+                                                Grid.Column="0"
+                                                Width="300"
+                                                Height="200"
+                                                Cursor="Cross"
+                                                Margin="0,0,8,0">
+                                            <!-- 色相渐变背景（水平） -->
+                                            <Canvas.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Color="Red" Offset="0.0"/>
+                                                    <GradientStop Color="Yellow" Offset="0.166"/>
+                                                    <GradientStop Color="Lime" Offset="0.333"/>
+                                                    <GradientStop Color="Cyan" Offset="0.5"/>
+                                                    <GradientStop Color="Blue" Offset="0.666"/>
+                                                    <GradientStop Color="Magenta" Offset="0.833"/>
+                                                    <GradientStop Color="Red" Offset="1.0"/>
+                                                </LinearGradientBrush>
+                                            </Canvas.Background>
+                                            
+                                            <!-- 明度渐变覆盖层（垂直） -->
+                                            <Rectangle Width="300" Height="200">
+                                                <Rectangle.Fill>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="White" Offset="0.0"/>
+                                                        <GradientStop Color="Transparent" Offset="0.5"/>
+                                                        <GradientStop Color="Black" Offset="1.0"/>
+                                                    </LinearGradientBrush>
+                                                </Rectangle.Fill>
+                                            </Rectangle>
+                                            
+                                            <!-- 圆形选择器 -->
+                                            <Ellipse x:Name="PART_HsvSelector"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Stroke="White"
+                                                     StrokeThickness="2"
+                                                     Fill="Transparent"/>
+                                        </Canvas>
+                                        
+                                        <!-- 右侧：垂直亮度滑块 -->
+                                        <Grid Grid.Column="1"
+                                              Width="40"
+                                              Height="200">
+                                            <Slider x:Name="PART_ValueSlider"
+                                                    Orientation="Vertical"
+                                                    Minimum="0"
+                                                    Maximum="1"
+                                                    Value="1"
+                                                    SmallChange="0.01"
+                                                    LargeChange="0.1"
+                                                    HorizontalAlignment="Center"/>
+                                            
+                                            <!-- 亮度值显示 -->
+                                            <TextBlock x:Name="PART_ValueText"
+                                                       Text="1.00"
+                                                       FontSize="11"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,4,0,0"
+                                                       VerticalAlignment="Bottom"/>
+                                        </Grid>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ColorSelector 样式 -->
+    <Style TargetType="{x:Type controls:ColorSelector}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ColorSelector}">
+                    <!-- 外框容器（统一标准布局） -->
+                    <Border Background="White"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- 标签 -->
+                            <TextBlock Grid.Column="0"
+                                       Text="{TemplateBinding Label}"
+                                       Style="{StaticResource LabelStyle}"
+                                       MinWidth="60"
+                                       Margin="0,0,12,0"/>
+                            
+                            <!-- 触发器 Border（可获取焦点） -->
+                            <Border x:Name="PART_SelectorBorder"
+                                    Grid.Column="1"
+                                    Height="28"
+                                    Background="Transparent"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    Focusable="True"
+                                    Cursor="Hand">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- 颜色预览方块 -->
+                                    <Border x:Name="PART_ColorPreview"
+                                            Grid.Column="0"
+                                            Width="24" Height="24"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="2"
+                                            Margin="4,0,8,0"/>
+                                    
+                                    <!-- RGB 文本显示 -->
+                                    <TextBlock x:Name="PART_RgbText"
+                                               Grid.Column="1"
+                                               VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{StaticResource LabelBrush}"
+                                               Padding="0,0,4,0"/>
+                                </Grid>
+                            </Border>
+                            
+                            <!-- 颜色选择器弹出 -->
+                            <Popup x:Name="PART_ColorPickerPopup"
+                                   Grid.Column="1"
+                                   PlacementTarget="{Binding ElementName=PART_SelectorBorder}"
+                                   Placement="Bottom"
+                                   StaysOpen="False"
+                                   AllowsTransparency="True">
+                                <Border Background="White"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Margin="0,2,0,0"
+                                        Padding="8">
+                                    <controls:ColorPicker x:Name="PART_ColorPicker"
+                                                          SelectedColor="{Binding SelectedColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- 视觉反馈触发器 -->
+                    <ControlTemplate.Triggers>
+                        <!-- 鼠标悬停 -->
+                        <Trigger SourceName="PART_SelectorBorder" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_SelectorBorder" Property="BorderBrush"
+                                    Value="{StaticResource PrimaryBrush}"/>
+                        </Trigger>
+                        
+                        <!-- 焦点状态 -->
+                        <Trigger SourceName="PART_SelectorBorder" Property="IsFocused" Value="True">
+                            <Setter TargetName="PART_SelectorBorder" Property="BorderBrush"
+                                    Value="{StaticResource PrimaryBrush}"/>
+                            <Setter TargetName="PART_SelectorBorder" Property="BorderThickness"
+                                    Value="2"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

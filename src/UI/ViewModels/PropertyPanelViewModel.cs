@@ -8,7 +8,6 @@ using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
-using SunEyeVision.UI.Controls.ParameterBinding;
 using SunEyeVision.UI.Events;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.Logging;

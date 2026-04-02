@@ -169,31 +169,4 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
             throw new NotImplementedException();
         }
     }
-
-    /// <summary>
-    /// 反向布尔值到可见性的转换器（true=Collapsed, false=Visible）
-    /// </summary>
-    /// <remarks>
-    /// 性能优化版本：移除所有日志输出
-    /// </remarks>
-    public class InverseBooleanToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is bool b)
-            {
-                return b ? Visibility.Collapsed : Visibility.Visible;
-            }
-            return Visibility.Visible;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is Visibility v)
-            {
-                return v != Visibility.Visible;
-            }
-            return false;
-        }
-    }
 }

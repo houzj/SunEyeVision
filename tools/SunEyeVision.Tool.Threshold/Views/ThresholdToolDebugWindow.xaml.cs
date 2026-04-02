@@ -64,8 +64,8 @@ namespace SunEyeVision.Tool.Threshold.Views
         
         // 文本显示控件
         private TextBox? _txtContent;
-        private Button? _btnOkColor;
-        private Button? _btnNgColor;
+        private ColorSelector? _okColorSelector;
+        private ColorSelector? _ngColorSelector;
         private NumericUpDown? _numFontSize;
         private NumericUpDown? _numTextOpacity;
         private NumericUpDown? _numPositionX;
@@ -117,9 +117,6 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             // 初始化绑定和事件
             SetupBindingsAndEvents();
-
-            // 初始化配置显示
-            InitializeConfigDisplay();
 
             // 初始化RegionEditor
             InitializeRegionEditor();
@@ -440,6 +437,28 @@ namespace SunEyeVision.Tool.Threshold.Views
                     Mode = BindingMode.TwoWay
                 };
                 _txtContent.SetBinding(TextBox.TextProperty, binding);
+            }
+
+            // OK颜色绑定
+            if (_okColorSelector != null)
+            {
+                var binding = new Binding("OkColor")
+                {
+                    Source = _parameters.TextConfig,
+                    Mode = BindingMode.TwoWay
+                };
+                _okColorSelector.SetBinding(ColorSelector.SelectedColorProperty, binding);
+            }
+
+            // NG颜色绑定
+            if (_ngColorSelector != null)
+            {
+                var binding = new Binding("NgColor")
+                {
+                    Source = _parameters.TextConfig,
+                    Mode = BindingMode.TwoWay
+                };
+                _ngColorSelector.SetBinding(ColorSelector.SelectedColorProperty, binding);
             }
 
             // 字号绑定
@@ -837,51 +856,6 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             PluginLogger.Info("打开直方图样式设置", "ThresholdTool");
             // TODO: 打开样式设置弹窗
-        }
-
-        #endregion
-
-        #region 文本显示事件
-
-        private void OnOkColorClick(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开OK颜色选择器", "ThresholdTool");
-            // TODO: 打开颜色选择器，更新 _parameters.TextConfig.OkColor 和按钮背景
-            if (_btnOkColor != null)
-            {
-                _btnOkColor.Background = new SolidColorBrush(_parameters.TextConfig.OkColor);
-            }
-        }
-
-        private void OnNgColorClick(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开NG颜色选择器", "ThresholdTool");
-            // TODO: 打开颜色选择器，更新 _parameters.TextConfig.NgColor 和按钮背景
-            if (_btnNgColor != null)
-            {
-                _btnNgColor.Background = new SolidColorBrush(_parameters.TextConfig.NgColor);
-            }
-        }
-
-        #endregion
-
-        #region 配置初始化
-
-        /// <summary>
-        /// 初始化配置显示
-        /// </summary>
-        private void InitializeConfigDisplay()
-        {
-            // 初始化颜色按钮显示
-            if (_btnOkColor != null)
-            {
-                _btnOkColor.Background = new SolidColorBrush(_parameters.TextConfig.OkColor);
-            }
-
-            if (_btnNgColor != null)
-            {
-                _btnNgColor.Background = new SolidColorBrush(_parameters.TextConfig.NgColor);
-            }
         }
 
         #endregion

@@ -4,11 +4,12 @@
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
              xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Models"
              xmlns:conv="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters"
+             xmlns:uiConverters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Converters"
              xmlns:ctrl="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls">
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <conv:ShapeTypeToVisibilityConverter x:Key="ShapeTypeToVisibilityConverter"/>
-        <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <uiConverters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         
         <!-- 标签样式 -->
