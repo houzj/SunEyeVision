@@ -7,16 +7,17 @@ using SunEyeVision.Plugin.SDK.Logging;
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
-    /// 范围输入控件 - 包含标签、最小值/最大值输入框和范围滑块
+    /// 范围输入控件 - 包含最小值/最大值输入框和范围滑块（核心控件，不包含标签和外框）
     /// </summary>
     /// <remarks>
-    /// 封装了范围选择的完整UI，包含标签、两个数值输入框和一个双滑块。
+    /// 封装了范围选择的核心UI，包含两个数值输入框和一个双滑块。
     /// 滑块默认隐藏，当输入框获得焦点时自动展开。
+    /// 
+    /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
     /// 
     /// 使用示例：
     /// <code>
     /// &lt;controls:RangeInputControl
-    ///     Label="白色像素比例"
     ///     Unit="%"
     ///     Minimum="0"
     ///     Maximum="100"
@@ -46,10 +47,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         #region 依赖属性
-
-        public static readonly DependencyProperty LabelProperty =
-            DependencyProperty.Register(nameof(Label), typeof(string), typeof(RangeInputControl),
-                new PropertyMetadata(string.Empty));
 
         public static readonly DependencyProperty UnitProperty =
             DependencyProperty.Register(nameof(Unit), typeof(string), typeof(RangeInputControl),
@@ -128,15 +125,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         #endregion
 
         #region 属性
-
-        /// <summary>
-        /// 标签文本
-        /// </summary>
-        public string Label
-        {
-            get => (string)GetValue(LabelProperty);
-            set => SetValue(LabelProperty, value);
-        }
 
         /// <summary>
         /// 单位文本

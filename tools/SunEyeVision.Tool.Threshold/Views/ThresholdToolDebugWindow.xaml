@@ -16,10 +16,11 @@
         <TabItem Header="基本参数" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector
-                        x:Name="imageSourceSelector"
-                        Label="输入图像"
-                        PlaceholderText="请选择输入图像源"/>
+                    <controls:LabeledControl Label="输入图像">
+                        <controls:ImageSourceSelector
+                            x:Name="imageSourceSelector"
+                            PlaceholderText="请选择输入图像源"/>
+                    </controls:LabeledControl>
 
                     <TextBlock Text="ROI区域"
                                FontSize="13"
@@ -35,25 +36,27 @@
         <TabItem Header="运行参数">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:BindableParameter
-                        x:Name="thresholdParam"
-                        Label="阈值"
-                        DataType="Int"
-                        IntMinimum="0"
-                        IntMaximum="255"
-                        SmallChange="1"
-                        LargeChange="10"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="阈值">
+                        <controls:BindableParameter
+                            x:Name="thresholdParam"
+                            DataType="Int"
+                            IntMinimum="0"
+                            IntMaximum="255"
+                            SmallChange="1"
+                            LargeChange="10"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
 
-                    <controls:BindableParameter
-                        x:Name="maxValueParam"
-                        Label="最大值"
-                        DataType="Int"
-                        IntMinimum="0"
-                        IntMaximum="255"
-                        SmallChange="1"
-                        LargeChange="10"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="最大值">
+                        <controls:BindableParameter
+                            x:Name="maxValueParam"
+                            DataType="Int"
+                            IntMinimum="0"
+                            IntMaximum="255"
+                            SmallChange="1"
+                            LargeChange="10"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
 
                     <TextBlock Text="阈值类型"
                                FontSize="13"
@@ -73,7 +76,7 @@
 
         <!-- Tab3: 结果显示 -->
         <TabItem Header="结果显示">
-            <Grid Background="#F5F5F5">
+            <Grid Background="#F5F5F5" DataContext="{Binding Parameters}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
@@ -92,7 +95,7 @@
                                 <!-- 输出为空判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="输出为空判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbEmptyCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsEmptyCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
@@ -100,92 +103,92 @@
                                 <!-- 白色像素比例判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="白色像素比例判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbWhitePixelRatioCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
-                                <controls:RangeInputControl
-                                    x:Name="rangeWhitePixelRatio"
-                                    Label="范围:"
-                                    Unit="%"
-                                    Minimum="0"
-                                    Maximum="100"
-                                    MinValue="0"
-                                    MaxValue="100"
-                                    DecimalPlaces="1"
-                                    Margin="0,8,0,0"/>
+                                <controls:LabeledControl Label="白色像素比例范围 (%):" Margin="0,8,0,0"
+                                                        Visibility="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:RangeInputControl
+                                        Unit="%"
+                                        Minimum="0"
+                                        Maximum="100"
+                                        MinValue="{Binding ResultConfig.WhitePixelRatioMin, Mode=TwoWay}"
+                                        MaxValue="{Binding ResultConfig.WhitePixelRatioMax, Mode=TwoWay}"
+                                        DecimalPlaces="1"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- 输出均值判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="输出均值判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbMeanCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsMeanCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
-                                <controls:RangeInputControl
-                                    x:Name="rangeMean"
-                                    Label="范围:"
-                                    Unit=""
-                                    Minimum="0"
-                                    Maximum="255"
-                                    MinValue="0"
-                                    MaxValue="255"
-                                    DecimalPlaces="1"
-                                    Margin="0,8,0,0"/>
+                                <controls:LabeledControl Label="输出均值范围:" Margin="0,8,0,0"
+                                                        Visibility="{Binding ResultConfig.IsMeanCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:RangeInputControl
+                                        Unit=""
+                                        Minimum="0"
+                                        Maximum="255"
+                                        MinValue="{Binding ResultConfig.MeanMin, Mode=TwoWay}"
+                                        MaxValue="{Binding ResultConfig.MeanMax, Mode=TwoWay}"
+                                        DecimalPlaces="1"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- 输出面积判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="输出面积判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbAreaCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsAreaCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
-                                <controls:RangeInputControl
-                                    x:Name="rangeArea"
-                                    Label="范围:"
-                                    Unit="px²"
-                                    Minimum="0"
-                                    Maximum="1000000"
-                                    MinValue="0"
-                                    MaxValue="1000000"
-                                    DecimalPlaces="0"
-                                    Margin="0,8,0,0"/>
+                                <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,8,0,0"
+                                                        Visibility="{Binding ResultConfig.IsAreaCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:RangeInputControl
+                                        Unit="px²"
+                                        Minimum="0"
+                                        Maximum="1000000"
+                                        MinValue="{Binding ResultConfig.AreaMin, Mode=TwoWay}"
+                                        MaxValue="{Binding ResultConfig.AreaMax, Mode=TwoWay}"
+                                        DecimalPlaces="0"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- 质心X判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="质心X判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbCentroidXCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidXCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
-                                <controls:RangeInputControl
-                                    x:Name="rangeCentroidX"
-                                    Label="范围:"
-                                    Unit=""
-                                    Minimum="0"
-                                    Maximum="10000"
-                                    MinValue="0"
-                                    MaxValue="10000"
-                                    DecimalPlaces="1"
-                                    Margin="0,8,0,0"/>
+                                <controls:LabeledControl Label="质心X坐标范围:" Margin="0,8,0,0"
+                                                        Visibility="{Binding ResultConfig.IsCentroidXCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:RangeInputControl
+                                        Unit=""
+                                        Minimum="0"
+                                        Maximum="10000"
+                                        MinValue="{Binding ResultConfig.CentroidXMin, Mode=TwoWay}"
+                                        MaxValue="{Binding ResultConfig.CentroidXMax, Mode=TwoWay}"
+                                        DecimalPlaces="1"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- 质心Y判断 -->
                                 <Grid Height="36">
                                     <TextBlock Text="质心Y判断" VerticalAlignment="Center" Foreground="#333333"/>
-                                    <controls:ToggleSwitch x:Name="cbCentroidYCheck" 
+                                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidYCheckEnabled, Mode=TwoWay}"
                                                            HorizontalAlignment="Right" 
                                                            VerticalAlignment="Center"/>
                                 </Grid>
-                                <controls:RangeInputControl
-                                    x:Name="rangeCentroidY"
-                                    Label="范围:"
-                                    Unit=""
-                                    Minimum="0"
-                                    Maximum="10000"
-                                    MinValue="0"
-                                    MaxValue="10000"
-                                    DecimalPlaces="1"
-                                    Margin="0,8,0,0"/>
+                                <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,8,0,0"
+                                                        Visibility="{Binding ResultConfig.IsCentroidYCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <controls:RangeInputControl
+                                        Unit=""
+                                        Minimum="0"
+                                        Maximum="10000"
+                                        MinValue="{Binding ResultConfig.CentroidYMin, Mode=TwoWay}"
+                                        MaxValue="{Binding ResultConfig.CentroidYMax, Mode=TwoWay}"
+                                        DecimalPlaces="1"/>
+                                </controls:LabeledControl>
                             </StackPanel>
                         </Expander>
                         
@@ -315,23 +318,24 @@
                                            Foreground="#333333"
                                            Margin="0,0,8,8"/>
                                 <TextBox Grid.Column="1" Grid.Row="0"
-                                         x:Name="txtContent"
-                                         Text="结果: {Result}"
+                                         Text="{Binding TextConfig.Content, Mode=TwoWay}"
                                          HorizontalAlignment="Stretch"
                                          Height="32"
                                          VerticalContentAlignment="Center"/>
                                 
                                 <!-- OK颜色 -->
-                                <controls:ColorSelector Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
-                                                        x:Name="okColorSelector"
-                                                        Label="OK颜色"
-                                                        Margin="0,0,0,8"/>
+                                <controls:LabeledControl Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
+                                                         Label="OK颜色"
+                                                         Margin="0,0,0,8">
+                                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- NG颜色 -->
-                                <controls:ColorSelector Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
-                                                        x:Name="ngColorSelector"
-                                                        Label="NG颜色"
-                                                        Margin="0,0,0,8"/>
+                                <controls:LabeledControl Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
+                                                         Label="NG颜色"
+                                                         Margin="0,0,0,8">
+                                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                                </controls:LabeledControl>
                                 
                                 <!-- 字号 -->
                                 <TextBlock Grid.Column="0" Grid.Row="3" 
@@ -341,8 +345,7 @@
                                            Foreground="#333333"
                                            Margin="0,0,8,8"/>
                                 <controls:NumericUpDown Grid.Column="1" Grid.Row="3"
-                                                        x:Name="numFontSize"
-                                                        Value="14"
+                                                        Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
                                                         Minimum="8"
                                                         Maximum="72"
                                                         DecimalPlaces="1"
@@ -357,8 +360,7 @@
                                            Foreground="#333333"
                                            Margin="0,0,8,8"/>
                                 <controls:NumericUpDown Grid.Column="1" Grid.Row="4"
-                                                        x:Name="numTextOpacity"
-                                                        Value="1.0"
+                                                        Value="{Binding TextConfig.Opacity, Mode=TwoWay}"
                                                         Minimum="0"
                                                         Maximum="1"
                                                         DecimalPlaces="2"
@@ -374,9 +376,8 @@
                                            Margin="0,0,8,0"/>
                                 <StackPanel Grid.Column="1" Grid.Row="5" 
                                             Orientation="Horizontal">
-                                    <controls:NumericUpDown x:Name="numPositionX"
-                                                            Width="80"
-                                                            Value="10"
+                                    <controls:NumericUpDown Width="80"
+                                                            Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
                                                             Minimum="0"
                                                             Maximum="10000"
                                                             DecimalPlaces="1"/>
@@ -384,9 +385,8 @@
                                                VerticalAlignment="Center" 
                                                Margin="8,0"
                                                Foreground="#333333"/>
-                                    <controls:NumericUpDown x:Name="numPositionY"
-                                                            Width="80"
-                                                            Value="10"
+                                    <controls:NumericUpDown Width="80"
+                                                            Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
                                                             Minimum="0"
                                                             Maximum="10000"
                                                             DecimalPlaces="1"/>

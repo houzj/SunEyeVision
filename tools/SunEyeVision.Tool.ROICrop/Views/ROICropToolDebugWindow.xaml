@@ -9,45 +9,50 @@
         <TabItem Header="参数配置" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector 
-                        x:Name="ImageSourceSelector"
-                        Label="输入图像"
-                        PlaceholderText="选择图像源..."/>
+                    <controls:LabeledControl Label="输入图像">
+                        <controls:ImageSourceSelector 
+                            x:Name="ImageSourceSelector"
+                            PlaceholderText="选择图像源..."/>
+                    </controls:LabeledControl>
                     
                     <TextBlock Text="ROI区域设置" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
                     
-                    <controls:BindableParameter 
-                        x:Name="XParam"
-                        Label="X坐标"
-                        DataType="Double"
-                        DoubleMinimum="0"
-                        DoubleMaximum="1000"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="X坐标">
+                        <controls:BindableParameter 
+                            x:Name="XParam"
+                            DataType="Double"
+                            DoubleMinimum="0"
+                            DoubleMaximum="1000"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="YParam"
-                        Label="Y坐标"
-                        DataType="Double"
-                        DoubleMinimum="0"
-                        DoubleMaximum="1000"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="Y坐标">
+                        <controls:BindableParameter 
+                            x:Name="YParam"
+                            DataType="Double"
+                            DoubleMinimum="0"
+                            DoubleMaximum="1000"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="WidthParam"
-                        Label="宽度"
-                        DataType="Double"
-                        DoubleMinimum="1"
-                        DoubleMaximum="2000"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="宽度">
+                        <controls:BindableParameter 
+                            x:Name="WidthParam"
+                            DataType="Double"
+                            DoubleMinimum="1"
+                            DoubleMaximum="2000"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="HeightParam"
-                        Label="高度"
-                        DataType="Double"
-                        DoubleMinimum="1"
-                        DoubleMaximum="2000"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="高度">
+                        <controls:BindableParameter 
+                            x:Name="HeightParam"
+                            DataType="Double"
+                            DoubleMinimum="1"
+                            DoubleMaximum="2000"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
                     <controls:LabeledControl Label="归一化坐标">
                         <CheckBox x:Name="NormalizeCheckBox" 

@@ -12,7 +12,7 @@ using SunEyeVision.Plugin.SDK.Metadata;
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
-    /// 支持常量/绑定模式切换的多类型参数控件
+    /// 支持常量/绑定模式切换的多类型参数控件（核心控件，不包含标签和外框）
     /// </summary>
     /// <remarks>
     /// 核心概念：
@@ -20,28 +20,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 2. 数据类型（DataType）：回答"值是什么类型" - Int, Double, String, Bool 等
     /// 3. 绑定类型与数据类型正交，任何数据类型都可以是常量或绑定
     /// 
-    /// 布局：
-    /// 第一行：Label | Editor | BindingButton
-    /// 第二行（数值型展开时）：Slider
+    /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
     /// </remarks>
     public class BindableParameter : Control
     {
         #region 依赖属性
 
+
         // IntValue 属性变化回调
         private static void OnIntValuePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (BindableParameter)d;
-            PluginLogger.Info($"[IntValue] {control.Label}: {e.OldValue} → {e.NewValue}", "BindableParameter");
+            PluginLogger.Info($"[IntValue] {e.OldValue} → {e.NewValue}", "BindableParameter");
         }
 
-        // ===== 标签属性 =====
-        public static readonly DependencyProperty LabelProperty =
-            DependencyProperty.Register(nameof(Label), typeof(string), typeof(BindableParameter),
-                new PropertyMetadata(string.Empty));
-
-        public static readonly DependencyProperty DescriptionProperty =
-            DependencyProperty.Register(nameof(Description), typeof(string), typeof(BindableParameter),
+        // ===== 参数名（用于参数绑定） =====
+        public static readonly DependencyProperty ParameterNameProperty =
+            DependencyProperty.Register(nameof(ParameterName), typeof(string), typeof(BindableParameter),
                 new PropertyMetadata(string.Empty));
 
         // ===== 数据类型 =====
@@ -130,16 +125,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #region 属性封装
 
-        public string Label
+        /// <summary>
+        /// 参数名（用于参数绑定，对应 ToolParameters 中的属性名）
+        /// </summary>
+        public string ParameterName
         {
-            get => (string)GetValue(LabelProperty);
-            set => SetValue(LabelProperty, value);
-        }
-
-        public string Description
-        {
-            get => (string)GetValue(DescriptionProperty);
-            set => SetValue(DescriptionProperty, value);
+            get => (string)GetValue(ParameterNameProperty);
+            set => SetValue(ParameterNameProperty, value);
         }
 
         public ParamDataType DataType
@@ -534,14 +526,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (BindingType == BindingType.Constant)
             {
-                return ParameterBinding.CreateConstant(Label, GetValue());
+                return ParameterBinding.CreateConstant(ParameterName, GetValue());
             }
             else
             {
                 var parts = BindingSource.Split('.');
                 var nodeId = parts.Length > 0 ? parts[0] : string.Empty;
                 var property = parts.Length > 1 ? parts[1] : BindingSource;
-                return ParameterBinding.CreateBinding(Label, nodeId, property, TransformExpression);
+                return ParameterBinding.CreateBinding(ParameterName, nodeId, property, TransformExpression);
             }
         }
 
@@ -553,7 +545,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (binding == null)
                 return;
 
-            Label = binding.ParameterName;
+            ParameterName = binding.ParameterName;
             BindingType = binding.BindingType;
             TransformExpression = binding.TransformExpression ?? string.Empty;
 

@@ -9,10 +9,11 @@
         <TabItem Header="参数配置" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector 
-                        x:Name="ImageSourceSelector"
-                        Label="输入图像"
-                        PlaceholderText="选择图像源..."/>
+                    <controls:LabeledControl Label="输入图像">
+                        <controls:ImageSourceSelector 
+                            x:Name="ImageSourceSelector"
+                            PlaceholderText="选择图像源..."/>
+                    </controls:LabeledControl>
                     
                     <TextBlock Text="文件设置" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
@@ -24,13 +25,14 @@
                     <controls:ParamComboBox x:Name="ImageFormatCombo"
                                             Label="图像格式"/>
                     
-                    <controls:BindableParameter 
-                        x:Name="QualityParam"
-                        Label="图像质量"
-                        DataType="Int"
-                        IntMinimum="1"
-                        IntMaximum="100"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="图像质量">
+                        <controls:BindableParameter 
+                            x:Name="QualityParam"
+                            DataType="Int"
+                            IntMinimum="1"
+                            IntMaximum="100"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
                     <controls:LabeledControl Label="覆盖已有文件">
                         <CheckBox x:Name="OverwriteCheckBox" 

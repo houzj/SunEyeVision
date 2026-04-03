@@ -102,22 +102,19 @@
                 <StackPanel>
                     <TextBlock Text="BindableParameter" FontWeight="Medium" FontSize="14" Margin="0,0,0,12"/>
 
-                    <controls:BindableParameter Label="数值参数"
+                    <controls:BindableParameter ParameterName="NumericParameter"
                                                 DataType="Double"
                                                 DoubleValue="75.5"
                                                 DoubleMinimum="0"
-                                                DoubleMaximum="100"
-                                                Description="这是一个可绑定的数值参数"/>
+                                                DoubleMaximum="100"/>
 
-                    <controls:BindableParameter Label="字符串参数"
+                    <controls:BindableParameter ParameterName="StringParameter"
                                                 DataType="String"
-                                                StringValue="Hello World"
-                                                Description="这是一个可绑定的字符串参数"/>
+                                                StringValue="Hello World"/>
 
-                    <controls:BindableParameter Label="布尔参数"
+                    <controls:BindableParameter ParameterName="BoolParameter"
                                                 DataType="Bool"
-                                                BoolValue="True"
-                                                Description="这是一个可绑定的布尔参数"/>
+                                                BoolValue="True"/>
                 </StackPanel>
             </Border>
 
@@ -163,7 +160,7 @@
 
                     <controls:ParamGroup Header="高级设置" IsExpanded="True">
                         <StackPanel>
-                            <controls:BindableParameter Label="精度"
+                            <controls:BindableParameter ParameterName="Precision"
                                                         DataType="Double"
                                                         DoubleValue="3"
                                                         DoubleMinimum="1"
@@ -189,8 +186,7 @@
                     <TextBlock Text="ImageSourceSelector" FontWeight="Medium" FontSize="14" Margin="0,0,0,12"/>
                     <TextBlock Text="（运行时可选择图像源）" FontSize="11" Foreground="#666" Margin="0,0,0,8"/>
 
-                    <controls:ImageSourceSelector Label="输入图像"
-                                                  PlaceholderText="点击选择图像源..."/>
+                    <controls:ImageSourceSelector PlaceholderText="点击选择图像源..."/>
                 </StackPanel>
             </Border>
 
@@ -226,11 +222,9 @@
                     <TextBlock Text="（颜色选择器：紧凑型，点击弹出取色器）" FontSize="11" Foreground="#666" Margin="0,0,0,8"/>
 
                     <controls:ColorSelector x:Name="ColorSelectorDemo"
-                                         Label="显示颜色: "
                                          SelectedColor="0xFFFF0000"/>
 
                     <controls:ColorSelector x:Name="ColorSelectorDemo2"
-                                         Label="背景色: "
                                          SelectedColor="0xFF364061"
                                          Margin="0,8,0,0"/>
 
@@ -257,12 +251,11 @@
 
                     <controls:ParamGroup Header="阈值处理" IsExpanded="True">
                         <StackPanel>
-                            <controls:BindableParameter Label="阈值"
+                            <controls:BindableParameter ParameterName="Threshold"
                                                         DataType="Double"
                                                         DoubleValue="128"
                                                         DoubleMinimum="0"
-                                                        DoubleMaximum="255"
-                                                        Description="二值化阈值"/>
+                                                        DoubleMaximum="255"/>
 
                             <controls:ParamComboBox Label="阈值类型"
                                                     SelectedIndex="0"

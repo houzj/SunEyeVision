@@ -79,15 +79,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     }
 
     /// <summary>
-    /// 图像源选择器 - 显示所有父节点的图像输出供选择
+    /// 图像源选择器 - 显示所有父节点的图像输出供选择（核心控件，不包含标签和外框）
     /// </summary>
     /// <remarks>
     /// 用于工作流中选择输入图像来源。显示当前节点所有上游节点的图像输出端口，
     /// 支持缩略图预览和图像尺寸信息显示。
     /// 
+    /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
+    /// 
     /// 使用示例：
     /// <code>
-    /// &lt;controls:ImageSourceSelector Label="输入图像"
+    /// &lt;controls:ImageSourceSelector
     ///     SelectedImageSource="{Binding InputImageSource}"
     ///     AvailableImageSources="{Binding ParentImageSources}" /&gt;
     /// </code>
@@ -101,10 +103,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         #region 依赖属性
-
-        public static readonly DependencyProperty LabelProperty =
-            DependencyProperty.Register(nameof(Label), typeof(string), typeof(ImageSourceSelector),
-                new PropertyMetadata("图像源"));
 
         public static readonly DependencyProperty SelectedImageSourceProperty =
             DependencyProperty.Register(nameof(SelectedImageSource), typeof(ImageSourceInfo), typeof(ImageSourceSelector),
@@ -129,15 +127,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         #endregion
 
         #region 属性
-
-        /// <summary>
-        /// 标签文本
-        /// </summary>
-        public string Label
-        {
-            get => (string)GetValue(LabelProperty);
-            set => SetValue(LabelProperty, value);
-        }
 
         /// <summary>
         /// 当前选中的图像源

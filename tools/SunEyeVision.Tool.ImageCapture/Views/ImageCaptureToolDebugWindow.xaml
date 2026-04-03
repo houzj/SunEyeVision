@@ -18,44 +18,48 @@
                     <TextBlock Text="分辨率设置" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
                     
-                    <controls:BindableParameter 
-                        x:Name="WidthParam"
-                        Label="宽度"
-                        DataType="Int"
-                        IntMinimum="640"
-                        IntMaximum="3840"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="宽度">
+                        <controls:BindableParameter 
+                            x:Name="WidthParam"
+                            DataType="Int"
+                            IntMinimum="640"
+                            IntMaximum="3840"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="HeightParam"
-                        Label="高度"
-                        DataType="Int"
-                        IntMinimum="480"
-                        IntMaximum="2160"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="高度">
+                        <controls:BindableParameter 
+                            x:Name="HeightParam"
+                            DataType="Int"
+                            IntMinimum="480"
+                            IntMaximum="2160"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
                     <TextBlock Text="相机参数" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
                     
-                    <controls:BindableParameter 
-                        x:Name="ExposureParam"
-                        Label="曝光时间 (ms)"
-                        DataType="Double"
-                        DoubleMinimum="0.1"
-                        DoubleMaximum="1000"
-                        SmallChange="0.1"
-                        LargeChange="10"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="曝光时间 (ms)">
+                        <controls:BindableParameter 
+                            x:Name="ExposureParam"
+                            DataType="Double"
+                            DoubleMinimum="0.1"
+                            DoubleMaximum="1000"
+                            SmallChange="0.1"
+                            LargeChange="10"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="GainParam"
-                        Label="增益"
-                        DataType="Double"
-                        DoubleMinimum="0"
-                        DoubleMaximum="16"
-                        SmallChange="0.1"
-                        LargeChange="1"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="增益">
+                        <controls:BindableParameter 
+                            x:Name="GainParam"
+                            DataType="Double"
+                            DoubleMinimum="0"
+                            DoubleMaximum="16"
+                            SmallChange="0.1"
+                            LargeChange="1"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

@@ -8,21 +8,22 @@ using System.Windows.Media;
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
-    /// 颜色选择器控件（紧凑型）
+    /// 颜色选择器控件（核心控件，不包含标签和外框）
     /// </summary>
     /// <remarks>
     /// 提供紧凑的颜色选择功能，点击弹出 ColorPicker。
     /// 
     /// 功能特性：
-    /// - 左侧标签文本（可自定义）
     /// - 紧凑的颜色预览 + RGB 文本显示
     /// - 点击切换 ColorPicker 显示/隐藏
     /// - 失焦自动关闭 ColorPicker
     /// - 双向数据绑定
     /// 
+    /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
+    /// 
     /// 使用示例：
     /// <code>
-    /// &lt;controls:ColorSelector Label="显示颜色:" SelectedColor="{Binding DisplayColor, Mode=TwoWay}" /&gt;
+    /// &lt;controls:ColorSelector SelectedColor="{Binding DisplayColor, Mode=TwoWay}" /&gt;
     /// </code>
     /// </remarks>
     [TemplatePart(Name = PART_SelectorBorder, Type = typeof(Border))]
@@ -51,22 +52,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         #region 依赖属性
-
-        /// <summary>
-        /// 左侧标签文本
-        /// </summary>
-        public static readonly DependencyProperty LabelProperty =
-            DependencyProperty.Register(nameof(Label), typeof(string), typeof(ColorSelector),
-                new PropertyMetadata(""));
-
-        /// <summary>
-        /// 左侧标签文本
-        /// </summary>
-        public string Label
-        {
-            get => (string)GetValue(LabelProperty);
-            set => SetValue(LabelProperty, value);
-        }
 
         /// <summary>
         /// 选中的颜色（uint ARGB 格式）

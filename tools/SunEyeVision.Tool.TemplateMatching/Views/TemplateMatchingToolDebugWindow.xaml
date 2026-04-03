@@ -10,10 +10,11 @@
         <TabItem Header="基本参数" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector 
-                        x:Name="ImageSourceSelector"
-                        Label="输入图像"
-                        PlaceholderText="选择图像源..."/>
+                    <controls:LabeledControl Label="输入图像">
+                        <controls:ImageSourceSelector 
+                            x:Name="ImageSourceSelector"
+                            PlaceholderText="选择图像源..."/>
+                    </controls:LabeledControl>
                     
                     <TextBlock Text="匹配参数设置" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
@@ -28,24 +29,26 @@
         <TabItem Header="运行参数">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:BindableParameter 
-                        x:Name="ThresholdParam"
-                        Label="匹配阈值"
-                        DataType="Double"
-                        DoubleMinimum="0"
-                        DoubleMaximum="1"
-                        SmallChange="0.05"
-                        LargeChange="0.1"
-                        ShowSlider="True"
-                        DecimalPlaces="2"/>
+                    <controls:LabeledControl Label="匹配阈值">
+                        <controls:BindableParameter 
+                            x:Name="ThresholdParam"
+                            DataType="Double"
+                            DoubleMinimum="0"
+                            DoubleMaximum="1"
+                            SmallChange="0.05"
+                            LargeChange="0.1"
+                            ShowSlider="True"
+                            DecimalPlaces="2"/>
+                    </controls:LabeledControl>
                     
-                    <controls:BindableParameter 
-                        x:Name="MaxMatchesParam"
-                        Label="最大匹配数"
-                        DataType="Int"
-                        IntMinimum="1"
-                        IntMaximum="100"
-                        ShowSlider="True"/>
+                    <controls:LabeledControl Label="最大匹配数">
+                        <controls:BindableParameter 
+                            x:Name="MaxMatchesParam"
+                            DataType="Int"
+                            IntMinimum="1"
+                            IntMaximum="100"
+                            ShowSlider="True"/>
+                    </controls:LabeledControl>
                     
                     <controls:LabeledControl Label="多尺度匹配">
                         <CheckBox x:Name="MultiScaleCheckBox" 

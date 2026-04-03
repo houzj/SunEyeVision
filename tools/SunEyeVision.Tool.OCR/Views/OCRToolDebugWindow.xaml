@@ -9,10 +9,11 @@
         <TabItem Header="参数配置" IsSelected="True">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                 <StackPanel>
-                    <controls:ImageSourceSelector 
-                        x:Name="ImageSourceSelector"
-                        Label="输入图像"
-                        PlaceholderText="选择图像源..."/>
+                    <controls:LabeledControl Label="输入图像">
+                        <controls:ImageSourceSelector 
+                            x:Name="ImageSourceSelector"
+                            PlaceholderText="选择图像源..."/>
+                    </controls:LabeledControl>
                     
                     <TextBlock Text="OCR设置" FontSize="13" FontWeight="Medium" 
                                Margin="0,16,0,8" Foreground="#333333"/>
