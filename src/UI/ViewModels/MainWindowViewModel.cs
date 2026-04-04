@@ -2249,7 +2249,7 @@ namespace SunEyeVision.UI.ViewModels
                                     var debugWindow = context.CreatedWindow;
                                     
                                     // 设置标题
-                                    debugWindow.Title = $"{node.Name} - 调试窗口";
+                                    debugWindow.Title = node.Name;
 
                                     // 注入前驱节点数据
                                     InjectParentNodesToDebugWindow(debugWindow, node);

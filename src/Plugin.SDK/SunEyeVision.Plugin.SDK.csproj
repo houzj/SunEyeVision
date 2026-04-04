@@ -39,10 +39,6 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="" />
-  </ItemGroup>
-
   <!-- 图像处理核心依赖 -->
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260222" />

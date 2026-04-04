@@ -37,15 +37,6 @@ namespace SunEyeVision.Tool.Threshold.Views
     {
         #region 字段
 
-        // XAML控件引用（命名约定：字段名 = _ + XAML控件名）
-        private ImageSourceSelector? _imageSourceSelector;
-        private BindableParameter? _thresholdParam;
-        private BindableParameter? _maxValueParam;
-        private ComboBox? _thresholdTypeComboBox;
-        private RegionEditorControl? _regionEditor;
-        private Image? _outputImage;
-        private TextBlock? _statusText;
-        
         // 转换器
         private readonly Plugin.SDK.UI.Controls.Region.Converters.BoolToVisibilityConverter _boolToVisibilityConverter = new();
 
@@ -118,9 +109,9 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             _mainImageControl = imageControl;
 
-            if (_regionEditor != null && imageControl != null)
+            if (regionEditor != null && imageControl != null)
             {
-                _regionEditor.SetMainImageControl(imageControl);
+                regionEditor.SetMainImageControl(imageControl);
             }
         }
 
@@ -139,11 +130,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             // 初始化默认参数（设计时使用）
             _parameters = new ThresholdParameters();
             PluginLogger.Info("默认参数已初始化", "ThresholdTool");
-
-            // 解析XAML中命名的控件引用
-            PluginLogger.Info("开始解析命名控件", "ThresholdTool");
-            ResolveNamedControls();
-            PluginLogger.Success("命名控件解析完成", "ThresholdTool");
 
             // 初始化绑定和事件
             PluginLogger.Info("开始设置绑定和事件", "ThresholdTool");
@@ -194,51 +180,6 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 控件解析
-
-        /// <summary>
-        /// 解析XAML中命名的控件引用
-        /// </summary>
-        protected void ResolveNamedControls()
-        {
-            var type = GetType();
-            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-            
-            PluginLogger.Info($"ResolveNamedControls - 类型: {type.Name}", "ThresholdTool");
-            
-            foreach (var field in type.GetFields(flags))
-            {
-                // 只处理以_开头且不以Property结尾的字段
-                if (!field.Name.StartsWith("_") || field.Name.EndsWith("Property"))
-                    continue;
-                    
-                // 提取控件名：_controlName -> controlName
-                var controlName = field.Name.Substring(1);
-                var control = FindName(controlName);
-                
-                if (control != null && field.FieldType.IsInstanceOfType(control))
-                {
-                    field.SetValue(this, control);
-                    PluginLogger.Success($"控件已解析: {field.Name} -> {controlName} ({control.GetType().Name})", "ThresholdTool");
-                }
-                else
-                {
-                    if (control == null)
-                    {
-                        PluginLogger.Warning($"控件未找到: {controlName} (字段: {field.Name})", "ThresholdTool");
-                    }
-                    else
-                    {
-                        PluginLogger.Warning($"类型不匹配: {controlName} (期望: {field.FieldType.Name}, 实际: {control.GetType().Name})", "ThresholdTool");
-                    }
-                }
-            }
-            
-            PluginLogger.Info("ResolveNamedControls 完成", "ThresholdTool");
-        }
-
-        #endregion
-
         #region 参数绑定
 
         /// <summary>
@@ -247,41 +188,41 @@ namespace SunEyeVision.Tool.Threshold.Views
         private void SetupBindingsAndEvents()
         {
             // 图像源选择事件
-            if (_imageSourceSelector != null)
-                _imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
+            if (imageSourceSelector != null)
+                imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
 
             // 直接绑定到参数对象
-            if (_thresholdParam != null)
+            if (thresholdParam != null)
             {
                 var binding = new Binding("Threshold")
                 {
                     Source = _parameters,
                     Mode = BindingMode.TwoWay
                 };
-                _thresholdParam.SetBinding(BindableParameter.IntValueProperty, binding);
+                thresholdParam.SetBinding(BindableParameter.IntValueProperty, binding);
             }
 
-            if (_maxValueParam != null)
+            if (maxValueParam != null)
             {
                 var binding = new Binding("MaxValue")
                 {
                     Source = _parameters,
                     Mode = BindingMode.TwoWay
                 };
-                _maxValueParam.SetBinding(BindableParameter.IntValueProperty, binding);
+                maxValueParam.SetBinding(BindableParameter.IntValueProperty, binding);
             }
 
             // 阈值类型 ComboBox 事件
-            if (_thresholdTypeComboBox != null)
+            if (thresholdTypeComboBox != null)
             {
-                _thresholdTypeComboBox.SelectionChanged += OnThresholdTypeChanged;
+                thresholdTypeComboBox.SelectionChanged += OnThresholdTypeChanged;
                 UpdateThresholdTypeComboBox();
             }
 
             // 区域编辑器事件
-            if (_regionEditor != null)
+            if (regionEditor != null)
             {
-                _regionEditor.RegionDataChanged += OnRegionDataChanged;
+                regionEditor.RegionDataChanged += OnRegionDataChanged;
             }
 
             // 注：结果判断配置和文本显示配置已通过XAML声明式绑定实现，无需手动绑定
@@ -292,9 +233,9 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// </summary>
         private void OnThresholdTypeChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_thresholdTypeComboBox == null || _parameters == null) return;
+            if (thresholdTypeComboBox == null || _parameters == null) return;
 
-            var selectedItem = _thresholdTypeComboBox.SelectedItem as ComboBoxItem;
+            var selectedItem = thresholdTypeComboBox.SelectedItem as ComboBoxItem;
             var typeStr = selectedItem?.Content?.ToString() ?? "Binary";
 
             _parameters.Type = ParseThresholdType(typeStr);
@@ -306,7 +247,7 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// </summary>
         private void UpdateThresholdTypeComboBox()
         {
-            if (_thresholdTypeComboBox == null || _parameters == null) return;
+            if (thresholdTypeComboBox == null || _parameters == null) return;
 
             var typeStr = _parameters.Type switch
             {
@@ -318,7 +259,7 @@ namespace SunEyeVision.Tool.Threshold.Views
                 _ => "Binary"
             };
 
-            foreach (ComboBoxItem item in _thresholdTypeComboBox.Items)
+            foreach (ComboBoxItem item in thresholdTypeComboBox.Items)
             {
                 if (item.Content?.ToString() == typeStr)
                 {
@@ -365,9 +306,9 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             _dataProvider = new WorkflowDataSourceProvider();
 
-            if (_regionEditor != null)
+            if (regionEditor != null)
             {
-                var regionEditorViewModel = _regionEditor.ViewModel;
+                var regionEditorViewModel = regionEditor.ViewModel;
                 _regionEditorIntegration = new RegionEditorIntegration(regionEditorViewModel);
             }
         }
@@ -465,19 +406,19 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             if (SelectedImageSource == null)
             {
-                if (_statusText != null) _statusText.Text = "请选择输入图像源";
+                PluginLogger.Warning("请选择输入图像源", "ThresholdTool");
                 return;
             }
 
             if (_dataProvider == null)
             {
-                if (_statusText != null) _statusText.Text = "数据提供者未初始化";
+                PluginLogger.Warning("数据提供者未初始化", "ThresholdTool");
                 return;
             }
 
             if (!_dataProvider.HasNodeOutput(SelectedImageSource.NodeId))
             {
-                if (_statusText != null) _statusText.Text = "图像源节点尚未执行，请先执行前驱节点";
+                PluginLogger.Warning("图像源节点尚未执行，请先执行前驱节点", "ThresholdTool");
                 return;
             }
 
@@ -489,7 +430,7 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             if (imageMat == null || imageMat.Empty())
             {
-                if (_statusText != null) _statusText.Text = "无法获取图像数据或图像为空";
+                PluginLogger.Warning("无法获取图像数据或图像为空", "ThresholdTool");
                 return;
             }
 
@@ -504,7 +445,7 @@ namespace SunEyeVision.Tool.Threshold.Views
             // 直接转换为强类型工具
             if (Tool is not ThresholdTool thresholdTool)
             {
-                if (_statusText != null) _statusText.Text = "工具实例无效";
+                PluginLogger.Error("工具实例无效", "ThresholdTool");
                 return;
             }
 
@@ -526,20 +467,12 @@ namespace SunEyeVision.Tool.Threshold.Views
                 {
                     if (result.IsSuccess)
                     {
-                        if (_statusText != null)
-                            _statusText.Text = $"执行成功 - 阈值: {result.ThresholdUsed:F0}ms";
-
-                        if (_outputImage != null && result.OutputImage != null)
-                        {
-                            _outputImage.Source = result.OutputImage.ToBitmapSource();
-                        }
-
+                        PluginLogger.Success($"执行成功 - 阈值: {result.ThresholdUsed:F0}", "ThresholdTool");
                         ToolExecutionCompleted?.Invoke(this, result);
                     }
                     else
                     {
-                        if (_statusText != null)
-                            _statusText.Text = $"执行失败 - {result.ErrorMessage}";
+                        PluginLogger.Error($"执行失败 - {result.ErrorMessage}", "ThresholdTool");
                     }
                 });
             }
@@ -550,11 +483,10 @@ namespace SunEyeVision.Tool.Threshold.Views
 
                 Dispatcher.Invoke(() =>
                 {
-                    if (_statusText != null)
-                        _statusText.Text = $"执行异常: {ex.Message}";
+                    PluginLogger.Error($"执行异常: {ex.Message}", "ThresholdTool");
                 });
 
-                PluginLogger.Error($"工具执行异常: {ex.Message}", "ThresholdTool");
+                PluginLogger.Error($"工具执行异常: {ex.Message}", "ThresholdTool", ex);
             }
         }
 
@@ -648,8 +580,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void OnImageSourceChanged(object sender, RoutedEventArgs e)
         {
-            if (_imageSourceSelector != null)
-                SelectedImageSource = _imageSourceSelector.SelectedImageSource;
+            if (imageSourceSelector != null)
+                SelectedImageSource = imageSourceSelector.SelectedImageSource;
         }
 
         #endregion

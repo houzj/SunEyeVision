@@ -193,20 +193,10 @@ namespace SunEyeVision.Workflow.Nodes
         {
             var strategy = _strategyRegistry.FindStrategy(context);
 
-            if (strategy != null)
-            {
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"使用策略: {strategy.GetType().Name}", 
-                    "NodeOpenDecisionChain");
-                strategy.Execute(context);
-            }
-            else
-            {
-                VisionLogger.Instance.Log(LogLevel.Warning, 
-                    $"未找到合适的策略，使用默认策略", 
-                    "NodeOpenDecisionChain");
-                _strategyRegistry.GetDefaultStrategy().Execute(context);
-            }
+            VisionLogger.Instance.Log(LogLevel.Info, 
+                $"使用策略: {strategy.GetType().Name}", 
+                "NodeOpenDecisionChain");
+            strategy.Execute(context);
         }
     }
 }

@@ -46,8 +46,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
 
             // 设置窗口属性
             Title = "工具调试窗口";
-            Width = 1200;
-            Height = 800;
+            Width = 450;
+            Height = 700;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             ResizeMode = ResizeMode.CanResize;
             

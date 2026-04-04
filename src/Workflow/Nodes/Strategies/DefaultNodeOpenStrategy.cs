@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Controls;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.UI.Windows;
 
 namespace SunEyeVision.Workflow.Nodes.Strategies
 {
@@ -76,27 +78,44 @@ namespace SunEyeVision.Workflow.Nodes.Strategies
         }
 
         /// <summary>
-        /// 创建标准窗口
+        /// 创建标准窗口 - 使用 DefaultDebugWindow 包装 UserControl
         /// </summary>
-        private Window CreateDefaultWindow(NodeOpenContext context)
+        private Window? CreateDefaultWindow(NodeOpenContext context)
         {
-            var window = new Window
+            // 检查控件类型
+            if (context.DebugControl is not UserControl userControl)
             {
-                Title = context.Node.DispName,
-                Content = context.DebugControl,
-                Width = 400,
-                Height = 600,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = context.MainWindow,
-                ResizeMode = ResizeMode.CanResize,
-                WindowState = WindowState.Normal
-            };
+                VisionLogger.Instance.Log(LogLevel.Error, 
+                    $"调试控件必须是 UserControl 类型，当前类型: {context.DebugControl.GetType().Name}", 
+                    "DefaultNodeOpenStrategy");
+                return null;
+            }
 
-            VisionLogger.Instance.Log(LogLevel.Success, 
-                $"创建标准窗口成功: {window.Title}", 
-                "DefaultNodeOpenStrategy");
+            try
+            {
+                // 使用 DefaultDebugWindow 包装 UserControl，自动添加底部按钮栏
+                var window = new DefaultDebugWindow(userControl)
+                {
+                    Title = context.Node.DispName,
+                    Owner = context.MainWindow,
+                    WindowStartupLocation = context.MainWindow != null 
+                        ? WindowStartupLocation.CenterOwner 
+                        : WindowStartupLocation.CenterScreen
+                };
 
-            return window;
+                VisionLogger.Instance.Log(LogLevel.Success, 
+                    $"创建 DefaultDebugWindow 成功: {window.Title}", 
+                    "DefaultNodeOpenStrategy");
+
+                return window;
+            }
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Error, 
+                    $"创建 DefaultDebugWindow 失败: {ex.Message}", 
+                    "DefaultNodeOpenStrategy", ex);
+                return null;
+            }
         }
 
         /// <summary>

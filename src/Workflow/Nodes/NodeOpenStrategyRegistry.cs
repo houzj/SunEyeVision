@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Workflow.Nodes.Strategies;
 
@@ -20,12 +20,10 @@ namespace SunEyeVision.Workflow.Nodes
     public class NodeOpenStrategyRegistry
     {
         private readonly List<INodeOpenStrategy> _strategies;
-        private readonly DefaultNodeOpenStrategy _defaultStrategy;
 
         public NodeOpenStrategyRegistry()
         {
             _strategies = new List<INodeOpenStrategy>();
-            _defaultStrategy = new DefaultNodeOpenStrategy();
 
             // 注册内置策略
             RegisterBuiltInStrategies();
@@ -39,9 +37,13 @@ namespace SunEyeVision.Workflow.Nodes
             // 注册特殊节点策略（按优先级顺序）
             _strategies.Add(new SubroutineNodeOpenStrategy());
             _strategies.Add(new ConditionNodeOpenStrategy());
-            // 未来可以添加更多策略：
-            // _strategies.Add(new LoopNodeOpenStrategy());
-            // _strategies.Add(new SwitchNodeOpenStrategy());
+            
+            // 注册默认策略（放在最后，作为普通工具节点的处理策略）
+            _strategies.Add(new DefaultNodeOpenStrategy());
+            
+            // 未来可以添加更多策略（插在默认策略之前）：
+            // _strategies.Insert(_strategies.Count - 1, new LoopNodeOpenStrategy());
+            // _strategies.Insert(_strategies.Count - 1, new SwitchNodeOpenStrategy());
         }
 
         /// <summary>
@@ -60,8 +62,8 @@ namespace SunEyeVision.Workflow.Nodes
         /// 查找合适的策略
         /// </summary>
         /// <param name="context">节点打开上下文</param>
-        /// <returns>匹配的策略，如果没有匹配则返回 null</returns>
-        public INodeOpenStrategy? FindStrategy(NodeOpenContext context)
+        /// <returns>匹配的策略（总是能找到，因为默认策略放在末尾）</returns>
+        public INodeOpenStrategy FindStrategy(NodeOpenContext context)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -75,21 +77,12 @@ namespace SunEyeVision.Workflow.Nodes
                 }
             }
 
-            // 没有找到匹配的策略
-            return null;
+            // 理论上不会到达这里（默认策略放在末尾，CanHandle 总是返回 true）
+            throw new InvalidOperationException("策略注册错误：找不到任何匹配策略");
         }
 
         /// <summary>
-        /// 获取默认策略
-        /// </summary>
-        /// <returns>默认策略实例</returns>
-        public INodeOpenStrategy GetDefaultStrategy()
-        {
-            return _defaultStrategy;
-        }
-
-        /// <summary>
-        /// 清空所有注册的策略（不包括默认策略）
+        /// 清空所有注册的策略
         /// </summary>
         public void ClearStrategies()
         {

@@ -49,12 +49,6 @@ namespace SunEyeVision.UI.Factories
                         // 初始化调试窗口
                         InitializeDebugWindow(window, toolId, toolPlugin, toolMetadata);
 
-                        // 绑定主窗口的ImageControl（用于区域编辑器）
-                        if (window is BaseToolDebugWindow baseDebugWindow && mainImageControl != null)
-                        {
-                            baseDebugWindow.SetMainImageControl(mainImageControl);
-                        }
-
                         System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 使用 toolMetadata.DebugWindowType 创建: {toolId}");
                         return window;
                     }
@@ -83,12 +77,6 @@ namespace SunEyeVision.UI.Factories
                     {
                         // ★ 初始化调试窗口（传递 toolId, toolPlugin, toolMetadata）
                         InitializeDebugWindow(window, toolId, toolPlugin, toolMetadata);
-
-                        // ★ 绑定主窗口的ImageControl（用于区域编辑器）
-                        if (window is BaseToolDebugWindow baseDebugWindow && mainImageControl != null)
-                        {
-                            baseDebugWindow.SetMainImageControl(mainImageControl);
-                        }
 
                         System.Diagnostics.Debug.WriteLine($"[ToolDebugWindowFactory] 使用 IToolPlugin.CreateDebugWindow() 创建: {toolId}");
                         return window;
