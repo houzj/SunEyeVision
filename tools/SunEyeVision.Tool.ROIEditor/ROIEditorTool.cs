@@ -19,9 +19,14 @@ namespace SunEyeVision.Tool.ROIEditor
         Version = "1.0.0")]
     public class ROIEditorTool : IToolPlugin<ROIEditorParameters, ROIEditorResults>
     {
-        /// <summary>
-        /// 创建调试窗口
-        /// </summary>
+        public bool HasDebugWindow => true;
+
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new ROIEditorToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new ROIEditorToolDebugWindow();

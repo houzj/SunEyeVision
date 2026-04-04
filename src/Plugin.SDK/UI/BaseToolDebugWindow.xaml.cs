@@ -54,6 +54,10 @@ namespace SunEyeVision.Plugin.SDK.UI
 
         protected TextBlock PART_TitleText = null!;
         private TabControl _tabControl = null!;
+        private Button _continuousRunButton = null!;
+        private Button _runButton = null!;
+        private Button _confirmButton = null!;
+        private bool _isContinuousRun = false;
 
         #endregion
 
@@ -69,6 +73,13 @@ namespace SunEyeVision.Plugin.SDK.UI
         public static readonly DependencyProperty TabsProperty =
             DependencyProperty.Register(nameof(Tabs), typeof(ObservableCollection<TabItem>), typeof(BaseToolDebugWindow),
                 new PropertyMetadata(null));
+
+        /// <summary>
+        /// 是否处于连续运行模式
+        /// </summary>
+        public static readonly DependencyProperty IsContinuousRunProperty =
+            DependencyProperty.Register(nameof(IsContinuousRun), typeof(bool), typeof(BaseToolDebugWindow),
+                new PropertyMetadata(false, OnIsContinuousRunChanged));
 
         #endregion
 
@@ -97,6 +108,15 @@ namespace SunEyeVision.Plugin.SDK.UI
         /// </summary>
         public IToolPlugin? Tool { get; set; }
 
+        /// <summary>
+        /// 是否处于连续运行模式
+        /// </summary>
+        public bool IsContinuousRun
+        {
+            get => (bool)GetValue(IsContinuousRunProperty);
+            set => SetValue(IsContinuousRunProperty, value);
+        }
+
         #endregion
 
         #region 事件
@@ -107,9 +127,14 @@ namespace SunEyeVision.Plugin.SDK.UI
         public event EventHandler? ExecuteRequested;
 
         /// <summary>
-        /// 重置按钮点击事件
+        /// 连续运行模式切换事件
         /// </summary>
-        public event EventHandler? ResetRequested;
+        public event EventHandler<bool>? ContinuousRunToggled;
+
+        /// <summary>
+        /// 确认按钮点击事件
+        /// </summary>
+        public event EventHandler? ConfirmClicked;
 
         #endregion
 
@@ -209,27 +234,34 @@ namespace SunEyeVision.Plugin.SDK.UI
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            // 运行按钮
-            var runButton = CreateButton("▶ 运行", "#1890FF", Brushes.White, OnRunButtonClick);
-            runButton.Margin = new Thickness(0, 0, 8, 0);
-            runButton.Padding = new Thickness(24, 8, 24, 8);
-            runButton.FontWeight = FontWeights.Bold;
-            runButton.Tag = "#40A9FF"; // Hover color
-            runButton.MouseEnter += OnButtonMouseEnter;
-            runButton.MouseLeave += OnButtonMouseLeave;
-            buttonPanel.Children.Add(runButton);
-
-            // 重置按钮
-            var resetButton = CreateButton("重置", "#F5F5F5", 
+            // 连续运行按钮 (toggle 样式)
+            _continuousRunButton = CreateButton("⟳ 连续运行", "#F5F5F5", 
                 new SolidColorBrush((Color)ColorConverter.ConvertFromString("#666666")), 
-                OnResetButtonClick);
-            resetButton.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D9D9D9"));
-            resetButton.BorderThickness = new Thickness(1);
-            resetButton.Padding = new Thickness(24, 8, 24, 8);
-            resetButton.Tag = "#E8E8E8"; // Hover color
-            resetButton.MouseEnter += OnButtonMouseEnter;
-            resetButton.MouseLeave += OnButtonMouseLeave;
-            buttonPanel.Children.Add(resetButton);
+                OnContinuousRunClick);
+            _continuousRunButton.Margin = new Thickness(0, 0, 8, 0);
+            _continuousRunButton.Padding = new Thickness(16, 8, 16, 8);
+            _continuousRunButton.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D9D9D9"));
+            _continuousRunButton.BorderThickness = new Thickness(1);
+            _continuousRunButton.MouseEnter += OnButtonMouseEnter;
+            _continuousRunButton.MouseLeave += OnButtonMouseLeave;
+            buttonPanel.Children.Add(_continuousRunButton);
+
+            // 运行按钮 (主按钮)
+            _runButton = CreateButton("▶ 运行", "#1890FF", Brushes.White, OnRunButtonClick);
+            _runButton.Margin = new Thickness(0, 0, 8, 0);
+            _runButton.Padding = new Thickness(24, 8, 24, 8);
+            _runButton.FontWeight = FontWeights.Bold;
+            _runButton.MouseEnter += OnButtonMouseEnter;
+            _runButton.MouseLeave += OnButtonMouseLeave;
+            buttonPanel.Children.Add(_runButton);
+
+            // 确定按钮 (成功按钮)
+            _confirmButton = CreateButton("✓ 确定", "#52C41A", Brushes.White, OnConfirmClick);
+            _confirmButton.Padding = new Thickness(24, 8, 24, 8);
+            _confirmButton.FontWeight = FontWeights.Bold;
+            _confirmButton.MouseEnter += OnButtonMouseEnter;
+            _confirmButton.MouseLeave += OnButtonMouseLeave;
+            buttonPanel.Children.Add(_confirmButton);
 
             bottomBorder.Child = buttonPanel;
             mainGrid.Children.Add(bottomBorder);
@@ -274,9 +306,22 @@ namespace SunEyeVision.Plugin.SDK.UI
 
         private void OnButtonMouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (sender is Button button && button.Tag is string hoverColor)
+            if (sender is Button button)
             {
-                button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverColor));
+                var content = button.Content?.ToString();
+                
+                if (content?.Contains("连续运行") == true && !_isContinuousRun)
+                {
+                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E8E8E8"));
+                }
+                else if (content == "▶ 运行")
+                {
+                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#40A9FF"));
+                }
+                else if (content == "✓ 确定")
+                {
+                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#73D13D"));
+                }
             }
         }
 
@@ -284,11 +329,20 @@ namespace SunEyeVision.Plugin.SDK.UI
         {
             if (sender is Button button)
             {
-                // 恢复原色
-                if (button.Content?.ToString() == "▶ 运行")
+                var content = button.Content?.ToString();
+                
+                if (content?.Contains("连续运行") == true)
+                {
+                    UpdateContinuousRunButtonVisual(_isContinuousRun);
+                }
+                else if (content == "▶ 运行")
+                {
                     button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1890FF"));
-                else
-                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5F5F5"));
+                }
+                else if (content == "✓ 确定")
+                {
+                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#52C41A"));
+                }
             }
         }
 
@@ -351,6 +405,39 @@ namespace SunEyeVision.Plugin.SDK.UI
             {
                 window.PART_TitleText.Text = e.NewValue as string ?? string.Empty;
                 window.Title = e.NewValue as string ?? "工具调试";
+            }
+        }
+
+        private static void OnIsContinuousRunChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BaseToolDebugWindow window)
+            {
+                window._isContinuousRun = (bool)e.NewValue;
+                window.UpdateContinuousRunButtonVisual((bool)e.NewValue);
+            }
+        }
+
+        /// <summary>
+        /// 更新连续运行按钮视觉状态
+        /// </summary>
+        private void UpdateContinuousRunButtonVisual(bool isContinuous)
+        {
+            if (_continuousRunButton == null) return;
+
+            if (isContinuous)
+            {
+                _continuousRunButton.Background = new SolidColorBrush(
+                    (Color)ColorConverter.ConvertFromString("#FA8C16"));
+                _continuousRunButton.Foreground = Brushes.White;
+                _continuousRunButton.Content = "⟳ 连续运行中";
+            }
+            else
+            {
+                _continuousRunButton.Background = new SolidColorBrush(
+                    (Color)ColorConverter.ConvertFromString("#F5F5F5"));
+                _continuousRunButton.Foreground = new SolidColorBrush(
+                    (Color)ColorConverter.ConvertFromString("#666666"));
+                _continuousRunButton.Content = "⟳ 连续运行";
             }
         }
 
@@ -431,9 +518,18 @@ namespace SunEyeVision.Plugin.SDK.UI
             OnExecuteRequested();
         }
 
-        private void OnResetButtonClick(object sender, RoutedEventArgs e)
+        private void OnContinuousRunClick(object sender, RoutedEventArgs e)
         {
-            OnResetRequested();
+            _isContinuousRun = !_isContinuousRun;
+            IsContinuousRun = _isContinuousRun;
+            ContinuousRunToggled?.Invoke(this, _isContinuousRun);
+            OnContinuousRunToggled(_isContinuousRun);
+        }
+
+        private void OnConfirmClick(object sender, RoutedEventArgs e)
+        {
+            ConfirmClicked?.Invoke(this, EventArgs.Empty);
+            OnConfirmButtonClicked();
         }
 
         protected virtual void OnExecuteRequested()
@@ -441,9 +537,22 @@ namespace SunEyeVision.Plugin.SDK.UI
             ExecuteRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        protected virtual void OnResetRequested()
+        /// <summary>
+        /// 连续运行模式切换 - 子类可重写
+        /// </summary>
+        protected virtual void OnContinuousRunToggled(bool isContinuous)
         {
-            ResetRequested?.Invoke(this, EventArgs.Empty);
+            // 子类可重写以实现连续运行逻辑
+        }
+
+        /// <summary>
+        /// 确定按钮点击 - 子类可重写
+        /// </summary>
+        protected virtual void OnConfirmButtonClicked()
+        {
+            // 默认行为：设置 DialogResult 并关闭
+            DialogResult = true;
+            Close();
         }
 
         #endregion

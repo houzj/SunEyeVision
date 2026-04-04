@@ -111,12 +111,12 @@ namespace SunEyeVision.Plugin.SDK.UI
         }
 
         /// <summary>
-        /// 重置按钮点击时调用 - 自动调用ViewModel.ResetParameters()
+        /// 连续运行模式切换 - 子类可重写
         /// </summary>
-        protected override void OnResetRequested()
+        protected override void OnContinuousRunToggled(bool isContinuous)
         {
-            ViewModel.ResetParameters();
-            base.OnResetRequested();
+            base.OnContinuousRunToggled(isContinuous);
+            // 子类可重写以实现连续运行逻辑
         }
 
         /// <summary>

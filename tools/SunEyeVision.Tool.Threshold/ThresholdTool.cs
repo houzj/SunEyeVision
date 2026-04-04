@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Windows;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -168,11 +169,11 @@ namespace SunEyeVision.Tool.Threshold
         }
 
         /// <summary>
-        /// 创建调试窗口
+        /// 创建调试控件
         /// </summary>
-        public System.Windows.Window? CreateDebugWindow()
+        public FrameworkElement? CreateDebugControl()
         {
-            return new ThresholdToolDebugWindow();
+            return new ThresholdToolDebugControl();
         }
 
         #region 私有方法

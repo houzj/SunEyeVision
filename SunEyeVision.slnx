@@ -19,17 +19,7 @@
     <Project Path="Src/Workflow/SunEyeVision.Workflow.csproj" />
   </Folder>
   <Folder Name="/Tools/">
-    <Project Path="tools/SunEyeVision.Tool.Blob/SunEyeVision.Tool.Blob.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.ColorConvert/SunEyeVision.Tool.ColorConvert.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.EdgeDetection/SunEyeVision.Tool.EdgeDetection.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.GaussianBlur/SunEyeVision.Tool.GaussianBlur.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.ImageCapture/SunEyeVision.Tool.ImageCapture.csproj" />
     <Project Path="Tools/SunEyeVision.Tool.ImageLoad/SunEyeVision.Tool.ImageLoad.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.ImageSave/SunEyeVision.Tool.ImageSave.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.OCR/SunEyeVision.Tool.OCR.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.RegionEditor/SunEyeVision.Tool.RegionEditor.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.ROICrop/SunEyeVision.Tool.ROICrop.csproj" />
-    <Project Path="Tools/SunEyeVision.Tool.TemplateMatching/SunEyeVision.Tool.TemplateMatching.csproj" />
     <Project Path="Tools/SunEyeVision.Tool.Threshold/SunEyeVision.Tool.Threshold.csproj" />
   </Folder>
 </Solution>

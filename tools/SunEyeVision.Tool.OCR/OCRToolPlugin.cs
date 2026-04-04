@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Windows;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
@@ -40,6 +41,12 @@ namespace SunEyeVision.Tool.OCR
     {
         public bool HasDebugWindow => true;
 
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new OCRToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new OCRToolDebugWindow();

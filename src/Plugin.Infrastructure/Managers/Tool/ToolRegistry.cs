@@ -140,6 +140,9 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                     attr.Category
                 );
 
+                // 提取 DebugWindowStyle 属性
+                metadata.DebugWindowStyle = attr.DebugWindowStyle;
+
                 _metadataCache[toolId] = metadata;
                 return metadata;
             }

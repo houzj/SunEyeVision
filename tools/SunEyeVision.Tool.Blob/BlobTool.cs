@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
@@ -159,8 +160,17 @@ namespace SunEyeVision.Tool.Blob
         }
 
         /// <summary>
-        /// 创建调试窗口
+        /// 创建调试控件
         /// </summary>
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new BlobToolDebugWindow();
+        }
+
+        /// <summary>
+        /// 创建调试窗口（保留向后兼容）
+        /// </summary>
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new BlobToolDebugWindow();

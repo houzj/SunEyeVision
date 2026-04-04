@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 淇濇寔瀵?Core 鐨勫紩鐢紙闇€瑕?ILogger锛?-->
+    <!-- 保持对 Core 的引用(需要 ILogger) -->
     <ProjectReference Include="..\Core\SunEyeVision.Core.csproj" />
     <ProjectReference Include="..\Plugin.SDK\SunEyeVision.Plugin.SDK.csproj" />
   </ItemGroup>

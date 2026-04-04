@@ -81,6 +81,12 @@ namespace SunEyeVision.Tool.ImageCapture
     {
         public bool HasDebugWindow => true;
 
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new ImageCaptureToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new ImageCaptureToolDebugWindow();

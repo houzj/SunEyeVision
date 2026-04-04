@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Validation;
 
 namespace SunEyeVision.Plugin.SDK.Metadata
@@ -67,6 +68,18 @@ namespace SunEyeVision.Plugin.SDK.Metadata
         /// </remarks>
         [JsonIgnore]
         public Type? DebugWindowType { get; set; }
+
+        /// <summary>
+        /// 调试窗口样式 - 定义窗口打开行为
+        /// </summary>
+        /// <remarks>
+        /// 窗口类型优先级：节点级配置 → 工具级配置 → 全局默认值
+        /// - None: 无窗口（不打开任何窗口）
+        /// - Default: 标准窗口（有标题栏和边框）
+        /// - Custom: 自定义窗口（无边框圆角窗口）
+        /// </remarks>
+        [JsonIgnore]
+        public DebugWindowStyle DebugWindowStyle { get; set; } = DebugWindowStyle.Default;
 
         /// <summary>
         /// 节点样式类型 - 工具专用的节点样式

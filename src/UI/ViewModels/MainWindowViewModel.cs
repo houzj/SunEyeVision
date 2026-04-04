@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using AppCommands = SunEyeVision.UI.Commands;
 using SunEyeVision.UI.Models;
 using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
+using SunEyeVision.Workflow.Nodes;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Validation;
 using SunEyeVision.Plugin.SDK.Core;
@@ -2224,35 +2225,58 @@ namespace SunEyeVision.UI.ViewModels
                                 _openDebugWindow = null;
                             }
 
-                            // 创建新的调试窗口
-                            var mainImageControl = GetMainImageControl?.Invoke();
-                            var debugWindow = ToolDebugWindowFactory.CreateDebugWindow(toolId, tool, toolMetadata, mainImageControl);
-                            
-                            AddLog($"🔨 创建调试窗口：{debugWindow?.GetType().Name ?? "null"}");
-                            
-                            if (debugWindow != null)
+                            // 使用新架构创建调试窗口
+                            try
                             {
-                                debugWindow.Owner = System.Windows.Application.Current.MainWindow;
-                                debugWindow.Title = $"{node.Name} - 调试窗口";
-
-                                // 注入前驱节点数据
-                                InjectParentNodesToDebugWindow(debugWindow, node);
-
-                                // 注册关闭事件，窗口关闭时清理引用
-                                debugWindow.Closed += (s, e) =>
+                                // 创建决策链
+                                var decisionChain = new NodeOpenDecisionChain();
+                                
+                                // 创建上下文
+                                var mainImageControl = GetMainImageControl?.Invoke();
+                                var context = new NodeOpenContext(
+                                    Application.Current.MainWindow,
+                                    mainImageControl)
                                 {
-                                    _openDebugWindow = null;
-                                    AddLog($"🔧 关闭调试窗口: {node.Name}");
+                                    Node = node.ToWorkflowNode()
                                 };
 
-                                _openDebugWindow = debugWindow;
-                                debugWindow.Show();
-                                AddLog($"✅ 调试窗口已打开: {node.Name}");
+                                // 执行决策链
+                                var success = decisionChain.Execute(context.Node, context);
+
+                                if (success && context.CreatedWindow != null)
+                                {
+                                    // 获取创建的窗口
+                                    var debugWindow = context.CreatedWindow;
+                                    
+                                    // 设置标题
+                                    debugWindow.Title = $"{node.Name} - 调试窗口";
+
+                                    // 注入前驱节点数据
+                                    InjectParentNodesToDebugWindow(debugWindow, node);
+
+                                    // 注册关闭事件，窗口关闭时清理引用
+                                    debugWindow.Closed += (s, e) =>
+                                    {
+                                        _openDebugWindow = null;
+                                        AddLog($"🔧 关闭调试窗口: {node.Name}");
+                                    };
+
+                                    _openDebugWindow = debugWindow;
+                                    AddLog($"✅ 调试窗口已打开: {node.Name}");
+                                }
+                                else
+                                {
+                                    AddLog($"⚠️ 工具 '{node.Name}' 无调试窗口或创建失败");
+                                }
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                // 窗口创建失败或工具不支持调试窗口
-                                AddLog($"⚠️ 工具 '{node.Name}' 无调试窗口或创建失败");
+                                AddLog($"❌ 创建调试窗口失败: {ex.Message}");
+                                System.Windows.MessageBox.Show(
+                                    $"创建调试窗口失败: {ex.Message}",
+                                    "错误",
+                                    System.Windows.MessageBoxButton.OK,
+                                    System.Windows.MessageBoxImage.Error);
                             }
                             break;
 

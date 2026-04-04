@@ -144,13 +144,6 @@ namespace SunEyeVision.Tool.ImageCapture.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new ImageCaptureParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
     }
 }

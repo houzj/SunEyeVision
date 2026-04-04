@@ -239,13 +239,6 @@ namespace SunEyeVision.Tool.ColorConvert.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new ColorConvertParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 图像源选择事件

@@ -228,13 +228,6 @@ namespace SunEyeVision.Tool.ImageSave.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new ImageSaveParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

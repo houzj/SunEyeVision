@@ -1,0 +1,172 @@
+﻿using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using SunEyeVision.Plugin.SDK.Logging;
+
+namespace SunEyeVision.Plugin.SDK.UI.Windows
+{
+    /// <summary>
+    /// 无边框窗口壳 - 包装工具调试控件为无边框圆角窗口
+    /// </summary>
+    /// <remarks>
+    /// 架构说明：
+    /// - 轻量级窗口壳，仅提供窗口容器功能
+    /// - 接受任何 UserControl 作为内容
+    /// - 无边框、圆角、可拖拽
+    /// - 适用于需要自定义外观的工具
+    /// 
+    /// 使用场景：
+    /// - 需要自定义窗口样式的工具
+    /// - 需要无边框圆角窗口的工具
+    /// 
+    /// 不适用场景：
+    /// - 需要标准窗口样式的工具（使用 DefaultDebugWindow）
+    /// </remarks>
+    public class CustomDebugWindow : Window
+    {
+        #region 字段
+
+        private readonly UserControl _control;
+        private Border? _windowBorder;
+
+        #endregion
+
+        #region 构造函数
+
+        /// <summary>
+        /// 创建无边框窗口壳
+        /// </summary>
+        /// <param name="control">工具调试控件实例</param>
+        public CustomDebugWindow(UserControl control)
+        {
+            _control = control;
+
+            PluginLogger.Info("CustomDebugWindow 构造函数开始", "CustomDebugWindow");
+
+            // 设置窗口属性
+            Title = "工具调试窗口";
+            Width = 1200;
+            Height = 800;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            ResizeMode = ResizeMode.CanResize;
+            
+            // 无边框样式
+            WindowStyle = WindowStyle.None;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+
+            // 创建窗口容器
+            CreateWindowContainer();
+
+            // 尝试订阅确认按钮点击事件（如果控件有）
+            SubscribeConfirmEvent(_control);
+
+            // 窗口关闭时清理
+            Closed += OnWindowClosed;
+
+            PluginLogger.Success("CustomDebugWindow 构造函数完成", "CustomDebugWindow");
+        }
+
+        #endregion
+
+        #region 私有方法
+
+        /// <summary>
+        /// 创建窗口容器
+        /// </summary>
+        private void CreateWindowContainer()
+        {
+            // 创建外层 Border（圆角 + 阴影）
+            _windowBorder = new Border
+            {
+                Background = (Brush)FindResource("SurfaceBrush"),
+                CornerRadius = new CornerRadius(8),
+                BorderBrush = (Brush)FindResource("BorderBrush"),
+                BorderThickness = new Thickness(1)
+            };
+
+            // 添加阴影效果
+            var effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black,
+                Opacity = 0.3,
+                ShadowDepth = 0,
+                BlurRadius = 20
+            };
+            _windowBorder.Effect = effect;
+
+            // 设置控件为内容
+            _windowBorder.Child = _control;
+            Content = _windowBorder;
+
+            // 支持拖拽
+            _windowBorder.MouseLeftButtonDown += (s, e) =>
+            {
+                if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+                {
+                    DragMove();
+                }
+            };
+        }
+
+        /// <summary>
+        /// 订阅确认按钮事件
+        /// </summary>
+        private void SubscribeConfirmEvent(UserControl control)
+        {
+            // 使用反射查找 ConfirmClicked 事件
+            var eventType = control.GetType().GetEvent("ConfirmClicked");
+            if (eventType != null)
+            {
+                try
+                {
+                    var handler = Delegate.CreateDelegate(eventType.EventHandlerType, this, nameof(OnConfirmClicked));
+                    eventType.AddEventHandler(control, handler);
+                    PluginLogger.Info("已订阅 ConfirmClicked 事件", "CustomDebugWindow");
+                }
+                catch (Exception ex)
+                {
+                    PluginLogger.Warning($"订阅 ConfirmClicked 事件失败: {ex.Message}", "CustomDebugWindow");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 确认按钮点击事件处理
+        /// </summary>
+        private void OnConfirmClicked(object? sender, EventArgs e)
+        {
+            PluginLogger.Info("确认按钮已点击，关闭窗口", "CustomDebugWindow");
+            Close();
+        }
+
+        /// <summary>
+        /// 窗口关闭事件处理
+        /// </summary>
+        private void OnWindowClosed(object? sender, EventArgs e)
+        {
+            // 清理事件绑定
+            if (_control != null)
+            {
+                var eventType = _control.GetType().GetEvent("ConfirmClicked");
+                if (eventType != null)
+                {
+                    try
+                    {
+                        var handler = Delegate.CreateDelegate(eventType.EventHandlerType, this, nameof(OnConfirmClicked));
+                        eventType.RemoveEventHandler(_control, handler);
+                    }
+                    catch
+                    {
+                        // 忽略清理失败
+                    }
+                }
+            }
+
+            PluginLogger.Info("窗口已关闭，事件已清理", "CustomDebugWindow");
+        }
+
+        #endregion
+    }
+}

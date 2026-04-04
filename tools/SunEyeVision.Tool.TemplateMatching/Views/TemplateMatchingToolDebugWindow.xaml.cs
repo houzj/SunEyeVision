@@ -220,13 +220,6 @@ namespace SunEyeVision.Tool.TemplateMatching.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new TemplateMatchingParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

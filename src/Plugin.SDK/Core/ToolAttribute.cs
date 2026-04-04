@@ -75,6 +75,19 @@ namespace SunEyeVision.Plugin.SDK.Core
         public bool HasDebugWindow { get; set; } = true;
 
         /// <summary>
+        /// 调试窗口样式
+        /// </summary>
+        /// <remarks>
+        /// 定义节点双击时的窗口打开行为：
+        /// - None: 无窗口（不打开任何窗口）
+        /// - Default: 标准窗口（有标题栏和边框）
+        /// - Custom: 自定义窗口（无边框圆角窗口）
+        /// 
+        /// 默认值为 Default（标准窗口）。
+        /// </remarks>
+        public DebugWindowStyle DebugWindowStyle { get; set; } = DebugWindowStyle.Default;
+
+        /// <summary>
         /// 创建工具特性
         /// </summary>
         /// <param name="id">工具ID（唯一标识符）</param>

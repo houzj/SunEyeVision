@@ -14,7 +14,6 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Metadata;
-using SunEyeVision.Plugin.SDK.UI;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
@@ -25,15 +24,16 @@ using SunEyeVision.Tool.Threshold.Models;
 namespace SunEyeVision.Tool.Threshold.Views
 {
     /// <summary>
-    /// 阈值化工具调试窗口 - 直接绑定参数架构
+    /// 阈值化工具调试控件 - 普通UserControl架构
     /// </summary>
     /// <remarks>
-    /// 架构优化（rule-008）：
+    /// 架构优化：
+    /// - 不继承基类，作为普通UserControl
     /// - 直接持有参数引用，零拷贝实时同步
     /// - 直接绑定到参数对象，不经过 ViewModel 中转
-    /// - 调试窗口独立，每个节点一个窗口
+    /// - 使用项目样式系统统一外观
     /// </remarks>
-    public partial class ThresholdToolDebugWindow : BaseToolDebugWindow
+    public partial class ThresholdToolDebugControl : UserControl
     {
         #region 字段
 
@@ -61,8 +61,30 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
+        #region 属性
+
+        /// <summary>
+        /// 关联的工具实例
+        /// </summary>
+        public IToolPlugin? Tool { get; set; }
+
+        #endregion
+
         #region 事件
 
+        /// <summary>
+        /// 运行按钮点击事件
+        /// </summary>
+        public event EventHandler? ExecuteRequested;
+
+        /// <summary>
+        /// 确认按钮点击事件
+        /// </summary>
+        public event EventHandler? ConfirmClicked;
+
+        /// <summary>
+        /// 工具执行完成事件
+        /// </summary>
         public event EventHandler<ThresholdResults>? ToolExecutionCompleted;
 
         #endregion
@@ -81,36 +103,138 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 构造函数
+        #region 主窗口ImageControl绑定
 
-        public ThresholdToolDebugWindow()
+        /// <summary>
+        /// 主窗口的ImageControl引用 - 用于区域编辑器绑定
+        /// </summary>
+        protected ImageControl? _mainImageControl;
+
+        /// <summary>
+        /// 设置主窗口的ImageControl - 用于区域编辑器绑定
+        /// </summary>
+        /// <param name="imageControl">主窗口的ImageControl</param>
+        public virtual void SetMainImageControl(ImageControl? imageControl)
         {
-            InitializeComponent();
+            _mainImageControl = imageControl;
 
-            // 初始化默认参数
-            _parameters = new ThresholdParameters();
-
-            // 解析XAML中命名的控件引用
-            ResolveNamedControls();
-
-            // 初始化绑定和事件
-            SetupBindingsAndEvents();
-
-            // 初始化RegionEditor
-            InitializeRegionEditor();
+            if (_regionEditor != null && imageControl != null)
+            {
+                _regionEditor.SetMainImageControl(imageControl);
+            }
         }
 
-        public ThresholdToolDebugWindow(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
+        #endregion
+
+        #region 构造函数
+
+        public ThresholdToolDebugControl()
+        {
+            PluginLogger.Info("ThresholdToolDebugControl 构造函数开始", "ThresholdTool");
+            
+            InitializeComponent();
+            
+            PluginLogger.Info("InitializeComponent 调用成功", "ThresholdTool");
+
+            // 初始化默认参数（设计时使用）
+            _parameters = new ThresholdParameters();
+            PluginLogger.Info("默认参数已初始化", "ThresholdTool");
+
+            // 解析XAML中命名的控件引用
+            PluginLogger.Info("开始解析命名控件", "ThresholdTool");
+            ResolveNamedControls();
+            PluginLogger.Success("命名控件解析完成", "ThresholdTool");
+
+            // 初始化绑定和事件
+            PluginLogger.Info("开始设置绑定和事件", "ThresholdTool");
+            SetupBindingsAndEvents();
+            PluginLogger.Success("绑定和事件设置完成", "ThresholdTool");
+
+            // 初始化RegionEditor
+            PluginLogger.Info("开始初始化RegionEditor", "ThresholdTool");
+            InitializeRegionEditor();
+            PluginLogger.Success("RegionEditor初始化完成", "ThresholdTool");
+            
+            PluginLogger.Success("ThresholdToolDebugControl 构造函数完成", "ThresholdTool");
+        }
+
+        public ThresholdToolDebugControl(string toolId, IToolPlugin? toolPlugin, ToolMetadata? toolMetadata)
             : this()
         {
             Tool = toolPlugin;
-            NodeName = toolMetadata?.DisplayName ?? "图像阈值化";
 
             if (_dataProvider != null)
             {
                 PopulateImageSources(_dataProvider);
                 _regionEditorIntegration?.SetCurrentNodeId(toolId);
             }
+        }
+
+        /// <summary>
+        /// 设置节点参数 - 运行时由工厂方法调用
+        /// </summary>
+        /// <param name="parameters">节点参数实例（与WorkflowNode.Parameters同一实例）</param>
+        public void SetParameters(ToolParameters parameters)
+        {
+            if (parameters is ThresholdParameters thresholdParams)
+            {
+                // ★ 直接设置参数引用（零拷贝，与节点共享同一实例）
+                _parameters = thresholdParams;
+
+                // 重新建立绑定（使用新参数实例）
+                SetupBindingsAndEvents();
+
+                PluginLogger.Success($"已加载节点参数: Threshold={_parameters.Threshold}", "ThresholdTool");
+            }
+            else
+            {
+                PluginLogger.Warning($"参数类型不匹配: 期望 ThresholdParameters，实际 {parameters?.GetType().Name}", "ThresholdTool");
+            }
+        }
+
+        #endregion
+
+        #region 控件解析
+
+        /// <summary>
+        /// 解析XAML中命名的控件引用
+        /// </summary>
+        protected void ResolveNamedControls()
+        {
+            var type = GetType();
+            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            
+            PluginLogger.Info($"ResolveNamedControls - 类型: {type.Name}", "ThresholdTool");
+            
+            foreach (var field in type.GetFields(flags))
+            {
+                // 只处理以_开头且不以Property结尾的字段
+                if (!field.Name.StartsWith("_") || field.Name.EndsWith("Property"))
+                    continue;
+                    
+                // 提取控件名：_controlName -> controlName
+                var controlName = field.Name.Substring(1);
+                var control = FindName(controlName);
+                
+                if (control != null && field.FieldType.IsInstanceOfType(control))
+                {
+                    field.SetValue(this, control);
+                    PluginLogger.Success($"控件已解析: {field.Name} -> {controlName} ({control.GetType().Name})", "ThresholdTool");
+                }
+                else
+                {
+                    if (control == null)
+                    {
+                        PluginLogger.Warning($"控件未找到: {controlName} (字段: {field.Name})", "ThresholdTool");
+                    }
+                    else
+                    {
+                        PluginLogger.Warning($"类型不匹配: {controlName} (期望: {field.FieldType.Name}, 实际: {control.GetType().Name})", "ThresholdTool");
+                    }
+                }
+            }
+            
+            PluginLogger.Info("ResolveNamedControls 完成", "ThresholdTool");
         }
 
         #endregion
@@ -335,23 +459,9 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 主窗口ImageControl绑定
-
-        public override void SetMainImageControl(ImageControl? imageControl)
-        {
-            base.SetMainImageControl(imageControl);
-
-            if (_regionEditor != null && imageControl != null)
-            {
-                _regionEditor.SetMainImageControl(imageControl);
-            }
-        }
-
-        #endregion
-
         #region 执行控制
 
-        protected override void OnExecuteRequested()
+        protected virtual void OnExecuteRequested()
         {
             if (SelectedImageSource == null)
             {
@@ -448,95 +558,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new ThresholdParameters();
-            SetupBindingsAndEvents();
-
-            if (_statusText != null) _statusText.Text = "参数已重置";
-            base.OnResetRequested();
-        }
-
-        #endregion
-
-        #region 结果判断事件
-
-        // 注：ToggleSwitch 已通过双向绑定自动同步到 _resultConfig，无需手动处理
-
-        #endregion
-
-        #region 图像显示事件
-
-        private void OnToggleOutputImageVisibility(object sender, RoutedEventArgs e)
-        {
-            _parameters.DisplayConfig.OutputImage.IsVisible = !_parameters.DisplayConfig.OutputImage.IsVisible;
-            PluginLogger.Info($"输出图像显示: {_parameters.DisplayConfig.OutputImage.IsVisible}", "ThresholdTool");
-        }
-
-        private void OnOpenOutputImageStyle(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开输出图像样式设置", "ThresholdTool");
-            // TODO: 打开样式设置弹窗
-        }
-
-        private void OnToggleThresholdLineVisibility(object sender, RoutedEventArgs e)
-        {
-            _parameters.DisplayConfig.ThresholdLine.IsVisible = !_parameters.DisplayConfig.ThresholdLine.IsVisible;
-            PluginLogger.Info($"阈值分界线显示: {_parameters.DisplayConfig.ThresholdLine.IsVisible}", "ThresholdTool");
-        }
-
-        private void OnOpenThresholdLineStyle(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开阈值分界线样式设置", "ThresholdTool");
-            // TODO: 打开样式设置弹窗
-        }
-
-        private void OnToggleRegionVisibility(object sender, RoutedEventArgs e)
-        {
-            _parameters.DisplayConfig.Region.IsVisible = !_parameters.DisplayConfig.Region.IsVisible;
-            PluginLogger.Info($"ROI区域显示: {_parameters.DisplayConfig.Region.IsVisible}", "ThresholdTool");
-        }
-
-        private void OnOpenRegionStyle(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开ROI区域样式设置", "ThresholdTool");
-            // TODO: 打开样式设置弹窗
-        }
-
-        private void OnToggleHistogramVisibility(object sender, RoutedEventArgs e)
-        {
-            _parameters.DisplayConfig.Histogram.IsVisible = !_parameters.DisplayConfig.Histogram.IsVisible;
-            PluginLogger.Info($"直方图显示: {_parameters.DisplayConfig.Histogram.IsVisible}", "ThresholdTool");
-        }
-
-        private void OnOpenHistogramStyle(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("打开直方图样式设置", "ThresholdTool");
-            // TODO: 打开样式设置弹窗
-        }
-
-        #endregion
-
-        #region 底部按钮事件
-
-        private void OnContinuousExecute(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("开始连续执行", "ThresholdTool");
-            // TODO: 实现连续执行逻辑
-        }
-
-        private void OnExecuteClick(object sender, RoutedEventArgs e)
-        {
-            OnExecuteRequested();
-        }
-
-        private void OnConfirmClick(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Success("配置已确认", "ThresholdTool");
-            DialogResult = true;
-            Close();
-        }
-
         #endregion
 
         #region 结果判断逻辑
@@ -623,32 +644,101 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 窗口关闭
-
-        protected override void OnClosed(System.EventArgs e)
-        {
-            if (_parameters != null)
-            {
-                PluginLogger.Info($"调试窗口关闭 - 最终参数: Threshold={_parameters.Threshold}", "ThresholdTool");
-            }
-
-            if (_regionEditor != null)
-            {
-                _regionEditor.RegionDataChanged -= OnRegionDataChanged;
-            }
-
-            _regionEditorIntegration?.Dispose();
-            base.OnClosed(e);
-        }
-
-        #endregion
-
         #region 图像源选择事件
 
         private void OnImageSourceChanged(object sender, RoutedEventArgs e)
         {
             if (_imageSourceSelector != null)
                 SelectedImageSource = _imageSourceSelector.SelectedImageSource;
+        }
+
+        #endregion
+
+        #region 按钮事件处理
+
+        private void OnRunButtonClick(object sender, RoutedEventArgs e)
+        {
+            OnExecuteRequested();
+        }
+
+        private void OnConfirmButtonClick(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Success("配置已确认", "ThresholdTool");
+            ConfirmClicked?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region 图像显示事件
+
+        private void OnToggleOutputImageVisibility(object sender, RoutedEventArgs e)
+        {
+            _parameters.DisplayConfig.OutputImage.IsVisible = !_parameters.DisplayConfig.OutputImage.IsVisible;
+            PluginLogger.Info($"输出图像显示: {_parameters.DisplayConfig.OutputImage.IsVisible}", "ThresholdTool");
+        }
+
+        private void OnOpenOutputImageStyle(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("打开输出图像样式设置", "ThresholdTool");
+            // TODO: 打开样式设置弹窗
+        }
+
+        private void OnToggleThresholdLineVisibility(object sender, RoutedEventArgs e)
+        {
+            _parameters.DisplayConfig.ThresholdLine.IsVisible = !_parameters.DisplayConfig.ThresholdLine.IsVisible;
+            PluginLogger.Info($"阈值分界线显示: {_parameters.DisplayConfig.ThresholdLine.IsVisible}", "ThresholdTool");
+        }
+
+        private void OnOpenThresholdLineStyle(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("打开阈值分界线样式设置", "ThresholdTool");
+            // TODO: 打开样式设置弹窗
+        }
+
+        private void OnToggleRegionVisibility(object sender, RoutedEventArgs e)
+        {
+            _parameters.DisplayConfig.Region.IsVisible = !_parameters.DisplayConfig.Region.IsVisible;
+            PluginLogger.Info($"ROI区域显示: {_parameters.DisplayConfig.Region.IsVisible}", "ThresholdTool");
+        }
+
+        private void OnOpenRegionStyle(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("打开ROI区域样式设置", "ThresholdTool");
+            // TODO: 打开样式设置弹窗
+        }
+
+        private void OnToggleHistogramVisibility(object sender, RoutedEventArgs e)
+        {
+            _parameters.DisplayConfig.Histogram.IsVisible = !_parameters.DisplayConfig.Histogram.IsVisible;
+            PluginLogger.Info($"直方图显示: {_parameters.DisplayConfig.Histogram.IsVisible}", "ThresholdTool");
+        }
+
+        private void OnOpenHistogramStyle(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("打开直方图样式设置", "ThresholdTool");
+            // TODO: 打开样式设置弹窗
+        }
+
+        #endregion
+
+        #region 底部按钮事件
+
+        private void OnContinuousExecute(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("开始连续执行", "ThresholdTool");
+            // TODO: 实现连续执行逻辑
+        }
+
+        private void OnExecuteClick(object sender, RoutedEventArgs e)
+        {
+            OnExecuteRequested();
+        }
+
+        private void OnConfirmClick(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Success("配置已确认", "ThresholdTool");
+            // UserControl版本：触发ConfirmClicked事件，由窗口壳处理关闭
+            ConfirmClicked?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion

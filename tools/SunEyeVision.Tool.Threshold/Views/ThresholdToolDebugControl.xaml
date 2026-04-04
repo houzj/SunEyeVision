@@ -1,0 +1,415 @@
+<UserControl x:Class="SunEyeVision.Tool.Threshold.Views.ThresholdToolDebugControl"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
+        xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
+        xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters;assembly=SunEyeVision.Plugin.SDK"
+        mc:Ignorable="d"
+        d:DesignHeight="700" d:DesignWidth="450">
+    
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <!-- ★ 显式加载 SDK 层的资源字典（设计时支持） -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- 其他资源 -->
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <!-- 主布局：标题栏 + TabControl + 按钮栏 -->
+  <Grid>
+    <!-- TabControl -->
+    <TabControl  Margin="5,0,5,0">
+      <!-- Tab1: 基本参数 -->
+      <TabItem Header="基本参数" IsSelected="True">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+          <StackPanel>
+            <controls:LabeledControl Label="输入图像">
+              <controls:ImageSourceSelector
+                                x:Name="imageSourceSelector"
+                                PlaceholderText="请选择输入图像源"/>
+            </controls:LabeledControl>
+
+            <TextBlock Text="ROI区域"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Margin="0 16 0 4"
+                                   Foreground="#333333"/>
+            <region:RegionEditorControl x:Name="regionEditor" VerticalContentAlignment="Stretch"/>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Tab2: 运行参数 -->
+      <TabItem Header="运行参数">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+          <StackPanel>
+            <controls:LabeledControl Label="阈值">
+              <controls:BindableParameter
+                                x:Name="thresholdParam"
+                                DataType="Int"
+                                IntMinimum="0"
+                                IntMaximum="255"
+                                SmallChange="1"
+                                LargeChange="10"
+                                ShowSlider="True"/>
+            </controls:LabeledControl>
+
+            <controls:LabeledControl Label="最大值">
+              <controls:BindableParameter
+                                x:Name="maxValueParam"
+                                DataType="Int"
+                                IntMinimum="0"
+                                IntMaximum="255"
+                                SmallChange="1"
+                                LargeChange="10"
+                                ShowSlider="True"/>
+            </controls:LabeledControl>
+
+            <TextBlock Text="阈值类型"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Margin="0,16,0,8"
+                                   Foreground="#333333"/>
+            <ComboBox x:Name="thresholdTypeComboBox" Height="32" VerticalContentAlignment="Center">
+              <ComboBoxItem Content="Binary" IsSelected="True"/>
+              <ComboBoxItem Content="BinaryInv"/>
+              <ComboBoxItem Content="Trunc"/>
+              <ComboBoxItem Content="ToZero"/>
+              <ComboBoxItem Content="ToZeroInv"/>
+            </ComboBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Tab3: 结果显示 -->
+      <TabItem Header="结果显示">
+        <Grid Background="#F5F5F5" DataContext="{Binding Parameters}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <ScrollViewer Grid.Row="0" Padding="12,12,12,8">
+            <StackPanel>
+              <!-- 结果判断分组 -->
+              <Expander Header="结果判断" 
+                                      IsExpanded="True" 
+                                      BorderBrush="#E0E0E0" 
+                                      BorderThickness="1" 
+                                      Margin="0,0,0,8"
+                                      Background="White">
+                <StackPanel Margin="16,8">
+                  <!-- 输出为空判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="输出为空判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsEmptyCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+
+                  <!-- 白色像素比例判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="白色像素比例判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+                  <controls:LabeledControl Label="白色像素比例范围 (%):" Margin="0,8,0,0"
+                                                            Visibility="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:RangeInputControl
+                                            Unit="%"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            MinValue="{Binding ResultConfig.WhitePixelRatioMin, Mode=TwoWay}"
+                                            MaxValue="{Binding ResultConfig.WhitePixelRatioMax, Mode=TwoWay}"
+                                            DecimalPlaces="1"/>
+                  </controls:LabeledControl>
+
+                  <!-- 输出均值判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="输出均值判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsMeanCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+                  <controls:LabeledControl Label="输出均值范围:" Margin="0,8,0,0"
+                                                            Visibility="{Binding ResultConfig.IsMeanCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:RangeInputControl
+                                            Unit=""
+                                            Minimum="0"
+                                            Maximum="255"
+                                            MinValue="{Binding ResultConfig.MeanMin, Mode=TwoWay}"
+                                            MaxValue="{Binding ResultConfig.MeanMax, Mode=TwoWay}"
+                                            DecimalPlaces="1"/>
+                  </controls:LabeledControl>
+
+                  <!-- 输出面积判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="输出面积判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsAreaCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+                  <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,8,0,0"
+                                                            Visibility="{Binding ResultConfig.IsAreaCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:RangeInputControl
+                                            Unit="px²"
+                                            Minimum="0"
+                                            Maximum="1000000"
+                                            MinValue="{Binding ResultConfig.AreaMin, Mode=TwoWay}"
+                                            MaxValue="{Binding ResultConfig.AreaMax, Mode=TwoWay}"
+                                            DecimalPlaces="0"/>
+                  </controls:LabeledControl>
+
+                  <!-- 质心X判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="质心X判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidXCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+                  <controls:LabeledControl Label="质心X坐标范围:" Margin="0,8,0,0"
+                                                            Visibility="{Binding ResultConfig.IsCentroidXCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:RangeInputControl
+                                            Unit=""
+                                            Minimum="0"
+                                            Maximum="10000"
+                                            MinValue="{Binding ResultConfig.CentroidXMin, Mode=TwoWay}"
+                                            MaxValue="{Binding ResultConfig.CentroidXMax, Mode=TwoWay}"
+                                            DecimalPlaces="1"/>
+                  </controls:LabeledControl>
+
+                  <!-- 质心Y判断 -->
+                  <Grid Height="36">
+                    <TextBlock Text="质心Y判断" VerticalAlignment="Center" Foreground="#333333"/>
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidYCheckEnabled, Mode=TwoWay}"
+                                                               HorizontalAlignment="Right" 
+                                                               VerticalAlignment="Center"/>
+                  </Grid>
+                  <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,8,0,0"
+                                                            Visibility="{Binding ResultConfig.IsCentroidYCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:RangeInputControl
+                                            Unit=""
+                                            Minimum="0"
+                                            Maximum="10000"
+                                            MinValue="{Binding ResultConfig.CentroidYMin, Mode=TwoWay}"
+                                            MaxValue="{Binding ResultConfig.CentroidYMax, Mode=TwoWay}"
+                                            DecimalPlaces="1"/>
+                  </controls:LabeledControl>
+                </StackPanel>
+              </Expander>
+
+              <!-- 图像显示分组 -->
+              <Expander Header="图像显示" 
+                                      IsExpanded="True" 
+                                      BorderBrush="#E0E0E0" 
+                                      BorderThickness="1" 
+                                      Margin="0,0,0,8"
+                                      Background="White">
+                <StackPanel Margin="16,8">
+                  <!-- 输出图像 -->
+                  <Grid Height="36">
+                    <TextBlock Text="输出图像" VerticalAlignment="Center" Foreground="#333333"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                      <Button Content="👁" 
+                                                    Width="32" 
+                                                    Height="28" 
+                                                    Margin="0,0,4,0"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnToggleOutputImageVisibility"
+                                                    ToolTip="显示/隐藏"/>
+                      <Button Content="✏" 
+                                                    Width="32" 
+                                                    Height="28"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnOpenOutputImageStyle"
+                                                    ToolTip="样式设置"/>
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- 阈值分界线 -->
+                  <Grid Height="36">
+                    <TextBlock Text="阈值分界线" VerticalAlignment="Center" Foreground="#333333"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                      <Button Content="👁" 
+                                                    Width="32" 
+                                                    Height="28" 
+                                                    Margin="0,0,4,0"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnToggleThresholdLineVisibility"
+                                                    ToolTip="显示/隐藏"/>
+                      <Button Content="✏" 
+                                                    Width="32" 
+                                                    Height="28"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnOpenThresholdLineStyle"
+                                                    ToolTip="样式设置"/>
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- ROI区域 -->
+                  <Grid Height="36">
+                    <TextBlock Text="ROI区域" VerticalAlignment="Center" Foreground="#333333"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                      <Button Content="👁" 
+                                                    Width="32" 
+                                                    Height="28" 
+                                                    Margin="0,0,4,0"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnToggleRegionVisibility"
+                                                    ToolTip="显示/隐藏"/>
+                      <Button Content="✏" 
+                                                    Width="32" 
+                                                    Height="28"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnOpenRegionStyle"
+                                                    ToolTip="样式设置"/>
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- 直方图 -->
+                  <Grid Height="36">
+                    <TextBlock Text="直方图" VerticalAlignment="Center" Foreground="#333333"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                      <Button Content="👁" 
+                                                    Width="32" 
+                                                    Height="28" 
+                                                    Margin="0,0,4,0"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnToggleHistogramVisibility"
+                                                    ToolTip="显示/隐藏"/>
+                      <Button Content="✏" 
+                                                    Width="32" 
+                                                    Height="28"
+                                                    FontSize="14"
+                                                    Foreground="#999999"
+                                                    Click="OnOpenHistogramStyle"
+                                                    ToolTip="样式设置"/>
+                    </StackPanel>
+                  </Grid>
+                </StackPanel>
+              </Expander>
+
+              <!-- 文本显示分组 -->
+              <Expander Header="文本显示" 
+                                      IsExpanded="True" 
+                                      BorderBrush="#E0E0E0" 
+                                      BorderThickness="1"
+                                      Background="White">
+                <Grid Margin="16,12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                  </Grid.RowDefinitions>
+
+                  <!-- 内容 -->
+                  <TextBlock Grid.Column="0" Grid.Row="0" 
+                                               Text="内容:" 
+                                               VerticalAlignment="Center" 
+                                               HorizontalAlignment="Right"
+                                               Foreground="#333333"
+                                               Margin="0,0,8,8"/>
+                  <TextBox Grid.Column="1" Grid.Row="0"
+                                             Text="{Binding TextConfig.Content, Mode=TwoWay}"
+                                             HorizontalAlignment="Stretch"
+                                             Height="32"
+                                             VerticalContentAlignment="Center"/>
+
+                  <!-- OK颜色 -->
+                  <controls:LabeledControl Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
+                                                             Label="OK颜色"
+                                                             Margin="0,0,0,8">
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+
+                  <!-- NG颜色 -->
+                  <controls:LabeledControl Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
+                                                             Label="NG颜色"
+                                                             Margin="0,0,0,8">
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+
+                  <!-- 字号 -->
+                  <TextBlock Grid.Column="0" Grid.Row="3" 
+                                               Text="字号:" 
+                                               VerticalAlignment="Center" 
+                                               HorizontalAlignment="Right"
+                                               Foreground="#333333"
+                                               Margin="0,0,8,8"/>
+                  <controls:NumericUpDown Grid.Column="1" Grid.Row="3"
+                                                            Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
+                                                            Minimum="8"
+                                                            Maximum="72"
+                                                            DecimalPlaces="1"
+                                                            HorizontalAlignment="Left"
+                                                            Width="120"/>
+
+                  <!-- 透明度 -->
+                  <TextBlock Grid.Column="0" Grid.Row="4" 
+                                               Text="透明度:" 
+                                               VerticalAlignment="Center" 
+                                               HorizontalAlignment="Right"
+                                               Foreground="#333333"
+                                               Margin="0,0,8,8"/>
+                  <controls:NumericUpDown Grid.Column="1" Grid.Row="4"
+                                                            Value="{Binding TextConfig.Opacity, Mode=TwoWay}"
+                                                            Minimum="0"
+                                                            Maximum="1"
+                                                            DecimalPlaces="2"
+                                                            HorizontalAlignment="Left"
+                                                            Width="120"/>
+
+                  <!-- 位置 -->
+                  <TextBlock Grid.Column="0" Grid.Row="5" 
+                                               Text="位置X:" 
+                                               VerticalAlignment="Center" 
+                                               HorizontalAlignment="Right"
+                                               Foreground="#333333"
+                                               Margin="0,0,8,0"/>
+                  <StackPanel Grid.Column="1" Grid.Row="5" 
+                                                Orientation="Horizontal">
+                    <controls:NumericUpDown Width="80"
+                                                                Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
+                                                                Minimum="0"
+                                                                Maximum="10000"
+                                                                DecimalPlaces="1"/>
+                    <TextBlock Text="Y:" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="8,0"
+                                                   Foreground="#333333"/>
+                    <controls:NumericUpDown Width="80"
+                                                                Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
+                                                                Minimum="0"
+                                                                Maximum="10000"
+                                                                DecimalPlaces="1"/>
+                  </StackPanel>
+                </Grid>
+              </Expander>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

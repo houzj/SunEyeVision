@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Windows;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK;
 using SunEyeVision.Plugin.SDK.Core;
@@ -45,6 +46,12 @@ namespace SunEyeVision.Tool.TemplateMatching
     {
         public bool HasDebugWindow => true;
 
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new TemplateMatchingToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new TemplateMatchingToolDebugWindow();

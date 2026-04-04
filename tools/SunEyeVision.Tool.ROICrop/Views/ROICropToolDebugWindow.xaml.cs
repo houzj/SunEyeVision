@@ -247,13 +247,6 @@ namespace SunEyeVision.Tool.ROICrop.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new ROICropParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

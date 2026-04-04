@@ -18,6 +18,12 @@ namespace SunEyeVision.Tool.EdgeDetection
     {
         public bool HasDebugWindow => true;
 
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new EdgeDetectionToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new EdgeDetectionToolDebugWindow();

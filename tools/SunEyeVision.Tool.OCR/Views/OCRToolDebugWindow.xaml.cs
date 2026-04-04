@@ -214,13 +214,6 @@ namespace SunEyeVision.Tool.OCR.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new OCRParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

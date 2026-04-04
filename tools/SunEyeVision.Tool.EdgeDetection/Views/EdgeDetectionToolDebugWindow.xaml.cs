@@ -245,13 +245,6 @@ namespace SunEyeVision.Tool.EdgeDetection.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new EdgeDetectionParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

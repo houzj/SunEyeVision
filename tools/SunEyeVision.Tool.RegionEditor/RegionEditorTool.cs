@@ -21,9 +21,14 @@ namespace SunEyeVision.Tool.RegionEditor
         Version = "1.0.0")]
     public class RegionEditorTool : IToolPlugin<RegionEditorParameters, RegionEditorResults>
     {
-        /// <summary>
-        /// 创建调试窗口
-        /// </summary>
+        public bool HasDebugWindow => true;
+
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new RegionEditorToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new RegionEditorToolDebugWindow();

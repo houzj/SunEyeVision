@@ -47,6 +47,12 @@ namespace SunEyeVision.Tool.ROICrop
     {
         public bool HasDebugWindow => true;
 
+        public FrameworkElement? CreateDebugControl()
+        {
+            return new ROICropToolDebugWindow();
+        }
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new ROICropToolDebugWindow();

@@ -83,6 +83,24 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// <summary>创建调试窗口（可选实现）</summary>
         System.Windows.Window? CreateDebugWindow() => null;
 
+        /// <summary>
+        /// 创建调试控件（可选实现）
+        /// </summary>
+        /// <returns>调试控件实例，如果返回 null 则表示该工具无调试界面</returns>
+        /// <remarks>
+        /// 工具只负责创建内容，框架负责创建窗口。
+        /// 框架根据 DebugWindowStyle 决定窗口类型，并将此控件放入窗口中。
+        /// 
+        /// 示例：
+        /// <code>
+        /// public FrameworkElement? CreateDebugControl()
+        /// {
+        ///     return new ThresholdToolDebugControl(this);
+        /// }
+        /// </code>
+        /// </remarks>
+        System.Windows.FrameworkElement? CreateDebugControl() => null;
+
         /// <summary>获取默认参数（可选实现）</summary>
         ToolParameters GetDefaultParameters() => (ToolParameters)Activator.CreateInstance(ParamsType)!;
     }

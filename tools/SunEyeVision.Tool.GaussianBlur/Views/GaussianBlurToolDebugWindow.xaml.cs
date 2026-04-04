@@ -233,13 +233,6 @@ namespace SunEyeVision.Tool.GaussianBlur.Views
             }
         }
 
-        protected override void OnResetRequested()
-        {
-            _parameters = new GaussianBlurParameters();
-            SetupBindingsAndEvents();
-            base.OnResetRequested();
-        }
-
         #endregion
 
         #region 事件处理

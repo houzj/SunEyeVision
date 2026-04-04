@@ -268,6 +268,22 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// 调试窗口样式（UI 层专用，不序列化）
+        /// </summary>
+        /// <remarks>
+        /// 从工具元数据传递而来，定义窗口打开行为。
+        /// 窗口类型优先级：节点级配置 → 工具级配置 → 全局默认值
+        /// </remarks>
+        [JsonIgnore]
+        public DebugWindowStyle DebugWindowStyle
+        {
+            get => _debugWindowStyle;
+            set => SetProperty(ref _debugWindowStyle, value);
+        }
+
+        private DebugWindowStyle _debugWindowStyle = DebugWindowStyle.Default;
+
+        /// <summary>
         /// 节点样式类型（UI 层专用，不序列化）
         /// </summary>
         /// <remarks>
@@ -420,7 +436,17 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public virtual IToolPlugin? CreateInstance()
         {
-            throw new NotImplementedException($"Tool type '{ToolType}' is not implemented.");
+            // 从工具注册表创建工具实例
+            var instance = ToolRegistry.CreateToolInstance(ToolType);
+            
+            if (instance == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning, 
+                    $"无法创建工具实例: ToolType={ToolType}", 
+                    "WorkflowNodeBase");
+            }
+            
+            return instance;
         }
 
         /// <summary>

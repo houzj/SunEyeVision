@@ -161,8 +161,18 @@ namespace SunEyeVision.Tool.GaussianBlur
         }
 
         /// <summary>
-        /// 创建调试窗口
+        /// 创建调试控件
         /// </summary>
+        /// <returns>调试窗口实例（Window 继承自 FrameworkElement）</returns>
+        public System.Windows.FrameworkElement? CreateDebugControl()
+        {
+            return new GaussianBlurToolDebugWindow();
+        }
+
+        /// <summary>
+        /// 创建调试窗口（保留向后兼容）
+        /// </summary>
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow()
         {
             return new GaussianBlurToolDebugWindow();

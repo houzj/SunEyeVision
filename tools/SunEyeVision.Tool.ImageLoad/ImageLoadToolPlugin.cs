@@ -85,6 +85,9 @@ namespace SunEyeVision.Tool.ImageLoad
     {
         public bool HasDebugWindow => false;
 
+        public FrameworkElement? CreateDebugControl() => null;
+
+        [Obsolete("使用 CreateDebugControl 替代")]
         public System.Windows.Window? CreateDebugWindow() => null;
 
         public ImageLoadResults Run(Mat image, ImageLoadParameters parameters)
