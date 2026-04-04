@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -92,7 +92,9 @@ namespace SunEyeVision.Plugin.SDK.Logging
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
                     System.Diagnostics.Debug.WriteLine($"[FileLogWriter] 写入错误: {ex.Message}");
+#endif
                 }
             }
         }
@@ -128,7 +130,9 @@ namespace SunEyeVision.Plugin.SDK.Logging
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
                     System.Diagnostics.Debug.WriteLine($"[FileLogWriter] 批量写入错误: {ex.Message}");
+#endif
                 }
             }
         }

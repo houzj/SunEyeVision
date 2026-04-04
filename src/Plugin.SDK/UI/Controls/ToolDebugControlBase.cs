@@ -1,0 +1,402 @@
+﻿using System;
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using SunEyeVision.Plugin.SDK.Commands;
+using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.UI.Events;
+
+namespace SunEyeVision.Plugin.SDK.UI.Controls
+{
+    /// <summary>
+    /// 工具调试控件基类 - 提供标准实现和声明式编程支持
+    /// </summary>
+    /// <remarks>
+    /// 架构说明：
+    /// - 提供路由命令和路由事件的标准实现
+    /// - 支持 XAML 声明式绑定
+    /// - 提供数据注入和参数验证的标准方法
+    /// 
+    /// ⚠️ 重要：WPF XAML 根元素要求
+    /// 
+    /// 由于 WPF 框架限制，不支持泛型类型作为 XAML 根元素。
+    /// 正确的使用方式：
+    /// 
+    /// 1. XAML 根元素使用 UserControl（非泛型基类）
+    ///    <![CDATA[
+    ///    <UserControl x:Class="MyNamespace.MyToolDebugControl"
+    ///                 xmlns:commands="clr-namespace:SunEyeVision.Plugin.SDK.Commands;assembly=SunEyeVision.Plugin.SDK">
+    ///        
+    ///        <UserControl.CommandBindings>
+    ///            <CommandBinding Command="commands:ToolCommands.Execute"
+    ///                           Executed="OnExecuteCommand"
+    ///                           CanExecute="CanExecuteCommand"/>
+    ///            <CommandBinding Command="commands:ToolCommands.Confirm"
+    ///                           Executed="OnConfirmCommand"/>
+    ///        </UserControl.CommandBindings>
+    ///        
+    ///        <Button Content="执行"
+    ///                Command="commands:ToolCommands.Execute"/>
+    ///    </UserControl>
+    ///    ]]>
+    /// 
+    /// 2. 后台代码继承非泛型基类
+    ///    <![CDATA[
+    ///    public partial class MyToolDebugControl : ToolDebugControlBase
+    ///    {
+    ///        public MyToolDebugControl()
+    ///        {
+    ///            InitializeComponent();
+    ///            // 基类已自动调用 SetupCommandBindings()
+    ///        }
+    ///        
+    ///        protected override object ExecuteTool()
+    ///        {
+    ///            // 实现执行逻辑
+    ///            return new MyResults();
+    ///        }
+    ///    }
+    ///    ]]>
+    /// 
+    /// 基类提供的功能（派生类自动获得）：
+    /// ✅ 路由事件：ToolExecutionCompletedEvent
+    /// ✅ 路由命令：Execute, Confirm, ContinuousExecute, ResetParameters
+    /// ✅ 命令绑定：SetupCommandBindings() 自动设置
+    /// ✅ 执行逻辑：OnExecuteCommand() 自动封装
+    /// ✅ 数据注入：SetCurrentNode(), SetDataProvider()
+    /// ✅ 参数验证：ValidateParameters()
+    /// ✅ 抽象方法：ExecuteTool(), CanExecuteTool()
+    /// 
+    /// 使用示例：
+    /// <![CDATA[
+    /// public class ThresholdToolDebugControl : ToolDebugControlBase
+    /// {
+    ///     private ThresholdParameters _parameters;
+    ///     
+    ///     public ThresholdToolDebugControl()
+    ///     {
+    ///         InitializeComponent();
+    ///         // 基类已自动调用 SetupCommandBindings()
+    ///         
+    ///         // 初始化默认参数
+    ///         _parameters = new ThresholdParameters();
+    ///         
+    ///         // 设置绑定
+    ///         SetupBindings();
+    ///     }
+    ///     
+    ///     private void SetupBindings()
+    ///     {
+    ///         // 绑定到参数对象
+    ///         var binding = new Binding("Threshold")
+    ///         {
+    ///             Source = _parameters,
+    ///             Mode = BindingMode.TwoWay
+    ///         };
+    ///         thresholdSlider.SetBinding(Slider.ValueProperty, binding);
+    ///     }
+    ///     
+    ///     protected override object ExecuteTool()
+    ///     {
+    ///         // 实现执行逻辑
+    ///         var image = GetInputImage();
+    ///         return ProcessImage(image, _parameters);
+    ///     }
+    ///     
+    ///     protected override bool CanExecuteTool()
+    ///     {
+    ///         // 可选：添加执行条件检查
+    ///         return _parameters != null && HasInputImage();
+    ///     }
+    /// }
+    /// ]]>
+    /// 
+    /// 参考文档：
+    /// - WPF 控件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/
+    /// - 路由事件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/routed-events-overview
+    /// </remarks>
+    public abstract class ToolDebugControlBase : UserControl
+    {
+        #region 路由事件
+
+        /// <summary>
+        /// 工具执行完成路由事件
+        /// </summary>
+        /// <remarks>
+        /// 使用示例：
+        /// <![CDATA[
+        /// <UserControl>
+        ///     <i:Interaction.Triggers>
+        ///         <i:EventTrigger EventName="ToolExecutionCompleted">
+        ///             <!-- 事件处理 -->
+        ///         </i:EventTrigger>
+        ///     </i:Interaction.Triggers>
+        /// </UserControl>
+        /// ]]>
+        /// </remarks>
+        public static readonly RoutedEvent ToolExecutionCompletedEvent =
+            EventManager.RegisterRoutedEvent(
+                "ToolExecutionCompleted",
+                RoutingStrategy.Bubble,
+                typeof(ToolExecutionCompletedEventHandler),
+                typeof(ToolDebugControlBase));
+
+        /// <summary>
+        /// 工具执行完成事件
+        /// </summary>
+        public event ToolExecutionCompletedEventHandler ToolExecutionCompleted
+        {
+            add => AddHandler(ToolExecutionCompletedEvent, value);
+            remove => RemoveHandler(ToolExecutionCompletedEvent, value);
+        }
+
+        #endregion
+
+        #region 属性
+
+        /// <summary>
+        /// 当前工作流节点
+        /// </summary>
+        public object? CurrentNode { get; protected set; }
+
+        /// <summary>
+        /// 数据提供者
+        /// </summary>
+        public object? DataProvider { get; protected set; }
+
+        /// <summary>
+        /// 执行耗时（毫秒）
+        /// </summary>
+        protected long ExecutionTime { get; private set; }
+
+        #endregion
+
+        #region 构造函数
+
+        /// <summary>
+        /// 创建工具调试控件基类
+        /// </summary>
+        protected ToolDebugControlBase()
+        {
+            // 添加标准命令绑定
+            SetupCommandBindings();
+        }
+
+        #endregion
+
+        #region 命令绑定
+
+        /// <summary>
+        /// 设置标准命令绑定
+        /// </summary>
+        /// <remarks>
+        /// 子类可以重写此方法添加自定义命令绑定
+        /// </remarks>
+        protected virtual void SetupCommandBindings()
+        {
+            // 执行命令
+            CommandBindings.Add(new CommandBinding(
+                ToolCommands.Execute,
+                OnExecuteCommand,
+                CanExecuteCommand));
+
+            // 确认命令
+            CommandBindings.Add(new CommandBinding(
+                ToolCommands.Confirm,
+                OnConfirmCommand,
+                CanConfirmCommand));
+
+            // 连续执行命令
+            CommandBindings.Add(new CommandBinding(
+                ToolCommands.ContinuousExecute,
+                OnContinuousExecuteCommand,
+                CanExecuteCommand));
+
+            // 重置参数命令
+            CommandBindings.Add(new CommandBinding(
+                ToolCommands.ResetParameters,
+                OnResetParametersCommand));
+        }
+
+        #endregion
+
+        #region 命令处理
+
+        /// <summary>
+        /// 执行命令处理
+        /// </summary>
+        protected virtual void OnExecuteCommand(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            PluginLogger.Info("执行命令触发", GetType().Name);
+
+            try
+            {
+                var stopwatch = Stopwatch.StartNew();
+
+                // 执行工具逻辑
+                var results = ExecuteTool();
+
+                stopwatch.Stop();
+                ExecutionTime = stopwatch.ElapsedMilliseconds;
+
+                // 触发完成事件
+                RaiseToolExecutionCompleted(results, ExecutionTime);
+
+                PluginLogger.Success($"工具执行完成，耗时 {ExecutionTime}ms", GetType().Name);
+            }
+            catch (Exception ex)
+            {
+                PluginLogger.Error($"工具执行失败: {ex.Message}", GetType().Name, ex);
+                RaiseToolExecutionFailed(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 判断是否可执行
+        /// </summary>
+        protected virtual void CanExecuteCommand(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = CanExecuteTool();
+        }
+
+        /// <summary>
+        /// 确认命令处理
+        /// </summary>
+        protected virtual void OnConfirmCommand(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            PluginLogger.Info("确认命令触发", GetType().Name);
+
+            if (ValidateParameters())
+            {
+                PluginLogger.Success("参数验证通过", GetType().Name);
+                // 窗口会监听此事件并关闭
+            }
+            else
+            {
+                PluginLogger.Warning("参数验证失败", GetType().Name);
+                MessageBox.Show("参数验证失败，请检查输入参数。", "验证失败", 
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// 判断是否可确认
+        /// </summary>
+        protected virtual void CanConfirmCommand(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        /// <summary>
+        /// 连续执行命令处理
+        /// </summary>
+        protected virtual void OnContinuousExecuteCommand(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            PluginLogger.Info("连续执行命令触发", GetType().Name);
+            // 子类可重写实现连续执行逻辑
+        }
+
+        /// <summary>
+        /// 重置参数命令处理
+        /// </summary>
+        protected virtual void OnResetParametersCommand(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            PluginLogger.Info("重置参数命令触发", GetType().Name);
+            ResetParameters();
+        }
+
+        #endregion
+
+        #region 数据注入方法
+
+        /// <summary>
+        /// 设置当前节点
+        /// </summary>
+        public virtual void SetCurrentNode(object node)
+        {
+            CurrentNode = node;
+            PluginLogger.Info($"已设置当前节点: {node?.GetType().Name}", GetType().Name);
+
+            // 子类重写以更新 UI
+        }
+
+        /// <summary>
+        /// 设置数据提供者
+        /// </summary>
+        public virtual void SetDataProvider(object dataProvider)
+        {
+            DataProvider = dataProvider;
+            PluginLogger.Info($"已设置数据提供者: {dataProvider?.GetType().Name}", GetType().Name);
+
+            // 子类重写以更新图像源选择器等
+        }
+
+        /// <summary>
+        /// 验证参数
+        /// </summary>
+        public virtual bool ValidateParameters()
+        {
+            // 子类重写以实现具体验证逻辑
+            return true;
+        }
+
+        #endregion
+
+        #region 抽象方法
+
+        /// <summary>
+        /// 执行工具逻辑 - 子类必须实现
+        /// </summary>
+        /// <returns>执行结果</returns>
+        protected abstract object ExecuteTool();
+
+        /// <summary>
+        /// 判断是否可执行工具 - 子类可重写
+        /// </summary>
+        /// <returns>是否可执行</returns>
+        protected virtual bool CanExecuteTool()
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// 重置参数到默认值 - 子类可重写
+        /// </summary>
+        protected virtual void ResetParameters()
+        {
+            // 子类重写以实现重置逻辑
+            PluginLogger.Info("参数已重置", GetType().Name);
+        }
+
+        #endregion
+
+        #region 事件触发
+
+        /// <summary>
+        /// 触发工具执行完成事件
+        /// </summary>
+        /// <param name="results">执行结果</param>
+        /// <param name="executionTime">执行耗时（毫秒，可选）</param>
+        protected void RaiseToolExecutionCompleted(object results, long executionTime = 0)
+        {
+            var args = executionTime > 0
+                ? new ToolExecutionCompletedEventArgs(results, executionTime, ToolExecutionCompletedEvent, this)
+                : new ToolExecutionCompletedEventArgs(results, ToolExecutionCompletedEvent, this);
+
+            RaiseEvent(args);
+        }
+
+        /// <summary>
+        /// 触发工具执行失败事件
+        /// </summary>
+        /// <param name="errorMessage">错误信息</param>
+        protected void RaiseToolExecutionFailed(string errorMessage)
+        {
+            var args = new ToolExecutionCompletedEventArgs(errorMessage, ToolExecutionCompletedEvent, this);
+            RaiseEvent(args);
+        }
+
+        #endregion
+    }
+}

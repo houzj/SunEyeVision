@@ -1,4 +1,4 @@
-using System;
+using System.Windows;
 using System.Windows.Media.Imaging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
@@ -6,7 +6,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// <summary>
     /// 图像加载完成事件参数
     /// </summary>
-    public class ImageLoadedEventArgs : EventArgs
+    public class ImageLoadedEventArgs : RoutedEventArgs
     {
         /// <summary>
         /// 加载的图像
@@ -24,6 +24,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public int Height => Image?.PixelHeight ?? 0;
 
         public ImageLoadedEventArgs(BitmapSource? image)
+        {
+            Image = image;
+        }
+
+        public ImageLoadedEventArgs(BitmapSource? image, RoutedEvent routedEvent)
+            : base(routedEvent)
         {
             Image = image;
         }

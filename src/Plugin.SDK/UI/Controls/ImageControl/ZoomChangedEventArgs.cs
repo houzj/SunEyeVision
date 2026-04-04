@@ -1,11 +1,11 @@
-using System;
+using System.Windows;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
     /// 缩放变更事件参数
     /// </summary>
-    public class ZoomChangedEventArgs : EventArgs
+    public class ZoomChangedEventArgs : RoutedEventArgs
     {
         /// <summary>
         /// 新的缩放比例
@@ -18,6 +18,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public double ZoomPercent => Zoom * 100;
 
         public ZoomChangedEventArgs(double zoom)
+        {
+            Zoom = zoom;
+        }
+
+        public ZoomChangedEventArgs(double zoom, RoutedEvent routedEvent)
+            : base(routedEvent)
         {
             Zoom = zoom;
         }

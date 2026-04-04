@@ -45,17 +45,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #endregion
 
-        #region 调试日志
 
-        /// <summary>
-        /// 添加调试日志（输出到调试窗口和Visual Studio输出）
-        /// </summary>
-        private void AddLog(string message)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ImageControl] {message}");
-        }
-
-        #endregion
 
         #region 依赖属性
 
@@ -245,7 +235,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #endregion
 
-        #region 事件
+        #region 路由事件
 
         /// <summary>
         /// 属性变更事件
@@ -253,39 +243,116 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
+        /// 图像加载完成路由事件
+        /// </summary>
+        public static readonly RoutedEvent ImageLoadedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ImageLoaded), RoutingStrategy.Bubble,
+                typeof(EventHandler<ImageLoadedEventArgs>), typeof(ImageControl));
+
+        /// <summary>
         /// 图像加载完成事件
         /// </summary>
-        public event EventHandler<ImageLoadedEventArgs>? ImageLoaded;
+        public event EventHandler<ImageLoadedEventArgs> ImageLoaded
+        {
+            add => AddHandler(ImageLoadedEvent, value);
+            remove => RemoveHandler(ImageLoadedEvent, value);
+        }
+
+        /// <summary>
+        /// 缩放变更路由事件
+        /// </summary>
+        public static readonly RoutedEvent ZoomChangedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ZoomChanged), RoutingStrategy.Bubble,
+                typeof(EventHandler<ZoomChangedEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 缩放变更事件
         /// </summary>
-        public event EventHandler<ZoomChangedEventArgs>? ZoomChanged;
+        public event EventHandler<ZoomChangedEventArgs> ZoomChanged
+        {
+            add => AddHandler(ZoomChangedEvent, value);
+            remove => RemoveHandler(ZoomChangedEvent, value);
+        }
+
+        /// <summary>
+        /// 视图变换路由事件
+        /// </summary>
+        public static readonly RoutedEvent ViewTransformedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ViewTransformed), RoutingStrategy.Bubble,
+                typeof(EventHandler<ViewTransformEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 视图变换事件（平移或缩放后）
         /// </summary>
-        public event EventHandler<ViewTransformEventArgs>? ViewTransformed;
+        public event EventHandler<ViewTransformEventArgs> ViewTransformed
+        {
+            add => AddHandler(ViewTransformedEvent, value);
+            remove => RemoveHandler(ViewTransformedEvent, value);
+        }
+
+        /// <summary>
+        /// 鼠标在图像上移动路由事件
+        /// </summary>
+        public static readonly RoutedEvent ImageMouseMoveEvent =
+            EventManager.RegisterRoutedEvent(nameof(ImageMouseMove), RoutingStrategy.Bubble,
+                typeof(EventHandler<ImageMouseEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 鼠标在图像上移动事件
         /// </summary>
-        public event EventHandler<ImageMouseEventArgs>? ImageMouseMove;
+        public event EventHandler<ImageMouseEventArgs> ImageMouseMove
+        {
+            add => AddHandler(ImageMouseMoveEvent, value);
+            remove => RemoveHandler(ImageMouseMoveEvent, value);
+        }
+
+        /// <summary>
+        /// 鼠标按下路由事件
+        /// </summary>
+        public static readonly RoutedEvent CanvasMouseLeftButtonDownEvent =
+            EventManager.RegisterRoutedEvent(nameof(CanvasMouseLeftButtonDown), RoutingStrategy.Bubble,
+                typeof(EventHandler<ImageMouseEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 鼠标按下事件（在Canvas上）
         /// </summary>
-        public event EventHandler<ImageMouseEventArgs>? CanvasMouseLeftButtonDown;
+        public event EventHandler<ImageMouseEventArgs> CanvasMouseLeftButtonDown
+        {
+            add => AddHandler(CanvasMouseLeftButtonDownEvent, value);
+            remove => RemoveHandler(CanvasMouseLeftButtonDownEvent, value);
+        }
+
+        /// <summary>
+        /// 鼠标释放路由事件
+        /// </summary>
+        public static readonly RoutedEvent CanvasMouseLeftButtonUpEvent =
+            EventManager.RegisterRoutedEvent(nameof(CanvasMouseLeftButtonUp), RoutingStrategy.Bubble,
+                typeof(EventHandler<ImageMouseEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 鼠标释放事件（在Canvas上）
         /// </summary>
-        public event EventHandler<ImageMouseEventArgs>? CanvasMouseLeftButtonUp;
+        public event EventHandler<ImageMouseEventArgs> CanvasMouseLeftButtonUp
+        {
+            add => AddHandler(CanvasMouseLeftButtonUpEvent, value);
+            remove => RemoveHandler(CanvasMouseLeftButtonUpEvent, value);
+        }
+
+        /// <summary>
+        /// 图像源选择变更路由事件
+        /// </summary>
+        public static readonly RoutedEvent ImageSourceSelectionChangedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ImageSourceSelectionChanged), RoutingStrategy.Bubble,
+                typeof(EventHandler<ImageSourceSelectionChangedEventArgs>), typeof(ImageControl));
 
         /// <summary>
         /// 图像源选择变更事件
         /// </summary>
-        public event EventHandler<ImageSourceSelectionChangedEventArgs>? ImageSourceSelectionChanged;
+        public event EventHandler<ImageSourceSelectionChangedEventArgs> ImageSourceSelectionChanged
+        {
+            add => AddHandler(ImageSourceSelectionChangedEvent, value);
+            remove => RemoveHandler(ImageSourceSelectionChangedEvent, value);
+        }
 
         #endregion
 
@@ -324,37 +391,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public void FitToWindow()
         {
-            AddLog($"[FitToWindow] 开始执行");
-            AddLog($"[FitToWindow] SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
-            AddLog($"[FitToWindow] MainCanvas: {(MainCanvas != null ? "存在" : "null")}");
-            
             if (SourceImage == null || MainCanvas == null)
             {
-                AddLog($"[FitToWindow] ❌ 提前返回: SourceImage或MainCanvas为null");
                 return;
             }
 
             var viewWidth = MainCanvas.ActualWidth;
             var viewHeight = MainCanvas.ActualHeight;
-            AddLog($"[FitToWindow] MainCanvas尺寸: {viewWidth}x{viewHeight}");
 
             if (viewWidth <= 0 || viewHeight <= 0)
             {
-                AddLog($"[FitToWindow] ❌ 提前返回: MainCanvas尺寸无效");
                 return;
             }
 
             var scaleX = viewWidth / SourceImage.PixelWidth;
             var scaleY = viewHeight / SourceImage.PixelHeight;
-            AddLog($"[FitToWindow] scaleX={scaleX:F4}, scaleY={scaleY:F4}");
 
-            var newZoom = Math.Min(scaleX, scaleY); // 不留边距，完全适应
-            AddLog($"[FitToWindow] 计算newZoom={newZoom:F4}, 当前Zoom={Zoom:F4}");
+            var newZoom = Math.Min(scaleX, scaleY);
             Zoom = newZoom;
 
-            // 居中显示
             CenterImage();
-            AddLog($"[FitToWindow] ✓ 完成");
         }
 
         /// <summary>
@@ -581,17 +637,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void OnImageLoaded()
         {
-            ImageLoaded?.Invoke(this, new ImageLoadedEventArgs(SourceImage));
+            RaiseEvent(new ImageLoadedEventArgs(SourceImage, ImageLoadedEvent));
         }
 
         private void OnZoomChanged()
         {
-            ZoomChanged?.Invoke(this, new ZoomChangedEventArgs(Zoom));
+            RaiseEvent(new ZoomChangedEventArgs(Zoom, ZoomChangedEvent));
         }
 
         private void OnViewTransformed()
         {
-            ViewTransformed?.Invoke(this, new ViewTransformEventArgs(Zoom, _offsetX, _offsetY));
+            RaiseEvent(new ViewTransformEventArgs(Zoom, _offsetX, _offsetY, ViewTransformedEvent));
         }
 
         #endregion
@@ -627,27 +683,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void EnterFullscreen()
         {
-            AddLog($"EnterFullscreen 被调用");
-            AddLog($"Parent 类型: {Parent?.GetType().Name ?? "null"}");
-            
-            // ★ 在移动控件前保存图像引用（绑定可能会丢失）
+            // 保存图像引用（绑定可能会丢失）
             _savedSourceImage = SourceImage;
-            AddLog($"保存图像引用: {(_savedSourceImage != null ? $"{_savedSourceImage.PixelWidth}x{_savedSourceImage.PixelHeight}" : "null")}");
-            
+
             // 记录原父容器
             _originalParent = Parent as FrameworkElement;
             if (_originalParent == null)
             {
-                AddLog($"❌ 父容器为 null，无法进入全屏");
                 return;
             }
-           
 
-            AddLog($"✓ 父容器类型: {_originalParent.GetType().Name}");
-            
-            // ★★★ 关键修复：在移除父容器之前保存 DataContext ★★★
+            // 在移除父容器之前保存 DataContext
             _savedDataContext = _originalParent.DataContext ?? this.DataContext;
-            AddLog($"保存 DataContext: {_savedDataContext?.GetType().Name ?? "null"}");
 
             // 判断父容器类型并保存状态
             if (_originalParent is Panel panel)
@@ -655,17 +702,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _parentIsPanel = true;
                 _originalIndex = panel.Children.IndexOf(this);
                 panel.Children.Remove(this);
-                AddLog($"✓ 从 Panel 移除，索引: {_originalIndex}");
             }
             else if (_originalParent is Decorator decorator)
             {
                 _parentIsPanel = false;
                 decorator.Child = null;
-                AddLog($"✓ 从 Decorator 移除");
             }
             else
             {
-                AddLog($"❌ 不支持的父容器类型: {_originalParent.GetType().Name}");
                 _originalParent = null;
                 return;
             }
@@ -678,7 +722,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)),
                 Content = this,
                 Title = "全屏预览",
-                DataContext = _savedDataContext  // ★ 关键：设置 DataContext 保持绑定有效
+                DataContext = _savedDataContext
             };
 
             _fullscreenWindow.KeyDown += (s, e) =>
@@ -693,59 +737,44 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
             _isFullscreen = true;
             _fullscreenWindow.Show();
-            AddLog($"[EnterFullscreen] ✓ 全屏窗口已显示");
-            AddLog($"[EnterFullscreen] 窗口尺寸: {_fullscreenWindow.ActualWidth}x{_fullscreenWindow.ActualHeight}");
-            AddLog($"[EnterFullscreen] MainCanvas尺寸: {MainCanvas.ActualWidth}x{MainCanvas.ActualHeight}");
-            
-            // 全屏窗口内容渲染完成后，自适应图像（确保窗口尺寸已确定）
+
+            // 全屏窗口内容渲染完成后，自适应图像
             _fullscreenWindow.ContentRendered += (s, args) =>
             {
-                AddLog($"[ContentRendered] 触发，窗口尺寸: {_fullscreenWindow?.ActualWidth}x{_fullscreenWindow?.ActualHeight}");
-                AddLog($"[ContentRendered] MainCanvas尺寸: {MainCanvas.ActualWidth}x{MainCanvas.ActualHeight}");
-                AddLog($"[ContentRendered] 当前SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
-                
-                // ★ 如果绑定丢失，恢复保存的图像引用
+                // 如果绑定丢失，恢复保存的图像引用
                 if (SourceImage == null && _savedSourceImage != null)
                 {
-                    AddLog($"[ContentRendered] 恢复保存的图像引用");
                     SourceImage = _savedSourceImage;
                 }
-                
+
                 FitToWindow();
             };
         }
 
         private void ExitFullscreen()
         {
-            AddLog($"ExitFullscreen 被调用");
-            
             if (!_isFullscreen || _originalParent == null)
             {
-                AddLog($"❌ 无法退出全屏: _isFullscreen={_isFullscreen}, _originalParent={_originalParent != null}");
                 return;
             }
 
             // 防止重复调用
             _isFullscreen = false;
 
-            // ★ 保存当前图像引用（如果绑定丢失时恢复用）
+            // 保存当前图像引用
             var imageToRestore = SourceImage ?? _savedSourceImage;
-            AddLog($"保存图像引用用于恢复: {(imageToRestore != null ? $"{imageToRestore.PixelWidth}x{imageToRestore.PixelHeight}" : "null")}");
 
             if (_fullscreenWindow != null)
             {
-                // 先取消订阅事件，防止重复触发
                 _fullscreenWindow.Closed -= ExitFullscreen_Handler;
                 _fullscreenWindow.Content = null;
                 _fullscreenWindow.Close();
                 _fullscreenWindow = null;
-                AddLog($"✓ 全屏窗口已关闭");
             }
 
             // 检查控件是否已经有父容器
             if (Parent != null)
             {
-                AddLog($"⚠ 控件已有父容器，不再插入");
                 return;
             }
 
@@ -753,46 +782,33 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_parentIsPanel && _originalParent is Panel panel)
             {
                 panel.Children.Insert(_originalIndex, this);
-                AddLog($"✓ 已插入回 Panel，索引: {_originalIndex}");
             }
             else if (!_parentIsPanel && _originalParent is Decorator decorator)
             {
                 decorator.Child = this;
-                AddLog($"✓ 已设置回 Decorator");
             }
-            else
-            {
-                AddLog($"❌ 无法恢复到父容器");
-            }
-            
-            // ★★★ 关键修复：恢复父容器的 DataContext ★★★
+
+            // 恢复父容器的 DataContext
             if (_originalParent != null && _savedDataContext != null)
             {
                 _originalParent.DataContext = _savedDataContext;
-                AddLog($"✓ 已恢复父容器 DataContext: {_savedDataContext?.GetType().Name ?? "null"}");
             }
-            
+
             // 返回原父容器后，检查绑定是否恢复并自适应图像
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                AddLog($"[延迟检查] SourceImage: {(SourceImage != null ? $"{SourceImage.PixelWidth}x{SourceImage.PixelHeight}" : "null")}");
-                AddLog($"[延迟检查] this.DataContext: {this.DataContext?.GetType().Name ?? "null"}");
-                AddLog($"[延迟检查] _originalParent.DataContext: {(_originalParent as FrameworkElement)?.DataContext?.GetType().Name ?? "null"}");
-                
-                // ★ 关键修复：如果绑定未恢复，手动设置图像
+                // 如果绑定未恢复，手动设置图像
                 if (SourceImage == null && imageToRestore != null)
                 {
-                    AddLog($"[延迟检查] ⚠ 绑定未恢复，手动设置图像");
                     SourceImage = imageToRestore;
                 }
-                
+
                 // 清理保存的引用
                 _savedSourceImage = null;
                 _savedDataContext = null;
-                
+
                 // 自适应图像
                 FitToWindow();
-                AddLog($"[延迟检查] ✓ FitToWindow 完成");
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
@@ -807,9 +823,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 // 更新选中索引
                 SelectedImageSourceIndex = ImageSourceSelector.SelectedIndex;
-                
+
                 // 触发事件
-                ImageSourceSelectionChanged?.Invoke(this, new ImageSourceSelectionChangedEventArgs(selectedSource));
+                RaiseEvent(new ImageSourceSelectionChangedEventArgs(selectedSource, ImageSourceSelectionChangedEvent));
             }
         }
 
@@ -829,11 +845,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var screenPoint = e.GetPosition(MainCanvas);
             var imagePos = ScreenToImage(screenPoint);
 
-
-
             // 触发外部事件，允许外部处理
-            var args = new ImageMouseEventArgs(imagePos, screenPoint, e);
-            CanvasMouseLeftButtonDown?.Invoke(this, args);
+            var args = new ImageMouseEventArgs(imagePos, screenPoint, e, CanvasMouseLeftButtonDownEvent);
+            RaiseEvent(args);
 
             // 如果外部已处理，则不执行平移
             if (args.Handled)
@@ -873,7 +887,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 PositionText.Text = $"位置: ({(int)imagePos.X}, {(int)imagePos.Y})";
 
                 // 触发鼠标移动事件
-                ImageMouseMove?.Invoke(this, new ImageMouseEventArgs(imagePos, screenPoint, e));
+                RaiseEvent(new ImageMouseEventArgs(imagePos, screenPoint, e, ImageMouseMoveEvent));
             }
 
             if (_isPanning && EnablePanning)
@@ -896,8 +910,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var imagePos = ScreenToImage(screenPoint);
 
             // 触发外部事件
-            var args = new ImageMouseEventArgs(imagePos, screenPoint, e);
-            CanvasMouseLeftButtonUp?.Invoke(this, args);
+            var args = new ImageMouseEventArgs(imagePos, screenPoint, e, CanvasMouseLeftButtonUpEvent);
+            RaiseEvent(args);
 
             if (_isPanning)
             {
@@ -948,7 +962,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// <summary>
     /// 图像源选择变更事件参数
     /// </summary>
-    public class ImageSourceSelectionChangedEventArgs : EventArgs
+    public class ImageSourceSelectionChangedEventArgs : RoutedEventArgs
     {
         /// <summary>
         /// 选中的图像源信息
@@ -956,6 +970,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public ImageSourceInfo SelectedSource { get; }
 
         public ImageSourceSelectionChangedEventArgs(ImageSourceInfo selectedSource)
+        {
+            SelectedSource = selectedSource;
+        }
+
+        public ImageSourceSelectionChangedEventArgs(ImageSourceInfo selectedSource, RoutedEvent routedEvent)
+            : base(routedEvent)
         {
             SelectedSource = selectedSource;
         }

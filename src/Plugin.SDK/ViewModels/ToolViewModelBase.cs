@@ -587,7 +587,6 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
         /// </summary>
         protected override string? GetLogSource()
         {
-            System.Diagnostics.Debug.WriteLine($"[ToolViewModelBase.GetLogSource] 返回 ToolName={_toolName}");
             return ToolName;
         }
 

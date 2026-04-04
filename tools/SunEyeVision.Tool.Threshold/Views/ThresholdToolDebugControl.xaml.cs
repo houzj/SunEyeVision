@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
@@ -19,21 +20,25 @@ using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.UI.Events;
+using SunEyeVision.Plugin.SDK.Commands;
 using SunEyeVision.Tool.Threshold.Models;
 
 namespace SunEyeVision.Tool.Threshold.Views
 {
     /// <summary>
-    /// 阈值化工具调试控件 - 普通UserControl架构
+    /// 阈值化工具调试控件 - 声明式编程架构
     /// </summary>
     /// <remarks>
     /// 架构优化：
-    /// - 不继承基类，作为普通UserControl
+    /// - 继承 ToolDebugControlBase 获得标准实现
+    /// - 支持路由命令（ToolCommands.Execute, ToolCommands.Confirm）
+    /// - 支持路由事件（ToolExecutionCompletedEvent）
     /// - 直接持有参数引用，零拷贝实时同步
     /// - 直接绑定到参数对象，不经过 ViewModel 中转
     /// - 使用项目样式系统统一外观
     /// </remarks>
-    public partial class ThresholdToolDebugControl : UserControl
+    public partial class ThresholdToolDebugControl 
     {
         #region 字段
 
@@ -47,9 +52,6 @@ namespace SunEyeVision.Tool.Threshold.Views
         private WorkflowDataSourceProvider _dataProvider = null!;
         private RegionEditorIntegration _regionEditorIntegration = null!;
 
-        // 执行状态
-        private double _executionTimeMs;
-
         #endregion
 
         #region 属性
@@ -58,25 +60,6 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// 关联的工具实例
         /// </summary>
         public IToolPlugin? Tool { get; set; }
-
-        #endregion
-
-        #region 事件
-
-        /// <summary>
-        /// 运行按钮点击事件
-        /// </summary>
-        public event EventHandler? ExecuteRequested;
-
-        /// <summary>
-        /// 确认按钮点击事件
-        /// </summary>
-        public event EventHandler? ConfirmClicked;
-
-        /// <summary>
-        /// 工具执行完成事件
-        /// </summary>
-        public event EventHandler<ThresholdResults>? ToolExecutionCompleted;
 
         #endregion
 
@@ -122,9 +105,11 @@ namespace SunEyeVision.Tool.Threshold.Views
         public ThresholdToolDebugControl()
         {
             PluginLogger.Info("ThresholdToolDebugControl 构造函数开始", "ThresholdTool");
-            
+
             InitializeComponent();
-            
+
+            // 基类已自动调用 SetupCommandBindings()
+
             PluginLogger.Info("InitializeComponent 调用成功", "ThresholdTool");
 
             // 初始化默认参数（设计时使用）
@@ -140,7 +125,7 @@ namespace SunEyeVision.Tool.Threshold.Views
             PluginLogger.Info("开始初始化RegionEditor", "ThresholdTool");
             InitializeRegionEditor();
             PluginLogger.Success("RegionEditor初始化完成", "ThresholdTool");
-            
+
             PluginLogger.Success("ThresholdToolDebugControl 构造函数完成", "ThresholdTool");
         }
 
@@ -400,26 +385,29 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 执行控制
+        #region 基类重写
 
-        protected virtual void OnExecuteRequested()
+        /// <summary>
+        /// 执行工具逻辑 - 基类调用
+        /// </summary>
+        protected override object ExecuteTool()
         {
+            // 检查图像源
             if (SelectedImageSource == null)
             {
-                PluginLogger.Warning("请选择输入图像源", "ThresholdTool");
-                return;
+                throw new InvalidOperationException("请选择输入图像源");
             }
 
+            // 检查数据提供者
             if (_dataProvider == null)
             {
-                PluginLogger.Warning("数据提供者未初始化", "ThresholdTool");
-                return;
+                throw new InvalidOperationException("数据提供者未初始化");
             }
 
+            // 获取输入图像
             if (!_dataProvider.HasNodeOutput(SelectedImageSource.NodeId))
             {
-                PluginLogger.Warning("图像源节点尚未执行，请先执行前驱节点", "ThresholdTool");
-                return;
+                throw new InvalidOperationException("图像源节点尚未执行，请先执行前驱节点");
             }
 
             var imageMat = _dataProvider.GetCurrentBindingValue(
@@ -430,64 +418,38 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             if (imageMat == null || imageMat.Empty())
             {
-                PluginLogger.Warning("无法获取图像数据或图像为空", "ThresholdTool");
-                return;
+                throw new InvalidOperationException("无法获取图像数据或图像为空");
             }
 
-            ExecuteTool(imageMat);
+            // 检查工具实例
+            if (Tool is not ThresholdTool thresholdTool)
+            {
+                throw new InvalidOperationException("工具实例无效");
+            }
+
+            // 克隆参数用于执行（线程安全）
+            var runParams = (ThresholdParameters)_parameters.Clone();
+
+            // 执行工具
+            return thresholdTool.Run(imageMat, runParams);
         }
 
         /// <summary>
-        /// 执行工具
+        /// 判断是否可执行 - 基类调用
         /// </summary>
-        private void ExecuteTool(Mat inputImage)
+        protected override bool CanExecuteTool()
         {
-            // 直接转换为强类型工具
-            if (Tool is not ThresholdTool thresholdTool)
-            {
-                PluginLogger.Error("工具实例无效", "ThresholdTool");
-                return;
-            }
+            return SelectedImageSource != null && _dataProvider != null;
+        }
 
-            var stopwatch = Stopwatch.StartNew();
+        #endregion
 
-            try
-            {
-                // 克隆参数用于执行（线程安全）
-                var runParams = (ThresholdParameters)_parameters.Clone();
+        #region 执行控制
 
-                // 执行工具（返回强类型 ThresholdResults）
-                ThresholdResults result = thresholdTool.Run(inputImage, runParams);
-
-                stopwatch.Stop();
-                _executionTimeMs = stopwatch.ElapsedMilliseconds;
-
-                // 更新UI
-                Dispatcher.Invoke(() =>
-                {
-                    if (result.IsSuccess)
-                    {
-                        PluginLogger.Success($"执行成功 - 阈值: {result.ThresholdUsed:F0}", "ThresholdTool");
-                        ToolExecutionCompleted?.Invoke(this, result);
-                    }
-                    else
-                    {
-                        PluginLogger.Error($"执行失败 - {result.ErrorMessage}", "ThresholdTool");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                _executionTimeMs = stopwatch.ElapsedMilliseconds;
-
-                Dispatcher.Invoke(() =>
-                {
-                    PluginLogger.Error($"执行异常: {ex.Message}", "ThresholdTool");
-                });
-
-                PluginLogger.Error($"工具执行异常: {ex.Message}", "ThresholdTool", ex);
-            }
+        protected virtual void OnExecuteRequested()
+        {
+            // 基类已处理执行逻辑，这里保留是为了向后兼容（如果有其他地方调用）
+            // 实际执行由基类的 OnExecuteCommand 调用 ExecuteTool() 完成
         }
 
         #endregion
@@ -596,7 +558,6 @@ namespace SunEyeVision.Tool.Threshold.Views
         private void OnConfirmButtonClick(object sender, RoutedEventArgs e)
         {
             PluginLogger.Success("配置已确认", "ThresholdTool");
-            ConfirmClicked?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion
@@ -669,8 +630,6 @@ namespace SunEyeVision.Tool.Threshold.Views
         private void OnConfirmClick(object sender, RoutedEventArgs e)
         {
             PluginLogger.Success("配置已确认", "ThresholdTool");
-            // UserControl版本：触发ConfirmClicked事件，由窗口壳处理关闭
-            ConfirmClicked?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion
