@@ -136,7 +136,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         public static EditHandle[] CreateCircleHandles(Point center, double radius, double handleSize = DefaultHandleSize)
         {
-            var handles = new[]
+            var handles = new List<EditHandle>
             {
                 new EditHandle
                 {
@@ -165,10 +165,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     Position = new Point(center.X + radius, center.Y),
                     Bounds = new Rect(center.X + radius - handleSize / 2, center.Y - handleSize / 2, handleSize, handleSize),
                     Cursor = Cursors.SizeAll
+                },
+                // 中心手柄（用于拖动整个圆形）
+                new EditHandle
+                {
+                    Type = HandleType.Center,
+                    Position = center,
+                    Bounds = new Rect(center.X - handleSize / 2, center.Y - handleSize / 2, handleSize, handleSize),
+                    Cursor = Cursors.SizeAll
                 }
             };
 
-            return handles;
+            return handles.ToArray();
         }
 
         /// <summary>

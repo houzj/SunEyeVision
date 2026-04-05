@@ -87,7 +87,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
             };
 
             // 中心定位（参考ROI编辑器的定位方式）
@@ -112,7 +112,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
             };
 
             // 中心定位
@@ -137,14 +137,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
             };
-
-            // 旋转角度处理（参考ROI编辑器的角度转换）
-            // 图像坐标系角度：顺时针为正，0°向下
-            // WPF RotateTransform：逆时针为正，0°向右
-            // 转换：wpfAngle = -imageAngle
-            rect.RenderTransform = new RotateTransform(-rotation, width / 2, height / 2);
 
             // 中心定位
             var x = shape.CenterX - width / 2;
@@ -165,7 +159,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = shape.EndY,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
             };
 
             return line;

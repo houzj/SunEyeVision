@@ -15,6 +15,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         private bool _isEnabled = true;
         private bool _isVisible = true;
         private bool _isEditable = true;
+        private bool _isPreview;
         private string _tag = string.Empty;
         private int _zIndex;
         private uint _displayColor = 0xFFFF0000;
@@ -75,6 +76,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         {
             get => _isEditable;
             set => SetProperty(ref _isEditable, value, "可编辑性");
+        }
+
+        /// <summary>
+        /// 是否为预览状态
+        /// </summary>
+        public bool IsPreview
+        {
+            get => _isPreview;
+            set => SetProperty(ref _isPreview, value);
         }
 
         /// <summary>
@@ -164,7 +174,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
             return new RegionData
             {
                 Name = name,
-                Parameters = new ShapeParameters { ShapeType = shapeType }
+                Parameters = new ShapeParameters { ShapeType = shapeType },
+                IsPreview = true
             };
         }
 

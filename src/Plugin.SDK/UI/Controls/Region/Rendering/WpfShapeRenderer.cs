@@ -28,6 +28,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         // 对象池：缓存已创建的Shape和TextBlock
         private readonly Dictionary<Guid, Shape> _shapePool = new();
         private readonly Dictionary<Guid, TextBlock> _labelPool = new();
+        
+        // 辅助元素池：方向箭头等辅助渲染元素
+        private readonly Dictionary<Guid, List<Shape>> _helperPool = new();
 
         // 日志降频计数器
         private int _logCounter = 0;
@@ -136,6 +139,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             }
 
             UpdateLabel(region);
+            UpdateHelpers(region);  // 更新箭头等辅助元素
         }
 
         /// <summary>
@@ -146,6 +150,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             _targetCanvas.Children.Clear();
             _shapePool.Clear();
             _labelPool.Clear();
+            _helperPool.Clear();
         }
 
         /// <summary>
@@ -191,6 +196,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     _targetCanvas.Children.Remove(label);
                     _labelPool.Remove(id);
                 }
+                
+                // 清理辅助元素
+                if (_helperPool.TryGetValue(id, out var helpers))
+                {
+                    foreach (var helper in helpers)
+                    {
+                        _targetCanvas.Children.Remove(helper);
+                    }
+                    _helperPool.Remove(id);
+                }
             }
         }
 
@@ -215,6 +230,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
             // 更新或创建标签
             UpdateLabel(region);
+            
+            // 更新或创建辅助元素（方向箭头等）
+            UpdateHelpers(region);
         }
 
         #endregion
@@ -254,7 +272,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[UpdateShape] IsPreview={region.IsPreview}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -269,7 +287,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 shape.StrokeThickness = region.StrokeThickness;
 
                 // 更新虚线样式
-                shape.StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null;
+                shape.StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection();
 
                 // 根据形状类型更新尺寸
                 UpdateShapeDimensions(shape, region);
@@ -336,7 +354,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[CreateRectangle] IsPreview={region.IsPreview}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -361,7 +379,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[CreateCircle] IsPreview={region.IsPreview}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -386,7 +404,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[CreateRotatedRectangle] IsPreview={region.IsPreview}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -397,7 +415,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
                     StrokeThickness = strokeThickness,
-                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection(),
                     RenderTransform = new RotateTransform(region.Angle, region.Width / 2, region.Height / 2)
                     {
                         // 使用数学角度系统
@@ -418,7 +436,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[CreateLine] IsPreview={region.IsPreview}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -430,7 +448,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     Y2 = region.LineEnd.Y - region.LineStart.Y,
                     Stroke = new SolidColorBrush(strokeColor),
                     StrokeThickness = strokeThickness,
-                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
                 };
         }
         /// <summary>
@@ -446,7 +464,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 {
                     _logger.Log(LogLevel.Info, 
                         $"[CreatePolygon] IsPreview={region.IsPreview}, Points={region.PolygonPoints.Count}, " +
-                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "empty")}", 
                         "WpfShapeRenderer");
                 }
 
@@ -455,7 +473,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
                     StrokeThickness = strokeThickness,
-                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null  // ← 添加虚线设置
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
                 };
 
                 // 设置点集
@@ -570,6 +588,99 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Canvas.SetTop(label, labelTop);
                 Canvas.SetZIndex(label, 200);
         }
+        #endregion
+
+        #region 私有方法 - 辅助元素渲染
+
+        /// <summary>
+        /// 更新或创建辅助元素（方向箭头等）
+        /// </summary>
+        private void UpdateHelpers(RegionRenderContext region)
+        {
+            // 旋转矩形的方向箭头
+            if (region.ShapeType == ShapeType.RotatedRectangle)
+            {
+                var helpers = CreateOrUpdateDirectionArrow(region);
+                
+                // 存储到辅助元素池
+                if (!_helperPool.ContainsKey(region.Id))
+                {
+                    _helperPool[region.Id] = new List<Shape>();
+                }
+                
+                // 更新辅助元素池（避免重复添加）
+                foreach (var helper in helpers)
+                {
+                    if (!_helperPool[region.Id].Contains(helper))
+                    {
+                        _helperPool[region.Id].Add(helper);
+                    }
+                }
+            }
+            else
+            {
+                // 非旋转矩形，移除辅助元素
+                if (_helperPool.TryGetValue(region.Id, out var helpers))
+                {
+                    foreach (var helper in helpers)
+                    {
+                        _targetCanvas.Children.Remove(helper);
+                    }
+                    _helperPool.Remove(region.Id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 创建或更新方向箭头
+        /// </summary>
+        private List<Shape> CreateOrUpdateDirectionArrow(RegionRenderContext region)
+        {
+            // 先清理旧的辅助元素
+            if (_helperPool.TryGetValue(region.Id, out var oldHelpers))
+            {
+                foreach (var helper in oldHelpers)
+                {
+                    _targetCanvas.Children.Remove(helper);
+                }
+            }
+
+            // 创建新的辅助元素列表
+            var helpers = new List<Shape>();
+
+            // 计算方向箭头的位置和角度
+            var center = region.Center;
+            var height = region.Height;
+            var rotation = region.Angle;
+
+            // 计算箭头几何
+            var arrow = RotatedRectangleHelper.GetDirectionArrow(center, height, rotation);
+
+            // 确定箭头颜色（选中时为蓝色，否则使用区域颜色）
+            var arrowColor = region.IsSelected
+                ? Brushes.Blue
+                : new SolidColorBrush(region.StrokeColor);
+
+            // 记录添加前的子元素数量
+            var childCountBefore = _targetCanvas.Children.Count;
+
+            // 使用 RotatedRectangleHelper 绘制箭头（包含主线和两翼）
+            RotatedRectangleHelper.DrawDirectionArrow(_targetCanvas, arrow.Start, arrow.End, arrowColor);
+
+            // 收集新添加的箭头形状
+            for (int i = childCountBefore; i < _targetCanvas.Children.Count; i++)
+            {
+                if (_targetCanvas.Children[i] is Shape shape &&
+                    shape.Tag as string == RotatedRectangleHelper.DirectionArrowTag)
+                {
+                    Canvas.SetZIndex(shape, 150); // 确保箭头在形状之上
+                    helpers.Add(shape);
+                }
+            }
+
+            return helpers;
+        }
+
         #endregion
 
         #region IDisposable

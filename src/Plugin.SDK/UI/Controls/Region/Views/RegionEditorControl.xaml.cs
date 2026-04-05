@@ -633,7 +633,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             if (_isDrawing && _currentDrawingRegion != null)
             {
-                // 完成绘制
+                // 完成绘制，设置预览状态为 false
+                _currentDrawingRegion.IsPreview = false;
+                
                 var shapeDef = _currentDrawingRegion.Parameters as ShapeParameters;
                 if (shapeDef != null)
                 {
@@ -794,31 +796,40 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void UpdateCircleByHandle(ShapeParameters shapeDef, Rendering.HandleType handleType, double dx, double dy)
         {
-            // 圆形手柄用于调整半径
-            var delta = Math.Sqrt(dx * dx + dy * dy);
-
             switch (handleType)
             {
-                case Rendering.HandleType.Top:
-                    shapeDef.Radius += dy; // 向上拖动减小半径
+                case Rendering.HandleType.Center:
+                    // 中心手柄用于拖动整个圆形
+                    shapeDef.CenterX += dx;
+                    shapeDef.CenterY += dy;
                     break;
-                case Rendering.HandleType.Bottom:
-                    shapeDef.Radius += dy; // 向下拖动增大半径
-                    break;
-                case Rendering.HandleType.Left:
-                    shapeDef.Radius += dx; // 向左拖动减小半径
-                    break;
-                case Rendering.HandleType.Right:
-                    shapeDef.Radius += dx; // 向右拖动增大半径
+                default:
+                    // 圆形手柄用于调整半径
+                    var delta = Math.Sqrt(dx * dx + dy * dy);
+                    switch (handleType)
+                    {
+                        case Rendering.HandleType.Top:
+                            shapeDef.Radius += dy; // 向上拖动减小半径
+                            break;
+                        case Rendering.HandleType.Bottom:
+                            shapeDef.Radius += dy; // 向下拖动增大半径
+                            break;
+                        case Rendering.HandleType.Left:
+                            shapeDef.Radius += dx; // 向左拖动减小半径
+                            break;
+                        case Rendering.HandleType.Right:
+                            shapeDef.Radius += dx; // 向右拖动增大半径
+                            break;
+                    }
+
+                    // 确保半径不为负
+                    if (shapeDef.Radius < 5) shapeDef.Radius = 5;
+
+                    // 同步更新 Width 和 Height
+                    shapeDef.Width = shapeDef.Radius * 2;
+                    shapeDef.Height = shapeDef.Radius * 2;
                     break;
             }
-
-            // 确保半径不为负
-            if (shapeDef.Radius < 5) shapeDef.Radius = 5;
-
-            // 同步更新 Width 和 Height
-            shapeDef.Width = shapeDef.Radius * 2;
-            shapeDef.Height = shapeDef.Radius * 2;
         }
 
         /// <summary>
@@ -1214,9 +1225,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             else if (isLeft && !isTop) // BottomLeft
             {
                 // BottomLeft 移动，TopRight 固定
+                // TopLeft.X 跟随 BottomLeft.X，BottomRight.Y 跟随 BottomLeft.Y
                 newCorners = new Point[]
                 {
-                    new Point(corners[0].X, corners[0].Y),
+                    new Point(corners[0].X + delta.X, corners[0].Y),
                     new Point(corners[1].X, corners[1].Y),
                     new Point(corners[2].X, corners[2].Y + delta.Y),
                     new Point(corners[3].X + delta.X, corners[3].Y + delta.Y)
@@ -1354,7 +1366,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
                         continue;
 
-                    contexts.Add(CreateRenderContext(region, shapeDef));
+                    contexts.Add(CreateRenderContext(region, shapeDef, region.IsPreview));
                 }
 
                 // 添加绘制预览
@@ -1370,27 +1382,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     ShowHandles = false  // 手柄单独处理
                 });
 
-                // 清理所有辅助元素（手柄、方向箭头等）
+                // 清理手柄（辅助元素由渲染器管理）
                 Rendering.HandleRenderer.ClearHandles(OverlayCanvas);
-                ClearDirectionArrows(OverlayCanvas);
-
-                // 为旋转矩形绘制方向箭头（渲染器不处理此特殊元素）
-                foreach (var region in _viewModel.Regions)
-                {
-                    if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
-                        continue;
-                    if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
-                    {
-                        DrawRotatedRectangleDirectionArrow(shapeDef, region == _selectedRegion);
-                    }
-                }
-
-                // 绘制预览的旋转矩形方向箭头
-                if (_isDrawing && _currentDrawingRegion?.Parameters is ShapeParameters previewDef &&
-                    previewDef.ShapeType == ShapeType.RotatedRectangle)
-                {
-                    DrawRotatedRectangleDirectionArrow(previewDef, false);
-                }
             }
             else
             {
@@ -1410,29 +1403,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     DrawRegionLabel(region);
                 }
 
-                // 为所有旋转矩形绘制方向箭头
-                foreach (var region in _viewModel.Regions)
-                {
-                    if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
-                        continue;
-                    if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
-                    {
-                        DrawRotatedRectangleDirectionArrow(shapeDef, region == _selectedRegion);
-                    }
-                }
-
                 if (_isDrawing && _currentDrawingRegion != null)
                 {
                     var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
                     if (parametersShape != null)
                     {
                         OverlayCanvas.Children.Add(parametersShape);
-                    }
-
-                    if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef &&
-                        shapeDef.ShapeType == ShapeType.RotatedRectangle)
-                    {
-                        DrawRotatedRectangleDirectionArrow(shapeDef, false);
                     }
                 }
             }
@@ -1441,25 +1417,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_selectedRegion != null && !_isDrawing)
             {
                 DrawEditHandles(_selectedRegion);
-            }
-        }
-
-        /// <summary>
-        /// 清理所有方向箭头
-        /// </summary>
-        private void ClearDirectionArrows(Canvas canvas)
-        {
-            var toRemove = new List<UIElement>();
-            foreach (var child in canvas.Children)
-            {
-                if (child is Shape shape && shape.Tag as string == RotatedRectangleHelper.DirectionArrowTag)
-                {
-                    toRemove.Add(shape);
-                }
-            }
-            foreach (var item in toRemove)
-            {
-                canvas.Children.Remove(item);
             }
         }
 
@@ -1530,12 +1487,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             {
                 // 使用ROI编辑器的手柄渲染器绘制手柄
                 Rendering.HandleRenderer.DrawHandles(OverlayCanvas, _currentHandles, shapeDef.ShapeType);
-
-                // 旋转矩形的特殊处理（绘制方向箭头和连接线）
-                if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
-                {
-                    DrawRotatedRectangleHelpers(shapeDef);
-                }
             }
         }
 
@@ -1598,55 +1549,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 center.X + (height / 2) * sin,
                 center.Y + (height / 2) * cos
             );
-        }
-
-        /// <summary>
-        /// 绘制旋转矩形的辅助元素（方向箭头和连接线）
-        /// </summary>
-        private void DrawRotatedRectangleHelpers(ShapeParameters shape)
-        {
-            if (shape.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
-
-            var center = new Point(shape.CenterX, shape.CenterY);
-            var height = shape.Height;
-            var rotation = shape.Angle;
-
-            // 计算旋转手柄位置
-            var rotateHandlePos = RotatedRectangleHelper.GetRotationHandlePosition(center, height, rotation);
-
-            // 绘制方向箭头和连接线
-            RotatedRectangleHelper.DrawRotateHandleLine(
-                OverlayCanvas,
-                center,
-                height,
-                rotation,
-                rotateHandlePos
-            );
-        }
-
-        /// <summary>
-        /// 绘制旋转矩形的方向箭头（ROI编辑器风格）
-        /// </summary>
-        private void DrawRotatedRectangleDirectionArrow(ShapeParameters shapeDef, bool isSelected)
-        {
-            if (shapeDef.ShapeType != ShapeType.RotatedRectangle || OverlayCanvas == null) return;
-
-            var center = new Point(shapeDef.CenterX, shapeDef.CenterY);
-            var height = shapeDef.Height;
-            var rotation = shapeDef.Angle;
-
-            // 使用ROI编辑器的颜色
-            var arrowColor = isSelected ? Brushes.Blue : new SolidColorBrush(Color.FromRgb(
-                (byte)((shapeDef.StrokeColorArgb >> 16) & 0xFF),
-                (byte)((shapeDef.StrokeColorArgb >> 8) & 0xFF),
-                (byte)(shapeDef.StrokeColorArgb & 0xFF)
-            ));
-
-            // 计算箭头几何
-            var arrow = RotatedRectangleHelper.GetDirectionArrow(center, height, rotation);
-
-            // 绘制方向箭头
-            RotatedRectangleHelper.DrawDirectionArrow(OverlayCanvas, arrow.Start, arrow.End, arrowColor);
         }
 
         private Shape? CreateRegionShape(RegionData region, bool isPreview = false)
@@ -1882,16 +1784,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             if (_renderer == null || region.Parameters is not ShapeParameters shape) return;
 
-            // 只更新这个区域的 Shape，不重新渲染所有区域
-            var context = CreateRenderContext(region, shape);
+            // 使用 region.IsPreview 自动识别预览状态
+            var context = CreateRenderContext(region, shape, region.IsPreview);
             _renderer.UpdateRegion(context);
 
-            // 更新手柄位置
+            // 更新手柄位置（手柄独立于区域渲染）
             if (region == _selectedRegion && OverlayCanvas != null)
             {
-                ClearDirectionArrows(OverlayCanvas);  // 清理箭头
                 Rendering.HandleRenderer.ClearHandles(OverlayCanvas);  // 清理手柄
-                DrawEditHandles(region);  // 绘制新的手柄和箭头
+                DrawEditHandles(region);  // 绘制新的手柄
             }
         }
 
