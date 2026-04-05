@@ -124,6 +124,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(PlaceholderText), typeof(string), typeof(ImageSourceSelector),
                 new PropertyMetadata("选择图像源..."));
 
+        public static readonly DependencyProperty SelectorWidthProperty =
+            DependencyProperty.Register(nameof(SelectorWidth), typeof(double), typeof(ImageSourceSelector),
+                new PropertyMetadata(200.0));
+
         #endregion
 
         #region 属性
@@ -171,6 +175,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             get => (string)GetValue(PlaceholderTextProperty);
             set => SetValue(PlaceholderTextProperty, value);
+        }
+
+        /// <summary>
+        /// 选择器宽度（默认200px）
+        /// </summary>
+        public double SelectorWidth
+        {
+            get => (double)GetValue(SelectorWidthProperty);
+            set => SetValue(SelectorWidthProperty, value);
         }
 
         #endregion

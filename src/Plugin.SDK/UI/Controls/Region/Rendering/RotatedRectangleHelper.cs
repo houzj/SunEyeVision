@@ -140,6 +140,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         public const string HelperTag = HandleRenderer.HandleTag;
 
         /// <summary>
+        /// 方向箭头专用标记（避免被手柄清理）
+        /// </summary>
+        public const string DirectionArrowTag = "DirectionArrow";
+
+        /// <summary>
         /// 绘制方向箭头（参考ROI编辑器DrawDirectionArrow 1354-1425行）
         /// </summary>
         public static void DrawDirectionArrow(System.Windows.Controls.Canvas canvas, Point center, Point topCenter, Brush strokeBrush)
@@ -156,7 +161,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = topCenter.Y,
                 Stroke = strokeBrush,
                 StrokeThickness = 2,
-                Tag = HelperTag
+                Tag = DirectionArrowTag
             };
             canvas.Children.Add(arrowLine);
 
@@ -195,7 +200,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = leftY,
                 Stroke = strokeBrush,
                 StrokeThickness = 2,
-                Tag = HelperTag
+                Tag = DirectionArrowTag
             };
             canvas.Children.Add(leftWing);
 
@@ -207,7 +212,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = rightY,
                 Stroke = strokeBrush,
                 StrokeThickness = 2,
-                Tag = HelperTag
+                Tag = DirectionArrowTag
             };
             canvas.Children.Add(rightWing);
         }
@@ -239,7 +244,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Stroke = Brushes.Blue,
                 StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 3, 2 },
-                Tag = HelperTag
+                Tag = DirectionArrowTag
             };
             canvas.Children.Add(connectorLine);
         }

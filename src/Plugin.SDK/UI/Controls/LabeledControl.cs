@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
@@ -40,6 +40,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(Required), typeof(bool), typeof(LabeledControl),
                 new PropertyMetadata(false));
 
+        public static readonly DependencyProperty ContentHorizontalAlignmentProperty =
+            DependencyProperty.Register(nameof(ContentHorizontalAlignment), typeof(HorizontalAlignment), typeof(LabeledControl),
+                new PropertyMetadata(HorizontalAlignment.Stretch));
+
+        public static readonly DependencyProperty LabelVerticalAlignmentProperty =
+            DependencyProperty.Register(nameof(LabelVerticalAlignment), typeof(VerticalAlignment), typeof(LabeledControl),
+                new PropertyMetadata(VerticalAlignment.Center));
+
+        public static readonly DependencyProperty ContentVerticalAlignmentProperty =
+            DependencyProperty.Register(nameof(ContentVerticalAlignment), typeof(VerticalAlignment), typeof(LabeledControl),
+                new PropertyMetadata(VerticalAlignment.Center));
+
         public string Label
         {
             get => (string)GetValue(LabelProperty);
@@ -62,6 +74,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             get => (bool)GetValue(RequiredProperty);
             set => SetValue(RequiredProperty, value);
+        }
+
+        public HorizontalAlignment ContentHorizontalAlignment
+        {
+            get => (HorizontalAlignment)GetValue(ContentHorizontalAlignmentProperty);
+            set => SetValue(ContentHorizontalAlignmentProperty, value);
+        }
+
+        /// <summary>
+        /// 标签垂直对齐方式（默认：Center）
+        /// </summary>
+        public VerticalAlignment LabelVerticalAlignment
+        {
+            get => (VerticalAlignment)GetValue(LabelVerticalAlignmentProperty);
+            set => SetValue(LabelVerticalAlignmentProperty, value);
+        }
+
+        /// <summary>
+        /// 内容垂直对齐方式（默认：Center）
+        /// </summary>
+        public VerticalAlignment ContentVerticalAlignment
+        {
+            get => (VerticalAlignment)GetValue(ContentVerticalAlignmentProperty);
+            set => SetValue(ContentVerticalAlignmentProperty, value);
         }
     }
 }

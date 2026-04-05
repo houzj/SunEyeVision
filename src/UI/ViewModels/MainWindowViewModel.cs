@@ -2645,6 +2645,15 @@ namespace SunEyeVision.UI.ViewModels
                 setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
                 AddLog($"✅ 已注入 {allUpstreamNodes.Count} 个上游节点到调试窗口");
 
+                // ★ 设置主窗口 ImageControl 引用（用于区域编辑器绑定）
+                var setMainImageControlMethod = debugWindow.GetType().GetMethod("SetMainImageControl");
+                if (setMainImageControlMethod != null)
+                {
+                    var mainImageControl = GetMainImageControl?.Invoke();
+                    setMainImageControlMethod.Invoke(debugWindow, new object?[] { mainImageControl });
+                    AddLog($"✅ 已设置主窗口 ImageControl 到调试窗口");
+                }
+
                 // ★ 缓存数据提供者（用于在节点执行完成后更新前置节点输出）
                 _nodeDataProviders[currentNode.Id] = dataProvider;
 

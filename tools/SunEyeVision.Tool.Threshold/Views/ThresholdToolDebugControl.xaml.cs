@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using OpenCvSharp;
-using OpenCvSharp.WpfExtensions;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
@@ -20,14 +15,13 @@ using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
-using SunEyeVision.Plugin.SDK.UI.Events;
 using SunEyeVision.Plugin.SDK.Commands;
 using SunEyeVision.Tool.Threshold.Models;
 
 namespace SunEyeVision.Tool.Threshold.Views
 {
     /// <summary>
-    /// 阈值化工具调试控件 - 声明式编程架构
+    /// 阈值化工具调试控件 - 纯声明式绑定架构
     /// </summary>
     /// <remarks>
     /// 架构优化：
@@ -35,18 +29,12 @@ namespace SunEyeVision.Tool.Threshold.Views
     /// - 支持路由命令（ToolCommands.Execute, ToolCommands.Confirm）
     /// - 支持路由事件（ToolExecutionCompletedEvent）
     /// - 直接持有参数引用，零拷贝实时同步
-    /// - 直接绑定到参数对象，不经过 ViewModel 中转
+    /// - 纯声明式XAML绑定，无手动绑定代码
     /// - 使用项目样式系统统一外观
     /// </remarks>
     public partial class ThresholdToolDebugControl 
     {
         #region 字段
-
-        // 转换器
-        private readonly Plugin.SDK.UI.Controls.Region.Converters.BoolToVisibilityConverter _boolToVisibilityConverter = new();
-
-        // 参数引用（零拷贝，与 WorkflowNode.Parameters 同一个实例）
-        private ThresholdParameters _parameters = null!;
 
         // 数据提供者
         private WorkflowDataSourceProvider _dataProvider = null!;
@@ -60,6 +48,25 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// 关联的工具实例
         /// </summary>
         public IToolPlugin? Tool { get; set; }
+
+        /// <summary>
+        /// 参数实例（依赖属性，支持属性变更通知）
+        /// </summary>
+        public static readonly DependencyProperty ParametersProperty =
+            DependencyProperty.Register(
+                nameof(Parameters),
+                typeof(ThresholdParameters),
+                typeof(ThresholdToolDebugControl),
+                new PropertyMetadata(null));
+
+        /// <summary>
+        /// 参数实例（公共属性，用于XAML绑定）
+        /// </summary>
+        public ThresholdParameters Parameters
+        {
+            get => (ThresholdParameters)GetValue(ParametersProperty);
+            set => SetValue(ParametersProperty, value);
+        }
 
         #endregion
 
@@ -113,13 +120,8 @@ namespace SunEyeVision.Tool.Threshold.Views
             PluginLogger.Info("InitializeComponent 调用成功", "ThresholdTool");
 
             // 初始化默认参数（设计时使用）
-            _parameters = new ThresholdParameters();
+            Parameters = new ThresholdParameters();
             PluginLogger.Info("默认参数已初始化", "ThresholdTool");
-
-            // 初始化绑定和事件
-            PluginLogger.Info("开始设置绑定和事件", "ThresholdTool");
-            SetupBindingsAndEvents();
-            PluginLogger.Success("绑定和事件设置完成", "ThresholdTool");
 
             // 初始化RegionEditor
             PluginLogger.Info("开始初始化RegionEditor", "ThresholdTool");
@@ -149,138 +151,15 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             if (parameters is ThresholdParameters thresholdParams)
             {
-                // ★ 直接设置参数引用（零拷贝，与节点共享同一实例）
-                _parameters = thresholdParams;
+                // ★ 通过依赖属性设置参数（自动触发属性变更通知）
+                Parameters = thresholdParams;
 
-                // 重新建立绑定（使用新参数实例）
-                SetupBindingsAndEvents();
-
-                PluginLogger.Success($"已加载节点参数: Threshold={_parameters.Threshold}", "ThresholdTool");
+                PluginLogger.Success($"已加载节点参数: Threshold={Parameters.Threshold}", "ThresholdTool");
             }
             else
             {
                 PluginLogger.Warning($"参数类型不匹配: 期望 ThresholdParameters，实际 {parameters?.GetType().Name}", "ThresholdTool");
             }
-        }
-
-        #endregion
-
-        #region 参数绑定
-
-        /// <summary>
-        /// 设置绑定和事件
-        /// </summary>
-        private void SetupBindingsAndEvents()
-        {
-            // 图像源选择事件
-            if (imageSourceSelector != null)
-                imageSourceSelector.ImageSourceChanged += OnImageSourceChanged;
-
-            // 直接绑定到参数对象
-            if (thresholdParam != null)
-            {
-                var binding = new Binding("Threshold")
-                {
-                    Source = _parameters,
-                    Mode = BindingMode.TwoWay
-                };
-                thresholdParam.SetBinding(BindableParameter.IntValueProperty, binding);
-            }
-
-            if (maxValueParam != null)
-            {
-                var binding = new Binding("MaxValue")
-                {
-                    Source = _parameters,
-                    Mode = BindingMode.TwoWay
-                };
-                maxValueParam.SetBinding(BindableParameter.IntValueProperty, binding);
-            }
-
-            // 阈值类型 ComboBox 事件
-            if (thresholdTypeComboBox != null)
-            {
-                thresholdTypeComboBox.SelectionChanged += OnThresholdTypeChanged;
-                UpdateThresholdTypeComboBox();
-            }
-
-            // 区域编辑器事件
-            if (regionEditor != null)
-            {
-                regionEditor.RegionDataChanged += OnRegionDataChanged;
-            }
-
-            // 注：结果判断配置和文本显示配置已通过XAML声明式绑定实现，无需手动绑定
-        }
-
-        /// <summary>
-        /// 阈值类型变更事件
-        /// </summary>
-        private void OnThresholdTypeChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (thresholdTypeComboBox == null || _parameters == null) return;
-
-            var selectedItem = thresholdTypeComboBox.SelectedItem as ComboBoxItem;
-            var typeStr = selectedItem?.Content?.ToString() ?? "Binary";
-
-            _parameters.Type = ParseThresholdType(typeStr);
-            _parameters.AdaptiveMethod = ParseAdaptiveMethod(typeStr);
-        }
-
-        /// <summary>
-        /// 更新 ComboBox 显示
-        /// </summary>
-        private void UpdateThresholdTypeComboBox()
-        {
-            if (thresholdTypeComboBox == null || _parameters == null) return;
-
-            var typeStr = _parameters.Type switch
-            {
-                ThresholdType.Binary => "Binary",
-                ThresholdType.BinaryInv => "BinaryInv",
-                ThresholdType.Trunc => "Trunc",
-                ThresholdType.ToZero => "ToZero",
-                ThresholdType.ToZeroInv => "ToZeroInv",
-                _ => "Binary"
-            };
-
-            foreach (ComboBoxItem item in thresholdTypeComboBox.Items)
-            {
-                if (item.Content?.ToString() == typeStr)
-                {
-                    item.IsSelected = true;
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 解析阈值类型字符串
-        /// </summary>
-        private static ThresholdType ParseThresholdType(string typeStr)
-        {
-            return typeStr switch
-            {
-                "Binary" => ThresholdType.Binary,
-                "BinaryInv" => ThresholdType.BinaryInv,
-                "Trunc" => ThresholdType.Trunc,
-                "ToZero" => ThresholdType.ToZero,
-                "ToZeroInv" => ThresholdType.ToZeroInv,
-                _ => ThresholdType.Binary
-            };
-        }
-
-        /// <summary>
-        /// 解析自适应方法字符串
-        /// </summary>
-        private static AdaptiveMethod ParseAdaptiveMethod(string typeStr)
-        {
-            return typeStr switch
-            {
-                "AdaptiveMean" => AdaptiveMethod.Mean,
-                "AdaptiveGaussian" => AdaptiveMethod.Gaussian,
-                _ => AdaptiveMethod.Mean
-            };
         }
 
         #endregion
@@ -296,19 +175,6 @@ namespace SunEyeVision.Tool.Threshold.Views
                 var regionEditorViewModel = regionEditor.ViewModel;
                 _regionEditorIntegration = new RegionEditorIntegration(regionEditorViewModel);
             }
-        }
-
-        private void OnRegionDataChanged(object? sender, RegionData? region)
-        {
-            if (region == null) return;
-
-            PluginLogger.Info($"区域数据已变更: {region.Name} ({region.GetShapeType()})", "ThresholdTool");
-            SaveRegionInfoToNode(region);
-        }
-
-        private void SaveRegionInfoToNode(RegionData region)
-        {
-            PluginLogger.Success($"区域信息已保存: {region.Id}", "ThresholdTool");
         }
 
         #endregion
@@ -331,11 +197,8 @@ namespace SunEyeVision.Tool.Threshold.Views
             var parameters = parametersProperty.GetValue(node) as ToolParameters;
             if (parameters is ThresholdParameters thresholdParams)
             {
-                // 直接设置参数引用（零拷贝）
-                _parameters = thresholdParams;
-
-                // 重新建立绑定
-                SetupBindingsAndEvents();
+                // 通过依赖属性设置参数（自动触发属性变更通知）
+                Parameters = thresholdParams;
 
                 PluginLogger.Success($"参数引用已设置: Threshold={thresholdParams.Threshold}", "ThresholdTool");
             }
@@ -428,7 +291,7 @@ namespace SunEyeVision.Tool.Threshold.Views
             }
 
             // 克隆参数用于执行（线程安全）
-            var runParams = (ThresholdParameters)_parameters.Clone();
+            var runParams = (ThresholdParameters)Parameters.Clone();
 
             // 执行工具
             return thresholdTool.Run(imageMat, runParams);
@@ -463,87 +326,77 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             if (outputImage == null || outputImage.Empty())
             {
-                return !_parameters.ResultConfig.IsEmptyCheckEnabled;
+                return !Parameters.ResultConfig.IsEmptyCheckEnabled;
             }
 
             var allChecksPassed = true;
 
             // 白色像素比例判断
-            if (_parameters.ResultConfig.IsWhitePixelRatioCheckEnabled)
+            if (Parameters.ResultConfig.IsWhitePixelRatioCheckEnabled)
             {
                 var whitePixelCount = Cv2.CountNonZero(outputImage);
                 var totalPixels = outputImage.Rows * outputImage.Cols;
                 var ratio = (double)whitePixelCount / totalPixels * 100;
 
-                if (ratio < _parameters.ResultConfig.WhitePixelRatioMin || ratio > _parameters.ResultConfig.WhitePixelRatioMax)
+                if (ratio < Parameters.ResultConfig.WhitePixelRatioMin || ratio > Parameters.ResultConfig.WhitePixelRatioMax)
                 {
                     allChecksPassed = false;
-                    PluginLogger.Warning($"白色像素比例 {ratio:F1}% 不在范围内 [{_parameters.ResultConfig.WhitePixelRatioMin}-{_parameters.ResultConfig.WhitePixelRatioMax}]", "ThresholdTool");
+                    PluginLogger.Warning($"白色像素比例 {ratio:F1}% 不在范围内 [{Parameters.ResultConfig.WhitePixelRatioMin}-{Parameters.ResultConfig.WhitePixelRatioMax}]", "ThresholdTool");
                 }
             }
 
             // 输出均值判断
-            if (_parameters.ResultConfig.IsMeanCheckEnabled)
+            if (Parameters.ResultConfig.IsMeanCheckEnabled)
             {
                 var mean = Cv2.Mean(outputImage);
                 var meanValue = mean.Val0;
 
-                if (meanValue < _parameters.ResultConfig.MeanMin || meanValue > _parameters.ResultConfig.MeanMax)
+                if (meanValue < Parameters.ResultConfig.MeanMin || meanValue > Parameters.ResultConfig.MeanMax)
                 {
                     allChecksPassed = false;
-                    PluginLogger.Warning($"输出均值 {meanValue:F1} 不在范围内 [{_parameters.ResultConfig.MeanMin}-{_parameters.ResultConfig.MeanMax}]", "ThresholdTool");
+                    PluginLogger.Warning($"输出均值 {meanValue:F1} 不在范围内 [{Parameters.ResultConfig.MeanMin}-{Parameters.ResultConfig.MeanMax}]", "ThresholdTool");
                 }
             }
 
             // 输出面积判断
-            if (_parameters.ResultConfig.IsAreaCheckEnabled)
+            if (Parameters.ResultConfig.IsAreaCheckEnabled)
             {
                 var area = Cv2.CountNonZero(outputImage);
 
-                if (area < _parameters.ResultConfig.AreaMin || area > _parameters.ResultConfig.AreaMax)
+                if (area < Parameters.ResultConfig.AreaMin || area > Parameters.ResultConfig.AreaMax)
                 {
                     allChecksPassed = false;
-                    PluginLogger.Warning($"输出面积 {area} 不在范围内 [{_parameters.ResultConfig.AreaMin}-{_parameters.ResultConfig.AreaMax}]", "ThresholdTool");
+                    PluginLogger.Warning($"输出面积 {area} 不在范围内 [{Parameters.ResultConfig.AreaMin}-{Parameters.ResultConfig.AreaMax}]", "ThresholdTool");
                 }
             }
 
             // 质心判断
-            if (_parameters.ResultConfig.IsCentroidXCheckEnabled || _parameters.ResultConfig.IsCentroidYCheckEnabled)
+            if (Parameters.ResultConfig.IsCentroidXCheckEnabled || Parameters.ResultConfig.IsCentroidYCheckEnabled)
             {
                 var moments = Cv2.Moments(outputImage);
                 var centroidX = moments.M10 / moments.M00;
                 var centroidY = moments.M01 / moments.M00;
 
-                if (_parameters.ResultConfig.IsCentroidXCheckEnabled)
+                if (Parameters.ResultConfig.IsCentroidXCheckEnabled)
                 {
-                    if (centroidX < _parameters.ResultConfig.CentroidXMin || centroidX > _parameters.ResultConfig.CentroidXMax)
+                    if (centroidX < Parameters.ResultConfig.CentroidXMin || centroidX > Parameters.ResultConfig.CentroidXMax)
                     {
                         allChecksPassed = false;
-                        PluginLogger.Warning($"质心X {centroidX:F1} 不在范围内 [{_parameters.ResultConfig.CentroidXMin}-{_parameters.ResultConfig.CentroidXMax}]", "ThresholdTool");
+                        PluginLogger.Warning($"质心X {centroidX:F1} 不在范围内 [{Parameters.ResultConfig.CentroidXMin}-{Parameters.ResultConfig.CentroidXMax}]", "ThresholdTool");
                     }
                 }
 
-                if (_parameters.ResultConfig.IsCentroidYCheckEnabled)
+                if (Parameters.ResultConfig.IsCentroidYCheckEnabled)
                 {
-                    if (centroidY < _parameters.ResultConfig.CentroidYMin || centroidY > _parameters.ResultConfig.CentroidYMax)
+                    if (centroidY < Parameters.ResultConfig.CentroidYMin || centroidY > Parameters.ResultConfig.CentroidYMax)
                     {
                         allChecksPassed = false;
-                        PluginLogger.Warning($"质心Y {centroidY:F1} 不在范围内 [{_parameters.ResultConfig.CentroidYMin}-{_parameters.ResultConfig.CentroidYMax}]", "ThresholdTool");
+                        PluginLogger.Warning($"质心Y {centroidY:F1} 不在范围内 [{Parameters.ResultConfig.CentroidYMin}-{Parameters.ResultConfig.CentroidYMax}]", "ThresholdTool");
                     }
                 }
             }
 
             return allChecksPassed;
-        }
-
-        #endregion
-
-        #region 图像源选择事件
-
-        private void OnImageSourceChanged(object sender, RoutedEventArgs e)
-        {
-            if (imageSourceSelector != null)
-                SelectedImageSource = imageSourceSelector.SelectedImageSource;
         }
 
         #endregion
@@ -566,8 +419,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void OnToggleOutputImageVisibility(object sender, RoutedEventArgs e)
         {
-            _parameters.DisplayConfig.OutputImage.IsVisible = !_parameters.DisplayConfig.OutputImage.IsVisible;
-            PluginLogger.Info($"输出图像显示: {_parameters.DisplayConfig.OutputImage.IsVisible}", "ThresholdTool");
+            Parameters.DisplayConfig.OutputImage.IsVisible = !Parameters.DisplayConfig.OutputImage.IsVisible;
+            PluginLogger.Info($"输出图像显示: {Parameters.DisplayConfig.OutputImage.IsVisible}", "ThresholdTool");
         }
 
         private void OnOpenOutputImageStyle(object sender, RoutedEventArgs e)
@@ -578,8 +431,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void OnToggleThresholdLineVisibility(object sender, RoutedEventArgs e)
         {
-            _parameters.DisplayConfig.ThresholdLine.IsVisible = !_parameters.DisplayConfig.ThresholdLine.IsVisible;
-            PluginLogger.Info($"阈值分界线显示: {_parameters.DisplayConfig.ThresholdLine.IsVisible}", "ThresholdTool");
+            Parameters.DisplayConfig.ThresholdLine.IsVisible = !Parameters.DisplayConfig.ThresholdLine.IsVisible;
+            PluginLogger.Info($"阈值分界线显示: {Parameters.DisplayConfig.ThresholdLine.IsVisible}", "ThresholdTool");
         }
 
         private void OnOpenThresholdLineStyle(object sender, RoutedEventArgs e)
@@ -590,8 +443,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void OnToggleRegionVisibility(object sender, RoutedEventArgs e)
         {
-            _parameters.DisplayConfig.Region.IsVisible = !_parameters.DisplayConfig.Region.IsVisible;
-            PluginLogger.Info($"ROI区域显示: {_parameters.DisplayConfig.Region.IsVisible}", "ThresholdTool");
+            Parameters.DisplayConfig.Region.IsVisible = !Parameters.DisplayConfig.Region.IsVisible;
+            PluginLogger.Info($"ROI区域显示: {Parameters.DisplayConfig.Region.IsVisible}", "ThresholdTool");
         }
 
         private void OnOpenRegionStyle(object sender, RoutedEventArgs e)
@@ -602,8 +455,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void OnToggleHistogramVisibility(object sender, RoutedEventArgs e)
         {
-            _parameters.DisplayConfig.Histogram.IsVisible = !_parameters.DisplayConfig.Histogram.IsVisible;
-            PluginLogger.Info($"直方图显示: {_parameters.DisplayConfig.Histogram.IsVisible}", "ThresholdTool");
+            Parameters.DisplayConfig.Histogram.IsVisible = !Parameters.DisplayConfig.Histogram.IsVisible;
+            PluginLogger.Info($"直方图显示: {Parameters.DisplayConfig.Histogram.IsVisible}", "ThresholdTool");
         }
 
         private void OnOpenHistogramStyle(object sender, RoutedEventArgs e)

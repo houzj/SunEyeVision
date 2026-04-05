@@ -8,8 +8,10 @@
         xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
         xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters;assembly=SunEyeVision.Plugin.SDK"
         xmlns:local="clr-namespace:SunEyeVision.Tool.Threshold"
+        xmlns:localConverters="clr-namespace:SunEyeVision.Tool.Threshold.Converters"
         mc:Ignorable="d"
-        d:DesignHeight="700" d:DesignWidth="450">
+        d:DesignHeight="700" d:DesignWidth="450"
+        DataContext="{Binding Parameters, RelativeSource={RelativeSource Self}}">
     
     <controls:ToolDebugControlBase.Resources>
         <ResourceDictionary>
@@ -20,6 +22,7 @@
 
             <!-- 其他资源 -->
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <localConverters:ThresholdTypeConverter x:Key="ThresholdTypeConverter"/>
         </ResourceDictionary>
     </controls:ToolDebugControlBase.Resources>
     
@@ -31,10 +34,11 @@
       <TabItem Header="基本参数" IsSelected="True">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
           <StackPanel>
-            <controls:LabeledControl Label="输入图像">
+            <controls:LabeledControl Label="输入图像" ContentHorizontalAlignment="Center" ContentVerticalAlignment="Center" LabelVerticalAlignment="Center" >
               <controls:ImageSourceSelector
                                 x:Name="imageSourceSelector"
-                                PlaceholderText="请选择输入图像源"/>
+                                PlaceholderText="请选择输入图像源" Width="250" 
+                                SelectedImageSource="{Binding SelectedImageSource, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}, Mode=TwoWay}"/>
             </controls:LabeledControl>
 
             <TextBlock Text="ROI区域"
@@ -55,43 +59,45 @@
               <controls:BindableParameter
                                 x:Name="thresholdParam"
                                 DataType="Int"
+                                IntValue="{Binding Threshold, Mode=TwoWay}"
                                 IntMinimum="0"
                                 IntMaximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
-                                ShowSlider="True"/>
+                                ShowSlider="True" Width="250" />
             </controls:LabeledControl>
 
             <controls:LabeledControl Label="最大值">
               <controls:BindableParameter
                                 x:Name="maxValueParam"
                                 DataType="Int"
+                                IntValue="{Binding MaxValue, Mode=TwoWay}"
                                 IntMinimum="0"
                                 IntMaximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
-                                ShowSlider="True"/>
+                                ShowSlider="True" Width="250"/>
+            </controls:LabeledControl>
+            <controls:LabeledControl Label="选择阈值类型" >
+              <ComboBox x:Name="thresholdTypeComboBox"
+                      Height="32" 
+                      VerticalContentAlignment="Center" Width="250"
+                      SelectedItem="{Binding Type, Mode=TwoWay, Converter={StaticResource ThresholdTypeConverter}}">
+                <ComboBoxItem Content="Binary"/>
+                <ComboBoxItem Content="BinaryInv"/>
+                <ComboBoxItem Content="Trunc"/>
+                <ComboBoxItem Content="ToZero"/>
+                <ComboBoxItem Content="ToZeroInv"/>
+              </ComboBox>
             </controls:LabeledControl>
 
-            <TextBlock Text="阈值类型"
-                                   FontSize="13"
-                                   FontWeight="Medium"
-                                   Margin="0,16,0,8"
-                                   Foreground="#333333"/>
-            <ComboBox x:Name="thresholdTypeComboBox" Height="32" VerticalContentAlignment="Center">
-              <ComboBoxItem Content="Binary" IsSelected="True"/>
-              <ComboBoxItem Content="BinaryInv"/>
-              <ComboBoxItem Content="Trunc"/>
-              <ComboBoxItem Content="ToZero"/>
-              <ComboBoxItem Content="ToZeroInv"/>
-            </ComboBox>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
 
       <!-- Tab3: 结果显示 -->
       <TabItem Header="结果显示">
-        <Grid Background="#F5F5F5" DataContext="{Binding Parameters}">
+        <Grid Background="#F5F5F5">
           <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -108,39 +114,34 @@
                                       Background="White">
                 <StackPanel Margin="16,8">
                   <!-- 输出为空判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="输出为空判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsEmptyCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
+                  <controls:LabeledControl Label="输出为空判断" ContentHorizontalAlignment="Left">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsEmptyCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
 
                   <!-- 白色像素比例判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="白色像素比例判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
-                  <controls:LabeledControl Label="白色像素比例范围 (%):" Margin="0,8,0,0"
-                                                            Visibility="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                  <controls:LabeledControl Label="白色像素比例" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="白色像素比例 (%):" Margin="0,2,0,0" ContentHorizontalAlignment="Left"
+                                           Visibility="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled,
+                    Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit="%"
                                             Minimum="0"
                                             Maximum="100"
                                             MinValue="{Binding ResultConfig.WhitePixelRatioMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.WhitePixelRatioMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"/>
+                                            DecimalPlaces="1"
+                      NumericWidth="120"
+                      
+                                             />
                   </controls:LabeledControl>
 
                   <!-- 输出均值判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="输出均值判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsMeanCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
-                  <controls:LabeledControl Label="输出均值范围:" Margin="0,8,0,0"
+                  <controls:LabeledControl Label="输出均值判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsMeanCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="输出均值范围:" Margin="0,2,0,0"
                                                             Visibility="{Binding ResultConfig.IsMeanCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit=""
@@ -148,17 +149,14 @@
                                             Maximum="255"
                                             MinValue="{Binding ResultConfig.MeanMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.MeanMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"/>
+                                            DecimalPlaces="1"  NumericWidth="120" Margin="0,2,0,0"/>
                   </controls:LabeledControl>
 
                   <!-- 输出面积判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="输出面积判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsAreaCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
-                  <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,8,0,0"
+                  <controls:LabeledControl Label="输出面积判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsAreaCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,2,0,0"
                                                             Visibility="{Binding ResultConfig.IsAreaCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit="px²"
@@ -166,17 +164,14 @@
                                             Maximum="1000000"
                                             MinValue="{Binding ResultConfig.AreaMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.AreaMax, Mode=TwoWay}"
-                                            DecimalPlaces="0"/>
+                                            DecimalPlaces="0"  NumericWidth="120"/>
                   </controls:LabeledControl>
 
                   <!-- 质心X判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="质心X判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidXCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
-                  <controls:LabeledControl Label="质心X坐标范围:" Margin="0,8,0,0"
+                  <controls:LabeledControl Label="质心X判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidXCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="质心X坐标范围:" Margin="0,2,0,0"
                                                             Visibility="{Binding ResultConfig.IsCentroidXCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit=""
@@ -184,17 +179,14 @@
                                             Maximum="10000"
                                             MinValue="{Binding ResultConfig.CentroidXMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.CentroidXMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"/>
+                                            DecimalPlaces="1"  NumericWidth="120"/>
                   </controls:LabeledControl>
 
                   <!-- 质心Y判断 -->
-                  <Grid Height="36">
-                    <TextBlock Text="质心Y判断" VerticalAlignment="Center" Foreground="#333333"/>
-                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidYCheckEnabled, Mode=TwoWay}"
-                                                               HorizontalAlignment="Right" 
-                                                               VerticalAlignment="Center"/>
-                  </Grid>
-                  <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,8,0,0"
+                  <controls:LabeledControl Label="质心Y判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
+                    <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidYCheckEnabled, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,2,0,0"
                                                             Visibility="{Binding ResultConfig.IsCentroidYCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit=""
@@ -202,7 +194,7 @@
                                             Maximum="10000"
                                             MinValue="{Binding ResultConfig.CentroidYMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.CentroidYMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"/>
+                                            DecimalPlaces="1"  NumericWidth="120"/>
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>
@@ -216,9 +208,8 @@
                                       Background="White">
                 <StackPanel Margin="16,8">
                   <!-- 输出图像 -->
-                  <Grid Height="36">
-                    <TextBlock Text="输出图像" VerticalAlignment="Center" Foreground="#333333"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <controls:LabeledControl Label="输出图像" ContentHorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
                       <Button Content="👁" 
                                                     Width="32" 
                                                     Height="28" 
@@ -235,12 +226,11 @@
                                                     Click="OnOpenOutputImageStyle"
                                                     ToolTip="样式设置"/>
                     </StackPanel>
-                  </Grid>
+                  </controls:LabeledControl>
 
                   <!-- 阈值分界线 -->
-                  <Grid Height="36">
-                    <TextBlock Text="阈值分界线" VerticalAlignment="Center" Foreground="#333333"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <controls:LabeledControl Label="阈值分界线" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
                       <Button Content="👁" 
                                                     Width="32" 
                                                     Height="28" 
@@ -257,12 +247,11 @@
                                                     Click="OnOpenThresholdLineStyle"
                                                     ToolTip="样式设置"/>
                     </StackPanel>
-                  </Grid>
+                  </controls:LabeledControl>
 
                   <!-- ROI区域 -->
-                  <Grid Height="36">
-                    <TextBlock Text="ROI区域" VerticalAlignment="Center" Foreground="#333333"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <controls:LabeledControl Label="ROI区域" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
                       <Button Content="👁" 
                                                     Width="32" 
                                                     Height="28" 
@@ -279,12 +268,11 @@
                                                     Click="OnOpenRegionStyle"
                                                     ToolTip="样式设置"/>
                     </StackPanel>
-                  </Grid>
+                  </controls:LabeledControl>
 
                   <!-- 直方图 -->
-                  <Grid Height="36">
-                    <TextBlock Text="直方图" VerticalAlignment="Center" Foreground="#333333"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <controls:LabeledControl Label="直方图" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
                       <Button Content="👁" 
                                                     Width="32" 
                                                     Height="28" 
@@ -301,7 +289,7 @@
                                                     Click="OnOpenHistogramStyle"
                                                     ToolTip="样式设置"/>
                     </StackPanel>
-                  </Grid>
+                  </controls:LabeledControl>
                 </StackPanel>
               </Expander>
 

@@ -87,7 +87,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
             };
 
             // 中心定位（参考ROI编辑器的定位方式）
@@ -112,7 +112,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
             };
 
             // 中心定位
@@ -137,7 +137,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Fill = fillColor,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
             };
 
             // 旋转角度处理（参考ROI编辑器的角度转换）
@@ -165,7 +165,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 Y2 = shape.EndY,
                 Stroke = strokeColor,
                 StrokeThickness = strokeThickness,
-                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
+                StrokeDashArray = isPreview ? new DoubleCollection { 4, 2 } : null
             };
 
             return line;

@@ -98,6 +98,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(IsVisible), typeof(bool), typeof(RangeInputControl),
                 new PropertyMetadata(true, OnIsVisibleChanged));
 
+        public static readonly DependencyProperty NumericWidthProperty =
+            DependencyProperty.Register(nameof(NumericWidth), typeof(double), typeof(RangeInputControl),
+                new PropertyMetadata(100.0));
+
         #endregion
 
         #region 路由事件
@@ -232,6 +236,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             get => (bool)GetValue(IsVisibleProperty);
             set => SetValue(IsVisibleProperty, value);
+        }
+
+        /// <summary>
+        /// 数值输入框宽度（默认100px）
+        /// </summary>
+        public double NumericWidth
+        {
+            get => (double)GetValue(NumericWidthProperty);
+            set => SetValue(NumericWidthProperty, value);
         }
 
         #endregion

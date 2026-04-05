@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -28,6 +28,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         // 对象池：缓存已创建的Shape和TextBlock
         private readonly Dictionary<Guid, Shape> _shapePool = new();
         private readonly Dictionary<Guid, TextBlock> _labelPool = new();
+
+        // 日志降频计数器
+        private int _logCounter = 0;
+        private const int LogInterval = 10; // 每10次输出一次日志
 
         // 视口变换参数
         private double _viewportScale = 1.0;
@@ -245,6 +249,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         {
                 region.CalculateBounds();
 
+                // 日志监控（降频）
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[UpdateShape] IsPreview={region.IsPreview}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 // 更新位置
                 var position = GetShapePosition(region);
                 Canvas.SetLeft(shape, position.X + _viewportOffset.X);
@@ -254,6 +267,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 shape.Fill = new SolidColorBrush(region.FillColor) { Opacity = region.Opacity };
                 shape.Stroke = new SolidColorBrush(region.StrokeColor);
                 shape.StrokeThickness = region.StrokeThickness;
+
+                // 更新虚线样式
+                shape.StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null;
 
                 // 根据形状类型更新尺寸
                 UpdateShapeDimensions(shape, region);
@@ -315,13 +331,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         private Shape CreateRectangle(RegionRenderContext region, Color fillColor, Color strokeColor, double strokeThickness)
         {
+                // 日志监控（降频）
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[CreateRectangle] IsPreview={region.IsPreview}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 return new Rectangle
                 {
                     Width = region.Width,
                     Height = region.Height,
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
-                    StrokeThickness = strokeThickness
+                    StrokeThickness = strokeThickness,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
                 };
         }
 
@@ -330,13 +356,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         private Shape CreateCircle(RegionRenderContext region, Color fillColor, Color strokeColor, double strokeThickness)
         {
+                // 日志监控（降频）
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[CreateCircle] IsPreview={region.IsPreview}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 return new Ellipse
                 {
                     Width = region.Radius * 2,
                     Height = region.Radius * 2,
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
-                    StrokeThickness = strokeThickness
+                    StrokeThickness = strokeThickness,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : new DoubleCollection()
                 };
         }
 
@@ -345,6 +381,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         private Shape CreateRotatedRectangle(RegionRenderContext region, Color fillColor, Color strokeColor, double strokeThickness)
         {
+                // 日志监控（降频）
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[CreateRotatedRectangle] IsPreview={region.IsPreview}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 var rect = new Rectangle
                 {
                     Width = region.Width,
@@ -352,6 +397,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
                     StrokeThickness = strokeThickness,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null,
                     RenderTransform = new RotateTransform(region.Angle, region.Width / 2, region.Height / 2)
                     {
                         // 使用数学角度系统
@@ -367,6 +413,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         private Shape CreateLine(RegionRenderContext region, Color strokeColor, double strokeThickness)
         {
+                // 日志监控（降频）
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[CreateLine] IsPreview={region.IsPreview}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 return new Line
                 {
                     X1 = 0,
@@ -374,7 +429,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     X2 = region.LineEnd.X - region.LineStart.X,
                     Y2 = region.LineEnd.Y - region.LineStart.Y,
                     Stroke = new SolidColorBrush(strokeColor),
-                    StrokeThickness = strokeThickness
+                    StrokeThickness = strokeThickness,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null
                 };
         }
         /// <summary>
@@ -384,11 +440,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         {
                 if (region.PolygonPoints.Count < 3) return null;
 
+                // 日志监控（降频）
+                _logCounter++;
+                if (_logger != null && _logCounter % LogInterval == 0)
+                {
+                    _logger.Log(LogLevel.Info, 
+                        $"[CreatePolygon] IsPreview={region.IsPreview}, Points={region.PolygonPoints.Count}, " +
+                        $"StrokeDashArray={(region.IsPreview ? "4,2" : "null")}", 
+                        "WpfShapeRenderer");
+                }
+
                 var polygon = new Polygon
                 {
                     Fill = new SolidColorBrush(fillColor) { Opacity = region.Opacity },
                     Stroke = new SolidColorBrush(strokeColor),
-                    StrokeThickness = strokeThickness
+                    StrokeThickness = strokeThickness,
+                    StrokeDashArray = region.IsPreview ? new DoubleCollection { 4, 2 } : null  // ← 添加虚线设置
                 };
 
                 // 设置点集

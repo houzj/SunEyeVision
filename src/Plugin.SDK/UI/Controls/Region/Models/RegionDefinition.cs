@@ -63,8 +63,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         private double _endY = 100;
         private double _startAngle = 0;
         private double _endAngle = 0;
-        private uint _fillColorArgb = 0x28FF0000;
-        private uint _strokeColorArgb = 0xFFFF0000;
+        private uint _fillColorArgb = 0x00000000;  // 完全透明
+        private uint _strokeColorArgb = 0xFF0078D7; // 蓝色
         private double _strokeThickness = 2;
         private double _opacity = 0.3;
 

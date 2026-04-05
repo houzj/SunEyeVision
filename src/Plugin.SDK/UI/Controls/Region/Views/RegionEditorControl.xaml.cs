@@ -529,6 +529,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                             shapeDef.CenterX = position.X;
                             shapeDef.CenterY = position.Y;
                             shapeDef.Radius = 0;
+                            shapeDef.Width = 0;
+                            shapeDef.Height = 0;
                             break;
                         case ShapeType.Line:
                             shapeDef.StartX = position.X;
@@ -704,6 +706,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 case ShapeType.Circle:
                     var radius = Math.Sqrt(dx * dx + dy * dy);
                     shapeDef.Radius = radius;
+                    shapeDef.Width = radius * 2;
+                    shapeDef.Height = radius * 2;
                     break;
 
                 case ShapeType.Line:
@@ -811,6 +815,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
             // 确保半径不为负
             if (shapeDef.Radius < 5) shapeDef.Radius = 5;
+
+            // 同步更新 Width 和 Height
+            shapeDef.Width = shapeDef.Radius * 2;
+            shapeDef.Height = shapeDef.Radius * 2;
         }
 
         /// <summary>
@@ -1133,6 +1141,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (newRadius < 5) newRadius = 5;
 
             shape.Radius = newRadius;
+            
+            // 同步更新 Width 和 Height，确保手柄位置正确
+            shape.Width = newRadius * 2;
+            shape.Height = newRadius * 2;
         }
 
         /// <summary>
@@ -1239,40 +1251,89 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// <summary>
         /// 从边缘调整矩形（参考ROI编辑器ResizeFromEdge 1760-1790行）
         /// </summary>
+        /// <summary>
+        /// 从边缘调整矩形（非对称编辑 - 固定对边模式）
+        /// 使用与 ResizeRectangleFromCorner 相同的角点计算逻辑
+        /// </summary>
         private void ResizeRectangleFromEdge(ShapeParameters shape, Vector delta, bool isVertical, bool isTopOrLeft)
         {
             if (_originalShapeDefinition == null) return;
 
             var original = _originalShapeDefinition;
 
+            // 计算原始矩形的四个角点（局部坐标，原点在中心）
+            var hw = original.Width / 2;
+            var hh = original.Height / 2;
+            var corners = new Point[]
+            {
+                new Point(-hw, -hh), // TopLeft
+                new Point( hw, -hh), // TopRight
+                new Point( hw,  hh), // BottomRight
+                new Point(-hw,  hh)  // BottomLeft
+            };
+
+            // 根据拖动的边缘计算新的角点位置（固定对边模式）
+            Point[] newCorners;
+
             if (isVertical)
             {
-                var newHeight = isTopOrLeft
-                    ? original.Height - delta.Y
-                    : original.Height + delta.Y;
-                if (newHeight < 10) newHeight = 10;
-
-                var centerY = isTopOrLeft
-                    ? original.CenterY - original.Height / 2 + newHeight / 2 + delta.Y / 2
-                    : original.CenterY - original.Height / 2 + newHeight / 2 + delta.Y / 2;
-
-                shape.Height = newHeight;
-                shape.CenterY = centerY;
+                if (isTopOrLeft) // Top 边：移动 TopLeft 和 TopRight，Bottom 边固定
+                {
+                    newCorners = new Point[]
+                    {
+                        new Point(corners[0].X, corners[0].Y + delta.Y), // TopLeft 移动
+                        new Point(corners[1].X, corners[1].Y + delta.Y), // TopRight 移动
+                        new Point(corners[2].X, corners[2].Y),           // BottomRight 固定
+                        new Point(corners[3].X, corners[3].Y)            // BottomLeft 固定
+                    };
+                }
+                else // Bottom 边：移动 BottomLeft 和 BottomRight，Top 边固定
+                {
+                    newCorners = new Point[]
+                    {
+                        new Point(corners[0].X, corners[0].Y),           // TopLeft 固定
+                        new Point(corners[1].X, corners[1].Y),           // TopRight 固定
+                        new Point(corners[2].X, corners[2].Y + delta.Y), // BottomRight 移动
+                        new Point(corners[3].X, corners[3].Y + delta.Y)  // BottomLeft 移动
+                    };
+                }
             }
             else
             {
-                var newWidth = isTopOrLeft
-                    ? original.Width - delta.X
-                    : original.Width + delta.X;
-                if (newWidth < 10) newWidth = 10;
-
-                var centerX = isTopOrLeft
-                    ? original.CenterX - original.Width / 2 + newWidth / 2 + delta.X / 2
-                    : original.CenterX - original.Width / 2 + newWidth / 2 + delta.X / 2;
-
-                shape.Width = newWidth;
-                shape.CenterX = centerX;
+                if (isTopOrLeft) // Left 边：移动 TopLeft 和 BottomLeft，Right 边固定
+                {
+                    newCorners = new Point[]
+                    {
+                        new Point(corners[0].X + delta.X, corners[0].Y), // TopLeft 移动
+                        new Point(corners[1].X, corners[1].Y),           // TopRight 固定
+                        new Point(corners[2].X, corners[2].Y),           // BottomRight 固定
+                        new Point(corners[3].X + delta.X, corners[3].Y)  // BottomLeft 移动
+                    };
+                }
+                else // Right 边：移动 TopRight 和 BottomRight，Left 边固定
+                {
+                    newCorners = new Point[]
+                    {
+                        new Point(corners[0].X, corners[0].Y),           // TopLeft 固定
+                        new Point(corners[1].X + delta.X, corners[1].Y), // TopRight 移动
+                        new Point(corners[2].X + delta.X, corners[2].Y), // BottomRight 移动
+                        new Point(corners[3].X, corners[3].Y)            // BottomLeft 固定
+                    };
+                }
             }
+
+            // 从新角点计算新的尺寸和中心
+            var newWidth = Math.Max(10, newCorners[1].X - newCorners[0].X);
+            var newHeight = Math.Max(10, newCorners[2].Y - newCorners[0].Y);
+            var centerLocal = new Point(
+                (newCorners[0].X + newCorners[2].X) / 2,
+                (newCorners[0].Y + newCorners[2].Y) / 2);
+
+            // 将局部坐标转换为世界坐标
+            shape.Width = newWidth;
+            shape.Height = newHeight;
+            shape.CenterX = original.CenterX + centerLocal.X;
+            shape.CenterY = original.CenterY + centerLocal.Y;
         }
 
         private void UpdateRegionOverlay()
@@ -1311,6 +1372,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
                 // 清理所有辅助元素（手柄、方向箭头等）
                 Rendering.HandleRenderer.ClearHandles(OverlayCanvas);
+                ClearDirectionArrows(OverlayCanvas);
 
                 // 为旋转矩形绘制方向箭头（渲染器不处理此特殊元素）
                 foreach (var region in _viewModel.Regions)
@@ -1348,6 +1410,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     DrawRegionLabel(region);
                 }
 
+                // 为所有旋转矩形绘制方向箭头
+                foreach (var region in _viewModel.Regions)
+                {
+                    if (!region.IsVisible || region.Parameters is not ShapeParameters shapeDef)
+                        continue;
+                    if (shapeDef.ShapeType == ShapeType.RotatedRectangle)
+                    {
+                        DrawRotatedRectangleDirectionArrow(shapeDef, region == _selectedRegion);
+                    }
+                }
+
                 if (_isDrawing && _currentDrawingRegion != null)
                 {
                     var parametersShape = CreateRegionShape(_currentDrawingRegion, true);
@@ -1372,10 +1445,34 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         }
 
         /// <summary>
+        /// 清理所有方向箭头
+        /// </summary>
+        private void ClearDirectionArrows(Canvas canvas)
+        {
+            var toRemove = new List<UIElement>();
+            foreach (var child in canvas.Children)
+            {
+                if (child is Shape shape && shape.Tag as string == RotatedRectangleHelper.DirectionArrowTag)
+                {
+                    toRemove.Add(shape);
+                }
+            }
+            foreach (var item in toRemove)
+            {
+                canvas.Children.Remove(item);
+            }
+        }
+
+        /// <summary>
         /// 创建渲染上下文
         /// </summary>
         private RegionRenderContext CreateRenderContext(RegionData region, ShapeParameters shape, bool isPreview = false)
         {
+            // 日志监控（每次调用都记录，因为这个方法调用频率不高）
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[CreateRenderContext] RegionId={region.Id}, IsPreview={isPreview}, ShapeType={shape.ShapeType}",
+                "RegionEditorControl");
+
             var context = new RegionRenderContext
             {
                 Id = region.Id,
@@ -1579,12 +1676,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     }
                 }
                 // 直线不需要Canvas定位
-            }
-
-            // 为旋转矩形绘制方向箭头（ROI编辑器风格）
-            if (shapeDef.ShapeType == ShapeType.RotatedRectangle && !isPreview)
-            {
-                DrawRotatedRectangleDirectionArrow(shapeDef, isSelected);
             }
 
             return shape;
@@ -1798,8 +1889,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             // 更新手柄位置
             if (region == _selectedRegion && OverlayCanvas != null)
             {
-                Rendering.HandleRenderer.ClearHandles(OverlayCanvas);
-                DrawEditHandles(region);
+                ClearDirectionArrows(OverlayCanvas);  // 清理箭头
+                Rendering.HandleRenderer.ClearHandles(OverlayCanvas);  // 清理手柄
+                DrawEditHandles(region);  // 绘制新的手柄和箭头
             }
         }
 

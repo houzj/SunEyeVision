@@ -295,6 +295,34 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             }
         }
 
+        /// <summary>
+        /// 设置主窗口 ImageControl 引用（委托给内部控件）
+        /// </summary>
+        /// <remarks>
+        /// 用于区域编辑器在主窗口图像上绘制 ROI。
+        /// 
+        /// 调用链：
+        /// MainWindowViewModel → DefaultDebugWindow.SetMainImageControl → ThresholdToolDebugControl.SetMainImageControl
+        /// </remarks>
+        public void SetMainImageControl(ImageControl? imageControl)
+        {
+            // 检查控件是否支持 SetMainImageControl 方法
+            var setMainImageControlMethod = _control.GetType().GetMethod("SetMainImageControl");
+            if (setMainImageControlMethod != null)
+            {
+                setMainImageControlMethod.Invoke(_control, new object?[] { imageControl });
+                PluginLogger.Success(
+                    $"已设置主窗口 ImageControl 到调试控件: {_control.GetType().Name}", 
+                    "DefaultDebugWindow");
+            }
+            else
+            {
+                PluginLogger.Info(
+                    $"控件 {_control.GetType().Name} 不支持 SetMainImageControl 方法", 
+                    "DefaultDebugWindow");
+            }
+        }
+
         #endregion
 
         #region 辅助方法
