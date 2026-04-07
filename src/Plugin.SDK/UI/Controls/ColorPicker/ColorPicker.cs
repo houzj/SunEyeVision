@@ -84,6 +84,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(SelectedColorProperty, value);
         }
 
+        /// <summary>
+        /// 默认颜色（uint ARGB 格式）
+        /// </summary>
+        public static readonly DependencyProperty DefaultColorProperty =
+            DependencyProperty.Register(nameof(DefaultColor), typeof(uint), typeof(ColorPicker),
+                new FrameworkPropertyMetadata(0xFFFF0000, OnDefaultColorChanged));
+
+        /// <summary>
+        /// 默认颜色（uint ARGB 格式）
+        /// </summary>
+        public uint DefaultColor
+        {
+            get => (uint)GetValue(DefaultColorProperty);
+            set => SetValue(DefaultColorProperty, value);
+        }
+
         #endregion
 
         #region 路由事件
@@ -205,6 +221,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             var control = (ColorPicker)d;
             control.OnSelectedColorChanged((uint)e.OldValue, (uint)e.NewValue);
+        }
+
+        private static void OnDefaultColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (ColorPicker)d;
+            // 如果当前选中的颜色是初始值（白色或0），使用默认颜色
+            if (control.SelectedColor == 0xFFFFFFFF || control.SelectedColor == 0)
+            {
+                control.SelectedColor = (uint)e.NewValue;
+            }
         }
 
         private void UpdateVisualState()
@@ -401,7 +427,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 Background = new SolidColorBrush(color),
-                Tag = color
+                Tag = color,
+                Focusable = false,
+                Style = FindResource("ColorPickerButtonStyle") as Style
             };
             button.Click += OnColorButtonClick;
             return button;

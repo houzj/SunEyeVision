@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Tool.Threshold.Models
@@ -163,7 +163,7 @@ namespace SunEyeVision.Tool.Threshold.Models
             set => SetProperty(ref _content, value, "文本内容");
         }
 
-        private Color _okColor = Color.FromRgb(0, 200, 0);
+        private Color _okColor = Color.FromRgb(0, 255, 0);
         /// <summary>
         /// OK状态文本颜色
         /// </summary>

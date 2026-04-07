@@ -120,16 +120,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             // 初始化标准颜色（10个常用颜色）
             StandardColors = new List<Color>
             {
-                Color.FromRgb(0x00, 0x00, 0x00), // 黑色
-                Color.FromRgb(0x80, 0x80, 0x80), // 灰色
-                Color.FromRgb(0xC0, 0xC0, 0xC0), // 银色
-                Color.FromRgb(0xFF, 0xFF, 0xFF), // 白色
-                Color.FromRgb(0x80, 0x00, 0x00), // 栗色
-                Color.FromRgb(0x80, 0x80, 0x00), // 橄榄色
-                Color.FromRgb(0x00, 0x80, 0x00), // 深绿
-                Color.FromRgb(0x00, 0x80, 0x80), // 青色
-                Color.FromRgb(0x00, 0x00, 0x80), // 深蓝
-                Color.FromRgb(0x80, 0x00, 0x80), // 紫色
+                Color.FromRgb(255, 255, 255), // 白色
+                Color.FromRgb(0, 0, 0),       // 黑色
+                Color.FromRgb(255, 0, 0),     // 红（三原色）
+                Color.FromRgb(0, 255, 0),     // 绿（三原色）
+                Color.FromRgb(0, 0, 255),     // 蓝（三原色）
+                Color.FromRgb(128, 128, 128),  // 深灰色
+                Color.FromRgb(192, 192, 192),  // 浅灰色
+                Color.FromRgb(255, 255, 0),   // 黄色
+                Color.FromRgb(255, 0, 255),   // 品红
+                Color.FromRgb(0, 255, 255),   // 青色
             };
         }
 

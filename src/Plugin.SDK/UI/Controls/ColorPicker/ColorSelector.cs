@@ -100,7 +100,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_selectorBorder != null)
             {
                 _selectorBorder.MouseLeftButtonUp -= OnSelectorBorderMouseLeftButtonUp;
-                _selectorBorder.LostFocus -= OnSelectorBorderLostFocus;
+                // 不再需要 LostFocus 事件
             }
 
             if (_colorPicker != null)
@@ -124,7 +124,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_selectorBorder != null)
             {
                 _selectorBorder.MouseLeftButtonUp += OnSelectorBorderMouseLeftButtonUp;
-                _selectorBorder.LostFocus += OnSelectorBorderLostFocus;
+                // 不再需要 LostFocus 事件
             }
 
             if (_colorPicker != null)
@@ -158,25 +158,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
-        /// <summary>
-        /// 触发器 Border 失焦：关闭 Popup
-        /// </summary>
-        private void OnSelectorBorderLostFocus(object sender, RoutedEventArgs e)
-        {
-            if (_colorPickerPopup != null && _colorPickerPopup.IsOpen)
-            {
-                _colorPickerPopup.IsOpen = false;
-            }
-        }
-
         private void OnColorPickerSelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<uint> e)
         {
             SelectedColor = e.NewValue;
         }
 
+        /// <summary>
+        /// Popup 关闭事件：确保焦点返回到 SelectorBorder
+        /// </summary>
         private void OnColorPickerPopupClosed(object sender, EventArgs e)
         {
-            // Popup 关闭时不需要额外处理
+            // Popup 关闭后，确保焦点返回到 SelectorBorder
+            if (_selectorBorder != null)
+            {
+                _selectorBorder.Focus();
+            }
         }
 
         private void OnSelectedColorChanged(uint oldValue, uint newValue)

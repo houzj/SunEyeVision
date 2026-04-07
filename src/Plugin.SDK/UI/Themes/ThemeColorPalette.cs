@@ -117,19 +117,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Themes
                 new ThemeColorSeries("品红", Color.FromRgb(0xFF, 0x00, 0xFF)),
             };
 
-            // 初始化标准颜色（10个常用颜色）
+            // 初始化标准颜色（黑白三原色及常用颜色）
             StandardColors = new List<Color>
             {
-                Color.FromRgb(0x00, 0x00, 0x00), // 黑色
-                Color.FromRgb(0x80, 0x80, 0x80), // 灰色
-                Color.FromRgb(0xC0, 0xC0, 0xC0), // 银色
-                Color.FromRgb(0xFF, 0xFF, 0xFF), // 白色
-                Color.FromRgb(0x80, 0x00, 0x00), // 栗色
-                Color.FromRgb(0x80, 0x80, 0x00), // 橄榄色
-                Color.FromRgb(0x00, 0x80, 0x00), // 深绿
-                Color.FromRgb(0x00, 0x80, 0x80), // 青色
-                Color.FromRgb(0x00, 0x00, 0x80), // 深蓝
-                Color.FromRgb(0x80, 0x00, 0x80), // 紫色
+                Color.FromRgb(0, 0, 0),       // 黑色
+                Color.FromRgb(255, 255, 255), // 白色
+                Color.FromRgb(255, 0, 0),     // 红色（三原色）
+                Color.FromRgb(0, 255, 0),     // 绿色（三原色）
+                Color.FromRgb(0, 0, 255),     // 蓝色（三原色）
+                Color.FromRgb(255, 255, 0),   // 黄色
+                Color.FromRgb(255, 0, 255),   // 品红
+                Color.FromRgb(0, 255, 255),   // 青色
             };
         }
 
