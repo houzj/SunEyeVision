@@ -104,17 +104,17 @@
 
                     <controls:BindableParameter ParameterName="NumericParameter"
                                                 DataType="Double"
-                                                DoubleValue="75.5"
-                                                DoubleMinimum="0"
-                                                DoubleMaximum="100"/>
+                                                Value="75.5"
+                                                Minimum="0"
+                                                Maximum="100"/>
 
                     <controls:BindableParameter ParameterName="StringParameter"
                                                 DataType="String"
-                                                StringValue="Hello World"/>
+                                                Value="Hello World"/>
 
                     <controls:BindableParameter ParameterName="BoolParameter"
                                                 DataType="Bool"
-                                                BoolValue="True"/>
+                                                Value="True"/>
                 </StackPanel>
             </Border>
 
@@ -162,9 +162,9 @@
                         <StackPanel>
                             <controls:BindableParameter ParameterName="Precision"
                                                         DataType="Double"
-                                                        DoubleValue="3"
-                                                        DoubleMinimum="1"
-                                                        DoubleMaximum="10"/>
+                                                        Value="3"
+                                                        Minimum="1"
+                                                        Maximum="10"/>
                             <controls:ParamComboBox Label="算法"
                                                     SelectedIndex="0"
                                                     ItemsSource="{Binding Source={StaticResource AlgorithmTypes}}"/>
@@ -253,9 +253,9 @@
                         <StackPanel>
                             <controls:BindableParameter ParameterName="Threshold"
                                                         DataType="Double"
-                                                        DoubleValue="128"
-                                                        DoubleMinimum="0"
-                                                        DoubleMaximum="255"/>
+                                                        Value="128"
+                                                        Minimum="0"
+                                                        Maximum="255"/>
 
                             <controls:ParamComboBox Label="阈值类型"
                                                     SelectedIndex="0"

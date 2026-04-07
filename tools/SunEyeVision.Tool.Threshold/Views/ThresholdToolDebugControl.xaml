@@ -59,9 +59,9 @@
               <controls:BindableParameter
                                 x:Name="thresholdParam"
                                 DataType="Int"
-                                IntValue="{Binding Threshold, Mode=TwoWay}"
-                                IntMinimum="0"
-                                IntMaximum="255"
+                                Value="{Binding Threshold, Mode=TwoWay}"
+                                Minimum="0"
+                                Maximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
                                 ShowSlider="True" Width="250" />
@@ -71,9 +71,9 @@
               <controls:BindableParameter
                                 x:Name="maxValueParam"
                                 DataType="Int"
-                                IntValue="{Binding MaxValue, Mode=TwoWay}"
-                                IntMinimum="0"
-                                IntMaximum="255"
+                                Value="{Binding MaxValue, Mode=TwoWay}"
+                                Minimum="0"
+                                Maximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
                                 ShowSlider="True" Width="250"/>
@@ -347,7 +347,7 @@
                                                HorizontalAlignment="Right"
                                                Foreground="#333333"
                                                Margin="0,0,8,8"/>
-                  <controls:NumericUpDown Grid.Column="1" Grid.Row="3"
+                  <controls:NumericUpDown Grid.Column="1" Grid.Row="3" 
                                                             Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"

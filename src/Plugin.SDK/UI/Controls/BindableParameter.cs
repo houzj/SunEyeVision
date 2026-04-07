@@ -20,19 +20,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 2. 数据类型（DataType）：回答"值是什么类型" - Int, Double, String, Bool 等
     /// 3. 绑定类型与数据类型正交，任何数据类型都可以是常量或绑定
     /// 
+    /// V2.0 重构要点：
+    /// 1. 单一值属性 Value (object) - 统一入口，支持任意类型
+    /// 2. 内部计算属性 InternalNumericValue (只读double) - 用于模板绑定，自动类型转换
+    /// 3. 统一范围属性 Minimum/Maximum (object) - 支持任意数值类型
+    /// 4. 类型适配器模式 - 自动处理 int ↔ double 转换
+    /// 
     /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
     /// </remarks>
     public class BindableParameter : Control
     {
         #region 依赖属性
-
-
-        // IntValue 属性变化回调
-        private static void OnIntValuePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var control = (BindableParameter)d;
-            PluginLogger.Info($"[IntValue] {e.OldValue} → {e.NewValue}", "BindableParameter");
-        }
 
         // ===== 参数名（用于参数绑定） =====
         public static readonly DependencyProperty ParameterNameProperty =
@@ -54,32 +52,58 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(BindableParameter),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-        // ===== Int 值 =====
-        public static readonly DependencyProperty IntValueProperty =
-            DependencyProperty.Register(nameof(IntValue), typeof(int), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIntValuePropertyChanged));
+        // ===== 单一值属性（统一入口） =====
+        /// <summary>
+        /// 值属性：统一的值入口，支持任意类型
+        /// </summary>
+        /// <remarks>
+        /// - DataType = Int: Value 存储 int 类型
+        /// - DataType = Double: Value 存储 double 类型
+        /// - DataType = String: Value 存储 string 类型
+        /// - DataType = Bool: Value 存储 bool 类型
+        /// </remarks>
+        public static readonly DependencyProperty ValueProperty =
+            DependencyProperty.Register(nameof(Value), typeof(object), typeof(BindableParameter),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged));
 
-        public static readonly DependencyProperty IntMinimumProperty =
-            DependencyProperty.Register(nameof(IntMinimum), typeof(int), typeof(BindableParameter),
-                new PropertyMetadata(int.MinValue));
+        // ===== 内部数值值（只读，用于模板绑定） =====
+        /// <summary>
+        /// 内部数值值：只读属性，由 Value 自动计算
+        /// </summary>
+        /// <remarks>
+        /// 用途：NumericUpDown 绑定此属性，自动进行类型转换
+        /// - DataType = Int: Value (int) → InternalNumericValue (double)
+        /// - DataType = Double: Value (double) → InternalNumericValue (double)
+        /// </remarks>
+        private static readonly DependencyPropertyKey InternalNumericValuePropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericValue), typeof(double), typeof(BindableParameter),
+                new PropertyMetadata(0.0));
 
-        public static readonly DependencyProperty IntMaximumProperty =
-            DependencyProperty.Register(nameof(IntMaximum), typeof(int), typeof(BindableParameter),
-                new PropertyMetadata(int.MaxValue));
+        public static readonly DependencyProperty InternalNumericValueProperty = InternalNumericValuePropertyKey.DependencyProperty;
 
-        // ===== Double 值 =====
-        public static readonly DependencyProperty DoubleValueProperty =
-            DependencyProperty.Register(nameof(DoubleValue), typeof(double), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+        // ===== 统一的范围属性 =====
+        public static readonly DependencyProperty MinimumProperty =
+            DependencyProperty.Register(nameof(Minimum), typeof(object), typeof(BindableParameter),
+                new PropertyMetadata(null, OnRangeChanged));
 
-        public static readonly DependencyProperty DoubleMinimumProperty =
-            DependencyProperty.Register(nameof(DoubleMinimum), typeof(double), typeof(BindableParameter),
+        public static readonly DependencyProperty MaximumProperty =
+            DependencyProperty.Register(nameof(Maximum), typeof(object), typeof(BindableParameter),
+                new PropertyMetadata(null, OnRangeChanged));
+
+        // ===== 内部数值范围（只读，用于模板绑定） =====
+        private static readonly DependencyPropertyKey InternalNumericMinimumPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMinimum), typeof(double), typeof(BindableParameter),
                 new PropertyMetadata(double.MinValue));
 
-        public static readonly DependencyProperty DoubleMaximumProperty =
-            DependencyProperty.Register(nameof(DoubleMaximum), typeof(double), typeof(BindableParameter),
+        public static readonly DependencyProperty InternalNumericMinimumProperty = InternalNumericMinimumPropertyKey.DependencyProperty;
+
+        private static readonly DependencyPropertyKey InternalNumericMaximumPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMaximum), typeof(double), typeof(BindableParameter),
                 new PropertyMetadata(double.MaxValue));
 
+        public static readonly DependencyProperty InternalNumericMaximumProperty = InternalNumericMaximumPropertyKey.DependencyProperty;
+
+        // ===== 其他配置属性 =====
         public static readonly DependencyProperty SmallChangeProperty =
             DependencyProperty.Register(nameof(SmallChange), typeof(double), typeof(BindableParameter),
                 new PropertyMetadata(1.0));
@@ -88,35 +112,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(LargeChange), typeof(double), typeof(BindableParameter),
                 new PropertyMetadata(10.0));
 
-        // ===== String 值 =====
-        public static readonly DependencyProperty StringValueProperty =
-            DependencyProperty.Register(nameof(StringValue), typeof(string), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
-        // ===== Bool 值 =====
-        public static readonly DependencyProperty BoolValueProperty =
-            DependencyProperty.Register(nameof(BoolValue), typeof(bool), typeof(BindableParameter),
-                new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
-        // ===== 显示选项 =====
-        public static readonly DependencyProperty ShowSliderProperty =
-            DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(BindableParameter),
-                new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsExpandedProperty =
-            DependencyProperty.Register(nameof(IsExpanded), typeof(bool), typeof(BindableParameter),
-                new PropertyMetadata(false));
-
         public static readonly DependencyProperty DecimalPlacesProperty =
             DependencyProperty.Register(nameof(DecimalPlaces), typeof(int), typeof(BindableParameter),
                 new PropertyMetadata(2));
 
-        // ===== 绑定配置 =====
+        public static readonly DependencyProperty ShowSliderProperty =
+            DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(BindableParameter),
+                new PropertyMetadata(true, OnShowSliderPropertyChanged));
+
         public static readonly DependencyProperty AvailableBindingsProperty =
             DependencyProperty.Register(nameof(AvailableBindings), typeof(System.Collections.Generic.List<string>), typeof(BindableParameter),
                 new PropertyMetadata(null));
 
-        // ===== 转换表达式 =====
         public static readonly DependencyProperty TransformExpressionProperty =
             DependencyProperty.Register(nameof(TransformExpression), typeof(string), typeof(BindableParameter),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
@@ -152,42 +159,63 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(BindingSourceProperty, value);
         }
 
-        // Int 值属性
-        public int IntValue
+        /// <summary>
+        /// 值属性：统一的值入口
+        /// </summary>
+        public object? Value
         {
-            get => (int)GetValue(IntValueProperty);
-            set => SetValue(IntValueProperty, value);
+            get => GetValue(ValueProperty);
+            set
+            {
+                // 验证并修正值类型
+                var correctedValue = ValidateAndCorrectValueType(value);
+                SetValue(ValueProperty, correctedValue);
+            }
         }
 
-        public int IntMinimum
+        /// <summary>
+        /// 内部数值值：只读，由 Value 自动计算
+        /// </summary>
+        public double InternalNumericValue
         {
-            get => (int)GetValue(IntMinimumProperty);
-            set => SetValue(IntMinimumProperty, value);
+            get => (double)GetValue(InternalNumericValueProperty);
+            private set => SetValue(InternalNumericValuePropertyKey, value);
         }
 
-        public int IntMaximum
+        /// <summary>
+        /// 最小值：支持任意数值类型
+        /// </summary>
+        public object? Minimum
         {
-            get => (int)GetValue(IntMaximumProperty);
-            set => SetValue(IntMaximumProperty, value);
+            get => GetValue(MinimumProperty);
+            set => SetValue(MinimumProperty, value);
         }
 
-        // Double 值属性
-        public double DoubleValue
+        /// <summary>
+        /// 最大值：支持任意数值类型
+        /// </summary>
+        public object? Maximum
         {
-            get => (double)GetValue(DoubleValueProperty);
-            set => SetValue(DoubleValueProperty, value);
+            get => GetValue(MaximumProperty);
+            set => SetValue(MaximumProperty, value);
         }
 
-        public double DoubleMinimum
+        /// <summary>
+        /// 内部数值最小值：只读，由 Minimum 自动计算
+        /// </summary>
+        public double InternalNumericMinimum
         {
-            get => (double)GetValue(DoubleMinimumProperty);
-            set => SetValue(DoubleMinimumProperty, value);
+            get => (double)GetValue(InternalNumericMinimumProperty);
+            private set => SetValue(InternalNumericMinimumPropertyKey, value);
         }
 
-        public double DoubleMaximum
+        /// <summary>
+        /// 内部数值最大值：只读，由 Maximum 自动计算
+        /// </summary>
+        public double InternalNumericMaximum
         {
-            get => (double)GetValue(DoubleMaximumProperty);
-            set => SetValue(DoubleMaximumProperty, value);
+            get => (double)GetValue(InternalNumericMaximumProperty);
+            private set => SetValue(InternalNumericMaximumPropertyKey, value);
         }
 
         public double SmallChange
@@ -202,36 +230,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(LargeChangeProperty, value);
         }
 
-        // String 值属性
-        public string StringValue
+        public int DecimalPlaces
         {
-            get => (string)GetValue(StringValueProperty);
-            set => SetValue(StringValueProperty, value);
-        }
-
-        // Bool 值属性
-        public bool BoolValue
-        {
-            get => (bool)GetValue(BoolValueProperty);
-            set => SetValue(BoolValueProperty, value);
+            get => (int)GetValue(DecimalPlacesProperty);
+            set => SetValue(DecimalPlacesProperty, value);
         }
 
         public bool ShowSlider
         {
             get => (bool)GetValue(ShowSliderProperty);
             set => SetValue(ShowSliderProperty, value);
-        }
-
-        public bool IsExpanded
-        {
-            get => (bool)GetValue(IsExpandedProperty);
-            set => SetValue(IsExpandedProperty, value);
-        }
-
-        public int DecimalPlaces
-        {
-            get => (int)GetValue(DecimalPlacesProperty);
-            set => SetValue(DecimalPlacesProperty, value);
         }
 
         public System.Collections.Generic.List<string> AvailableBindings
@@ -311,13 +319,218 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             AvailableBindings = new System.Collections.Generic.List<string>();
         }
 
+        #region 回调方法
+
+        private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (BindableParameter)d;
+            
+            // 更新内部数值值（类型适配器）
+            control.UpdateInternalNumericValue(e.NewValue);
+            
+            // 更新 UI 控件的显示
+            control.UpdateUIFromValue(e.NewValue);
+        }
+
         private static void OnDataTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is BindableParameter control)
             {
+                // 根据 DataType 自动设置 DecimalPlaces
+                if (e.NewValue is ParamDataType dataType)
+                {
+                    if (dataType == ParamDataType.Int)
+                    {
+                        // 整数类型：强制设置为 0 位小数
+                        control.DecimalPlaces = 0;
+                    }
+                    // 浮点类型：保持用户设置的 DecimalPlaces（默认为 2）
+                }
+                
+                // 重新计算内部数值值
+                control.UpdateInternalNumericValue(control.Value);
+                control.UpdateInternalNumericRange();
+                
                 control.UpdateVisualState();
             }
         }
+
+        private static void OnRangeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BindableParameter control)
+            {
+                control.UpdateInternalNumericRange();
+            }
+        }
+
+        private static void OnShowSliderPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BindableParameter control)
+            {
+                // ShowSlider 属性变化处理（目前无需特殊操作）
+            }
+        }
+
+        #endregion
+
+        #region 类型适配器
+
+        /// <summary>
+        /// 验证并修正值的类型
+        /// </summary>
+        /// <param name="value">输入值</param>
+        /// <returns>符合 DataType 的值</returns>
+        private object? ValidateAndCorrectValueType(object? value)
+        {
+            if (value == null)
+                return null;
+
+            var expectedType = DataType switch
+            {
+                ParamDataType.Int => typeof(int),
+                ParamDataType.Double => typeof(double),
+                ParamDataType.String => typeof(string),
+                ParamDataType.Bool => typeof(bool),
+                _ => null
+            };
+
+            if (expectedType == null)
+                return value;
+
+            // 如果类型已匹配，直接返回
+            if (expectedType.IsAssignableFrom(value.GetType()))
+                return value;
+
+            // 尝试转换
+            try
+            {
+                object correctedValue = DataType switch
+                {
+                    ParamDataType.Int => Convert.ToInt32(value),
+                    ParamDataType.Double => Convert.ToDouble(value),
+                    ParamDataType.String => value.ToString() ?? string.Empty,
+                    ParamDataType.Bool => Convert.ToBoolean(value),
+                    _ => value
+                };
+
+                // 使用标准日志系统记录类型修正
+                PluginLogger.Warning(
+                    $"值类型自动修正: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}",
+                    "BindableParameter");
+
+                return correctedValue;
+            }
+            catch (Exception ex)
+            {
+                PluginLogger.Error(
+                    $"值类型转换失败: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}, 错误: {ex.Message}",
+                    "BindableParameter");
+
+                // 返回默认值
+                return DataType switch
+                {
+                    ParamDataType.Int => 0,
+                    ParamDataType.Double => 0.0,
+                    ParamDataType.String => string.Empty,
+                    ParamDataType.Bool => false,
+                    _ => value
+                };
+            }
+        }
+
+        /// <summary>
+        /// 更新内部数值值（类型适配器：object → double）
+        /// </summary>
+        private void UpdateInternalNumericValue(object? value)
+        {
+            if (value == null)
+            {
+                InternalNumericValue = 0.0;
+                return;
+            }
+
+            // 根据数据类型转换
+            InternalNumericValue = DataType switch
+            {
+                ParamDataType.Int => Convert.ToDouble(value),
+                ParamDataType.Double => Convert.ToDouble(value),
+                _ => 0.0
+            };
+        }
+
+        /// <summary>
+        /// 从内部数值值设置值（类型适配器：double → object）
+        /// </summary>
+        private void SetFromInternalNumericValue(double numericValue)
+        {
+            // 修复：显式装箱确保正确的类型推断
+            // C# switch 表达式的类型推断会选择"最佳公共类型"
+            // 如果不加 (object) 强制转换，编译器会推断为 double 类型
+            object? newValue = DataType switch
+            {
+                ParamDataType.Int => (object)(int)Math.Round(numericValue),  // 显式装箱为 object
+                ParamDataType.Double => numericValue,
+                _ => numericValue
+            };
+            
+            Value = newValue;
+        }
+
+        /// <summary>
+        /// 更新内部数值范围（类型适配器：object → double）
+        /// </summary>
+        private void UpdateInternalNumericRange()
+        {
+            // 更新最小值
+            if (Minimum == null)
+            {
+                InternalNumericMinimum = DataType == ParamDataType.Int ? int.MinValue : double.MinValue;
+            }
+            else
+            {
+                InternalNumericMinimum = Convert.ToDouble(Minimum);
+            }
+
+            // 更新最大值
+            if (Maximum == null)
+            {
+                InternalNumericMaximum = DataType == ParamDataType.Int ? int.MaxValue : double.MaxValue;
+            }
+            else
+            {
+                InternalNumericMaximum = Convert.ToDouble(Maximum);
+            }
+        }
+
+        /// <summary>
+        /// 从 Value 更新 UI 控件的显示
+        /// </summary>
+        private void UpdateUIFromValue(object? value)
+        {
+            // Numeric 控件通过绑定 InternalNumericValue 自动更新，无需手动处理
+            
+            // String 控件
+            if (_stringTextBox != null && DataType == ParamDataType.String)
+            {
+                var text = value?.ToString() ?? string.Empty;
+                if (_stringTextBox.Text != text)
+                {
+                    _stringTextBox.Text = text;
+                }
+            }
+            
+            // Bool 控件
+            if (_boolCheckBox != null && DataType == ParamDataType.Bool)
+            {
+                var isChecked = value is bool b && b;
+                if (_boolCheckBox.IsChecked != isChecked)
+                {
+                    _boolCheckBox.IsChecked = isChecked;
+                }
+            }
+        }
+
+        #endregion
 
         public override void OnApplyTemplate()
         {
@@ -333,7 +546,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             // 绑定事件
             if (_numericEditor != null)
             {
-                _numericEditor.ValueChanged += (s, e) => RaiseValueChanged();
+                _numericEditor.ValueChanged += (s, e) =>
+                {
+                    // 从 NumericUpDown 的 Value 属性更新到 BindableParameter 的 Value
+                    SetFromInternalNumericValue(e.NewValue);
+                    RaiseValueChanged();
+                };
             }
 
             if (_stringTextBox != null)
@@ -341,14 +559,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _stringTextBox.TextChanged += (s, e) =>
                 {
                     if (BindingType == BindingType.Constant)
+                    {
+                        Value = _stringTextBox.Text;
                         RaiseValueChanged();
+                    }
                 };
             }
 
             if (_boolCheckBox != null)
             {
-                _boolCheckBox.Checked += (s, e) => RaiseValueChanged();
-                _boolCheckBox.Unchecked += (s, e) => RaiseValueChanged();
+                _boolCheckBox.Checked += (s, e) =>
+                {
+                    Value = true;
+                    RaiseValueChanged();
+                };
+                _boolCheckBox.Unchecked += (s, e) =>
+                {
+                    Value = false;
+                    RaiseValueChanged();
+                };
             }
 
             _bindingButton.Click += OnBindingButtonClick;
@@ -433,7 +662,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     _stringTextBox.Text = BindingSource;
                 }
                 if (_boolCheckBox != null) _boolCheckBox.IsEnabled = false;
-                IsExpanded = false;
 
                 _bindingButton.Content = "🔗";
                 _bindingButton.ToolTip = $"绑定源: {BindingSource}\n点击解除绑定";
@@ -456,30 +684,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
-        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
-        {
-            base.OnPropertyChanged(e);
-
-            if (e.Property == BindingTypeProperty || e.Property == BindingSourceProperty ||
-                e.Property == IsExpandedProperty || e.Property == DataTypeProperty)
-            {
-                UpdateVisualState();
-            }
-        }
-
         /// <summary>
         /// 获取当前值（根据数据类型）
         /// </summary>
         public object? GetValue()
         {
-            return DataType switch
-            {
-                ParamDataType.Int => IntValue,
-                ParamDataType.Double => DoubleValue,
-                ParamDataType.String => StringValue,
-                ParamDataType.Bool => BoolValue,
-                _ => null
-            };
+            return Value;
         }
 
         /// <summary>
@@ -487,36 +697,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public void SetValue(object? value)
         {
-            if (value == null)
-                return;
-
-            switch (DataType)
-            {
-                case ParamDataType.Int:
-                    if (value is int intVal)
-                        IntValue = intVal;
-                    else if (int.TryParse(value.ToString(), out int intResult))
-                        IntValue = intResult;
-                    break;
-
-                case ParamDataType.Double:
-                    if (value is double doubleVal)
-                        DoubleValue = doubleVal;
-                    else if (double.TryParse(value.ToString(), out double doubleResult))
-                        DoubleValue = doubleResult;
-                    break;
-
-                case ParamDataType.String:
-                    StringValue = value.ToString() ?? string.Empty;
-                    break;
-
-                case ParamDataType.Bool:
-                    if (value is bool boolVal)
-                        BoolValue = boolVal;
-                    else if (bool.TryParse(value.ToString(), out bool boolResult))
-                        BoolValue = boolResult;
-                    break;
-            }
+            Value = value;
         }
 
         /// <summary>

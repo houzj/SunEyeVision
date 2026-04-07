@@ -30,17 +30,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     [TemplatePart(Name = PART_IncreaseButton, Type = typeof(RepeatButton))]
     [TemplatePart(Name = PART_DecreaseButton, Type = typeof(RepeatButton))]
     [TemplatePart(Name = PART_Slider, Type = typeof(Slider))]
+    [TemplatePart(Name = PART_SliderPanel, Type = typeof(Border))]
     public class NumericUpDown : Control
     {
         private const string PART_TextBox = "PART_TextBox";
         private const string PART_IncreaseButton = "PART_IncreaseButton";
         private const string PART_DecreaseButton = "PART_DecreaseButton";
         private const string PART_Slider = "PART_Slider";
+        private const string PART_SliderPanel = "PART_SliderPanel";
 
         private TextBox _textBox;
         private RepeatButton _increaseButton;
         private RepeatButton _decreaseButton;
         private Slider _slider;
+        private Border _sliderPanel;
         private bool _isUpdatingText;
         private bool _isSyncingValues; // 防止 Value 和 IntValue 循环更新
 
@@ -92,11 +95,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         public static readonly DependencyProperty ShowSliderProperty =
             DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(NumericUpDown),
-                new PropertyMetadata(false, OnShowSliderChanged));
-
-        public static readonly DependencyProperty IsSliderExpandedProperty =
-            DependencyProperty.Register(nameof(IsSliderExpanded), typeof(bool), typeof(NumericUpDown),
-                new PropertyMetadata(false));
+                new PropertyMetadata(true, OnShowSliderChanged));  // 添加属性变化回调
 
         #endregion
 
@@ -175,21 +174,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
-        /// 是否显示滑块
+        /// 是否显示滑块（按焦点显示）
         /// </summary>
+        /// <remarks>
+        /// - ShowSlider=false（默认）：滑块不显示
+        /// - ShowSlider=true：滑块按焦点显示（获得焦点才显示）
+        /// </remarks>
         public bool ShowSlider
         {
             get => (bool)GetValue(ShowSliderProperty);
             set => SetValue(ShowSliderProperty, value);
-        }
-
-        /// <summary>
-        /// 滑块是否展开（仅在 ShowSlider=true 时有效）
-        /// </summary>
-        public bool IsSliderExpanded
-        {
-            get => (bool)GetValue(IsSliderExpandedProperty);
-            set => SetValue(IsSliderExpandedProperty, value);
         }
 
         #endregion
@@ -213,11 +207,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_decreaseButton != null)
                 _decreaseButton.Click -= OnDecreaseButtonClick;
 
+            // 取消 IsKeyboardFocusWithinChanged 事件订阅
+            IsKeyboardFocusWithinChanged -= OnKeyboardFocusWithinChanged;
+
             // 获取模板部件 (may be null before template is applied)
             _textBox = GetTemplateChild(PART_TextBox) as TextBox;
             _increaseButton = GetTemplateChild(PART_IncreaseButton) as RepeatButton;
             _decreaseButton = GetTemplateChild(PART_DecreaseButton) as RepeatButton;
             _slider = GetTemplateChild(PART_Slider) as Slider;
+            _sliderPanel = GetTemplateChild(PART_SliderPanel) as Border;
 
             // 订阅新事件
             if (_textBox != null)
@@ -232,36 +230,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _increaseButton.Click += OnIncreaseButtonClick;
             if (_decreaseButton != null)
                 _decreaseButton.Click += OnDecreaseButtonClick;
+
+            // 订阅焦点变化事件（统一控制滑块显示）
+            IsKeyboardFocusWithinChanged += OnKeyboardFocusWithinChanged;
+
+            // 初始化滑块状态（参考 RangeInputControl 的实现）
+            UpdateSliderState();
         }
 
         protected override void OnGotFocus(RoutedEventArgs e)
         {
             base.OnGotFocus(e);
             
-            // 记录调试日志
-            PluginLogger.Info($"[OnGotFocus] 控件获得焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            
-            // 聚焦时自动展开滑块
-            if (ShowSlider)
-            {
-                IsSliderExpanded = true;
-                PluginLogger.Info($"[OnGotFocus] 滑块已展开: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            }
+            // 不在这里调用 UpdateSliderState()，由 IsKeyboardFocusWithinChanged 统一处理
         }
 
         protected override void OnLostFocus(RoutedEventArgs e)
         {
             base.OnLostFocus(e);
             
-            // 记录调试日志
-            PluginLogger.Info($"[OnLostFocus] 控件失去焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            
-            // 失去焦点时自动折叠滑块
-            if (ShowSlider)
-            {
-                IsSliderExpanded = false;
-                PluginLogger.Info($"[OnLostFocus] 滑块已折叠: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            }
+            // 不在这里调用 UpdateSliderState()，由 IsKeyboardFocusWithinChanged 统一处理
         }
 
         protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
@@ -341,6 +329,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
+        private void UpdateSliderState()
+        {
+            // 检查模板是否已应用
+            if (_sliderPanel == null)
+            {
+                return;
+            }
+
+            // 使用 IsKeyboardFocusWithin 检测焦点（更可靠，避免事件顺序问题）
+            var hasFocus = IsKeyboardFocusWithin;
+            var shouldShow = ShowSlider && hasFocus;
+
+            // 直接控制滑块面板的显示
+            _sliderPanel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         private void ParseAndApplyText()
         {
             if (_textBox == null || _isUpdatingText) return;
@@ -390,6 +394,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             control.UpdateText();
         }
 
+        private static void OnShowSliderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (NumericUpDown)d;
+            control.UpdateSliderState();
+        }
+
         private static object CoerceValue(DependencyObject d, object baseValue)
         {
             var control = (NumericUpDown)d;
@@ -400,8 +410,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private static void OnIntValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (NumericUpDown)d;
-
-            PluginLogger.Info($"[OnIntValueChanged] {control.Name ?? "unnamed"}: {e.OldValue} → {e.NewValue}", "NumericUpDown");
 
             // 同步 Value
             if (!control._isSyncingValues)
@@ -424,16 +432,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var value = (int)baseValue;
             var clamped = control.Clamp(value);
             return (int)Math.Round(clamped);
-        }
-
-        private static void OnShowSliderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var control = (NumericUpDown)d;
-            // 当关闭滑块时，自动折叠
-            if (!(bool)e.NewValue)
-            {
-                control.IsSliderExpanded = false;
-            }
         }
 
         #endregion
@@ -460,28 +458,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void OnTextBoxGotFocus(object sender, RoutedEventArgs e)
         {
-            // 记录调试日志
-            PluginLogger.Info($"[OnTextBoxGotFocus] TextBox获得焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            
-            // 当 TextBox 获得焦点时，触发 NumericUpDown 的 GotFocus 事件
-            OnGotFocus(e);
-            
-            // 记录调试日志
-            PluginLogger.Info($"[OnTextBoxGotFocus] 触发OnGotFocus后: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+            // 不需要在这里调用 UpdateSliderState()
+            // IsKeyboardFocusWithinChanged 事件会统一处理滑块显示
         }
 
         private void OnTextBoxLostFocus(object sender, RoutedEventArgs e)
         {
-            // 记录调试日志
-            PluginLogger.Info($"[OnTextBoxLostFocus] TextBox失去焦点: ShowSlider={ShowSlider}, IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
-            
-            // 当 TextBox 失去焦点时，先处理文本解析
+            // 当 TextBox 失去焦点时，解析文本
             ParseAndApplyText();
-            // 然后触发 NumericUpDown 的 LostFocus 事件
-            OnLostFocus(e);
-            
-            // 记录调试日志
-            PluginLogger.Info($"[OnTextBoxLostFocus] 触发OnLostFocus后: IsSliderExpanded={IsSliderExpanded}", "NumericUpDown");
+        }
+
+        private void OnKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            // 统一处理焦点变化，控制滑块显示
+            UpdateSliderState();
         }
 
         private void OnIncreaseButtonClick(object sender, RoutedEventArgs e)

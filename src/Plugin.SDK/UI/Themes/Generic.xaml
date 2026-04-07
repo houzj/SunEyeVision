@@ -198,30 +198,26 @@
 
                         <!-- 编辑器容器 - 根据数据类型显示不同编辑器 -->
                         <Grid Grid.Column="0">
-                            <!-- 数值编辑器（Int/Double 共用） - 使用 NumericUpDown -->
+                            <!-- 数值编辑器（Int/Double 共用） - 使用 InternalNumericValue（只读绑定，由控件代码处理双向同步） -->
                             <controls:NumericUpDown x:Name="PART_NumericEditor"
-                                                    Value="{Binding DoubleValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                                    IntValue="{Binding IntValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                                    Minimum="{Binding DoubleMinimum, RelativeSource={RelativeSource TemplatedParent}}"
-                                                    Maximum="{Binding DoubleMaximum, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    Value="{Binding InternalNumericValue, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                                    Minimum="{Binding InternalNumericMinimum, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    Maximum="{Binding InternalNumericMaximum, RelativeSource={RelativeSource TemplatedParent}}"
                                                     SmallChange="{TemplateBinding SmallChange}"
                                                     LargeChange="{TemplateBinding LargeChange}"
                                                     DecimalPlaces="{TemplateBinding DecimalPlaces}"
                                                     ShowSlider="{TemplateBinding ShowSlider}"
-                                                    IsSliderExpanded="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                     ShowUpDownButtons="True"
                                                     Visibility="{Binding DataType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=Numeric}"/>
 
-                            <!-- String 编辑器 -->
+                            <!-- String 编辑器 - 绑定到 Value（由控件代码处理双向同步） -->
                             <TextBox x:Name="PART_StringTextBox"
-                                     Text="{Binding StringValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource BaseInputStyle}"
                                      TextAlignment="Left"
                                      Visibility="{Binding DataType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=String}"/>
 
-                            <!-- Bool 编辑器 -->
+                            <!-- Bool 编辑器 - 绑定到 Value（由控件代码处理双向同步） -->
                             <CheckBox x:Name="PART_BoolCheckBox"
-                                      IsChecked="{Binding BoolValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                       VerticalAlignment="Center"
                                       Visibility="{Binding DataType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=Bool}"/>
                         </Grid>
@@ -473,7 +469,6 @@
 
     <!-- NumericUpDown 样式 -->
     <Style TargetType="{x:Type controls:NumericUpDown}">
-        <Setter Property="Height" Value="32"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -483,15 +478,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:NumericUpDown}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- 第一行：文本框 + 上下按钮 -->
-                        <Border Grid.Row="0"
-                                Background="{TemplateBinding Background}"
+                    <StackPanel>
+                        <!-- 第一部分：文本框 + 上下按钮 -->
+                        <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
@@ -542,9 +531,8 @@
                             </Grid>
                         </Border>
 
-                        <!-- 第二行：滑块（展开时显示） -->
+                        <!-- 第二部分：滑块（展开时显示） -->
                         <Border x:Name="PART_SliderPanel"
-                                Grid.Row="1"
                                 Visibility="Collapsed"
                                 Margin="0,6,0,0"
                                 Padding="0,4">
@@ -554,9 +542,9 @@
                                     Maximum="{TemplateBinding Maximum}"
                                     SmallChange="{TemplateBinding SmallChange}"
                                     LargeChange="{TemplateBinding LargeChange}"
-                                    VerticalAlignment="Center"/>
+                                    Height="20"/>
                         </Border>
-                    </Grid>
+                    </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsReadOnly" Value="True">
                             <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
@@ -567,14 +555,6 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}"/>
                         </Trigger>
-                        <!-- 滑块展开控制 -->
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="ShowSlider" Value="True"/>
-                                <Condition Property="IsSliderExpanded" Value="True"/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="PART_SliderPanel" Property="Visibility" Value="Visible"/>
-                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -795,16 +775,6 @@
                                                       MinGap="{TemplateBinding MinGap}"/>
                             </Border>
                     </StackPanel>
-                    <ControlTemplate.Triggers>
-                        <!-- 滑块展开控制 -->
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="ShowSlider" Value="True"/>
-                                <Condition Property="IsSliderExpanded" Value="True"/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="PART_SliderPanel" Property="Visibility" Value="Visible"/>
-                        </MultiTrigger>
-                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

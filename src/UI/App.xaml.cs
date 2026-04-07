@@ -32,9 +32,7 @@ public partial class App : Application
 
     static App()
     {
-        // 抑制 AIStudio.Wpf.DiagramDesigner 库内部的绑定警告
-        // 这些警告不影响功能，来自库的默认模板
-        // 只显示Warning及以上级别，不显示Information级别的绑定信息
+        // 只记录警告和错误级别的绑定信息，避免性能问题
         PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Warning;
     }
 
@@ -82,8 +80,6 @@ public partial class App : Application
 
         // 初始化DispatcherTimer监控
         InitializeMonitoring();
-
-        Debug.WriteLine("[App] 监控系统已初始化");
 
         // 启动决策
         HandleStartupDecision();
@@ -240,115 +236,45 @@ public partial class App : Application
     private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         Exception ex = e.ExceptionObject as Exception;
-        // Debug.WriteLine("=================================================");
-        // Debug.WriteLine($"[App] 全局未处理异常: {ex?.Message}");
-        // Debug.WriteLine($"[App] 异常类型: {ex?.GetType().FullName}");
-        // Debug.WriteLine($"[App] 堆栈跟踪:\n{ex?.StackTrace}");
-        // Debug.WriteLine($"[App] 是否终止: {e.IsTerminating}");
-        // Debug.WriteLine("=================================================");
 
         if (ex?.InnerException != null)
         {
-            // Debug.WriteLine($"[App] 内部异常: {ex.InnerException.Message}");
-            // Debug.WriteLine($"[App] 内部异常类型: {ex.InnerException.GetType().FullName}");
-            // Debug.WriteLine($"[App] 内部堆栈:\n{ex.InnerException.StackTrace}");
-
             if (ex.InnerException.InnerException != null)
             {
-                // Debug.WriteLine($"[App] 第二层内部异常: {ex.InnerException.InnerException.Message}");
-                // Debug.WriteLine($"[App] 第二层内部异常类型: {ex.InnerException.InnerException.GetType().FullName}");
+                // 第二层内部异常，不做处理
             }
         }
 
-        // 保存到文件夹
+        // 记录到日志系统
         try
         {
-            string crashLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash_log.txt");
-            string logContent = $"时间: {DateTime.Now}\n";
-            logContent += $"异常: {ex?.Message}\n";
-            logContent += $"类型: {ex?.GetType().FullName}\n";
-            logContent += $"堆栈:\n{ex?.StackTrace}\n";
+            var logger = VisionLogger.Instance;
+            logger.Log(LogLevel.Error, $"全局未处理异常: {ex?.Message}", "App", ex);
+            logger.Log(LogLevel.Error, $"异常类型: {ex?.GetType().FullName}", "App");
+            logger.Log(LogLevel.Error, $"堆栈跟踪:\n{ex?.StackTrace}", "App");
             if (ex?.InnerException != null)
             {
-                logContent += $"\n内部异常: {ex.InnerException.Message}\n";
-                logContent += $"内部堆栈:\n{ex.InnerException.StackTrace}\n";
+                logger.Log(LogLevel.Error, $"内部异常: {ex.InnerException.Message}", "App", ex.InnerException);
             }
-            File.WriteAllText(crashLog, logContent);
-            // Debug.WriteLine($"[App] 崩溃日志已保存到: {crashLog}");
         }
-        catch (Exception writeEx)
-        {
-            // Debug.WriteLine($"[App] 无法保存崩溃日志: {writeEx.Message}");
-        }
+        catch { }
 
-        MessageBox.Show($"应用程序发生未处理的异常:\n{ex?.Message}\n\n堆栈跟踪:\n{ex?.StackTrace}\n\n详细日志已保存到 crash_log.txt",
+        MessageBox.Show($"应用程序发生未处理的异常:\n{ex?.Message}\n\n堆栈跟踪:\n{ex?.StackTrace}",
             "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        Debug.WriteLine($"[App] Dispatcher 未处理异常: {e.Exception.Message}");
-        Debug.WriteLine($"[App] 异常类型: {e.Exception.GetType().FullName}");
-        Debug.WriteLine($"[App] 堆栈跟踪: {e.Exception.StackTrace}");
-
-        if (e.Exception.InnerException != null)
-        {
-            Debug.WriteLine($"[App] 内部异常: {e.Exception.InnerException.Message}");
-            Debug.WriteLine($"[App] 内部异常类型: {e.Exception.InnerException.GetType().FullName}");
-            Debug.WriteLine($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}");
-        }
-
-        // 特别处理TargetParameterCountException
-        if (e.Exception is System.Reflection.TargetParameterCountException)
-        {
-            Debug.WriteLine($"[App] *** 这是一个参数数量不匹配异常 ***");
-            Debug.WriteLine($"[App] 可能的原因:");
-            Debug.WriteLine($"[App]   1. Dispatcher.BeginInvoke参数顺序错误");
-            Debug.WriteLine($"[App]   2. 事件处理器签名不匹配");
-            Debug.WriteLine($"[App]   3. 委托调用时参数数量错误");
-
-            // 捕获完整的调用堆栈
-            Debug.WriteLine($"[App] 完整调用堆栈:");
-            Debug.WriteLine(Environment.StackTrace);
-
-            // 记录到文件以便详细分析
-            try
-            {
-                string diagLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parameter_mismatch_detailed.log");
-                string logContent = $"\n\n=== Parameter Mismatch Detail ===\n";
-                logContent += $"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\n";
-                logContent += $"异常: {e.Exception.Message}\n";
-                logContent += $"异常类型: {e.Exception.GetType().FullName}\n";
-                logContent += $"\n异常堆栈:\n{e.Exception.StackTrace}\n";
-                logContent += $"\n完整调用堆栈:\n{Environment.StackTrace}\n";
-                if (e.Exception.InnerException != null)
-                {
-                    logContent += $"\n内部异常: {e.Exception.InnerException.Message}\n";
-                    logContent += $"内部异常类型: {e.Exception.InnerException.GetType().FullName}\n";
-                    logContent += $"内部堆栈:\n{e.Exception.InnerException.StackTrace}\n";
-                }
-                logContent += $"===================================\n\n";
-                File.AppendAllText(diagLog, logContent);
-                Debug.WriteLine($"[App] 详细日志已保存到: {diagLog}");
-            }
-            catch (Exception writeEx)
-            {
-                Debug.WriteLine($"[App] 保存详细日志失败: {writeEx.Message}");
-            }
-        }
-
         // 记录到插件日志系统
         try
         {
-            var logger = SunEyeVision.Plugin.SDK.Logging.PluginLogger.Logger;
-            logger.Error($"[App] Dispatcher 未处理异常: {e.Exception.Message}", "App", e.Exception);
-            logger.Error($"[App] 异常类型: {e.Exception.GetType().FullName}", "App");
-            logger.Error($"[App] 堆栈跟踪: {e.Exception.StackTrace}", "App");
+            var logger = VisionLogger.Instance;
+            logger.Log(LogLevel.Error, $"Dispatcher 未处理异常: {e.Exception.Message}", "App", e.Exception);
+            logger.Log(LogLevel.Error, $"异常类型: {e.Exception.GetType().FullName}", "App");
+            logger.Log(LogLevel.Error, $"堆栈跟踪: {e.Exception.StackTrace}", "App");
             if (e.Exception.InnerException != null)
             {
-                logger.Error($"[App] 内部异常: {e.Exception.InnerException.Message}", "App", e.Exception.InnerException);
-                logger.Error($"[App] 内部异常类型: {e.Exception.InnerException.GetType().FullName}", "App");
-                logger.Error($"[App] 内部堆栈: {e.Exception.InnerException.StackTrace}", "App");
+                logger.Log(LogLevel.Error, $"内部异常: {e.Exception.InnerException.Message}", "App", e.Exception.InnerException);
             }
         }
         catch { }
@@ -364,50 +290,13 @@ public partial class App : Application
     /// </summary>
     private void OnFirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
     {
-        // 捕获参数数量不匹配异常
-        if (e.Exception is System.Reflection.TargetParameterCountException)
-        {
-            var ex = e.Exception as System.Reflection.TargetParameterCountException;
-            Debug.WriteLine($"[App] 捕获TargetParameterCountException(参数数量不匹配): {ex?.Message}");
-            Debug.WriteLine($"[App] 异常堆栈: {ex?.StackTrace}");
-            
-            // 捕获完整调用堆栈
-            Debug.WriteLine($"[App] 完整调用堆栈:");
-            Debug.WriteLine(Environment.StackTrace);
-            
-            // 记录到文件以便详细分析
-            try
-            {
-                string diagLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parameter_mismatch_detailed.log");
-                string logContent = $"\n\n=== FirstChanceException - TargetParameterCountException ===\n";
-                logContent += $"时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\n";
-                logContent += $"异常: {ex?.Message}\n";
-                logContent += $"异常类型: {ex?.GetType().FullName}\n";
-                logContent += $"\n异常堆栈:\n{ex?.StackTrace}\n";
-                logContent += $"\n完整调用堆栈:\n{Environment.StackTrace}\n";
-                if (ex?.InnerException != null)
-                {
-                    logContent += $"\n内部异常: {ex.InnerException.Message}\n";
-                    logContent += $"内部异常类型: {ex.InnerException.GetType().FullName}\n";
-                    logContent += $"内部堆栈:\n{ex.InnerException.StackTrace}\n";
-                }
-                logContent += $"===================================\n\n";
-                File.AppendAllText(diagLog, logContent);
-                Debug.WriteLine($"[App] 详细日志已保存到: {diagLog}");
-            }
-            catch (Exception writeEx)
-            {
-                Debug.WriteLine($"[App] 保存详细日志失败: {writeEx.Message}");
-            }
-        }
-        // 捕获RPC服务器不可用异常
-        else if (e.Exception is COMException comEx)
+        // 只捕获RPC服务器不可用异常，标记为已知的非致命异常
+        if (e.Exception is COMException comEx)
         {
             if (comEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (comEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
             {
-                // 标记为已知的非致命RPC异常
-                Debug.WriteLine($"[App] 捕获RPC异常(非致命): {comEx.Message}");
-                // 异常会被解码器的降级逻辑处理，此处仅记录
+                // 标记为已知的非致命RPC异常，异常会被解码器的降级逻辑处理
+                // 不记录日志，避免性能问题
             }
         }
         // 捕获WIC相关的内部异常
@@ -416,7 +305,8 @@ public partial class App : Application
         {
             if (innerComEx.ErrorCode == HRESULT_RPC_UNAVAILABLE || (innerComEx.ErrorCode & 0xFFFF) == RPC_S_SERVER_UNAVAILABLE)
             {
-                Debug.WriteLine($"[App] 捕获RPC内部异常(非致命): {innerComEx.Message}");
+                // 标记为已知的非致命RPC内部异常
+                // 不记录日志，避免性能问题
             }
         }
     }
@@ -443,12 +333,10 @@ public partial class App : Application
                 warmupTasks[i] = Task.Run(() => Thread.Sleep(10));
             }
             Task.WaitAll(warmupTasks);
-
-            Debug.WriteLine("[App] 线程池预热完成 - 工作线程:8, IO线程:4");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[App] 线程池预热失败: {ex.Message}");
+            VisionLogger.Instance.Log(LogLevel.Warning, $"线程池预热失败: {ex.Message}", "App");
         }
     }
 
@@ -467,7 +355,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[App] 文件关联注册失败: {ex.Message}");
+            VisionLogger.Instance.Log(LogLevel.Warning, $"文件关联注册失败: {ex.Message}", "App");
         }
     }
 
@@ -476,29 +364,8 @@ public partial class App : Application
     /// </summary>
     private void InitializeMonitoring()
     {
-        try
-        {
-            Debug.WriteLine("[App] 初始化DispatcherTimer监控...");
-            var monitor = DispatcherTimerMonitor.Instance;
-
-            // 创建监控报告定时器
-            _monitorTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(_monitorReportInterval)
-            };
-            _monitorTimer.Tick += (sender, e) =>
-            {
-                Debug.WriteLine("[App] === DispatcherTimer 监控报告 ===");
-                monitor.PrintAllTimersInfo();
-            };
-            _monitorTimer.Start();
-
-            Debug.WriteLine($"[App] DispatcherTimer监控已启动，报告间隔: {_monitorReportInterval}秒");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[App] 初始化监控失败: {ex.Message}");
-        }
+        // 监控功能已禁用，避免性能问题
+        // 如需调试，可手动启用
     }
 
     /// <summary>
@@ -512,17 +379,6 @@ public partial class App : Application
 
         // 停止监控定时器
         _monitorTimer?.Stop();
-
-        // 生成最终的监控报告
-        try
-        {
-            Debug.WriteLine("[App] === 应用程序退出 - 最终监控报告 ===");
-            DispatcherTimerMonitor.Instance.PrintAllTimersInfo();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[App] 生成最终监控报告失败: {ex.Message}");
-        }
 
         base.OnExit(e);
     }

@@ -29,15 +29,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     [TemplatePart(Name = PART_MinNumeric, Type = typeof(NumericUpDown))]
     [TemplatePart(Name = PART_MaxNumeric, Type = typeof(NumericUpDown))]
     [TemplatePart(Name = PART_RangeSlider, Type = typeof(RangeSlider))]
+    [TemplatePart(Name = PART_SliderPanel, Type = typeof(Border))]
     public class RangeInputControl : Control
     {
         private const string PART_MinNumeric = "PART_MinNumeric";
         private const string PART_MaxNumeric = "PART_MaxNumeric";
         private const string PART_RangeSlider = "PART_RangeSlider";
+        private const string PART_SliderPanel = "PART_SliderPanel";
 
         private NumericUpDown _minNumeric;
         private NumericUpDown _maxNumeric;
         private RangeSlider _rangeSlider;
+        private Border _sliderPanel;
         private bool _isUpdating;
 
         static RangeInputControl()
@@ -77,10 +80,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty ShowSliderProperty =
             DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(RangeInputControl),
                 new PropertyMetadata(true, OnShowSliderChanged));
-
-        public static readonly DependencyProperty IsSliderExpandedProperty =
-            DependencyProperty.Register(nameof(IsSliderExpanded), typeof(bool), typeof(RangeInputControl),
-                new PropertyMetadata(false));
 
         public static readonly DependencyProperty MinGapProperty =
             DependencyProperty.Register(nameof(MinGap), typeof(double), typeof(RangeInputControl),
@@ -194,15 +193,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
-        /// 滑块是否展开
-        /// </summary>
-        public bool IsSliderExpanded
-        {
-            get => (bool)GetValue(IsSliderExpandedProperty);
-            set => SetValue(IsSliderExpandedProperty, value);
-        }
-
-        /// <summary>
         /// 最小值和最大值之间的最小间隔
         /// </summary>
         public double MinGap
@@ -278,6 +268,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             _minNumeric = GetTemplateChild(PART_MinNumeric) as NumericUpDown;
             _maxNumeric = GetTemplateChild(PART_MaxNumeric) as NumericUpDown;
             _rangeSlider = GetTemplateChild(PART_RangeSlider) as RangeSlider;
+            _sliderPanel = GetTemplateChild(PART_SliderPanel) as Border;
 
             // 订阅新事件
             if (_minNumeric != null)
@@ -307,30 +298,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void UpdateSliderState()
         {
-            if (_minNumeric == null || _maxNumeric == null) return;
+            if (_minNumeric == null || _maxNumeric == null || _sliderPanel == null) return;
 
             // 使用 IsKeyboardFocusWithin 检查焦点（更可靠，避免事件顺序问题）
             var hasFocus = _minNumeric.IsKeyboardFocusWithin || _maxNumeric.IsKeyboardFocusWithin;
+            var shouldShow = ShowSlider && hasFocus;
 
-            // 记录调试日志
-            PluginLogger.Info($"[UpdateSliderState] 更新滑块状态: ShowSlider={ShowSlider}, hasFocus={hasFocus}, MinFocused={_minNumeric.IsKeyboardFocusWithin}, MaxFocused={_maxNumeric.IsKeyboardFocusWithin}", "RangeInputControl");
+            // 直接控制滑块面板的显示
+            _sliderPanel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
 
-            if (ShowSlider)
-            {
-                IsSliderExpanded = hasFocus;
-                _minNumeric.IsSliderExpanded = hasFocus;
-                _maxNumeric.IsSliderExpanded = hasFocus;
-                
-                PluginLogger.Info($"[UpdateSliderState] 滑块状态已更新: IsSliderExpanded={IsSliderExpanded}", "RangeInputControl");
-            }
-            else
-            {
-                IsSliderExpanded = false;
-                _minNumeric.IsSliderExpanded = false;
-                _maxNumeric.IsSliderExpanded = false;
-                
-                PluginLogger.Info($"[UpdateSliderState] 滑块已禁用，强制折叠", "RangeInputControl");
-            }
+            // 记录关键日志：焦点检测
+            PluginLogger.Info($"[UpdateSliderState] 滑块面板显示状态: ShowSlider={ShowSlider}, hasFocus={hasFocus}, Visibility={_sliderPanel.Visibility}", "RangeInputControl");
         }
 
         private double ClampMinValue(double value)
@@ -422,13 +400,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void OnNumericGotFocus(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[OnNumericGotFocus] NumericUpDown获得焦点: sender={(sender as NumericUpDown)?.Name ?? "unnamed"}", "RangeInputControl");
+            var numeric = sender as NumericUpDown;
+            PluginLogger.Info($"[OnNumericGotFocus] NumericUpDown获得焦点: Name={numeric?.Name ?? "unnamed"}, ShowSlider={ShowSlider}", "RangeInputControl");
             UpdateSliderState();
         }
 
         private void OnNumericLostFocus(object sender, RoutedEventArgs e)
         {
-            PluginLogger.Info($"[OnNumericLostFocus] NumericUpDown失去焦点: sender={(sender as NumericUpDown)?.Name ?? "unnamed"}", "RangeInputControl");
+            var numeric = sender as NumericUpDown;
+            PluginLogger.Info($"[OnNumericLostFocus] NumericUpDown失去焦点: Name={numeric?.Name ?? "unnamed"}, ShowSlider={ShowSlider}", "RangeInputControl");
             UpdateSliderState();
         }
 
