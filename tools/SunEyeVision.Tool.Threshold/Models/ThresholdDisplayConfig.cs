@@ -28,7 +28,7 @@ namespace SunEyeVision.Tool.Threshold.Models
             set => SetProperty(ref _isVisible, value, "可见性");
         }
 
-        private Color _okColor = Color.FromRgb(102, 255, 0);
+        private Color _okColor = Color.FromRgb(0, 255, 0);
         /// <summary>
         /// OK状态颜色
         /// </summary>
@@ -153,6 +153,14 @@ namespace SunEyeVision.Tool.Threshold.Models
     /// </summary>
     public class ThresholdTextConfig : ObservableObject
     {
+        /// <summary>
+        /// 构造函数 - 初始化默认颜色值
+        /// </summary>
+        public ThresholdTextConfig()
+        {
+            PluginLogger.Info($"ThresholdTextConfig 初始化: OkColor={_okColor}, NgColor={_ngColor}", "ThresholdTool");
+        }
+
         private string _content = "结果: {Result}";
         /// <summary>
         /// 文本内容（支持变量占位符）

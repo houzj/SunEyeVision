@@ -331,14 +331,14 @@
                   <controls:LabeledControl Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
                                                              Label="OK颜色"
                                                              Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay, Converter={StaticResource UIntToColorConverter}}"/>
                   </controls:LabeledControl>
 
                   <!-- NG颜色 -->
                   <controls:LabeledControl Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
                                                              Label="NG颜色"
                                                              Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay, Converter={StaticResource UIntToColorConverter}}"/>
                   </controls:LabeledControl>
 
                   <!-- 字号 -->

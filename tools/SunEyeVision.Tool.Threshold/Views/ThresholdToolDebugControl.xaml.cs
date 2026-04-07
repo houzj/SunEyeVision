@@ -121,7 +121,7 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             // 初始化默认参数（设计时使用）
             Parameters = new ThresholdParameters();
-            PluginLogger.Info("默认参数已初始化", "ThresholdTool");
+            PluginLogger.Info($"默认参数已初始化: TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
 
             // 初始化RegionEditor
             PluginLogger.Info("开始初始化RegionEditor", "ThresholdTool");
@@ -155,6 +155,7 @@ namespace SunEyeVision.Tool.Threshold.Views
                 Parameters = thresholdParams;
 
                 PluginLogger.Success($"已加载节点参数: Threshold={Parameters.Threshold}", "ThresholdTool");
+                PluginLogger.Info($"TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
             }
             else
             {
