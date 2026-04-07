@@ -891,7 +891,7 @@
 
     <!-- ColorPicker 样式 -->
     <Style TargetType="{x:Type controls:ColorPicker}">
-        <Setter Property="Width" Value="200"/>
+        <Setter Property="Width" Value="220"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:ColorPicker}">
@@ -912,12 +912,12 @@
                                                    Foreground="{StaticResource LabelSecondaryBrush}"
                                                    Margin="0,0,0,8"
                                                    TextAlignment="Center"
-                                                   Width="180"/>
+                                                   Width="198"/>
                                         <UniformGrid x:Name="PART_ThemeColorsPanel"
                                                      Columns="10"
                                                      Rows="6"
-                                                     Width="180"
-                                                     Height="108"/>
+                                                     Width="198"
+                                                     Height="112"/>
                                         
                                         <!-- 标准颜色 -->
                                         <TextBlock Text="标准颜色"
@@ -925,12 +925,12 @@
                                                    Foreground="{StaticResource LabelSecondaryBrush}"
                                                    Margin="0,12,0,8"
                                                    TextAlignment="Center"
-                                                   Width="180"/>
+                                                   Width="198"/>
                                         <UniformGrid x:Name="PART_StandardColorsPanel"
                                                      Columns="10"
                                                      Rows="1"
-                                                     Width="180"
-                                                     Height="24"/>
+                                                     Width="198"
+                                                     Height="18"/>
                                     </StackPanel>
                                 </TabItem>
 

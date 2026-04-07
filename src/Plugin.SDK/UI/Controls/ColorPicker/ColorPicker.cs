@@ -395,8 +395,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             var button = new Button
             {
-                Width = 24,
-                Height = 24,
+                Width = 14,
+                Height = 14,
                 Margin = new Thickness(1),
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
