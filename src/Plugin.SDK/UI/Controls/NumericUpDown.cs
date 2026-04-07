@@ -30,20 +30,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     [TemplatePart(Name = PART_IncreaseButton, Type = typeof(RepeatButton))]
     [TemplatePart(Name = PART_DecreaseButton, Type = typeof(RepeatButton))]
     [TemplatePart(Name = PART_Slider, Type = typeof(Slider))]
-    [TemplatePart(Name = PART_SliderPanel, Type = typeof(Border))]
+    [TemplatePart(Name = PART_SliderPopup, Type = typeof(Popup))]
     public class NumericUpDown : Control
     {
         private const string PART_TextBox = "PART_TextBox";
         private const string PART_IncreaseButton = "PART_IncreaseButton";
         private const string PART_DecreaseButton = "PART_DecreaseButton";
         private const string PART_Slider = "PART_Slider";
-        private const string PART_SliderPanel = "PART_SliderPanel";
+        private const string PART_SliderPopup = "PART_SliderPopup";
 
         private TextBox _textBox;
         private RepeatButton _increaseButton;
         private RepeatButton _decreaseButton;
         private Slider _slider;
-        private Border _sliderPanel;
+        private Popup _sliderPopup;
         private bool _isUpdatingText;
         private bool _isSyncingValues; // 防止 Value 和 IntValue 循环更新
 
@@ -95,7 +95,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         public static readonly DependencyProperty ShowSliderProperty =
             DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(NumericUpDown),
-                new PropertyMetadata(true, OnShowSliderChanged));  // 添加属性变化回调
+                new PropertyMetadata(true, OnShowSliderChanged));
 
         #endregion
 
@@ -177,8 +177,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 是否显示滑块（按焦点显示）
         /// </summary>
         /// <remarks>
-        /// - ShowSlider=false（默认）：滑块不显示
-        /// - ShowSlider=true：滑块按焦点显示（获得焦点才显示）
+        /// - ShowSlider=false：滑块功能关闭
+        /// - ShowSlider=true：滑块按焦点显示（获得焦点时自动打开）
         /// </remarks>
         public bool ShowSlider
         {
@@ -202,20 +202,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _textBox.LostFocus -= OnTextBoxLostFocus;
                 _textBox.GotFocus -= OnTextBoxGotFocus;
             }
+            if (_slider != null)
+            {
+                _slider.GotFocus -= OnSliderGotFocus;
+                _slider.LostFocus -= OnSliderLostFocus;
+            }
             if (_increaseButton != null)
                 _increaseButton.Click -= OnIncreaseButtonClick;
             if (_decreaseButton != null)
                 _decreaseButton.Click -= OnDecreaseButtonClick;
-
-            // 取消 IsKeyboardFocusWithinChanged 事件订阅
-            IsKeyboardFocusWithinChanged -= OnKeyboardFocusWithinChanged;
 
             // 获取模板部件 (may be null before template is applied)
             _textBox = GetTemplateChild(PART_TextBox) as TextBox;
             _increaseButton = GetTemplateChild(PART_IncreaseButton) as RepeatButton;
             _decreaseButton = GetTemplateChild(PART_DecreaseButton) as RepeatButton;
             _slider = GetTemplateChild(PART_Slider) as Slider;
-            _sliderPanel = GetTemplateChild(PART_SliderPanel) as Border;
+            _sliderPopup = GetTemplateChild(PART_SliderPopup) as Popup;
+
+            // 诊断日志：检查模板部件是否获取成功
+            VisionLogger.Instance.Log(LogLevel.Info, $"[OnApplyTemplate] 模板部件获取状态: TextBox={_textBox != null}, SliderPopup={_sliderPopup != null}, Slider={_slider != null}", "NumericUpDown");
 
             // 订阅新事件
             if (_textBox != null)
@@ -226,13 +231,47 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _textBox.GotFocus += OnTextBoxGotFocus;
                 UpdateText();
             }
+            if (_slider != null)
+            {
+                _slider.GotFocus += OnSliderGotFocus;
+                _slider.LostFocus += OnSliderLostFocus;
+            }
             if (_increaseButton != null)
                 _increaseButton.Click += OnIncreaseButtonClick;
             if (_decreaseButton != null)
                 _decreaseButton.Click += OnDecreaseButtonClick;
 
-            // 订阅焦点变化事件（统一控制滑块显示）
-            IsKeyboardFocusWithinChanged += OnKeyboardFocusWithinChanged;
+            // 在代码中设置 PlacementTarget，确保绑定成功
+            if (_sliderPopup != null)
+            {
+                // ✅ 关键修改：将PlacementTarget设置为整个控件，而不是TextBox
+                _sliderPopup.PlacementTarget = this;
+                VisionLogger.Instance.Log(LogLevel.Success, 
+                    $"[OnApplyTemplate] PlacementTarget设置成功: NumericUpDown控件", 
+                    "NumericUpDown");
+
+                // 订阅Popup事件，监控打开/关闭
+                _sliderPopup.Opened += (s, e) =>
+                {
+                    var focusedElement = Keyboard.FocusedElement;
+                    VisionLogger.Instance.Log(LogLevel.Success, 
+                        $"[Popup.Opened] Popup已打开 | 当前焦点: {focusedElement?.GetType().Name ?? "null"} | IsKeyboardFocusWithin: {IsKeyboardFocusWithin} | Placement: {_sliderPopup.Placement}", 
+                        "NumericUpDown");
+                };
+                _sliderPopup.Closed += (s, e) =>
+                {
+                    var focusedElement = Keyboard.FocusedElement;
+                    VisionLogger.Instance.Log(LogLevel.Info, 
+                        $"[Popup.Closed] Popup已关闭 | 当前焦点: {focusedElement?.GetType().Name ?? "null"} | IsKeyboardFocusWithin: {IsKeyboardFocusWithin} | StaysOpen: {_sliderPopup.StaysOpen}", 
+                        "NumericUpDown");
+                };
+            }
+            else
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning, 
+                    $"[OnApplyTemplate] PlacementTarget设置失败: SliderPopup={_sliderPopup != null}", 
+                    "NumericUpDown");
+            }
 
             // 初始化滑块状态（参考 RangeInputControl 的实现）
             UpdateSliderState();
@@ -332,17 +371,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private void UpdateSliderState()
         {
             // 检查模板是否已应用
-            if (_sliderPanel == null)
+            if (_sliderPopup == null)
             {
+                VisionLogger.Instance.Log(LogLevel.Warning, "[UpdateSliderState] Popup为null，无法更新状态", "NumericUpDown");
                 return;
             }
 
-            // 使用 IsKeyboardFocusWithin 检测焦点（更可靠，避免事件顺序问题）
-            var hasFocus = IsKeyboardFocusWithin;
-            var shouldShow = ShowSlider && hasFocus;
-
-            // 直接控制滑块面板的显示
-            _sliderPanel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+            // 如果 ShowSlider=false，强制关闭 Popup
+            // 如果 ShowSlider=true，Popup 由焦点事件控制（不在这里干预）
+            if (!ShowSlider)
+            {
+                _sliderPopup.IsOpen = false;
+                VisionLogger.Instance.Log(LogLevel.Info, "[UpdateSliderState] ShowSlider=false，强制关闭Popup", "NumericUpDown");
+            }
         }
 
         private void ParseAndApplyText()
@@ -458,20 +499,87 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void OnTextBoxGotFocus(object sender, RoutedEventArgs e)
         {
-            // 不需要在这里调用 UpdateSliderState()
-            // IsKeyboardFocusWithinChanged 事件会统一处理滑块显示
+            var focusedElement = Keyboard.FocusedElement;
+            VisionLogger.Instance.Log(LogLevel.Info, 
+                $"[OnTextBoxGotFocus] TextBox获得焦点 | 当前焦点元素: {focusedElement?.GetType().Name ?? "null"} | IsKeyboardFocusWithin: {IsKeyboardFocusWithin}", 
+                "NumericUpDown");
+            
+            // TextBox 获得焦点时，直接打开 Popup
+            if (ShowSlider && _sliderPopup != null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info, 
+                    $"[OnTextBoxGotFocus] 准备打开Popup | ShowSlider: {ShowSlider} | Popup.IsOpen: {_sliderPopup.IsOpen} | StaysOpen: {_sliderPopup.StaysOpen}", 
+                    "NumericUpDown");
+                
+                _sliderPopup.IsOpen = true;
+                
+                VisionLogger.Instance.Log(LogLevel.Success, 
+                    $"[OnTextBoxGotFocus] Popup已打开 | IsOpen: {_sliderPopup.IsOpen}", 
+                    "NumericUpDown");
+            }
         }
 
         private void OnTextBoxLostFocus(object sender, RoutedEventArgs e)
         {
-            // 当 TextBox 失去焦点时，解析文本
-            ParseAndApplyText();
+            var focusedElement = Keyboard.FocusedElement;
+            VisionLogger.Instance.Log(LogLevel.Info, 
+                $"[OnTextBoxLostFocus] TextBox失去焦点 | 新焦点元素: {focusedElement?.GetType().Name ?? "null"} | IsKeyboardFocusWithin: {IsKeyboardFocusWithin}", 
+                "NumericUpDown");
+            
+            // 延迟检查（给焦点转移时间）
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var currentFocused = Keyboard.FocusedElement;
+                VisionLogger.Instance.Log(LogLevel.Info, 
+                    $"[OnTextBoxLostFocus-延迟检查] 当前焦点: {currentFocused?.GetType().Name ?? "null"} | IsKeyboardFocusWithin: {IsKeyboardFocusWithin} | Popup.IsOpen: {_sliderPopup?.IsOpen}", 
+                    "NumericUpDown");
+                
+                // 检查焦点是否在控件内部（包括 TextBox 和 Slider）
+                if (IsKeyboardFocusWithin)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info, "[OnTextBoxLostFocus] 焦点仍在控件内部，保持Popup打开", "NumericUpDown");
+                    return;
+                }
+
+                // 焦点已离开控件，直接关闭 Popup
+                if (_sliderPopup != null && _sliderPopup.IsOpen)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Warning, 
+                        $"[OnTextBoxLostFocus] 焦点已离开控件，准备关闭Popup | StaysOpen: {_sliderPopup.StaysOpen}", 
+                        "NumericUpDown");
+                    _sliderPopup.IsOpen = false;
+                    VisionLogger.Instance.Log(LogLevel.Info, "[OnTextBoxLostFocus] Popup已关闭", "NumericUpDown");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
-        private void OnKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void OnSliderGotFocus(object sender, RoutedEventArgs e)
         {
-            // 统一处理焦点变化，控制滑块显示
-            UpdateSliderState();
+            VisionLogger.Instance.Log(LogLevel.Info, $"[OnSliderGotFocus] Slider获得焦点", "NumericUpDown");
+            // Slider 获得焦点，Popup 已经打开，无需操作
+        }
+
+        private void OnSliderLostFocus(object sender, RoutedEventArgs e)
+        {
+            VisionLogger.Instance.Log(LogLevel.Info, $"[OnSliderLostFocus] Slider失去焦点", "NumericUpDown");
+            
+            // 延迟检查
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // 检查焦点是否在控件内部（包括 TextBox 和 Slider）
+                if (IsKeyboardFocusWithin)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info, "[OnSliderLostFocus] 焦点仍在控件内部，保持Popup打开", "NumericUpDown");
+                    return;
+                }
+
+                // 焦点已离开控件，直接关闭 Popup
+                if (_sliderPopup != null && _sliderPopup.IsOpen)
+                {
+                    _sliderPopup.IsOpen = false;
+                    VisionLogger.Instance.Log(LogLevel.Info, "[OnSliderLostFocus] 焦点已离开控件，Popup已关闭", "NumericUpDown");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
         private void OnIncreaseButtonClick(object sender, RoutedEventArgs e)

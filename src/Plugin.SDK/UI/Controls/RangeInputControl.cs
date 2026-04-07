@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using SunEyeVision.Plugin.SDK.Logging;
 
@@ -29,18 +30,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     [TemplatePart(Name = PART_MinNumeric, Type = typeof(NumericUpDown))]
     [TemplatePart(Name = PART_MaxNumeric, Type = typeof(NumericUpDown))]
     [TemplatePart(Name = PART_RangeSlider, Type = typeof(RangeSlider))]
-    [TemplatePart(Name = PART_SliderPanel, Type = typeof(Border))]
+    [TemplatePart(Name = PART_SliderPopup, Type = typeof(Popup))]
     public class RangeInputControl : Control
     {
         private const string PART_MinNumeric = "PART_MinNumeric";
         private const string PART_MaxNumeric = "PART_MaxNumeric";
         private const string PART_RangeSlider = "PART_RangeSlider";
-        private const string PART_SliderPanel = "PART_SliderPanel";
+        private const string PART_SliderPopup = "PART_SliderPopup";
 
         private NumericUpDown _minNumeric;
         private NumericUpDown _maxNumeric;
         private RangeSlider _rangeSlider;
-        private Border _sliderPanel;
+        private Popup _sliderPopup;
         private bool _isUpdating;
 
         static RangeInputControl()
@@ -268,7 +269,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             _minNumeric = GetTemplateChild(PART_MinNumeric) as NumericUpDown;
             _maxNumeric = GetTemplateChild(PART_MaxNumeric) as NumericUpDown;
             _rangeSlider = GetTemplateChild(PART_RangeSlider) as RangeSlider;
-            _sliderPanel = GetTemplateChild(PART_SliderPanel) as Border;
+            _sliderPopup = GetTemplateChild(PART_SliderPopup) as Popup;
+
+            // 诊断日志：检查模板部件是否获取成功
+            PluginLogger.Info($"[OnApplyTemplate] 模板部件获取状态: MinNumeric={_minNumeric != null}, MaxNumeric={_maxNumeric != null}, SliderPopup={_sliderPopup != null}, RangeSlider={_rangeSlider != null}", "RangeInputControl");
 
             // 订阅新事件
             if (_minNumeric != null)
@@ -289,6 +293,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _rangeSlider.MaxValueChanged += OnSliderMaxValueChanged;
             }
 
+            // 在代码中设置 PlacementTarget，确保绑定成功（方案2）
+            if (_sliderPopup != null && _minNumeric != null)
+            {
+                _sliderPopup.PlacementTarget = _minNumeric;
+                PluginLogger.Success($"[OnApplyTemplate] PlacementTarget设置成功: MinNumeric={_minNumeric.GetType().Name}", "RangeInputControl");
+
+                // 订阅Popup事件，监控打开/关闭
+                _sliderPopup.Opened += (s, e) => PluginLogger.Success("[Popup.Opened] Popup已打开", "RangeInputControl");
+                _sliderPopup.Closed += (s, e) => PluginLogger.Info("[Popup.Closed] Popup已关闭", "RangeInputControl");
+            }
+            else
+            {
+                PluginLogger.Warning($"[OnApplyTemplate] PlacementTarget设置失败: SliderPopup={_sliderPopup != null}, MinNumeric={_minNumeric != null}", "RangeInputControl");
+            }
+
             UpdateSliderState();
         }
 
@@ -298,17 +317,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void UpdateSliderState()
         {
-            if (_minNumeric == null || _maxNumeric == null || _sliderPanel == null) return;
+            if (_minNumeric == null || _maxNumeric == null || _sliderPopup == null)
+            {
+                PluginLogger.Warning($"[UpdateSliderState] 模板部件为null: MinNumeric={_minNumeric != null}, MaxNumeric={_maxNumeric != null}, SliderPopup={_sliderPopup != null}", "RangeInputControl");
+                return;
+            }
 
             // 使用 IsKeyboardFocusWithin 检查焦点（更可靠，避免事件顺序问题）
             var hasFocus = _minNumeric.IsKeyboardFocusWithin || _maxNumeric.IsKeyboardFocusWithin;
             var shouldShow = ShowSlider && hasFocus;
 
-            // 直接控制滑块面板的显示
-            _sliderPanel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+            // 诊断日志：详细的状态信息
+            PluginLogger.Info($"[UpdateSliderState] 状态检查: ShowSlider={ShowSlider}, hasFocus={hasFocus}, MinFocus={_minNumeric.IsKeyboardFocusWithin}, MaxFocus={_maxNumeric.IsKeyboardFocusWithin}, shouldShow={shouldShow}, CurrentIsOpen={_sliderPopup.IsOpen}", "RangeInputControl");
 
-            // 记录关键日志：焦点检测
-            PluginLogger.Info($"[UpdateSliderState] 滑块面板显示状态: ShowSlider={ShowSlider}, hasFocus={hasFocus}, Visibility={_sliderPanel.Visibility}", "RangeInputControl");
+            // 直接控制Popup的打开/关闭
+            _sliderPopup.IsOpen = shouldShow;
+
+            // 诊断日志：Popup状态变化结果
+            PluginLogger.Success($"[UpdateSliderState] Popup.IsOpen已设置为: {_sliderPopup.IsOpen}", "RangeInputControl");
         }
 
         private double ClampMinValue(double value)

@@ -55,7 +55,7 @@
       <TabItem Header="运行参数">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
           <StackPanel>
-            <controls:LabeledControl Label="阈值">
+            <controls:LabeledControl Label="阈值" >
               <controls:BindableParameter
                                 x:Name="thresholdParam"
                                 DataType="Int"
@@ -122,7 +122,7 @@
                   <controls:LabeledControl Label="白色像素比例" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
                     <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled, Mode=TwoWay}"/>
                   </controls:LabeledControl>
-                  <controls:LabeledControl Label="白色像素比例 (%):" Margin="0,2,0,0" ContentHorizontalAlignment="Left"
+                  <controls:LabeledControl Label="白色像素比例 (%):"  Margin="0,2,0,0" ContentHorizontalAlignment="Left"
                                            Visibility="{Binding ResultConfig.IsWhitePixelRatioCheckEnabled,
                     Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
@@ -132,6 +132,7 @@
                                             MinValue="{Binding ResultConfig.WhitePixelRatioMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.WhitePixelRatioMax, Mode=TwoWay}"
                                             DecimalPlaces="1"
+                      SmallChange="1"
                       NumericWidth="120"
                       
                                              />
@@ -156,7 +157,7 @@
                   <controls:LabeledControl Label="输出面积判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
                     <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsAreaCheckEnabled, Mode=TwoWay}"/>
                   </controls:LabeledControl>
-                  <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,2,0,0"
+                  <controls:LabeledControl Label="输出面积范围 (px²):" Margin="0,2,0,0" 
                                                             Visibility="{Binding ResultConfig.IsAreaCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit="px²"
@@ -171,7 +172,7 @@
                   <controls:LabeledControl Label="质心X判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
                     <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidXCheckEnabled, Mode=TwoWay}"/>
                   </controls:LabeledControl>
-                  <controls:LabeledControl Label="质心X坐标范围:" Margin="0,2,0,0"
+                  <controls:LabeledControl Label="质心X坐标范围:" Margin="0,2,0,0" 
                                                             Visibility="{Binding ResultConfig.IsCentroidXCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit=""
@@ -186,7 +187,7 @@
                   <controls:LabeledControl Label="质心Y判断" ContentHorizontalAlignment="Left" Margin="0,2,0,0">
                     <controls:ToggleSwitch IsChecked="{Binding ResultConfig.IsCentroidYCheckEnabled, Mode=TwoWay}"/>
                   </controls:LabeledControl>
-                  <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,2,0,0"
+                  <controls:LabeledControl Label="质心Y坐标范围:" Margin="0,2,0,0" 
                                                             Visibility="{Binding ResultConfig.IsCentroidYCheckEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
                     <controls:RangeInputControl
                                             Unit=""

@@ -197,7 +197,7 @@
                     <TextBlock Text="（取色器控件：预设颜色 + HSV 选择器）" FontSize="11" Foreground="#666" Margin="0,0,0,8"/>
 
                     <controls:ColorPicker x:Name="ColorPickerDemo" 
-                                        SelectedColor="0xFFFF0000" Height="287" Width="252"/>
+                                        SelectedColor="0xFFFF0000"/>
 
                     <!-- 显示当前选中颜色 -->
                     <Grid Margin="0,12,0,0">
