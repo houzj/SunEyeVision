@@ -54,19 +54,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         #region 依赖属性
 
         /// <summary>
-        /// 选中的颜色（uint ARGB 格式）
+        /// 选中的颜色
         /// </summary>
         public static readonly DependencyProperty SelectedColorProperty =
-            DependencyProperty.Register(nameof(SelectedColor), typeof(uint), typeof(ColorSelector),
-                new FrameworkPropertyMetadata(0xFFFF0000, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+            DependencyProperty.Register(nameof(SelectedColor), typeof(Color), typeof(ColorSelector),
+                new FrameworkPropertyMetadata(Colors.Red, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     OnSelectedColorChanged));
 
         /// <summary>
-        /// 选中的颜色（uint ARGB 格式）
+        /// 选中的颜色
         /// </summary>
-        public uint SelectedColor
+        public Color SelectedColor
         {
-            get => (uint)GetValue(SelectedColorProperty);
+            get => (Color)GetValue(SelectedColorProperty);
             set => SetValue(SelectedColorProperty, value);
         }
 
@@ -79,12 +79,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public static readonly RoutedEvent SelectedColorChangedEvent =
             EventManager.RegisterRoutedEvent(nameof(SelectedColorChanged), RoutingStrategy.Bubble,
-                typeof(RoutedPropertyChangedEventHandler<uint>), typeof(ColorSelector));
+                typeof(RoutedPropertyChangedEventHandler<Color>), typeof(ColorSelector));
 
         /// <summary>
         /// 颜色变更事件
         /// </summary>
-        public event RoutedPropertyChangedEventHandler<uint> SelectedColorChanged
+        public event RoutedPropertyChangedEventHandler<Color> SelectedColorChanged
         {
             add => AddHandler(SelectedColorChangedEvent, value);
             remove => RemoveHandler(SelectedColorChangedEvent, value);
@@ -158,7 +158,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
-        private void OnColorPickerSelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<uint> e)
+        private void OnColorPickerSelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<Color> e)
         {
             SelectedColor = e.NewValue;
         }
@@ -175,23 +175,29 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
-        private void OnSelectedColorChanged(uint oldValue, uint newValue)
+        private void OnSelectedColorChanged(Color oldValue, Color newValue)
         {
+            // 同步到 ColorPicker（防止初始化时序冲突）
+            if (_colorPicker != null && _colorPicker.SelectedColor != newValue)
+            {
+                _colorPicker.SelectedColor = newValue;
+            }
+
             UpdateVisualState();
 
-            var args = new RoutedPropertyChangedEventArgs<uint>(oldValue, newValue, SelectedColorChangedEvent);
+            var args = new RoutedPropertyChangedEventArgs<Color>(oldValue, newValue, SelectedColorChangedEvent);
             RaiseEvent(args);
         }
 
         private static void OnSelectedColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (ColorSelector)d;
-            control.OnSelectedColorChanged((uint)e.OldValue, (uint)e.NewValue);
+            control.OnSelectedColorChanged((Color)e.OldValue, (Color)e.NewValue);
         }
 
         private void UpdateVisualState()
         {
-            var color = UIntToColor(SelectedColor);
+            var color = SelectedColor;
 
             if (_colorPreview != null)
             {
@@ -203,18 +209,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 _rgbText.Text = $"{color.R}, {color.G}, {color.B}";
             }
         }
-
-        #region 辅助方法
-
-        private static Color UIntToColor(uint argb)
-        {
-            byte a = (byte)((argb >> 24) & 0xFF);
-            byte r = (byte)((argb >> 16) & 0xFF);
-            byte g = (byte)((argb >> 8) & 0xFF);
-            byte b = (byte)(argb & 0xFF);
-            return Color.FromArgb(a, r, g, b);
-        }
-
-        #endregion
     }
 }

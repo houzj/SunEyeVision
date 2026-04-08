@@ -1,0 +1,33 @@
+{
+  "name": "camera-tool-dev",
+  "leadAgentId": "258e0bd64bdb4631ac7e363e009c97f0",
+  "workspacePath": "d:/MyWork/SunEyeVision_Dev",
+  "createdAt": "2026-04-08T00:34:38.296Z",
+  "options": {
+    "workspacePath": "d:/MyWork/SunEyeVision_Dev",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@camera-tool-dev",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user",
+      "workspacePath": "d:/MyWork/SunEyeVision_Dev"
+    },
+    {
+      "memberId": "camera-developer@camera-tool-dev",
+      "name": "camera-developer",
+      "role": "相机管理器开发",
+      "workspacePath": "d:/MyWork/SunEyeVision_Dev-camera",
+      "branch": "feature/camera-type-support"
+    },
+    {
+      "memberId": "tool-developer@camera-tool-dev",
+      "name": "tool-developer",
+      "role": "工具插件优化",
+      "workspacePath": "d:/MyWork/SunEyeVision_Dev-tool",
+      "branch": "feature/tool-improvement"
+    }
+  ],
+  "isAutoTeam": false
+}

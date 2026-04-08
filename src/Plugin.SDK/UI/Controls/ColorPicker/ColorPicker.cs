@@ -68,36 +68,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         #region 依赖属性
 
         /// <summary>
-        /// 选中的颜色（uint ARGB 格式）
+        /// 选中的颜色
         /// </summary>
         public static readonly DependencyProperty SelectedColorProperty =
-            DependencyProperty.Register(nameof(SelectedColor), typeof(uint), typeof(ColorPicker),
-                new FrameworkPropertyMetadata(0xFFFF0000, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+            DependencyProperty.Register(nameof(SelectedColor), typeof(Color), typeof(ColorPicker),
+                new FrameworkPropertyMetadata(Colors.Red, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     OnSelectedColorChanged));
 
         /// <summary>
-        /// 选中的颜色（uint ARGB 格式）
+        /// 选中的颜色
         /// </summary>
-        public uint SelectedColor
+        public Color SelectedColor
         {
-            get => (uint)GetValue(SelectedColorProperty);
+            get => (Color)GetValue(SelectedColorProperty);
             set => SetValue(SelectedColorProperty, value);
-        }
-
-        /// <summary>
-        /// 默认颜色（uint ARGB 格式）
-        /// </summary>
-        public static readonly DependencyProperty DefaultColorProperty =
-            DependencyProperty.Register(nameof(DefaultColor), typeof(uint), typeof(ColorPicker),
-                new FrameworkPropertyMetadata(0xFFFF0000, OnDefaultColorChanged));
-
-        /// <summary>
-        /// 默认颜色（uint ARGB 格式）
-        /// </summary>
-        public uint DefaultColor
-        {
-            get => (uint)GetValue(DefaultColorProperty);
-            set => SetValue(DefaultColorProperty, value);
         }
 
         #endregion
@@ -109,12 +93,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public static readonly RoutedEvent SelectedColorChangedEvent =
             EventManager.RegisterRoutedEvent(nameof(SelectedColorChanged), RoutingStrategy.Bubble,
-                typeof(RoutedPropertyChangedEventHandler<uint>), typeof(ColorPicker));
+                typeof(RoutedPropertyChangedEventHandler<Color>), typeof(ColorPicker));
 
         /// <summary>
         /// 颜色变更事件
         /// </summary>
-        public event RoutedPropertyChangedEventHandler<uint> SelectedColorChanged
+        public event RoutedPropertyChangedEventHandler<Color> SelectedColorChanged
         {
             add => AddHandler(SelectedColorChangedEvent, value);
             remove => RemoveHandler(SelectedColorChangedEvent, value);
@@ -197,7 +181,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (e.Parameter is Color color)
             {
-                SelectedColor = ThemeColorPalette.ColorToUInt(color);
+                SelectedColor = color;
             }
         }
 
@@ -205,37 +189,27 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (e.Parameter is Color color)
             {
-                SelectedColor = ThemeColorPalette.ColorToUInt(color);
+                SelectedColor = color;
             }
         }
 
-        private void OnSelectedColorChanged(uint oldValue, uint newValue)
+        private void OnSelectedColorChanged(Color oldValue, Color newValue)
         {
             UpdateVisualState();
 
-            var args = new RoutedPropertyChangedEventArgs<uint>(oldValue, newValue, SelectedColorChangedEvent);
+            var args = new RoutedPropertyChangedEventArgs<Color>(oldValue, newValue, SelectedColorChangedEvent);
             RaiseEvent(args);
         }
 
         private static void OnSelectedColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (ColorPicker)d;
-            control.OnSelectedColorChanged((uint)e.OldValue, (uint)e.NewValue);
-        }
-
-        private static void OnDefaultColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            var control = (ColorPicker)d;
-            // 如果当前选中的颜色是初始值（白色或0），使用默认颜色
-            if (control.SelectedColor == 0xFFFFFFFF || control.SelectedColor == 0)
-            {
-                control.SelectedColor = (uint)e.NewValue;
-            }
+            control.OnSelectedColorChanged((Color)e.OldValue, (Color)e.NewValue);
         }
 
         private void UpdateVisualState()
         {
-            var color = UIntToColor(SelectedColor);
+            var color = SelectedColor;
 
             if (_colorPreview != null)
             {
@@ -301,7 +275,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             double v = _valueSlider?.Value ?? 1.0;
 
             var hsv = new HsvColor(h, s, v);
-            SelectedColor = hsv.ToUInt();
+            SelectedColor = hsv.ToColor();
 
             UpdateSelectorPosition(h, s);
         }
@@ -329,29 +303,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_hsvCanvas == null || _valueSlider == null)
                 return;
 
-            var currentColor = UIntToColor(SelectedColor);
+            var currentColor = SelectedColor;
             var hsv = HsvColor.FromColor(currentColor);
             hsv.V = _valueSlider.Value;
 
-            SelectedColor = hsv.ToUInt();
-        }
-
-        #endregion
-
-        #region 辅助方法
-
-        private static Color UIntToColor(uint argb)
-        {
-            byte a = (byte)((argb >> 24) & 0xFF);
-            byte r = (byte)((argb >> 16) & 0xFF);
-            byte g = (byte)((argb >> 8) & 0xFF);
-            byte b = (byte)(argb & 0xFF);
-            return Color.FromArgb(a, r, g, b);
-        }
-
-        private static uint ColorToUInt(Color color)
-        {
-            return (uint)((color.A << 24) | (color.R << 16) | (color.G << 8) | color.B);
+            SelectedColor = hsv.ToColor();
         }
 
         #endregion
@@ -442,7 +398,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (sender is Button button && button.Tag is Color color)
             {
-                SelectedColor = ThemeColorPalette.ColorToUInt(color);
+                SelectedColor = color;
             }
         }
 

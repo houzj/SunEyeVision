@@ -79,19 +79,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
-        /// 从uint ARGB值转换为HSV
-        /// </summary>
-        public static HsvColor FromUInt(uint argb)
-        {
-            byte a = (byte)((argb >> 24) & 0xFF);
-            byte r = (byte)((argb >> 16) & 0xFF);
-            byte g = (byte)((argb >> 8) & 0xFF);
-            byte b = (byte)(argb & 0xFF);
-
-            return FromColor(Color.FromArgb(a, r, g, b));
-        }
-
-        /// <summary>
         /// 转换为WPF Color
         /// </summary>
         public Color ToColor()
@@ -144,15 +131,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             byte b = (byte)Math.Round((b1 + m) * 255);
 
             return Color.FromRgb(r, g, b);
-        }
-
-        /// <summary>
-        /// 转换为uint ARGB值
-        /// </summary>
-        public uint ToUInt()
-        {
-            var color = ToColor();
-            return (uint)((0xFF << 24) | (color.R << 16) | (color.G << 8) | color.B);
         }
 
         /// <summary>

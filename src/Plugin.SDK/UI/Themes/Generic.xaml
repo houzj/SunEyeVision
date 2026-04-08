@@ -1127,4 +1127,128 @@
         </Setter>
     </Style>
 
+    <!-- DispItemColorControl 样式 -->
+    <Style TargetType="{x:Type controls:DispItemColorControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:DispItemColorControl}">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- 小眼睛按钮（可见性控制） -->
+                        <Button x:Name="PART_VisibilityButton"
+                                Width="28" Height="28"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                ToolTip="切换显示/隐藏"
+                                Margin="0,0,4,0">
+                            <!-- Content 将由 DataTrigger 设置，不在此处定义 -->
+                        </Button>
+
+                        <!-- 画笔按钮（样式设置） -->
+                        <Button x:Name="PART_StyleSettingsButton"
+                                Width="28" Height="28"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                ToolTip="样式设置"
+                                Margin="0">
+                            <TextBlock Text="🖌️" 
+                                       FontSize="14"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+                        </Button>
+
+                        <!-- 样式设置Popup -->
+                        <Popup x:Name="PART_StyleSettingsPopup"
+                               PlacementTarget="{Binding ElementName=PART_StyleSettingsButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               AllowsTransparency="True">
+                            <Border Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="16"
+                                    Margin="0,2,0,0"
+                                    Width="260">
+                                <StackPanel>
+                                    <!-- OK颜色 -->
+                                    <TextBlock Text="OK颜色"
+                                               Style="{StaticResource LabelStyle}"
+                                               Margin="0,0,0,6"/>
+                                    <controls:ColorSelector 
+                                        Width="228"
+                                        Height="28"
+                                        SelectedColor="{Binding Config.OkColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                        Margin="0,0,0,12"/>
+
+                                    <!-- NG颜色 -->
+                                    <TextBlock Text="NG颜色"
+                                               Style="{StaticResource LabelStyle}"
+                                               Margin="0,0,0,6"/>
+                                    <controls:ColorSelector 
+                                        Width="228"
+                                        Height="28"
+                                        SelectedColor="{Binding Config.NgColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                        Margin="0,0,0,12"/>
+
+                                    <!-- 透明度 -->
+                                    <TextBlock Text="透明度"
+                                               Style="{StaticResource LabelStyle}"
+                                               Margin="0,0,0,6"/>
+                                    <controls:NumericUpDown 
+                                        Width="228"
+                                        Value="{Binding Config.Opacity, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                        Minimum="0"
+                                        Maximum="1"
+                                        DecimalPlaces="2"
+                                        ShowSlider="True"
+                                        Margin="0,0,0,12"/>
+
+                                    <!-- 线条粗细 -->
+                                    <TextBlock Text="线条粗细"
+                                               Style="{StaticResource LabelStyle}"
+                                               Margin="0,0,0,6"/>
+                                    <controls:NumericUpDown 
+                                        Width="228"
+                                        Value="{Binding Config.Thickness, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                        Minimum="0.5"
+                                        Maximum="10"
+                                        DecimalPlaces="1"
+                                        ShowSlider="True"
+                                        Margin="0,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </StackPanel>
+
+                    <ControlTemplate.Triggers>
+                        <!-- 根据IsVisible状态切换眼睛图标 -->
+                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                            <Setter TargetName="PART_VisibilityButton" Property="Content">
+                                <Setter.Value>
+                                    <TextBlock Text="👁️" 
+                                               FontSize="14"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"/>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="False">
+                            <Setter TargetName="PART_VisibilityButton" Property="Content">
+                                <Setter.Value>
+                                    <TextBlock Text="👁️‍🗨️" 
+                                               FontSize="14"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               Opacity="0.5"/>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

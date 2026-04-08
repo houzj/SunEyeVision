@@ -210,86 +210,26 @@
                 <StackPanel Margin="16,8">
                   <!-- 输出图像 -->
                   <controls:LabeledControl Label="输出图像" ContentHorizontalAlignment="Right">
-                    <StackPanel Orientation="Horizontal">
-                      <Button Content="👁" 
-                                                    Width="32" 
-                                                    Height="28" 
-                                                    Margin="0,0,4,0"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnToggleOutputImageVisibility"
-                                                    ToolTip="显示/隐藏"/>
-                      <Button Content="✏" 
-                                                    Width="32" 
-                                                    Height="28"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnOpenOutputImageStyle"
-                                                    ToolTip="样式设置"/>
-                    </StackPanel>
+                    <controls:DispItemColorControl 
+                        Config="{Binding DisplayConfig.OutputImage, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- 阈值分界线 -->
                   <controls:LabeledControl Label="阈值分界线" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <StackPanel Orientation="Horizontal">
-                      <Button Content="👁" 
-                                                    Width="32" 
-                                                    Height="28" 
-                                                    Margin="0,0,4,0"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnToggleThresholdLineVisibility"
-                                                    ToolTip="显示/隐藏"/>
-                      <Button Content="✏" 
-                                                    Width="32" 
-                                                    Height="28"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnOpenThresholdLineStyle"
-                                                    ToolTip="样式设置"/>
-                    </StackPanel>
+                    <controls:DispItemColorControl 
+                        Config="{Binding DisplayConfig.ThresholdLine, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- ROI区域 -->
                   <controls:LabeledControl Label="ROI区域" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <StackPanel Orientation="Horizontal">
-                      <Button Content="👁" 
-                                                    Width="32" 
-                                                    Height="28" 
-                                                    Margin="0,0,4,0"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnToggleRegionVisibility"
-                                                    ToolTip="显示/隐藏"/>
-                      <Button Content="✏" 
-                                                    Width="32" 
-                                                    Height="28"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnOpenRegionStyle"
-                                                    ToolTip="样式设置"/>
-                    </StackPanel>
+                    <controls:DispItemColorControl 
+                        Config="{Binding DisplayConfig.Region, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- 直方图 -->
                   <controls:LabeledControl Label="直方图" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <StackPanel Orientation="Horizontal">
-                      <Button Content="👁" 
-                                                    Width="32" 
-                                                    Height="28" 
-                                                    Margin="0,0,4,0"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnToggleHistogramVisibility"
-                                                    ToolTip="显示/隐藏"/>
-                      <Button Content="✏" 
-                                                    Width="32" 
-                                                    Height="28"
-                                                    FontSize="14"
-                                                    Foreground="#999999"
-                                                    Click="OnOpenHistogramStyle"
-                                                    ToolTip="样式设置"/>
-                    </StackPanel>
+                    <controls:DispItemColorControl 
+                        Config="{Binding DisplayConfig.Histogram, Mode=TwoWay}"/>
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>
@@ -329,16 +269,16 @@
 
                   <!-- OK颜色 -->
                   <controls:LabeledControl Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
-                                                             Label="OK颜色"
-                                                             Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay, Converter={StaticResource UIntToColorConverter}}"/>
+                                                            Label="OK颜色"
+                                                            Margin="0,0,0,8">
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- NG颜色 -->
                   <controls:LabeledControl Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
-                                                             Label="NG颜色"
-                                                             Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay, Converter={StaticResource UIntToColorConverter}}"/>
+                                                            Label="NG颜色"
+                                                            Margin="0,0,0,8">
+                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- 字号 -->

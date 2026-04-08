@@ -132,25 +132,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 Color.FromRgb(0, 255, 255),   // 青色
             };
         }
-
-        /// <summary>
-        /// 将 Color 转换为 uint ARGB 格式
-        /// </summary>
-        public static uint ColorToUInt(Color color)
-        {
-            return (uint)((color.A << 24) | (color.R << 16) | (color.G << 8) | color.B);
-        }
-
-        /// <summary>
-        /// 将 uint ARGB 格式转换为 Color
-        /// </summary>
-        public static Color UIntToColor(uint argb)
-        {
-            byte a = (byte)((argb >> 24) & 0xFF);
-            byte r = (byte)((argb >> 16) & 0xFF);
-            byte g = (byte)((argb >> 8) & 0xFF);
-            byte b = (byte)(argb & 0xFF);
-            return Color.FromArgb(a, r, g, b);
-        }
     }
 }
