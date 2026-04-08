@@ -14,11 +14,16 @@
     <converters:ColorToRgbStringConverter x:Key="ColorToRgbStringConverter"/>
     <converters:UIntToBrushConverter x:Key="UIntToBrushConverter"/>
 
+    <!-- 效果定义 -->
+    <DropShadowEffect x:Key="PopupShadowEffect" Color="Black" BlurRadius="6" ShadowDepth="2" Direction="270" Opacity="0.15"/>
+
     <!-- 颜色定义 -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="#1890FF"/>
     <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#40A9FF"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#D9D9D9"/>
     <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="PanelHoverBrush" Color="#F5F5F5"/>
     <SolidColorBrush x:Key="LabelBrush" Color="#333333"/>
     <SolidColorBrush x:Key="LabelSecondaryBrush" Color="#666666"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#FF4D4F"/>
@@ -1099,7 +1104,9 @@
                                         BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"
-                                        Margin="0,2,0,0">
+                                        Margin="0,6,0,0"
+                                        Padding="0"
+                                        Effect="{StaticResource PopupShadowEffect}">
                                     <controls:ColorPicker x:Name="PART_ColorPicker"
                                                           SelectedColor="{Binding SelectedColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
                                 </Border>
@@ -1132,7 +1139,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:DispItemColorControl}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="{Binding ContentHorizontalAlignment, RelativeSource={RelativeSource TemplatedParent}}">
                         <!-- 小眼睛按钮（可见性控制） -->
                         <Button x:Name="PART_VisibilityButton"
                                 Width="28" Height="28"
@@ -1140,8 +1148,15 @@
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 ToolTip="切换显示/隐藏"
-                                Margin="0,0,4,0">
-                            <!-- Content 将由 DataTrigger 设置，不在此处定义 -->
+                                Margin="0,0,4,0"
+                                Tag="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}, FallbackValue=True}">
+                            <Viewbox Width="18" Height="18" Stretch="Uniform">
+                                <Path x:Name="PART_VisibilityIcon"
+                                      Stroke="Black"
+                                      StrokeThickness="1.2"
+                                      Fill="Transparent"
+                                      Data="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13Z"/>
+                            </Viewbox>
                         </Button>
 
                         <!-- 画笔按钮（样式设置） -->
@@ -1177,7 +1192,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:ColorSelector 
-                                        Width="228"
+                                        Width="224"
                                         Height="28"
                                         SelectedColor="{Binding Config.OkColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Margin="0,0,0,12"/>
@@ -1187,7 +1202,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:ColorSelector 
-                                        Width="228"
+                                        Width="224"
                                         Height="28"
                                         SelectedColor="{Binding Config.NgColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Margin="0,0,0,12"/>
@@ -1197,7 +1212,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:NumericUpDown 
-                                        Width="228"
+                                        Width="224"
                                         Value="{Binding Config.Opacity, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Minimum="0"
                                         Maximum="1"
@@ -1210,7 +1225,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:NumericUpDown 
-                                        Width="228"
+                                        Width="224"
                                         Value="{Binding Config.Thickness, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Minimum="0.5"
                                         Maximum="10"
@@ -1224,26 +1239,15 @@
 
                     <ControlTemplate.Triggers>
                         <!-- 根据IsVisible状态切换眼睛图标 -->
-                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
-                            <Setter TargetName="PART_VisibilityButton" Property="Content">
-                                <Setter.Value>
-                                    <TextBlock Text="👁️" 
-                                               FontSize="14"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Center"/>
-                                </Setter.Value>
-                            </Setter>
+                        <DataTrigger Binding="{Binding Tag, ElementName=PART_VisibilityButton}" Value="True">
+                            <Setter TargetName="PART_VisibilityIcon" Property="Data"
+                                    Value="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13Z"/>
+                            <Setter TargetName="PART_VisibilityIcon" Property="Opacity" Value="1.0"/>
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="False">
-                            <Setter TargetName="PART_VisibilityButton" Property="Content">
-                                <Setter.Value>
-                                    <TextBlock Text="👁️‍🗨️" 
-                                               FontSize="14"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Center"
-                                               Opacity="0.5"/>
-                                </Setter.Value>
-                            </Setter>
+                        <DataTrigger Binding="{Binding Tag, ElementName=PART_VisibilityButton}" Value="False">
+                            <Setter TargetName="PART_VisibilityIcon" Property="Data"
+                                    Value="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13ZM3 17L17 3"/>
+                            <Setter TargetName="PART_VisibilityIcon" Property="Opacity" Value="0.5"/>
                         </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -209,27 +209,31 @@
                                       Background="White">
                 <StackPanel Margin="16,8">
                   <!-- 输出图像 -->
-                  <controls:LabeledControl Label="输出图像" ContentHorizontalAlignment="Right">
-                    <controls:DispItemColorControl 
-                        Config="{Binding DisplayConfig.OutputImage, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="输出图像" ContentHorizontalAlignment="Left">
+                    <controls:DispItemColorControl
+                        Config="{Binding DisplayConfig.OutputImage, Mode=TwoWay}"
+                        ContentHorizontalAlignment="Left"/>
                   </controls:LabeledControl>
 
                   <!-- 阈值分界线 -->
-                  <controls:LabeledControl Label="阈值分界线" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <controls:DispItemColorControl 
-                        Config="{Binding DisplayConfig.ThresholdLine, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="阈值分界线" ContentHorizontalAlignment="Left" Margin="0,8,0,0">
+                    <controls:DispItemColorControl
+                        Config="{Binding DisplayConfig.ThresholdLine, Mode=TwoWay}"
+                        ContentHorizontalAlignment="Left"/>
                   </controls:LabeledControl>
 
                   <!-- ROI区域 -->
-                  <controls:LabeledControl Label="ROI区域" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <controls:DispItemColorControl 
-                        Config="{Binding DisplayConfig.Region, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="ROI区域" ContentHorizontalAlignment="Left" Margin="0,8,0,0">
+                    <controls:DispItemColorControl
+                        Config="{Binding DisplayConfig.Region, Mode=TwoWay}"
+                        ContentHorizontalAlignment="Left"/>
                   </controls:LabeledControl>
 
                   <!-- 直方图 -->
-                  <controls:LabeledControl Label="直方图" ContentHorizontalAlignment="Right" Margin="0,8,0,0">
-                    <controls:DispItemColorControl 
-                        Config="{Binding DisplayConfig.Histogram, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="直方图" ContentHorizontalAlignment="Left" Margin="0,8,0,0">
+                    <controls:DispItemColorControl
+                        Config="{Binding DisplayConfig.Histogram, Mode=TwoWay}"
+                        ContentHorizontalAlignment="Left"/>
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>
@@ -240,102 +244,63 @@
                                       BorderBrush="#E0E0E0" 
                                       BorderThickness="1"
                                       Background="White">
-                <Grid Margin="16,12">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="*"/>
-                  </Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                  </Grid.RowDefinitions>
 
-                  <!-- 内容 -->
-                  <TextBlock Grid.Column="0" Grid.Row="0" 
-                                               Text="内容:" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Right"
-                                               Foreground="#333333"
-                                               Margin="0,0,8,8"/>
-                  <TextBox Grid.Column="1" Grid.Row="0"
+
+                <StackPanel Margin="16,8">
+                  <controls:LabeledControl Label="内容" Margin="0,0,0,8">
+                    <TextBox Grid.Column="1" Grid.Row="0" Width="250" 
                                              Text="{Binding TextConfig.Content, Mode=TwoWay}"
-                                             HorizontalAlignment="Stretch"
+                                             HorizontalAlignment="Left"
                                              Height="32"
                                              VerticalContentAlignment="Center"/>
+                  </controls:LabeledControl>
 
                   <!-- OK颜色 -->
-                  <controls:LabeledControl Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
-                                                            Label="OK颜色"
-                                                            Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="OK颜色" Margin="0,0,0,8">
+                    <controls:ColorSelector HorizontalAlignment="Left" Width="250" SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- NG颜色 -->
-                  <controls:LabeledControl Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2"
-                                                            Label="NG颜色"
-                                                            Margin="0,0,0,8">
-                    <controls:ColorSelector SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                  <controls:LabeledControl Label="NG颜色" Margin="0,0,0,8">
+                    <controls:ColorSelector Width="250" HorizontalAlignment="Left" SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="字号" Margin="0,0,0,8">
+                    <controls:NumericUpDown Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
+                                                Minimum="0"
+                                                Maximum="1"
+                                                DecimalPlaces="2"
+                                                HorizontalAlignment="Left"
+                                                Width="250"/>
                   </controls:LabeledControl>
 
-                  <!-- 字号 -->
-                  <TextBlock Grid.Column="0" Grid.Row="3" 
-                                               Text="字号:" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Right"
-                                               Foreground="#333333"
-                                               Margin="0,0,8,8"/>
-                  <controls:NumericUpDown Grid.Column="1" Grid.Row="3" 
-                                                            Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
+                  <controls:LabeledControl Label="透明度" Margin="0,0,0,8">
+                    <controls:NumericUpDown Value="{Binding TextConfig.Opacity, Mode=TwoWay}"
+                                             Minimum="8"
+                                             Maximum="72"
+                                             DecimalPlaces="1"
+                                             HorizontalAlignment="Left"
+                                             Width="250"/>
+                  </controls:LabeledControl>
+
+                  <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
+                    <controls:BindableParameter Grid.Column="1" Grid.Row="3" 
+                                                            Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="120"/>
-
-                  <!-- 透明度 -->
-                  <TextBlock Grid.Column="0" Grid.Row="4" 
-                                               Text="透明度:" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Right"
-                                               Foreground="#333333"
-                                               Margin="0,0,8,8"/>
-                  <controls:NumericUpDown Grid.Column="1" Grid.Row="4"
-                                                            Value="{Binding TextConfig.Opacity, Mode=TwoWay}"
-                                                            Minimum="0"
-                                                            Maximum="1"
-                                                            DecimalPlaces="2"
+                                                            Width="250"/>
+                  </controls:LabeledControl>
+                  <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
+                    <controls:BindableParameter Grid.Column="1" Grid.Row="3" 
+                                                            Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
+                                                            Minimum="8"
+                                                            Maximum="72"
+                                                            DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="120"/>
-
-                  <!-- 位置 -->
-                  <TextBlock Grid.Column="0" Grid.Row="5" 
-                                               Text="位置X:" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Right"
-                                               Foreground="#333333"
-                                               Margin="0,0,8,0"/>
-                  <StackPanel Grid.Column="1" Grid.Row="5" 
-                                                Orientation="Horizontal">
-                    <controls:NumericUpDown Width="80"
-                                                                Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
-                                                                Minimum="0"
-                                                                Maximum="10000"
-                                                                DecimalPlaces="1"/>
-                    <TextBlock Text="Y:" 
-                                                   VerticalAlignment="Center" 
-                                                   Margin="8,0"
-                                                   Foreground="#333333"/>
-                    <controls:NumericUpDown Width="80"
-                                                                Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
-                                                                Minimum="0"
-                                                                Maximum="10000"
-                                                                DecimalPlaces="1"/>
-                  </StackPanel>
-                </Grid>
+                                                            Width="250"/>
+                  </controls:LabeledControl>
+                </StackPanel>
               </Expander>
             </StackPanel>
           </ScrollViewer>

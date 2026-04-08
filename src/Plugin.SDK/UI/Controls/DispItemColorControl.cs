@@ -11,18 +11,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// </summary>
     /// <remarks>
     /// 用于配置显示项的可见性和样式。
-    /// 
+    ///
     /// 功能：
     /// - 小眼睛图标：控制显示/隐藏状态
     /// - 画笔图标：点击弹出样式设置对话框
     /// - 样式设置：OK颜色、NG颜色、透明度、粗细
     /// - 双向数据绑定，实时生效
-    /// 
+    /// - 支持内容水平对齐设置（Left、Center、Right）
+    ///
     /// 使用示例：
     /// <code>
-    /// &lt;controls:LabeledControl Label="输出图像" ContentHorizontalAlignment="Right"&gt;
-    ///   &lt;controls:DispItemColorControl 
-    ///       Config="{Binding DisplayConfig.OutputImage, Mode=TwoWay}"/&gt;
+    /// &lt;controls:LabeledControl Label="输出图像"&gt;
+    ///   &lt;controls:DispItemColorControl
+    ///       Config="{Binding DisplayConfig.OutputImage, Mode=TwoWay}"
+    ///       ContentHorizontalAlignment="Left"/&gt;
     /// &lt;/controls:LabeledControl&gt;
     /// </code>
     /// </remarks>
@@ -91,6 +93,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var newConfig = (DisplayItemConfig?)e.NewValue;
 
             PluginLogger.Info($"ConfigChanged - Old: {oldConfig?.Name}, New: {newConfig?.Name}", "DispItemColorControl");
+        }
+
+        #endregion
+
+        #region ContentHorizontalAlignment - 内容水平对齐
+
+        /// <summary>
+        /// 内容水平对齐方式
+        /// </summary>
+        public static readonly DependencyProperty ContentHorizontalAlignmentProperty =
+            DependencyProperty.Register(
+                nameof(ContentHorizontalAlignment),
+                typeof(HorizontalAlignment),
+                typeof(DispItemColorControl),
+                new FrameworkPropertyMetadata(
+                    HorizontalAlignment.Right,
+                    FrameworkPropertyMetadataOptions.AffectsArrange));
+
+        public HorizontalAlignment ContentHorizontalAlignment
+        {
+            get => (HorizontalAlignment)GetValue(ContentHorizontalAlignmentProperty);
+            set => SetValue(ContentHorizontalAlignmentProperty, value);
         }
 
         #endregion
