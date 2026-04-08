@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,46 +8,66 @@ using SunEyeVision.Plugin.SDK.Execution.Results;
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
     /// <summary>
-    /// 数据源查询服务实现
+    /// 鏁版嵁婧愭煡璇㈡湇鍔″疄鐜?
     /// </summary>
     /// <remarks>
-    /// 提供查询父节点及其输出属性的能力。
+    /// 鎻愪緵鏌ヨ鐖惰妭鐐瑰強鍏惰緭鍑哄睘鎬х殑鑳藉姏銆?
     /// 
-    /// 核心功能：
-    /// 1. 基于工作流连接关系查找父节点
-    /// 2. 从执行结果缓存提取输出属性
-    /// 3. 支持类型过滤
-    /// 4. 线程安全的结果缓存
+    /// 鏍稿績鍔熻兘锛?
+    /// 1. 鍩轰簬宸ヤ綔娴佽繛鎺ュ叧绯绘煡鎵剧埗鑺傜偣
+    /// 2. 浠庢墽琛岀粨鏋滅紦瀛樻彁鍙栬緭鍑哄睘鎬?
+    /// 3. 鏀寔绫诲瀷杩囨护
+    /// 4. 绾跨▼瀹夊叏鐨勭粨鏋滅紦瀛?
     /// </remarks>
     public class DataSourceQueryService : IDataSourceQueryService
     {
         /// <summary>
-        /// 节点结果缓存
+        /// 鑺傜偣缁撴灉缂撳瓨
         /// </summary>
         private readonly ConcurrentDictionary<string, ToolResults> _nodeResults = new ConcurrentDictionary<string, ToolResults>();
 
+
         /// <summary>
-        /// 工作流连接提供者（外部注入）
+        /// 宸ヤ綔娴佽繛鎺ユ彁渚涜€咃紙澶栭儴娉ㄥ叆锛?
         /// </summary>
         private readonly IWorkflowConnectionProvider? _connectionProvider;
 
         /// <summary>
-        /// 节点信息提供者（外部注入）
+        /// 鑺傜偣淇℃伅鎻愪緵鑰咃紙澶栭儴娉ㄥ叆锛?
         /// </summary>
         private readonly INodeInfoProvider? _nodeInfoProvider;
 
         /// <summary>
-        /// 创建数据源查询服务
+        /// 杈撳嚭鍙樻洿璁㈤槄瀛楀吀
+        /// </summary>
+        private readonly ConcurrentDictionary<string, List<Action<object?>>> _outputSubscriptions = new ConcurrentDictionary<string, List<Action<object?>>>();
+
+        /// <summary>
+        /// 褰撳墠鑺傜偣ID
+        /// </summary>
+        private string? _currentNodeId;
+
+        /// <summary>
+        /// 褰撳墠鑺傜偣ID
+        /// </summary>
+        public string? CurrentNodeId
+        {
+            get => _currentNodeId;
+            set => _currentNodeId = value;
+        }
+
+        /// <summary>
+        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔?
         /// </summary>
         public DataSourceQueryService()
         {
         }
 
         /// <summary>
-        /// 创建数据源查询服务（带依赖注入）
+        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔★紙甯︿緷璧栨敞鍏ワ級
         /// </summary>
-        /// <param name="connectionProvider">工作流连接提供者</param>
-        /// <param name="nodeInfoProvider">节点信息提供者</param>
+        /// <param name="connectionProvider">宸ヤ綔娴佽繛鎺ユ彁渚涜€?/param>
+        /// <param name="nodeInfoProvider">鑺傜偣淇℃伅鎻愪緵鑰?/param>
         public DataSourceQueryService(
             IWorkflowConnectionProvider? connectionProvider,
             INodeInfoProvider? nodeInfoProvider = null)
@@ -63,11 +83,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (_connectionProvider == null)
             {
-                // 如果没有连接提供者，返回空列表
+                // 濡傛灉娌℃湁杩炴帴鎻愪緵鑰咃紝杩斿洖绌哄垪琛?
                 return parentNodes;
             }
 
-            // 获取父节点ID列表
+            // 鑾峰彇鐖惰妭鐐笽D鍒楄〃
             var parentNodeIds = _connectionProvider.GetParentNodeIds(nodeId);
             int order = 0;
 
@@ -90,7 +110,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             {
                 var properties = parent.OutputProperties;
 
-                // 类型过滤
+                // 绫诲瀷杩囨护
                 if (targetType != null)
                 {
                     properties = parent.GetCompatibleProperties(targetType);
@@ -107,25 +127,25 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             var properties = new List<AvailableDataSource>();
 
-            // 获取节点结果
+            // 鑾峰彇鑺傜偣缁撴灉
             var result = GetNodeResult(parentNodeId);
             if (result == null)
             {
-                // 尝试从节点信息提供者获取
+                // 灏濊瘯浠庤妭鐐逛俊鎭彁渚涜€呰幏鍙?
                 if (_nodeInfoProvider != null)
                 {
-                    // 返回空属性列表（节点未执行）
+                    // 杩斿洖绌哄睘鎬у垪琛紙鑺傜偣鏈墽琛岋級
                     return properties;
                 }
 
                 return properties;
             }
 
-            // 获取节点名称和类型
+            // 鑾峰彇鑺傜偣鍚嶇О鍜岀被鍨?
             string nodeName = _nodeInfoProvider?.GetNodeName(parentNodeId) ?? parentNodeId;
             string nodeType = _nodeInfoProvider?.GetNodeType(parentNodeId) ?? "Unknown";
 
-            // 从结果中提取属性
+            // 浠庣粨鏋滀腑鎻愬彇灞炴€?
             var resultItems = result.GetResultItems();
             foreach (var item in resultItems)
             {
@@ -163,13 +183,13 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (result == null)
                 return null;
 
-            // 尝试从结果项获取
+            // 灏濊瘯浠庣粨鏋滈」鑾峰彇
             var resultItems = result.GetResultItems();
             var item = resultItems.FirstOrDefault(i => i.Name == propertyName);
             if (item != null)
                 return item.Value;
 
-            // 尝试通过反射获取属性
+            // 灏濊瘯閫氳繃鍙嶅皠鑾峰彇灞炴€?
             var property = result.GetType().GetProperty(propertyName);
             if (property != null && property.CanRead)
             {
@@ -183,7 +203,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 }
             }
 
-            // 尝试获取嵌套属性（如 Center.X）
+            // 灏濊瘯鑾峰彇宓屽灞炴€э紙濡?Center.X锛?
             if (propertyName.Contains('.'))
             {
                 return GetNestedPropertyValue(result, propertyName);
@@ -202,7 +222,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public void RefreshNodeData(string nodeId)
         {
-            // 清除缓存，下次查询时重新获取
+            // 娓呴櫎缂撳瓨锛屼笅娆℃煡璇㈡椂閲嶆柊鑾峰彇
             _nodeResults.TryRemove(nodeId, out _);
         }
 
@@ -230,8 +250,128 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _nodeResults.Clear();
         }
 
+        /// <inheritdoc/>
+        public bool HasNodeOutput(string nodeId)
+        {
+            var result = GetNodeResult(nodeId);
+            return result != null && result.Status == ExecutionStatus.Success;
+        }
+
+        /// <inheritdoc/>
+        public void UpdateNodeOutput(string nodeId, string portName, object? value)
+        {
+            var result = _nodeResults.GetOrAdd(nodeId, _ => new GenericToolResults { Status = ExecutionStatus.Success });
+
+            // 修复：类型转换为 GenericToolResults 以访问 AddResultItem 方法
+            var genericResult = result as GenericToolResults;
+            if (genericResult != null)
+            {
+                genericResult.AddResultItem(portName, value);
+            }
+        }
+
+
+        /// <inheritdoc/>
+        public void ClearNodeOutput(string nodeId)
+        {
+            _nodeResults.TryRemove(nodeId, out _);
+        }
+
+        /// <inheritdoc/>
+        public object? GetCurrentBindingValue(string nodeId, string portName, string? propertyPath)
+        {
+            var result = GetNodeResult(nodeId);
+            if (result == null)
+                return null;
+
+            // 濡傛灉娌℃湁鎸囧畾灞炴€ц矾寰勶紝杩斿洖鏁翠釜杈撳嚭
+            if (string.IsNullOrEmpty(propertyPath))
+            {
+                var resultItems = result.GetResultItems();
+                var item = resultItems.FirstOrDefault(i => i.Name == portName);
+                return item?.Value;
+            }
+
+            // 鏈夊睘鎬ц矾寰勶紝浣跨敤 GetPropertyValue
+            return GetPropertyValue(nodeId, propertyPath);
+        }
+
+        /// <inheritdoc/>
+        public string GetBindingDisplayPath(string nodeId, string outputName, string? propertyPath)
+        {
+            var nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
+
+            if (string.IsNullOrEmpty(propertyPath))
+                return $"{nodeName}.{outputName}";
+
+            return $"{nodeName}.{outputName}.{propertyPath}";
+        }
+
+        /// <inheritdoc/>
+        public IDisposable SubscribeOutputChanged(string nodeId, string outputName, string? propertyPath, Action<object?> onChanged)
+        {
+            var key = $"{nodeId}:{outputName}:{propertyPath ?? ""}";
+
+            if (!_outputSubscriptions.ContainsKey(key))
+            {
+                _outputSubscriptions[key] = new List<Action<object?>>();
+            }
+
+            _outputSubscriptions[key].Add(onChanged);
+
+            return new SubscriptionToken(() =>
+            {
+                if (_outputSubscriptions.TryGetValue(key, out var subscriptions))
+                {
+                    subscriptions.Remove(onChanged);
+                    if (subscriptions.Count == 0)
+                    {
+                        _outputSubscriptions.TryRemove(key, out _);
+                    }
+                }
+            });
+        }
+
+        /// <inheritdoc/>
+        public void RefreshOutputs()
+        {
+            // 閫氱煡鎵€鏈夎闃呰€?
+            foreach (var kvp in _outputSubscriptions)
+            {
+                var key = kvp.Key;
+                var parts = key.Split(':');
+                if (parts.Length >= 2)
+                {
+                    var nodeId = parts[0];
+                    var outputName = parts[1];
+                    var propertyPath = parts.Length > 2 ? parts[2] : null;
+
+                    var value = GetCurrentBindingValue(nodeId, outputName, propertyPath);
+
+                    foreach (var callback in kvp.Value)
+                    {
+                        try
+                        {
+                            callback(value);
+                        }
+                        catch
+                        {
+                            // 蹇界暐鍥炶皟涓殑寮傚父
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public bool IsNodeRegistered(string nodeId)
+        {
+            return _nodeResults.ContainsKey(nodeId) ||
+                   (_nodeInfoProvider != null && _nodeInfoProvider.NodeExists(nodeId));
+        }
+
         /// <summary>
-        /// 创建父节点信息
+        /// 鍒涘缓鐖惰妭鐐逛俊鎭?
         /// </summary>
         private ParentNodeInfo CreateParentNodeInfo(string nodeId, int order)
         {
@@ -248,7 +388,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 ConnectionOrder = order
             };
 
-            // 获取执行结果
+            // 鑾峰彇鎵ц缁撴灉
             var result = GetNodeResult(nodeId);
             if (result != null)
             {
@@ -256,7 +396,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 nodeInfo.ExecutionTimeMs = result.ExecutionTimeMs;
                 nodeInfo.ErrorMessage = result.ErrorMessage;
 
-                // 提取输出属性
+                // 鎻愬彇杈撳嚭灞炴€?
                 nodeInfo.ExtractOutputProperties(result);
             }
 
@@ -264,7 +404,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 获取嵌套属性值
+        /// 鑾峰彇宓屽灞炴€у€?
         /// </summary>
         private object? GetNestedPropertyValue(object obj, string propertyPath)
         {
@@ -294,73 +434,96 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             return current;
         }
+
+        /// <summary>
+        /// 璁㈤槄浠ょ墝
+        /// </summary>
+        private class SubscriptionToken : IDisposable
+        {
+            private readonly Action _disposeAction;
+            private bool _disposed;
+
+            public SubscriptionToken(Action disposeAction)
+            {
+                _disposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
+            }
+
+            public void Dispose()
+            {
+                if (!_disposed)
+                {
+                    _disposeAction();
+                    _disposed = true;
+                }
+            }
+        }
     }
 
     /// <summary>
-    /// 工作流连接提供者接口
+    /// 宸ヤ綔娴佽繛鎺ユ彁渚涜€呮帴鍙?
     /// </summary>
     /// <remarks>
-    /// 提供工作流节点连接关系查询能力。
-    /// 由工作流引擎或UI层实现。
+    /// 鎻愪緵宸ヤ綔娴佽妭鐐硅繛鎺ュ叧绯绘煡璇㈣兘鍔涖€?
+    /// 鐢卞伐浣滄祦寮曟搸鎴朥I灞傚疄鐜般€?
     /// </remarks>
     public interface IWorkflowConnectionProvider
     {
         /// <summary>
-        /// 获取父节点ID列表
+        /// 鑾峰彇鐖惰妭鐐笽D鍒楄〃
         /// </summary>
-        /// <param name="nodeId">当前节点ID</param>
-        /// <returns>父节点ID列表</returns>
+        /// <param name="nodeId">褰撳墠鑺傜偣ID</param>
+        /// <returns>鐖惰妭鐐笽D鍒楄〃</returns>
         List<string> GetParentNodeIds(string nodeId);
 
         /// <summary>
-        /// 获取子节点ID列表
+        /// 鑾峰彇瀛愯妭鐐笽D鍒楄〃
         /// </summary>
-        /// <param name="nodeId">当前节点ID</param>
-        /// <returns>子节点ID列表</returns>
+        /// <param name="nodeId">褰撳墠鑺傜偣ID</param>
+        /// <returns>瀛愯妭鐐笽D鍒楄〃</returns>
         List<string> GetChildNodeIds(string nodeId);
 
         /// <summary>
-        /// 获取所有节点ID
+        /// 鑾峰彇鎵€鏈夎妭鐐笽D
         /// </summary>
-        /// <returns>所有节点ID列表</returns>
+        /// <returns>鎵€鏈夎妭鐐笽D鍒楄〃</returns>
         List<string> GetAllNodeIds();
     }
 
     /// <summary>
-    /// 节点信息提供者接口
+    /// 鑺傜偣淇℃伅鎻愪緵鑰呮帴鍙?
     /// </summary>
     /// <remarks>
-    /// 提供节点基本信息查询能力。
-    /// 由工作流引擎或UI层实现。
+    /// 鎻愪緵鑺傜偣鍩烘湰淇℃伅鏌ヨ鑳藉姏銆?
+    /// 鐢卞伐浣滄祦寮曟搸鎴朥I灞傚疄鐜般€?
     /// </remarks>
     public interface INodeInfoProvider
     {
         /// <summary>
-        /// 获取节点名称
+        /// 鑾峰彇鑺傜偣鍚嶇О
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>节点名称</returns>
+        /// <param name="nodeId">鑺傜偣ID</param>
+        /// <returns>鑺傜偣鍚嶇О</returns>
         string GetNodeName(string nodeId);
 
         /// <summary>
-        /// 获取节点类型
+        /// 鑾峰彇鑺傜偣绫诲瀷
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>节点类型</returns>
+        /// <param name="nodeId">鑺傜偣ID</param>
+        /// <returns>鑺傜偣绫诲瀷</returns>
         string GetNodeType(string nodeId);
 
         /// <summary>
-        /// 获取节点图标
+        /// 鑾峰彇鑺傜偣鍥炬爣
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>节点图标路径或名称</returns>
+        /// <param name="nodeId">鑺傜偣ID</param>
+        /// <returns>鑺傜偣鍥炬爣璺緞鎴栧悕绉?/returns>
         string? GetNodeIcon(string nodeId);
 
         /// <summary>
-        /// 检查节点是否存在
+        /// 妫€鏌ヨ妭鐐规槸鍚﹀瓨鍦?
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>是否存在</returns>
+        /// <param name="nodeId">鑺傜偣ID</param>
+        /// <returns>鏄惁瀛樺湪</returns>
         bool NodeExists(string nodeId);
     }
 }
