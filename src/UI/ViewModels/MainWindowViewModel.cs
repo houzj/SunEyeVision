@@ -28,6 +28,8 @@ using SunEyeVision.UI.Views.Controls.Panels;
 using SunEyeVision.UI.Views.Windows;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.Plugin.SDK.UI.Controls;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.UI.Converters.Path;
 using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Services.Logging;
@@ -122,7 +124,7 @@ namespace SunEyeVision.UI.ViewModels
         private Window? _openDebugWindow;
 
         // 数据提供者缓存（用于在节点执行完成后更新前置节点输出）
-        private readonly Dictionary<string, Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider> _nodeDataProviders = new();
+        private readonly Dictionary<string, IDataSourceQueryService> _nodeDataProviders = new();
 
         // 属性
         private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
@@ -2578,72 +2580,36 @@ namespace SunEyeVision.UI.ViewModels
                 var selectedTab = WorkflowTabViewModel?.SelectedTab;
                 if (selectedTab == null)
                 {
-                    AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
-                    return;
-                }
+                AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
+                return;
+            }
 
-                // 创建数据提供者
-                var dataProvider = new SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider
-                {
-                    CurrentNodeId = currentNode.Id
-                };
+            // 从工作流执行引擎获取数据查询服务
+            var workflowExecutionEngine = WorkflowTabViewModel?.WorkflowExecutionEngine;
+            if (workflowExecutionEngine == null)
+            {
+                AddLog("⚠️ 无法获取工作流执行引擎");
+                return;
+            }
 
-                // ★ 使用 BFS 递归查找所有上游节点（而不仅仅是直接父节点）
-                // 结果按距离排序：最近的父节点排在前面
-                var allUpstreamNodes = FindAllUpstreamNodes(selectedTab, currentNode.Id);
-                
-                AddLog($"📋 查找到 {allUpstreamNodes.Count} 个上游节点");
+            // 获取数据提供者（从执行引擎）
+            var dataProvider = workflowExecutionEngine.GetDataProvider(currentNode.Id);
+            if (dataProvider == null)
+            {
+                AddLog("⚠️ 无法创建数据提供者");
+                return;
+            }
 
-                // 注册所有上游节点（按距离排序，最近的在前）
-                foreach (var (parentNode, distance) in allUpstreamNodes)
-                {
-                    // 根据节点类型推断输出类型
-                    string outputType = InferNodeOutputType(parentNode);
+            AddLog($"📋 数据提供者已从工作流执行引擎获取（类型: {dataProvider.GetType().Name})");
 
-                    // 注册前驱节点信息
-                    dataProvider.RegisterParentNode(parentNode.Id, parentNode.Name, outputType);
-                    AddLog($"  📌 注册上游节点: {parentNode.Name} (距离: {distance}, 类型: {outputType})");
+            // ★ 设置当前节点引用（用于配置持久化）- 必须在 SetDataProvider 之前调用！
+            // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
+            var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
+            setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
 
-                    // 如果节点有执行结果，注入输出数据
-                    var executionResult = _workflowContext.GetNodeResult(parentNode.Id);
-                    if (executionResult?.ToolResult != null && executionResult.Success)
-                    {
-                        var outputValues = executionResult.ToolResult.GetOutputValues();
-                        if (outputValues != null && outputValues.Count > 0)
-                        {
-                            // 尝试找到图像类型的输出（通常是第一个或名为 OutputImage 的属性）
-                            var imageOutput = outputValues.FirstOrDefault(kv =>
-                                kv.Value is OpenCvSharp.Mat ||
-                                kv.Key.Contains("Image", StringComparison.OrdinalIgnoreCase) ||
-                                kv.Key.Contains("Output", StringComparison.OrdinalIgnoreCase));
-
-                            if (imageOutput.Value != null)
-                            {
-                                dataProvider.UpdateNodeOutput(parentNode.Id, imageOutput.Value);
-                                AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{imageOutput.Key}");
-                            }
-                            else
-                            {
-                                // 使用第一个非空输出
-                                var firstOutput = outputValues.FirstOrDefault(kv => kv.Value != null);
-                                if (firstOutput.Value != null)
-                                {
-                                    dataProvider.UpdateNodeOutput(parentNode.Id, firstOutput.Value);
-                                    AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{firstOutput.Key}");
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ★ 设置当前节点引用（用于配置持久化）- 必须在 SetDataProvider 之前调用！
-                // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
-                var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
-                setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
-
-                // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
-                setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
-                AddLog($"✅ 已注入 {allUpstreamNodes.Count} 个上游节点到调试窗口");
+            // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
+            setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
+            AddLog($"✅ 已注入数据提供者到调试窗口");
 
                 // ★ 设置主窗口 ImageControl 引用（用于区域编辑器绑定）
                 var setMainImageControlMethod = debugWindow.GetType().GetMethod("SetMainImageControl");
@@ -2676,8 +2642,8 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 订阅调试窗口的执行完成事件
         /// </summary>
-        private void SubscribeToolExecutionCompleted(System.Windows.Window debugWindow, Models.WorkflowNode node, 
-            SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider dataProvider)
+        private void SubscribeToolExecutionCompleted(System.Windows.Window debugWindow, Models.WorkflowNode node,
+            IDataSourceQueryService dataProvider)
         {
             var eventInfo = debugWindow.GetType().GetEvent("ToolExecutionCompleted");
             if (eventInfo != null)

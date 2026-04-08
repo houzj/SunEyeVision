@@ -105,6 +105,72 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 清除所有结果缓存
         /// </summary>
         void ClearAllResults();
+
+        /// <summary>
+        /// 获取当前节点ID
+        /// </summary>
+        string? CurrentNodeId { get; set; }
+
+        /// <summary>
+        /// 检查节点是否有输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否有输出</returns>
+        bool HasNodeOutput(string nodeId);
+
+        /// <summary>
+        /// 更新节点输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="portName">端口名称</param>
+        /// <param name="value">输出值</param>
+        void UpdateNodeOutput(string nodeId, string portName, object? value);
+
+        /// <summary>
+        /// 清除节点输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        void ClearNodeOutput(string nodeId);
+
+        /// <summary>
+        /// 获取当前绑定值
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="portName">端口名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <returns>绑定值</returns>
+        object? GetCurrentBindingValue(string nodeId, string portName, string? propertyPath);
+
+        /// <summary>
+        /// 获取绑定显示路径
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="outputName">输出名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <returns>显示路径</returns>
+        string GetBindingDisplayPath(string nodeId, string outputName, string? propertyPath);
+
+        /// <summary>
+        /// 订阅输出变更
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="outputName">输出名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <param name="onChanged">变更回调</param>
+        /// <returns>订阅令牌</returns>
+        IDisposable SubscribeOutputChanged(string nodeId, string outputName, string? propertyPath, Action<object?> onChanged);
+
+        /// <summary>
+        /// 刷新输出
+        /// </summary>
+        void RefreshOutputs();
+
+        /// <summary>
+        /// 检查节点是否已注册
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否已注册</returns>
+        bool IsNodeRegistered(string nodeId);
     }
 
     /// <summary>

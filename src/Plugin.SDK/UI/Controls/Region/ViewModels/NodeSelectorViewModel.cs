@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Input;
 using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 {
@@ -13,7 +14,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// </summary>
     public class NodeSelectorViewModel : ObservableObject, IDisposable
     {
-        private readonly IRegionDataSourceProvider? _dataProvider;
+        private readonly DataSourceQueryService? _dataProvider;
         private string _searchText = string.Empty;
         private NodeOutputInfo? _selectedItem;
         private string? _targetDataType;
@@ -109,7 +110,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public event EventHandler<NodeOutputInfo?>? SelectionConfirmed;
 
-        public NodeSelectorViewModel(IRegionDataSourceProvider? dataProvider = null)
+        public NodeSelectorViewModel(DataSourceQueryService? dataProvider = null)
         {
             _dataProvider = dataProvider;
 
@@ -128,10 +129,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             if (_dataProvider == null) return;
 
             AllNodes.Clear();
-            var nodes = _dataProvider.GetParentNodeOutputs(_targetDataType);
-            foreach (var node in nodes)
+
+            // 获取当前节点ID作为上下文
+            var currentNodeId = _dataProvider.CurrentNodeId ?? "";
+            var targetTypes = string.IsNullOrEmpty(_targetDataType) ? null : Type.GetType(_targetDataType);
+
+            var dataSources = _dataProvider.GetAvailableDataSources(currentNodeId, targetTypes);
+
+            foreach (var dataSource in dataSources)
             {
-                AllNodes.Add(node);
+                var nodeOutput = new NodeOutputInfo
+                {
+                    NodeId = dataSource.SourceNodeId,
+                    NodeName = dataSource.SourceNodeName,
+                    DataType = dataSource.PropertyType.Name,
+                    OutputName = dataSource.PropertyName,
+                    PropertyPath = dataSource.PropertyName,
+                    // DisplayPath 是只读属性，根据 PropertyPath 自动计算
+                    CurrentValue = dataSource.CurrentValue,
+                    IsTypeMatched = true
+                };
+
+                AllNodes.Add(nodeOutput);
             }
 
             ApplyFilter();
@@ -269,3 +288,4 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         }
     }
 }
+

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using SunEyeVision.Plugin.SDK.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 {
@@ -14,7 +15,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// </summary>
     public class ParameterPanelViewModel : ObservableObject, IDisposable
     {
-        private readonly IRegionDataSourceProvider? _dataProvider;
+        private readonly DataSourceQueryService? _dataProvider;
         private ShapeType _currentShapeType;
         private bool _isEditable = true;
         private ParameterBindingItem? _selectedParameter;
@@ -69,7 +70,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public event EventHandler<ParameterBindingChangedEventArgs>? ParameterBindingChanged;
 
-        public ParameterPanelViewModel(IRegionDataSourceProvider? dataProvider = null)
+        public ParameterPanelViewModel(DataSourceQueryService? dataProvider = null)
         {
             _dataProvider = dataProvider;
 

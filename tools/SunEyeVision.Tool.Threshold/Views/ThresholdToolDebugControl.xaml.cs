@@ -7,15 +7,11 @@ using System.Windows.Media;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
-using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
-using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
-using SunEyeVision.Plugin.SDK.Commands;
 using SunEyeVision.Tool.Threshold.Models;
 
 namespace SunEyeVision.Tool.Threshold.Views
@@ -36,9 +32,8 @@ namespace SunEyeVision.Tool.Threshold.Views
     {
         #region 字段
 
-        // 数据提供者
-        private WorkflowDataSourceProvider _dataProvider = null!;
-        private RegionEditorIntegration _regionEditorIntegration = null!;
+        // 数据提供者（直接使用 DataSourceQueryService）
+        private DataSourceQueryService? _dataProvider;
 
         #endregion
 
@@ -81,6 +76,28 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// 可用图像源列表
         /// </summary>
         public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; } = new();
+
+        /// <summary>
+        /// 图像源选择器加载事件
+        /// </summary>
+        private void ImageSourceSelector_Loaded(object sender, RoutedEventArgs e)
+        {
+            PluginLogger.Info("ImageSourceSelector_Loaded 触发", "ThresholdTool");
+            PluginLogger.Info($"AvailableImageSources.Count = {AvailableImageSources.Count}", "ThresholdTool");
+
+            if (AvailableImageSources.Count > 0)
+            {
+                PluginLogger.Info($"可用图像源列表:", "ThresholdTool");
+                foreach (var source in AvailableImageSources)
+                {
+                    PluginLogger.Info($"  - {source.DisplayName} (NodeId: {source.NodeId})", "ThresholdTool");
+                }
+            }
+            else
+            {
+                PluginLogger.Warning("AvailableImageSources 为空，可能的原因: 1) SetDataProvider 未被调用 2) 父节点未注册 3) 父节点无 Mat 输出", "ThresholdTool");
+            }
+        }
 
         #endregion
 
@@ -139,7 +156,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             if (_dataProvider != null)
             {
                 PopulateImageSources(_dataProvider);
-                _regionEditorIntegration?.SetCurrentNodeId(toolId);
             }
         }
 
@@ -169,23 +185,36 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         private void InitializeRegionEditor()
         {
-            _dataProvider = new WorkflowDataSourceProvider();
-
-            if (regionEditor != null)
-            {
-                var regionEditorViewModel = regionEditor.ViewModel;
-                _regionEditorIntegration = new RegionEditorIntegration(regionEditorViewModel);
-            }
+            // RegionEditor 的初始化由外部通过 Initialize 方法完成
+            // 这里不需要做任何操作
         }
 
         #endregion
 
         #region 数据提供者设置
 
-        public void SetDataProvider(WorkflowDataSourceProvider dataProvider)
+        public void SetDataProvider(object dataProvider)
         {
-            _dataProvider = dataProvider;
-            PopulateImageSources(dataProvider);
+            PluginLogger.Info($"SetDataProvider 被调用，dataProvider = {(dataProvider != null ? "非空" : "null")}", "ThresholdTool");
+
+            // 直接接受 DataSourceQueryService
+            if (dataProvider is DataSourceQueryService queryService)
+            {
+                _dataProvider = queryService;
+                PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
+                PopulateImageSources(_dataProvider);
+
+                // 初始化 RegionEditor
+                if (regionEditor != null && regionEditor.ViewModel != null)
+                {
+                    regionEditor.ViewModel.Initialize(_dataProvider);
+                }
+            }
+            else
+            {
+                PluginLogger.Warning($"未知的 dataProvider 类型：{dataProvider?.GetType().Name}", "ThresholdTool");
+                return;
+            }
         }
 
         public void SetCurrentNode(object node)
@@ -212,39 +241,41 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// <summary>
         /// 填充可用图像源列表
         /// </summary>
-        private void PopulateImageSources(WorkflowDataSourceProvider dataProvider)
+        private void PopulateImageSources(DataSourceQueryService dataProvider)
         {
             AvailableImageSources.Clear();
 
-            if (dataProvider == null) return;
+            if (dataProvider == null)
+            {
+                PluginLogger.Warning("PopulateImageSources: dataProvider 为 null，无法获取图像源", "ThresholdTool");
+                return;
+            }
 
-            var nodeOutputs = dataProvider.GetParentNodeOutputs("Mat");
+            PluginLogger.Info("PopulateImageSources: 开始获取父节点输出", "ThresholdTool");
+
+            var nodeOutputs = dataProvider.GetAvailableDataSources(_dataProvider.CurrentNodeId ?? "", typeof(OpenCvSharp.Mat));
+
+            PluginLogger.Info($"PopulateImageSources: 获取到 {nodeOutputs.Count} 个节点输出", "ThresholdTool");
 
             foreach (var nodeOutput in nodeOutputs)
             {
-                if (nodeOutput.DataType == "Mat" ||
-                    nodeOutput.Children.Any(c => c.DataType == "Mat"))
+                PluginLogger.Info($"节点: {nodeOutput.SourceNodeName} (ID: {nodeOutput.SourceNodeId}), 类型: {nodeOutput.PropertyType.Name}", "ThresholdTool");
+
+                if (nodeOutput.PropertyType == typeof(OpenCvSharp.Mat))
                 {
                     var imageSource = new ImageSourceInfo
                     {
-                        NodeId = nodeOutput.NodeId,
-                        NodeName = nodeOutput.NodeName,
-                        OutputPortName = "Output"
+                        NodeId = nodeOutput.SourceNodeId,
+                        NodeName = nodeOutput.SourceNodeName,
+                        OutputPortName = nodeOutput.PropertyName
                     };
 
-                    if (nodeOutput.DataType != "Mat" && nodeOutput.Children.Any())
-                    {
-                        var matChild = nodeOutput.Children.FirstOrDefault(c =>
-                            c.PropertyPath == "OutputImage" && c.DataType == "Mat");
-                        if (matChild != null)
-                        {
-                            imageSource.OutputPortName = matChild.PropertyPath;
-                        }
-                    }
-
                     AvailableImageSources.Add(imageSource);
+                    PluginLogger.Success($"添加图像源: {nodeOutput.SourceNodeName}", "ThresholdTool");
                 }
             }
+
+            PluginLogger.Info($"PopulateImageSources: 完成，共有 {AvailableImageSources.Count} 个可用图像源", "ThresholdTool");
         }
 
         #endregion
@@ -269,14 +300,13 @@ namespace SunEyeVision.Tool.Threshold.Views
             }
 
             // 获取输入图像
-            if (!_dataProvider.HasNodeOutput(SelectedImageSource.NodeId))
+            if (!_dataProvider.HasNodeExecuted(SelectedImageSource.NodeId))
             {
                 throw new InvalidOperationException("图像源节点尚未执行，请先执行前驱节点");
             }
 
-            var imageMat = _dataProvider.GetCurrentBindingValue(
+            var imageMat = _dataProvider.GetPropertyValue(
                 SelectedImageSource.NodeId,
-                "Output",
                 SelectedImageSource.OutputPortName
             ) as Mat;
 
