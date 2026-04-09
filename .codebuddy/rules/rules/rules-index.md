@@ -3,15 +3,11 @@
 ## 📚 规则遵守工具
 
 ### 快速链接
-|- [规则强制执行提示词](rule-enforcement-prompt.md) - AI 助手规则强制执行提示词
-|- [规则检查器](../../docs/rule-checker-usage.md) - 自动化规则检查工具
-|- [规则检查清单](../rules-checklist.md) - 强制执行的检查项列表
-|- [方案设计思维模板](../solution-design-template.md) - 强制执行的思考流程
-|- [使用指南](../README.md) - 工具使用说明
+- [规则检查清单](../rules-checklist.md) - 强制执行的检查项列表
+- [方案设计思维模板](../solution-design-template.md) - 强制执行的思考流程
+- [使用指南](../README.md) - 工具使用说明
 
 ### 何时使用？
-- ✅ AI 助手生成方案前（阅读规则强制执行提示词）
-- ✅ 代码提交前（运行规则检查器）
 - ✅ 设计新的功能方案
 - ✅ 修改现有代码
 - ✅ 重构代码结构
@@ -20,21 +16,19 @@
 - ✅ 修改属性通知逻辑
 
 ### 使用流程
-1. AI 助手：阅读 [规则强制执行提示词](rule-enforcement-prompt.md)
-2. AI 助手：按照 [方案设计思维模板](../solution-design-template.md) 思考
-3. 开发人员：运行 [规则检查器](../../docs/rule-checker-usage.md)
-4. AI 助手：执行自我审查，使用 [规则检查清单](../rules-checklist.md)
-5. 开发人员：提交代码（Git hook 会自动检查）
-6. 提交方案或文档（需要审批）
+1. 阅读 [规则检查清单](../rules-checklist.md)
+2. 按照 [方案设计思维模板](../solution-design-template.md) 思考
+3. 执行自我审查
+4. 提交方案
 
 ---
 
 ## 📊 规则统计
 
-- **总规则数**: 12
-- **Critical**: 5 | **High**: 4 | **Medium**: 2 | **Low**: 1
-- **总是应用**: 9 | **手动应用**: 3
-- **已启用**: 12 | **已禁用**: 0
+- **总规则数**: 11
+- **Critical**: 4 | **High**: 4 | **Medium**: 2 | **Low**: 1
+- **总是应用**: 8 | **手动应用**: 3
+- **已启用**: 11 | **已禁用**: 0
 
 ## 🗂️ 按分类浏览
 
@@ -61,7 +55,6 @@
 | [rule-008](02-development-process/prototype-design-clean-principle.mdc) | 原型设计期代码纯净原则 | 🔴 Critical | ✅ | 2026-03-18 |
 | [rule-009](02-development-process/development-principles.mdc) | 开发原则规范 | 🔴 Critical | ✅ | 2026-03-20 |
 | [rule-010](02-development-process/solution-system-implementation.mdc) | 方案系统实现规范 | 🔴 Critical | ✅ | 2026-03-20 |
-| [rule-011](02-development-process/temp-file-cleanup.mdc) | 临时文件自动清理规则 | 🟠 High | ✅ | 2026-03-20 |
 | [rule-012](02-development-process/parameter-system-constraints.mdc) | 参数系统约束条件 | 🟠 High | ✅ | 2026-03-21 |
 
 **规则概述**:
@@ -71,7 +64,6 @@
 - 原型阶段不考虑向后兼容，保持代码纯净
 - 遵循YAGNI、KISS、按需设计三大开发原则
 - 优先使用JsonPolymorphic，特殊场景允许Dictionary转换层
-- 临时文件自动清理，避免项目文件夹污染
 - 参数系统约束条件：UI层Dictionary存储、工具注册机制、参数绑定系统
 
 ---
@@ -107,18 +99,18 @@
 
 ### 按优先级
 
-#### 🔴 Critical (5条)
+#### 🔴 Critical (4条)
 - [rule-001: 属性更改通知统一规范](01-coding-standards/property-notification.mdc)
 - [rule-008: 原型设计期代码纯净原则](02-development-process/prototype-design-clean-principle.mdc)
 - [rule-009: 开发原则规范](02-development-process/development-principles.mdc)
 - [rule-010: 方案系统实现规范](02-development-process/solution-system-implementation.mdc)
 
-#### 🟠 High (5条)
+#### 🟠 High (4条)
 - [rule-002: 命名规范](01-coding-standards/naming-conventions.mdc)
 - [rule-003: 日志系统使用规范](01-coding-standards/logging-system.mdc)
 - [rule-004: 方案设计要求](02-development-process/solution-design.mdc)
-- [rule-011: 临时文件自动清理规则](02-development-process/temp-file-cleanup.mdc)
 - [rule-012: 参数系统约束条件](02-development-process/parameter-system-constraints.mdc)
+- [rule-005: 实施方案审批流程](04-workflow-guidance/implementation-approval.mdc)
 
 #### 🟡 Medium (2条)
 - [rule-006: 文档管理政策](04-workflow-guidance/documentation-policy.mdc)
@@ -140,7 +132,6 @@
 - rule-008: 原型设计期代码纯净原则
 - rule-009: 开发原则规范
 - rule-010: 方案系统实现规范
-- rule-011: 临时文件自动清理规则
 - rule-012: 参数系统约束条件
 
 #### ❌ 已禁用 (0条)
@@ -151,7 +142,7 @@
 
 ### 按生效模式
 
-#### 总是应用 (9条)
+#### 总是应用 (8条)
 - rule-001: 属性更改通知统一规范
 - rule-002: 命名规范
 - rule-003: 日志系统使用规范
@@ -160,7 +151,6 @@
 - rule-008: 原型设计期代码纯净原则
 - rule-009: 开发原则规范
 - rule-010: 方案系统实现规范
-- rule-011: 临时文件自动清理规则
 - rule-012: 参数系统约束条件
 
 #### 手动应用 (3条)
@@ -172,9 +162,8 @@
 ## 📈 规则执行趋势
 
 ### 代码审查统计
-- 2026-03-24: 新增规则强制执行机制（提示词 + 规则检查器）
 - 2026-03-21: 新增 rule-012 参数系统约束条件
-- 2026-03-20: 规则优化完成，共11条规则（新增rule-011）
+- 2026-03-20: 规则优化完成，共7条规则
 - 2026-03-10: 新增方案设计要求和文档管理政策
 - 2026-03-09: 新增属性更改通知统一规范
 
@@ -188,13 +177,6 @@
 
 ## 🔄 最近更新
 
-### 2026-03-24
-- ✅ 新增规则强制执行机制
-  - 规则强制执行提示词（Rule Enforcement Prompt）
-  - 规则检查器（Rule Checker）- 自动化规则检查工具
-  - Git pre-commit hook 集成
-  - VS Code 任务集成
-
 ### 2026-03-21
 - ✅ 新增规则
   - rule-012: 参数系统约束条件（基于参数序列化优化方案总结）
@@ -203,7 +185,6 @@
 - ✅ 新增规则
   - rule-010: 方案系统实现规范（从"禁止Dictionary转换层"改为"特殊场景允许"）
   - rule-009: 开发原则规范（整合YAGNI、KISS、按需设计三大原则）
-  - rule-011: 临时文件自动清理规则
 - ✅ 修正规则
   - rule-010: 修正规则内容，明确允许和禁止的使用场景
 
@@ -234,14 +215,12 @@
 
 ### 如何使用规则
 
-1. **AI 助手生成方案前**: 阅读规则强制执行提示词，确保方案符合所有规则
-2. **开发前**: 查阅相关规则，了解编码规范和最佳实践
-3. **方案设计**: 参考方案设计要求，确保方案完整性
-4. **代码编写**: 遵循编码规范，使用正确的日志和命名
-5. **代码审查**: 使用规则检查器和检查清单，确保代码质量
-6. **方案实施**: 提交审批请求，获得批准后实施
-7. **文档创建**: 提交文档创建请求，获得批准后创建
-8. **代码提交**: Git hook 会自动运行规则检查器
+1. **开发前**: 查阅相关规则，了解编码规范和最佳实践
+2. **方案设计**: 参考方案设计要求，确保方案完整性
+3. **代码编写**: 遵循编码规范，使用正确的日志和命名
+4. **代码审查**: 使用检查清单，确保代码质量
+5. **方案实施**: 提交审批请求，获得批准后实施
+6. **文档创建**: 提交文档创建请求，获得批准后创建
 
 ### 规则优先级
 
@@ -262,8 +241,6 @@
 
 ## 📚 相关资源
 
-- [规则强制执行提示词](rule-enforcement-prompt.md)
-- [规则检查器使用指南](../../docs/rule-checker-usage.md)
 - [变更日志](CHANGELOG.md)
 - [优先级系统配置](../config/priority-system.yaml)
 - [规则豁免申请模板](../templates/rule-exemption-request.md)
@@ -281,6 +258,6 @@
 
 ---
 
-**最后更新**: 2026-03-24
+**最后更新**: 2026-03-21
 **维护者**: SunEyeVision Team
-**版本**: 3.0
+**版本**: 2.4

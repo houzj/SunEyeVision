@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 
@@ -241,39 +241,96 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     public static class ParentNodeInfoExtensions
     {
         /// <summary>
-        /// 从执行结果提取输出属性
+        /// 从 ResultType 反射提取输出属性
         /// </summary>
-        public static void ExtractOutputProperties(this ParentNodeInfo nodeInfo, ToolResults? result)
+        /// <remarks>
+        /// 统一的设计时和运行时提取逻辑：
+        /// - 设计时: result = null, 只提取属性定义
+        /// - 运行时: result != null, 提取属性定义 + 实际值
+        /// </remarks>
+        public static void ExtractOutputPropertiesFromType(
+            this ParentNodeInfo nodeInfo, 
+            Type? resultType,
+            ToolResults? result)
         {
-            nodeInfo.LastResult = result;
-
-            if (result == null)
-                return;
-
-            nodeInfo.ExecutionStatus = result.Status;
-            nodeInfo.ExecutionTimeMs = result.ExecutionTimeMs;
-            nodeInfo.ErrorMessage = result.ErrorMessage;
-
-            // 提取结果项
-            var resultItems = result.GetResultItems();
-            foreach (var item in resultItems)
+            if (resultType == null)
             {
+                return;
+            }
+
+            // 只处理 ToolResults 的派生类
+            if (!typeof(ToolResults).IsAssignableFrom(resultType))
+            {
+                return;
+            }
+
+            // 通过反射分析 ResultType 的公共属性
+            var properties = resultType.GetProperties(
+                BindingFlags.Public | 
+                BindingFlags.Instance | 
+                BindingFlags.DeclaredOnly);
+
+            foreach (var prop in properties)
+            {
+                // 跳过索引属性
+                if (prop.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                // 跳过继承自 ToolResults 的属性
+                if (prop.DeclaringType != resultType)
+                {
+                    continue;
+                }
+
+                // 跳过特殊的属性
+                if (prop.Name == "Status" || 
+                    prop.Name == "ErrorMessage" || 
+                    prop.Name == "ExecutionTimeMs" ||
+                    prop.Name == "Timestamp" ||
+                    prop.Name == "ToolName" ||
+                    prop.Name == "ToolId")
+                {
+                    continue;
+                }
+
                 var dataSource = new AvailableDataSource
                 {
                     SourceNodeId = nodeInfo.NodeId,
                     SourceNodeName = nodeInfo.NodeName,
                     SourceNodeType = nodeInfo.NodeType,
-                    PropertyName = item.Name,
-                    DisplayName = item.DisplayName ?? item.Name,
-                    PropertyType = item.Value?.GetType() ?? typeof(object),
-                    CurrentValue = item.Value,
-                    Unit = item.Unit,
-                    Description = item.Description,
+                    PropertyName = prop.Name,
+                    DisplayName = GetDisplayName(prop.Name),
+                    PropertyType = prop.PropertyType,
+                    // 关键: 运行时填充实际值，设计时为 null
+                    CurrentValue = result != null ? prop.GetValue(result) : null,
+                    Unit = null,
+                    Description = GetPropertyDescription(prop),
                     GroupName = nodeInfo.NodeName
                 };
 
                 nodeInfo.OutputProperties.Add(dataSource);
             }
+        }
+
+        /// <summary>
+        /// 获取属性显示名称
+        /// </summary>
+        private static string GetDisplayName(string propertyName)
+        {
+            // 将 PascalCase 转换为可读的中文或英文
+            // 示例: OutputImage -> "OutputImage" 或 "输出图像"
+            return propertyName; // TODO: 可以添加本地化支持
+        }
+
+        /// <summary>
+        /// 获取属性描述
+        /// </summary>
+        private static string? GetPropertyDescription(System.Reflection.PropertyInfo prop)
+        {
+            // 可以从特性中读取描述
+            return null;
         }
     }
 }

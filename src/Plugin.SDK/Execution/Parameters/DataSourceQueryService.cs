@@ -3,7 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -25,6 +27,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 鑺傜偣缁撴灉缂撳瓨
         /// </summary>
         private readonly ConcurrentDictionary<string, ToolResults> _nodeResults = new ConcurrentDictionary<string, ToolResults>();
+
+        /// <summary>
+        /// Logger
+        /// </summary>
+        private readonly ILogger? _logger;
 
 
         /// <summary>
@@ -76,49 +83,91 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _nodeInfoProvider = nodeInfoProvider;
         }
 
+        /// <summary>
+        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔★紙甯︿緷璧栨敞鍍ュ強 Logger锛?
+        /// </summary>
+        /// <param name="connectionProvider">宸ヤ綔娴佽繛鎺ユ彁渚涜€?/param>
+        /// <param name="nodeInfoProvider">鑺傜偣淇℃伅鎻愪緵鑰?/param>
+        /// <param name="logger">Logger</param>
+        public DataSourceQueryService(
+            IWorkflowConnectionProvider? connectionProvider,
+            INodeInfoProvider? nodeInfoProvider,
+            ILogger? logger = null)
+        {
+            _connectionProvider = connectionProvider;
+            _nodeInfoProvider = nodeInfoProvider;
+            _logger = logger;
+        }
+
         /// <inheritdoc/>
         public List<ParentNodeInfo> GetParentNodes(string nodeId)
         {
             var parentNodes = new List<ParentNodeInfo>();
 
+            _logger?.LogInfo($"========== GetParentNodes 开始 ==========", "DataSourceQueryService");
+            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
+            _logger?.LogInfo($"_connectionProvider: {(_connectionProvider != null ? "✅ 已注入" : "❌ 为 null")}", "DataSourceQueryService");
+
             if (_connectionProvider == null)
             {
-                // 濡傛灉娌℃湁杩炴帴鎻愪緵鑰咃紝杩斿洖绌哄垪琛?
+                // 如果没有连接提供者，返回空列表
+                _logger?.LogInfo("❌ _connectionProvider 为 null，返回空列表", "DataSourceQueryService");
+                _logger?.LogInfo($"=========================================", "DataSourceQueryService");
                 return parentNodes;
             }
 
-            // 鑾峰彇鐖惰妭鐐笽D鍒楄〃
+            // 获取父节点ID列表
             var parentNodeIds = _connectionProvider.GetParentNodeIds(nodeId);
+            _logger?.LogInfo($"找到 {parentNodeIds.Count} 个父节点: [{string.Join(", ", parentNodeIds)}]", "DataSourceQueryService");
+
             int order = 0;
 
             foreach (var parentNodeId in parentNodeIds)
             {
                 var nodeInfo = CreateParentNodeInfo(parentNodeId, order++);
                 parentNodes.Add(nodeInfo);
+                _logger?.LogInfo($"  添加父节点: {nodeInfo.NodeName} (ID: {nodeInfo.NodeId})", "DataSourceQueryService");
             }
 
+            _logger?.LogInfo($"返回 {parentNodes.Count} 个父节点", "DataSourceQueryService");
+            _logger?.LogInfo($"=========================================", "DataSourceQueryService");
             return parentNodes;
         }
 
         /// <inheritdoc/>
         public List<AvailableDataSource> GetAvailableDataSources(string nodeId, Type? targetType = null)
         {
+            _logger?.LogInfo($"========== GetAvailableDataSources 开始 ==========", "DataSourceQueryService");
+            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
+            _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
+
             var dataSources = new List<AvailableDataSource>();
             var parentNodes = GetParentNodes(nodeId);
+
+            _logger?.LogInfo($"遍历 {parentNodes.Count} 个父节点...", "DataSourceQueryService");
 
             foreach (var parent in parentNodes)
             {
                 var properties = parent.OutputProperties;
+                _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
 
                 // 绫诲瀷杩囨护
                 if (targetType != null)
                 {
                     properties = parent.GetCompatibleProperties(targetType);
+                    _logger?.LogInfo($"    过滤后剩余 {properties.Count} 个兼容属性", "DataSourceQueryService");
                 }
 
                 dataSources.AddRange(properties);
+
+                foreach (var prop in properties)
+                {
+                    _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name})", "DataSourceQueryService");
+                }
             }
 
+            _logger?.LogInfo($"总共返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
+            _logger?.LogInfo($"==================================================", "DataSourceQueryService");
             return dataSources;
         }
 
@@ -371,8 +420,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 鍒涘缓鐖惰妭鐐逛俊鎭?
+        /// 创建父节点信息
         /// </summary>
+        /// <remarks>
+        /// 统一的设计时和运行时提取逻辑：
+        /// - 从工具元数据获取 ResultType
+        /// - 从 ResultType 反射提取输出属性
+        /// - 如果有执行结果，填充实际值和执行状态
+        /// </remarks>
         private ParentNodeInfo CreateParentNodeInfo(string nodeId, int order)
         {
             string nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;

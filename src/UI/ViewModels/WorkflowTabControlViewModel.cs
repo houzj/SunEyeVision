@@ -64,6 +64,25 @@ namespace SunEyeVision.UI.ViewModels
         #region 工作流管理。
 
         /// <summary>
+        /// Set selected tab without triggering SelectionChanged event
+        /// </summary>
+        /// <param name="tab">Tab to select</param>
+        /// <param name="suppressEvent">Whether to suppress SelectionChanged event</param>
+        public void SetSelectedTab(WorkflowTabViewModel? tab, bool suppressEvent = false)
+        {
+            if (suppressEvent)
+            {
+                _selectedTab = tab;
+                OnPropertyChanged(nameof(SelectedTab));
+            }
+            else
+            {
+                SelectedTab = tab;
+            }
+        }
+
+
+        /// <summary>
         /// 创建默认工作流。
         /// </summary>
         private void CreateDefaultWorkflow()
@@ -78,7 +97,8 @@ namespace SunEyeVision.UI.ViewModels
             // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
             defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
-            SelectedTab = defaultWorkflow;
+            // 静默设置 SelectedTab，不触发 SelectionChanged 事件
+            SetSelectedTab(defaultWorkflow, suppressEvent: true);
             _workflowCounter = 1;
             _usedWorkflowNumbers.Add(1);
         }
@@ -116,7 +136,8 @@ namespace SunEyeVision.UI.ViewModels
             // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
             defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
-            SelectedTab = defaultWorkflow;
+            // 静默设置 SelectedTab，不触发 SelectionChanged 事件
+            SetSelectedTab(defaultWorkflow, suppressEvent: true);
             _usedWorkflowNumbers.Add(1);
         }
 

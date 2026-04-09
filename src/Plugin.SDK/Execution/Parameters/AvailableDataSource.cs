@@ -126,6 +126,20 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string? CompatibilityNote { get; set; }
 
         /// <summary>
+        /// 是否为设计时推断
+        /// </summary>
+        /// <remarks>
+        /// 标识此数据源是否通过反射从 ResultType 推断而来，
+        /// 而非从实际执行结果中提取。
+        /// 
+        /// 设计时推断的特点：
+        /// - CurrentValue 为 null（未执行）
+        /// - PropertyType 准确（从类型定义获取）
+        /// - 在 UI 中可能显示为灰色或特殊标记
+        /// </remarks>
+        public bool IsDesignTime { get; set; } = false;
+
+        /// <summary>
         /// 是否有效
         /// </summary>
         public bool IsValid => !string.IsNullOrEmpty(SourceNodeId) && !string.IsNullOrEmpty(PropertyName);

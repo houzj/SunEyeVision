@@ -7,6 +7,7 @@ using System.Text.Json;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Core.Services.Serialization;
 
 namespace SunEyeVision.Workflow
@@ -14,7 +15,7 @@ namespace SunEyeVision.Workflow
     /// <summary>
     /// Workflow Engine
     /// </summary>
-    public class WorkflowEngine
+    public class WorkflowEngine : IWorkflowConnectionProvider, INodeInfoProvider
     {
         /// <summary>
         /// Workflow list
@@ -78,6 +79,45 @@ namespace SunEyeVision.Workflow
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Register workflow (用于外部加载的工作流同步注册)
+        /// </summary>
+        public void RegisterWorkflow(Workflow workflow)
+        {
+            if (workflow == null)
+            {
+                throw new ArgumentNullException(nameof(workflow));
+            }
+
+            if (string.IsNullOrEmpty(workflow.Id))
+            {
+                throw new ArgumentException("Workflow ID cannot be null or empty");
+            }
+
+            if (Workflows.ContainsKey(workflow.Id))
+            {
+                // 工作流已存在，更新它
+                Workflows[workflow.Id] = workflow;
+                Logger.LogInfo($"Updated workflow {workflow.Name} (ID: {workflow.Id})");
+            }
+            else
+            {
+                // 添加新工作流
+                Workflows[workflow.Id] = workflow;
+                Logger.LogInfo($"Registered workflow {workflow.Name} (ID: {workflow.Id})");
+            }
+        }
+
+        /// <summary>
+        /// Clear all workflows (用于重置引擎状态)
+        /// </summary>
+        public void ClearWorkflows()
+        {
+            Workflows.Clear();
+            CurrentWorkflow = null;
+            Logger.LogInfo("All workflows cleared from engine");
         }
 
         /// <summary>
@@ -240,5 +280,89 @@ namespace SunEyeVision.Workflow
                 return false;
             }
         }
+
+        #region IWorkflowConnectionProvider 实现
+
+        /// <inheritdoc/>
+        public List<string> GetParentNodeIds(string nodeId)
+        {
+            Logger.LogInfo($"========== GetParentNodeIds 开始 ==========", "WorkflowEngine");
+            Logger.LogInfo($"查询节点ID: {nodeId}", "WorkflowEngine");
+            Logger.LogInfo($"CurrentWorkflow: {(CurrentWorkflow != null ? $"✅ {CurrentWorkflow.Name}" : "❌ 为 null")}", "WorkflowEngine");
+
+            if (CurrentWorkflow == null)
+            {
+                Logger.LogInfo("❌ CurrentWorkflow 为 null，返回空列表", "WorkflowEngine");
+                Logger.LogInfo($"============================================", "WorkflowEngine");
+                return new List<string>();
+            }
+
+            Logger.LogInfo($"总连接数: {CurrentWorkflow.Connections.Count}", "WorkflowEngine");
+            Logger.LogInfo($"总节点数: {CurrentWorkflow.Nodes.Count}", "WorkflowEngine");
+
+            var parentIds = CurrentWorkflow.Connections
+                .Where(conn => conn.TargetNodeId == nodeId)
+                .Select(conn => conn.SourceNodeId)
+                .ToList();
+
+            Logger.LogInfo($"找到 {parentIds.Count} 个父节点: [{string.Join(", ", parentIds)}]", "WorkflowEngine");
+            Logger.LogInfo($"============================================", "WorkflowEngine");
+            return parentIds;
+        }
+
+        /// <inheritdoc/>
+        public List<string> GetChildNodeIds(string nodeId)
+        {
+            if (CurrentWorkflow == null)
+                return new List<string>();
+
+            return CurrentWorkflow.Connections
+                .Where(conn => conn.SourceNodeId == nodeId)
+                .Select(conn => conn.TargetNodeId)
+                .ToList();
+        }
+
+        /// <inheritdoc/>
+        public List<string> GetAllNodeIds()
+        {
+            return CurrentWorkflow?.Nodes?.Select(n => n.Id).ToList() ?? new List<string>();
+        }
+
+        #endregion
+
+        #region INodeInfoProvider 实现
+
+        /// <inheritdoc/>
+        public string GetNodeName(string nodeId)
+        {
+            var node = CurrentWorkflow?.Nodes?.FirstOrDefault(n => n.Id == nodeId);
+            var nodeName = node?.Name ?? nodeId;
+            Logger.LogInfo($"  GetNodeName({nodeId}) = {nodeName}", "WorkflowEngine");
+            return nodeName;
+        }
+
+        /// <inheritdoc/>
+        public string GetNodeType(string nodeId)
+        {
+            var node = CurrentWorkflow?.Nodes?.FirstOrDefault(n => n.Id == nodeId);
+            var nodeType = node?.ToolType ?? "Unknown";
+            Logger.LogInfo($"  GetNodeType({nodeId}) = {nodeType}", "WorkflowEngine");
+            return nodeType;
+        }
+
+        /// <inheritdoc/>
+        public string? GetNodeIcon(string nodeId)
+        {
+            var node = CurrentWorkflow?.Nodes?.FirstOrDefault(n => n.Id == nodeId);
+            return node?.Icon;
+        }
+
+        /// <inheritdoc/>
+        public bool NodeExists(string nodeId)
+        {
+            return CurrentWorkflow?.Nodes?.Any(n => n.Id == nodeId) ?? false;
+        }
+
+        #endregion
     }
 }

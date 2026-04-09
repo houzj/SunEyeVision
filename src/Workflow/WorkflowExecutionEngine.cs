@@ -95,10 +95,22 @@ namespace SunEyeVision.Workflow
             _currentState = WorkflowExecutionState.Idle;
 
             // 初始化数据源查询服务
+            var connectionProvider = workflowEngine as IWorkflowConnectionProvider;
+            var nodeInfoProvider = workflowEngine as INodeInfoProvider;
+
+            _logger.LogInfo($"========== 初始化数据源查询服务 ==========");
+            _logger.LogInfo($"WorkflowEngine 类型: {workflowEngine.GetType().FullName}");
+            _logger.LogInfo($"connectionProvider: {(connectionProvider != null ? "✅ 已注入" : "❌ 为 null")}");
+            _logger.LogInfo($"nodeInfoProvider: {(nodeInfoProvider != null ? "✅ 已注入" : "❌ 为 null")}");
+
             _dataSourceQueryService = new DataSourceQueryService(
-                workflowEngine as IWorkflowConnectionProvider,
-                workflowEngine as INodeInfoProvider
+                connectionProvider,
+                nodeInfoProvider,
+                _logger
             );
+
+            _logger.LogInfo($"DataSourceQueryService 实例化完成");
+            _logger.LogInfo($"=============================================");
         }
 
         #region 同步执行

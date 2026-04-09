@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -939,6 +939,20 @@ namespace SunEyeVision.UI.ViewModels
                 Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                 Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
             }
+
+            // Fix: Set WorkflowEngine.CurrentWorkflow
+            try
+            {
+                if (_workflowEngine != null && WorkflowTabViewModel?.SelectedTab != null)
+                {
+                    _workflowEngine.SetCurrentWorkflow(WorkflowTabViewModel.SelectedTab.Id);
+                    _logger?.LogInfo($"OnSelectedTabChanged: Current workflow set to {WorkflowTabViewModel.SelectedTab.Name} (ID: {WorkflowTabViewModel.SelectedTab.Id})");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"OnSelectedTabChanged: Failed to set current workflow - {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -1586,6 +1600,11 @@ namespace SunEyeVision.UI.ViewModels
             {
                 tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.Id, tabViewModel.WorkflowNodes);
             }
+
+            // 将工作流注册到 WorkflowEngine.Workflows 字典
+            // 确保节点可以获取父节点数据
+            _workflowEngine.RegisterWorkflow(workflow);
+            LogInfo($"工作流已注册到 WorkflowEngine: {workflow.Name} (ID: {workflow.Id})");
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
@@ -2585,24 +2604,15 @@ namespace SunEyeVision.UI.ViewModels
             }
 
             // 从工作流执行引擎获取数据查询服务
-            var workflowExecutionEngine = WorkflowTabViewModel?.WorkflowExecutionEngine;
-            if (workflowExecutionEngine == null)
-            {
-                AddLog("⚠️ 无法获取工作流执行引擎");
-                return;
-            }
-
-            // 获取数据提供者（从执行引擎）
-            var dataProvider = workflowExecutionEngine.GetDataProvider(currentNode.Id);
+            // Create data query service with logger for debugging
+            var dataProvider = new DataSourceQueryService(_workflowEngine, _workflowEngine, _logger);
             if (dataProvider == null)
             {
-                AddLog("⚠️ 无法创建数据提供者");
+                AddLog("Cannot create data provider");
                 return;
             }
 
-            AddLog($"📋 数据提供者已从工作流执行引擎获取（类型: {dataProvider.GetType().Name})");
-
-            // ★ 设置当前节点引用（用于配置持久化）- 必须在 SetDataProvider 之前调用！
+            AddLog($"Data provider created (type: {dataProvider.GetType().Name})");
             // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
             var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
             setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
@@ -2675,7 +2685,7 @@ namespace SunEyeVision.UI.ViewModels
                                 // 更新数据提供者中的节点输出
                                 if (outputImage != null)
                                 {
-                                    dataProvider.UpdateNodeOutput(node.Id, outputImage);
+                                    dataProvider.UpdateNodeOutput(node.Id, "OutputImage", outputImage);
                                 }
 
                                 // 更新图像显示（内部已存储到 WorkflowContext）
@@ -2962,7 +2972,7 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     try
                     {
-                        kvp.Value.UpdateNodeOutput(node.Id, outputValue);
+kvp.Value.UpdateNodeOutput(node.Id, "OutputValue", outputValue);
                         updatedCount++;
                     }
                     catch (Exception ex)
