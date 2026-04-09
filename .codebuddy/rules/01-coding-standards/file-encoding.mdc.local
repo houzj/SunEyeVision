@@ -1,0 +1,188 @@
+---
+id: rule-013
+title: 文件编码与写入规范
+category: coding-standards
+priority: critical
+alwaysApply: true
+enabled: true
+version: "1.0"
+updatedAt: 2026-04-08T11:47:00.000Z
+author: SunEyeVision Team
+reviewed: true
+lastReviewed: 2026-04-08T11:47:00.000Z
+relatedRules: []
+conflictRules: []
+deprecated: false
+replacedBy: null
+dependsOn: []
+---
+
+# 文件编码与写入规范
+
+## 📋 规则元数据
+- **规则ID**: rule-013
+- **优先级**: 🔴 Critical
+- **适用范围**: 全项目
+- **生效模式**: 总是应用
+- **最后更新**: 2026-04-08
+
+## 🎯 规则概述
+
+在 AI 助手进行文件写入操作时，**必须使用 PowerShell 脚本配合 UTF-8 编码**，确保文件正确写入且不会出现编码问题。禁止使用 `write_to_file` 工具直接写入包含中文或特殊字符的文件。
+
+## 🚫 禁止的操作
+
+```text
+❌ 禁止 - 不要使用 write_to_file 工具直接写入中文内容
+write_to_file(filePath="...", content="包含中文的内容")
+
+❌ 禁止 - 不要使用 echo 命令输出中文
+echo "中文内容" > file.txt
+```
+
+## ✅ 正确的文件写入方式
+
+### 1. 使用 PowerShell 配合 UTF-8 编码
+
+```powershell
+# ✅ 正确 - 使用 PowerShell 脚本配合 UTF-8 编码写入文件
+$content = @"
+文件内容，可以包含中文字符
+支持多行内容
+编码格式为 UTF-8
+"@
+
+[System.IO.File]::WriteAllText("文件路径", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+### 2. 在 AI 助手中使用 execute_command 工具
+
+```text
+✅ 正确 - 通过 execute_command 调用 PowerShell 脚本
+execute_command(
+  command='powershell -Command "[System.IO.File]::WriteAllText(''路径'', @''内容''@, [System.Text.UTF8Encoding]::new($false))"',
+  requires_approval=false
+)
+```
+
+### 3. 完整示例
+
+```powershell
+# 写入包含中文的文件
+$filePath = "d:\MyWork\SunEyeVision_Dev\docs\README.md"
+$content = @"
+# 项目说明
+
+这是一个视觉检测软件项目。
+
+## 功能特点
+- 相机管理
+- 工具插件
+- 工作流设计器
+
+## 开发团队
+SunEyeVision Team
+"@
+
+# 使用 UTF-8 无 BOM 编码写入
+[System.IO.File]::WriteAllText($filePath, $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+## 📝 为什么需要这个规则
+
+### 问题背景
+1. **编码问题**：直接使用 `write_to_file` 工具可能导致中文乱码
+2. **写入失败**：某些特殊字符或大文件可能写入不成功
+3. **编码一致性**：项目需要统一的 UTF-8 编码格式
+
+### 解决方案
+- PowerShell 脚本提供可靠的文件写入能力
+- UTF-8 无 BOM 编码保证跨平台兼容性
+- 显式指定编码避免系统默认编码问题
+
+## 📏 检查清单
+
+在进行文件写入操作时，检查以下内容：
+
+- [ ] 是否包含中文或特殊字符？
+- [ ] 是否使用 PowerShell 脚本？
+- [ ] 是否显式指定 UTF-8 编码？
+- [ ] 是否使用 `[System.IO.File]::WriteAllText()` 方法？
+- [ ] 是否使用 `[System.Text.UTF8Encoding]::new($false)` (无 BOM)？
+
+## 🔄 何时使用此规则
+
+### 必须使用 PowerShell 的场景
+1. ✅ 写入包含中文的文档文件
+2. ✅ 写入包含特殊字符的配置文件
+3. ✅ 写入 Markdown 文档
+4. ✅ 写入代码注释较多的源文件
+5. ✅ 写入 JSON/XML 配置文件
+
+### 可以使用 write_to_file 的场景
+1. ✅ 纯英文代码文件
+2. ✅ 小型配置文件（无特殊字符）
+3. ✅ 临时文件（仅用于调试）
+
+## 📊 对比分析
+
+| 方法 | 编码支持 | 中文支持 | 可靠性 | 推荐度 |
+|------|---------|---------|--------|--------|
+| write_to_file 工具 | ⚠️ 不稳定 | ❌ 可能乱码 | ⚠️ 中等 | ❌ 不推荐 |
+| PowerShell + UTF-8 | ✅ UTF-8 无 BOM | ✅ 完美支持 | ✅ 高 | ✅ 强烈推荐 |
+| echo 命令 | ⚠️ 系统默认 | ❌ 可能乱码 | ❌ 低 | ❌ 禁止 |
+
+## 🛠️ 实用脚本模板
+
+### 单行内容写入
+```powershell
+[System.IO.File]::WriteAllText("路径", "内容", [System.Text.UTF8Encoding]::new($false))
+```
+
+### 多行内容写入
+```powershell
+$content = @"
+第一行
+第二行
+第三行
+"@
+[System.IO.File]::WriteAllText("路径", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+### 追加内容
+```powershell
+[System.IO.File]::AppendAllText("路径", "追加的内容", [System.Text.UTF8Encoding]::new($false))
+```
+
+### 读取并修改
+```powershell
+$content = [System.IO.File]::ReadAllText("路径", [System.Text.UTF8Encoding]::new($false))
+$content = $content -replace "旧内容", "新内容"
+[System.IO.File]::WriteAllText("路径", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+## ⚠️ 注意事项
+
+1. **编码参数**：`[System.Text.UTF8Encoding]::new($false)` 中的 `$false` 表示无 BOM
+2. **路径转义**：路径中的反斜杠需要正确转义或使用单引号
+3. **内容引号**：多行内容使用 `@" "@` here-string 语法
+4. **文件覆盖**：`WriteAllText` 会覆盖现有文件，请先备份
+
+## 🔗 相关规则
+
+- [rule-002: 命名规范](./naming-conventions.mdc)
+- [rule-003: 日志系统使用规范](./logging-system.mdc)
+
+## 🎯 目标
+
+通过规范的文件写入方式，实现：
+1. **编码统一**：所有文件使用 UTF-8 无 BOM 编码
+2. **写入可靠**：避免写入失败和乱码问题
+3. **跨平台兼容**：保证 Windows/Linux/macOS 一致性
+4. **团队协作**：统一开发规范
+
+## 🔄 变更历史
+
+| 日期 | 版本 | 变更内容 | 作者 |
+|------|------|----------|------|
+| 2026-04-08 | 1.0 | 初始版本，基于实际写入问题总结 | Team |

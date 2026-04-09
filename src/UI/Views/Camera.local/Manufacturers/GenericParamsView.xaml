@@ -1,0 +1,145 @@
+<UserControl x:Class="SunEyeVision.UI.Views.Camera.Manufacturers.GenericParamsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:SunEyeVision.UI.Views.Camera.Manufacturers"
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="400">
+
+    <Grid Background="#F9F9F9">
+        <StackPanel Margin="16">
+            <!-- 曝光模式 -->
+            <TextBlock Text="曝光模式"
+                       FontSize="13"
+                       FontWeight="Medium"
+                       Foreground="#333333"
+                       Margin="0,0,0,8"/>
+            <ComboBox Height="32" 
+                      VerticalContentAlignment="Center"
+                      SelectedItem="{Binding ExposureMode, Mode=TwoWay}">
+                <ComboBoxItem Content="自动"/>
+                <ComboBoxItem Content="手动"/>
+            </ComboBox>
+
+            <!-- 曝光时间 -->
+            <TextBlock Text="曝光时间 (us)"
+                       FontSize="13"
+                       FontWeight="Medium"
+                       Foreground="#333333"
+                       Margin="0,8,0,8"/>
+            <Grid Height="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Minimum="1"
+                        Maximum="100000"
+                        Value="{Binding ExposureTimeValue, Mode=TwoWay}"
+                        TickFrequency="1000"
+                        IsSnapToTickEnabled="True"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ExposureTime}"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           Foreground="#666666"/>
+            </Grid>
+
+            <!-- 增益 -->
+            <TextBlock Text="增益 (dB)"
+                       FontSize="13"
+                       FontWeight="Medium"
+                       Foreground="#333333"
+                       Margin="0,8,0,8"/>
+            <Grid Height="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Minimum="0"
+                        Maximum="20"
+                        Value="{Binding GainValue, Mode=TwoWay}"
+                        TickFrequency="2"
+                        IsSnapToTickEnabled="True"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Gain}"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           Foreground="#666666"/>
+            </Grid>
+
+            <!-- 智能功能 -->
+            <TextBlock Text="智能功能"
+                       FontSize="13"
+                       FontWeight="Medium"
+                       Foreground="#333333"
+                       Margin="0,16,0,8"/>
+
+            <!-- 宽动态 -->
+            <CheckBox Content="宽动态 (WDR)"
+                     Margin="0,4,0,0"
+                     IsChecked="{Binding EnableWideDynamic, Mode=TwoWay}"
+                     Foreground="#333333"
+                     FontSize="13"/>
+
+            <!-- 降噪 -->
+            <CheckBox Content="降噪 (2D-NR)"
+                     Margin="0,4,0,0"
+                     IsChecked="{Binding EnableNoiseReduction, Mode=TwoWay}"
+                     Foreground="#333333"
+                     FontSize="13"/>
+
+            <!-- 背光补偿 -->
+            <CheckBox Content="背光补偿 (BLC)"
+                     Margin="0,4,0,0"
+                     IsChecked="{Binding EnableBacklightCompensation, Mode=TwoWay}"
+                     Foreground="#333333"
+                     FontSize="13"/>
+
+            <!-- 视频编码 -->
+            <TextBlock Text="视频编码"
+                       FontSize="13"
+                       FontWeight="Medium"
+                       Foreground="#333333"
+                       Margin="0,16,0,8"/>
+
+            <!-- 编码格式 -->
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="编码格式:"
+                           Width="80"
+                           VerticalAlignment="Center"
+                           Foreground="#333333"
+                           FontSize="13"/>
+                <ComboBox Height="32" 
+                          VerticalContentAlignment="Center"
+                          Width="120"
+                          SelectedItem="{Binding CompressionType, Mode=TwoWay}">
+                    <ComboBoxItem Content="H.264"/>
+                    <ComboBoxItem Content="H.265"/>
+                    <ComboBoxItem Content="MJPEG"/>
+                </ComboBox>
+            </StackPanel>
+
+            <!-- 比特率 -->
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="比特率:"
+                           Width="80"
+                           VerticalAlignment="Center"
+                           Foreground="#333333"
+                           FontSize="13"/>
+                <ComboBox Height="32" 
+                          VerticalContentAlignment="Center"
+                          Width="120"
+                          SelectedItem="{Binding Bitrate, Mode=TwoWay}">
+                    <ComboBoxItem Content="4096 Kbps"/>
+                    <ComboBoxItem Content="8192 Kbps"/>
+                    <ComboBoxItem Content="16384 Kbps"/>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
