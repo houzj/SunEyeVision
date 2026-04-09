@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -264,11 +265,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 return;
             }
 
-            // 通过反射分析 ResultType 的公共属性
+            // 通过反射分析 ResultType 的公共属性（包括继承的属性）
             var properties = resultType.GetProperties(
                 BindingFlags.Public | 
-                BindingFlags.Instance | 
-                BindingFlags.DeclaredOnly);
+                BindingFlags.Instance);
 
             foreach (var prop in properties)
             {
@@ -278,8 +278,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     continue;
                 }
 
-                // 跳过继承自 ToolResults 的属性
-                if (prop.DeclaringType != resultType)
+                // 跳过基类 ToolResults 的属性
+                if (prop.DeclaringType == typeof(ToolResults))
                 {
                     continue;
                 }

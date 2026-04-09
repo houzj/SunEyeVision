@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Logging;
 
@@ -32,6 +31,16 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// Logger
         /// </summary>
         private readonly ILogger? _logger;
+
+        /// <summary>
+        /// 节点信息缓存
+        /// </summary>
+        private readonly ConcurrentDictionary<string, ParentNodeInfo> _nodeInfoCache = new ConcurrentDictionary<string, ParentNodeInfo>();
+
+        /// <summary>
+        /// 节点输出缓存（节点ID -> 属性名 -> 值）
+        /// </summary>
+        private readonly ConcurrentDictionary<string, Dictionary<string, object?>> _nodeOutputs = new ConcurrentDictionary<string, Dictionary<string, object?>>();
 
 
         /// <summary>
@@ -124,7 +133,19 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var parentNodeId in parentNodeIds)
             {
-                var nodeInfo = CreateParentNodeInfo(parentNodeId, order++);
+                // 直接创建父节点信息
+                var nodeInfo = new ParentNodeInfo
+                {
+                    NodeId = parentNodeId,
+                    NodeName = _nodeInfoProvider?.GetNodeName(parentNodeId) ?? parentNodeId,
+                    NodeType = _nodeInfoProvider?.GetNodeType(parentNodeId) ?? "Unknown",
+                    NodeIcon = _nodeInfoProvider?.GetNodeIcon(parentNodeId)
+                };
+
+                // 获取该节点的输出属性
+                var outputProperties = GetNodeOutputProperties(parentNodeId);
+                nodeInfo.OutputProperties = outputProperties;
+
                 parentNodes.Add(nodeInfo);
                 _logger?.LogInfo($"  添加父节点: {nodeInfo.NodeName} (ID: {nodeInfo.NodeId})", "DataSourceQueryService");
             }
@@ -176,286 +197,80 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             var properties = new List<AvailableDataSource>();
 
-            // 鑾峰彇鑺傜偣缁撴灉
-            var result = GetNodeResult(parentNodeId);
-            if (result == null)
+            // 鑾峰彇鑺傜偣鎵ц涓婁笅鏂?
+            var context = GetNodeContext(parentNodeId);
+            if (context == null)
             {
-                // 灏濊瘯浠庤妭鐐逛俊鎭彁渚涜€呰幏鍙?
-                if (_nodeInfoProvider != null)
-                {
-                    // 杩斿洖绌哄睘鎬у垪琛紙鑺傜偣鏈墽琛岋級
-                    return properties;
-                }
-
                 return properties;
             }
 
-            // 鑾峰彇鑺傜偣鍚嶇О鍜岀被鍨?
-            string nodeName = _nodeInfoProvider?.GetNodeName(parentNodeId) ?? parentNodeId;
-            string nodeType = _nodeInfoProvider?.GetNodeType(parentNodeId) ?? "Unknown";
-
-            // 浠庣粨鏋滀腑鎻愬彇灞炴€?
-            var resultItems = result.GetResultItems();
-            foreach (var item in resultItems)
+            // 鍒涘缓鐖惰妭鐐逛俊鎭紙鐢ㄤ簬鎵╁睍鏂规硶锛?
+            var nodeInfo = new ParentNodeInfo
             {
-                var dataSource = new AvailableDataSource
-                {
-                    SourceNodeId = parentNodeId,
-                    SourceNodeName = nodeName,
-                    SourceNodeType = nodeType,
-                    PropertyName = item.Name,
-                    DisplayName = item.DisplayName ?? item.Name,
-                    PropertyType = item.Value?.GetType() ?? typeof(object),
-                    CurrentValue = item.Value,
-                    Unit = item.Unit,
-                    Description = item.Description,
-                    GroupName = nodeName
-                };
+                NodeId = parentNodeId,
+                NodeName = context.NodeName,
+                NodeType = context.NodeType,
+                NodeIcon = context.NodeIcon,
+                ExecutionStatus = context.ExecutionStatus
+            };
 
-                properties.Add(dataSource);
-            }
+            // 缁熶竴鐨勬彁鍙栭€昏緫锛氳璁℃椂鍜岃繍琛屾椂
+            // - 璁捐鏃讹細浠?ResultType 鍙嶅皠鎻愬彇灞炴€у畾涔?
+            // - 杩愯鏃讹細浠?ToolResults 鎻愬彇灞炴€у畾涔?+ 瀹為檯鍊?
+            nodeInfo.ExtractOutputPropertiesFromType(context.ResultType, context.Result);
 
-            return properties;
+            return nodeInfo.OutputProperties;
         }
 
         /// <inheritdoc/>
-        public ToolResults? GetNodeResult(string nodeId)
+        public NodeExecutionContext? GetNodeContext(string nodeId)
+        {
+            if (_nodeInfoProvider == null)
+            {
+                return null;
+            }
+
+            return new NodeExecutionContext
+            {
+                NodeId = nodeId,
+                NodeName = _nodeInfoProvider.GetNodeName(nodeId) ?? nodeId,
+                NodeType = _nodeInfoProvider.GetNodeType(nodeId) ?? "Unknown",
+                NodeIcon = _nodeInfoProvider.GetNodeIcon(nodeId),
+                Result = GetNodeResultFromCache(nodeId),
+                ResultType = _nodeInfoProvider.GetResultType(nodeId)
+            };
+        }
+
+        /// <summary>
+        /// 浠庣紦瀛樿幏鍙栬妭鐐规墽琛岀粨鏋?
+        /// </summary>
+        private ToolResults? GetNodeResultFromCache(string nodeId)
         {
             _nodeResults.TryGetValue(nodeId, out var result);
             return result;
         }
-
         /// <inheritdoc/>
         public object? GetPropertyValue(string nodeId, string propertyName)
         {
-            var result = GetNodeResult(nodeId);
-            if (result == null)
-                return null;
-
-            // 灏濊瘯浠庣粨鏋滈」鑾峰彇
-            var resultItems = result.GetResultItems();
-            var item = resultItems.FirstOrDefault(i => i.Name == propertyName);
-            if (item != null)
-                return item.Value;
-
-            // 灏濊瘯閫氳繃鍙嶅皠鑾峰彇灞炴€?
-            var property = result.GetType().GetProperty(propertyName);
-            if (property != null && property.CanRead)
+            // 浠庤妭鐐硅緭鍑轰腑鑾峰彇灞炴€у€?
+            if (_nodeOutputs.TryGetValue(nodeId, out var outputs))
             {
-                try
+                if (outputs.TryGetValue(propertyName, out var value))
                 {
-                    return property.GetValue(result);
-                }
-                catch
-                {
-                    return null;
+                    return value;
                 }
             }
 
-            // 灏濊瘯鑾峰彇宓屽灞炴€э紙濡?Center.X锛?
-            if (propertyName.Contains('.'))
-            {
-                return GetNestedPropertyValue(result, propertyName);
-            }
-
-            return null;
-        }
-
-        /// <inheritdoc/>
-        public bool HasNodeExecuted(string nodeId)
-        {
-            var result = GetNodeResult(nodeId);
-            return result != null && (result.Status == ExecutionStatus.Success || result.Status == ExecutionStatus.PartialSuccess);
-        }
-
-        /// <inheritdoc/>
-        public void RefreshNodeData(string nodeId)
-        {
-            // 娓呴櫎缂撳瓨锛屼笅娆℃煡璇㈡椂閲嶆柊鑾峰彇
-            _nodeResults.TryRemove(nodeId, out _);
-        }
-
-        /// <inheritdoc/>
-        public void RefreshAll()
-        {
-            _nodeResults.Clear();
-        }
-
-        /// <inheritdoc/>
-        public void SetNodeResult(string nodeId, ToolResults result)
-        {
-            _nodeResults[nodeId] = result ?? throw new ArgumentNullException(nameof(result));
-        }
-
-        /// <inheritdoc/>
-        public void ClearNodeResult(string nodeId)
-        {
-            _nodeResults.TryRemove(nodeId, out _);
-        }
-
-        /// <inheritdoc/>
-        public void ClearAllResults()
-        {
-            _nodeResults.Clear();
-        }
-
-        /// <inheritdoc/>
-        public bool HasNodeOutput(string nodeId)
-        {
-            var result = GetNodeResult(nodeId);
-            return result != null && result.Status == ExecutionStatus.Success;
-        }
-
-        /// <inheritdoc/>
-        public void UpdateNodeOutput(string nodeId, string portName, object? value)
-        {
-            var result = _nodeResults.GetOrAdd(nodeId, _ => new GenericToolResults { Status = ExecutionStatus.Success });
-
-            // 修复：类型转换为 GenericToolResults 以访问 AddResultItem 方法
-            var genericResult = result as GenericToolResults;
-            if (genericResult != null)
-            {
-                genericResult.AddResultItem(portName, value);
-            }
-        }
-
-
-        /// <inheritdoc/>
-        public void ClearNodeOutput(string nodeId)
-        {
-            _nodeResults.TryRemove(nodeId, out _);
-        }
-
-        /// <inheritdoc/>
-        public object? GetCurrentBindingValue(string nodeId, string portName, string? propertyPath)
-        {
-            var result = GetNodeResult(nodeId);
-            if (result == null)
-                return null;
-
-            // 濡傛灉娌℃湁鎸囧畾灞炴€ц矾寰勶紝杩斿洖鏁翠釜杈撳嚭
-            if (string.IsNullOrEmpty(propertyPath))
+            // 浠庤妭鐐圭粨鏋滀腑鑾峰彇灞炴€у€?
+            var result = GetNodeResultFromCache(nodeId);
+            if (result != null)
             {
                 var resultItems = result.GetResultItems();
-                var item = resultItems.FirstOrDefault(i => i.Name == portName);
+                var item = resultItems.FirstOrDefault(i => i.Name == propertyName);
                 return item?.Value;
             }
 
-            // 鏈夊睘鎬ц矾寰勶紝浣跨敤 GetPropertyValue
-            return GetPropertyValue(nodeId, propertyPath);
-        }
-
-        /// <inheritdoc/>
-        public string GetBindingDisplayPath(string nodeId, string outputName, string? propertyPath)
-        {
-            var nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
-
-            if (string.IsNullOrEmpty(propertyPath))
-                return $"{nodeName}.{outputName}";
-
-            return $"{nodeName}.{outputName}.{propertyPath}";
-        }
-
-        /// <inheritdoc/>
-        public IDisposable SubscribeOutputChanged(string nodeId, string outputName, string? propertyPath, Action<object?> onChanged)
-        {
-            var key = $"{nodeId}:{outputName}:{propertyPath ?? ""}";
-
-            if (!_outputSubscriptions.ContainsKey(key))
-            {
-                _outputSubscriptions[key] = new List<Action<object?>>();
-            }
-
-            _outputSubscriptions[key].Add(onChanged);
-
-            return new SubscriptionToken(() =>
-            {
-                if (_outputSubscriptions.TryGetValue(key, out var subscriptions))
-                {
-                    subscriptions.Remove(onChanged);
-                    if (subscriptions.Count == 0)
-                    {
-                        _outputSubscriptions.TryRemove(key, out _);
-                    }
-                }
-            });
-        }
-
-        /// <inheritdoc/>
-        public void RefreshOutputs()
-        {
-            // 閫氱煡鎵€鏈夎闃呰€?
-            foreach (var kvp in _outputSubscriptions)
-            {
-                var key = kvp.Key;
-                var parts = key.Split(':');
-                if (parts.Length >= 2)
-                {
-                    var nodeId = parts[0];
-                    var outputName = parts[1];
-                    var propertyPath = parts.Length > 2 ? parts[2] : null;
-
-                    var value = GetCurrentBindingValue(nodeId, outputName, propertyPath);
-
-                    foreach (var callback in kvp.Value)
-                    {
-                        try
-                        {
-                            callback(value);
-                        }
-                        catch
-                        {
-                            // 蹇界暐鍥炶皟涓殑寮傚父
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public bool IsNodeRegistered(string nodeId)
-        {
-            return _nodeResults.ContainsKey(nodeId) ||
-                   (_nodeInfoProvider != null && _nodeInfoProvider.NodeExists(nodeId));
-        }
-
-        /// <summary>
-        /// 创建父节点信息
-        /// </summary>
-        /// <remarks>
-        /// 统一的设计时和运行时提取逻辑：
-        /// - 从工具元数据获取 ResultType
-        /// - 从 ResultType 反射提取输出属性
-        /// - 如果有执行结果，填充实际值和执行状态
-        /// </remarks>
-        private ParentNodeInfo CreateParentNodeInfo(string nodeId, int order)
-        {
-            string nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
-            string nodeType = _nodeInfoProvider?.GetNodeType(nodeId) ?? "Unknown";
-            string? nodeIcon = _nodeInfoProvider?.GetNodeIcon(nodeId);
-
-            var nodeInfo = new ParentNodeInfo
-            {
-                NodeId = nodeId,
-                NodeName = nodeName,
-                NodeType = nodeType,
-                NodeIcon = nodeIcon,
-                ConnectionOrder = order
-            };
-
-            // 鑾峰彇鎵ц缁撴灉
-            var result = GetNodeResult(nodeId);
-            if (result != null)
-            {
-                nodeInfo.ExecutionStatus = result.Status;
-                nodeInfo.ExecutionTimeMs = result.ExecutionTimeMs;
-                nodeInfo.ErrorMessage = result.ErrorMessage;
-
-                // 鎻愬彇杈撳嚭灞炴€?
-                nodeInfo.ExtractOutputProperties(result);
-            }
-
-            return nodeInfo;
+            return null;
         }
 
         /// <summary>
@@ -489,6 +304,113 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             return current;
         }
+        #region IDataSourceQueryService Runtime Methods
+
+        /// <inheritdoc/>
+        public bool HasNodeExecuted(string nodeId)
+        {
+            return _nodeResults.ContainsKey(nodeId);
+        }
+
+        /// <inheritdoc/>
+        public void RefreshNodeData(string nodeId)
+        {
+            // TODO: 瀹炵幇鑺傜偣鏁版嵁鍒锋柊閫昏緫
+            _logger?.LogInfo($"  RefreshNodeData({nodeId})", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public void RefreshAll()
+        {
+            // TODO: 瀹炵幇鎵€鏈夋暟鎹埛鏂伴€昏緫
+            _logger?.LogInfo("  RefreshAll()", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public void SetNodeResult(string nodeId, ToolResults result)
+        {
+            _nodeResults[nodeId] = result;
+            _logger?.LogInfo($"  SetNodeResult({nodeId})", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public void ClearNodeResult(string nodeId)
+        {
+            _nodeResults.TryRemove(nodeId, out _);
+            _logger?.LogInfo($"  ClearNodeResult({nodeId})", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public void ClearAllResults()
+        {
+            _nodeResults.Clear();
+            _logger?.LogInfo("  ClearAllResults()", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public bool HasNodeOutput(string nodeId)
+        {
+            return _nodeOutputs.ContainsKey(nodeId);
+        }
+
+        /// <inheritdoc/>
+        public void UpdateNodeOutput(string nodeId, string propertyName, object? value)
+        {
+            if (!_nodeOutputs.ContainsKey(nodeId))
+            {
+                _nodeOutputs[nodeId] = new Dictionary<string, object?>();
+            }
+            _nodeOutputs[nodeId][propertyName] = value;
+            _logger?.LogInfo($"  UpdateNodeOutput({nodeId}, {propertyName})", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public void ClearNodeOutput(string nodeId)
+        {
+            _nodeOutputs.TryRemove(nodeId, out _);
+            _logger?.LogInfo($"  ClearNodeOutput({nodeId})", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public object? GetCurrentBindingValue(string nodeId, string propertyName, string? bindingPath = null)
+        {
+            // TODO: 瀹炵幇缁戝畾鍊艰幏鍙栭€昏緫
+            _logger?.LogInfo($"  GetCurrentBindingValue({nodeId}, {propertyName})", "DataSourceQueryService");
+            return null;
+        }
+
+        /// <inheritdoc/>
+        public string GetBindingDisplayPath(string nodeId, string propertyName, string? bindingPath = null)
+        {
+            // TODO: 瀹炵幇缁戝畾鏄剧ず璺緞閫昏緫
+            _logger?.LogInfo($"  GetBindingDisplayPath({nodeId}, {propertyName})", "DataSourceQueryService");
+            return propertyName;
+        }
+
+        /// <inheritdoc/>
+        public IDisposable SubscribeOutputChanged(string nodeId, string propertyName, string? bindingPath, Action<object?> callback)
+        {
+            // TODO: 瀹炵幇杈撳嚭鍙樻洿璁㈤槄閫昏緫
+            _logger?.LogInfo($"  SubscribeOutputChanged({nodeId}, {propertyName})", "DataSourceQueryService");
+
+            // 返回一个空的订阅令牌
+            return new SubscriptionToken(() => { });
+        }
+
+        /// <inheritdoc/>
+        public void RefreshOutputs()
+        {
+            // TODO: 瀹炵幇杈撳嚭鍒锋柊閫昏緫
+            _logger?.LogInfo("  RefreshOutputs()", "DataSourceQueryService");
+        }
+
+        /// <inheritdoc/>
+        public bool IsNodeRegistered(string nodeId)
+        {
+            return _nodeInfoCache.ContainsKey(nodeId);
+        }
+
+        #endregion
 
         /// <summary>
         /// 璁㈤槄浠ょ墝
@@ -580,5 +502,15 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="nodeId">鑺傜偣ID</param>
         /// <returns>鏄惁瀛樺湪</returns>
         bool NodeExists(string nodeId);
+
+        /// <summary>
+        /// 鑾峰彇鑺傜偣缁撴灉绫诲瀷
+        /// </summary>
+        /// <remarks>
+        /// 鐢ㄤ簬璁捐鏃舵帹鏂緭鍑哄睘鎬с€俇I 灞傚疄鐜版椂锛屽彲浠ヤ粠宸ュ叿鍏冩暟鎹腑鑾峰彇 ResultType銆?
+        /// </remarks>
+        /// <param name="nodeId">鑺傜偣ID</param>
+        /// <returns>缁撴灉绫诲瀷锛屽鏋滄棤娉曡幏鍙栧垯杩斿洖 null</returns>
+        Type? GetResultType(string nodeId);
     }
 }

@@ -1,15 +1,15 @@
----
+﻿---
 id: rule-013
 title: 文件编码与写入规范
 category: coding-standards
 priority: critical
 alwaysApply: true
 enabled: true
-version: "1.0"
-updatedAt: 2026-04-08T11:47:00.000Z
+version: "2.0"
+updatedAt: 2026-04-09T12:41:00.000Z
 author: SunEyeVision Team
 reviewed: true
-lastReviewed: 2026-04-08T11:47:00.000Z
+lastReviewed: 2026-04-09T12:41:00.000Z
 relatedRules: []
 conflictRules: []
 deprecated: false
@@ -28,7 +28,53 @@ dependsOn: []
 
 ## 🎯 规则概述
 
-在 AI 助手进行文件写入操作时，**必须使用 PowerShell 脚本配合 UTF-8 编码**，确保文件正确写入且不会出现编码问题。禁止使用 `write_to_file` 工具直接写入包含中文或特殊字符的文件。
+在 AI 助手进行文件写入操作时，**优先使用 `replace_in_file` 工具**，确保文件修改的准确性和可靠性。如果 `replace_in_file` 写入不成功（例如编码问题、IDE锁定等），则使用 PowerShell 脚本配合 UTF-8 编码。
+
+## 📝 优先策略
+
+### 1. 优先使用 replace_in_file（首选）
+**适用场景**：
+- ✅ 修改现有文件
+- ✅ 替换特定代码块
+- ✅ 小范围修改
+- ✅ 需要精确匹配上下文
+
+**优点**：
+- 精确匹配上下文，避免误改
+- IDE 自动格式化支持
+- 变更跟踪更清晰
+- 操作原子性强
+
+**使用方式**：
+```text
+✅ 首选 - 使用 replace_in_file 工具
+replace_in_file(
+  filePath="...",
+  old_str="旧内容",
+  new_str="新内容"
+)
+```
+
+### 2. 回退使用 PowerShell（备选）
+**适用场景**：
+- ❌ replace_in_file 写入失败
+- ❌ 文件编码问题（中文乱码）
+- ❌ IDE 文件锁定
+- ❌ 需要创建新文件
+
+**优点**：
+- 可靠的编码控制（UTF-8 无 BOM）
+- 避免编码问题
+- 支持复杂文本处理
+
+**使用方式**：
+```text
+⚠️ 备选 - 仅在 replace_in_file 失败时使用
+execute_command(
+  command='powershell -Command "[System.IO.File]::WriteAllText(...)"',
+  requires_approval=false
+)
+```
 
 ## 🚫 禁止的操作
 
@@ -42,10 +88,35 @@ echo "中文内容" > file.txt
 
 ## ✅ 正确的文件写入方式
 
-### 1. 使用 PowerShell 配合 UTF-8 编码
+### 策略1：优先使用 replace_in_file（首选）
+
+```text
+✅ 首选 - 使用 replace_in_file 工具修改现有文件
+replace_in_file(
+  filePath="...",
+  old_str="旧内容",
+  new_str="新内容",
+  explanation="修改说明"
+)
+```
+
+**示例**：
+```text
+# 修改代码中的某个方法
+replace_in_file(
+  filePath="d:/MyWork/SunEyeVision_Dev-tool/src/MyClass.cs",
+  old_str="public void OldMethod()\n{\n    // 旧实现\n}",
+  new_str="public void NewMethod()\n{\n    // 新实现\n}",
+  explanation="重构方法以提高性能"
+)
+```
+
+### 策略2：如果 replace_in_file 失败，使用 PowerShell（备选）
+
+#### 1. 使用 PowerShell 配合 UTF-8 编码
 
 ```powershell
-# ✅ 正确 - 使用 PowerShell 脚本配合 UTF-8 编码写入文件
+# ✅ 备选 - 使用 PowerShell 脚本配合 UTF-8 编码写入文件
 $content = @"
 文件内容，可以包含中文字符
 支持多行内容
@@ -55,17 +126,17 @@ $content = @"
 [System.IO.File]::WriteAllText("文件路径", $content, [System.Text.UTF8Encoding]::new($false))
 ```
 
-### 2. 在 AI 助手中使用 execute_command 工具
+#### 2. 在 AI 助手中使用 execute_command 工具
 
 ```text
-✅ 正确 - 通过 execute_command 调用 PowerShell 脚本
+⚠️ 备选 - 通过 execute_command 调用 PowerShell 脚本（仅当 replace_in_file 失败时）
 execute_command(
   command='powershell -Command "[System.IO.File]::WriteAllText(''路径'', @''内容''@, [System.Text.UTF8Encoding]::new($false))"',
   requires_approval=false
 )
 ```
 
-### 3. 完整示例
+### 策略3：完整示例（replace_in_file 失败后的回退）
 
 ```powershell
 # 写入包含中文的文件
@@ -93,10 +164,12 @@ SunEyeVision Team
 ### 问题背景
 1. **编码问题**：直接使用 `write_to_file` 工具可能导致中文乱码
 2. **写入失败**：某些特殊字符或大文件可能写入不成功
-3. **编码一致性**：项目需要统一的 UTF-8 编码格式
+3. **文件锁定**：IDE 可能锁定文件，导致写入失败
+4. **编码一致性**：项目需要统一的 UTF-8 编码格式
 
 ### 解决方案
-- PowerShell 脚本提供可靠的文件写入能力
+- **首选**：`replace_in_file` 工具提供精确的上下文匹配和修改
+- **备选**：PowerShell 脚本提供可靠的编码控制和文件写入能力
 - UTF-8 无 BOM 编码保证跨平台兼容性
 - 显式指定编码避免系统默认编码问题
 
@@ -104,42 +177,93 @@ SunEyeVision Team
 
 在进行文件写入操作时，检查以下内容：
 
+### 使用 replace_in_file 时
+- [ ] 是否有明确的 old_str 和 new_str？
+- [ ] old_str 是否包含足够的上下文？
+- [ ] 是否用于修改现有文件？
+
+### 使用 PowerShell 备选时
+- [ ] replace_in_file 是否已失败？
 - [ ] 是否包含中文或特殊字符？
-- [ ] 是否使用 PowerShell 脚本？
 - [ ] 是否显式指定 UTF-8 编码？
 - [ ] 是否使用 `[System.IO.File]::WriteAllText()` 方法？
 - [ ] 是否使用 `[System.Text.UTF8Encoding]::new($false)` (无 BOM)？
 
 ## 🔄 何时使用此规则
 
-### 必须使用 PowerShell 的场景
-1. ✅ 写入包含中文的文档文件
-2. ✅ 写入包含特殊字符的配置文件
-3. ✅ 写入 Markdown 文档
-4. ✅ 写入代码注释较多的源文件
-5. ✅ 写入 JSON/XML 配置文件
+### 策略1：必须优先使用 replace_in_file 的场景
+1. ✅ 修改现有代码文件
+2. ✅ 替换特定代码块
+3. ✅ 小范围精确修改
+4. ✅ 需要上下文匹配确保准确性
+5. ✅ IDE 未锁定文件
 
-### 可以使用 write_to_file 的场景
-1. ✅ 纯英文代码文件
-2. ✅ 小型配置文件（无特殊字符）
-3. ✅ 临时文件（仅用于调试）
+### 策略2：使用 PowerShell 备选的场景
+1. ✅ replace_in_file 写入失败
+2. ✅ 文件编码问题（中文乱码）
+3. ✅ IDE 文件锁定
+4. ✅ 写入包含中文的文档文件
+5. ✅ 写入包含特殊字符的配置文件
+6. ✅ 写入 Markdown 文档
+7. ✅ 写入代码注释较多的源文件
+8. ✅ 写入 JSON/XML 配置文件
+
+### 禁止使用 write_to_file 的场景
+1. ❌ 包含中文或特殊字符
+2. ❌ 大文件或复杂内容
+3. ❌ 需要精确编码控制
 
 ## 📊 对比分析
 
-| 方法 | 编码支持 | 中文支持 | 可靠性 | 推荐度 |
-|------|---------|---------|--------|--------|
-| write_to_file 工具 | ⚠️ 不稳定 | ❌ 可能乱码 | ⚠️ 中等 | ❌ 不推荐 |
-| PowerShell + UTF-8 | ✅ UTF-8 无 BOM | ✅ 完美支持 | ✅ 高 | ✅ 强烈推荐 |
-| echo 命令 | ⚠️ 系统默认 | ❌ 可能乱码 | ❌ 低 | ❌ 禁止 |
+| 方法 | 精确性 | 编码支持 | 中文支持 | 可靠性 | 推荐度 |
+|------|---------|---------|---------|--------|--------|
+| replace_in_file 工具（首选） | ✅ 上下文精确匹配 | ✅ IDE 支持 | ✅ 自动编码 | ✅ 高 | ✅ **强烈推荐** |
+| PowerShell + UTF-8（备选） | ⚠️ 需手动处理 | ✅ UTF-8 无 BOM | ✅ 完美支持 | ✅ 高 | ✅ **备选方案** |
+| write_to_file 工具 | ⚠️ 上下文有限 | ⚠️ 不稳定 | ❌ 可能乱码 | ⚠️ 中等 | ❌ 不推荐 |
+| echo 命令 | ❌ 无上下文 | ⚠️ 系统默认 | ❌ 可能乱码 | ❌ 低 | ❌ 禁止 |
 
 ## 🛠️ 实用脚本模板
 
-### 单行内容写入
+### 策略1：replace_in_file 工具模板（首选）
+
+#### 修改方法签名
+```text
+replace_in_file(
+  filePath="d:/MyWork/SunEyeVision_Dev-tool/src/MyClass.cs",
+  old_str="public void OldMethod()\n{\n    // 旧实现\n}",
+  new_str="public void NewMethod()\n{\n    // 新实现\n}",
+  explanation="重构方法以提高性能"
+)
+```
+
+#### 修改属性定义
+```text
+replace_in_file(
+  filePath="d:/MyWork/SunEyeVision_Dev-tool/src/MyViewModel.cs",
+  old_str="private int _value;",
+  new_str="private int _value = 0;",
+  explanation="添加默认值"
+)
+```
+
+#### 添加 using 语句
+```text
+replace_in_file(
+  filePath="d:/MyWork/SunEyeVision_Dev-tool/src/MyClass.cs",
+  old_str="using System;",
+  new_str="using System;\nusing System.Collections.Generic;",
+  explanation="添加必要的 using 语句"
+)
+```
+
+### 策略2：PowerShell 备选模板（仅当 replace_in_file 失败时）
+
+#### 单行内容写入
 ```powershell
 [System.IO.File]::WriteAllText("路径", "内容", [System.Text.UTF8Encoding]::new($false))
 ```
 
-### 多行内容写入
+#### 多行内容写入
 ```powershell
 $content = @"
 第一行
@@ -149,12 +273,12 @@ $content = @"
 [System.IO.File]::WriteAllText("路径", $content, [System.Text.UTF8Encoding]::new($false))
 ```
 
-### 追加内容
+#### 追加内容
 ```powershell
 [System.IO.File]::AppendAllText("路径", "追加的内容", [System.Text.UTF8Encoding]::new($false))
 ```
 
-### 读取并修改
+#### 读取并修改
 ```powershell
 $content = [System.IO.File]::ReadAllText("路径", [System.Text.UTF8Encoding]::new($false))
 $content = $content -replace "旧内容", "新内容"
@@ -163,6 +287,13 @@ $content = $content -replace "旧内容", "新内容"
 
 ## ⚠️ 注意事项
 
+### 使用 replace_in_file 时
+1. **上下文匹配**：old_str 必须包含足够的上下文以确保唯一性
+2. **精确性**：确保 old_str 与文件内容完全一致（包括空格和缩进）
+3. **安全性**：工具会自动验证替换的唯一性，避免误改
+4. **原子性**：replace_in_file 操作是原子的，要么成功要么失败
+
+### 使用 PowerShell 备选时
 1. **编码参数**：`[System.Text.UTF8Encoding]::new($false)` 中的 `$false` 表示无 BOM
 2. **路径转义**：路径中的反斜杠需要正确转义或使用单引号
 3. **内容引号**：多行内容使用 `@" "@` here-string 语法
@@ -176,13 +307,15 @@ $content = $content -replace "旧内容", "新内容"
 ## 🎯 目标
 
 通过规范的文件写入方式，实现：
-1. **编码统一**：所有文件使用 UTF-8 无 BOM 编码
-2. **写入可靠**：避免写入失败和乱码问题
-3. **跨平台兼容**：保证 Windows/Linux/macOS 一致性
-4. **团队协作**：统一开发规范
+1. **精确性优先**：优先使用 replace_in_file 确保修改的精确性
+2. **编码统一**：所有文件使用 UTF-8 无 BOM 编码
+3. **写入可靠**：避免写入失败和乱码问题
+4. **跨平台兼容**：保证 Windows/Linux/macOS 一致性
+5. **团队协作**：统一开发规范
 
 ## 🔄 变更历史
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-04-09 | 2.0 | 重构规则：优先使用 replace_in_file，失败时使用 PowerShell 备选 | Team |
 | 2026-04-08 | 1.0 | 初始版本，基于实际写入问题总结 | Team |

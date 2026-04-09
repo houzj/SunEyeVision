@@ -205,36 +205,6 @@ namespace SunEyeVision.Tool.Threshold.Views
                 _dataProvider = queryService;
                 PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
 
-                // 📊 监控当前工作流
-                try
-                {
-                    // 通过反射获取 WorkflowEngine.CurrentWorkflow
-                    var workflowEngineType = System.Type.GetType("SunEyeVision.Workflow.WorkflowEngine, SunEyeVision.Workflow");
-                    if (workflowEngineType != null)
-                    {
-                        var currentWorkflowField = workflowEngineType.GetProperty("CurrentWorkflow");
-                        if (currentWorkflowField != null)
-                        {
-                            // 获取静态实例（如果有）
-                            var currentWorkflow = currentWorkflowField.GetValue(null);
-                            if (currentWorkflow != null)
-                            {
-                                var workflowId = currentWorkflow.GetType().GetProperty("Id")?.GetValue(currentWorkflow);
-                                var workflowName = currentWorkflow.GetType().GetProperty("Name")?.GetValue(currentWorkflow);
-                                PluginLogger.Info($"当前工作流: ID={workflowId}, Name={workflowName}", "ThresholdTool");
-                            }
-                            else
-                            {
-                                PluginLogger.Warning("WorkflowEngine.CurrentWorkflow 为 null", "ThresholdTool");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    PluginLogger.Warning($"获取当前工作流失败: {ex.Message}", "ThresholdTool");
-                }
-
                 PopulateImageSources(_dataProvider);
 
                 // 初始化 RegionEditor
@@ -263,35 +233,6 @@ namespace SunEyeVision.Tool.Threshold.Views
                 PluginLogger.Info($"SetCurrentNode: 节点ID已保存 = {_currentNodeId}", "ThresholdTool");
             }
 
-            // 📊 监控当前工作流
-            try
-            {
-                // 通过反射获取 WorkflowEngine.CurrentWorkflow
-                var workflowEngineType = System.Type.GetType("SunEyeVision.Workflow.WorkflowEngine, SunEyeVision.Workflow");
-                if (workflowEngineType != null)
-                {
-                    var currentWorkflowField = workflowEngineType.GetProperty("CurrentWorkflow");
-                    if (currentWorkflowField != null)
-                    {
-                        // 获取静态实例（如果有）
-                        var currentWorkflow = currentWorkflowField.GetValue(null);
-                        if (currentWorkflow != null)
-                        {
-                            var workflowId = currentWorkflow.GetType().GetProperty("Id")?.GetValue(currentWorkflow);
-                            var workflowName = currentWorkflow.GetType().GetProperty("Name")?.GetValue(currentWorkflow);
-                            PluginLogger.Info($"当前工作流: ID={workflowId}, Name={workflowName}", "ThresholdTool");
-                        }
-                        else
-                        {
-                            PluginLogger.Warning("WorkflowEngine.CurrentWorkflow 为 null", "ThresholdTool");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                PluginLogger.Warning($"获取当前工作流失败: {ex.Message}", "ThresholdTool");
-            }
 
             var parametersProperty = node.GetType().GetProperty("Parameters");
             if (parametersProperty == null)

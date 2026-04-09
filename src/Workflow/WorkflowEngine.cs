@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using OpenCvSharp;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -361,6 +362,46 @@ namespace SunEyeVision.Workflow
         public bool NodeExists(string nodeId)
         {
             return CurrentWorkflow?.Nodes?.Any(n => n.Id == nodeId) ?? false;
+        }
+
+        /// <inheritdoc/>
+        public Type? GetResultType(string nodeId)
+        {
+            var node = CurrentWorkflow?.Nodes?.FirstOrDefault(n => n.Id == nodeId);
+            if (node == null)
+            {
+                return null;
+            }
+
+            // 从工具元数据中获取 ToolType
+            var toolMetadata = ToolRegistry.GetToolMetadata(node.ToolType);
+            Type? toolType = toolMetadata?.ToolType;
+
+            if (toolType == null)
+            {
+                Logger.LogWarning($"  GetResultType({nodeId}) - ToolType not found for {node.ToolType}", "WorkflowEngine");
+                return null;
+            }
+
+            // 从 ToolType 推断 ResultType
+            Type? resultType = null;
+
+            // 检查 ToolType 是否实现了 IToolPlugin<TParams, TResult>
+            foreach (var iface in toolType.GetInterfaces())
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(SunEyeVision.Plugin.SDK.Core.IToolPlugin<,>))
+                {
+                    var genericArgs = iface.GetGenericArguments();
+                    if (genericArgs.Length >= 2)
+                    {
+                        resultType = genericArgs[1]; // TResult 是第二个泛型参数
+                        break;
+                    }
+                }
+            }
+
+            Logger.LogInfo($"  GetResultType({nodeId}) = {resultType?.Name ?? "null"} (from {toolType.Name})", "WorkflowEngine");
+            return resultType;
         }
 
         #endregion
