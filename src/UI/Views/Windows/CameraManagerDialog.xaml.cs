@@ -11,12 +11,9 @@ namespace SunEyeVision.UI.Views.Windows
         public CameraManagerDialog(CameraManagerViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = viewModel ?? throw new System.ArgumentNullException(nameof(viewModel));
-        }
-
-        private void Close_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
+            
+            // 设置 ViewModel
+            DataContext = viewModel;
         }
     }
 }

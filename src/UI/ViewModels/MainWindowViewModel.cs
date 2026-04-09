@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -936,6 +936,20 @@ namespace SunEyeVision.UI.ViewModels
             {
                 Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                 Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+
+                // ✅ 更新 WorkflowEngine.CurrentWorkflow，确保节点可以获取父节点数据
+                try
+                {
+                    _workflowEngine.SetCurrentWorkflow(WorkflowTabViewModel.SelectedTab.Id);
+                }
+                catch (ArgumentException ex)
+                {
+                    // ❌ 工作流不在 WorkflowEngine.Workflows 字典中，这是严重错误！
+                    LogError($"严重错误：工作流 {WorkflowTabViewModel.SelectedTab.Name} 不在 WorkflowEngine.Workflows 字典中！");
+                    LogError($"错误详情: {ex.Message}");
+                    LogError($"工作流ID: {WorkflowTabViewModel.SelectedTab.Id}");
+                    LogError($"这表明在创建标签页时，工作流没有被正确注册到 WorkflowEngine.Workflows 字典中");
+                }
             }
         }
 
@@ -1090,9 +1104,65 @@ namespace SunEyeVision.UI.ViewModels
             AddLog("✅ [设备] 相机2连接成功");
         }
 
+        /// <summary>
+        /// 执行新建工作流命令
+        /// </summary>
         private void ExecuteNewWorkflow()
         {
-            // TODO: 新建工作流
+            // 参数验证
+            if (WorkflowTabViewModel == null)
+            {
+                LogError("无法创建工作流：WorkflowTabViewModel 为空");
+                return;
+            }
+            
+            try
+            {
+                LogInfo("开始创建新工作流...");
+                
+                // 步骤1: 调用标签页管理器添加新工作流
+                WorkflowTabViewModel.AddWorkflow();
+                
+                // 步骤2: 如果当前有解决方案，同步到 Solution.Workflows
+                var solutionManager = ServiceInitializer.SolutionManager;
+                if (solutionManager?.CurrentSolution != null)
+                {
+                    var newTab = WorkflowTabViewModel.SelectedTab;
+                    if (newTab != null)
+                    {
+                        // 检查工作流是否已存在
+                        var existingWorkflow = solutionManager.CurrentSolution.Workflows
+                            .FirstOrDefault(w => w.Id == newTab.Id);
+                        
+                        if (existingWorkflow == null)
+                        {
+                            // 创建新的 Workflow 对象
+                            var workflow = new SunEyeVision.Workflow.Workflow(newTab.Id, newTab.Name);
+                            solutionManager.CurrentSolution.Workflows.Add(workflow);
+                            
+                            LogSuccess($"已添加工作流到解决方案: {newTab.Name} (ID: {newTab.Id})");
+                        }
+                        else
+                        {
+                            LogWarning($"工作流已存在于解决方案中: {newTab.Name}");
+                        }
+                    }
+                }
+                else
+                {
+                    LogInfo("当前无打开的解决方案，新工作流未关联到方案");
+                }
+                
+                LogSuccess($"新工作流创建成功: {WorkflowTabViewModel.SelectedTab?.Name}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogError($"创建新工作流失败: 操作无效 - {ex.Message}", null, ex);
+            }
+            catch (Exception ex)
+            {
+                LogError($"创建新工作流失败: {ex.Message}", null, ex);
+            }
         }
 
         private void ExecuteOpenWorkflow()
@@ -1552,6 +1622,11 @@ namespace SunEyeVision.UI.ViewModels
         {
             LogInfo($"创建标签页: {workflow.Name}");
 
+            // ✅ 将工作流注册到 WorkflowEngine.Workflows 字典
+            // 确保节点可以获取父节点数据
+            _workflowEngine.RegisterWorkflow(workflow);
+            LogInfo($"工作流已注册到 WorkflowEngine: {workflow.Name} (ID: {workflow.Id})");
+
             // 创建 WorkflowTabViewModel
             var tabViewModel = new ViewModels.WorkflowTabViewModel();
             tabViewModel.Id = workflow.Id;
@@ -1587,6 +1662,10 @@ namespace SunEyeVision.UI.ViewModels
 
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
+            
+            // 注册工作流编号到编号池
+            WorkflowTabViewModel?.RegisterWorkflowNumber(workflow.Name);
+            
             LogInfo($"标签页已添加: {workflow.Name}");
         }
 
@@ -1642,10 +1721,6 @@ namespace SunEyeVision.UI.ViewModels
                 WorkflowTabViewModel.Tabs.Clear();
                 LogInfo($"已清空 {oldTabCount} 个现有标签页");
 
-                // 重置工作流编号计数器（防止工作流序号污染）
-                WorkflowTabViewModel.ResetWorkflowNumberCounter();
-                LogInfo($"已重置工作流编号计数器");
-
                 // 为每个工作流创建标签页
                 int totalNodes = 0;
                 int totalConnections = 0;
@@ -1671,6 +1746,10 @@ namespace SunEyeVision.UI.ViewModels
                         }
                     }
                 }
+
+                // 重置工作流编号计数器（在创建标签页之后，确保能正确恢复编号）
+                WorkflowTabViewModel.ResetWorkflowNumberCounter();
+                LogInfo($"已重置工作流编号计数器");
 
                 LogInfo($"\n=== 加载完成 ===");
                 LogSuccess($"✓ 工作流数量: {solution.Workflows.Count}");

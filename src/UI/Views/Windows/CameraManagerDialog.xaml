@@ -1,4 +1,4 @@
-<Window x:Class="SunEyeVision.UI.Views.Windows.CameraManagerDialog"
+﻿<Window x:Class="SunEyeVision.UI.Views.Windows.CameraManagerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,9 +8,9 @@
         xmlns:converters="clr-namespace:SunEyeVision.UI.Converters.Visibility"
         mc:Ignorable="d"
         Title="相机管理器"
-        Width="600"
+        Width="1200"
         Height="700"
-        MinWidth="400"
+        MinWidth="900"
         MinHeight="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
@@ -147,12 +147,10 @@
         <ToolBar Grid.Row="0" ToolBarTray.IsLocked="True" Padding="12,8" Background="White">
             <Button Content="➕添加" Command="{Binding AddCameraCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Button Content="🔍发现相机" Command="{Binding DiscoverCamerasCommand}" 
-                    Style="{StaticResource PrimaryButtonStyle}" Width="100" Height="32" Margin="0,0,8,0"/>
             <Button Content="➖删除" Command="{Binding DeleteCameraCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
             <Separator/>
-            <Button Content="🔄刷新" Command="{Binding RefreshCommand}" 
+            <Button Content="🔍刷新" Command="{Binding RefreshCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
             <Button Content="📤导出" Command="{Binding ExportCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
@@ -166,8 +164,8 @@
         <!-- 主内容区 -->
         <Grid Grid.Row="1" Margin="12,8,12,8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
             <!-- 左侧：相机列表 -->
@@ -179,7 +177,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- 相机列表 DataGrid -->
-          <DataGrid x:Name="CameraListDataGrid"
+                    <DataGrid x:Name="CameraListDataGrid"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
@@ -187,30 +185,49 @@
                               SelectedItem="{Binding SelectedCamera}"
                               ItemsSource="{Binding Cameras}"
                               Style="{StaticResource CameraDataGridStyle}">
-            <DataGrid.Columns>
-              <!-- 选择列 -->
-              <DataGridCheckBoxColumn Header="序号" Width="40" Binding="{Binding IsSelected, Mode=TwoWay}"/>
+                        <DataGrid.Columns>
+                            <!-- 选择列 -->
+                            <DataGridCheckBoxColumn Header="" Width="40" Binding="{Binding IsSelected, Mode=TwoWay}"/>
+                            
+                            <!-- 名称列 -->
+                            <DataGridTextColumn Header="名称" Width="*" Binding="{Binding Name}"/>
+                            
+                            <!-- 类型列 -->
+                            <DataGridTextColumn Header="类型" Width="80" Binding="{Binding CameraType}"/>
+                            
+                            <!-- 状态列 -->
+                            <DataGridTemplateColumn Header="状态" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding StatusIcon}" Margin="0,0,4,0"/>
+                                            <TextBlock Text="{Binding StatusText}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
+                            <!-- IP地址列 -->
+                            <DataGridTextColumn Header="IP地址" Width="120" Binding="{Binding IpAddress}"/>
+                            
+                            <!-- 最后操作列 -->
+                            <DataGridTextColumn Header="最后操作" Width="120" Binding="{Binding LastOperationTime}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
 
-              <!-- 名称列 -->
-              <DataGridTextColumn Header="名称" Width="100" Binding="{Binding Name}"/>
-
-
-              <!-- 状态列 -->
-              <DataGridTemplateColumn Header="状态" Width="80">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                      <TextBlock Text="{Binding StatusIcon}" Margin="0,0,4,0"/>
-                      <TextBlock Text="{Binding StatusText}"/>
+                    <!-- 批量操作栏 -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="批量操作:" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="13" Foreground="#757575"/>
+                        <Button Content="全部连接" Width="80" Height="28" Margin="0,0,4,0" 
+                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchConnectCommand}"/>
+                        <Button Content="全部断开" Width="80" Height="28" Margin="0,0,4,0" 
+                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchDisconnectCommand}"/>
+                        <Button Content="全部启用" Width="80" Height="28" Margin="0,0,4,0" 
+                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchEnableCommand}"/>
+                        <Button Content="全部禁用" Width="80" Height="28" 
+                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchDisableCommand}"/>
                     </StackPanel>
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
-
-
-            </DataGrid.Columns>
-          </DataGrid>
-        </Grid>
+                </Grid>
             </Border>
 
             <!-- 右侧：相机详情 -->
