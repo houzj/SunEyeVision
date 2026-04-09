@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Core.Services.CameraDiscovery
 {
