@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.ComponentModel;
+using System.Windows.Input;
 
 namespace SunEyeVision.UI.ViewModels
 {
@@ -20,7 +21,7 @@ namespace SunEyeVision.UI.ViewModels
                 _selectedCamera = value;
                 IsCameraSelected = value != null;
                 OnPropertyChanged(nameof(SelectedCamera));
-                
+
                 // 根据厂商类型加载对应的参数视图
                 LoadManufacturerParams();
             }
@@ -121,9 +122,9 @@ namespace SunEyeVision.UI.ViewModels
     }
 
     /// <summary>
-    /// 通用参数 ViewModel
+    /// 通用参数 ViewModel - 复用SDK控件
     /// </summary>
-    public class GenericParamsViewModel : INotifyPropertyChanged
+    public class GenericParamsViewModel : ViewModelBase
     {
         private string _exposureMode = "自动";
         private string _exposureTime = "10000 us";
@@ -132,126 +133,85 @@ namespace SunEyeVision.UI.ViewModels
         private bool _enableBorderDetection = false;
         private bool _enableRegionIntrusion = false;
         private string _wideDynamic = "启用";
-        private string _wideDynamicLevel = "50";
+        private double _wideDynamicLevel = 50.0;
         private string _compressionType = "H.264";
         private string _bitrate = "4096 Kbps";
         private string _iframeInterval = "50";
 
+        // 下拉选项
+        public List<string> ExposureModes { get; } = new List<string> { "自动", "手动" };
+        public List<string> WideDynamicOptions { get; } = new List<string> { "启用", "关闭" };
+        public List<string> CompressionTypes { get; } = new List<string> { "H.264", "H.265", "MJPEG" };
+
         public string ExposureMode
         {
             get => _exposureMode;
-            set
-            {
-                _exposureMode = value;
-                OnPropertyChanged(nameof(ExposureMode));
-            }
+            set => SetProperty(ref _exposureMode, value);
         }
 
         public string ExposureTime
         {
             get => _exposureTime;
-            set
-            {
-                _exposureTime = value;
-                OnPropertyChanged(nameof(ExposureTime));
-            }
+            set => SetProperty(ref _exposureTime, value);
         }
 
         public string Gain
         {
             get => _gain;
-            set
-            {
-                _gain = value;
-                OnPropertyChanged(nameof(Gain));
-            }
+            set => SetProperty(ref _gain, value);
         }
 
         public bool EnableMotionDetection
         {
             get => _enableMotionDetection;
-            set
-            {
-                _enableMotionDetection = value;
-                OnPropertyChanged(nameof(EnableMotionDetection));
-            }
+            set => SetProperty(ref _enableMotionDetection, value);
         }
 
         public bool EnableBorderDetection
         {
             get => _enableBorderDetection;
-            set
-            {
-                _enableBorderDetection = value;
-                OnPropertyChanged(nameof(EnableBorderDetection));
-            }
+            set => SetProperty(ref _enableBorderDetection, value);
         }
 
         public bool EnableRegionIntrusion
         {
             get => _enableRegionIntrusion;
-            set
-            {
-                _enableRegionIntrusion = value;
-                OnPropertyChanged(nameof(EnableRegionIntrusion));
-            }
+            set => SetProperty(ref _enableRegionIntrusion, value);
         }
 
         public string WideDynamic
         {
             get => _wideDynamic;
-            set
-            {
-                _wideDynamic = value;
-                OnPropertyChanged(nameof(WideDynamic));
-            }
+            set => SetProperty(ref _wideDynamic, value);
         }
 
-        public string WideDynamicLevel
+        public double WideDynamicLevel
         {
             get => _wideDynamicLevel;
-            set
-            {
-                _wideDynamicLevel = value;
-                OnPropertyChanged(nameof(WideDynamicLevel));
-            }
+            set => SetProperty(ref _wideDynamicLevel, value);
         }
 
         public string CompressionType
         {
             get => _compressionType;
-            set
-            {
-                _compressionType = value;
-                OnPropertyChanged(nameof(CompressionType));
-            }
+            set => SetProperty(ref _compressionType, value);
         }
 
         public string Bitrate
         {
             get => _bitrate;
-            set
-            {
-                _bitrate = value;
-                OnPropertyChanged(nameof(Bitrate));
-            }
+            set => SetProperty(ref _bitrate, value);
         }
 
         public string IframeInterval
         {
             get => _iframeInterval;
-            set
-            {
-                _iframeInterval = value;
-                OnPropertyChanged(nameof(IframeInterval));
-            }
+            set => SetProperty(ref _iframeInterval, value);
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
+        protected override string? GetLogSource()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            return "GenericParamsViewModel";
         }
     }
 }

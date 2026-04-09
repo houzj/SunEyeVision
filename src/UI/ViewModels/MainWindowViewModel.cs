@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -18,6 +18,7 @@ using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.UI;
+using SunEyeVision.UI.Adapters;
 using SunEyeVision.Workflow;
 using SunEyeVision.UI.Services.Thumbnail;
 using SunEyeVision.UI.Factories;
@@ -3688,9 +3689,7 @@ namespace SunEyeVision.UI.ViewModels
                 }
 
                 LogInfo("创建 CameraManagerViewModel...");
-                var cameraPoolManager = new DeviceDriver.Cameras.CameraPoolManager(VisionLogger.Instance);
-                var logger = VisionLogger.Instance;
-                var viewModel = new ViewModels.CameraManagerViewModel(solutionManager, cameraPoolManager, logger);
+                var viewModel = new ViewModels.CameraManagerViewModel(solutionManager);
                 LogInfo($"ViewModel 已创建, 相机数量: {viewModel.Cameras?.Count ?? 0}");
 
                 LogInfo("创建 CameraManagerDialog...");

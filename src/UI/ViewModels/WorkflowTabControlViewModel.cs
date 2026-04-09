@@ -13,7 +13,7 @@ namespace SunEyeVision.UI.ViewModels
     /// <summary>
     /// 工作流标签页管理ViewModel
     /// </summary>
-    public class WorkflowTabControlViewModel : ObservableObject
+    public class WorkflowTabControlViewModel : ViewModelBase
     {
         private ObservableCollection<WorkflowTabViewModel> _tabs = new ObservableCollection<WorkflowTabViewModel>();
         private WorkflowTabViewModel? _selectedTab;

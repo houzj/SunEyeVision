@@ -8,132 +8,15 @@
         xmlns:converters="clr-namespace:SunEyeVision.UI.Converters.Visibility"
         mc:Ignorable="d"
         Title="相机管理器"
-        Width="1200"
+        Width="700"
         Height="700"
-        MinWidth="900"
+        MinWidth="500"
         MinHeight="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         Background="#F5F5F5">
 
     <Window.Resources>
-        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-
-        <!-- 主按钮样式 -->
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#2196F3"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1976D2"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#BDBDBD"/>
-                                <Setter Property="Cursor" Value="Arrow"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 次要按钮样式 -->
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#757575"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#616161"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#E0E0E0"/>
-                                <Setter Property="Cursor" Value="Arrow"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 工具按钮样式 -->
-        <Style x:Key="ToolButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#333333"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F0F0"/>
-                                <Setter Property="BorderBrush" Value="#BDBDBD"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- DataGrid 样式 -->
-        <Style x:Key="CameraDataGridStyle" TargetType="DataGrid">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="CanUserDeleteRows" Value="False"/>
-            <Setter Property="SelectionMode" Value="Extended"/>
-            <Setter Property="AlternatingRowBackground" Value="#F9F9F9"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#E0E0E0"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="RowBackground" Value="#F0F8FF"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </Window.Resources>
 
     <Grid>
@@ -147,25 +30,15 @@
         <ToolBar Grid.Row="0" ToolBarTray.IsLocked="True" Padding="12,8" Background="White">
             <Button Content="➕添加" Command="{Binding AddCameraCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Button Content="➖删除" Command="{Binding DeleteCameraCommand}" 
+      <Button Content="➖删除" Command="{Binding DeleteCameraCommand}" 
                     Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Separator/>
-            <Button Content="🔍刷新" Command="{Binding RefreshCommand}" 
-                    Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Button Content="📤导出" Command="{Binding ExportCommand}" 
-                    Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Button Content="💾保存" Command="{Binding SaveCommand}" 
-                    Style="{StaticResource ToolButtonStyle}" Width="80" Height="32" Margin="0,0,8,0"/>
-            <Separator/>
-            <Button Content="⚙️全局设置" Command="{Binding GlobalSettingsCommand}" 
-                    Style="{StaticResource ToolButtonStyle}" Width="100" Height="32"/>
-        </ToolBar>
+    </ToolBar>
 
         <!-- 主内容区 -->
         <Grid Grid.Row="1" Margin="12,8,12,8">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
             <!-- 左侧：相机列表 -->
@@ -187,46 +60,24 @@
                               Style="{StaticResource CameraDataGridStyle}">
                         <DataGrid.Columns>
                             <!-- 选择列 -->
-                            <DataGridCheckBoxColumn Header="" Width="40" Binding="{Binding IsSelected, Mode=TwoWay}"/>
+                            <DataGridCheckBoxColumn Header="启用" Width="40" Binding="{Binding IsSelected, Mode=TwoWay}"/>
                             
                             <!-- 名称列 -->
-                            <DataGridTextColumn Header="名称" Width="*" Binding="{Binding Name}"/>
-                            
-                            <!-- 类型列 -->
-                            <DataGridTextColumn Header="类型" Width="80" Binding="{Binding CameraType}"/>
+                            <DataGridTextColumn Header="名称" Width="150" Binding="{Binding Name}"/>
                             
                             <!-- 状态列 -->
-                            <DataGridTemplateColumn Header="状态" Width="80">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding StatusIcon}" Margin="0,0,4,0"/>
-                                            <TextBlock Text="{Binding StatusText}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            
-                            <!-- IP地址列 -->
-                            <DataGridTextColumn Header="IP地址" Width="120" Binding="{Binding IpAddress}"/>
-                            
-                            <!-- 最后操作列 -->
-                            <DataGridTextColumn Header="最后操作" Width="120" Binding="{Binding LastOperationTime}"/>
-                        </DataGrid.Columns>
+              <DataGridTemplateColumn Header="状态" Width="80">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding StatusIcon}" Margin="0,0,4,0"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- 批量操作栏 -->
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
-                        <TextBlock Text="批量操作:" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="13" Foreground="#757575"/>
-                        <Button Content="全部连接" Width="80" Height="28" Margin="0,0,4,0" 
-                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchConnectCommand}"/>
-                        <Button Content="全部断开" Width="80" Height="28" Margin="0,0,4,0" 
-                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchDisconnectCommand}"/>
-                        <Button Content="全部启用" Width="80" Height="28" Margin="0,0,4,0" 
-                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchEnableCommand}"/>
-                        <Button Content="全部禁用" Width="80" Height="28" 
-                                Style="{StaticResource ToolButtonStyle}" Command="{Binding BatchDisableCommand}"/>
-                    </StackPanel>
                 </Grid>
             </Border>
 

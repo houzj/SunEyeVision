@@ -5,6 +5,15 @@
                     xmlns:controls="clr-namespace:SunEyeVision.UI.Views.Controls">
 
     <ResourceDictionary.MergedDictionaries>
+        <!-- SDK Generic.xaml - 包含所有SDK控件样式 -->
+        <ResourceDictionary Source="pack://application:,,,/SunEyeVision.Plugin.SDK;component/UI/Themes/Generic.xaml"/>
+        
+        <!-- 相机参数模板 -->
+        <ResourceDictionary Source="pack://application:,,,/SunEyeVision.UI;component/Templates/Camera/GenericParamsTemplate.xaml"/>
+        
+        <!-- 相机制造商模板选择器 -->
+        <ResourceDictionary Source="pack://application:,,,/SunEyeVision.UI;component/Templates/Camera/ManufacturerTemplateSelector.xaml"/>
+        
         <ResourceDictionary Source="/SunEyeVision.UI;component/Views/Controls/Common/SplitterWithToggle.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
