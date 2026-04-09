@@ -3597,7 +3597,10 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo("打开相机管理器");
 
                 var solutionManager = Adapters.ServiceInitializer.SolutionManager;
-                var currentSolution = solutionManager.CurrentSolution;
+                LogInfo($"SolutionManager: {solutionManager != null}");
+
+                var currentSolution = solutionManager?.CurrentSolution;
+                LogInfo($"CurrentSolution: {currentSolution != null}");
 
                 if (currentSolution == null)
                 {
@@ -3605,14 +3608,25 @@ namespace SunEyeVision.UI.ViewModels
                     return;
                 }
 
-                var viewModel = new ViewModels.CameraManagerViewModel(solutionManager);
+                LogInfo("创建 CameraManagerViewModel...");
+                var cameraPoolManager = new DeviceDriver.Cameras.CameraPoolManager(VisionLogger.Instance);
+                var logger = VisionLogger.Instance;
+                var viewModel = new ViewModels.CameraManagerViewModel(solutionManager, cameraPoolManager, logger);
+                LogInfo($"ViewModel 已创建, 相机数量: {viewModel.Cameras?.Count ?? 0}");
+
+                LogInfo("创建 CameraManagerDialog...");
                 var dialog = new Views.Windows.CameraManagerDialog(viewModel);
 
+                LogInfo("显示对话框...");
                 dialog.ShowDialog();
+
+                LogInfo("对话框已关闭");
             }
             catch (Exception ex)
             {
                 LogError($"打开相机管理器失败: {ex.Message}");
+                LogError($"堆栈跟踪: {ex.StackTrace}");
+                MessageBox.Show($"打开相机管理器失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

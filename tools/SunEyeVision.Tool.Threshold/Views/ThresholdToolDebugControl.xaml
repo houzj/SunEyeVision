@@ -252,6 +252,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                   </Grid.RowDefinitions>
 
                   <!-- 内容 -->
@@ -311,30 +312,31 @@
                                                             HorizontalAlignment="Left"
                                                             Width="120"/>
 
-                  <!-- 位置 -->
-                  <TextBlock Grid.Column="0" Grid.Row="5" 
-                                               Text="位置X:" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Right"
-                                               Foreground="#333333"
-                                               Margin="0,0,8,0"/>
-                  <StackPanel Grid.Column="1" Grid.Row="5" 
-                                                Orientation="Horizontal">
-                    <controls:NumericUpDown Width="80"
-                                                                Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
-                                                                Minimum="0"
-                                                                Maximum="10000"
-                                                                DecimalPlaces="1"/>
-                    <TextBlock Text="Y:" 
-                                                   VerticalAlignment="Center" 
-                                                   Margin="8,0"
-                                                   Foreground="#333333"/>
-                    <controls:NumericUpDown Width="80"
-                                                                Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
-                                                                Minimum="0"
-                                                                Maximum="10000"
-                                                                DecimalPlaces="1"/>
-                  </StackPanel>
+                  <!-- 位置X -->
+                  <controls:LabeledControl Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2"
+                                                             Label="位置X:"
+                                                             Margin="0,0,0,8"
+                                                             ContentHorizontalAlignment="Left">
+                    <controls:NumericUpDown Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
+                                                            Minimum="0"
+                                                            Maximum="10000"
+                                                            DecimalPlaces="1"
+                                                            HorizontalAlignment="Left"
+                                                            Width="120"/>
+                  </controls:LabeledControl>
+
+                  <!-- 位置Y -->
+                  <controls:LabeledControl Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2"
+                                                             Label="位置Y:"
+                                                             Margin="0,0,0,8"
+                                                             ContentHorizontalAlignment="Left">
+                    <controls:NumericUpDown Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
+                                                            Minimum="0"
+                                                            Maximum="10000"
+                                                            DecimalPlaces="1"
+                                                            HorizontalAlignment="Left"
+                                                            Width="120"/>
+                  </controls:LabeledControl>
                 </Grid>
               </Expander>
             </StackPanel>
