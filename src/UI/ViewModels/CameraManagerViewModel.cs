@@ -3,9 +3,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
-using SunEyeVision.Core.Solutions;
+using SunEyeVision.Workflow;
 using SunEyeVision.Core.Services.CameraDiscovery;
-using SunEyeVision.Core.Services.Logging;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.UI.ViewModels
 {
