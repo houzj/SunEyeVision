@@ -38,6 +38,7 @@
               <controls:ImageSourceSelector
                                 x:Name="imageSourceSelector"
                                 PlaceholderText="请选择输入图像源" Width="250" 
+                                AvailableImageSources="{Binding AvailableImageSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
                                 SelectedImageSource="{Binding SelectedImageSource, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}, Mode=TwoWay}"/>
             </controls:LabeledControl>
 

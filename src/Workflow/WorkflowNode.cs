@@ -297,6 +297,24 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// 上游节点池（按输出类型分组，UI 层专用，不序列化）
+        /// </summary>
+        /// <remarks>
+        /// 存储当前节点的所有上游节点，按输出类型分组。
+        /// 用于快速查找特定类型的上游节点。
+        /// 
+        /// 数据结构：
+        /// - Key: 输出类型
+        /// - Value: 拥有该输出类型的上游节点ID列表
+        /// 
+        /// 维护方式：
+        /// - 连接建立时：增量添加上游节点
+        /// - 连接删除时：增量移除上游节点
+        /// </remarks>
+        [JsonIgnore]
+        public Dictionary<Type, List<string>> UpstreamNodesByOutputType { get; set; } = new Dictionary<Type, List<string>>();
+
+        /// <summary>
         /// 获取节点样式配置实例（由 UI 层调用）
         /// </summary>
         /// <remarks>
@@ -429,6 +447,77 @@ namespace SunEyeVision.Workflow
         protected virtual void OnAfterExecute(AlgorithmResult result)
         {
             AfterExecute?.Invoke(this, result);
+        }
+
+        /// <summary>
+        /// 添加上游节点（增量更新）
+        /// </summary>
+        /// <param name="upstreamNodeId">上游节点ID</param>
+        /// <param name="outputTypes">上游节点的输出类型列表</param>
+        public void AddUpstreamNode(string upstreamNodeId, List<Type> outputTypes)
+        {
+            if (string.IsNullOrEmpty(upstreamNodeId) || outputTypes == null)
+            {
+                return;
+            }
+
+            foreach (var outputType in outputTypes)
+            {
+                if (outputType == null)
+                {
+                    continue;
+                }
+
+                if (!UpstreamNodesByOutputType.ContainsKey(outputType))
+                {
+                    UpstreamNodesByOutputType[outputType] = new List<string>();
+                }
+
+                if (!UpstreamNodesByOutputType[outputType].Contains(upstreamNodeId))
+                {
+                    UpstreamNodesByOutputType[outputType].Add(upstreamNodeId);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 移除上游节点（增量更新）
+        /// </summary>
+        /// <param name="upstreamNodeId">上游节点ID</param>
+        /// <param name="outputTypes">上游节点的输出类型列表</param>
+        public void RemoveUpstreamNode(string upstreamNodeId, List<Type> outputTypes)
+        {
+            if (string.IsNullOrEmpty(upstreamNodeId) || outputTypes == null)
+            {
+                return;
+            }
+
+            foreach (var outputType in outputTypes)
+            {
+                if (outputType == null)
+                {
+                    continue;
+                }
+
+                if (UpstreamNodesByOutputType.ContainsKey(outputType))
+                {
+                    UpstreamNodesByOutputType[outputType].Remove(upstreamNodeId);
+
+                    // 如果该类型没有上游节点了，移除类型映射
+                    if (UpstreamNodesByOutputType[outputType].Count == 0)
+                    {
+                        UpstreamNodesByOutputType.Remove(outputType);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 清空上游节点池
+        /// </summary>
+        public void ClearUpstreamNodes()
+        {
+            UpstreamNodesByOutputType.Clear();
         }
 
         /// <summary>

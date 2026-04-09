@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -193,61 +193,153 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <inheritdoc/>
-        public List<AvailableDataSource> GetNodeOutputProperties(string parentNodeId)
+        public GroupedDataSources GetAvailableDataSourcesGrouped(string nodeId, Type? targetType = null)
         {
+            _logger?.LogInfo($"========== GetAvailableDataSourcesGrouped 开始 ==========", "DataSourceQueryService");
+            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
+            _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
+
+            var groupedSources = new GroupedDataSources();
+
+            // 从全局输出类型注册表获取所有上游节点
+            // 注意：这里需要根据实际连接关系筛选，而不是所有注册的节点
+            var parentNodes = GetParentNodes(nodeId);
+
+            _logger?.LogInfo($"遍历 {parentNodes.Count} 个父节点...", "DataSourceQueryService");
+
+            foreach (var parent in parentNodes)
+            {
+                var properties = parent.OutputProperties;
+                _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
+
+                // 类型过滤
+                if (targetType != null)
+                {
+                    properties = parent.GetCompatibleProperties(targetType);
+                    _logger?.LogInfo($"    过滤后剩余 {properties.Count} 个兼容属性", "DataSourceQueryService");
+                }
+
+                // 按类型分类添加
+                foreach (var prop in properties)
+                {
+                    var category = TypeCategoryMapper.GetCategory(prop.PropertyType);
+                    groupedSources.AddDataSource(prop, category);
+                    _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name}) -> {category}", "DataSourceQueryService");
+                }
+            }
+
+            _logger?.LogInfo($"分组统计: {groupedSources.GetStatistics()}", "DataSourceQueryService");
+            _logger?.LogInfo($"==================================================", "DataSourceQueryService");
+            return groupedSources;
+        }
+
+        /// <inheritdoc/>
+
+        public List<AvailableDataSource> GetNodeOutputProperties(string parentNodeId)
+
+        {
+
             var properties = new List<AvailableDataSource>();
+
+
 
             // 鑾峰彇鑺傜偣鎵ц涓婁笅鏂?
             var context = GetNodeContext(parentNodeId);
+
             if (context == null)
+
             {
+
                 return properties;
+
             }
+
+
 
             // 鍒涘缓鐖惰妭鐐逛俊鎭紙鐢ㄤ簬鎵╁睍鏂规硶锛?
             var nodeInfo = new ParentNodeInfo
+
             {
+
                 NodeId = parentNodeId,
+
                 NodeName = context.NodeName,
+
                 NodeType = context.NodeType,
+
                 NodeIcon = context.NodeIcon,
+
                 ExecutionStatus = context.ExecutionStatus
+
             };
 
+
+
             // 缁熶竴鐨勬彁鍙栭€昏緫锛氳璁℃椂鍜岃繍琛屾椂
+
             // - 璁捐鏃讹細浠?ResultType 鍙嶅皠鎻愬彇灞炴€у畾涔?
             // - 杩愯鏃讹細浠?ToolResults 鎻愬彇灞炴€у畾涔?+ 瀹為檯鍊?
             nodeInfo.ExtractOutputPropertiesFromType(context.ResultType, context.Result);
 
+
+
             return nodeInfo.OutputProperties;
+
         }
+
+
 
         /// <inheritdoc/>
+
         public NodeExecutionContext? GetNodeContext(string nodeId)
+
         {
+
             if (_nodeInfoProvider == null)
+
             {
+
                 return null;
+
             }
 
+
+
             return new NodeExecutionContext
+
             {
+
                 NodeId = nodeId,
+
                 NodeName = _nodeInfoProvider.GetNodeName(nodeId) ?? nodeId,
+
                 NodeType = _nodeInfoProvider.GetNodeType(nodeId) ?? "Unknown",
+
                 NodeIcon = _nodeInfoProvider.GetNodeIcon(nodeId),
+
                 Result = GetNodeResultFromCache(nodeId),
+
                 ResultType = _nodeInfoProvider.GetResultType(nodeId)
+
             };
+
         }
 
+
+
         /// <summary>
+
         /// 浠庣紦瀛樿幏鍙栬妭鐐规墽琛岀粨鏋?
         /// </summary>
+
         private ToolResults? GetNodeResultFromCache(string nodeId)
+
         {
+
             _nodeResults.TryGetValue(nodeId, out var result);
+
             return result;
+
         }
         /// <inheritdoc/>
         public object? GetPropertyValue(string nodeId, string propertyName)

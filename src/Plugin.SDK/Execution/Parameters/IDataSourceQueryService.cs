@@ -124,6 +124,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         List<AvailableDataSource> GetAvailableDataSources(string nodeId, Type? targetType = null);
 
         /// <summary>
+        /// 获取分组可用数据源（按输出类型分类）
+        /// </summary>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <param name="targetType">目标参数类型（可选，用于类型过滤）</param>
+        /// <returns>分组数据源容器</returns>
+        GroupedDataSources GetAvailableDataSourcesGrouped(string nodeId, Type? targetType = null);
+
+        /// <summary>
         /// 获取指定父节点的输出属性
         /// </summary>
         /// <param name="parentNodeId">父节点ID</param>

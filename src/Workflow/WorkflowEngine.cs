@@ -285,6 +285,11 @@ namespace SunEyeVision.Workflow
         #region IWorkflowConnectionProvider 实现
 
         /// <inheritdoc/>
+        /// <summary>
+        /// 递归查找所有上游节点（包括直接父节点和间接父节点）
+        /// 使用 BFS 遍历，保证节点按照距离顺序返回
+        /// 使用 HashSet 去重，避免循环依赖
+        /// </summary>
         public List<string> GetParentNodeIds(string nodeId)
         {
             Logger.LogInfo($"========== GetParentNodeIds 开始 ==========", "WorkflowEngine");
@@ -301,14 +306,34 @@ namespace SunEyeVision.Workflow
             Logger.LogInfo($"总连接数: {CurrentWorkflow.Connections.Count}", "WorkflowEngine");
             Logger.LogInfo($"总节点数: {CurrentWorkflow.Nodes.Count}", "WorkflowEngine");
 
-            var parentIds = CurrentWorkflow.Connections
-                .Where(conn => conn.TargetNodeId == nodeId)
-                .Select(conn => conn.SourceNodeId)
-                .ToList();
+            // BFS 递归查找所有上游节点
+            var upstreamNodeIds = new HashSet<string>();
+            var queue = new Queue<string>();
+            var visited = new HashSet<string>();
 
-            Logger.LogInfo($"找到 {parentIds.Count} 个父节点: [{string.Join(", ", parentIds)}]", "WorkflowEngine");
+            queue.Enqueue(nodeId);
+            visited.Add(nodeId);
+
+            while (queue.Count > 0)
+            {
+                var currentNodeId = queue.Dequeue();
+
+                // 查找当前节点的所有父节点（连接指向当前节点的）
+                foreach (var connection in CurrentWorkflow.Connections.Where(c => c.TargetNodeId == currentNodeId))
+                {
+                    if (!visited.Contains(connection.SourceNodeId))
+                    {
+                        visited.Add(connection.SourceNodeId);
+                        upstreamNodeIds.Add(connection.SourceNodeId);
+                        queue.Enqueue(connection.SourceNodeId);
+                    }
+                }
+            }
+
+            var resultList = upstreamNodeIds.ToList();
+            Logger.LogInfo($"找到 {resultList.Count} 个父节点: [{string.Join(", ", resultList)}]", "WorkflowEngine");
             Logger.LogInfo($"============================================", "WorkflowEngine");
-            return parentIds;
+            return resultList;
         }
 
         /// <inheritdoc/>
