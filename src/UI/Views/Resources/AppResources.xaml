@@ -9,6 +9,7 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!-- ========== 转换器 ========== -->
+    <converters:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
     <converters:BoolToRunningTextConverter x:Key="BoolToRunningTextConverter"/>
     <converters:BoolToVisibleConverter x:Key="BoolToVisibleConverter"/>
     <converters:BoolToHiddenConverter x:Key="BoolToHiddenConverter"/>

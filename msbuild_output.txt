@@ -1,0 +1,2 @@
+﻿适用于 .NET MSBuild 版本 18.3.0-release-26153-122+4d3023de6
+d:\MyWork\SunEyeVision_Dev\SunEyeVision.sln : 解决方案文件 error MSB5010: 未找到文件格式头。

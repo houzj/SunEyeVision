@@ -4,46 +4,49 @@
   全局构建配置文件,适用于所有项目
   
   输出路径设计:
-  - Debug: d:/MyWork/SunEyeVision_Dev/dev/Debug/
+  - Main (SunEyeVision_Dev): d:/MyWork/SunEyeVision_Dev/dev/Debug/ (保持不变)
+  - Camera (SunEyeVision_Dev-camera): d:/MyWork/SunEyeVision_Dev-camera/dev/Debug/
+  - Tool (SunEyeVision_Dev-tool): d:/MyWork/SunEyeVision_Dev-tool/dev/Debug/
   - Release: d:/MyWork/SunEyeVision_Dev/Release/SunEyeVision_v1.0.0/SunEyeVision/
   -->
 
   <PropertyGroup>
-    <!-- 根据配置选择输出路径 -->
-    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\</OutDir>
-    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
+    <!-- 自动检测当前工作区: main, camera, tool -->
+    <WorktreeName Condition="$(MSBuildProjectDirectory.Contains('SunEyeVision_Dev-camera'))">camera</WorktreeName>
+    <WorktreeName Condition="$(MSBuildProjectDirectory.Contains('SunEyeVision_Dev-tool'))">tool</WorktreeName>
+    <WorktreeName Condition="'$(WorktreeName)' == ''">main</WorktreeName>
+    
+    <!-- 根据工作区设置基础路径 (各 worktree 输出到各自的 dev/ 目录) -->
+    <WorktreeBasePath Condition="'$(WorktreeName)'=='main'">$(MSBuildProjectDirectory)\..\..</WorktreeBasePath>
+    <WorktreeBasePath Condition="'$(WorktreeName)'=='camera'">$(MSBuildProjectDirectory)\..\..</WorktreeBasePath>
+    <WorktreeBasePath Condition="'$(WorktreeName)'=='tool'">$(MSBuildProjectDirectory)\..\..</WorktreeBasePath>
+    
+    <!-- Debug 输出到各 worktree 独立的 dev/Debug/ 目录 -->
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(WorktreeBasePath)\dev\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(WorktreeBasePath)\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
 
-    <!-- 输出中间目录统一到 build_temp/obj/ -->
-    <IntermediateOutputPath>$(MSBuildProjectDirectory)\..\..\build_temp\obj\$(MSBuildProjectName)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
+    <!-- 中间目录也独立到各 worktree -->
+    <IntermediateOutputPath>$(WorktreeBasePath)\build_temp\obj\$(MSBuildProjectName)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
 
-    <!-- 自动创建输出目录 -->
     <CreateProgramDatabase>true</CreateProgramDatabase>
     <DebugType Condition="'$(Configuration)'=='Release'">embedded</DebugType>
     <DebugSymbols Condition="'$(Configuration)'=='Release'">true</DebugSymbols>
-
-    <!-- 生成PDB文件用于调试 -->
     <DebugType Condition="'$(Configuration)'=='Debug'">full</DebugType>
   </PropertyGroup>
 
   <!-- UI项目特殊配置 -->
   <PropertyGroup Condition="'$(OutputType)'=='WinExe'">
-    <!-- 主程序输出到根目录 (Bin/ 不再需要) -->
-    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\</OutDir>
-    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(WorktreeBasePath)\dev\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(WorktreeBasePath)\Release\SunEyeVision_v1.0.0\SunEyeVision\</OutDir>
   </PropertyGroup>
 
-  <!-- 工具插件特殊配置 (通过 IsToolPlugin 标记识别) -->
+  <!-- 工具插件特殊配置 -->
   <PropertyGroup Condition="'$(IsToolPlugin)'=='true'">
-    <!-- 工具插件输出到 plugins 子目录 -->
-    <OutDir Condition="'$(Configuration)'=='Debug'">$(MSBuildProjectDirectory)\..\..\dev\Debug\plugins\</OutDir>
-    <OutDir Condition="'$(Configuration)'=='Release'">$(MSBuildProjectDirectory)\..\..\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Debug'">$(WorktreeBasePath)\dev\Debug\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)'=='Release'">$(WorktreeBasePath)\Release\SunEyeVision_v1.0.0\SunEyeVision\plugins\</OutDir>
   </PropertyGroup>
 
-  <!-- 所有工具插件统一引用 System.Text.Json (用于 JsonDerivedType 特性) -->
   <ItemGroup Condition="'$(IsToolPlugin)'=='true'">
     <PackageReference Include="System.Text.Json" Version="10.0.3" />
   </ItemGroup>
-
-
-
 </Project>

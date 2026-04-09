@@ -81,6 +81,36 @@ namespace SunEyeVision.Workflow
         }
 
         /// <summary>
+        /// Register an existing workflow
+        /// </summary>
+        /// <param name="workflow">Workflow to register</param>
+        public void RegisterWorkflow(Workflow workflow)
+        {
+            if (workflow == null)
+            {
+                throw new ArgumentNullException(nameof(workflow));
+            }
+
+            if (string.IsNullOrEmpty(workflow.Id))
+            {
+                throw new ArgumentException("Workflow ID cannot be null or empty");
+            }
+
+            if (Workflows.ContainsKey(workflow.Id))
+            {
+                // 工作流已存在，更新它
+                Workflows[workflow.Id] = workflow;
+                Logger.LogInfo($"Updated workflow {workflow.Name} (ID: {workflow.Id})");
+            }
+            else
+            {
+                // 添加新工作流
+                Workflows[workflow.Id] = workflow;
+                Logger.LogInfo($"Registered workflow {workflow.Name} (ID: {workflow.Id})");
+            }
+        }
+
+        /// <summary>
         /// Set current workflow
         /// </summary>
         public void SetCurrentWorkflow(string id)
