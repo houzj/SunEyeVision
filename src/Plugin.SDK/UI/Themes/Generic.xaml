@@ -29,6 +29,10 @@
     <SolidColorBrush x:Key="ErrorBrush" Color="#FF4D4F"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="#52C41A"/>
 
+    <!-- 展开图标 Path -->
+    <PathGeometry x:Key="TreeExpanderPath"
+                  Figures="M 0 0 L 6 4 L 0 8 Z"/>
+
     <!-- 基础样式：输入控件 -->
     <Style x:Key="BaseInputStyle" TargetType="Control">
         <Setter Property="Height" Value="32"/>
@@ -239,6 +243,201 @@
                                 Cursor="Hand"
                                 ToolTip="点击绑定到其他节点输出"
                                 Margin="4,0,0,0"/>
+
+                        <!-- 绑定源选择 Popup -->
+                        <Popup x:Name="PART_BindingPopup"
+                               PlacementTarget="{Binding ElementName=PART_BindingButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               Width="300"
+                               MaxHeight="400"
+                               AllowsTransparency="True">
+                            <Border Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Margin="0,2,0,0"
+                                    Padding="0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- 标题栏 -->
+                                    <Border Grid.Row="0"
+                                            Background="{StaticResource BackgroundBrush}"
+                                            Padding="12,8">
+                                        <TextBlock Text="选择绑定源"
+                                                   FontWeight="Medium"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource LabelBrush}"/>
+                                    </Border>
+
+                                    <!-- TreeView -->
+                                    <TreeView x:Name="PART_BindingTreeView"
+                                              Grid.Row="1"
+                                              ItemsSource="{Binding TreeNodes, RelativeSource={RelativeSource TemplatedParent}}"
+                                              BorderThickness="0"
+                                              MaxHeight="350"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              Padding="8,4">
+                                        <TreeView.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <TextBlock Text="{Binding Text}"
+                                                           FontSize="12"
+                                                           Padding="2,4">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="False">
+                                                                    <Setter Property="FontWeight" Value="Medium"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource LabelBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="Normal"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </HierarchicalDataTemplate>
+                                        </TreeView.ItemTemplate>
+                                            <TreeView.ItemContainerStyle>
+                                                <Style TargetType="TreeViewItem">
+                                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                                    <Setter Property="Padding" Value="2,2,4,2"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="TreeViewItem">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition x:Name="ItemsHostRow" Height="*"/>
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                
+                                                                <!-- 展开/折叠按钮 -->
+                                                                <ToggleButton x:Name="Expander"
+                                                                              Grid.Row="0"
+                                                                              Grid.Column="0"
+                                                                              Width="16"
+                                                                              Height="16"
+                                                                              Margin="0,0,2,0"
+                                                                              IsChecked="{Binding Path=IsExpanded, Mode=TwoWay}"
+                                                                              Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                                              IsHitTestVisible="True">
+                                                                    <ToggleButton.Template>
+                                                                        <ControlTemplate TargetType="ToggleButton">
+                                                                            <Grid Width="16" Height="16">
+                                                                                <Path x:Name="ExpanderPath"
+                                                                                      Width="8"
+                                                                                      Height="8"
+                                                                                      Data="M 0 0 L 6 4 L 0 8 Z"
+                                                                                      Fill="{StaticResource LabelSecondaryBrush}"
+                                                                                      RenderTransformOrigin="0.5,0.5"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"
+                                                                                      IsHitTestVisible="True">
+                                                                                    <Path.RenderTransform>
+                                                                                        <RotateTransform x:Name="ExpanderRotate" Angle="0"/>
+                                                                                    </Path.RenderTransform>
+                                                                                </Path>
+                                                                            </Grid>
+                                                                            <ControlTemplate.Triggers>
+                                                                                <Trigger Property="IsChecked" Value="True">
+                                                                                    <Trigger.EnterActions>
+                                                                                        <BeginStoryboard>
+                                                                                            <Storyboard>
+                                                                                                <DoubleAnimation Storyboard.TargetName="ExpanderRotate"
+                                                                                                                 Storyboard.TargetProperty="Angle"
+                                                                                                                 To="90" Duration="0:0:0.15"/>
+                                                                                            </Storyboard>
+                                                                                        </BeginStoryboard>
+                                                                                    </Trigger.EnterActions>
+                                                                                    <Trigger.ExitActions>
+                                                                                        <BeginStoryboard>
+                                                                                            <Storyboard>
+                                                                                                <DoubleAnimation Storyboard.TargetName="ExpanderRotate"
+                                                                                                                 Storyboard.TargetProperty="Angle"
+                                                                                                                 To="0" Duration="0:0:0.15"/>
+                                                                                            </Storyboard>
+                                                                                        </BeginStoryboard>
+                                                                                    </Trigger.ExitActions>
+                                                                                </Trigger>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter TargetName="ExpanderPath" Property="Fill" 
+                                                                                            Value="{StaticResource PrimaryBrush}"/>
+                                                                                </Trigger>
+                                                                            </ControlTemplate.Triggers>
+                                                                        </ControlTemplate>
+                                                                    </ToggleButton.Template>
+                                                                </ToggleButton>
+                                                                
+                                                                <!-- 内容区域 -->
+                                                                <Border x:Name="ContentBorder"
+                                                                        Grid.Row="0"
+                                                                        Grid.Column="1"
+                                                                        Background="Transparent"
+                                                                        BorderThickness="0"
+                                                                        Padding="{TemplateBinding Padding}"
+                                                                        CornerRadius="2">
+                                                                    <ContentPresenter x:Name="PART_Header"
+                                                                                  ContentSource="Header"
+                                                                                  HorizontalAlignment="Left"/>
+                                                                </Border>
+                                                                
+                                                                <!-- 子节点容器 -->
+                                                                <ItemsPresenter x:Name="ItemsHost" 
+                                                                                Grid.Row="1"
+                                                                                Grid.Column="0"
+                                                                                Grid.ColumnSpan="2"
+                                                                                Margin="16,0,0,0"/>
+                                                            </Grid>
+                                                            
+                                                            <ControlTemplate.Triggers>
+                                                                <!-- 折叠时隐藏子节点 -->
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="False">
+                                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="ItemsHostRow" Property="Height" Value="0"/>
+                                                                </DataTrigger>
+                                                                <!-- 展开时显示子节点 -->
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
+                                                                    <Setter TargetName="ItemsHostRow" Property="Height" Value="*"/>
+                                                                </DataTrigger>
+                                                                
+                                                                <!-- 不可选中的节点（分组节点）禁用选择 -->
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="False">
+                                                                    <Setter Property="Focusable" Value="False"/>
+                                                                    <Setter Property="IsSelected" Value="False"/>
+                                                                </DataTrigger>
+                                                                
+                                                                <!-- 鼠标悬停效果 -->
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ContentBorder" Property="Background" 
+                                                                            Value="{StaticResource PanelHoverBrush}"/>
+                                                                </Trigger>
+                                                                
+                                                                <!-- 选中效果 -->
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="ContentBorder" Property="Background" 
+                                                                            Value="#191890FF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </TreeView.ItemContainerStyle>
+                                    </TreeView>
+                                </Grid>
+                            </Border>
+                        </Popup>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -330,46 +529,17 @@
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Margin="8,6">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <!-- 缩略图 -->
-                                                        <Border Grid.Column="0"
-                                                                Width="48" Height="36"
-                                                                Background="#F5F5F5"
-                                                                CornerRadius="2"
-                                                                Margin="0,0,12,0">
-                                                            <Image Source="{Binding Thumbnail}"
-                                                                   Stretch="Uniform"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center">
-                                                                <Image.Style>
-                                                                    <Style TargetType="Image">
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Thumbnail, Converter={x:Null}}" Value="{x:Null}">
-                                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Image.Style>
-                                                            </Image>
-                                                        </Border>
-
-                                                        <!-- 信息区 -->
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding DisplayName}"
-                                                                       FontWeight="Medium"
-                                                                       FontSize="13"
-                                                                       Foreground="{StaticResource LabelBrush}"/>
-                                                            <TextBlock Text="{Binding SizeDescription}"
-                                                                       FontSize="11"
-                                                                       Foreground="{StaticResource LabelSecondaryBrush}"
-                                                                       Margin="0,2,0,0"/>
-                                                        </StackPanel>
-                                                    </Grid>
+                                                    <!-- 简化显示：只显示文本信息 -->
+                                                    <StackPanel Margin="8,6" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   FontWeight="Medium"
+                                                                   FontSize="13"
+                                                                   Foreground="{StaticResource LabelBrush}"/>
+                                                        <TextBlock Text="{Binding SizeDescription}"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource LabelSecondaryBrush}"
+                                                                   Margin="0,2,0,0"/>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                             <ListBox.ItemContainerStyle>

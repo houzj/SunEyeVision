@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -8,6 +10,7 @@ using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Metadata;
+using System.Collections.Specialized;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
@@ -119,6 +122,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty ShowSliderProperty =
             DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(BindableParameter),
                 new PropertyMetadata(true, OnShowSliderPropertyChanged));
+
+        // ===== 可用绑定源（树形结构） =====
+        /// <summary>
+        /// 可用数据源列表（输入：平面列表）
+        /// </summary>
+        public static readonly DependencyProperty AvailableDataSourcesProperty =
+            DependencyProperty.Register(nameof(AvailableDataSources), typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>), typeof(BindableParameter),
+                new PropertyMetadata(null, OnAvailableDataSourcesChanged));
+
+        /// <summary>
+        /// 树形结构节点（输出：用于TreeView绑定）
+        /// </summary>
+        public static readonly DependencyProperty TreeNodesProperty =
+            DependencyProperty.Register(nameof(TreeNodes), typeof(System.Collections.ObjectModel.ObservableCollection<TreeNodeData>), typeof(BindableParameter),
+                new PropertyMetadata(null));
 
         public static readonly DependencyProperty AvailableBindingsProperty =
             DependencyProperty.Register(nameof(AvailableBindings), typeof(System.Collections.Generic.List<string>), typeof(BindableParameter),
@@ -242,6 +260,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(ShowSliderProperty, value);
         }
 
+        /// <summary>
+        /// 可用数据源列表（输入）
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>? AvailableDataSources
+        {
+            get => (System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>?)GetValue(AvailableDataSourcesProperty);
+            set => SetValue(AvailableDataSourcesProperty, value);
+        }
+
+        /// <summary>
+        /// 树形结构节点（输出）
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<TreeNodeData>? TreeNodes
+        {
+            get => (System.Collections.ObjectModel.ObservableCollection<TreeNodeData>?)GetValue(TreeNodesProperty);
+            set => SetValue(TreeNodesProperty, value);
+        }
+
         public System.Collections.Generic.List<string> AvailableBindings
         {
             get => (System.Collections.Generic.List<string>)GetValue(AvailableBindingsProperty);
@@ -262,6 +298,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         private TextBox _stringTextBox = null!;
         private Button _bindingButton = null!;
         private CheckBox _boolCheckBox = null!;
+        private Popup _bindingPopup = null!;
+        private TreeView _bindingTreeView = null!;
 
         #endregion
 
@@ -308,6 +346,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #endregion
 
+        // 私有字段：保存当前数据源集合的引用，用于取消订阅事件
+        private System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>? _currentDataSources;
+
         static BindableParameter()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(BindableParameter),
@@ -317,9 +358,62 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public BindableParameter()
         {
             AvailableBindings = new System.Collections.Generic.List<string>();
+            TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
         }
 
         #region 回调方法
+
+        private static void OnAvailableDataSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BindableParameter control)
+            {
+                // 订阅新集合的事件并构建树形结构
+                if (e.NewValue is System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> newDataSources)
+                {
+                    control._currentDataSources = newDataSources;
+                    // 注意：不再订阅 CollectionChanged 事件，避免批量添加数据源时的重复触发
+                    // 数据源更新通过 AvailableDataSourcesProperty 变化触发一次 RebuildTreeNodes
+
+                    // 立即构建树形结构
+                    control.RebuildTreeNodes();
+                }
+                else
+                {
+                    control._currentDataSources = null;
+                    control.TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 重新构建树形结构
+        /// </summary>
+        private void RebuildTreeNodes()
+        {
+            if (_currentDataSources != null)
+            {
+                var dataSourceList = _currentDataSources.ToList();
+                
+                // 简化日志：只输出关键信息
+                VisionLogger.Instance.Log(LogLevel.Info, $"构建树形结构: {dataSourceList.Count} 个数据源", "BindableParameter");
+                
+                var treeNodes = BuildTreeStructure(dataSourceList);
+                
+                // 输出树形结构概览
+                if (treeNodes.Count > 0)
+                {
+                    var summary = string.Join(", ", treeNodes.Select(n => $"{n.Text}({n.Children.Count})"));
+                    VisionLogger.Instance.Log(LogLevel.Success, $"树形结构构建完成: {treeNodes.Count} 个节点根 [{summary}]", "BindableParameter");
+                }
+                
+                TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>(treeNodes);
+            }
+            else
+            {
+                VisionLogger.Instance.Log(LogLevel.Info, $"_currentDataSources 为 null，创建空树", "BindableParameter");
+                TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
+            }
+        }
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -542,6 +636,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             _bindingButton = GetTemplateChild("PART_BindingButton") as Button ??
                 throw new InvalidOperationException("PART_BindingButton not found");
             _boolCheckBox = GetTemplateChild("PART_BoolCheckBox") as CheckBox;
+            _bindingPopup = GetTemplateChild("PART_BindingPopup") as Popup;
+            _bindingTreeView = GetTemplateChild("PART_BindingTreeView") as TreeView;
 
             // 绑定事件
             if (_numericEditor != null)
@@ -582,8 +678,170 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
             _bindingButton.Click += OnBindingButtonClick;
 
+            // 绑定 TreeView 选中事件
+            if (_bindingTreeView != null)
+            {
+                _bindingTreeView.SelectedItemChanged += OnBindingTreeViewSelectedItemChanged;
+            }
+
             // 初始化状态
             UpdateVisualState();
+        }
+
+        /// <summary>
+        /// 从数据源列表构建树形结构
+        /// </summary>
+        /// <remarks>
+        /// 按节点名称分组，每个节点作为根节点，该节点的属性作为子节点
+        /// 示例：
+        /// - 节点A
+        ///   - 结果
+        ///     - 输出图像
+        ///     - 实际使用的阈值
+        /// - 节点B
+        ///   - 图像
+        ///     - 宽度
+        ///     - 高度
+        /// </remarks>
+        /// <param name="dataSources">数据源列表</param>
+        /// <returns>树形结构的根节点列表</returns>
+        public static System.Collections.Generic.List<TreeNodeData> BuildTreeStructure(System.Collections.Generic.List<AvailableDataSource> dataSources)
+        {
+            var rootNodes = new System.Collections.Generic.List<TreeNodeData>();
+            var nodeGroups = new Dictionary<string, System.Collections.Generic.List<AvailableDataSource>>();
+
+            // 按节点名称分组
+            foreach (var dataSource in dataSources)
+            {
+                var groupName = dataSource.SourceNodeName;
+                if (!nodeGroups.ContainsKey(groupName))
+                {
+                    nodeGroups[groupName] = new System.Collections.Generic.List<AvailableDataSource>();
+                }
+                nodeGroups[groupName].Add(dataSource);
+            }
+
+            // 为每个节点创建一个根节点
+            foreach (var (nodeName, nodeDataSources) in nodeGroups)
+            {
+                var rootNode = TreeNodeData.CreateGroupNode(nodeName);
+                
+                // 处理该节点的所有数据源
+                var propertyCache = new Dictionary<string, TreeNodeData>();
+                
+                foreach (var dataSource in nodeDataSources)
+                {
+                    // 📊 调试日志：输出 FullTreeName 最终值
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"  [BindableParameter] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}",
+                        "BindableParameter");
+
+                    if (string.IsNullOrEmpty(dataSource.FullTreeName))
+                    {
+                        // 没有 TreeName：直接添加为叶子节点
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"    [BindableParameter] TreeName is empty, adding as leaf node: {dataSource.DisplayName}",
+                            "BindableParameter");
+                        var leafNode = TreeNodeData.CreateDataSourceNode(dataSource);
+                        rootNode.Children.Add(leafNode);
+                    }
+                    else
+                    {
+                        // 有 TreeName：解析并创建多级树结构，添加到根节点
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"    [BindableParameter] TreeName exists, building tree: {dataSource.FullTreeName}",
+                            "BindableParameter");
+                        BuildOrMergeTreeNodeFromFullTreeName(dataSource.FullTreeName!, dataSource, rootNode.Children, propertyCache);
+                    }
+                }
+                
+                rootNodes.Add(rootNode);
+            }
+
+            return rootNodes;
+        }
+
+        /// <summary>
+        /// 从完整树形名称构建或合并树节点
+        /// </summary>
+        /// <param name="fullTreeName">完整树形名称（例如: "阈值工具.结果.实际使用的阈值"）</param>
+        /// <param name="dataSource">数据源</param>
+        /// <param name="rootNodes">根节点列表</param>
+        /// <param name="nodeCache">节点缓存字典（key: 路径，value: 节点）</param>
+        private static void BuildOrMergeTreeNodeFromFullTreeName(string fullTreeName, AvailableDataSource dataSource,
+            System.Collections.ObjectModel.ObservableCollection<TreeNodeData> rootNodes, Dictionary<string, TreeNodeData> nodeCache)
+        {
+            // 将 TreeName 按 `.` 分割
+            var parts = fullTreeName.Split('.');
+
+            TreeNodeData? parentNode = null;
+            string currentPath = string.Empty;
+
+            // 处理每个层级（从根到叶子）
+            for (int i = 0; i < parts.Length; i++)
+            {
+                // 构建当前路径
+                if (string.IsNullOrEmpty(currentPath))
+                {
+                    currentPath = parts[i];
+                }
+                else
+                {
+                    currentPath = currentPath + "." + parts[i];
+                }
+
+                TreeNodeData? node;
+
+                if (i == parts.Length - 1)
+                {
+                    // 最后一个部分是叶子节点
+                    node = TreeNodeData.CreateDataSourceNode(dataSource);
+                    node.Text = parts[i];
+                    
+                    // 修复：将叶子节点添加到父节点的 Children 中
+                    if (parentNode != null)
+                    {
+                        parentNode.Children.Add(node);
+                        VisionLogger.Instance.Log(LogLevel.Success, 
+                            $"      [BindableParameter] 叶子节点已添加: {node.Text} -> {parentNode.Text}", 
+                            "BindableParameter");
+                    }
+                    else
+                    {
+                        // 特殊情况：叶子节点直接作为根节点（FullTreeName 只有一层）
+                        rootNodes.Add(node);
+                        VisionLogger.Instance.Log(LogLevel.Warning, 
+                            $"      [BindableParameter] 叶子节点作为根节点: {node.Text}", 
+                            "BindableParameter");
+                    }
+                }
+                else
+                {
+                    // 中间部分是分组节点
+                    if (nodeCache.TryGetValue(currentPath, out node))
+                    {
+                        // 已存在相同的父节点，直接复用
+                        parentNode = node;
+                        continue;
+                    }
+
+                    // 创建新的分组节点
+                    node = TreeNodeData.CreateGroupNode(parts[i]);
+                    nodeCache[currentPath] = node;
+
+                    // 添加到父节点或根节点列表
+                    if (parentNode != null)
+                    {
+                        parentNode.Children.Add(node);
+                    }
+                    else
+                    {
+                        rootNodes.Add(node);
+                    }
+                }
+
+                parentNode = node;
+            }
         }
 
         private void RaiseValueChanged()
@@ -609,39 +867,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void ShowBindingSelector()
         {
-            var contextMenu = new ContextMenu
+            if (_bindingPopup != null)
             {
-                PlacementTarget = _bindingButton,
-                Placement = PlacementMode.Bottom,
-                StaysOpen = false
-            };
+                _bindingPopup.IsOpen = !_bindingPopup.IsOpen;
+            }
+        }
 
-            if (AvailableBindings != null && AvailableBindings.Count > 0)
+        private void OnBindingTreeViewSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue is TreeNodeData selectedNode && selectedNode.IsSelectable && selectedNode.DataSource != null)
             {
-                foreach (var binding in AvailableBindings)
+                // 设置绑定源
+                BindingSource = selectedNode.DataSource.GetBindingPath();
+                BindingType = BindingType.Binding;
+                UpdateVisualState();
+
+                // 触发事件
+                RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
+
+                // 关闭 Popup
+                if (_bindingPopup != null)
                 {
-                    var item = new MenuItem { Header = binding };
-                    item.Click += (s, e) =>
-                    {
-                        BindingSource = binding;
-                        BindingType = BindingType.Binding;
-                        UpdateVisualState();
-                        RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
-                    };
-                    contextMenu.Items.Add(item);
+                    _bindingPopup.IsOpen = false;
                 }
             }
-            else
-            {
-                var emptyItem = new MenuItem
-                {
-                    Header = "(无可用绑定源)",
-                    IsEnabled = false
-                };
-                contextMenu.Items.Add(emptyItem);
-            }
-
-            contextMenu.IsOpen = true;
         }
 
         private void UpdateVisualState()

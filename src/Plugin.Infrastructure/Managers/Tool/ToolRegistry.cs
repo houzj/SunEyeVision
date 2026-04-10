@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Core.Services.Serialization;
@@ -25,6 +26,16 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         private static readonly Dictionary<string, Type> _toolTypes = new();
         private static readonly Dictionary<string, ToolMetadata> _metadataCache = new();
         private static readonly object _lock = new();
+
+        /// <summary>
+        /// 属性元数据变量池（嵌套字典）
+        /// 结构：工具ID → 属性名 → 属性元数据
+        /// </summary>
+        /// <remarks>
+        /// 在工具注册时提取并缓存，设计时和运行时都能使用。
+        /// 不依赖执行结果实例。
+        /// </remarks>
+        private static readonly Dictionary<string, Dictionary<string, ToolPropertyMetadata>> _propertyMetadataCache = new();
 
         /// <summary>
         /// 注册工具类型（从 [Tool] 特性提取元数据）
@@ -65,6 +76,9 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                 {
                     RegisterParameterTypeToRegistry(paramsType);
                 }
+                
+                // ✅ 提取并缓存属性元数据
+                ExtractPropertyMetadata(attr.Id, resultType);
                 
                 VisionLogger.Instance.Log(LogLevel.Success,
                     $"工具注册成功: {attr.DisplayName} (Id={attr.Id}, ParamsType={paramsType?.Name ?? "未指定"}, ResultType={resultType?.Name ?? "未指定"})",
@@ -280,6 +294,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
             {
                 var removed = _toolTypes.Remove(toolId);
                 _metadataCache.Remove(toolId);
+                _propertyMetadataCache.Remove(toolId);
                 return removed;
             }
         }
@@ -293,6 +308,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
             {
                 _toolTypes.Clear();
                 _metadataCache.Clear();
+                _propertyMetadataCache.Clear();
             }
         }
 
@@ -319,6 +335,154 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                 .Distinct()
                 .OrderBy(c => c)
                 .ToList();
+        }
+
+        /// <summary>
+        /// 提取属性元数据到变量池
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <param name="resultType">结果类型</param>
+        private static void ExtractPropertyMetadata(string toolId, Type? resultType)
+        {
+            if (resultType == null || !typeof(ToolResults).IsAssignableFrom(resultType))
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"⏭️ 跳过属性元数据提取: {toolId} (ResultType 为 null 或非 ToolResults 派生类)",
+                    "ToolRegistry");
+                return;
+            }
+
+            try
+            {
+                var propertyDict = new Dictionary<string, ToolPropertyMetadata>();
+
+                // 创建临时空实例（仅用于提取元数据，不包含实际数据）
+                var tempResult = Activator.CreateInstance(resultType) as ToolResults;
+                if (tempResult == null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"⚠️ 创建临时实例失败: {toolId}",
+                        "ToolRegistry");
+                    return;
+                }
+
+                // 遍历所有公共属性
+                var properties = resultType.GetProperties(
+                    BindingFlags.Public |
+                    BindingFlags.Instance);
+
+                int validPropertyCount = 0;
+
+                foreach (var prop in properties)
+                {
+                    // 跳过索引属性
+                    if (prop.GetIndexParameters().Length > 0)
+                        continue;
+
+                    // 跳过基类 ToolResults 的属性
+                    if (prop.DeclaringType == typeof(ToolResults))
+                        continue;
+
+                    // 跳过特殊属性
+                    if (prop.Name == "Status" ||
+                        prop.Name == "ErrorMessage" ||
+                        prop.Name == "ExecutionTimeMs" ||
+                        prop.Name == "Timestamp" ||
+                        prop.Name == "ToolName" ||
+                        prop.Name == "ToolId")
+                    {
+                        continue;
+                    }
+
+                    // ✅ 调用 GetPropertyTreeName 提取树形名称（仅此一次）
+                    var treeName = tempResult.GetPropertyTreeName(prop.Name);
+
+                    // 📊 调试日志：输出 TreeName 提取结果
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"  [ToolRegistry] 属性 {prop.Name}: TreeName='{treeName ?? "null"}', DisplayName='{GetDisplayName(prop.Name)}'",
+                        "ToolRegistry");
+
+                    var metadata = new ToolPropertyMetadata
+                    {
+                        PropertyName = prop.Name,
+                        DisplayName = GetDisplayName(prop.Name),
+                        TreeName = string.IsNullOrEmpty(treeName) ? GetDisplayName(prop.Name) : treeName,
+                        PropertyType = prop.PropertyType,
+                        Description = GetPropertyDescription(prop)
+                    };
+
+                    propertyDict[prop.Name] = metadata;
+                    validPropertyCount++;
+                }
+
+                // ✅ 放到变量池
+                _propertyMetadataCache[toolId] = propertyDict;
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"✅ 提取属性元数据完成: {toolId}, 共 {validPropertyCount} 个属性",
+                    "ToolRegistry");
+            }
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"⚠️ 提取属性元数据失败: {toolId}, 错误: {ex.Message}",
+                    "ToolRegistry");
+            }
+        }
+
+        /// <summary>
+        /// 获取属性元数据（从变量池）
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <param name="propertyName">属性名</param>
+        /// <returns>属性元数据，未找到返回 null</returns>
+        public static ToolPropertyMetadata? GetPropertyMetadata(string toolId, string propertyName)
+        {
+            lock (_lock)
+            {
+                if (_propertyMetadataCache.TryGetValue(toolId, out var propertyDict))
+                {
+                    if (propertyDict.TryGetValue(propertyName, out var metadata))
+                    {
+                        return metadata;
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 获取所有属性元数据（从变量池）
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <returns>属性元数据列表，未找到返回 null</returns>
+        public static List<ToolPropertyMetadata>? GetAllPropertyMetadata(string toolId)
+        {
+            lock (_lock)
+            {
+                if (_propertyMetadataCache.TryGetValue(toolId, out var propertyDict))
+                {
+                    return propertyDict.Values.ToList();
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 获取属性显示名称
+        /// </summary>
+        private static string GetDisplayName(string propertyName)
+        {
+            return propertyName;
+        }
+
+        /// <summary>
+        /// 获取属性描述
+        /// </summary>
+        private static string? GetPropertyDescription(PropertyInfo prop)
+        {
+            // 可以从特性中读取描述
+            return null;
         }
     }
 }

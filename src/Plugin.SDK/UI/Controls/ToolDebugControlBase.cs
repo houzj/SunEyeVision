@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using SunEyeVision.Plugin.SDK.Commands;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.UI.Events;
 
@@ -116,8 +117,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// - WPF 控件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/
     /// - 路由事件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/routed-events-overview
     /// </remarks>
-    public abstract class ToolDebugControlBase : UserControl
+    public abstract class ToolDebugControlBase : UserControl, System.ComponentModel.INotifyPropertyChanged
     {
+        #region INotifyPropertyChanged 实现
+
+        /// <summary>
+        /// 属性变更事件
+        /// </summary>
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// 触发属性变更通知
+        /// </summary>
+        /// <param name="propertyName">属性名称</param>
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
         #region 路由事件
 
         /// <summary>
@@ -170,6 +189,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         protected long ExecutionTime { get; private set; }
 
+        /// <summary>
+        /// 可用数据源列表（用于参数绑定）- 只读 DependencyProperty
+        /// </summary>
+        private static readonly DependencyPropertyKey AvailableDataSourcesPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(AvailableDataSources),
+                typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>),
+                typeof(ToolDebugControlBase),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty AvailableDataSourcesProperty = AvailableDataSourcesPropertyKey.DependencyProperty;
+
+        /// <summary>
+        /// 可用数据源列表（用于参数绑定）
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> AvailableDataSources
+        {
+            get => (System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)GetValue(AvailableDataSourcesPropertyKey.DependencyProperty);
+            protected set => SetValue(AvailableDataSourcesPropertyKey, value);
+        }
+
         #endregion
 
         #region 构造函数
@@ -179,6 +218,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         protected ToolDebugControlBase()
         {
+            // 初始化可用数据源列表
+            AvailableDataSources = new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>();
+            
             // 添加标准命令绑定
             SetupCommandBindings();
         }

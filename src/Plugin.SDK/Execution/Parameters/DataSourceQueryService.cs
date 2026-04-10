@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,21 +9,25 @@ using SunEyeVision.Plugin.SDK.Logging;
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
     /// <summary>
-    /// 鏁版嵁婧愭煡璇㈡湇鍔″疄鐜?
+    /// 数据源查询服务实现
     /// </summary>
     /// <remarks>
-    /// 鎻愪緵鏌ヨ鐖惰妭鐐瑰強鍏惰緭鍑哄睘鎬х殑鑳藉姏銆?
+    /// 提供查询父节点及其输出属性的能力。
     /// 
-    /// 鏍稿績鍔熻兘锛?
-    /// 1. 鍩轰簬宸ヤ綔娴佽繛鎺ュ叧绯绘煡鎵剧埗鑺傜偣
-    /// 2. 浠庢墽琛岀粨鏋滅紦瀛樻彁鍙栬緭鍑哄睘鎬?
-    /// 3. 鏀寔绫诲瀷杩囨护
-    /// 4. 绾跨▼瀹夊叏鐨勭粨鏋滅紦瀛?
+    /// 核心功能：
+    /// 1. 基于工作流连接关系查找父节点
+    /// 2. 从执行结果缓存提取输出属性
+    /// 3. 支持类型过滤
+    /// 4. 线程安全的结果缓存
+    /// 
+    /// 设计优化历史：
+    /// - 支持可选注入 IPropertyMetadataProvider（设计时优化）
+    /// - SDK 层不依赖 Infrastructure 层（依赖倒置原则）
     /// </remarks>
     public class DataSourceQueryService : IDataSourceQueryService
     {
         /// <summary>
-        /// 鑺傜偣缁撴灉缂撳瓨
+        /// 节点结果缓存
         /// </summary>
         private readonly ConcurrentDictionary<string, ToolResults> _nodeResults = new ConcurrentDictionary<string, ToolResults>();
 
@@ -44,27 +48,32 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
 
         /// <summary>
-        /// 宸ヤ綔娴佽繛鎺ユ彁渚涜€咃紙澶栭儴娉ㄥ叆锛?
+        /// 工作流连接提供者（外部注入）
         /// </summary>
         private readonly IWorkflowConnectionProvider? _connectionProvider;
 
         /// <summary>
-        /// 鑺傜偣淇℃伅鎻愪緵鑰咃紙澶栭儴娉ㄥ叆锛?
+        /// 节点信息提供者（外部注入）
         /// </summary>
         private readonly INodeInfoProvider? _nodeInfoProvider;
 
         /// <summary>
-        /// 杈撳嚭鍙樻洿璁㈤槄瀛楀吀
+        /// 属性元数据提供者(可选,用于设计时优化)
+        /// </summary>
+        private readonly IPropertyMetadataProvider? _metadataProvider;
+
+        /// <summary>
+        /// 输出变更订阅字典
         /// </summary>
         private readonly ConcurrentDictionary<string, List<Action<object?>>> _outputSubscriptions = new ConcurrentDictionary<string, List<Action<object?>>>();
 
         /// <summary>
-        /// 褰撳墠鑺傜偣ID
+        /// 当前节点ID
         /// </summary>
         private string? _currentNodeId;
 
         /// <summary>
-        /// 褰撳墠鑺傜偣ID
+        /// 当前节点ID
         /// </summary>
         public string? CurrentNodeId
         {
@@ -73,17 +82,17 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔?
+        /// 创建数据源查询服务
         /// </summary>
         public DataSourceQueryService()
         {
         }
 
         /// <summary>
-        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔★紙甯︿緷璧栨敞鍏ワ級
+        /// 创建数据源查询服务（带依赖注入）
         /// </summary>
-        /// <param name="connectionProvider">宸ヤ綔娴佽繛鎺ユ彁渚涜€?/param>
-        /// <param name="nodeInfoProvider">鑺傜偣淇℃伅鎻愪緵鑰?/param>
+        /// <param name="connectionProvider">工作流连接提供者</param>
+        /// <param name="nodeInfoProvider">节点信息提供者</param>
         public DataSourceQueryService(
             IWorkflowConnectionProvider? connectionProvider,
             INodeInfoProvider? nodeInfoProvider = null)
@@ -93,10 +102,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 鍒涘缓鏁版嵁婧愭煡璇㈡湇鍔★紙甯︿緷璧栨敞鍍ュ強 Logger锛?
+        /// 创建数据源查询服务（带依赖注入和 Logger）
         /// </summary>
-        /// <param name="connectionProvider">宸ヤ綔娴佽繛鎺ユ彁渚涜€?/param>
-        /// <param name="nodeInfoProvider">鑺傜偣淇℃伅鎻愪緵鑰?/param>
+        /// <param name="connectionProvider">工作流连接提供者</param>
+        /// <param name="nodeInfoProvider">节点信息提供者</param>
         /// <param name="logger">Logger</param>
         public DataSourceQueryService(
             IWorkflowConnectionProvider? connectionProvider,
@@ -106,6 +115,25 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _connectionProvider = connectionProvider;
             _nodeInfoProvider = nodeInfoProvider;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// 创建数据源查询服务（带依赖注入和 Logger 和属性元数据提供者）
+        /// </summary>
+        /// <param name="connectionProvider">工作流连接提供者</param>
+        /// <param name="nodeInfoProvider">节点信息提供者</param>
+        /// <param name="logger">Logger</param>
+        /// <param name="metadataProvider">属性元数据提供者(可选)</param>
+        public DataSourceQueryService(
+            IWorkflowConnectionProvider? connectionProvider,
+            INodeInfoProvider? nodeInfoProvider,
+            ILogger? logger = null,
+            IPropertyMetadataProvider? metadataProvider = null)
+        {
+            _connectionProvider = connectionProvider;
+            _nodeInfoProvider = nodeInfoProvider;
+            _logger = logger;
+            _metadataProvider = metadataProvider;
         }
 
         /// <inheritdoc/>
@@ -169,10 +197,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var parent in parentNodes)
             {
+                // GetParentNodes 已经调用 GetNodeOutputProperties 填充了 OutputProperties
                 var properties = parent.OutputProperties;
                 _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
 
-                // 绫诲瀷杩囨护
+                // 类型过滤
                 if (targetType != null)
                 {
                     properties = parent.GetCompatibleProperties(targetType);
@@ -183,7 +212,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
                 foreach (var prop in properties)
                 {
-                    _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name})", "DataSourceQueryService");
+                    var treeNameInfo = string.IsNullOrEmpty(prop.FullTreeName) ? "" : $" [Tree: {prop.FullTreeName}]";
+                    _logger?.LogInfo($"      - {prop.DisplayName}{treeNameInfo} ({prop.PropertyType.Name})", "DataSourceQueryService");
                 }
             }
 
@@ -209,6 +239,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var parent in parentNodes)
             {
+                // GetParentNodes 已经调用 GetNodeOutputProperties 填充了 OutputProperties
                 var properties = parent.OutputProperties;
                 _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
 
@@ -234,117 +265,98 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <inheritdoc/>
-
         public List<AvailableDataSource> GetNodeOutputProperties(string parentNodeId)
-
         {
-
             var properties = new List<AvailableDataSource>();
-
-
-
-            // 鑾峰彇鑺傜偣鎵ц涓婁笅鏂?
             var context = GetNodeContext(parentNodeId);
 
-            if (context == null)
-
+            if (context == null || context.ResultType == null)
             {
-
+                _logger?.LogInfo($"节点上下文为空: {parentNodeId}", "DataSourceQueryService");
                 return properties;
-
             }
 
+            // 从变量池获取属性元数据（不再反射）
+            // 注意：需要通过元数据提供者获取，避免直接依赖 Infrastructure 层
+            var metadataList = _metadataProvider?.GetAllPropertyMetadata(context.NodeType);
 
-
-            // 鍒涘缓鐖惰妭鐐逛俊鎭紙鐢ㄤ簬鎵╁睍鏂规硶锛?
-            var nodeInfo = new ParentNodeInfo
-
+            if (metadataList == null)
             {
+                _logger?.LogWarning($"未找到属性元数据: {context.NodeType}", "DataSourceQueryService");
+                return properties;
+            }
 
-                NodeId = parentNodeId,
+            // 输出关键日志：TreeName 是否正确设置
+            var hasTreeName = metadataList.Any(m => !string.IsNullOrEmpty(m.TreeName) && m.TreeName != m.DisplayName);
+            _logger?.LogSuccess($"获取到 {metadataList.Count} 个属性元数据: {context.NodeType} (TreeName正确: {hasTreeName})", "DataSourceQueryService");
 
-                NodeName = context.NodeName,
+            foreach (var metadata in metadataList)
+            {
+                // 直接从元数据创建，不再反射
+                object? currentValue = null;
+                if (context.Result != null && metadata.PropertyType != null)
+                {
+                    // 运行时：填充实际值
+                    var propInfo = context.ResultType.GetProperty(metadata.PropertyName);
+                    currentValue = propInfo?.GetValue(context.Result);
+                }
 
-                NodeType = context.NodeType,
+                var dataSource = new AvailableDataSource
+                {
+                    SourceNodeId = parentNodeId,
+                    SourceNodeName = context.NodeName,
+                    SourceNodeType = context.NodeType,
+                    PropertyName = metadata.PropertyName,
+                    DisplayName = metadata.DisplayName,
+                    PropertyType = metadata.PropertyType,
+                    CurrentValue = currentValue,
+                    Unit = null,
+                    Description = metadata.Description,
+                    GroupName = context.NodeName,
+                    FullTreeName = metadata.TreeName
+                };
 
-                NodeIcon = context.NodeIcon,
+                // 📊 调试日志：输出 FullTreeName 赋值结果
+                _logger?.LogInfo($"    [DataSourceQueryService] 属性 {metadata.PropertyName}: TreeName='{metadata.TreeName ?? "null"}', DisplayName='{metadata.DisplayName}'", "DataSourceQueryService");
 
-                ExecutionStatus = context.ExecutionStatus
+                properties.Add(dataSource);
+            }
 
-            };
-
-
-
-            // 缁熶竴鐨勬彁鍙栭€昏緫锛氳璁℃椂鍜岃繍琛屾椂
-
-            // - 璁捐鏃讹細浠?ResultType 鍙嶅皠鎻愬彇灞炴€у畾涔?
-            // - 杩愯鏃讹細浠?ToolResults 鎻愬彇灞炴€у畾涔?+ 瀹為檯鍊?
-            nodeInfo.ExtractOutputPropertiesFromType(context.ResultType, context.Result);
-
-
-
-            return nodeInfo.OutputProperties;
-
+            return properties;
         }
-
-
 
         /// <inheritdoc/>
-
         public NodeExecutionContext? GetNodeContext(string nodeId)
-
         {
-
             if (_nodeInfoProvider == null)
-
             {
-
                 return null;
-
             }
 
-
-
             return new NodeExecutionContext
-
             {
-
                 NodeId = nodeId,
-
                 NodeName = _nodeInfoProvider.GetNodeName(nodeId) ?? nodeId,
-
                 NodeType = _nodeInfoProvider.GetNodeType(nodeId) ?? "Unknown",
-
                 NodeIcon = _nodeInfoProvider.GetNodeIcon(nodeId),
-
                 Result = GetNodeResultFromCache(nodeId),
-
                 ResultType = _nodeInfoProvider.GetResultType(nodeId)
-
             };
-
         }
-
-
 
         /// <summary>
-
-        /// 浠庣紦瀛樿幏鍙栬妭鐐规墽琛岀粨鏋?
+        /// 从缓存获取节点执行结果
         /// </summary>
-
         private ToolResults? GetNodeResultFromCache(string nodeId)
-
         {
-
             _nodeResults.TryGetValue(nodeId, out var result);
-
             return result;
-
         }
+
         /// <inheritdoc/>
         public object? GetPropertyValue(string nodeId, string propertyName)
         {
-            // 浠庤妭鐐硅緭鍑轰腑鑾峰彇灞炴€у€?
+            // 从节点输出中获取属性值
             if (_nodeOutputs.TryGetValue(nodeId, out var outputs))
             {
                 if (outputs.TryGetValue(propertyName, out var value))
@@ -353,7 +365,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 }
             }
 
-            // 浠庤妭鐐圭粨鏋滀腑鑾峰彇灞炴€у€?
+            // 从节点结果中获取属性值
             var result = GetNodeResultFromCache(nodeId);
             if (result != null)
             {
@@ -366,7 +378,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 鑾峰彇宓屽灞炴€у€?
+        /// 获取嵌套属性值
         /// </summary>
         private object? GetNestedPropertyValue(object obj, string propertyPath)
         {
@@ -396,6 +408,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             return current;
         }
+
         #region IDataSourceQueryService Runtime Methods
 
         /// <inheritdoc/>
@@ -407,14 +420,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public void RefreshNodeData(string nodeId)
         {
-            // TODO: 瀹炵幇鑺傜偣鏁版嵁鍒锋柊閫昏緫
+            // TODO: 实现节点数据刷新逻辑
             _logger?.LogInfo($"  RefreshNodeData({nodeId})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void RefreshAll()
         {
-            // TODO: 瀹炵幇鎵€鏈夋暟鎹埛鏂伴€昏緫
+            // TODO: 实现所有数据刷新逻辑
             _logger?.LogInfo("  RefreshAll()", "DataSourceQueryService");
         }
 
@@ -466,7 +479,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public object? GetCurrentBindingValue(string nodeId, string propertyName, string? bindingPath = null)
         {
-            // TODO: 瀹炵幇缁戝畾鍊艰幏鍙栭€昏緫
+            // TODO: 实现绑定值获取逻辑
             _logger?.LogInfo($"  GetCurrentBindingValue({nodeId}, {propertyName})", "DataSourceQueryService");
             return null;
         }
@@ -474,7 +487,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public string GetBindingDisplayPath(string nodeId, string propertyName, string? bindingPath = null)
         {
-            // TODO: 瀹炵幇缁戝畾鏄剧ず璺緞閫昏緫
+            // TODO: 实现绑定显示路径逻辑
             _logger?.LogInfo($"  GetBindingDisplayPath({nodeId}, {propertyName})", "DataSourceQueryService");
             return propertyName;
         }
@@ -482,7 +495,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public IDisposable SubscribeOutputChanged(string nodeId, string propertyName, string? bindingPath, Action<object?> callback)
         {
-            // TODO: 瀹炵幇杈撳嚭鍙樻洿璁㈤槄閫昏緫
+            // TODO: 实现输出变更订阅逻辑
             _logger?.LogInfo($"  SubscribeOutputChanged({nodeId}, {propertyName})", "DataSourceQueryService");
 
             // 返回一个空的订阅令牌
@@ -492,7 +505,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public void RefreshOutputs()
         {
-            // TODO: 瀹炵幇杈撳嚭鍒锋柊閫昏緫
+            // TODO: 实现输出刷新逻辑
             _logger?.LogInfo("  RefreshOutputs()", "DataSourceQueryService");
         }
 
@@ -505,7 +518,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         #endregion
 
         /// <summary>
-        /// 璁㈤槄浠ょ墝
+        /// 订阅令牌
         /// </summary>
         private class SubscriptionToken : IDisposable
         {
@@ -529,80 +542,80 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     }
 
     /// <summary>
-    /// 宸ヤ綔娴佽繛鎺ユ彁渚涜€呮帴鍙?
+    /// 工作流连接提供者接口
     /// </summary>
     /// <remarks>
-    /// 鎻愪緵宸ヤ綔娴佽妭鐐硅繛鎺ュ叧绯绘煡璇㈣兘鍔涖€?
-    /// 鐢卞伐浣滄祦寮曟搸鎴朥I灞傚疄鐜般€?
+    /// 提供工作流节点连接关系查询能力。
+    /// 由工作流引擎或UI层实现。
     /// </remarks>
     public interface IWorkflowConnectionProvider
     {
         /// <summary>
-        /// 鑾峰彇鐖惰妭鐐笽D鍒楄〃
+        /// 获取父节点ID列表
         /// </summary>
-        /// <param name="nodeId">褰撳墠鑺傜偣ID</param>
-        /// <returns>鐖惰妭鐐笽D鍒楄〃</returns>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <returns>父节点ID列表</returns>
         List<string> GetParentNodeIds(string nodeId);
 
         /// <summary>
-        /// 鑾峰彇瀛愯妭鐐笽D鍒楄〃
+        /// 获取子节点ID列表
         /// </summary>
-        /// <param name="nodeId">褰撳墠鑺傜偣ID</param>
-        /// <returns>瀛愯妭鐐笽D鍒楄〃</returns>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <returns>子节点ID列表</returns>
         List<string> GetChildNodeIds(string nodeId);
 
         /// <summary>
-        /// 鑾峰彇鎵€鏈夎妭鐐笽D
+        /// 获取所有节点ID
         /// </summary>
-        /// <returns>鎵€鏈夎妭鐐笽D鍒楄〃</returns>
+        /// <returns>所有节点ID列表</returns>
         List<string> GetAllNodeIds();
     }
 
     /// <summary>
-    /// 鑺傜偣淇℃伅鎻愪緵鑰呮帴鍙?
+    /// 节点信息提供者接口
     /// </summary>
     /// <remarks>
-    /// 鎻愪緵鑺傜偣鍩烘湰淇℃伅鏌ヨ鑳藉姏銆?
-    /// 鐢卞伐浣滄祦寮曟搸鎴朥I灞傚疄鐜般€?
+    /// 提供节点基本信息查询能力。
+    /// 由工作流引擎或UI层实现。
     /// </remarks>
     public interface INodeInfoProvider
     {
         /// <summary>
-        /// 鑾峰彇鑺傜偣鍚嶇О
+        /// 获取节点名称
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鑺傜偣鍚嶇О</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点名称</returns>
         string GetNodeName(string nodeId);
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣绫诲瀷
+        /// 获取节点类型
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鑺傜偣绫诲瀷</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点类型</returns>
         string GetNodeType(string nodeId);
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣鍥炬爣
+        /// 获取节点图标
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鑺傜偣鍥炬爣璺緞鎴栧悕绉?/returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>节点图标路径或名称</returns>
         string? GetNodeIcon(string nodeId);
 
         /// <summary>
-        /// 妫€鏌ヨ妭鐐规槸鍚﹀瓨鍦?
+        /// 检查节点是否存在
         /// </summary>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>鏄惁瀛樺湪</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否存在</returns>
         bool NodeExists(string nodeId);
 
         /// <summary>
-        /// 鑾峰彇鑺傜偣缁撴灉绫诲瀷
+        /// 获取节点结果类型
         /// </summary>
         /// <remarks>
-        /// 鐢ㄤ簬璁捐鏃舵帹鏂緭鍑哄睘鎬с€俇I 灞傚疄鐜版椂锛屽彲浠ヤ粠宸ュ叿鍏冩暟鎹腑鑾峰彇 ResultType銆?
+        /// 用于设计时推断输出属性。UI 层实现时，可以从工具元数据中获取 ResultType。
         /// </remarks>
-        /// <param name="nodeId">鑺傜偣ID</param>
-        /// <returns>缁撴灉绫诲瀷锛屽鏋滄棤娉曡幏鍙栧垯杩斿洖 null</returns>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>结果类型，如果无法获取则返回 null</returns>
         Type? GetResultType(string nodeId);
     }
 }

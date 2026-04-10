@@ -39,7 +39,7 @@
                                 x:Name="imageSourceSelector"
                                 PlaceholderText="请选择输入图像源" Width="250" 
                                 AvailableImageSources="{Binding AvailableImageSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
-                                SelectedImageSource="{Binding SelectedImageSource, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}, Mode=TwoWay}"/>
+                                SelectedImageSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
             </controls:LabeledControl>
 
             <TextBlock Text="ROI区域"
@@ -59,25 +59,29 @@
             <controls:LabeledControl Label="阈值" >
               <controls:BindableParameter
                                 x:Name="thresholdParam"
+                                ParameterName="Threshold"
                                 DataType="Int"
                                 Value="{Binding Threshold, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
-                                ShowSlider="True" Width="250" />
+                                ShowSlider="True" Width="250"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
             </controls:LabeledControl>
 
             <controls:LabeledControl Label="最大值">
               <controls:BindableParameter
                                 x:Name="maxValueParam"
+                                ParameterName="MaxValue"
                                 DataType="Int"
                                 Value="{Binding MaxValue, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
                                 SmallChange="1"
                                 LargeChange="10"
-                                ShowSlider="True" Width="250"/>
+                                ShowSlider="True" Width="250"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
             </controls:LabeledControl>
             <controls:LabeledControl Label="选择阈值类型" >
               <ComboBox x:Name="thresholdTypeComboBox"
@@ -284,22 +288,28 @@
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
-                    <controls:BindableParameter Grid.Column="1" Grid.Row="3" 
+                    <controls:BindableParameter Grid.Column="1" Grid.Row="3"
+                                                            ParameterName="TextConfig.PositionX"
+                                                            DataType="Double"
                                                             Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"/>
+                                                            Width="250"
+                                                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
-                  <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
-                    <controls:BindableParameter Grid.Column="1" Grid.Row="3" 
+                  <controls:LabeledControl Label="位置Y" Margin="0,0,0,8">
+                    <controls:BindableParameter Grid.Column="1" Grid.Row="3"
+                                                            ParameterName="TextConfig.PositionY"
+                                                            DataType="Double"
                                                             Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"/>
+                                                            Width="250"
+                                                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>

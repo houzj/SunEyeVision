@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
 using System.Text.Json.Serialization;
 using SunEyeVision.Tool.Threshold.Models;
@@ -182,6 +183,26 @@ namespace SunEyeVision.Tool.Threshold
                 SetProperty(ref _blockSize, clampedValue, "块大小");
             }
         }
+
+        #endregion
+
+        #region 参数绑定
+
+        /// <summary>
+        /// 输入图像源（参数绑定）
+        /// </summary>
+        /// <remarks>
+        /// 用于参数面板和调试窗口选择图像源。
+        /// 支持从上游节点绑定图像输出。
+        /// </remarks>
+        [IgnoreSave]
+        public AvailableDataSource? ImageSource
+        {
+            get => _imageSource;
+            set => SetProperty(ref _imageSource, value, "输入图像");
+        }
+
+        private AvailableDataSource? _imageSource;
 
         #endregion
 

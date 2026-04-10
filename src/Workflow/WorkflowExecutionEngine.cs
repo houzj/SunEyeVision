@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -98,15 +98,20 @@ namespace SunEyeVision.Workflow
             var connectionProvider = workflowEngine as IWorkflowConnectionProvider;
             var nodeInfoProvider = workflowEngine as INodeInfoProvider;
 
+            // 创建属性元数据提供者
+            var metadataProvider = new PropertyMetadataProviderAdapter();
+
             _logger.LogInfo($"========== 初始化数据源查询服务 ==========");
             _logger.LogInfo($"WorkflowEngine 类型: {workflowEngine.GetType().FullName}");
             _logger.LogInfo($"connectionProvider: {(connectionProvider != null ? "✅ 已注入" : "❌ 为 null")}");
             _logger.LogInfo($"nodeInfoProvider: {(nodeInfoProvider != null ? "✅ 已注入" : "❌ 为 null")}");
+            _logger.LogInfo($"metadataProvider: {(metadataProvider != null ? "✅ 已注入" : "❌ 为 null")}");
 
             _dataSourceQueryService = new DataSourceQueryService(
                 connectionProvider,
                 nodeInfoProvider,
-                _logger
+                _logger,
+                metadataProvider
             );
 
             _logger.LogInfo($"DataSourceQueryService 实例化完成");

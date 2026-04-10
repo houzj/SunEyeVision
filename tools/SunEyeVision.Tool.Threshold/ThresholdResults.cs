@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
@@ -114,6 +114,28 @@ namespace SunEyeVision.Tool.Threshold
                     fontSize: 11.0
                 );
             }
+        }
+
+        /// <summary>
+        /// 获取属性的树形显示名称
+        /// </summary>
+        /// <param name="propertyName">属性名称</param>
+        /// <returns>树形显示名称（使用 `.` 分隔多级），返回 null 表示使用默认值</returns>
+        public override string? GetPropertyTreeName(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(OutputImage) => "结果.输出图像",
+                nameof(ThresholdUsed) => "结果.实际使用的阈值",
+                nameof(MaxValueUsed) => "结果.最大值",
+                nameof(TypeUsed) => "结果.阈值类型",
+                nameof(AdaptiveMethodUsed) => "结果.自适应方法",
+                nameof(BlockSizeUsed) => "结果.块大小",
+                nameof(InvertUsed) => "结果.是否反转",
+                nameof(InputSize) => "结果.输入图像尺寸",
+                nameof(ProcessedAt) => "执行信息.处理时间戳",
+                _ => null // 使用默认值
+            };
         }
 
         /// <summary>

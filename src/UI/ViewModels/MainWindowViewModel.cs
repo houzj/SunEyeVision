@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -68,6 +68,7 @@ namespace SunEyeVision.UI.ViewModels
         public string Value { get; set; } = string.Empty;
     }
 
+
     /// <summary>
     /// 主窗口视图模型
     /// </summary>
@@ -92,6 +93,9 @@ namespace SunEyeVision.UI.ViewModels
         // 图像预览
         private bool _autoSwitchEnabled = false;
         private int _currentImageIndex = -1;
+
+        // 参数选择状态（用于 TreeView 事件处理）
+        private string? _selectedParameterName;
 
         // 所有工作流状态
         private bool _isAllWorkflowsRunning = false;
@@ -126,8 +130,6 @@ namespace SunEyeVision.UI.ViewModels
         // 数据提供者缓存（用于在节点执行完成后更新前置节点输出）
         private readonly Dictionary<string, IDataSourceQueryService> _nodeDataProviders = new();
 
-        // 属性
-        private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待中...\n";
 
         // 折叠状态
@@ -140,11 +142,8 @@ namespace SunEyeVision.UI.ViewModels
 
         // 分割器
         private double _splitterPosition = 500; // 默认图像高度
-        private const double DefaultPropertyPanelHeight = 300;
         private const double MinImageAreaHeight = 200;
         private const double MaxImageAreaHeight = 800;
-
-        private double _propertyPanelActualHeight = DefaultPropertyPanelHeight;
 
         public string Title
         {
@@ -186,7 +185,6 @@ namespace SunEyeVision.UI.ViewModels
         // 确保每个Tab都是独立的
 
         private WorkflowNodeBase? _selectedNode;
-        private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
         private Models.ImageInputSource? _activeInputSource; // 新增：活动输入源
         private string? _currentDisplayNodeId = null;  // 记录当前显示的采集节点ID，避免重复切换
@@ -246,6 +244,38 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _selectedDisplayImageSourceIndex, value);
         }
 
+        // ========== 数据分析控件相关 ==========
+        private bool _hasDataAnalysisControl = false;
+        private UIElement? _selectedNodeDataAnalysisControl = null;
+        private string _dataAnalysisControlTitle = "数据分析";
+
+        /// <summary>
+        /// 当前选中节点是否有数据分析控件
+        /// </summary>
+        public bool HasDataAnalysisControl
+        {
+            get => _hasDataAnalysisControl;
+            set => SetProperty(ref _hasDataAnalysisControl, value);
+        }
+
+        /// <summary>
+        /// 当前选中节点的数据分析控件
+        /// </summary>
+        public UIElement? SelectedNodeDataAnalysisControl
+        {
+            get => _selectedNodeDataAnalysisControl;
+            set => SetProperty(ref _selectedNodeDataAnalysisControl, value);
+        }
+
+        /// <summary>
+        /// 数据分析控件标题
+        /// </summary>
+        public string DataAnalysisControlTitle
+        {
+            get => _dataAnalysisControlTitle;
+            set => SetProperty(ref _dataAnalysisControlTitle, value);
+        }
+
         public WorkflowNodeBase? SelectedNode
         {
             get => _selectedNode;
@@ -255,8 +285,8 @@ namespace SunEyeVision.UI.ViewModels
 
                 if (changed)
                 {
-                    // 显示属性面板
-                    ShowPropertyPanel = value != null;
+                    // 更新数据分析控件
+                    UpdateDataAnalysisControl((Models.WorkflowNode?)value);
 
                     // 刷新结果显示（如果节点有缓存结果）
                     var executionResult = value != null ? _workflowContext.GetNodeResult(value.Id) : null;
@@ -275,8 +305,6 @@ namespace SunEyeVision.UI.ViewModels
 
                     // 节点选中状态变化时更新图像预览（整合了 ActiveNodeImageData 更新逻辑）
                     UpdateImagePreviewVisibility((Models.WorkflowNode?)value);
-                    // 加载节点属性
-                    LoadNodeProperties((Models.WorkflowNode?)value);
                 }
             }
         }
@@ -308,14 +336,6 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// 是否显示属性面板
-        /// </summary>
-        public bool ShowPropertyPanel
-        {
-            get => _showPropertyPanel;
-            set => SetProperty(ref _showPropertyPanel, value);
-        }
         public WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
@@ -438,13 +458,6 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public ObservableCollection<ResultItem> CalculationResults { get; }
 
-        // 属性
-        public ObservableCollection<Models.PropertyGroup> PropertyGroups
-        {
-            get => _propertyGroups;
-            set => SetProperty(ref _propertyGroups, value);
-        }
-
         public string LogText
         {
             get => _logText;
@@ -502,27 +515,6 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     _splitterPosition = value;
                     OnPropertyChanged(nameof(SplitterPosition));
-
-                    // 更新实际高度
-                    double availableHeight = _splitterPosition;
-                    double propertyHeight = Math.Max(200, Math.Min(600, 900 - availableHeight));
-                    PropertyPanelActualHeight = propertyHeight;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 属性面板实际高度
-        /// </summary>
-        public double PropertyPanelActualHeight
-        {
-            get => _propertyPanelActualHeight;
-            private set
-            {
-                if (Math.Abs(_propertyPanelActualHeight - value) > 1)
-                {
-                    _propertyPanelActualHeight = value;
-                    OnPropertyChanged(nameof(PropertyPanelActualHeight));
                 }
             }
         }
@@ -868,8 +860,6 @@ namespace SunEyeVision.UI.ViewModels
             // 初始化当前解决方案信息
             UpdateCurrentSolutionInfo();
 
-            InitializePropertyGroups();
-
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
             OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
             SaveWorkflowCommand = new RelayCommand(ExecuteSaveWorkflow);
@@ -1096,14 +1086,6 @@ namespace SunEyeVision.UI.ViewModels
                 System.Windows.MessageBox.Show($"重做失败: {ex.Message}", "错误",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
-        }
-
-        private void InitializePropertyGroups()
-        {
-            // 初始化日志
-            AddLog("✅ [系统] 系统启动成功");
-            AddLog("✅ [设备] 相机1连接成功");
-            AddLog("✅ [设备] 相机2连接成功");
         }
 
         private void ExecuteNewWorkflow()
@@ -1815,18 +1797,6 @@ namespace SunEyeVision.UI.ViewModels
             // TODO: 直接跳转到快捷键页面
         }
 
-        /// <summary>
-        /// 加载节点属性
-        /// </summary>
-        public void LoadNodeProperties(Models.WorkflowNode? node)
-        {
-            if (node == null)
-            {
-                PropertyGroups.Clear();
-                return;
-            }
-        }
-
         #region 运行时参数注入
 
         /// <summary>
@@ -1872,77 +1842,6 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         #endregion
-
-        /// <summary>
-        /// 加载节点属性（完整实现）
-        /// </summary>
-        public void LoadNodePropertiesFull(Models.WorkflowNode? node)
-        {
-            PropertyGroups.Clear();
-
-            if (node == null)
-            {
-                return;
-            }
-
-            // 基本信息
-            var basicGroup = new Models.PropertyGroup
-            {
-                Name = "📋 基本信息",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>
-                {
-                    new Models.PropertyItem { Label = "名称", Value = node.Name },
-                    new Models.PropertyItem { Label = "ID", Value = node.Id },
-                    new Models.PropertyItem { Label = "类型", Value = node.ToolType ?? "未知" }
-                }
-            };
-            PropertyGroups.Add(basicGroup);
-
-            // 参数
-            var paramGroup = new Models.PropertyGroup
-            {
-                Name = "⚙️ 参数",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>()
-            };
-
-            if (node.Parameters != null)
-            {
-                var parameterProperties = node.Parameters.GetAllParameterProperties();
-                foreach (var prop in parameterProperties)
-                {
-                    if (prop.Name == nameof(ToolParameters.Version) || prop.Name == nameof(ToolParameters.Context))
-                        continue;
-
-                    try
-                    {
-                        var value = prop.GetValue(node.Parameters);
-                        paramGroup.Parameters.Add(new Models.PropertyItem
-                        {
-                            Label = prop.Name,
-                            Value = value?.ToString() ?? ""
-                        });
-                    }
-                    catch
-                    {
-                        // 读取失败，跳过
-                    }
-                }
-            }
-            PropertyGroups.Add(paramGroup);
-
-            // 性能统计
-            var perfGroup = new Models.PropertyGroup
-            {
-                Name = "📊 性能统计",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>
-                {
-                    new Models.PropertyItem { Label = "平均时间", Value = "0 ms" },
-                }
-            };
-        }
 
         /// <summary>
         /// 添加节点到当前工作流
@@ -2579,6 +2478,167 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
+        /// 更新数据分析控件
+        /// </summary>
+        /// <param name="selectedNode">当前选中的节点</param>
+        private void UpdateDataAnalysisControl(Models.WorkflowNode? selectedNode)
+        {
+            try
+            {
+                // 清空当前控件
+                SelectedNodeDataAnalysisControl = null;
+                HasDataAnalysisControl = false;
+                DataAnalysisControlTitle = "数据分析";
+
+                if (selectedNode == null)
+                {
+                    return;
+                }
+
+                // 获取工具注册信息
+                var toolType = selectedNode.ToolType;
+                if (string.IsNullOrEmpty(toolType))
+                {
+                    return;
+                }
+
+                var toolMetadata = ToolRegistry.GetToolMetadata(toolType);
+                if (toolMetadata == null)
+                {
+                    AddLog($"⚠️ 未找到工具元数据: {toolType}");
+                    return;
+                }
+
+                // 检查是否有调试控件
+                if (toolMetadata.DebugWindowType == null)
+                {
+                    AddLog($"ℹ️ 工具 '{selectedNode.Name}' 无调试控件");
+                    return;
+                }
+
+                // 创建工具实例
+                var tool = ToolRegistry.CreateToolInstance(toolType);
+                if (tool == null)
+                {
+                    AddLog($"❌ 无法创建工具实例: {toolType}");
+                    return;
+                }
+
+                // 创建调试控件
+                var debugControl = tool.CreateDebugControl();
+                if (debugControl == null)
+                {
+                    AddLog($"⚠️ 工具 '{selectedNode.Name}' 未实现调试控件");
+                    return;
+                }
+
+                // 设置控件属性
+                DataAnalysisControlTitle = $"{selectedNode.Name} - 数据分析";
+                SelectedNodeDataAnalysisControl = debugControl;
+                HasDataAnalysisControl = true;
+
+                AddLog($"✅ 已加载数据分析控件: {selectedNode.Name}");
+
+                // 注入数据提供者和节点
+                InjectDataToDebugControl(debugControl, selectedNode);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 更新数据分析控件失败: {ex.Message}");
+                SelectedNodeDataAnalysisControl = null;
+                HasDataAnalysisControl = false;
+            }
+        }
+
+        /// <summary>
+        /// 注入数据提供者和节点信息到调试控件
+        /// </summary>
+        /// <param name="debugControl">调试控件</param>
+        /// <param name="node">当前节点</param>
+        private void InjectDataToDebugControl(System.Windows.FrameworkElement debugControl, Models.WorkflowNode node)
+        {
+            try
+            {
+                // 注入数据提供者
+                var setDataProviderMethod = debugControl.GetType().GetMethod("SetDataProvider");
+                if (setDataProviderMethod != null)
+                {
+                    var dataProvider = GetDataProviderForNode(node);
+                    if (dataProvider != null)
+                    {
+                        setDataProviderMethod.Invoke(debugControl, new object[] { dataProvider });
+                        AddLog($"✅ 已注入数据提供者到调试控件");
+                    }
+                }
+
+                // 注入节点参数
+                var setParametersMethod = debugControl.GetType().GetMethod("SetParameters");
+                if (setParametersMethod != null && node.Parameters != null)
+                {
+                    setParametersMethod.Invoke(debugControl, new object[] { node.Parameters });
+                    AddLog($"✅ 已注入节点参数到调试控件");
+                }
+
+                // 注入节点信息
+                var setCurrentNodeMethod = debugControl.GetType().GetMethod("SetCurrentNode");
+                if (setCurrentNodeMethod != null)
+                {
+                    setCurrentNodeMethod.Invoke(debugControl, new object[] { node });
+                    AddLog($"✅ 已注入节点信息到调试控件");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠️ 注入数据到调试控件失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取节点的数据提供者
+        /// </summary>
+        /// <param name="node">节点</param>
+        /// <returns>数据提供者实例</returns>
+        private object? GetDataProviderForNode(Models.WorkflowNode node)
+        {
+            try
+            {
+                // 获取当前工作流标签页
+                var selectedTab = WorkflowTabViewModel?.SelectedTab;
+                if (selectedTab == null)
+                {
+                    return null;
+                }
+
+                // 获取当前工作流
+                var currentWorkflow = _workflowEngine.CurrentWorkflow;
+                if (currentWorkflow == null)
+                {
+                    return null;
+                }
+
+                // 创建数据查询服务
+                // 说明：WorkflowEngine 同时实现了两个接口：
+                //   - IWorkflowConnectionProvider：提供工作流连接关系（父节点、子节点、连接线）
+                //   - INodeInfoProvider：提供节点信息（结果类型、输出端口）
+                // 由于架构分层限制，DataSourceQueryService 不能直接引用 WorkflowEngine 类，
+                // 因此通过接口注入。虽然传入的是同一个对象 _workflowEngine，
+                // 但它被分别用作两个不同的接口角色。
+                
+                // 创建属性元数据提供者
+                var metadataProvider = new SunEyeVision.Plugin.Infrastructure.Managers.Tool.PropertyMetadataProviderAdapter();
+                
+                var queryService = new DataSourceQueryService(_workflowEngine, _workflowEngine, null, metadataProvider);
+                LogInfo($"✓ 创建数据查询服务成功: 节点 {node.Id}, 工作流 {currentWorkflow.Name}");
+                return queryService;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 创建数据查询服务失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 注入前驱节点数据到调试窗口
         /// </summary>
         /// <param name="debugWindow">调试窗口实例</param>
@@ -2605,7 +2665,11 @@ namespace SunEyeVision.UI.ViewModels
 
             // 从工作流执行引擎获取数据查询服务
             // Create data query service with logger for debugging
-            var dataProvider = new DataSourceQueryService(_workflowEngine, _workflowEngine, _logger);
+            
+            // 创建属性元数据提供者
+            var metadataProvider = new SunEyeVision.Plugin.Infrastructure.Managers.Tool.PropertyMetadataProviderAdapter();
+            
+            var dataProvider = new DataSourceQueryService(_workflowEngine, _workflowEngine, _logger, metadataProvider);
             if (dataProvider == null)
             {
                 AddLog("Cannot create data provider");
@@ -3639,6 +3703,39 @@ kvp.Value.UpdateNodeOutput(node.Id, "OutputValue", outputValue);
             public bool HasDebugWindow => false;
             public System.Windows.Window? CreateDebugWindow() => null;
             public ToolParameters GetDefaultParameters() => new GenericToolParameters();
+        }
+    }
+
+    /// <summary>
+    /// 简单的 Action 命令实现
+    /// </summary>
+    public class ActionCommand<T> : ICommand
+    {
+        private readonly Action<T> _execute;
+        private readonly Func<T, bool>? _canExecute;
+
+        public ActionCommand(Action<T> execute, Func<T, bool>? canExecute = null)
+        {
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+        }
+
+        public event EventHandler? CanExecuteChanged;
+
+        public bool CanExecute(object? parameter)
+        {
+            return _canExecute == null || (parameter is T t && _canExecute(t));
+        }
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is T t)
+                _execute(t);
+        }
+
+        public void RaiseCanExecuteChanged()
+        {
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

@@ -165,4 +165,61 @@ namespace SunEyeVision.UI.Converters
             throw new NotImplementedException();
         }
     }
+
+    /// <summary>
+    /// 整数转可见性转换器
+    /// 非0值返回 Visible，0值返回 Collapsed
+    /// </summary>
+    public class IntToVisibilityConverter : IValueConverter
+    {
+        /// <summary>
+        /// 值为 0 时返回的可见性，默认为 Collapsed
+        /// </summary>
+        public System.Windows.Visibility ZeroValueVisibility { get; set; } = System.Windows.Visibility.Collapsed;
+
+        /// <summary>
+        /// 值非 0 时返回的可见性，默认为 Visible
+        /// </summary>
+        public System.Windows.Visibility NonZeroValueVisibility { get; set; } = System.Windows.Visibility.Visible;
+
+        /// <summary>
+        /// 是否反转逻辑（值非 0 时隐藏，值为 0 时显示）
+        /// </summary>
+        public bool Invert { get; set; } = false;
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null)
+            {
+                return Invert ? NonZeroValueVisibility : ZeroValueVisibility;
+            }
+
+            if (value is int intValue)
+            {
+                bool isVisible = intValue != 0;
+                if (Invert)
+                {
+                    isVisible = !isVisible;
+                }
+                return isVisible ? NonZeroValueVisibility : ZeroValueVisibility;
+            }
+
+            return ZeroValueVisibility;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is System.Windows.Visibility visibility)
+            {
+                bool isVisible = visibility == System.Windows.Visibility.Visible;
+                if (Invert)
+                {
+                    isVisible = !isVisible;
+                }
+                return isVisible ? 1 : 0;
+            }
+
+            return 0;
+        }
+    }
 }

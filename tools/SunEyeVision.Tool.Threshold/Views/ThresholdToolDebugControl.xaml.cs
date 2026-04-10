@@ -67,15 +67,15 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #endregion
 
-        #region 图像源管理
+        #region 数据源管理
 
         /// <summary>
-        /// 当前选中的图像源
+        /// 当前选中的图像源（旧的自定义类型，用于图像显示）
         /// </summary>
         public ImageSourceInfo? SelectedImageSource { get; set; }
 
         /// <summary>
-        /// 可用图像源列表
+        /// 可用图像源列表（旧的自定义类型，用于图像显示）
         /// </summary>
         public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; } = new();
 
@@ -206,6 +206,7 @@ namespace SunEyeVision.Tool.Threshold.Views
                 PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
 
                 PopulateImageSources(_dataProvider);
+                PopulateParameterSources(_dataProvider);
 
                 // 初始化 RegionEditor
                 if (regionEditor != null && regionEditor.ViewModel != null)
@@ -292,6 +293,74 @@ namespace SunEyeVision.Tool.Threshold.Views
             }
 
             PluginLogger.Info($"PopulateImageSources: 完成，共有 {AvailableImageSources.Count} 个可用图像源", "ThresholdTool");
+        }
+
+        /// <summary>
+        /// 填充可用数据源列表（SDK类型，用于参数绑定）
+        /// </summary>
+        private void PopulateParameterSources(DataSourceQueryService dataProvider)
+        {
+            if (dataProvider == null)
+            {
+                PluginLogger.Warning("PopulateParameterSources: dataProvider 为 null，无法获取参数数据源", "ThresholdTool");
+                return;
+            }
+
+            PluginLogger.Info("PopulateParameterSources: 开始获取参数数据源", "ThresholdTool");
+
+            var nodeOutputs = dataProvider.GetAvailableDataSources(_currentNodeId ?? "", null);
+
+            PluginLogger.Info($"PopulateParameterSources: 获取到 {nodeOutputs.Count} 个节点输出", "ThresholdTool");
+
+            // 创建新的集合实例以触发 DependencyProperty 回调
+            var newDataSources = new ObservableCollection<AvailableDataSource>();
+
+            foreach (var nodeOutput in nodeOutputs)
+            {
+                PluginLogger.Info($"节点: {nodeOutput.SourceNodeName} (ID: {nodeOutput.SourceNodeId}), 属性: {nodeOutput.PropertyName}, 类型: {nodeOutput.PropertyType.Name}, TreeName: {nodeOutput.FullTreeName}", "ThresholdTool");
+
+                var dataSource = new AvailableDataSource
+                {
+                    SourceNodeId = nodeOutput.SourceNodeId,
+                    SourceNodeName = nodeOutput.SourceNodeName,
+                    PropertyName = nodeOutput.PropertyName,
+                    PropertyType = nodeOutput.PropertyType,
+                    DisplayName = $"{nodeOutput.SourceNodeName}.{nodeOutput.PropertyName}",
+                    FullTreeName = nodeOutput.FullTreeName
+                };
+
+                newDataSources.Add(dataSource);
+                PluginLogger.Success($"添加数据源: {dataSource.DisplayName}", "ThresholdTool");
+            }
+
+            // 替换集合引用，触发 DependencyProperty 的回调
+            AvailableDataSources = newDataSources;
+
+            PluginLogger.Success($"PopulateParameterSources: 完成，共有 {AvailableDataSources.Count} 个可用数据源", "ThresholdTool");
+        }
+
+        /// <summary>
+        /// 将 AvailableDataSource 列表转换为 ImageSourceInfo 列表（用于 ImageSourceSelector）
+        /// </summary>
+        private void PopulateImageSourcesFromParameterSources()
+        {
+            AvailableImageSources.Clear();
+
+            foreach (var dataSource in AvailableDataSources)
+            {
+                var imageSource = new ImageSourceInfo
+                {
+                    NodeId = dataSource.SourceNodeId,
+                    NodeName = dataSource.SourceNodeName,
+                    OutputPortName = dataSource.PropertyName,
+                    DataType = dataSource.PropertyType?.Name ?? "Mat"
+                };
+
+                AvailableImageSources.Add(imageSource);
+                PluginLogger.Info($"添加图像源（从参数源转换）: {imageSource.DisplayName}", "ThresholdTool");
+            }
+
+            PluginLogger.Success($"PopulateImageSourcesFromParameterSources: 完成，共有 {AvailableImageSources.Count} 个可用图像源", "ThresholdTool");
         }
 
         #endregion

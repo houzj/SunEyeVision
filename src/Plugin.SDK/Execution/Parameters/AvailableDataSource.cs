@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -111,6 +111,41 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 示例: "圆形检测", "边缘检测", "测量结果"
         /// </remarks>
         public string? GroupName { get; set; }
+
+        /// <summary>
+        /// 完整树形名称（用于树形结构显示）
+        /// </summary>
+        /// <remarks>
+        /// 格式: 节点名称.TreeName（如果存在）
+        /// 示例: "阈值工具.结果.实际使用的阈值"
+        /// </remarks>
+        public string? FullTreeName { get; set; }
+
+        /// <summary>
+        /// 下拉显示文本（树形结构的完整路径）
+        /// </summary>
+        /// <remarks>
+        /// 格式: 节点名称 → TreeName部分1 → TreeName部分2
+        /// 示例: "阈值工具 → 结果 → 实际使用的阈值"
+        /// </remarks>
+        public string DropdownDisplayText => GetDropdownDisplayText();
+
+        /// <summary>
+        /// 获取下拉显示文本
+        /// </summary>
+        /// <returns>格式化的显示文本</returns>
+        private string GetDropdownDisplayText()
+        {
+            if (string.IsNullOrEmpty(FullTreeName))
+            {
+                // 如果没有 FullTreeName，使用简单的显示文本
+                return GetDisplayText();
+            }
+
+            // 将 FullTreeName 中的 `.` 替换为 ` → `
+            var treeNameParts = FullTreeName.Replace(".", " → ");
+            return treeNameParts;
+        }
 
         /// <summary>
         /// 是否与目标类型兼容

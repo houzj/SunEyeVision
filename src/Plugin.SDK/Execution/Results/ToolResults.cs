@@ -508,6 +508,44 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
             return result;
         }
 
+        /// <summary>
+        /// 获取属性的树形显示名称
+        /// </summary>
+        /// <remarks>
+        /// 允许工具自定义属性在树形结构中的显示名称。
+        /// 使用 `.` 分隔符创建多级树结构。
+        /// 
+        /// 使用示例：
+        /// <code>
+        /// public class ThresholdResults : ToolResults
+        /// {
+        ///     public double ActualThresholdUsed { get; set; }
+        ///     
+        ///     public override string? GetPropertyTreeName(string propertyName)
+        ///     {
+        ///         if (propertyName == nameof(ActualThresholdUsed))
+        ///         {
+        ///             return "结果.实际使用的阈值";
+        ///         }
+        ///         return null; // 使用默认值
+        ///     }
+        /// }
+        /// </code>
+        /// 
+        /// 返回值说明：
+        /// - 返回 null: 使用默认的 DisplayName（PascalCase 或简单转换）
+        /// - 返回空字符串: 不显示该属性
+        /// - 返回 "A.B": 创建树结构 A → B（B 是叶子节点）
+        /// - 返回 "A.B.C": 创建树结构 A → B → C（C 是叶子节点）
+        /// </remarks>
+        /// <param name="propertyName">属性名称（使用 nameof 获取）</param>
+        /// <returns>树形显示名称，使用 `.` 分隔多级</returns>
+        public virtual string? GetPropertyTreeName(string propertyName)
+        {
+            // 默认实现：不提供树形名称，使用默认行为
+            return null;
+        }
+
         #endregion
     }
 
