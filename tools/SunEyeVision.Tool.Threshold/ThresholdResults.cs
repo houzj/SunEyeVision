@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Execution.Results;
@@ -125,7 +125,7 @@ namespace SunEyeVision.Tool.Threshold
         {
             return propertyName switch
             {
-                nameof(OutputImage) => "结果.输出图像",
+                nameof(OutputImage) => "图像",
                 nameof(ThresholdUsed) => "结果.实际使用的阈值",
                 nameof(MaxValueUsed) => "结果.最大值",
                 nameof(TypeUsed) => "结果.阈值类型",

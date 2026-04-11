@@ -28,14 +28,12 @@ namespace SunEyeVision.Tool.Threshold.Views
     /// - 纯声明式XAML绑定，无手动绑定代码
     /// - 使用项目样式系统统一外观
     /// </remarks>
-    public partial class ThresholdToolDebugControl 
+    public partial class ThresholdToolDebugControl
     {
         #region 字段
 
         // 数据提供者（直接使用 DataSourceQueryService）
         private DataSourceQueryService? _dataProvider;
-        // 当前节点ID
-        private string? _currentNodeId;
 
         #endregion
 
@@ -70,36 +68,9 @@ namespace SunEyeVision.Tool.Threshold.Views
         #region 数据源管理
 
         /// <summary>
-        /// 当前选中的图像源（旧的自定义类型，用于图像显示）
+        /// 当前选中的图像源（用于图像显示）
         /// </summary>
-        public ImageSourceInfo? SelectedImageSource { get; set; }
-
-        /// <summary>
-        /// 可用图像源列表（旧的自定义类型，用于图像显示）
-        /// </summary>
-        public ObservableCollection<ImageSourceInfo> AvailableImageSources { get; } = new();
-
-        /// <summary>
-        /// 图像源选择器加载事件
-        /// </summary>
-        private void ImageSourceSelector_Loaded(object sender, RoutedEventArgs e)
-        {
-            PluginLogger.Info("ImageSourceSelector_Loaded 触发", "ThresholdTool");
-            PluginLogger.Info($"AvailableImageSources.Count = {AvailableImageSources.Count}", "ThresholdTool");
-
-            if (AvailableImageSources.Count > 0)
-            {
-                PluginLogger.Info($"可用图像源列表:", "ThresholdTool");
-                foreach (var source in AvailableImageSources)
-                {
-                    PluginLogger.Info($"  - {source.DisplayName} (NodeId: {source.NodeId})", "ThresholdTool");
-                }
-            }
-            else
-            {
-                PluginLogger.Warning("AvailableImageSources 为空，可能的原因: 1) SetDataProvider 未被调用 2) 父节点未注册 3) 父节点无 Mat 输出", "ThresholdTool");
-            }
-        }
+        public AvailableDataSource? SelectedImageSource => Parameters?.ImageSource;
 
         #endregion
 
@@ -154,11 +125,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             : this()
         {
             Tool = toolPlugin;
-
-            if (_dataProvider != null)
-            {
-                PopulateImageSources(_dataProvider);
-            }
         }
 
         /// <summary>
@@ -199,14 +165,14 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             PluginLogger.Info($"SetDataProvider 被调用，dataProvider = {(dataProvider != null ? "非空" : "null")}", "ThresholdTool");
 
-            // 直接接受 DataSourceQueryService
+            // 调用基类方法以填充参数数据源和图像源
+            base.SetDataProvider(dataProvider);
+
+            // 保存引用用于执行逻辑
             if (dataProvider is DataSourceQueryService queryService)
             {
                 _dataProvider = queryService;
                 PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
-
-                PopulateImageSources(_dataProvider);
-                PopulateParameterSources(_dataProvider);
 
                 // 初始化 RegionEditor
                 if (regionEditor != null && regionEditor.ViewModel != null)
@@ -217,7 +183,6 @@ namespace SunEyeVision.Tool.Threshold.Views
             else
             {
                 PluginLogger.Warning($"未知的 dataProvider 类型：{dataProvider?.GetType().Name}", "ThresholdTool");
-                return;
             }
         }
 
@@ -226,14 +191,8 @@ namespace SunEyeVision.Tool.Threshold.Views
             if (node == null)
                 return;
 
-            // 获取并保存节点ID
-            var idProperty = node.GetType().GetProperty("Id");
-            if (idProperty != null)
-            {
-                _currentNodeId = idProperty.GetValue(node) as string;
-                PluginLogger.Info($"SetCurrentNode: 节点ID已保存 = {_currentNodeId}", "ThresholdTool");
-            }
-
+            // 调用基类方法（基类已提取 _currentNodeId 并重新填充数据源，包括图像源）
+            base.SetCurrentNode(node);
 
             var parametersProperty = node.GetType().GetProperty("Parameters");
             if (parametersProperty == null)
@@ -254,114 +213,7 @@ namespace SunEyeVision.Tool.Threshold.Views
         }
 
 
-        /// <summary>
-        /// 填充可用图像源列表
-        /// </summary>
-        private void PopulateImageSources(DataSourceQueryService dataProvider)
-        {
-            AvailableImageSources.Clear();
 
-            if (dataProvider == null)
-            {
-                PluginLogger.Warning("PopulateImageSources: dataProvider 为 null，无法获取图像源", "ThresholdTool");
-                return;
-            }
-
-            PluginLogger.Info("PopulateImageSources: 开始获取父节点输出", "ThresholdTool");
-
-            var nodeOutputs = dataProvider.GetAvailableDataSources(_currentNodeId ?? "", typeof(OpenCvSharp.Mat));
-
-
-            PluginLogger.Info($"PopulateImageSources: 获取到 {nodeOutputs.Count} 个节点输出", "ThresholdTool");
-
-            foreach (var nodeOutput in nodeOutputs)
-            {
-                PluginLogger.Info($"节点: {nodeOutput.SourceNodeName} (ID: {nodeOutput.SourceNodeId}), 类型: {nodeOutput.PropertyType.Name}", "ThresholdTool");
-
-                if (nodeOutput.PropertyType == typeof(OpenCvSharp.Mat))
-                {
-                    var imageSource = new ImageSourceInfo
-                    {
-                        NodeId = nodeOutput.SourceNodeId,
-                        NodeName = nodeOutput.SourceNodeName,
-                        OutputPortName = nodeOutput.PropertyName
-                    };
-
-                    AvailableImageSources.Add(imageSource);
-                    PluginLogger.Success($"添加图像源: {nodeOutput.SourceNodeName}", "ThresholdTool");
-                }
-            }
-
-            PluginLogger.Info($"PopulateImageSources: 完成，共有 {AvailableImageSources.Count} 个可用图像源", "ThresholdTool");
-        }
-
-        /// <summary>
-        /// 填充可用数据源列表（SDK类型，用于参数绑定）
-        /// </summary>
-        private void PopulateParameterSources(DataSourceQueryService dataProvider)
-        {
-            if (dataProvider == null)
-            {
-                PluginLogger.Warning("PopulateParameterSources: dataProvider 为 null，无法获取参数数据源", "ThresholdTool");
-                return;
-            }
-
-            PluginLogger.Info("PopulateParameterSources: 开始获取参数数据源", "ThresholdTool");
-
-            var nodeOutputs = dataProvider.GetAvailableDataSources(_currentNodeId ?? "", null);
-
-            PluginLogger.Info($"PopulateParameterSources: 获取到 {nodeOutputs.Count} 个节点输出", "ThresholdTool");
-
-            // 创建新的集合实例以触发 DependencyProperty 回调
-            var newDataSources = new ObservableCollection<AvailableDataSource>();
-
-            foreach (var nodeOutput in nodeOutputs)
-            {
-                PluginLogger.Info($"节点: {nodeOutput.SourceNodeName} (ID: {nodeOutput.SourceNodeId}), 属性: {nodeOutput.PropertyName}, 类型: {nodeOutput.PropertyType.Name}, TreeName: {nodeOutput.FullTreeName}", "ThresholdTool");
-
-                var dataSource = new AvailableDataSource
-                {
-                    SourceNodeId = nodeOutput.SourceNodeId,
-                    SourceNodeName = nodeOutput.SourceNodeName,
-                    PropertyName = nodeOutput.PropertyName,
-                    PropertyType = nodeOutput.PropertyType,
-                    DisplayName = $"{nodeOutput.SourceNodeName}.{nodeOutput.PropertyName}",
-                    FullTreeName = nodeOutput.FullTreeName
-                };
-
-                newDataSources.Add(dataSource);
-                PluginLogger.Success($"添加数据源: {dataSource.DisplayName}", "ThresholdTool");
-            }
-
-            // 替换集合引用，触发 DependencyProperty 的回调
-            AvailableDataSources = newDataSources;
-
-            PluginLogger.Success($"PopulateParameterSources: 完成，共有 {AvailableDataSources.Count} 个可用数据源", "ThresholdTool");
-        }
-
-        /// <summary>
-        /// 将 AvailableDataSource 列表转换为 ImageSourceInfo 列表（用于 ImageSourceSelector）
-        /// </summary>
-        private void PopulateImageSourcesFromParameterSources()
-        {
-            AvailableImageSources.Clear();
-
-            foreach (var dataSource in AvailableDataSources)
-            {
-                var imageSource = new ImageSourceInfo
-                {
-                    NodeId = dataSource.SourceNodeId,
-                    NodeName = dataSource.SourceNodeName,
-                    OutputPortName = dataSource.PropertyName,
-                    DataType = dataSource.PropertyType?.Name ?? "Mat"
-                };
-
-                AvailableImageSources.Add(imageSource);
-                PluginLogger.Info($"添加图像源（从参数源转换）: {imageSource.DisplayName}", "ThresholdTool");
-            }
-
-            PluginLogger.Success($"PopulateImageSourcesFromParameterSources: 完成，共有 {AvailableImageSources.Count} 个可用图像源", "ThresholdTool");
-        }
 
         #endregion
 
@@ -373,7 +225,8 @@ namespace SunEyeVision.Tool.Threshold.Views
         protected override object ExecuteTool()
         {
             // 检查图像源
-            if (SelectedImageSource == null)
+            var imageSource = Parameters?.ImageSource;
+            if (imageSource == null)
             {
                 throw new InvalidOperationException("请选择输入图像源");
             }
@@ -385,14 +238,14 @@ namespace SunEyeVision.Tool.Threshold.Views
             }
 
             // 获取输入图像
-            if (!_dataProvider.HasNodeExecuted(SelectedImageSource.NodeId))
+            if (!_dataProvider.HasNodeExecuted(imageSource.SourceNodeId))
             {
                 throw new InvalidOperationException("图像源节点尚未执行，请先执行前驱节点");
             }
 
             var imageMat = _dataProvider.GetPropertyValue(
-                SelectedImageSource.NodeId,
-                SelectedImageSource.OutputPortName
+                imageSource.SourceNodeId,
+                imageSource.PropertyName
             ) as Mat;
 
             if (imageMat == null || imageMat.Empty())
@@ -418,7 +271,7 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// </summary>
         protected override bool CanExecuteTool()
         {
-            return SelectedImageSource != null && _dataProvider != null;
+            return Parameters?.ImageSource != null && _dataProvider != null;
         }
 
         #endregion

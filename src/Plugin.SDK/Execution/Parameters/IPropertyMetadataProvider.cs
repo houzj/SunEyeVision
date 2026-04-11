@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -21,5 +22,21 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="toolType">工具类型名称或ID</param>
         /// <returns>属性元数据列表，未找到返回 null</returns>
         List<ToolPropertyMetadata>? GetAllPropertyMetadata(string toolType);
+        
+        /// <summary>
+        /// 按分类获取属性元数据（方案B）
+        /// </summary>
+        /// <param name="toolType">工具类型名称或ID</param>
+        /// <param name="category">类型分类</param>
+        /// <returns>属性元数据列表</returns>
+        List<ToolPropertyMetadata> GetPropertyMetadataByCategory(string toolType, OutputTypeCategory category);
+        
+        /// <summary>
+        /// 按类型获取属性元数据（兼容旧接口）
+        /// </summary>
+        /// <param name="toolType">工具类型名称或ID</param>
+        /// <param name="targetType">目标类型</param>
+        /// <returns>属性元数据列表</returns>
+        List<ToolPropertyMetadata> GetPropertyMetadataByType(string toolType, Type targetType);
     }
 }

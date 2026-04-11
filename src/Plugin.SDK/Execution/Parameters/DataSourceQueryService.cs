@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,6 +45,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 节点输出缓存（节点ID -> 属性名 -> 值）
         /// </summary>
         private readonly ConcurrentDictionary<string, Dictionary<string, object?>> _nodeOutputs = new ConcurrentDictionary<string, Dictionary<string, object?>>();
+        
+        /// <summary>
+        /// 类型查询缓存（按分类缓存）
+        /// </summary>
+        private readonly ConcurrentDictionary<string, Dictionary<OutputTypeCategory, List<AvailableDataSource>>> _categoryCache = 
+            new ConcurrentDictionary<string, Dictionary<OutputTypeCategory, List<AvailableDataSource>>>();
 
 
         /// <summary>
@@ -141,21 +147,16 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             var parentNodes = new List<ParentNodeInfo>();
 
-            _logger?.LogInfo($"========== GetParentNodes 开始 ==========", "DataSourceQueryService");
-            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
-            _logger?.LogInfo($"_connectionProvider: {(_connectionProvider != null ? "✅ 已注入" : "❌ 为 null")}", "DataSourceQueryService");
-
             if (_connectionProvider == null)
             {
                 // 如果没有连接提供者，返回空列表
-                _logger?.LogInfo("❌ _connectionProvider 为 null，返回空列表", "DataSourceQueryService");
-                _logger?.LogInfo($"=========================================", "DataSourceQueryService");
+                _logger?.LogInfo("连接提供者未初始化，无法查询父节点", "DataSourceQueryService");
                 return parentNodes;
             }
 
             // 获取父节点ID列表
             var parentNodeIds = _connectionProvider.GetParentNodeIds(nodeId);
-            _logger?.LogInfo($"找到 {parentNodeIds.Count} 个父节点: [{string.Join(", ", parentNodeIds)}]", "DataSourceQueryService");
+            _logger?.LogInfo($"🔍 GetParentNodes: 获取到 {parentNodeIds.Count} 个父节点，顺序: [{string.Join(", ", parentNodeIds)}]", "DataSourceQueryService");
 
             int order = 0;
 
@@ -175,11 +176,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 nodeInfo.OutputProperties = outputProperties;
 
                 parentNodes.Add(nodeInfo);
-                _logger?.LogInfo($"  添加父节点: {nodeInfo.NodeName} (ID: {nodeInfo.NodeId})", "DataSourceQueryService");
             }
 
-            _logger?.LogInfo($"返回 {parentNodes.Count} 个父节点", "DataSourceQueryService");
-            _logger?.LogInfo($"=========================================", "DataSourceQueryService");
             return parentNodes;
         }
 
@@ -190,36 +188,54 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
             _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
 
-            var dataSources = new List<AvailableDataSource>();
-            var parentNodes = GetParentNodes(nodeId);
+            // 🔍 优化：使用分类缓存
+            if (targetType != null)
+            {
+                // 1. 将类型映射到分类
+                var category = OutputTypeCategoryMapper.GetCategory(targetType);
+                _logger?.LogInfo($"类型 {targetType.Name} 映射到分类 {category}", "DataSourceQueryService");
 
-            _logger?.LogInfo($"遍历 {parentNodes.Count} 个父节点...", "DataSourceQueryService");
+                // 2. 调用分类查询（使用缓存）
+                var dataSources = GetAvailableDataSourcesByCategory(nodeId, category);
+
+                _logger?.LogInfo($"总共返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
+                _logger?.LogInfo($"==================================================", "DataSourceQueryService");
+                return dataSources;
+            }
+
+            // 未指定类型：返回所有数据源（保持父节点距离顺序）
+            // ✅ 修正：先获取父节点顺序，再遍历节点收集所有数据源
+            var parentNodes = GetParentNodes(nodeId);
+            var allDataSources = new List<AvailableDataSource>();
 
             foreach (var parent in parentNodes)
             {
-                // GetParentNodes 已经调用 GetNodeOutputProperties 填充了 OutputProperties
-                var properties = parent.OutputProperties;
-                _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
-
-                // 类型过滤
-                if (targetType != null)
+                // 获取该节点的所有输出属性（所有分类）
+                var allProperties = parent.OutputProperties;
+                
+                foreach (var property in allProperties)
                 {
-                    properties = parent.GetCompatibleProperties(targetType);
-                    _logger?.LogInfo($"    过滤后剩余 {properties.Count} 个兼容属性", "DataSourceQueryService");
-                }
-
-                dataSources.AddRange(properties);
-
-                foreach (var prop in properties)
-                {
-                    var treeNameInfo = string.IsNullOrEmpty(prop.FullTreeName) ? "" : $" [Tree: {prop.FullTreeName}]";
-                    _logger?.LogInfo($"      - {prop.DisplayName}{treeNameInfo} ({prop.PropertyType.Name})", "DataSourceQueryService");
+                    var dataSource = new AvailableDataSource
+                    {
+                        SourceNodeId = parent.NodeId,
+                        SourceNodeName = parent.NodeName,
+                        SourceNodeType = parent.NodeType,
+                        PropertyName = property.PropertyName,
+                        DisplayName = property.DisplayName,
+                        PropertyType = property.PropertyType,
+                        CurrentValue = property.CurrentValue,
+                        Unit = property.Unit,
+                        Description = property.Description,
+                        GroupName = parent.NodeName,
+                        FullTreeName = property.FullTreeName
+                    };
+                    allDataSources.Add(dataSource);
                 }
             }
 
-            _logger?.LogInfo($"总共返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
+            _logger?.LogInfo($"总共返回 {allDataSources.Count} 个数据源（所有分类，保持父节点距离顺序）", "DataSourceQueryService");
             _logger?.LogInfo($"==================================================", "DataSourceQueryService");
-            return dataSources;
+            return allDataSources;
         }
 
         /// <inheritdoc/>
@@ -229,36 +245,37 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
             _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
 
-            var groupedSources = new GroupedDataSources();
-
-            // 从全局输出类型注册表获取所有上游节点
-            // 注意：这里需要根据实际连接关系筛选，而不是所有注册的节点
-            var parentNodes = GetParentNodes(nodeId);
-
-            _logger?.LogInfo($"遍历 {parentNodes.Count} 个父节点...", "DataSourceQueryService");
-
-            foreach (var parent in parentNodes)
+            // ❌ 必须指定类型，否则抛出异常
+            if (targetType == null)
             {
-                // GetParentNodes 已经调用 GetNodeOutputProperties 填充了 OutputProperties
-                var properties = parent.OutputProperties;
-                _logger?.LogInfo($"  父节点 [{parent.NodeName}] 有 {properties.Count} 个输出属性", "DataSourceQueryService");
-
-                // 类型过滤
-                if (targetType != null)
-                {
-                    properties = parent.GetCompatibleProperties(targetType);
-                    _logger?.LogInfo($"    过滤后剩余 {properties.Count} 个兼容属性", "DataSourceQueryService");
-                }
-
-                // 按类型分类添加
-                foreach (var prop in properties)
-                {
-                    var category = TypeCategoryMapper.GetCategory(prop.PropertyType);
-                    groupedSources.AddDataSource(prop, category);
-                    _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name}) -> {category}", "DataSourceQueryService");
-                }
+                _logger?.LogError($"未指定目标类型，无法查询数据源", "DataSourceQueryService");
+                throw new ArgumentNullException(nameof(targetType), "必须指定目标类型才能查询分组数据源");
             }
 
+            var groupedSources = new GroupedDataSources();
+
+            // 🔍 优化：使用分类缓存
+            // 1. 将类型映射到分类
+            var category = OutputTypeCategoryMapper.GetCategory(targetType);
+            _logger?.LogInfo($"[缓存优化] 类型 {targetType.Name} 映射到分类 {category}", "DataSourceQueryService");
+
+            // 2. 调用分类查询（使用缓存）
+            _logger?.LogInfo($"[缓存优化] 调用 GetAvailableDataSourcesByCategory 查询分类 {category}", "DataSourceQueryService");
+            var dataSources = GetAvailableDataSourcesByCategory(nodeId, category);
+            _logger?.LogSuccess($"[缓存优化] 分类查询完成，返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
+
+            // 3. 按类型分类添加
+            _logger?.LogInfo($"[缓存优化] 开始按类型分类数据源...", "DataSourceQueryService");
+            int categoryCount = 0;
+            foreach (var prop in dataSources)
+            {
+                var propCategory = TypeCategoryMapper.GetCategory(prop.PropertyType);
+                groupedSources.AddDataSource(prop, propCategory);
+                _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name}) -> {propCategory}", "DataSourceQueryService");
+                categoryCount++;
+            }
+
+            _logger?.LogSuccess($"[缓存优化] 分类完成，共分类 {categoryCount} 个数据源", "DataSourceQueryService");
             _logger?.LogInfo($"分组统计: {groupedSources.GetStatistics()}", "DataSourceQueryService");
             _logger?.LogInfo($"==================================================", "DataSourceQueryService");
             return groupedSources;
@@ -313,7 +330,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     Unit = null,
                     Description = metadata.Description,
                     GroupName = context.NodeName,
-                    FullTreeName = metadata.TreeName
+                    FullTreeName = string.IsNullOrEmpty(metadata.TreeName) ? null : $"{context.NodeName}.{metadata.TreeName}"
                 };
 
                 // 📊 调试日志：输出 FullTreeName 赋值结果
@@ -516,6 +533,126 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         #endregion
+
+        // ========================================
+        // 按分类查询方法（方案B）
+        // ========================================
+        
+        /// <summary>
+        /// 获取可用数据源（推荐：按分类查询）
+        /// </summary>
+        public List<AvailableDataSource> GetAvailableDataSourcesByCategory(
+            string nodeId, 
+            OutputTypeCategory category)
+        {
+            _logger?.LogInfo(
+                $"获取数据源（按分类）: {nodeId}, 分类={category}", 
+                "DataSourceQueryService");
+
+            // 1. 尝试从缓存获取
+            if (_categoryCache.TryGetValue(nodeId, out var categoryCache))
+            {
+                if (categoryCache.TryGetValue(category, out var cachedSources))
+                {
+                    _logger?.LogInfo($"✅ 从缓存返回 {cachedSources.Count} 个数据源（节点: {nodeId}, 分类: {category}）", "DataSourceQueryService");
+                    return cachedSources;
+                }
+            }
+
+            // 2. 缓存未命中，执行查询
+            _logger?.LogInfo($"⚠️ 缓存未命中，执行查询（节点: {nodeId}, 分类: {category}）", "DataSourceQueryService");
+            var parentNodes = GetParentNodes(nodeId);
+            var dataSources = new List<AvailableDataSource>();
+
+            foreach (var parent in parentNodes)
+            {
+                // 按分类获取属性
+                List<ToolPropertyMetadata> properties;
+                if (_metadataProvider != null)
+                {
+                    properties = _metadataProvider.GetPropertyMetadataByCategory(parent.NodeType, category);
+                }
+                else
+                {
+                    // 回退：从父节点的输出属性中过滤
+                    var allProperties = parent.OutputProperties;
+                    properties = allProperties
+                        .Where(p => OutputTypeCategoryMapper.GetCategory(p.PropertyType) == category)
+                        .Select(p => new ToolPropertyMetadata
+                        {
+                            PropertyName = p.PropertyName,
+                            DisplayName = p.DisplayName,
+                            TreeName = p.FullTreeName,
+                            PropertyType = p.PropertyType,
+                            Description = p.Description
+                        })
+                        .ToList();
+                }
+
+                // 创建数据源
+                foreach (var metadata in properties)
+                {
+                    var dataSource = CreateDataSource(parent, metadata);
+                    if (dataSource != null)
+                    {
+                        dataSources.Add(dataSource);
+                    }
+                }
+            }
+
+            // 3. 存入缓存
+            var nodeCache = _categoryCache.GetOrAdd(nodeId, _ => new Dictionary<OutputTypeCategory, List<AvailableDataSource>>());
+            nodeCache[category] = dataSources;
+
+            return dataSources;
+        }
+        
+        /// <summary>
+        /// 清除节点缓存
+        /// </summary>
+        public void ClearNodeCache(string nodeId)
+        {
+            _categoryCache.TryRemove(nodeId, out _);
+            _logger?.LogInfo($"🗑️ 清除节点缓存: {nodeId}", "DataSourceQueryService");
+        }
+        
+        /// <summary>
+        /// 清除所有缓存
+        /// </summary>
+        public void ClearAllCaches()
+        {
+            _categoryCache.Clear();
+            _logger?.LogInfo($"🗑️ 清除所有缓存", "DataSourceQueryService");
+        }
+        
+        /// <summary>
+        /// 创建数据源对象
+        /// </summary>
+        private AvailableDataSource? CreateDataSource(ParentNodeInfo node, ToolPropertyMetadata metadata)
+        {
+            // 获取当前值
+            object? currentValue = null;
+            var property = node.OutputProperties.FirstOrDefault(p => p.PropertyName == metadata.PropertyName);
+            if (property != null)
+            {
+                currentValue = property.CurrentValue;
+            }
+            
+            return new AvailableDataSource
+            {
+                SourceNodeId = node.NodeId,
+                SourceNodeName = node.NodeName,
+                SourceNodeType = node.NodeType,
+                PropertyName = metadata.PropertyName,
+                DisplayName = metadata.DisplayName,
+                PropertyType = metadata.PropertyType,
+                CurrentValue = currentValue,
+                Unit = null,
+                Description = metadata.Description,
+                GroupName = node.NodeName,
+                FullTreeName = string.IsNullOrEmpty(metadata.TreeName) ? null : $"{node.NodeName}.{metadata.TreeName}"
+            };
+        }
 
         /// <summary>
         /// 订阅令牌

@@ -3,95 +3,31 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media.Imaging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
     /// <summary>
-    /// 图像源信息 - 用于表示一个可选的图像输出端口
-    /// </summary>
-    public class ImageSourceInfo
-    {
-        /// <summary>
-        /// 节点ID
-        /// </summary>
-        public string NodeId { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 节点名称
-        /// </summary>
-        public string NodeName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 输出端口名称
-        /// </summary>
-        public string OutputPortName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 显示名称（格式：节点名称.端口名称）
-        /// </summary>
-        public string DisplayName => string.IsNullOrEmpty(OutputPortName) 
-            ? NodeName 
-            : $"{NodeName}.{OutputPortName}";
-
-        /// <summary>
-        /// 缩略图预览（可选）
-        /// </summary>
-        public BitmapSource? Thumbnail { get; set; }
-
-        /// <summary>
-        /// 图像宽度
-        /// </summary>
-        public int ImageWidth { get; set; }
-
-        /// <summary>
-        /// 图像高度
-        /// </summary>
-        public int ImageHeight { get; set; }
-
-        /// <summary>
-        /// 尺寸描述（格式：宽度x高度）
-        /// </summary>
-        public string SizeDescription => ImageWidth > 0 && ImageHeight > 0 
-            ? $"{ImageWidth}x{ImageHeight}" 
-            : string.Empty;
-
-        /// <summary>
-        /// 是否为空图像源
-        /// </summary>
-        public bool IsEmpty => string.IsNullOrEmpty(NodeId);
-
-        /// <summary>
-        /// 数据类型（如 "Mat", "Image" 等）
-        /// </summary>
-        public string DataType { get; set; } = "Mat";
-
-        /// <summary>
-        /// 距离当前节点的距离（0=当前节点，1=直接父节点，以此类推）
-        /// 用于图像显示控件的排序
-        /// </summary>
-        public int Distance { get; set; }
-
-        /// <summary>
-        /// 节点是否已执行
-        /// </summary>
-        public bool HasExecuted { get; set; } = true;
-    }
-
-    /// <summary>
     /// 图像源选择器 - 显示所有父节点的图像输出供选择（核心控件，不包含标签和外框）
     /// </summary>
     /// <remarks>
-    /// 用于工作流中选择输入图像来源。显示当前节点所有上游节点的图像输出端口，
-    /// 支持缩略图预览和图像尺寸信息显示。
+    /// 用于工作流中选择输入图像来源。显示当前节点所有上游节点的图像输出端口。
+    /// 与 BindableParameter 保持一致的设计模式：
+    /// - 使用 AvailableDataSource 作为统一数据模型
+    /// - SelectedDataSource 类型为 AvailableDataSource?，与参数属性类型一致
+    /// - 唯一区别是下拉样式：图像源用 ListBox，数值源用 TreeView
     /// 
-    /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
+    /// 设计理念：
+    /// - 统一绑定到 AvailableDataSources（包含所有类型的数据源）
+    /// - 控件内部根据 OutputTypeCategory.Image 自动过滤
+    /// - 简化 XAML 绑定：统一使用 AvailableDataSources
     /// 
     /// 使用示例：
     /// <code>
     /// &lt;controls:ImageSourceSelector
-    ///     SelectedImageSource="{Binding InputImageSource}"
-    ///     AvailableImageSources="{Binding ParentImageSources}" /&gt;
+    ///     AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
+    ///     SelectedDataSource="{Binding Parameters.ImageSource, Mode=TwoWay}" /&gt;
     /// </code>
     /// </remarks>
     public class ImageSourceSelector : Control
@@ -104,21 +40,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #region 依赖属性
 
-        public static readonly DependencyProperty SelectedImageSourceProperty =
-            DependencyProperty.Register(nameof(SelectedImageSource), typeof(ImageSourceInfo), typeof(ImageSourceSelector),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedImageSourceChanged));
+        public static readonly DependencyProperty SelectedDataSourceProperty =
+            DependencyProperty.Register(nameof(SelectedDataSource), typeof(AvailableDataSource), typeof(ImageSourceSelector),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedDataSourceChanged));
 
-        public static readonly DependencyProperty AvailableImageSourcesProperty =
-            DependencyProperty.Register(nameof(AvailableImageSources), typeof(ObservableCollection<ImageSourceInfo>), typeof(ImageSourceSelector),
-                new PropertyMetadata(null, OnAvailableImageSourcesChanged));
-
-        public static readonly DependencyProperty ShowThumbnailProperty =
-            DependencyProperty.Register(nameof(ShowThumbnail), typeof(bool), typeof(ImageSourceSelector),
-                new PropertyMetadata(true));
-
-        public static readonly DependencyProperty ShowSizeInfoProperty =
-            DependencyProperty.Register(nameof(ShowSizeInfo), typeof(bool), typeof(ImageSourceSelector),
-                new PropertyMetadata(true));
+        public static readonly DependencyProperty AvailableDataSourcesProperty =
+            DependencyProperty.Register(nameof(AvailableDataSources), typeof(ObservableCollection<AvailableDataSource>), typeof(ImageSourceSelector),
+                new PropertyMetadata(null, OnAvailableDataSourcesChanged));
 
         public static readonly DependencyProperty PlaceholderTextProperty =
             DependencyProperty.Register(nameof(PlaceholderText), typeof(string), typeof(ImageSourceSelector),
@@ -133,39 +61,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         #region 属性
 
         /// <summary>
-        /// 当前选中的图像源
+        /// 当前选中的图像源（与 BindableParameter 绑定模式一致）
         /// </summary>
-        public ImageSourceInfo SelectedImageSource
+        public AvailableDataSource SelectedDataSource
         {
-            get => (ImageSourceInfo)GetValue(SelectedImageSourceProperty);
-            set => SetValue(SelectedImageSourceProperty, value);
+            get => (AvailableDataSource)GetValue(SelectedDataSourceProperty);
+            set => SetValue(SelectedDataSourceProperty, value);
         }
 
         /// <summary>
-        /// 可用图像源集合
+        /// 所有类型的数据源集合（统一绑定源，控件内部过滤图像类型）
         /// </summary>
-        public ObservableCollection<ImageSourceInfo> AvailableImageSources
+        public ObservableCollection<AvailableDataSource> AvailableDataSources
         {
-            get => (ObservableCollection<ImageSourceInfo>)GetValue(AvailableImageSourcesProperty);
-            set => SetValue(AvailableImageSourcesProperty, value);
-        }
-
-        /// <summary>
-        /// 是否显示缩略图预览
-        /// </summary>
-        public bool ShowThumbnail
-        {
-            get => (bool)GetValue(ShowThumbnailProperty);
-            set => SetValue(ShowThumbnailProperty, value);
-        }
-
-        /// <summary>
-        /// 是否显示尺寸信息
-        /// </summary>
-        public bool ShowSizeInfo
-        {
-            get => (bool)GetValue(ShowSizeInfoProperty);
-            set => SetValue(ShowSizeInfoProperty, value);
+            get => (ObservableCollection<AvailableDataSource>)GetValue(AvailableDataSourcesProperty);
+            set => SetValue(AvailableDataSourcesProperty, value);
         }
 
         /// <summary>
@@ -213,11 +123,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #endregion
 
-        public ImageSourceSelector()
-        {
-            AvailableImageSources = new ObservableCollection<ImageSourceInfo>();
-        }
-
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -240,35 +145,40 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void OnImageSourceListSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_imageSourceList.SelectedItem is ImageSourceInfo selectedSource)
+            if (_imageSourceList.SelectedItem is AvailableDataSource selectedSource)
             {
-                SelectedImageSource = selectedSource;
+                SelectedDataSource = selectedSource;
                 _popup.IsOpen = false;
                 RaiseEvent(new RoutedEventArgs(ImageSourceChangedEvent));
             }
         }
 
-        private static void OnSelectedImageSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnSelectedDataSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is ImageSourceSelector selector)
-            {
-                // 更新显示
-                selector.UpdateDisplayText();
-            }
+            // 显示文本更新由Template绑定处理
         }
 
-        private static void OnAvailableImageSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnAvailableDataSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is ImageSourceSelector selector)
             {
-                // 如果当前选中的源不在新列表中，清除选择2
-                if (selector.SelectedImageSource != null && selector.AvailableImageSources != null)
+                // 调试日志：输出绑定状态
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[ImageSourceSelector] OnAvailableDataSourcesChanged 触发: " +
+                    $"NewValue={(e.NewValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.NewValue).Count}]" : "null")}, " +
+                    $"OldValue={(e.OldValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.OldValue).Count}]" : "null")}",
+                    "ImageSourceSelector");
+
+                // 如果当前选中的源不在新列表中，清除选择
+                if (selector.SelectedDataSource != null && selector.AvailableDataSources != null)
                 {
                     bool found = false;
-                    foreach (var source in selector.AvailableImageSources)
+                    foreach (var source in selector.AvailableDataSources)
                     {
-                        if (source.NodeId == selector.SelectedImageSource.NodeId &&
-                            source.OutputPortName == selector.SelectedImageSource.OutputPortName)
+                        // 只检查图像类型的数据源
+                        if (OutputTypeCategoryMapper.GetCategory(source.PropertyType) == OutputTypeCategory.Image &&
+                            source.SourceNodeId == selector.SelectedDataSource.SourceNodeId &&
+                            source.PropertyName == selector.SelectedDataSource.PropertyName)
                         {
                             found = true;
                             break;
@@ -276,15 +186,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     }
                     if (!found)
                     {
-                        selector.SelectedImageSource = null;
+                        selector.SelectedDataSource = null;
                     }
                 }
             }
-        }
-
-        private void UpdateDisplayText()
-        {
-            // 显示文本更新由Template绑定处理
         }
     }
 }

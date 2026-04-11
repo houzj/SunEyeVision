@@ -1,0 +1,5 @@
+﻿
+D:\MyWork\SunEyeVision_Dev-tool\SunEyeVision.sln : 解决方案文件 error MSB5010: 未找到文件格式头。
+D:\MyWork\SunEyeVision_Dev-tool\SunEyeVision.sln : 解决方案文件 error MSB5010: 未找到文件格式头。
+
+

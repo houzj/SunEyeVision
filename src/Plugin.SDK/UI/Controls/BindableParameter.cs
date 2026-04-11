@@ -367,6 +367,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (d is BindableParameter control)
             {
+                // 调试日志：输出绑定状态
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[BindableParameter] OnAvailableDataSourcesChanged 触发: ParameterName={control.ParameterName}, " +
+                    $"NewValue={(e.NewValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.NewValue).Count}]" : "null")}, " +
+                    $"OldValue={(e.OldValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.OldValue).Count}]" : "null")}",
+                    "BindableParameter");
+
                 // 订阅新集合的事件并构建树形结构
                 if (e.NewValue is System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> newDataSources)
                 {
@@ -381,6 +388,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 {
                     control._currentDataSources = null;
                     control.TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"[BindableParameter] AvailableDataSources 为 null 或类型不匹配",
+                        "BindableParameter");
                 }
             }
         }
@@ -394,10 +404,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 var dataSourceList = _currentDataSources.ToList();
                 
-                // 简化日志：只输出关键信息
-                VisionLogger.Instance.Log(LogLevel.Info, $"构建树形结构: {dataSourceList.Count} 个数据源", "BindableParameter");
+                // 🔧 类型过滤：根据 DataType 过滤兼容的数据源
+                // 与 ImageSourceSelector 保持一致的设计模式
+                var filteredDataSources = FilterDataSourcesByType(dataSourceList);
                 
-                var treeNodes = BuildTreeStructure(dataSourceList);
+                // 简化日志：只输出关键信息
+                VisionLogger.Instance.Log(LogLevel.Info, 
+                    $"构建树形结构: {dataSourceList.Count} 个数据源 → {filteredDataSources.Count} 个兼容数据源 (DataType={DataType})", 
+                    "BindableParameter");
+                
+                var treeNodes = BuildTreeStructure(filteredDataSources);
                 
                 // 输出树形结构概览
                 if (treeNodes.Count > 0)
@@ -413,6 +429,49 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 VisionLogger.Instance.Log(LogLevel.Info, $"_currentDataSources 为 null，创建空树", "BindableParameter");
                 TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
             }
+        }
+        
+        /// <summary>
+        /// 根据参数类型过滤数据源
+        /// </summary>
+        private System.Collections.Generic.List<AvailableDataSource> FilterDataSourcesByType(
+            System.Collections.Generic.List<AvailableDataSource> dataSources)
+        {
+            // 将 ParamDataType 映射到 OutputTypeCategory
+            OutputTypeCategory? expectedCategory = DataType switch
+            {
+                ParamDataType.Int => OutputTypeCategory.Numeric,
+                ParamDataType.Double => OutputTypeCategory.Numeric,
+                ParamDataType.String => OutputTypeCategory.Text,
+                ParamDataType.Bool => OutputTypeCategory.Numeric,
+                _ => null
+            };
+            
+            if (expectedCategory == null)
+            {
+                // 未指定类型：返回所有数据源
+                return dataSources;
+            }
+            
+            // 过滤匹配的数据源
+            var filteredDataSources = new System.Collections.Generic.List<AvailableDataSource>();
+            
+            foreach (var dataSource in dataSources)
+            {
+                if (dataSource.PropertyType != null)
+                {
+                    // 使用 OutputTypeCategoryMapper 获取数据源的类型分类
+                    var sourceCategory = OutputTypeCategoryMapper.GetCategory(dataSource.PropertyType);
+                    
+                    // 比较分类是否匹配
+                    if (sourceCategory == expectedCategory)
+                    {
+                        filteredDataSources.Add(dataSource);
+                    }
+                }
+            }
+            
+            return filteredDataSources;
         }
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -686,6 +745,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
             // 初始化状态
             UpdateVisualState();
+
+            // 🔧 修复 TabControl 虚拟化问题：
+            // 当控件在非活动 TabItem 中创建时，OnAvailableDataSourcesChanged 可能不会被触发
+            // 主动检查 AvailableDataSources 是否已经有值
+            if (AvailableDataSources != null && AvailableDataSources.Count > 0)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[BindableParameter] OnApplyTemplate: AvailableDataSources 已有 {AvailableDataSources.Count} 个数据源，主动触发 RebuildTreeNodes",
+                    "BindableParameter");
+                
+                _currentDataSources = AvailableDataSources;
+                RebuildTreeNodes();
+            }
         }
 
         /// <summary>
@@ -731,10 +803,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 
                 foreach (var dataSource in nodeDataSources)
                 {
-                    // 📊 调试日志：输出 FullTreeName 最终值
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"  [BindableParameter] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}",
-                        "BindableParameter");
+                        // 📊 调试日志：输出 FullTreeName 最终值
+                        VisionLogger.Instance.Log(LogLevel.Info,
+                            $"  [BindableParameter] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}, SourceNodeName='{dataSource.SourceNodeName}'",
+                            "BindableParameter");
 
                     if (string.IsNullOrEmpty(dataSource.FullTreeName))
                     {
@@ -762,7 +834,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
-        /// 从完整树形名称构建或合并树节点
+        /// 从完整树形名称构建或合并树节点（跳过根节点名称）
         /// </summary>
         /// <param name="fullTreeName">完整树形名称（例如: "阈值工具.结果.实际使用的阈值"）</param>
         /// <param name="dataSource">数据源</param>
@@ -777,8 +849,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             TreeNodeData? parentNode = null;
             string currentPath = string.Empty;
 
-            // 处理每个层级（从根到叶子）
-            for (int i = 0; i < parts.Length; i++)
+            // 处理每个层级（跳过根节点名称，从索引 1 开始）
+            // 根节点名称（parts[0]）已经在 BuildTreeStructure 中创建
+            for (int i = 1; i < parts.Length; i++)
             {
                 // 构建当前路径
                 if (string.IsNullOrEmpty(currentPath))

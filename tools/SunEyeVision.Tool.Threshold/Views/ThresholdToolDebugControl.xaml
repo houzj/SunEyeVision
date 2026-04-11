@@ -10,7 +10,7 @@
         xmlns:local="clr-namespace:SunEyeVision.Tool.Threshold"
         xmlns:localConverters="clr-namespace:SunEyeVision.Tool.Threshold.Converters"
         mc:Ignorable="d"
-        d:DesignHeight="700" d:DesignWidth="450"
+        d:DesignHeight="550" d:DesignWidth="400"
         DataContext="{Binding Parameters, RelativeSource={RelativeSource Self}}">
     
     <controls:ToolDebugControlBase.Resources>
@@ -37,9 +37,10 @@
             <controls:LabeledControl Label="输入图像" ContentHorizontalAlignment="Center" ContentVerticalAlignment="Center" LabelVerticalAlignment="Center" >
               <controls:ImageSourceSelector
                                 x:Name="imageSourceSelector"
-                                PlaceholderText="请选择输入图像源" Width="250" 
-                                AvailableImageSources="{Binding AvailableImageSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
-                                SelectedImageSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
+                                PlaceholderText="请选择输入图像源"
+                                Width="250"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
+                                SelectedDataSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
             </controls:LabeledControl>
 
             <TextBlock Text="ROI区域"
@@ -108,7 +109,7 @@
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
 
-          <ScrollViewer Grid.Row="0" Padding="12,12,12,8">
+          <ScrollViewer Grid.Row="0" Padding="3">
             <StackPanel>
               <!-- 结果判断分组 -->
               <Expander Header="结果判断" 
@@ -138,7 +139,7 @@
                                             MaxValue="{Binding ResultConfig.WhitePixelRatioMax, Mode=TwoWay}"
                                             DecimalPlaces="1"
                       SmallChange="1"
-                      NumericWidth="120"
+                      NumericWidth="110"
                       
                                              />
                   </controls:LabeledControl>
@@ -155,7 +156,7 @@
                                             Maximum="255"
                                             MinValue="{Binding ResultConfig.MeanMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.MeanMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"  NumericWidth="120" Margin="0,2,0,0"/>
+                                            DecimalPlaces="1"  NumericWidth="110" Margin="0,2,0,0"/>
                   </controls:LabeledControl>
 
                   <!-- 输出面积判断 -->
@@ -170,7 +171,7 @@
                                             Maximum="1000000"
                                             MinValue="{Binding ResultConfig.AreaMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.AreaMax, Mode=TwoWay}"
-                                            DecimalPlaces="0"  NumericWidth="120"/>
+                                            DecimalPlaces="0"  NumericWidth="110"/>
                   </controls:LabeledControl>
 
                   <!-- 质心X判断 -->
@@ -185,7 +186,7 @@
                                             Maximum="10000"
                                             MinValue="{Binding ResultConfig.CentroidXMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.CentroidXMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"  NumericWidth="120"/>
+                                            DecimalPlaces="1"  NumericWidth="110"/>
                   </controls:LabeledControl>
 
                   <!-- 质心Y判断 -->
@@ -200,7 +201,7 @@
                                             Maximum="10000"
                                             MinValue="{Binding ResultConfig.CentroidYMin, Mode=TwoWay}"
                                             MaxValue="{Binding ResultConfig.CentroidYMax, Mode=TwoWay}"
-                                            DecimalPlaces="1"  NumericWidth="120"/>
+                                            DecimalPlaces="1"  NumericWidth="110"/>
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>
@@ -253,7 +254,7 @@
 
                 <StackPanel Margin="16,8">
                   <controls:LabeledControl Label="内容" Margin="0,0,0,8">
-                    <TextBox Grid.Column="1" Grid.Row="0" Width="250" 
+                    <TextBox Grid.Column="1" Grid.Row="0" Width="220" 
                                              Text="{Binding TextConfig.Content, Mode=TwoWay}"
                                              HorizontalAlignment="Left"
                                              Height="32"
@@ -262,12 +263,12 @@
 
                   <!-- OK颜色 -->
                   <controls:LabeledControl Label="OK颜色" Margin="0,0,0,8">
-                    <controls:ColorSelector HorizontalAlignment="Left" Width="250" SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector HorizontalAlignment="Left" Width="220" SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- NG颜色 -->
                   <controls:LabeledControl Label="NG颜色" Margin="0,0,0,8">
-                    <controls:ColorSelector Width="250" HorizontalAlignment="Left" SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector Width="220" HorizontalAlignment="Left" SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
                   <controls:LabeledControl Label="字号" Margin="0,0,0,8">
                     <controls:NumericUpDown Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
@@ -275,7 +276,7 @@
                                                 Maximum="1"
                                                 DecimalPlaces="2"
                                                 HorizontalAlignment="Left"
-                                                Width="250"/>
+                                                Width="220"/>
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="透明度" Margin="0,0,0,8">
@@ -284,7 +285,7 @@
                                              Maximum="72"
                                              DecimalPlaces="1"
                                              HorizontalAlignment="Left"
-                                             Width="250"/>
+                                             Width="220"/>
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
@@ -296,7 +297,7 @@
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"
+                                                            Width="220"
                                                             AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
                   <controls:LabeledControl Label="位置Y" Margin="0,0,0,8">
@@ -308,7 +309,7 @@
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"
+                                                            Width="220"
                                                             AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
                 </StackPanel>

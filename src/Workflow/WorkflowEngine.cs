@@ -288,7 +288,7 @@ namespace SunEyeVision.Workflow
         /// <summary>
         /// 递归查找所有上游节点（包括直接父节点和间接父节点）
         /// 使用 BFS 遍历，保证节点按照距离顺序返回
-        /// 使用 HashSet 去重，避免循环依赖
+        /// 使用 List 保持顺序，使用 HashSet 去重，避免循环依赖
         /// </summary>
         public List<string> GetParentNodeIds(string nodeId)
         {
@@ -307,33 +307,52 @@ namespace SunEyeVision.Workflow
             Logger.LogInfo($"总节点数: {CurrentWorkflow.Nodes.Count}", "WorkflowEngine");
 
             // BFS 递归查找所有上游节点
-            var upstreamNodeIds = new HashSet<string>();
+            var upstreamNodeIds = new List<string>();  // 使用 List 保持 BFS 顺序
             var queue = new Queue<string>();
             var visited = new HashSet<string>();
 
             queue.Enqueue(nodeId);
             visited.Add(nodeId);
 
+            int bfsStep = 0;
             while (queue.Count > 0)
             {
                 var currentNodeId = queue.Dequeue();
+                bfsStep++;
+                Logger.LogInfo($"  🔄 BFS 步骤 {bfsStep}: 处理节点 {currentNodeId}", "WorkflowEngine");
 
                 // 查找当前节点的所有父节点（连接指向当前节点的）
-                foreach (var connection in CurrentWorkflow.Connections.Where(c => c.TargetNodeId == currentNodeId))
+                // 🔍 按连接创建顺序排序（使用索引）
+                var parentConnections = CurrentWorkflow.Connections
+                    .Select((conn, index) => new { Connection = conn, Index = index })
+                    .Where(x => x.Connection.TargetNodeId == currentNodeId)
+                    .OrderBy(x => x.Index)  // ✅ 按连接创建顺序排序
+                    .ToList();
+                    
+                Logger.LogInfo($"    找到 {parentConnections.Count} 个连接指向此节点", "WorkflowEngine");
+
+                foreach (var item in parentConnections)
                 {
+                    var connection = item.Connection;
+                    Logger.LogInfo($"      [{item.Index}] 连接: {connection.SourceNodeId} → {connection.TargetNodeId}", "WorkflowEngine");
+                    
                     if (!visited.Contains(connection.SourceNodeId))
                     {
                         visited.Add(connection.SourceNodeId);
-                        upstreamNodeIds.Add(connection.SourceNodeId);
+                        upstreamNodeIds.Add(connection.SourceNodeId);  // 添加到有序列表
                         queue.Enqueue(connection.SourceNodeId);
+                        Logger.LogInfo($"        ✅ 添加到结果: {connection.SourceNodeId}", "WorkflowEngine");
+                    }
+                    else
+                    {
+                        Logger.LogInfo($"        ⏭️ 已访问，跳过: {connection.SourceNodeId}", "WorkflowEngine");
                     }
                 }
             }
 
-            var resultList = upstreamNodeIds.ToList();
-            Logger.LogInfo($"找到 {resultList.Count} 个父节点: [{string.Join(", ", resultList)}]", "WorkflowEngine");
+            Logger.LogInfo($"找到 {upstreamNodeIds.Count} 个父节点: [{string.Join(", ", upstreamNodeIds)}]", "WorkflowEngine");
             Logger.LogInfo($"============================================", "WorkflowEngine");
-            return resultList;
+            return upstreamNodeIds;
         }
 
         /// <inheritdoc/>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -122,11 +122,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string? FullTreeName { get; set; }
 
         /// <summary>
-        /// 下拉显示文本（树形结构的完整路径）
+        /// 下拉显示文本（节点名称.树形路径）
         /// </summary>
         /// <remarks>
-        /// 格式: 节点名称 → TreeName部分1 → TreeName部分2
-        /// 示例: "阈值工具 → 结果 → 实际使用的阈值"
+        /// 格式: 节点名称.TreeName
+        /// 示例: "阈值工具.结果.实际使用的阈值"
         /// </remarks>
         public string DropdownDisplayText => GetDropdownDisplayText();
 
@@ -138,13 +138,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             if (string.IsNullOrEmpty(FullTreeName))
             {
-                // 如果没有 FullTreeName，使用简单的显示文本
-                return GetDisplayText();
+                // 如果没有 FullTreeName，使用节点名称.显示名称
+                return $"{SourceNodeName}.{DisplayName}";
             }
 
-            // 将 FullTreeName 中的 `.` 替换为 ` → `
-            var treeNameParts = FullTreeName.Replace(".", " → ");
-            return treeNameParts;
+            // FullTreeName 已包含节点名称，直接使用
+            return FullTreeName;
         }
 
         /// <summary>
@@ -173,6 +172,16 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// - 在 UI 中可能显示为灰色或特殊标记
         /// </remarks>
         public bool IsDesignTime { get; set; } = false;
+
+        /// <summary>
+        /// 距离当前节点的距离（0=当前节点，1=直接父节点，以此类推）
+        /// </summary>
+        public int Distance { get; set; }
+
+        /// <summary>
+        /// 节点是否已执行
+        /// </summary>
+        public bool HasExecuted { get; set; } = true;
 
         /// <summary>
         /// 是否有效

@@ -228,7 +228,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 图像显示控件的数据源（当前节点 + 所有父节点）
         /// </summary>
-        public ObservableCollection<ImageSourceInfo> DisplayImageSources { get; }
+        public ObservableCollection<AvailableDataSource> DisplayImageSources { get; }
 
         /// <summary>
         /// 当前选中的图像显示源索引
@@ -815,7 +815,7 @@ namespace SunEyeVision.UI.ViewModels
             ImageCollection = new BatchObservableCollection<ImageInfo>();
 
             // 初始化图像显示数据源
-            DisplayImageSources = new ObservableCollection<ImageSourceInfo>();
+            DisplayImageSources = new ObservableCollection<AvailableDataSource>();
 
             // 初始化工作流引擎
             _logger = VisionLogger.Instance;
@@ -2365,12 +2365,13 @@ namespace SunEyeVision.UI.ViewModels
                 var outputCache = selectedNode.OutputCache;
                 foreach (var imageName in outputCache.GetImageNames())
                 {
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = selectedNode.Id,
-                        NodeName = selectedNode.Name,
-                        OutputPortName = imageName,
-                        DataType = "Mat",
+                        SourceNodeId = selectedNode.Id,
+                        SourceNodeName = selectedNode.Name,
+                        PropertyName = imageName,
+                        DisplayName = string.IsNullOrEmpty(imageName) ? selectedNode.Name : imageName,
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = 0,
                         HasExecuted = true
                     });
@@ -2387,12 +2388,13 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
                         {
-                            DisplayImageSources.Add(new ImageSourceInfo
+                            DisplayImageSources.Add(new AvailableDataSource
                             {
-                                NodeId = selectedNode.Id,
-                                NodeName = selectedNode.Name,
-                                OutputPortName = kvp.Key,
-                                DataType = "Mat",
+                                SourceNodeId = selectedNode.Id,
+                                SourceNodeName = selectedNode.Name,
+                                PropertyName = kvp.Key,
+                                DisplayName = kvp.Key,
+                                PropertyType = typeof(OpenCvSharp.Mat),
                                 Distance = 0,
                                 HasExecuted = true
                             });
@@ -2407,12 +2409,13 @@ namespace SunEyeVision.UI.ViewModels
                     ProcessedImage = null;
                     ResultImage = null;
 
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = selectedNode.Id,
-                        NodeName = $"{selectedNode.Name} (未执行)",
-                        OutputPortName = "Output",
-                        DataType = InferNodeOutputType(selectedNode),
+                        SourceNodeId = selectedNode.Id,
+                        SourceNodeName = $"{selectedNode.Name} (未执行)",
+                        PropertyName = "Output",
+                        DisplayName = "Output",
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = 0,
                         HasExecuted = false
                     });
@@ -2436,12 +2439,13 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
                         {
-                            DisplayImageSources.Add(new ImageSourceInfo
+                            DisplayImageSources.Add(new AvailableDataSource
                             {
-                                NodeId = parentNode.Id,
-                                NodeName = parentNode.Name,
-                                OutputPortName = kvp.Key,
-                                DataType = "Mat",
+                                SourceNodeId = parentNode.Id,
+                                SourceNodeName = parentNode.Name,
+                                PropertyName = kvp.Key,
+                                DisplayName = kvp.Key,
+                                PropertyType = typeof(OpenCvSharp.Mat),
                                 Distance = distance,
                                 HasExecuted = true
                             });
@@ -2453,12 +2457,13 @@ namespace SunEyeVision.UI.ViewModels
                 // 如果没有输出，添加占位项
                 if (!hasOutput)
                 {
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = parentNode.Id,
-                        NodeName = $"{parentNode.Name} (未执行)",
-                        OutputPortName = "Output",
-                        DataType = InferNodeOutputType(parentNode),
+                        SourceNodeId = parentNode.Id,
+                        SourceNodeName = $"{parentNode.Name} (未执行)",
+                        PropertyName = "Output",
+                        DisplayName = "Output",
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = distance,
                         HasExecuted = false
                     });
@@ -2559,7 +2564,15 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                // 注入数据提供者
+                // ✅ 1. 先注入节点信息（设置 _currentNodeId）
+                var setCurrentNodeMethod = debugControl.GetType().GetMethod("SetCurrentNode");
+                if (setCurrentNodeMethod != null)
+                {
+                    setCurrentNodeMethod.Invoke(debugControl, new object[] { node });
+                    AddLog($"✅ 已注入节点信息到调试控件");
+                }
+
+                // ✅ 2. 再注入数据提供者（使用 _currentNodeId 填充数据源）
                 var setDataProviderMethod = debugControl.GetType().GetMethod("SetDataProvider");
                 if (setDataProviderMethod != null)
                 {
@@ -2571,20 +2584,12 @@ namespace SunEyeVision.UI.ViewModels
                     }
                 }
 
-                // 注入节点参数
+                // ✅ 3. 最后注入节点参数
                 var setParametersMethod = debugControl.GetType().GetMethod("SetParameters");
                 if (setParametersMethod != null && node.Parameters != null)
                 {
                     setParametersMethod.Invoke(debugControl, new object[] { node.Parameters });
                     AddLog($"✅ 已注入节点参数到调试控件");
-                }
-
-                // 注入节点信息
-                var setCurrentNodeMethod = debugControl.GetType().GetMethod("SetCurrentNode");
-                if (setCurrentNodeMethod != null)
-                {
-                    setCurrentNodeMethod.Invoke(debugControl, new object[] { node });
-                    AddLog($"✅ 已注入节点信息到调试控件");
                 }
             }
             catch (Exception ex)
@@ -2709,7 +2714,26 @@ namespace SunEyeVision.UI.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"❌ 注入前驱节点失败: {ex.Message}");
+                var errorDetails = new System.Text.StringBuilder();
+                errorDetails.AppendLine($"❌ 注入前驱节点失败: {ex.Message}");
+                
+                var innerEx = ex.InnerException;
+                while (innerEx != null)
+                {
+                    errorDetails.AppendLine($"  → 内部异常: {innerEx.Message}");
+                    if (!string.IsNullOrEmpty(innerEx.StackTrace))
+                    {
+                        // 只输出堆栈跟踪的前3行关键信息
+                        var stackLines = innerEx.StackTrace.Split('\n').Take(3);
+                        foreach (var line in stackLines)
+                        {
+                            errorDetails.AppendLine($"    {line.Trim()}");
+                        }
+                    }
+                    innerEx = innerEx.InnerException;
+                }
+                
+                AddLog(errorDetails.ToString());
             }
         }
 
@@ -2780,47 +2804,6 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 推断节点输出类型
-        /// </summary>
-        private string InferNodeOutputType(Models.WorkflowNode node)
-        {
-            // 根据工具类型推断
-            var toolType = node.ToolType?.ToLower() ?? node.Name.ToLower();
-
-            if (toolType.Contains("image") || toolType.Contains("capture") ||
-                toolType.Contains("load") || toolType.Contains("采集") || toolType.Contains("载入"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("threshold") || toolType.Contains("阈值"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("gray") || toolType.Contains("灰度"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("blur") || toolType.Contains("模糊"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("edge") || toolType.Contains("边缘"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("morphology") || toolType.Contains("形态"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("region") || toolType.Contains("区域"))
-            {
-                return "RegionData";
-            }
-
-            // 默认返回 Mat 类型
-            return "Mat";
-        }
-
 
         /// <summary>
         /// 在指定的 WorkflowCanvasControl 中切换显示包围矩形

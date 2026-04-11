@@ -301,6 +301,7 @@ namespace SunEyeVision.Tool.ImageLoad
         {
             return propertyName switch
             {
+                nameof(OutputImage) => "图像",
                 nameof(Width) => "图像.宽度",
                 nameof(Height) => "图像.高度",
                 nameof(Size) => "图像.尺寸",

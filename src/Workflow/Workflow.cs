@@ -24,7 +24,7 @@ namespace SunEyeVision.Workflow
 /// - 可升级：修改Workflow不影响NodeParameters数据
 /// - 可版本化：支持多个版本共存
 /// </remarks>
-public class Workflow : ObservableObject, IWorkflowConnectionProvider, INodeInfoProvider
+public class Workflow : ObservableObject
 {
     private string _name = "新建工作流";
 
@@ -251,125 +251,7 @@ public class Workflow : ObservableObject, IWorkflowConnectionProvider, INodeInfo
             return Nodes.FirstOrDefault(n => n.Id == nodeId);
         }
 
-        #region IWorkflowConnectionProvider 接口实现
 
-        /// <inheritdoc/>
-        public List<string> GetParentNodeIds(string nodeId)
-        {
-            var upstreamNodeIds = new HashSet<string>();
-            var queue = new Queue<string>();
-            var visited = new HashSet<string>();
-
-            queue.Enqueue(nodeId);
-            visited.Add(nodeId);
-
-            while (queue.Count > 0)
-            {
-                var currentNodeId = queue.Dequeue();
-
-                // 查找当前节点的所有父节点（连接指向当前节点的）
-                foreach (var connection in Connections.Where(c => c.TargetNodeId == currentNodeId))
-                {
-                    if (!visited.Contains(connection.SourceNodeId))
-                    {
-                        visited.Add(connection.SourceNodeId);
-                        upstreamNodeIds.Add(connection.SourceNodeId);
-                        queue.Enqueue(connection.SourceNodeId);
-                    }
-                }
-            }
-
-            return upstreamNodeIds.ToList();
-        }
-
-        /// <inheritdoc/>
-        public List<string> GetChildNodeIds(string nodeId)
-        {
-            var childNodeIds = new List<string>();
-
-            foreach (var connection in Connections.Where(c => c.SourceNodeId == nodeId))
-            {
-                childNodeIds.Add(connection.TargetNodeId);
-            }
-
-            return childNodeIds;
-        }
-
-        /// <inheritdoc/>
-        public List<string> GetAllNodeIds()
-        {
-            return Nodes.Select(n => n.Id).ToList();
-        }
-
-        #endregion
-
-        #region INodeInfoProvider 接口实现
-
-        /// <inheritdoc/>
-        public string GetNodeName(string nodeId)
-        {
-            var node = GetNode(nodeId);
-            return node?.Name ?? nodeId;
-        }
-
-        /// <inheritdoc/>
-        public string GetNodeType(string nodeId)
-        {
-            var node = GetNode(nodeId);
-            if (node == null)
-                return "Unknown";
-
-            var toolMetadata = ToolRegistry.GetToolMetadata(node.ToolType);
-            return toolMetadata?.DisplayName ?? node.ToolType;
-        }
-
-        /// <inheritdoc/>
-        public string? GetNodeIcon(string nodeId)
-        {
-            var node = GetNode(nodeId);
-            if (node == null)
-                return null;
-
-            var toolMetadata = ToolRegistry.GetToolMetadata(node.ToolType);
-            return toolMetadata?.Icon;
-        }
-
-        /// <inheritdoc/>
-        public bool NodeExists(string nodeId)
-        {
-            return Nodes.Any(n => n.Id == nodeId);
-        }
-
-        /// <inheritdoc/>
-        public Type? GetResultType(string nodeId)
-        {
-            var node = GetNode(nodeId);
-            if (node == null)
-                return null;
-
-            var toolMetadata = ToolRegistry.GetToolMetadata(node.ToolType);
-            Type? toolType = toolMetadata?.ToolType;
-
-            if (toolType == null)
-                return null;
-
-            // 从 ToolType 推断 ResultType
-            foreach (var iface in toolType.GetInterfaces())
-            {
-                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IToolPlugin<,>))
-                {
-                    var genericArgs = iface.GetGenericArguments();
-                    if (genericArgs.Length >= 2)
-                    {
-                        return genericArgs[1]; // TResult 是第二个泛型参数
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        #endregion
 
         /// <summary>
         /// 获取节点的输出类型列表

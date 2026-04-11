@@ -325,19 +325,19 @@
                                                                 <ToggleButton x:Name="Expander"
                                                                               Grid.Row="0"
                                                                               Grid.Column="0"
-                                                                              Width="16"
-                                                                              Height="16"
-                                                                              Margin="0,0,2,0"
+                                                                              Width="20"
+                                                                              Height="20"
+                                                                              Margin="-2,0,2,0"
                                                                               IsChecked="{Binding Path=IsExpanded, Mode=TwoWay}"
                                                                               Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibilityConverter}}"
                                                                               IsHitTestVisible="True">
                                                                     <ToggleButton.Template>
                                                                         <ControlTemplate TargetType="ToggleButton">
-                                                                            <Grid Width="16" Height="16">
+                                                                            <Grid Width="20" Height="20" Background="Transparent">
                                                                                 <Path x:Name="ExpanderPath"
-                                                                                      Width="8"
-                                                                                      Height="8"
-                                                                                      Data="M 0 0 L 6 4 L 0 8 Z"
+                                                                                      Width="10"
+                                                                                      Height="10"
+                                                                                      Data="M 0 0 L 8 5 L 0 10 Z"
                                                                                       Fill="{StaticResource LabelSecondaryBrush}"
                                                                                       RenderTransformOrigin="0.5,0.5"
                                                                                       HorizontalAlignment="Center"
@@ -396,7 +396,7 @@
                                                                                 Grid.Row="1"
                                                                                 Grid.Column="0"
                                                                                 Grid.ColumnSpan="2"
-                                                                                Margin="16,0,0,0"/>
+                                                                                Margin="20,0,0,0"/>
                                                             </Grid>
                                                             
                                                             <ControlTemplate.Triggers>
@@ -449,7 +449,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:ImageSourceSelector}">
-                    <!-- 移除外层Border和Label，只保留核心功能 -->
+                    <!-- 核心功能：按钮 + Popup下拉列表 -->
                     <Grid>
                         <!-- 选择器按钮 -->
                         <Button x:Name="PART_SelectorButton"
@@ -467,13 +467,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
-                                               Text="{Binding SelectedImageSource.DisplayName, RelativeSource={RelativeSource TemplatedParent}}"
+                                               Text="{Binding SelectedDataSource.FullTreeName, RelativeSource={RelativeSource TemplatedParent}}"
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource LabelBrush}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding SelectedImageSource, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
+                                                    <DataTrigger Binding="{Binding SelectedDataSource, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
                                                         <Setter Property="Text" Value="{Binding PlaceholderText, RelativeSource={RelativeSource TemplatedParent}}"/>
                                                         <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
                                                     </DataTrigger>
@@ -523,23 +523,19 @@
                                         <!-- 图像源列表 -->
                                         <ListBox x:Name="PART_ImageSourceList"
                                                  Grid.Row="1"
-                                                 ItemsSource="{Binding AvailableImageSources, RelativeSource={RelativeSource TemplatedParent}}"
+                                                 ItemsSource="{Binding AvailableDataSources, RelativeSource={RelativeSource TemplatedParent}}"
+                                                 SelectedItem="{Binding SelectedDataSource, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWayToSource}"
                                                  BorderThickness="0"
                                                  MaxHeight="250"
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <!-- 简化显示：只显示文本信息 -->
-                                                    <StackPanel Margin="8,6" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                                                   FontWeight="Medium"
-                                                                   FontSize="13"
-                                                                   Foreground="{StaticResource LabelBrush}"/>
-                                                        <TextBlock Text="{Binding SizeDescription}"
-                                                                   FontSize="11"
-                                                                   Foreground="{StaticResource LabelSecondaryBrush}"
-                                                                   Margin="0,2,0,0"/>
-                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding DropdownDisplayText}"
+                                                               Margin="8,6"
+                                                               FontWeight="Medium"
+                                                               FontSize="13"
+                                                               Foreground="{StaticResource LabelBrush}"
+                                                               VerticalAlignment="Center"/>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                             <ListBox.ItemContainerStyle>
@@ -547,7 +543,13 @@
                                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                                     <Setter Property="Padding" Value="0"/>
                                                     <Setter Property="BorderThickness" Value="0"/>
+                                                    <!-- 默认隐藏所有项 -->
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
+                                                        <!-- 图像类型的数据源显示 -->
+                                                        <DataTrigger Binding="{Binding PropertyType.Name}" Value="Mat">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
                                                             <Setter Property="Background" Value="#F0F7FF"/>
                                                         </Trigger>
