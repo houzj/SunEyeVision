@@ -100,7 +100,6 @@
                 <MenuItem Header="方案树(_S)"/>
                 <MenuItem Header="工具箱(_T)"/>
                 <MenuItem Header="设备管理(_D)"/>
-                <MenuItem Header="属性面板(_P)"/>
                 <MenuItem Header="日志窗口(_L)"/>
                 <MenuItem Header="结果预览(_R)"/>
                 <MenuItem Header="系统信息(_I)"/>
@@ -808,13 +807,13 @@
                                          x:Name="RightPanelSplitter"
                                          ToggleClicked="RightPanelSplitter_ToggleClick"/>
 
-            <!-- ========== 右侧面板 ========== -->
+            <!-- ========== 右侧面板：图像显示 + 数据分析 + 日志 ========== -->
             <Border Grid.Column="3" Grid.Row="0" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0">
                 <Grid x:Name="RightPanelGrid">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" MinHeight="40" MaxHeight="1000"/>  <!-- Row 0: 图像显示区域（自适应） -->
                         <RowDefinition Height="Auto" MinHeight="4" MaxHeight="4"/>  <!-- Row 1: 分隔条（可拖动） -->
-                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 属性面板（固定300px） -->
+                        <RowDefinition Height="200" MinHeight="200" MaxHeight="600"/>  <!-- Row 2: 数据分析和日志面板（默认高度200px，可拖动调整） -->
                     </Grid.RowDefinitions>
 
                     <!-- 图像显示区域 - 包含图像显示模块和图像加载及预览模块 -->

@@ -136,7 +136,7 @@ namespace SunEyeVision.UI.ViewModels
         // 折叠状态
         private bool _isToolboxCollapsed = true;
         private bool _isImageDisplayCollapsed = false;
-        private bool _isPropertyPanelCollapsed = false;
+        private bool _isRightPanelCollapsed = false;
         private double _toolboxWidth = 260;
         private double _rightPanelWidth = 500;
         private double _imageDisplayHeight = 500;
@@ -478,10 +478,10 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _isImageDisplayCollapsed, value);
         }
 
-        public bool IsPropertyPanelCollapsed
+        public bool IsRightPanelCollapsed
         {
-            get => _isPropertyPanelCollapsed;
-            set => SetProperty(ref _isPropertyPanelCollapsed, value);
+            get => _isRightPanelCollapsed;
+            set => SetProperty(ref _isRightPanelCollapsed, value);
         }
 
         public double ToolboxWidth

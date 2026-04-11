@@ -14,7 +14,7 @@ namespace SunEyeVision.UI.ViewModels
     /// </summary>
     /// <remarks>
     /// 管理单个参数的绑定配置，支持常量值和动态绑定两种模式。
-    /// 
+    ///
     /// 核心功能：
     /// 1. 切换绑定类型（常量/动态）
     /// 2. 管理常量值
@@ -503,7 +503,7 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo($"  已批量添加 {dataSources.Count} 个数据源到集合");
 
                 // 构建树形结构
-                var treeNodes = BindableParameter.BuildTreeStructure(dataSources);
+                var treeNodes = ParameterSetting.BuildTreeStructure(dataSources);
                 foreach (var node in treeNodes)
                 {
                     TreeNodes.Add(node);

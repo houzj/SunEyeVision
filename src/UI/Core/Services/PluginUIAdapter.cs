@@ -57,14 +57,6 @@ namespace SunEyeVision.UI.Core.Services
         }
 
         /// <summary>
-        /// 是否需要属性面板
-        /// </summary>
-        public bool NeedsPropertyPanel()
-        {
-            return GetMode() != UIProviderMode.Custom;
-        }
-
-        /// <summary>
         /// 创建通用控件（框架自动生成）
         /// </summary>
         private object CreateGenericControl()

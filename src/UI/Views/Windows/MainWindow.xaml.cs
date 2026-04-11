@@ -1,4 +1,4 @@
-﻿
+
 using System;
 using System.IO;
 
@@ -2874,7 +2874,7 @@ namespace SunEyeVision.UI.Views.Windows
 
         {
 
-            if (_viewModel.IsPropertyPanelCollapsed)
+            if (_viewModel.IsRightPanelCollapsed)
 
             {
 
@@ -2882,7 +2882,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 RightPanelColumn.Width = new GridLength(_rightPanelWidth);
 
-                _viewModel.IsPropertyPanelCollapsed = false;
+                _viewModel.IsRightPanelCollapsed = false;
 
             }
 
@@ -2896,7 +2896,7 @@ namespace SunEyeVision.UI.Views.Windows
 
                 RightPanelColumn.Width = new GridLength(40);
 
-                _viewModel.IsPropertyPanelCollapsed = true;
+                _viewModel.IsRightPanelCollapsed = true;
 
             }
 
@@ -2916,7 +2916,7 @@ namespace SunEyeVision.UI.Views.Windows
 
         {
 
-            var newDirection = _viewModel.IsPropertyPanelCollapsed
+            var newDirection = _viewModel.IsRightPanelCollapsed
 
                 ? ToggleDirectionType.Left
 
