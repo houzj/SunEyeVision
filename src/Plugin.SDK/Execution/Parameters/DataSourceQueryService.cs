@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -109,29 +111,38 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             // 获取节点结果
             var result = GetNodeResult(parentNodeId);
-            if (result == null)
+            if (result != null)
             {
-                // 尝试从节点信息提供者获取
-                if (_nodeInfoProvider != null)
-                {
-                    // 返回空属性列表（节点未执行）
-                    return properties;
-                }
-
-                return properties;
+                // 从执行结果中提取属性
+                return ExtractPropertiesFromResult(result, parentNodeId);
             }
 
-            // 获取节点名称和类型
-            string nodeName = _nodeInfoProvider?.GetNodeName(parentNodeId) ?? parentNodeId;
-            string nodeType = _nodeInfoProvider?.GetNodeType(parentNodeId) ?? "Unknown";
+            // 节点未执行，尝试从工具元数据提取
+            if (_nodeInfoProvider != null)
+            {
+                return ExtractPropertiesFromMetadata(parentNodeId);
+            }
 
-            // 从结果中提取属性
+            // 返回空属性列表
+            return properties;
+        }
+
+        /// <summary>
+        /// 从执行结果中提取输出属性
+        /// </summary>
+        private List<AvailableDataSource> ExtractPropertiesFromResult(ToolResults result, string nodeId)
+        {
+            var properties = new List<AvailableDataSource>();
+
+            string nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
+            string nodeType = _nodeInfoProvider?.GetNodeType(nodeId) ?? "Unknown";
+
             var resultItems = result.GetResultItems();
             foreach (var item in resultItems)
             {
                 var dataSource = new AvailableDataSource
                 {
-                    SourceNodeId = parentNodeId,
+                    SourceNodeId = nodeId,
                     SourceNodeName = nodeName,
                     SourceNodeType = nodeType,
                     PropertyName = item.Name,
@@ -145,6 +156,35 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
                 properties.Add(dataSource);
             }
+
+            return properties;
+        }
+
+        /// <summary>
+        /// 从工具元数据中提取输出属性定义（节点未执行时）
+        /// </summary>
+        private List<AvailableDataSource> ExtractPropertiesFromMetadata(string nodeId)
+        {
+            var properties = new List<AvailableDataSource>();
+
+            string nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
+            string nodeType = _nodeInfoProvider?.GetNodeType(nodeId) ?? "Unknown";
+            string nodeIcon = _nodeInfoProvider?.GetNodeIcon(nodeId);
+
+            // 从工具注册表获取输出属性定义
+            var toolProperties = ToolRegistry.GetToolOutputProperties(nodeType, nodeId);
+            properties.AddRange(toolProperties);
+
+            // 更新节点名称
+            foreach (var prop in properties)
+            {
+                prop.SourceNodeName = nodeName;
+                prop.GroupName = nodeName;
+            }
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[DataSourceQueryService.ExtractPropertiesFromMetadata] 从元数据提取输出属性 - nodeId={nodeId}, nodeType={nodeType}, 属性数量={properties.Count}",
+                "DataSourceQueryService");
 
             return properties;
         }
@@ -233,6 +273,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 创建父节点信息
         /// </summary>
+        /// <remarks>
+        /// 统一调用 ExtractOutputProperties 方法，该方法内部会根据节点是否执行自动选择提取路径：
+        /// - 已执行：从执行结果提取（包含实际值）
+        /// - 未执行：从工具元数据提取（仅属性定义）
+        /// </remarks>
         private ParentNodeInfo CreateParentNodeInfo(string nodeId, int order)
         {
             string nodeName = _nodeInfoProvider?.GetNodeName(nodeId) ?? nodeId;
@@ -248,17 +293,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 ConnectionOrder = order
             };
 
-            // 获取执行结果
+            // 获取执行结果（可能为null）
             var result = GetNodeResult(nodeId);
-            if (result != null)
-            {
-                nodeInfo.ExecutionStatus = result.Status;
-                nodeInfo.ExecutionTimeMs = result.ExecutionTimeMs;
-                nodeInfo.ErrorMessage = result.ErrorMessage;
 
-                // 提取输出属性
-                nodeInfo.ExtractOutputProperties(result);
-            }
+            // 统一调用 ExtractOutputProperties，内部会根据 result 是否为null自动选择提取路径
+            nodeInfo.ExtractOutputProperties(result);
 
             return nodeInfo;
         }

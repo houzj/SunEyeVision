@@ -320,5 +320,75 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                 .OrderBy(c => c)
                 .ToList();
         }
+
+        /// <summary>
+        /// 获取工具的输出属性定义（无需执行）
+        /// </summary>
+        /// <param name="toolId">工具ID</param>
+        /// <param name="nodeId">节点ID（用于填充数据源信息）</param>
+        /// <returns>输出属性列表</returns>
+        public static List<AvailableDataSource> GetToolOutputProperties(string toolId, string nodeId)
+        {
+            var properties = new List<AvailableDataSource>();
+
+            // 获取工具实例
+            var tool = CreateToolInstance(toolId);
+            if (tool == null || tool.ResultType == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[ToolRegistry.GetToolOutputProperties] 工具实例或结果类型为null - toolId={toolId}",
+                    "ToolRegistry");
+                return properties;
+            }
+
+            // 创建空的结果实例
+            ToolResults? result;
+            try
+            {
+                result = (ToolResults?)Activator.CreateInstance(tool.ResultType);
+            }
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[ToolRegistry.GetToolOutputProperties] 创建结果实例失败 - toolId={toolId}, ResultType={tool.ResultType.FullName}, 错误={ex.Message}",
+                    "ToolRegistry");
+                return properties;
+            }
+
+            if (result == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[ToolRegistry.GetToolOutputProperties] 结果实例创建失败 - toolId={toolId}",
+                    "ToolRegistry");
+                return properties;
+            }
+
+            // 获取结果项（属性定义）
+            var resultItems = result.GetResultItems();
+            foreach (var item in resultItems)
+            {
+                var dataSource = new AvailableDataSource
+                {
+                    SourceNodeId = nodeId,
+                    SourceNodeName = nodeId,  // 将由调用方覆盖
+                    SourceNodeType = toolId,
+                    PropertyName = item.Name,
+                    DisplayName = item.DisplayName ?? item.Name,
+                    PropertyType = item.Value?.GetType() ?? typeof(object),
+                    CurrentValue = item.Value,  // 为空
+                    Unit = item.Unit,
+                    Description = item.Description,
+                    GroupName = toolId
+                };
+
+                properties.Add(dataSource);
+            }
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[ToolRegistry.GetToolOutputProperties] 成功提取输出属性 - toolId={toolId}, 属性数量={properties.Count}",
+                "ToolRegistry");
+
+            return properties;
+        }
     }
 }
