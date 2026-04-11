@@ -229,6 +229,14 @@
                             <CheckBox x:Name="PART_BoolCheckBox"
                                       VerticalAlignment="Center"
                                       Visibility="{Binding DataType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=Bool}"/>
+
+                            <!-- 绑定路径显示（只读，绑定模式下显示） -->
+                            <TextBox x:Name="PART_BindingPathDisplay"
+                                     Style="{StaticResource BaseInputStyle}"
+                                     TextAlignment="Left"
+                                     IsReadOnly="True"
+                                     Text="{Binding FriendlyBindingSource, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                     Visibility="Collapsed"/>
                         </Grid>
 
                         <!-- 绑定按钮 -->
@@ -439,6 +447,17 @@
                             </Border>
                         </Popup>
                     </Grid>
+                    
+                    <!-- DataTrigger：根据绑定类型切换显示 -->
+                    <ControlTemplate.Triggers>
+                        <!-- 绑定模式：隐藏编辑器，显示绑定路径 -->
+                        <DataTrigger Binding="{Binding BindingType, RelativeSource={RelativeSource Self}}" Value="Binding">
+                            <Setter TargetName="PART_NumericEditor" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_StringTextBox" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_BoolCheckBox" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_BindingPathDisplay" Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

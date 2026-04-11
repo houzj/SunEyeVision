@@ -55,6 +55,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(BindableParameter),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+        // ===== 友好绑定源显示（只读，用于UI显示） =====
+        private static readonly DependencyPropertyKey FriendlyBindingSourcePropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(FriendlyBindingSource), typeof(string), typeof(BindableParameter),
+                new PropertyMetadata(string.Empty));
+
+        public static readonly DependencyProperty FriendlyBindingSourceProperty = FriendlyBindingSourcePropertyKey.DependencyProperty;
+
         // ===== 单一值属性（统一入口） =====
         /// <summary>
         /// 值属性：统一的值入口，支持任意类型
@@ -175,6 +182,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             get => (string)GetValue(BindingSourceProperty);
             set => SetValue(BindingSourceProperty, value);
+        }
+
+        /// <summary>
+        /// 友好绑定源显示：用于UI显示的人类可读格式
+        /// </summary>
+        public string FriendlyBindingSource
+        {
+            get => (string)GetValue(FriendlyBindingSourceProperty);
+            private set => SetValue(FriendlyBindingSourcePropertyKey, value);
         }
 
         /// <summary>
@@ -823,7 +839,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                         VisionLogger.Instance.Log(LogLevel.Success,
                             $"    [BindableParameter] TreeName exists, building tree: {dataSource.FullTreeName}",
                             "BindableParameter");
-                        BuildOrMergeTreeNodeFromFullTreeName(dataSource.FullTreeName!, dataSource, rootNode.Children, propertyCache);
+                        BuildOrMergeTreeNodeFromFullTreeName(dataSource.FullTreeName!, dataSource, rootNode.Children, propertyCache, rootNode);
                     }
                 }
                 
@@ -838,16 +854,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         /// <param name="fullTreeName">完整树形名称（例如: "阈值工具.结果.实际使用的阈值"）</param>
         /// <param name="dataSource">数据源</param>
-        /// <param name="rootNodes">根节点列表</param>
+        /// <param name="rootNodes">根节点列表（实际上是根节点的 Children）</param>
         /// <param name="nodeCache">节点缓存字典（key: 路径，value: 节点）</param>
+        /// <param name="actualRootNode">实际的根节点（来自 BuildTreeStructure）</param>
         private static void BuildOrMergeTreeNodeFromFullTreeName(string fullTreeName, AvailableDataSource dataSource,
-            System.Collections.ObjectModel.ObservableCollection<TreeNodeData> rootNodes, Dictionary<string, TreeNodeData> nodeCache)
+            System.Collections.ObjectModel.ObservableCollection<TreeNodeData> rootNodes, Dictionary<string, TreeNodeData> nodeCache, TreeNodeData actualRootNode)
         {
             // 将 TreeName 按 `.` 分割
             var parts = fullTreeName.Split('.');
 
             TreeNodeData? parentNode = null;
             string currentPath = string.Empty;
+
+            // 🔍 调试日志：输出 FullTreeName 的分割结果
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"    [BindableParameter] FullTreeName: '{fullTreeName}', 分割后: [{string.Join(", ", parts)}], 实际根节点: '{actualRootNode.Text}'",
+                "BindableParameter");
 
             // 处理每个层级（跳过根节点名称，从索引 1 开始）
             // 根节点名称（parts[0]）已经在 BuildTreeStructure 中创建
@@ -870,21 +892,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     // 最后一个部分是叶子节点
                     node = TreeNodeData.CreateDataSourceNode(dataSource);
                     node.Text = parts[i];
-                    
+
                     // 修复：将叶子节点添加到父节点的 Children 中
                     if (parentNode != null)
                     {
+                        node.Parent = parentNode;  // 设置父节点引用
                         parentNode.Children.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Success, 
-                            $"      [BindableParameter] 叶子节点已添加: {node.Text} -> {parentNode.Text}", 
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"      [BindableParameter] 叶子节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
                             "BindableParameter");
                     }
                     else
                     {
                         // 特殊情况：叶子节点直接作为根节点（FullTreeName 只有一层）
+                        // 这种情况下，节点应该添加到 actualRootNode
+                        node.Parent = actualRootNode;  // 设置父节点引用
                         rootNodes.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Warning, 
-                            $"      [BindableParameter] 叶子节点作为根节点: {node.Text}", 
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"      [BindableParameter] 叶子节点作为根节点: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
                             "BindableParameter");
                     }
                 }
@@ -905,11 +930,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     // 添加到父节点或根节点列表
                     if (parentNode != null)
                     {
+                        node.Parent = parentNode;  // 设置父节点引用
                         parentNode.Children.Add(node);
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"      [BindableParameter] 分组节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
+                            "BindableParameter");
                     }
                     else
                     {
+                        // 第一个分组节点，应该添加到 actualRootNode
+                        node.Parent = actualRootNode;  // 设置父节点引用
                         rootNodes.Add(node);
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"      [BindableParameter] 第一层分组节点已添加: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
+                            "BindableParameter");
                     }
                 }
 
@@ -950,8 +984,24 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (e.NewValue is TreeNodeData selectedNode && selectedNode.IsSelectable && selectedNode.DataSource != null)
             {
-                // 设置绑定源
+                // 设置绑定源（GUID格式，用于数据绑定）
                 BindingSource = selectedNode.DataSource.GetBindingPath();
+
+                // 设置友好显示名称：根据树形结构动态生成
+                // 格式：根节点名称 . 叶子节点名称
+                // 例如：5.图像阈值化4 . 实际使用的阈值
+                
+                // 🔍 调试日志：输出节点层级
+                var rootNode = GetRootNode(selectedNode);
+                var rootName = rootNode?.Text ?? "";
+                var leafName = selectedNode.Text;
+                
+                VisionLogger.Instance.Log(LogLevel.Info, 
+                    $"[BindableParameter] 选中节点: {leafName}, 父节点: {selectedNode.Parent?.Text ?? "null"}, 根节点: {rootName}", 
+                    "BindableParameter");
+                
+                FriendlyBindingSource = $"{rootName} . {leafName}";
+
                 BindingType = BindingType.Binding;
                 UpdateVisualState();
 
@@ -964,6 +1014,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     _bindingPopup.IsOpen = false;
                 }
             }
+        }
+
+        /// <summary>
+        /// 获取节点的根节点（向上遍历 Parent 引用）
+        /// </summary>
+        /// <param name="node">目标节点</param>
+        /// <returns>根节点</returns>
+        private static TreeNodeData? GetRootNode(TreeNodeData node)
+        {
+            var current = node;
+            while (current.Parent != null)
+            {
+                current = current.Parent;
+            }
+            return current;
         }
 
         private void UpdateVisualState()
@@ -1055,6 +1120,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (binding.BindingType == BindingType.Constant)
             {
                 SetValue(binding.ConstantValue);
+                FriendlyBindingSource = string.Empty;
             }
             else
             {

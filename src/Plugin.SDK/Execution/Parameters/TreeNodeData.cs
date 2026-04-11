@@ -17,7 +17,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     public class TreeNodeData : INotifyPropertyChanged
     {
         private bool _isExpanded = false;
-        
+
+        /// <summary>
+        /// 父节点引用
+        /// </summary>
+        public TreeNodeData? Parent { get; set; }
+
         /// <summary>
         /// 节点文本（显示在树中）
         /// </summary>

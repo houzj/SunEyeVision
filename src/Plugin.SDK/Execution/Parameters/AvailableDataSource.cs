@@ -138,12 +138,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             if (string.IsNullOrEmpty(FullTreeName))
             {
-                // 如果没有 FullTreeName，使用节点名称.显示名称
-                return $"{SourceNodeName}.{DisplayName}";
+                // 如果没有 FullTreeName，使用节点名称+空格+显示名称
+                return $"{SourceNodeName} {DisplayName}";
             }
 
-            // FullTreeName 已包含节点名称，直接使用
-            return FullTreeName;
+            // FullTreeName 已包含节点名称，将点号替换为空格，使其更友好
+            return FullTreeName.Replace(".", " ");
         }
 
         /// <summary>
