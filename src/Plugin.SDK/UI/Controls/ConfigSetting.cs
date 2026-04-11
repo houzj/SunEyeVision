@@ -24,14 +24,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 3. 绑定类型与数据类型正交，任何数据类型都可以是常量或绑定
     /// 
     /// V2.0 重构要点：
-    /// 1. 单一值属性 Value (object) - 统一入口，支持任意类型
-    /// 2. 内部计算属性 InternalNumericValue (只读double) - 用于模板绑定，自动类型转换
-    /// 3. 统一范围属性 Minimum/Maximum (object) - 支持任意数值类型
-    /// 4. 类型适配器模式 - 自动处理 int ↔ double 转换
+    /// 1. 继承 ParamBindingBase，专注于参数值编辑功能
+    /// 2. 单一值属性 Value (object) - 统一入口，支持任意类型
+    /// 3. 内部计算属性 InternalNumericValue (只读double) - 用于模板绑定，自动类型转换
+    /// 4. 统一范围属性 Minimum/Maximum (object) - 支持任意数值类型
+    /// 5. 类型适配器模式 - 自动处理 int ↔ double 转换
     /// 
     /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
     /// </remarks>
-    public class ConfigSetting : Control
+    public class ConfigSetting : ParamBindingBase
     {
         #region 依赖属性
 
@@ -40,15 +41,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(ParameterName), typeof(string), typeof(ConfigSetting),
                 new PropertyMetadata(string.Empty));
 
-        // ===== 数据类型 =====
-        public static readonly DependencyProperty DataTypeProperty =
-            DependencyProperty.Register(nameof(DataType), typeof(ParamDataType), typeof(ConfigSetting),
-                new PropertyMetadata(ParamDataType.Double, OnDataTypeChanged));
-
-        // ===== 绑定类型 =====
         public static readonly DependencyProperty BindingTypeProperty =
             DependencyProperty.Register(nameof(BindingType), typeof(BindingType), typeof(ConfigSetting),
-                new FrameworkPropertyMetadata(BindingType.Constant, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+                new FrameworkPropertyMetadata(BindingType.Constant, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnBindingTypeChanged));
 
         // ===== 绑定源 =====
         public static readonly DependencyProperty BindingSourceProperty =
@@ -130,19 +125,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(ConfigSetting),
                 new PropertyMetadata(true, OnShowSliderPropertyChanged));
 
-        // ===== 可用绑定源（树形结构） =====
+        // ===== 可用绑定源（传递给ParamBinding） =====
         /// <summary>
         /// 可用数据源列表（输入：平面列表）
         /// </summary>
         public static readonly DependencyProperty AvailableDataSourcesProperty =
             DependencyProperty.Register(nameof(AvailableDataSources), typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>), typeof(ConfigSetting),
-                new PropertyMetadata(null, OnAvailableDataSourcesChanged));
-
-        /// <summary>
-        /// 树形结构节点（输出：用于TreeView绑定）
-        /// </summary>
-        public static readonly DependencyProperty TreeNodesProperty =
-            DependencyProperty.Register(nameof(TreeNodes), typeof(System.Collections.ObjectModel.ObservableCollection<TreeNodeData>), typeof(ConfigSetting),
                 new PropertyMetadata(null));
 
         public static readonly DependencyProperty AvailableBindingsProperty =
@@ -152,6 +140,43 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty TransformExpressionProperty =
             DependencyProperty.Register(nameof(TransformExpression), typeof(string), typeof(ConfigSetting),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        // ===== 编辑器可见性控制 =====
+        /// <summary>
+        /// 数值编辑器可见性：常量模式且数据类型为 Int/Double 时可见
+        /// </summary>
+        private static readonly DependencyPropertyKey NumericEditorVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(NumericEditorVisibility), typeof(Visibility), typeof(ConfigSetting),
+                new PropertyMetadata(Visibility.Collapsed));
+
+        public static readonly DependencyProperty NumericEditorVisibilityProperty = NumericEditorVisibilityPropertyKey.DependencyProperty;
+
+        /// <summary>
+        /// 字符串编辑器可见性：常量模式且数据类型为 String 时可见
+        /// </summary>
+        private static readonly DependencyPropertyKey StringTextBoxVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(StringTextBoxVisibility), typeof(Visibility), typeof(ConfigSetting),
+                new PropertyMetadata(Visibility.Collapsed));
+
+        public static readonly DependencyProperty StringTextBoxVisibilityProperty = StringTextBoxVisibilityPropertyKey.DependencyProperty;
+
+        /// <summary>
+        /// 布尔编辑器可见性：常量模式且数据类型为 Bool 时可见
+        /// </summary>
+        private static readonly DependencyPropertyKey BoolCheckBoxVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(BoolCheckBoxVisibility), typeof(Visibility), typeof(ConfigSetting),
+                new PropertyMetadata(Visibility.Collapsed));
+
+        public static readonly DependencyProperty BoolCheckBoxVisibilityProperty = BoolCheckBoxVisibilityPropertyKey.DependencyProperty;
+
+        /// <summary>
+        /// 参数绑定控件可见性：绑定模式时可见
+        /// </summary>
+        private static readonly DependencyPropertyKey ParamBindingVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(ParamBindingVisibility), typeof(Visibility), typeof(ConfigSetting),
+                new PropertyMetadata(Visibility.Collapsed));
+
+        public static readonly DependencyProperty ParamBindingVisibilityProperty = ParamBindingVisibilityPropertyKey.DependencyProperty;
 
         #endregion
 
@@ -164,12 +189,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             get => (string)GetValue(ParameterNameProperty);
             set => SetValue(ParameterNameProperty, value);
-        }
-
-        public ParamDataType DataType
-        {
-            get => (ParamDataType)GetValue(DataTypeProperty);
-            set => SetValue(DataTypeProperty, value);
         }
 
         public BindingType BindingType
@@ -285,15 +304,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(AvailableDataSourcesProperty, value);
         }
 
-        /// <summary>
-        /// 树形结构节点（输出）
-        /// </summary>
-        public System.Collections.ObjectModel.ObservableCollection<TreeNodeData>? TreeNodes
-        {
-            get => (System.Collections.ObjectModel.ObservableCollection<TreeNodeData>?)GetValue(TreeNodesProperty);
-            set => SetValue(TreeNodesProperty, value);
-        }
-
         public System.Collections.Generic.List<string> AvailableBindings
         {
             get => (System.Collections.Generic.List<string>)GetValue(AvailableBindingsProperty);
@@ -306,16 +316,39 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             set => SetValue(TransformExpressionProperty, value);
         }
 
+        public Visibility NumericEditorVisibility
+        {
+            get => (Visibility)GetValue(NumericEditorVisibilityProperty);
+            private set => SetValue(NumericEditorVisibilityPropertyKey, value);
+        }
+
+        public Visibility StringTextBoxVisibility
+        {
+            get => (Visibility)GetValue(StringTextBoxVisibilityProperty);
+            private set => SetValue(StringTextBoxVisibilityPropertyKey, value);
+        }
+
+        public Visibility BoolCheckBoxVisibility
+        {
+            get => (Visibility)GetValue(BoolCheckBoxVisibilityProperty);
+            private set => SetValue(BoolCheckBoxVisibilityPropertyKey, value);
+        }
+
+        public Visibility ParamBindingVisibility
+        {
+            get => (Visibility)GetValue(ParamBindingVisibilityProperty);
+            private set => SetValue(ParamBindingVisibilityPropertyKey, value);
+        }
+
         #endregion
 
         #region 控件引用
 
-        private NumericUpDown _numericEditor = null!;
-        private TextBox _stringTextBox = null!;
-        private Button _bindingButton = null!;
-        private CheckBox _boolCheckBox = null!;
-        private Popup _bindingPopup = null!;
-        private TreeView _bindingTreeView = null!;
+        private NumericUpDown? _numericEditor;
+        private TextBox? _stringTextBox;
+        private Button? _bindingModeButton = null!;
+        private CheckBox? _boolCheckBox;
+        private ParamBinding? _paramBinding;
 
         #endregion
 
@@ -362,9 +395,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         #endregion
 
-        // 私有字段：保存当前数据源集合的引用，用于取消订阅事件
-        private System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>? _currentDataSources;
-
         static ConfigSetting()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ConfigSetting),
@@ -374,120 +404,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public ConfigSetting()
         {
             AvailableBindings = new System.Collections.Generic.List<string>();
-            TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
         }
 
         #region 回调方法
 
-        private static void OnAvailableDataSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnBindingTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is ConfigSetting control)
             {
-                // 调试日志：输出绑定状态
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[ConfigSetting] OnAvailableDataSourcesChanged 触发: ParameterName={control.ParameterName}, " +
-                    $"NewValue={(e.NewValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.NewValue).Count}]" : "null")}, " +
-                    $"OldValue={(e.OldValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.OldValue).Count}]" : "null")}",
-                    "ConfigSetting");
-
-                // 订阅新集合的事件并构建树形结构
-                if (e.NewValue is System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> newDataSources)
-                {
-                    control._currentDataSources = newDataSources;
-                    // 注意：不再订阅 CollectionChanged 事件，避免批量添加数据源时的重复触发
-                    // 数据源更新通过 AvailableDataSourcesProperty 变化触发一次 RebuildTreeNodes
-
-                    // 立即构建树形结构
-                    control.RebuildTreeNodes();
-                }
-                else
-                {
-                    control._currentDataSources = null;
-                    control.TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
-                    VisionLogger.Instance.Log(LogLevel.Warning,
-                        $"[ConfigSetting] AvailableDataSources 为 null 或类型不匹配",
-                        "ConfigSetting");
-                }
+                control.UpdateEditorVisibility();
             }
-        }
-
-        /// <summary>
-        /// 重新构建树形结构
-        /// </summary>
-        private void RebuildTreeNodes()
-        {
-            if (_currentDataSources != null)
-            {
-                var dataSourceList = _currentDataSources.ToList();
-                
-                // 🔧 类型过滤：根据 DataType 过滤兼容的数据源
-                // 与 ImageSourceSelector 保持一致的设计模式
-                var filteredDataSources = FilterDataSourcesByType(dataSourceList);
-                
-                // 简化日志：只输出关键信息
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"构建树形结构: {dataSourceList.Count} 个数据源 → {filteredDataSources.Count} 个兼容数据源 (DataType={DataType})", 
-                    "ConfigSetting");
-                
-                var treeNodes = BuildTreeStructure(filteredDataSources);
-                
-                // 输出树形结构概览
-                if (treeNodes.Count > 0)
-                {
-                    var summary = string.Join(", ", treeNodes.Select(n => $"{n.Text}({n.Children.Count})"));
-                    VisionLogger.Instance.Log(LogLevel.Success, $"树形结构构建完成: {treeNodes.Count} 个节点根 [{summary}]", "ConfigSetting");
-                }
-                
-                TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>(treeNodes);
-            }
-            else
-            {
-                VisionLogger.Instance.Log(LogLevel.Info, $"_currentDataSources 为 null，创建空树", "ConfigSetting");
-                TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
-            }
-        }
-        
-        /// <summary>
-        /// 根据参数类型过滤数据源
-        /// </summary>
-        private System.Collections.Generic.List<AvailableDataSource> FilterDataSourcesByType(
-            System.Collections.Generic.List<AvailableDataSource> dataSources)
-        {
-            // 将 ParamDataType 映射到 OutputTypeCategory
-            OutputTypeCategory? expectedCategory = DataType switch
-            {
-                ParamDataType.Int => OutputTypeCategory.Numeric,
-                ParamDataType.Double => OutputTypeCategory.Numeric,
-                ParamDataType.String => OutputTypeCategory.Text,
-                ParamDataType.Bool => OutputTypeCategory.Numeric,
-                _ => null
-            };
-            
-            if (expectedCategory == null)
-            {
-                // 未指定类型：返回所有数据源
-                return dataSources;
-            }
-            
-            // 过滤匹配的数据源
-            var filteredDataSources = new System.Collections.Generic.List<AvailableDataSource>();
-            
-            foreach (var dataSource in dataSources)
-            {
-                if (dataSource.PropertyType != null)
-                {
-                    // 使用 OutputTypeCategoryMapper 获取数据源的类型分类
-                    var sourceCategory = OutputTypeCategoryMapper.GetCategory(dataSource.PropertyType);
-                    
-                    // 比较分类是否匹配
-                    if (sourceCategory == expectedCategory)
-                    {
-                        filteredDataSources.Add(dataSource);
-                    }
-                }
-            }
-            
-            return filteredDataSources;
         }
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -515,11 +441,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     }
                     // 浮点类型：保持用户设置的 DecimalPlaces（默认为 2）
                 }
-                
+
                 // 重新计算内部数值值
                 control.UpdateInternalNumericValue(control.Value);
                 control.UpdateInternalNumericRange();
-                
+
+                control.UpdateEditorVisibility();
                 control.UpdateVisualState();
             }
         }
@@ -708,11 +635,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             // 获取模板中的控件
             _numericEditor = GetTemplateChild("PART_NumericEditor") as NumericUpDown;
             _stringTextBox = GetTemplateChild("PART_StringTextBox") as TextBox;
-            _bindingButton = GetTemplateChild("PART_BindingButton") as Button ??
-                throw new InvalidOperationException("PART_BindingButton not found");
+            _bindingModeButton = GetTemplateChild("PART_BindingModeButton") as Button ??
+                throw new InvalidOperationException("PART_BindingModeButton not found");
             _boolCheckBox = GetTemplateChild("PART_BoolCheckBox") as CheckBox;
-            _bindingPopup = GetTemplateChild("PART_BindingPopup") as Popup;
-            _bindingTreeView = GetTemplateChild("PART_BindingTreeView") as TreeView;
+            _paramBinding = GetTemplateChild("PART_ParamBinding") as ParamBinding;
 
             // 绑定事件
             if (_numericEditor != null)
@@ -751,204 +677,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 };
             }
 
-            _bindingButton.Click += OnBindingButtonClick;
+            // 绑定模式切换按钮
+            _bindingModeButton.Click += OnBindingModeButtonClick;
 
-            // 绑定 TreeView 选中事件
-            if (_bindingTreeView != null)
+            // 绑定源选择事件（从ParamBinding转发）
+            if (_paramBinding != null)
             {
-                _bindingTreeView.SelectedItemChanged += OnBindingTreeViewSelectedItemChanged;
+                _paramBinding.BindingSourceSelected += (s, e) =>
+                {
+                    // 从 ParamBinding 获取绑定源和友好名称
+                    BindingSource = _paramBinding.BindingSource;
+                    FriendlyBindingSource = _paramBinding.FriendlyBindingSource;
+                    
+                    RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
+                };
             }
 
             // 初始化状态
+            UpdateEditorVisibility();
             UpdateVisualState();
-
-            // 🔧 修复 TabControl 虚拟化问题：
-            // 当控件在非活动 TabItem 中创建时，OnAvailableDataSourcesChanged 可能不会被触发
-            // 主动检查 AvailableDataSources 是否已经有值
-            if (AvailableDataSources != null && AvailableDataSources.Count > 0)
-            {
-                VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"[ConfigSetting] OnApplyTemplate: AvailableDataSources 已有 {AvailableDataSources.Count} 个数据源，主动触发 RebuildTreeNodes",
-                    "ConfigSetting");
-                
-                _currentDataSources = AvailableDataSources;
-                RebuildTreeNodes();
-            }
-        }
-
-        /// <summary>
-        /// 从数据源列表构建树形结构
-        /// </summary>
-        /// <remarks>
-        /// 按节点名称分组，每个节点作为根节点，该节点的属性作为子节点
-        /// 示例：
-        /// - 节点A
-        ///   - 结果
-        ///     - 输出图像
-        ///     - 实际使用的阈值
-        /// - 节点B
-        ///   - 图像
-        ///     - 宽度
-        ///     - 高度
-        /// </remarks>
-        /// <param name="dataSources">数据源列表</param>
-        /// <returns>树形结构的根节点列表</returns>
-        public static System.Collections.Generic.List<TreeNodeData> BuildTreeStructure(System.Collections.Generic.List<AvailableDataSource> dataSources)
-        {
-            var rootNodes = new System.Collections.Generic.List<TreeNodeData>();
-            var nodeGroups = new Dictionary<string, System.Collections.Generic.List<AvailableDataSource>>();
-
-            // 按节点名称分组
-            foreach (var dataSource in dataSources)
-            {
-                var groupName = dataSource.SourceNodeName;
-                if (!nodeGroups.ContainsKey(groupName))
-                {
-                    nodeGroups[groupName] = new System.Collections.Generic.List<AvailableDataSource>();
-                }
-                nodeGroups[groupName].Add(dataSource);
-            }
-
-            // 为每个节点创建一个根节点
-            foreach (var (nodeName, nodeDataSources) in nodeGroups)
-            {
-                var rootNode = TreeNodeData.CreateGroupNode(nodeName);
-                
-                // 处理该节点的所有数据源
-                var propertyCache = new Dictionary<string, TreeNodeData>();
-                
-                foreach (var dataSource in nodeDataSources)
-                {
-                        // 📊 调试日志：输出 FullTreeName 最终值
-                        VisionLogger.Instance.Log(LogLevel.Info,
-                            $"  [ConfigSetting] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}, SourceNodeName='{dataSource.SourceNodeName}'",
-                            "ConfigSetting");
-
-                    if (string.IsNullOrEmpty(dataSource.FullTreeName))
-                    {
-                        // 没有 TreeName：直接添加为叶子节点
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"    [ConfigSetting] TreeName is empty, adding as leaf node: {dataSource.DisplayName}",
-                            "ConfigSetting");
-                        var leafNode = TreeNodeData.CreateDataSourceNode(dataSource);
-                        rootNode.Children.Add(leafNode);
-                    }
-                    else
-                    {
-                        // 有 TreeName：解析并创建多级树结构，添加到根节点
-                        VisionLogger.Instance.Log(LogLevel.Success,
-                            $"    [ConfigSetting] TreeName exists, building tree: {dataSource.FullTreeName}",
-                            "ConfigSetting");
-                        BuildOrMergeTreeNodeFromFullTreeName(dataSource.FullTreeName!, dataSource, rootNode.Children, propertyCache, rootNode);
-                    }
-                }
-                
-                rootNodes.Add(rootNode);
-            }
-
-            return rootNodes;
-        }
-
-        /// <summary>
-        /// 从完整树形名称构建或合并树节点（跳过根节点名称）
-        /// </summary>
-        /// <param name="fullTreeName">完整树形名称（例如: "阈值工具.结果.实际使用的阈值"）</param>
-        /// <param name="dataSource">数据源</param>
-        /// <param name="rootNodes">根节点列表（实际上是根节点的 Children）</param>
-        /// <param name="nodeCache">节点缓存字典（key: 路径，value: 节点）</param>
-        /// <param name="actualRootNode">实际的根节点（来自 BuildTreeStructure）</param>
-        private static void BuildOrMergeTreeNodeFromFullTreeName(string fullTreeName, AvailableDataSource dataSource,
-            System.Collections.ObjectModel.ObservableCollection<TreeNodeData> rootNodes, Dictionary<string, TreeNodeData> nodeCache, TreeNodeData actualRootNode)
-        {
-            // 将 TreeName 按 `.` 分割
-            var parts = fullTreeName.Split('.');
-
-            TreeNodeData? parentNode = null;
-            string currentPath = string.Empty;
-
-            // 🔍 调试日志：输出 FullTreeName 的分割结果
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"    [ConfigSetting] FullTreeName: '{fullTreeName}', 分割后: [{string.Join(", ", parts)}], 实际根节点: '{actualRootNode.Text}'",
-                "ConfigSetting");
-
-            // 处理每个层级（跳过根节点名称，从索引 1 开始）
-            // 根节点名称（parts[0]）已经在 BuildTreeStructure 中创建
-            for (int i = 1; i < parts.Length; i++)
-            {
-                // 构建当前路径
-                if (string.IsNullOrEmpty(currentPath))
-                {
-                    currentPath = parts[i];
-                }
-                else
-                {
-                    currentPath = currentPath + "." + parts[i];
-                }
-
-                TreeNodeData? node;
-
-                if (i == parts.Length - 1)
-                {
-                    // 最后一个部分是叶子节点
-                    node = TreeNodeData.CreateDataSourceNode(dataSource);
-                    node.Text = parts[i];
-
-                    // 修复：将叶子节点添加到父节点的 Children 中
-                    if (parentNode != null)
-                    {
-                        node.Parent = parentNode;  // 设置父节点引用
-                        parentNode.Children.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [ConfigSetting] 叶子节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
-                            "ConfigSetting");
-                    }
-                    else
-                    {
-                        // 特殊情况：叶子节点直接作为根节点（FullTreeName 只有一层）
-                        // 这种情况下，节点应该添加到 actualRootNode
-                        node.Parent = actualRootNode;  // 设置父节点引用
-                        rootNodes.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"      [ConfigSetting] 叶子节点作为根节点: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
-                            "ConfigSetting");
-                    }
-                }
-                else
-                {
-                    // 中间部分是分组节点
-                    if (nodeCache.TryGetValue(currentPath, out node))
-                    {
-                        // 已存在相同的父节点，直接复用
-                        parentNode = node;
-                        continue;
-                    }
-
-                    // 创建新的分组节点
-                    node = TreeNodeData.CreateGroupNode(parts[i]);
-                    nodeCache[currentPath] = node;
-
-                    // 添加到父节点或根节点列表
-                    if (parentNode != null)
-                    {
-                        node.Parent = parentNode;  // 设置父节点引用
-                        parentNode.Children.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [ConfigSetting] 分组节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
-                            "ConfigSetting");
-                    }
-                    else
-                    {
-                        // 第一个分组节点，应该添加到 actualRootNode
-                        node.Parent = actualRootNode;  // 设置父节点引用
-                        rootNodes.Add(node);
-                        VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [ConfigSetting] 第一层分组节点已添加: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
-                            "ConfigSetting");
-                    }
-                }
-
-                parentNode = node;
-            }
         }
 
         private void RaiseValueChanged()
@@ -956,84 +703,77 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             RaiseEvent(new RoutedEventArgs(ValueChangedEvent));
         }
 
-        private void OnBindingButtonClick(object sender, RoutedEventArgs e)
+        private void OnBindingModeButtonClick(object sender, RoutedEventArgs e)
         {
             if (BindingType == BindingType.Constant)
             {
-                ShowBindingSelector();
+                // 切换到绑定模式
+                BindingType = BindingType.Binding;
             }
             else
             {
+                // 切换到常量模式 - 解除绑定
                 BindingType = BindingType.Constant;
                 BindingSource = string.Empty;
-                UpdateVisualState();
+                FriendlyBindingSource = string.Empty;
+
+                // 清空 ParamBinding 的绑定状态
+                if (_paramBinding != null)
+                {
+                    _paramBinding.IsBound = false;
+                    _paramBinding.FriendlyBindingSource = string.Empty;
+                }
             }
 
+            UpdateVisualState();
             RaiseEvent(new RoutedEventArgs(BindingTypeChangedEvent));
         }
 
-        private void ShowBindingSelector()
+        private void UpdateEditorVisibility()
         {
-            if (_bindingPopup != null)
+            if (BindingType == BindingType.Binding)
             {
-                _bindingPopup.IsOpen = !_bindingPopup.IsOpen;
+                // 绑定模式：只显示 ParamBinding
+                NumericEditorVisibility = Visibility.Collapsed;
+                StringTextBoxVisibility = Visibility.Collapsed;
+                BoolCheckBoxVisibility = Visibility.Collapsed;
+                ParamBindingVisibility = Visibility.Visible;
             }
-        }
-
-        private void OnBindingTreeViewSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            if (e.NewValue is TreeNodeData selectedNode && selectedNode.IsSelectable && selectedNode.DataSource != null)
+            else
             {
-                // 设置绑定源（GUID格式，用于数据绑定）
-                BindingSource = selectedNode.DataSource.GetBindingPath();
+                // 常量模式：根据 DataType 显示对应的编辑器
+                ParamBindingVisibility = Visibility.Collapsed;
 
-                // 设置友好显示名称：根据树形结构动态生成
-                // 格式：根节点名称 . 叶子节点名称
-                // 例如：5.图像阈值化4 . 实际使用的阈值
-                
-                // 🔍 调试日志：输出节点层级
-                var rootNode = GetRootNode(selectedNode);
-                var rootName = rootNode?.Text ?? "";
-                var leafName = selectedNode.Text;
-                
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"[ConfigSetting] 选中节点: {leafName}, 父节点: {selectedNode.Parent?.Text ?? "null"}, 根节点: {rootName}", 
-                    "ConfigSetting");
-                
-                FriendlyBindingSource = $"{rootName} . {leafName}";
-
-                BindingType = BindingType.Binding;
-                UpdateVisualState();
-
-                // 触发事件
-                RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
-
-                // 关闭 Popup
-                if (_bindingPopup != null)
+                switch (DataType)
                 {
-                    _bindingPopup.IsOpen = false;
+                    case ParamDataType.Int:
+                    case ParamDataType.Double:
+                        NumericEditorVisibility = Visibility.Visible;
+                        StringTextBoxVisibility = Visibility.Collapsed;
+                        BoolCheckBoxVisibility = Visibility.Collapsed;
+                        break;
+                    case ParamDataType.String:
+                        NumericEditorVisibility = Visibility.Collapsed;
+                        StringTextBoxVisibility = Visibility.Visible;
+                        BoolCheckBoxVisibility = Visibility.Collapsed;
+                        break;
+                    case ParamDataType.Bool:
+                        NumericEditorVisibility = Visibility.Collapsed;
+                        StringTextBoxVisibility = Visibility.Collapsed;
+                        BoolCheckBoxVisibility = Visibility.Visible;
+                        break;
+                    default:
+                        NumericEditorVisibility = Visibility.Collapsed;
+                        StringTextBoxVisibility = Visibility.Collapsed;
+                        BoolCheckBoxVisibility = Visibility.Collapsed;
+                        break;
                 }
             }
         }
 
-        /// <summary>
-        /// 获取节点的根节点（向上遍历 Parent 引用）
-        /// </summary>
-        /// <param name="node">目标节点</param>
-        /// <returns>根节点</returns>
-        private static TreeNodeData? GetRootNode(TreeNodeData node)
-        {
-            var current = node;
-            while (current.Parent != null)
-            {
-                current = current.Parent;
-            }
-            return current;
-        }
-
         private void UpdateVisualState()
         {
-            if (_bindingButton == null)
+            if (_bindingModeButton == null || _paramBinding == null)
                 return;
 
             if (BindingType == BindingType.Binding)
@@ -1046,12 +786,32 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 if (_stringTextBox != null)
                 {
                     _stringTextBox.IsEnabled = false;
-                    _stringTextBox.Text = BindingSource;
                 }
                 if (_boolCheckBox != null) _boolCheckBox.IsEnabled = false;
 
-                _bindingButton.Content = "🔗";
-                _bindingButton.ToolTip = $"绑定源: {BindingSource}\n点击解除绑定";
+                // 启用ParamBinding
+                _paramBinding.IsEnabled = true;
+                _paramBinding.AvailableDataSources = AvailableDataSources;
+                _paramBinding.DataType = DataType;
+
+                // 设置绑定状态
+                _paramBinding.IsBound = true;
+                // 注意：不要覆盖 ParamBinding 生成的 FriendlyBindingSource
+                // ParamBinding 会通过 TreeView 节点层级动态生成友好名称
+                // 这里只在 FriendlyBindingSource 为空时才设置（从 ParamSetting 加载时）
+                if (string.IsNullOrEmpty(FriendlyBindingSource))
+                {
+                    _paramBinding.FriendlyBindingSource = _paramBinding.GenerateFriendlyBindingSource(BindingSource);
+                    FriendlyBindingSource = _paramBinding.FriendlyBindingSource;
+                }
+                else
+                {
+                    _paramBinding.FriendlyBindingSource = FriendlyBindingSource;
+                }
+
+                // 更新按钮图标
+                _bindingModeButton.Content = "⚡";
+                _bindingModeButton.ToolTip = $"绑定源: {BindingSource}\n点击切换到常量模式";
             }
             else
             {
@@ -1066,8 +826,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 }
                 if (_boolCheckBox != null) _boolCheckBox.IsEnabled = true;
 
-                _bindingButton.Content = "⚡";
-                _bindingButton.ToolTip = "点击绑定到其他节点输出";
+                // 禁用ParamBinding
+                _paramBinding.IsEnabled = false;
+                _paramBinding.IsBound = false;
+                _paramBinding.FriendlyBindingSource = string.Empty;
+
+                // 更新按钮图标
+                _bindingModeButton.Content = "🔗";
+                _bindingModeButton.ToolTip = "点击切换到绑定模式";
             }
         }
 
@@ -1121,13 +887,31 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 SetValue(setting.ConstantValue);
                 FriendlyBindingSource = string.Empty;
+                BindingSource = string.Empty;
             }
             else
             {
+                // 设置绑定源路径
                 BindingSource = string.IsNullOrEmpty(setting.SourceProperty)
                     ? setting.SourceNodeId ?? string.Empty
                     : $"{setting.SourceNodeId}.{setting.SourceProperty}";
+                
+                // 使用 ParamBinding 的方法生成友好名称（基于 TreeView 节点层级）
+                FriendlyBindingSource = _paramBinding?.GenerateFriendlyBindingSource(BindingSource) ?? BindingSource;
             }
         }
+
+        #region 基类方法实现
+
+        /// <summary>
+        /// 获取可用的数据源（从 AvailableDataSources 属性）
+        /// </summary>
+        /// <returns>数据源集合</returns>
+        public override List<AvailableDataSource> GetAvailableDataSources()
+        {
+            return AvailableDataSources?.ToList() ?? new List<AvailableDataSource>();
+        }
+
+        #endregion
     }
 }

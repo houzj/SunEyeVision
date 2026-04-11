@@ -251,14 +251,12 @@
                     <TextBlock Text="（参数绑定控件：支持直接输入和绑定到其他节点）" FontSize="11" Foreground="#666" Margin="0,0,0,12"/>
 
                     <!-- 未绑定状态 -->
-                    <controls:ParamBinding Value="128" 
-                                          IconSymbol="🔗"
+                    <controls:ParamBinding IconSymbol="🔗"
                                           Margin="0,0,0,12"/>
 
                     <!-- 模拟绑定状态（使用固定文本模拟） -->
-                    <controls:ParamBinding Value="0" 
-                                          IsBound="True"
-                                          BindingSourceDisplay="节点1: 阈值"
+                    <controls:ParamBinding IsBound="True"
+                                          FriendlyBindingSource="节点1: 阈值"
                                           IconSymbol="🔗"/>
                 </StackPanel>
             </Border>
