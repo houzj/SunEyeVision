@@ -183,7 +183,7 @@
                                     <TextBlock Grid.Column="0" Text="延迟:" 
                                                VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" 
-                                               Text="{Binding SelectedCamera.Latency, FallbackValue=-} ms"/>
+                                               Text="{Binding SelectedCamera.Latency, FallbackValue=0} ms"/>
                                 </Grid>
                                 
                                 <Grid Margin="0,0,0,16">
@@ -195,7 +195,7 @@
                                     <TextBlock Grid.Column="0" Text="帧率:" 
                                                VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" 
-                                               Text="{Binding SelectedCamera.FrameRate, FallbackValue=-} fps"/>
+                                               Text="{Binding SelectedCamera.FrameRate, FallbackValue=0} fps"/>
                                 </Grid>
                                 
                                 <StackPanel Orientation="Horizontal">
