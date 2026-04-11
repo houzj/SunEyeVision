@@ -13,6 +13,8 @@
                 <ResourceDictionary Source="Resources/Styles/ConnectionStyleResources.xaml"/>
                 <!-- Canvas样式资源 -->
                 <ResourceDictionary Source="Resources/Styles/CanvasStyleResources.xaml"/>
+                <!-- 通用样式资源 -->
+                <ResourceDictionary Source="Resources/Styles/CommonStyleResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

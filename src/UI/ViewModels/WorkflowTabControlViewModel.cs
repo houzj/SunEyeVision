@@ -13,7 +13,7 @@ namespace SunEyeVision.UI.ViewModels
     /// <summary>
     /// 工作流标签页管理ViewModel
     /// </summary>
-    public class WorkflowTabControlViewModel : ObservableObject
+    public class WorkflowTabControlViewModel : ViewModelBase
     {
         private ObservableCollection<WorkflowTabViewModel> _tabs = new ObservableCollection<WorkflowTabViewModel>();
         private WorkflowTabViewModel? _selectedTab;
@@ -147,6 +147,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <remarks>
         /// 用于加载新方案时重置工作流编号，确保新方案的工作流从1开始编号。
         /// 与 ResetToDefault() 不同，此方法只重置编号计数器，不创建默认工作流。
+        /// 遍历所有标签页，恢复工作流编号。
         /// </remarks>
         public void ResetWorkflowNumberCounter()
         {

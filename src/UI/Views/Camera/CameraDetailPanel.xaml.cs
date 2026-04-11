@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace SunEyeVision.UI.Views.Camera
 {
     /// <summary>
-    /// CameraDetailPanel.xaml 的交互逻辑
+    /// 相机详情面板控件
     /// </summary>
     public partial class CameraDetailPanel : UserControl
     {

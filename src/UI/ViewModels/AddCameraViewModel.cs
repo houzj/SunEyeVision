@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
@@ -273,7 +273,7 @@ namespace SunEyeVision.UI.ViewModels
                     Manufacturer = SelectedCamera.Manufacturer,
                     Model = SelectedCamera.Model,
                     IpAddress = SelectedCamera.IpAddress,
-                    Port = SelectedCamera.Port == 0 ? Port : SelectedCamera.Port.ToString(),
+                    Port = SelectedCamera.Port == 0 ? Port.ToString() : SelectedCamera.Port.ToString(),
                     Username = Username,
                     Password = Password,
                     StatusText = "断开",

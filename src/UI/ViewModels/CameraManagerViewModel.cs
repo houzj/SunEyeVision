@@ -445,9 +445,9 @@ namespace SunEyeVision.UI.ViewModels
                 
                 // 创建相机发现聚合服务
                 var discoveryAggregator = new CameraDiscoveryAggregator(
-                    new Core.Services.CameraDiscovery.GigeCameraDiscoveryService(),
-                    new Core.Services.CameraDiscovery.UsbCameraDiscoveryService(),
-                    new Core.Services.CameraDiscovery.IpCameraDiscoveryService()
+                    new SunEyeVision.Core.Services.CameraDiscovery.GigeCameraDiscoveryService(),
+                    new SunEyeVision.Core.Services.CameraDiscovery.UsbCameraDiscoveryService(),
+                    new SunEyeVision.Core.Services.CameraDiscovery.IpCameraDiscoveryService()
                 );
                 
                 // 打开添加相机对话框
@@ -555,37 +555,6 @@ namespace SunEyeVision.UI.ViewModels
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-
-    /// <summary>
-    /// 简单的 RelayCommand 实现
-    /// </summary>
-    public class RelayCommand : ICommand
-    {
-        private readonly Action _execute;
-        private readonly Func<bool> _canExecute;
-
-        public RelayCommand(Action execute, Func<bool> canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object parameter)
-        {
-            return _canExecute == null || _canExecute();
-        }
-
-        public void Execute(object parameter)
-        {
-            _execute();
         }
     }
 }

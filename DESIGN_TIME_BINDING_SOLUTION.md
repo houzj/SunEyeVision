@@ -457,3 +457,52 @@ public static List<AvailableDataSource> GetToolOutputProperties(string toolId, s
 ## 📞 联系方式
 
 如有问题或建议，请联系开发团队。
+
+---
+
+## 🔄 合并记录
+
+### 合并日期
+2026-04-11
+
+### 合并分支
+- 源分支: eature/tool-improvement
+- 目标分支: main
+
+### 合并提交
+- Commit ID: 7dc17f3
+- 提交信息: "Merge branch 'feature/tool-improvement' into main"
+
+### 合并内容
+- 完全重构数据源管理（查询、绑定、选择）
+- 实现基于变量池的设计时绑定框架
+- 优化 ThresholdTool 参数系统
+- 新增日志面板，移除属性面板
+- 完善开发规范文档
+
+### 冲突解决
+所有冲突文件均使用工具分支的版本（工具分支的重构更先进）：
+- src/Plugin.Infrastructure/Managers/Tool/ToolRegistry.cs
+- src/Plugin.SDK/Execution/Parameters/DataSourceQueryService.cs
+- src/Plugin.SDK/Execution/Parameters/ParentNodeInfo.cs
+- src/UI/ViewModels/MainWindowViewModel.cs
+- src/UI/ViewModels/WorkflowTabControlViewModel.cs
+- src/Workflow/WorkflowEngine.cs
+
+### 合并前提交
+- Commit ID: c69443d
+- 提交信息: "feat: 添加工具元数据提取支持（main分支）"
+
+### 后续测试
+- [ ] 编译测试
+- [ ] 数据源查询功能测试
+- [ ] 参数绑定功能测试
+- [ ] 工具执行功能测试
+- [ ] UI 功能验证
+
+### 推送远程
+等待测试完成后推送：git push origin main
+
+---
+
+**文档更新时间**: 2026-04-11
