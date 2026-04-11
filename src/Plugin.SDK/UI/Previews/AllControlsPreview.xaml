@@ -97,22 +97,22 @@
                 </StackPanel>
             </Border>
 
-            <!-- BindableParameter 示例 -->
+            <!-- ConfigSetting 示例 -->
             <Border Background="White" CornerRadius="6" Padding="16" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="BindableParameter" FontWeight="Medium" FontSize="14" Margin="0,0,0,12"/>
+                    <TextBlock Text="ConfigSetting" FontWeight="Medium" FontSize="14" Margin="0,0,0,12"/>
 
-                    <controls:BindableParameter ParameterName="NumericParameter"
+                    <controls:ConfigSetting ParameterName="NumericParameter"
                                                 DataType="Double"
                                                 Value="75.5"
                                                 Minimum="0"
                                                 Maximum="100"/>
 
-                    <controls:BindableParameter ParameterName="StringParameter"
+                    <controls:ConfigSetting ParameterName="StringParameter"
                                                 DataType="String"
                                                 Value="Hello World"/>
 
-                    <controls:BindableParameter ParameterName="BoolParameter"
+                    <controls:ConfigSetting ParameterName="BoolParameter"
                                                 DataType="Bool"
                                                 Value="True"/>
                 </StackPanel>
@@ -160,7 +160,7 @@
 
                     <controls:ParamGroup Header="高级设置" IsExpanded="True">
                         <StackPanel>
-                            <controls:BindableParameter ParameterName="Precision"
+                            <controls:ConfigSetting ParameterName="Precision"
                                                         DataType="Double"
                                                         Value="3"
                                                         Minimum="1"
@@ -197,7 +197,7 @@
                     <TextBlock Text="（取色器控件：预设颜色 + HSV 选择器）" FontSize="11" Foreground="#666" Margin="0,0,0,8"/>
 
                     <controls:ColorPicker x:Name="ColorPickerDemo" 
-                                        SelectedColor="0xFFFF0000"/>
+                                        SelectedColor="#FFFF0000"/>
 
                     <!-- 显示当前选中颜色 -->
                     <Grid Margin="0,12,0,0">
@@ -222,10 +222,10 @@
                     <TextBlock Text="（颜色选择器：紧凑型，点击弹出取色器）" FontSize="11" Foreground="#666" Margin="0,0,0,8"/>
 
                     <controls:ColorSelector x:Name="ColorSelectorDemo"
-                                         SelectedColor="0xFFFF0000"/>
+                                         SelectedColor="#FFFF0000"/>
 
                     <controls:ColorSelector x:Name="ColorSelectorDemo2"
-                                         SelectedColor="0xFF364061"
+                                         SelectedColor="#FF364061"
                                          Margin="0,8,0,0"/>
 
                     <!-- 显示当前选中颜色 -->
@@ -244,6 +244,25 @@
                 </StackPanel>
             </Border>
 
+            <!-- ParamBinding 示例 -->
+            <Border Background="White" CornerRadius="6" Padding="16" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="ParamBinding" FontWeight="Medium" FontSize="14" Margin="0,0,0,12"/>
+                    <TextBlock Text="（参数绑定控件：支持直接输入和绑定到其他节点）" FontSize="11" Foreground="#666" Margin="0,0,0,12"/>
+
+                    <!-- 未绑定状态 -->
+                    <controls:ParamBinding Value="128" 
+                                          IconSymbol="🔗"
+                                          Margin="0,0,0,12"/>
+
+                    <!-- 模拟绑定状态（使用固定文本模拟） -->
+                    <controls:ParamBinding Value="0" 
+                                          IsBound="True"
+                                          BindingSourceDisplay="节点1: 阈值"
+                                          IconSymbol="🔗"/>
+                </StackPanel>
+            </Border>
+
             <!-- 组合示例 -->
             <Border Background="White" CornerRadius="6" Padding="16" Margin="0,0,0,16">
                 <StackPanel>
@@ -251,7 +270,7 @@
 
                     <controls:ParamGroup Header="阈值处理" IsExpanded="True">
                         <StackPanel>
-                            <controls:BindableParameter ParameterName="Threshold"
+                            <controls:ConfigSetting ParameterName="Threshold"
                                                         DataType="Double"
                                                         Value="128"
                                                         Minimum="0"

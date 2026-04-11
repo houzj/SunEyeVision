@@ -31,33 +31,33 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 
     /// 注意：此控件只包含核心功能，标签和布局由工具层UI负责。
     /// </remarks>
-    public class BindableParameter : Control
+    public class ConfigSetting : Control
     {
         #region 依赖属性
 
         // ===== 参数名（用于参数绑定） =====
         public static readonly DependencyProperty ParameterNameProperty =
-            DependencyProperty.Register(nameof(ParameterName), typeof(string), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(ParameterName), typeof(string), typeof(ConfigSetting),
                 new PropertyMetadata(string.Empty));
 
         // ===== 数据类型 =====
         public static readonly DependencyProperty DataTypeProperty =
-            DependencyProperty.Register(nameof(DataType), typeof(ParamDataType), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(DataType), typeof(ParamDataType), typeof(ConfigSetting),
                 new PropertyMetadata(ParamDataType.Double, OnDataTypeChanged));
 
         // ===== 绑定类型 =====
         public static readonly DependencyProperty BindingTypeProperty =
-            DependencyProperty.Register(nameof(BindingType), typeof(BindingType), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(BindingType), typeof(BindingType), typeof(ConfigSetting),
                 new FrameworkPropertyMetadata(BindingType.Constant, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         // ===== 绑定源 =====
         public static readonly DependencyProperty BindingSourceProperty =
-            DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(BindingSource), typeof(string), typeof(ConfigSetting),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         // ===== 友好绑定源显示（只读，用于UI显示） =====
         private static readonly DependencyPropertyKey FriendlyBindingSourcePropertyKey =
-            DependencyProperty.RegisterReadOnly(nameof(FriendlyBindingSource), typeof(string), typeof(BindableParameter),
+            DependencyProperty.RegisterReadOnly(nameof(FriendlyBindingSource), typeof(string), typeof(ConfigSetting),
                 new PropertyMetadata(string.Empty));
 
         public static readonly DependencyProperty FriendlyBindingSourceProperty = FriendlyBindingSourcePropertyKey.DependencyProperty;
@@ -73,7 +73,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// - DataType = Bool: Value 存储 bool 类型
         /// </remarks>
         public static readonly DependencyProperty ValueProperty =
-            DependencyProperty.Register(nameof(Value), typeof(object), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(Value), typeof(object), typeof(ConfigSetting),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged));
 
         // ===== 内部数值值（只读，用于模板绑定） =====
@@ -86,48 +86,48 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// - DataType = Double: Value (double) → InternalNumericValue (double)
         /// </remarks>
         private static readonly DependencyPropertyKey InternalNumericValuePropertyKey =
-            DependencyProperty.RegisterReadOnly(nameof(InternalNumericValue), typeof(double), typeof(BindableParameter),
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericValue), typeof(double), typeof(ConfigSetting),
                 new PropertyMetadata(0.0));
 
         public static readonly DependencyProperty InternalNumericValueProperty = InternalNumericValuePropertyKey.DependencyProperty;
 
         // ===== 统一的范围属性 =====
         public static readonly DependencyProperty MinimumProperty =
-            DependencyProperty.Register(nameof(Minimum), typeof(object), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(Minimum), typeof(object), typeof(ConfigSetting),
                 new PropertyMetadata(null, OnRangeChanged));
 
         public static readonly DependencyProperty MaximumProperty =
-            DependencyProperty.Register(nameof(Maximum), typeof(object), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(Maximum), typeof(object), typeof(ConfigSetting),
                 new PropertyMetadata(null, OnRangeChanged));
 
         // ===== 内部数值范围（只读，用于模板绑定） =====
         private static readonly DependencyPropertyKey InternalNumericMinimumPropertyKey =
-            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMinimum), typeof(double), typeof(BindableParameter),
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMinimum), typeof(double), typeof(ConfigSetting),
                 new PropertyMetadata(double.MinValue));
 
         public static readonly DependencyProperty InternalNumericMinimumProperty = InternalNumericMinimumPropertyKey.DependencyProperty;
 
         private static readonly DependencyPropertyKey InternalNumericMaximumPropertyKey =
-            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMaximum), typeof(double), typeof(BindableParameter),
+            DependencyProperty.RegisterReadOnly(nameof(InternalNumericMaximum), typeof(double), typeof(ConfigSetting),
                 new PropertyMetadata(double.MaxValue));
 
         public static readonly DependencyProperty InternalNumericMaximumProperty = InternalNumericMaximumPropertyKey.DependencyProperty;
 
         // ===== 其他配置属性 =====
         public static readonly DependencyProperty SmallChangeProperty =
-            DependencyProperty.Register(nameof(SmallChange), typeof(double), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(SmallChange), typeof(double), typeof(ConfigSetting),
                 new PropertyMetadata(1.0));
 
         public static readonly DependencyProperty LargeChangeProperty =
-            DependencyProperty.Register(nameof(LargeChange), typeof(double), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(LargeChange), typeof(double), typeof(ConfigSetting),
                 new PropertyMetadata(10.0));
 
         public static readonly DependencyProperty DecimalPlacesProperty =
-            DependencyProperty.Register(nameof(DecimalPlaces), typeof(int), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(DecimalPlaces), typeof(int), typeof(ConfigSetting),
                 new PropertyMetadata(2));
 
         public static readonly DependencyProperty ShowSliderProperty =
-            DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(ShowSlider), typeof(bool), typeof(ConfigSetting),
                 new PropertyMetadata(true, OnShowSliderPropertyChanged));
 
         // ===== 可用绑定源（树形结构） =====
@@ -135,22 +135,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 可用数据源列表（输入：平面列表）
         /// </summary>
         public static readonly DependencyProperty AvailableDataSourcesProperty =
-            DependencyProperty.Register(nameof(AvailableDataSources), typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(AvailableDataSources), typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>), typeof(ConfigSetting),
                 new PropertyMetadata(null, OnAvailableDataSourcesChanged));
 
         /// <summary>
         /// 树形结构节点（输出：用于TreeView绑定）
         /// </summary>
         public static readonly DependencyProperty TreeNodesProperty =
-            DependencyProperty.Register(nameof(TreeNodes), typeof(System.Collections.ObjectModel.ObservableCollection<TreeNodeData>), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(TreeNodes), typeof(System.Collections.ObjectModel.ObservableCollection<TreeNodeData>), typeof(ConfigSetting),
                 new PropertyMetadata(null));
 
         public static readonly DependencyProperty AvailableBindingsProperty =
-            DependencyProperty.Register(nameof(AvailableBindings), typeof(System.Collections.Generic.List<string>), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(AvailableBindings), typeof(System.Collections.Generic.List<string>), typeof(ConfigSetting),
                 new PropertyMetadata(null));
 
         public static readonly DependencyProperty TransformExpressionProperty =
-            DependencyProperty.Register(nameof(TransformExpression), typeof(string), typeof(BindableParameter),
+            DependencyProperty.Register(nameof(TransformExpression), typeof(string), typeof(ConfigSetting),
                 new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         #endregion
@@ -326,7 +326,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public static readonly RoutedEvent ValueChangedEvent =
             EventManager.RegisterRoutedEvent(nameof(ValueChanged), RoutingStrategy.Bubble,
-                typeof(RoutedEventHandler), typeof(BindableParameter));
+                typeof(RoutedEventHandler), typeof(ConfigSetting));
 
         public event RoutedEventHandler ValueChanged
         {
@@ -339,7 +339,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public static readonly RoutedEvent BindingTypeChangedEvent =
             EventManager.RegisterRoutedEvent(nameof(BindingTypeChanged), RoutingStrategy.Bubble,
-                typeof(RoutedEventHandler), typeof(BindableParameter));
+                typeof(RoutedEventHandler), typeof(ConfigSetting));
 
         public event RoutedEventHandler BindingTypeChanged
         {
@@ -352,7 +352,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         public static readonly RoutedEvent BindingSourceSelectedEvent =
             EventManager.RegisterRoutedEvent(nameof(BindingSourceSelected), RoutingStrategy.Bubble,
-                typeof(RoutedEventHandler), typeof(BindableParameter));
+                typeof(RoutedEventHandler), typeof(ConfigSetting));
 
         public event RoutedEventHandler BindingSourceSelected
         {
@@ -365,13 +365,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         // 私有字段：保存当前数据源集合的引用，用于取消订阅事件
         private System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>? _currentDataSources;
 
-        static BindableParameter()
+        static ConfigSetting()
         {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof(BindableParameter),
-                new FrameworkPropertyMetadata(typeof(BindableParameter)));
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(ConfigSetting),
+                new FrameworkPropertyMetadata(typeof(ConfigSetting)));
         }
 
-        public BindableParameter()
+        public ConfigSetting()
         {
             AvailableBindings = new System.Collections.Generic.List<string>();
             TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
@@ -381,14 +381,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private static void OnAvailableDataSourcesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is BindableParameter control)
+            if (d is ConfigSetting control)
             {
                 // 调试日志：输出绑定状态
                 VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[BindableParameter] OnAvailableDataSourcesChanged 触发: ParameterName={control.ParameterName}, " +
+                    $"[ConfigSetting] OnAvailableDataSourcesChanged 触发: ParameterName={control.ParameterName}, " +
                     $"NewValue={(e.NewValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.NewValue).Count}]" : "null")}, " +
                     $"OldValue={(e.OldValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.OldValue).Count}]" : "null")}",
-                    "BindableParameter");
+                    "ConfigSetting");
 
                 // 订阅新集合的事件并构建树形结构
                 if (e.NewValue is System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> newDataSources)
@@ -405,8 +405,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     control._currentDataSources = null;
                     control.TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
                     VisionLogger.Instance.Log(LogLevel.Warning,
-                        $"[BindableParameter] AvailableDataSources 为 null 或类型不匹配",
-                        "BindableParameter");
+                        $"[ConfigSetting] AvailableDataSources 为 null 或类型不匹配",
+                        "ConfigSetting");
                 }
             }
         }
@@ -427,7 +427,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 // 简化日志：只输出关键信息
                 VisionLogger.Instance.Log(LogLevel.Info, 
                     $"构建树形结构: {dataSourceList.Count} 个数据源 → {filteredDataSources.Count} 个兼容数据源 (DataType={DataType})", 
-                    "BindableParameter");
+                    "ConfigSetting");
                 
                 var treeNodes = BuildTreeStructure(filteredDataSources);
                 
@@ -435,14 +435,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 if (treeNodes.Count > 0)
                 {
                     var summary = string.Join(", ", treeNodes.Select(n => $"{n.Text}({n.Children.Count})"));
-                    VisionLogger.Instance.Log(LogLevel.Success, $"树形结构构建完成: {treeNodes.Count} 个节点根 [{summary}]", "BindableParameter");
+                    VisionLogger.Instance.Log(LogLevel.Success, $"树形结构构建完成: {treeNodes.Count} 个节点根 [{summary}]", "ConfigSetting");
                 }
                 
                 TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>(treeNodes);
             }
             else
             {
-                VisionLogger.Instance.Log(LogLevel.Info, $"_currentDataSources 为 null，创建空树", "BindableParameter");
+                VisionLogger.Instance.Log(LogLevel.Info, $"_currentDataSources 为 null，创建空树", "ConfigSetting");
                 TreeNodes = new System.Collections.ObjectModel.ObservableCollection<TreeNodeData>();
             }
         }
@@ -492,7 +492,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var control = (BindableParameter)d;
+            var control = (ConfigSetting)d;
             
             // 更新内部数值值（类型适配器）
             control.UpdateInternalNumericValue(e.NewValue);
@@ -503,7 +503,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private static void OnDataTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is BindableParameter control)
+            if (d is ConfigSetting control)
             {
                 // 根据 DataType 自动设置 DecimalPlaces
                 if (e.NewValue is ParamDataType dataType)
@@ -526,7 +526,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private static void OnRangeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is BindableParameter control)
+            if (d is ConfigSetting control)
             {
                 control.UpdateInternalNumericRange();
             }
@@ -534,7 +534,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private static void OnShowSliderPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is BindableParameter control)
+            if (d is ConfigSetting control)
             {
                 // ShowSlider 属性变化处理（目前无需特殊操作）
             }
@@ -585,7 +585,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 // 使用标准日志系统记录类型修正
                 PluginLogger.Warning(
                     $"值类型自动修正: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}",
-                    "BindableParameter");
+                    "ConfigSetting");
 
                 return correctedValue;
             }
@@ -593,7 +593,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 PluginLogger.Error(
                     $"值类型转换失败: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}, 错误: {ex.Message}",
-                    "BindableParameter");
+                    "ConfigSetting");
 
                 // 返回默认值
                 return DataType switch
@@ -719,7 +719,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             {
                 _numericEditor.ValueChanged += (s, e) =>
                 {
-                    // 从 NumericUpDown 的 Value 属性更新到 BindableParameter 的 Value
+                    // 从 NumericUpDown 的 Value 属性更新到 ConfigSetting 的 Value
                     SetFromInternalNumericValue(e.NewValue);
                     RaiseValueChanged();
                 };
@@ -768,8 +768,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (AvailableDataSources != null && AvailableDataSources.Count > 0)
             {
                 VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"[BindableParameter] OnApplyTemplate: AvailableDataSources 已有 {AvailableDataSources.Count} 个数据源，主动触发 RebuildTreeNodes",
-                    "BindableParameter");
+                    $"[ConfigSetting] OnApplyTemplate: AvailableDataSources 已有 {AvailableDataSources.Count} 个数据源，主动触发 RebuildTreeNodes",
+                    "ConfigSetting");
                 
                 _currentDataSources = AvailableDataSources;
                 RebuildTreeNodes();
@@ -821,15 +821,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 {
                         // 📊 调试日志：输出 FullTreeName 最终值
                         VisionLogger.Instance.Log(LogLevel.Info,
-                            $"  [BindableParameter] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}, SourceNodeName='{dataSource.SourceNodeName}'",
-                            "BindableParameter");
+                            $"  [ConfigSetting] 数据源: {dataSource.DisplayName}, FullTreeName='{dataSource.FullTreeName ?? "null"}', PropertyName={dataSource.PropertyName}, SourceNodeName='{dataSource.SourceNodeName}'",
+                            "ConfigSetting");
 
                     if (string.IsNullOrEmpty(dataSource.FullTreeName))
                     {
                         // 没有 TreeName：直接添加为叶子节点
                         VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"    [BindableParameter] TreeName is empty, adding as leaf node: {dataSource.DisplayName}",
-                            "BindableParameter");
+                            $"    [ConfigSetting] TreeName is empty, adding as leaf node: {dataSource.DisplayName}",
+                            "ConfigSetting");
                         var leafNode = TreeNodeData.CreateDataSourceNode(dataSource);
                         rootNode.Children.Add(leafNode);
                     }
@@ -837,8 +837,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     {
                         // 有 TreeName：解析并创建多级树结构，添加到根节点
                         VisionLogger.Instance.Log(LogLevel.Success,
-                            $"    [BindableParameter] TreeName exists, building tree: {dataSource.FullTreeName}",
-                            "BindableParameter");
+                            $"    [ConfigSetting] TreeName exists, building tree: {dataSource.FullTreeName}",
+                            "ConfigSetting");
                         BuildOrMergeTreeNodeFromFullTreeName(dataSource.FullTreeName!, dataSource, rootNode.Children, propertyCache, rootNode);
                     }
                 }
@@ -868,8 +868,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
             // 🔍 调试日志：输出 FullTreeName 的分割结果
             VisionLogger.Instance.Log(LogLevel.Info,
-                $"    [BindableParameter] FullTreeName: '{fullTreeName}', 分割后: [{string.Join(", ", parts)}], 实际根节点: '{actualRootNode.Text}'",
-                "BindableParameter");
+                $"    [ConfigSetting] FullTreeName: '{fullTreeName}', 分割后: [{string.Join(", ", parts)}], 实际根节点: '{actualRootNode.Text}'",
+                "ConfigSetting");
 
             // 处理每个层级（跳过根节点名称，从索引 1 开始）
             // 根节点名称（parts[0]）已经在 BuildTreeStructure 中创建
@@ -899,8 +899,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                         node.Parent = parentNode;  // 设置父节点引用
                         parentNode.Children.Add(node);
                         VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [BindableParameter] 叶子节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
-                            "BindableParameter");
+                            $"      [ConfigSetting] 叶子节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
+                            "ConfigSetting");
                     }
                     else
                     {
@@ -909,8 +909,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                         node.Parent = actualRootNode;  // 设置父节点引用
                         rootNodes.Add(node);
                         VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"      [BindableParameter] 叶子节点作为根节点: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
-                            "BindableParameter");
+                            $"      [ConfigSetting] 叶子节点作为根节点: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
+                            "ConfigSetting");
                     }
                 }
                 else
@@ -933,8 +933,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                         node.Parent = parentNode;  // 设置父节点引用
                         parentNode.Children.Add(node);
                         VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [BindableParameter] 分组节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
-                            "BindableParameter");
+                            $"      [ConfigSetting] 分组节点已添加: '{node.Text}' -> 父节点: '{parentNode.Text}' (Parent引用已设置)",
+                            "ConfigSetting");
                     }
                     else
                     {
@@ -942,8 +942,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                         node.Parent = actualRootNode;  // 设置父节点引用
                         rootNodes.Add(node);
                         VisionLogger.Instance.Log(LogLevel.Success,
-                            $"      [BindableParameter] 第一层分组节点已添加: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
-                            "BindableParameter");
+                            $"      [ConfigSetting] 第一层分组节点已添加: '{node.Text}' -> 实际根节点: '{actualRootNode.Text}' (Parent引用已设置)",
+                            "ConfigSetting");
                     }
                 }
 
@@ -997,8 +997,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 var leafName = selectedNode.Text;
                 
                 VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"[BindableParameter] 选中节点: {leafName}, 父节点: {selectedNode.Parent?.Text ?? "null"}, 根节点: {rootName}", 
-                    "BindableParameter");
+                    $"[ConfigSetting] 选中节点: {leafName}, 父节点: {selectedNode.Parent?.Text ?? "null"}, 根节点: {rootName}", 
+                    "ConfigSetting");
                 
                 FriendlyBindingSource = $"{rootName} . {leafName}";
 

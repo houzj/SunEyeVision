@@ -7,6 +7,7 @@
 
     <!-- 转换器 -->
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
     <converters:BindingTypeToBoolConverter x:Key="BindingTypeToBoolConverter"/>
     <converters:BindingTypeToVisibilityConverter x:Key="BindingTypeToVisibilityConverter"/>
     <converters:DataTypeToVisibilityConverter x:Key="DataTypeToVisibilityConverter"/>
@@ -193,11 +194,11 @@
         </Setter>
     </Style>
 
-    <!-- BindableParameter 样式 - 支持多数据类型 -->
-    <Style TargetType="{x:Type controls:BindableParameter}">
+    <!-- ConfigSetting 样式 - 支持多数据类型 -->
+    <Style TargetType="{x:Type controls:ConfigSetting}">
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:BindableParameter}">
+                <ControlTemplate TargetType="{x:Type controls:ConfigSetting}">
                     <!-- 移除外层Border和Label，只保留核心功能 -->
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -1440,6 +1441,106 @@
                                     Value="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13ZM3 17L17 3"/>
                             <Setter TargetName="PART_VisibilityIcon" Property="Opacity" Value="0.5"/>
                         </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ParamBinding 样式 - 单一整体设计 -->
+    <Style TargetType="{x:Type controls:ParamBinding}">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ParamBinding}">
+                    <!-- 单一外层 Border -->
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Height="{TemplateBinding Height}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="60"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 输入区域 -->
+                            <Grid Grid.Column="0">
+                                <!-- 文本输入模式 -->
+                                <TextBox x:Name="PART_TextBox"
+                                         Padding="8,0"
+                                         FontSize="13"
+                                         VerticalAlignment="Center"
+                                         VerticalContentAlignment="Center"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                         Visibility="{Binding IsBound, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                
+                                <!-- 绑定模式显示 -->
+                                <TextBlock x:Name="PART_BindingDisplay"
+                                           Padding="8,0"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           Text="{Binding BindingSourceDisplay, RelativeSource={RelativeSource TemplatedParent}}"
+                                           Foreground="{StaticResource LabelSecondaryBrush}"
+                                           Visibility="{Binding IsBound, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+
+                            <!-- 绑定图标按钮（无边框，透明背景） -->
+                            <Button x:Name="PART_BindingButton"
+                                    Grid.Column="1"
+                                    Width="28" Height="28"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="点击绑定到其他节点">
+                                <TextBlock Text="{Binding IconSymbol, RelativeSource={RelativeSource TemplatedParent}}" 
+                                           FontSize="14" 
+                                           VerticalAlignment="Center" 
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+
+                            <!-- 绑定源选择 Popup -->
+                            <Popup x:Name="PART_BindingPopup"
+                                   PlacementTarget="{Binding ElementName=PART_BindingButton}"
+                                   Placement="Bottom"
+                                   StaysOpen="False"
+                                   Width="300"
+                                   MaxHeight="400"
+                                   AllowsTransparency="True">
+                                <Border Background="White"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="0"
+                                        Margin="0,2,0,0">
+                                    <!-- 绑定源列表 -->
+                                    <TreeView x:Name="PART_BindingTreeView"
+                                              ItemsSource="{Binding AvailableBindings, RelativeSource={RelativeSource TemplatedParent}}"
+                                              BorderThickness="0"
+                                              Padding="8"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+
+                    <!-- 触发器 -->
+                    <ControlTemplate.Triggers>
+                        <!-- 悬停效果：外边框变色 -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}"/>
+                        </Trigger>
+                        
+                        <!-- 焦点效果 -->
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

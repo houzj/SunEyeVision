@@ -58,7 +58,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
           <StackPanel>
             <controls:LabeledControl Label="阈值" >
-              <controls:BindableParameter
+              <controls:ConfigSetting
                                 x:Name="thresholdParam"
                                 ParameterName="Threshold"
                                 DataType="Int"
@@ -72,7 +72,7 @@
             </controls:LabeledControl>
 
             <controls:LabeledControl Label="最大值">
-              <controls:BindableParameter
+              <controls:ConfigSetting
                                 x:Name="maxValueParam"
                                 ParameterName="MaxValue"
                                 DataType="Int"
@@ -289,7 +289,7 @@
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
-                    <controls:BindableParameter Grid.Column="1" Grid.Row="3"
+                    <controls:ConfigSetting Grid.Column="1" Grid.Row="3"
                                                             ParameterName="TextConfig.PositionX"
                                                             DataType="Double"
                                                             Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
@@ -301,7 +301,7 @@
                                                             AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
                   <controls:LabeledControl Label="位置Y" Margin="0,0,0,8">
-                    <controls:BindableParameter Grid.Column="1" Grid.Row="3"
+                    <controls:ConfigSetting Grid.Column="1" Grid.Row="3"
                                                             ParameterName="TextConfig.PositionY"
                                                             DataType="Double"
                                                             Value="{Binding TextConfig.PositionY, Mode=TwoWay}"

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
@@ -503,7 +503,7 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo($"  已批量添加 {dataSources.Count} 个数据源到集合");
 
                 // 构建树形结构
-                var treeNodes = BindableParameter.BuildTreeStructure(dataSources);
+                var treeNodes = ConfigSetting.BuildTreeStructure(dataSources);
                 foreach (var node in treeNodes)
                 {
                     TreeNodes.Add(node);
