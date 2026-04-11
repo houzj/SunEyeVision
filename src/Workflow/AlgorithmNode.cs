@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -67,10 +67,10 @@ namespace SunEyeVision.Workflow
                     var typedParams = GetTypedParameters();
                     
                     // 应用参数绑定解析
-                    if (ParameterBindings?.Count > 0 && nodeResults != null)
+                    if (ParamSettings?.Count > 0 && nodeResults != null)
                     {
                         var resolver = new ParameterResolver();
-                        var applyResult = resolver.ApplyToParameters(typedParams, ParameterBindings, nodeResults);
+                        var applyResult = resolver.ApplyToParameters(typedParams, ParamSettings, nodeResults);
                         
                         if (!applyResult.IsSuccess && applyResult.Errors.Count > 0)
                         {

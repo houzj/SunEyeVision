@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -24,7 +24,7 @@ namespace SunEyeVision.Workflow
     /// 核心字段（序列化）：
     /// - Id, Name, DispName, ToolType
     /// - LocalIndex, GlobalIndex
-    /// - Parameters, ParameterBindings
+    /// - Parameters, ParamSettings
     /// - IsEnabled, PositionX, PositionY, Width, Height
     ///
     /// UI 专有属性（不序列化）：
@@ -150,7 +150,7 @@ namespace SunEyeVision.Workflow
         /// 支持参数与父节点输出的动态绑定。
         /// 用于在执行时自动从父节点获取参数值。
         /// </remarks>
-        public ParameterBindingContainer ParameterBindings { get; set; }
+        public ParamSettingContainer ParamSettings { get; set; }
 
         #endregion
 
@@ -417,7 +417,7 @@ namespace SunEyeVision.Workflow
             DispName = string.Empty;
             ToolType = string.Empty;
             Parameters = new GenericToolParameters();
-            ParameterBindings = new ParameterBindingContainer();
+            ParamSettings = new ParamSettingContainer();
         }
 
         /// <summary>
@@ -430,7 +430,7 @@ namespace SunEyeVision.Workflow
             DispName = dispName;
             ToolType = toolType;
             Parameters = new GenericToolParameters();
-            ParameterBindings = new ParameterBindingContainer();
+            ParamSettings = new ParamSettingContainer();
         }
 
         /// <summary>
@@ -617,9 +617,9 @@ namespace SunEyeVision.Workflow
             }
 
             // 恢复参数绑定
-            if (dict.TryGetValue("ParameterBindings", out var bindingsVal) && bindingsVal is Dictionary<string, object> bindingsDict)
+            if (dict.TryGetValue("ParamSettings", out var bindingsVal) && bindingsVal is Dictionary<string, object> bindingsDict)
             {
-                node.ParameterBindings = ParameterBindingContainer.FromDictionary(bindingsDict);
+                node.ParamSettings = ParamSettingContainer.FromDictionary(bindingsDict);
             }
 
             return node;
@@ -639,7 +639,7 @@ namespace SunEyeVision.Workflow
             {
                 IsEnabled = IsEnabled,
                 Parameters = Parameters?.Clone(),
-                ParameterBindings = ParameterBindings?.Clone(),
+                ParamSettings = ParamSettings?.Clone(),
                 PositionX = PositionX,
                 PositionY = PositionY,
                 Width = Width,

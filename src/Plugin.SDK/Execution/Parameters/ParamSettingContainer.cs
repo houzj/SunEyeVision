@@ -1,42 +1,42 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
     /// <summary>
-    /// 参数绑定容器
+    /// 参数设置容器
     /// </summary>
     /// <remarks>
-    /// 管理一个节点或工具的所有参数绑定配置。
-    /// 提供绑定的增删改查、验证和序列化功能。
+    /// 管理一个节点或工具的所有参数设置配置。
+    /// 提供设置的增删改查、验证和序列化功能。
     /// 
     /// 核心功能：
-    /// 1. 管理多个参数绑定
+    /// 1. 管理多个参数设置
     /// 2. 支持快速查找和更新
     /// 3. 批量验证
     /// 4. 序列化支持
     /// 
     /// 使用示例：
     /// <code>
-    /// var container = new ParameterBindingContainer();
+    /// var container = new ParamSettingContainer();
     /// 
-    /// // 添加常量绑定
-    /// container.SetBinding(ParameterBinding.CreateConstant("Threshold", 128));
+    /// // 添加常量设置
+    /// container.SetSetting(ParamSetting.CreateConstant("Threshold", 128));
     /// 
-    /// // 添加动态绑定
-    /// container.SetBinding(ParameterBinding.CreateDynamic("MinRadius", "node_001", "Radius"));
+    /// // 添加动态绑定设置
+    /// container.SetSetting(ParamSetting.CreateBinding("MinRadius", "node_001", "Radius"));
     /// 
-    /// // 获取绑定
-    /// var thresholdBinding = container.GetBinding("Threshold");
+    /// // 获取设置
+    /// var thresholdSetting = container.GetSetting("Threshold");
     /// 
-    /// // 验证所有绑定
+    /// // 验证所有设置
     /// var validationResult = container.ValidateAll();
     /// </code>
     /// </remarks>
-    public class ParameterBindingContainer
+    public class ParamSettingContainer
     {
-        private readonly Dictionary<string, ParameterBinding> _bindings = new Dictionary<string, ParameterBinding>();
+        private readonly Dictionary<string, ParamSetting> _settings = new Dictionary<string, ParamSetting>();
 
         /// <summary>
         /// 节点ID（可选）
@@ -49,133 +49,133 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string? ToolName { get; set; }
 
         /// <summary>
-        /// 所有绑定数量
+        /// 所有设置数量
         /// </summary>
-        public int Count => _bindings.Count;
+        public int Count => _settings.Count;
 
         /// <summary>
         /// 所有参数名称
         /// </summary>
-        public IEnumerable<string> ParameterNames => _bindings.Keys;
+        public IEnumerable<string> ParameterNames => _settings.Keys;
 
         /// <summary>
-        /// 所有绑定
+        /// 所有设置
         /// </summary>
-        public IEnumerable<ParameterBinding> Bindings => _bindings.Values;
+        public IEnumerable<ParamSetting> Settings => _settings.Values;
 
         /// <summary>
-        /// 获取或设置绑定
+        /// 获取或设置参数设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
-        /// <returns>参数绑定，如果不存在则返回null</returns>
-        public ParameterBinding? this[string parameterName]
+        /// <returns>参数设置，如果不存在则返回null</returns>
+        public ParamSetting? this[string parameterName]
         {
-            get => GetBinding(parameterName);
+            get => GetSetting(parameterName);
             set
             {
                 if (value != null)
                 {
-                    SetBinding(value);
+                    SetSetting(value);
                 }
                 else
                 {
-                    RemoveBinding(parameterName);
+                    RemoveSetting(parameterName);
                 }
             }
         }
 
         /// <summary>
-        /// 设置绑定
+        /// 设置参数
         /// </summary>
-        /// <param name="binding">参数绑定</param>
-        public void SetBinding(ParameterBinding binding)
+        /// <param name="setting">参数设置</param>
+        public void SetSetting(ParamSetting setting)
         {
-            if (binding == null)
-                throw new ArgumentNullException(nameof(binding));
+            if (setting == null)
+                throw new ArgumentNullException(nameof(setting));
 
-            _bindings[binding.ParameterName] = binding;
+            _settings[setting.ParameterName] = setting;
         }
 
         /// <summary>
-        /// 设置常量绑定
+        /// 设置常量参数
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <param name="value">常量值</param>
-        public void SetConstantBinding(string parameterName, object? value)
+        public void SetConstantSetting(string parameterName, object? value)
         {
-            SetBinding(ParameterBinding.CreateConstant(parameterName, value));
+            SetSetting(ParamSetting.CreateConstant(parameterName, value));
         }
 
         /// <summary>
-        /// 设置动态绑定
+        /// 设置动态绑定参数
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <param name="sourceNodeId">源节点ID</param>
         /// <param name="sourceProperty">源属性名称</param>
         /// <param name="transformExpression">转换表达式（可选）</param>
-        public void SetDynamicBinding(
+        public void SetDynamicSetting(
             string parameterName,
             string sourceNodeId,
             string sourceProperty,
             string? transformExpression = null)
         {
-            SetBinding(ParameterBinding.CreateBinding(parameterName, sourceNodeId, sourceProperty, transformExpression));
+            SetSetting(ParamSetting.CreateBinding(parameterName, sourceNodeId, sourceProperty, transformExpression));
         }
 
         /// <summary>
-        /// 获取绑定
+        /// 获取参数设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
-        /// <returns>参数绑定，如果不存在则返回null</returns>
-        public ParameterBinding? GetBinding(string parameterName)
+        /// <returns>参数设置，如果不存在则返回null</returns>
+        public ParamSetting? GetSetting(string parameterName)
         {
-            _bindings.TryGetValue(parameterName, out var binding);
-            return binding;
+            _settings.TryGetValue(parameterName, out var setting);
+            return setting;
         }
 
         /// <summary>
-        /// 检查是否存在绑定
+        /// 检查是否存在参数设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <returns>是否存在</returns>
-        public bool HasBinding(string parameterName)
+        public bool HasSetting(string parameterName)
         {
-            return _bindings.ContainsKey(parameterName);
+            return _settings.ContainsKey(parameterName);
         }
 
         /// <summary>
-        /// 移除绑定
+        /// 移除参数设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <returns>是否成功移除</returns>
-        public bool RemoveBinding(string parameterName)
+        public bool RemoveSetting(string parameterName)
         {
-            return _bindings.Remove(parameterName);
+            return _settings.Remove(parameterName);
         }
 
         /// <summary>
-        /// 清空所有绑定
+        /// 清空所有设置
         /// </summary>
         public void Clear()
         {
-            _bindings.Clear();
+            _settings.Clear();
         }
 
         /// <summary>
-        /// 验证所有绑定
+        /// 验证所有设置
         /// </summary>
         /// <returns>批量验证结果</returns>
         public ContainerValidationResult ValidateAll()
         {
             var result = new ContainerValidationResult { IsValid = true };
 
-            foreach (var binding in _bindings.Values)
+            foreach (var setting in _settings.Values)
             {
-                var bindingResult = binding.Validate();
-                if (!bindingResult.IsValid)
+                var settingResult = setting.Validate();
+                if (!settingResult.IsValid)
                 {
                     result.IsValid = false;
-                    result.BindingErrors[binding.ParameterName] = bindingResult.Errors;
+                    result.SettingErrors[setting.ParameterName] = settingResult.Errors;
                 }
             }
 
@@ -183,48 +183,48 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 获取所有动态绑定
+        /// 获取所有动态绑定设置
         /// </summary>
-        /// <returns>动态绑定列表</returns>
-        public IEnumerable<ParameterBinding> GetDynamicBindings()
+        /// <returns>动态绑定设置列表</returns>
+        public IEnumerable<ParamSetting> GetDynamicSettings()
         {
-            return _bindings.Values.Where(b => b.BindingType == BindingType.Binding);
+            return _settings.Values.Where(s => s.BindingType == BindingType.Binding);
         }
 
         /// <summary>
-        /// 获取所有常量绑定
+        /// 获取所有常量设置
         /// </summary>
-        /// <returns>常量绑定列表</returns>
-        public IEnumerable<ParameterBinding> GetConstantBindings()
+        /// <returns>常量设置列表</returns>
+        public IEnumerable<ParamSetting> GetConstantSettings()
         {
-            return _bindings.Values.Where(b => b.BindingType == BindingType.Constant);
+            return _settings.Values.Where(s => s.BindingType == BindingType.Constant);
         }
 
         /// <summary>
-        /// 获取指定源节点的绑定
+        /// 获取指定源节点的设置
         /// </summary>
         /// <param name="sourceNodeId">源节点ID</param>
-        /// <returns>绑定列表</returns>
-        public IEnumerable<ParameterBinding> GetBindingsBySourceNode(string sourceNodeId)
+        /// <returns>设置列表</returns>
+        public IEnumerable<ParamSetting> GetSettingsBySourceNode(string sourceNodeId)
         {
-            return _bindings.Values.Where(b => b.SourceNodeId == sourceNodeId);
+            return _settings.Values.Where(s => s.SourceNodeId == sourceNodeId);
         }
 
         /// <summary>
         /// 克隆容器
         /// </summary>
         /// <returns>克隆的容器</returns>
-        public ParameterBindingContainer Clone()
+        public ParamSettingContainer Clone()
         {
-            var cloned = new ParameterBindingContainer
+            var cloned = new ParamSettingContainer
             {
                 NodeId = NodeId,
                 ToolName = ToolName
             };
 
-            foreach (var binding in _bindings.Values)
+            foreach (var setting in _settings.Values)
             {
-                cloned.SetBinding(binding.Clone());
+                cloned.SetSetting(setting.Clone());
             }
 
             return cloned;
@@ -243,13 +243,13 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (!string.IsNullOrEmpty(ToolName))
                 dict["ToolName"] = ToolName;
 
-            // 始终序列化 Bindings 列表，即使为空
-            var bindingsList = new List<Dictionary<string, object>>();
-            foreach (var binding in _bindings.Values)
+            // 始终序列化 Settings 列表，即使为空
+            var settingsList = new List<Dictionary<string, object>>();
+            foreach (var setting in _settings.Values)
             {
-                bindingsList.Add(binding.ToDictionary());
+                settingsList.Add(setting.ToDictionary());
             }
-            dict["Bindings"] = bindingsList;
+            dict["Settings"] = settingsList;
 
             return dict;
         }
@@ -257,9 +257,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 从字典创建容器（用于反序列化）
         /// </summary>
-        public static ParameterBindingContainer FromDictionary(Dictionary<string, object> dict)
+        public static ParamSettingContainer FromDictionary(Dictionary<string, object> dict)
         {
-            var container = new ParameterBindingContainer();
+            var container = new ParamSettingContainer();
 
             if (dict.TryGetValue("NodeId", out var nodeId))
                 container.NodeId = nodeId?.ToString();
@@ -267,14 +267,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (dict.TryGetValue("ToolName", out var toolName))
                 container.ToolName = toolName?.ToString();
 
-            if (dict.TryGetValue("Bindings", out var bindingsObj) && bindingsObj is List<object> bindingsList)
+            if (dict.TryGetValue("Settings", out var settingsObj) && settingsObj is List<object> settingsList)
             {
-                foreach (var bindingObj in bindingsList)
+                foreach (var settingObj in settingsList)
                 {
-                    if (bindingObj is Dictionary<string, object> bindingDict)
+                    if (settingObj is Dictionary<string, object> settingDict)
                     {
-                        var binding = ParameterBinding.FromDictionary(bindingDict);
-                        container.SetBinding(binding);
+                        var setting = ParamSetting.FromDictionary(settingDict);
+                        container.SetSetting(setting);
                     }
                 }
             }
@@ -287,7 +287,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// </summary>
         public override string ToString()
         {
-            var desc = $"ParameterBindingContainer({Count} bindings)";
+            var desc = $"ParamSettingContainer({Count} settings)";
             if (!string.IsNullOrEmpty(NodeId))
                 desc += $" [Node: {NodeId}]";
             if (!string.IsNullOrEmpty(ToolName))
@@ -309,11 +309,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 各参数的错误信息
         /// </summary>
-        public Dictionary<string, List<string>> BindingErrors { get; set; } = new Dictionary<string, List<string>>();
+        public Dictionary<string, List<string>> SettingErrors { get; set; } = new Dictionary<string, List<string>>();
 
         /// <summary>
         /// 所有错误信息
         /// </summary>
-        public IEnumerable<string> AllErrors => BindingErrors.Values.SelectMany(e => e);
+        public IEnumerable<string> AllErrors => SettingErrors.Values.SelectMany(e => e);
     }
 }

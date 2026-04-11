@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using SunEyeVision.Plugin.SDK.Core;
@@ -363,6 +363,7 @@ namespace SunEyeVision.Tool.ImageLoad
                 var validationResult = parameters.Validate();
                 if (!validationResult.IsValid)
                 {
+                    parameters.LogError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
                     result.SetError($"参数验证失败: {string.Join(", ", validationResult.Errors)}");
                     return result;
                 }
@@ -370,15 +371,19 @@ namespace SunEyeVision.Tool.ImageLoad
                 // 验证文件路径
                 if (string.IsNullOrEmpty(parameters.FilePath))
                 {
+                    parameters.LogWarning("文件路径为空");
                     result.SetError("文件路径为空");
                     return result;
                 }
 
                 if (!File.Exists(parameters.FilePath))
                 {
+                    parameters.LogError($"文件不存在: {parameters.FilePath}");
                     result.SetError($"文件不存在: {parameters.FilePath}");
                     return result;
                 }
+
+                parameters.LogInfo($"开始加载图像: {parameters.FilePath}");
 
                 // 获取文件信息
                 var fileInfo = new FileInfo(parameters.FilePath);
@@ -391,6 +396,7 @@ namespace SunEyeVision.Tool.ImageLoad
 
                 if (loadedImage == null || loadedImage.Empty())
                 {
+                    parameters.LogError($"无法加载图像: {parameters.FilePath}");
                     result.SetError($"无法加载图像: {parameters.FilePath}");
                     return result;
                 }
@@ -404,10 +410,13 @@ namespace SunEyeVision.Tool.ImageLoad
 
                 stopwatch.Stop();
                 result.SetSuccess(stopwatch.ElapsedMilliseconds);
+
+                parameters.LogSuccess($"图像加载成功: {result.Width}x{result.Height}, {result.Channels}通道, {result.FileSize}字节, 耗时{stopwatch.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                parameters.LogError($"加载图像异常: {ex.Message}", ex);
                 result.SetError($"加载图像失败: {ex.Message}", ex);
                 result.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
             }

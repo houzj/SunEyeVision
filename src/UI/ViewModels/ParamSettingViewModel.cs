@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
@@ -22,12 +22,12 @@ namespace SunEyeVision.UI.ViewModels
     /// 4. 配置转换表达式
     /// 5. 验证绑定配置
     /// </remarks>
-    public class ParameterBindingViewModel : ParameterBindingViewModelBase
+    public class ParamSettingViewModel : ParamSettingViewModelBase
     {
         #region 字段
 
         private readonly IDataSourceQueryService? _dataSourceQueryService;
-        private ParameterBinding _binding;
+        private ParamSetting _setting;
         private BindingType _selectedBindingType;
         private object? _constantValue;
         private AvailableDataSource? _selectedDataSource;
@@ -42,7 +42,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 参数名称
         /// </summary>
-        public override string ParameterName => _binding.ParameterName;
+        public override string ParameterName => _setting.ParameterName;
 
         /// <summary>
         /// 参数显示名称
@@ -124,7 +124,7 @@ namespace SunEyeVision.UI.ViewModels
                     var oldType = _selectedBindingType.ToString();
                     if (SetProperty(ref _selectedBindingType, value))
                     {
-                        _binding.BindingType = value;
+                        _setting.BindingType = value;
                         UpdateBindingMode();
                         Validate();
 
@@ -157,7 +157,7 @@ namespace SunEyeVision.UI.ViewModels
                 var oldValue = _constantValue;
                 if (SetProperty(ref _constantValue, value))
                 {
-                    _binding.ConstantValue = value;
+                    _setting.ConstantValue = value;
                     Validate();
 
                     // 触发 NumericValue 更新
@@ -248,8 +248,8 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     if (value != null)
                     {
-                        _binding.SourceNodeId = value.SourceNodeId;
-                        _binding.SourceProperty = value.PropertyName;
+                        _setting.SourceNodeId = value.SourceNodeId;
+                        _setting.SourceProperty = value.PropertyName;
 
                         // 触发参数变更事件
                         OnParameterChanged(ParameterChangeEventArgs.DynamicBindingConfigured(
@@ -257,8 +257,8 @@ namespace SunEyeVision.UI.ViewModels
                     }
                     else
                     {
-                        _binding.SourceNodeId = null;
-                        _binding.SourceProperty = null;
+                        _setting.SourceNodeId = null;
+                        _setting.SourceProperty = null;
                     }
                     OnPropertyChanged(nameof(SelectedDataSourceDisplay));
                     Validate();
@@ -281,7 +281,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (SetProperty(ref _transformExpression, value))
                 {
-                    _binding.TransformExpression = value;
+                    _setting.TransformExpression = value;
                     Validate();
                 }
             }
@@ -308,7 +308,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 当前绑定配置
         /// </summary>
-        public ParameterBinding Binding => _binding;
+        public ParamSetting Binding => _setting;
 
         #endregion
 
@@ -332,7 +332,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 应用绑定命令
         /// </summary>
-        public ICommand ApplyBindingCommand { get; }
+        public ICommand ApplySettingCommand { get; }
 
         #endregion
 
@@ -355,7 +355,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 创建参数绑定ViewModel
         /// </summary>
-        public ParameterBindingViewModel(
+        public ParamSettingViewModel(
             string parameterName,
             string displayName,
             Type parameterType,
@@ -367,7 +367,7 @@ namespace SunEyeVision.UI.ViewModels
             double step = 1.0,
             string? unit = null)
         {
-            _binding = new ParameterBinding
+            _setting = new ParamSetting
             {
                 ParameterName = parameterName,
                 BindingType = BindingType.Constant,
@@ -413,7 +413,7 @@ namespace SunEyeVision.UI.ViewModels
             SelectDataSourceCommand = new RelayCommand(ExecuteSelectDataSource);
             ClearDataSourceCommand = new RelayCommand(ExecuteClearDataSource, CanClearDataSource);
             ResetToDefaultCommand = new RelayCommand(ExecuteResetToDefault, CanResetToDefault);
-            ApplyBindingCommand = new RelayCommand(ExecuteApplyBinding, CanApplyBinding);
+            ApplySettingCommand = new RelayCommand(ExecuteApplySetting, CanApplySetting);
 
             // 设置默认值
             if (defaultValue != null)
@@ -427,8 +427,8 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 从现有绑定创建ViewModel
         /// </summary>
-        public static ParameterBindingViewModel FromBinding(
-            ParameterBinding binding,
+        public static ParamSettingViewModel FromSetting(
+            ParamSetting binding,
             string displayName,
             Type parameterType,
             object? defaultValue = null,
@@ -439,7 +439,7 @@ namespace SunEyeVision.UI.ViewModels
             double step = 1.0,
             string? unit = null)
         {
-            var viewModel = new ParameterBindingViewModel(
+            var viewModel = new ParamSettingViewModel(
                 binding.ParameterName,
                 displayName,
                 parameterType,
@@ -452,7 +452,7 @@ namespace SunEyeVision.UI.ViewModels
                 unit);
 
             // 恢复绑定配置
-            viewModel._binding = binding.Clone();
+            viewModel._setting = binding.Clone();
             viewModel._selectedBindingType = binding.BindingType;
             viewModel._constantValue = binding.ConstantValue;
             viewModel._transformExpression = binding.TransformExpression;
@@ -503,7 +503,7 @@ namespace SunEyeVision.UI.ViewModels
                 LogInfo($"  已批量添加 {dataSources.Count} 个数据源到集合");
 
                 // 构建树形结构
-                var treeNodes = ParameterSetting.BuildTreeStructure(dataSources);
+                var treeNodes = BindableParameter.BuildTreeStructure(dataSources);
                 foreach (var node in treeNodes)
                 {
                     TreeNodes.Add(node);
@@ -528,17 +528,17 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 获取当前绑定配置
         /// </summary>
-        public override ParameterBinding GetBinding()
+        public override ParamSetting GetSetting()
         {
-            return _binding.Clone();
+            return _setting.Clone();
         }
 
         /// <summary>
         /// 应用绑定配置
         /// </summary>
-        public void ApplyBinding()
+        public void ApplySetting()
         {
-            RaiseBindingChanged(_binding.Clone());
+            RaiseSettingChanged(_setting.Clone());
         }
 
         #endregion
@@ -626,19 +626,19 @@ namespace SunEyeVision.UI.ViewModels
                 ParameterName, DisplayName, DefaultValue));
         }
 
-        private bool CanApplyBinding()
+        private bool CanApplySetting()
         {
             return IsValid;
         }
 
-        private void ExecuteApplyBinding()
+        private void ExecuteApplySetting()
         {
-            ApplyBinding();
+            ApplySetting();
         }
 
         private void Validate()
         {
-            var result = _binding.Validate();
+            var result = _setting.Validate();
             IsValid = result.IsValid;
 
             if (result.IsValid)

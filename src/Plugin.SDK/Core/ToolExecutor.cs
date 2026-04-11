@@ -72,7 +72,7 @@ namespace SunEyeVision.Plugin.SDK.Core
             IToolPlugin tool,
             ToolParameters parameters,
             Mat inputImage,
-            IList<ParameterBinding>? bindings = null,
+            IList<ParamSetting>? bindings = null,
             IDictionary<string, ToolResults>? context = null,
             string? nodeName = null,
             string? nodeId = null,
@@ -157,7 +157,7 @@ namespace SunEyeVision.Plugin.SDK.Core
             IToolPlugin tool,
             ToolParameters parameters,
             Mat inputImage,
-            IList<ParameterBinding>? bindings = null,
+            IList<ParamSetting>? bindings = null,
             IDictionary<string, ToolResults>? context = null,
             string? nodeName = null,
             string? nodeId = null,
@@ -243,7 +243,7 @@ namespace SunEyeVision.Plugin.SDK.Core
             IToolPlugin<TParams, TResult> tool,
             TParams parameters,
             Mat inputImage,
-            IList<ParameterBinding>? bindings = null,
+            IList<ParamSetting>? bindings = null,
             IDictionary<string, ToolResults>? context = null,
             string? nodeName = null,
             string? nodeId = null,
@@ -318,13 +318,13 @@ namespace SunEyeVision.Plugin.SDK.Core
         /// </summary>
         private ParameterApplyResult ApplyBindings(
             ToolParameters parameters,
-            IList<ParameterBinding> bindings,
+            IList<ParamSetting> bindings,
             IDictionary<string, ToolResults> context)
         {
-            var container = new ParameterBindingContainer();
+            var container = new ParamSettingContainer();
             foreach (var binding in bindings)
             {
-                container.SetBinding(binding);
+                container.SetSetting(binding);
             }
             return _parameterResolver.ApplyToParameters(parameters, container, context);
         }

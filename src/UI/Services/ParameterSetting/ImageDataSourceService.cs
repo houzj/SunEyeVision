@@ -4,7 +4,7 @@ using System.Linq;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 
-namespace SunEyeVision.UI.Services.ParameterBinding
+namespace SunEyeVision.UI.Services.ParameterSetting
 {
     /// <summary>
     /// 图像数据源服务

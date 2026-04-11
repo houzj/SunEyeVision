@@ -1088,45 +1088,45 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
-        /// 转换为 ParameterBinding 对象
+        /// 转换为 ParamSetting 对象
         /// </summary>
-        public ParameterBinding ToParameterBinding()
+        public ParamSetting ToParamSetting()
         {
             if (BindingType == BindingType.Constant)
             {
-                return ParameterBinding.CreateConstant(ParameterName, GetValue());
+                return ParamSetting.CreateConstant(ParameterName, GetValue());
             }
             else
             {
                 var parts = BindingSource.Split('.');
                 var nodeId = parts.Length > 0 ? parts[0] : string.Empty;
                 var property = parts.Length > 1 ? parts[1] : BindingSource;
-                return ParameterBinding.CreateBinding(ParameterName, nodeId, property, TransformExpression);
+                return ParamSetting.CreateBinding(ParameterName, nodeId, property, TransformExpression);
             }
         }
 
         /// <summary>
-        /// 从 ParameterBinding 对象加载
+        /// 从 ParamSetting 对象加载
         /// </summary>
-        public void FromParameterBinding(ParameterBinding binding)
+        public void FromParamSetting(ParamSetting setting)
         {
-            if (binding == null)
+            if (setting == null)
                 return;
 
-            ParameterName = binding.ParameterName;
-            BindingType = binding.BindingType;
-            TransformExpression = binding.TransformExpression ?? string.Empty;
+            ParameterName = setting.ParameterName;
+            BindingType = setting.BindingType;
+            TransformExpression = setting.TransformExpression ?? string.Empty;
 
-            if (binding.BindingType == BindingType.Constant)
+            if (setting.BindingType == BindingType.Constant)
             {
-                SetValue(binding.ConstantValue);
+                SetValue(setting.ConstantValue);
                 FriendlyBindingSource = string.Empty;
             }
             else
             {
-                BindingSource = string.IsNullOrEmpty(binding.SourceProperty)
-                    ? binding.SourceNodeId ?? string.Empty
-                    : $"{binding.SourceNodeId}.{binding.SourceProperty}";
+                BindingSource = string.IsNullOrEmpty(setting.SourceProperty)
+                    ? setting.SourceNodeId ?? string.Empty
+                    : $"{setting.SourceNodeId}.{setting.SourceProperty}";
             }
         }
     }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -6,24 +6,26 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 参数绑定类型
     /// </summary>
     /// <remarks>
-    /// 定义参数值的来源方式，只有两种基本绑定类型：
+    /// 定义参数值的来源方式，支持以下绑定类型：
     /// - Constant: 常量绑定，使用固定值
     /// - Binding: 动态绑定，从其他节点输出获取值
-    /// 
-    /// 注意：Expression（表达式）和 RuntimeInjection（运行时注入）是值获取方式，不是绑定类型。
-    /// 表达式是可选的值转换功能，两种绑定模式都可用。
-    /// 运行时注入通过执行前直接设置参数值实现，不需要单独的绑定类型。
+    /// - NodeOutput: 节点输出绑定，从其他节点的输出端口获取值
+    /// - Expression: 表达式绑定，使用表达式计算值
+    /// - Variable: 变量绑定，引用全局或局部变量
     /// 
     /// 使用示例：
     /// <code>
     /// // 常量绑定
-    /// var constantBinding = ParameterBinding.CreateConstant("Threshold", 128);
+    /// var constantBinding = new ConstantSource(128);
     /// 
-    /// // 动态绑定
-    /// var dynamicBinding = ParameterBinding.CreateBinding("MinRadius", "node_001", "DetectedRadius");
+    /// // 节点输出绑定
+    /// var nodeOutputBinding = new NodeOutputSource("node_001", "OutputImage");
     /// 
-    /// // 带转换表达式的绑定
-    /// var bindingWithTransform = ParameterBinding.CreateBinding("Radius", "node_001", "Radius", "value * 0.9");
+    /// // 表达式绑定
+    /// var expressionBinding = new ExpressionSource("value * 0.9");
+    /// 
+    /// // 变量绑定
+    /// var variableBinding = new VariableSource("GlobalThreshold", isGlobal: true);
     /// </code>
     /// </remarks>
     public enum BindingType
@@ -46,6 +48,36 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 支持运行时自动解析，实现节点间的数据传递。
         /// 可选地使用 TransformExpression 进行值转换。
         /// </remarks>
-        Binding = 1
+        Binding = 1,
+
+        /// <summary>
+        /// 节点输出绑定 - 从其他节点的输出端口获取值
+        /// </summary>
+        /// <remarks>
+        /// 参数值从其他节点的指定输出端口动态获取。
+        /// 支持多值输出通过索引选择。
+        /// 可选地使用属性路径访问复合对象的属性。
+        /// </remarks>
+        NodeOutput = 2,
+
+        /// <summary>
+        /// 表达式绑定 - 使用表达式计算值
+        /// </summary>
+        /// <remarks>
+        /// 参数值通过表达式计算得到。
+        /// 表达式可以引用多个节点的输出或变量。
+        /// 支持数学运算和函数调用。
+        /// </remarks>
+        Expression = 3,
+
+        /// <summary>
+        /// 变量绑定 - 引用全局或局部变量
+        /// </summary>
+        /// <remarks>
+        /// 参数值从变量系统获取。
+        /// 支持全局变量和局部变量两种作用域。
+        /// 适用于跨多个节点共享参数值的场景。
+        /// </remarks>
+        Variable = 4
     }
 }

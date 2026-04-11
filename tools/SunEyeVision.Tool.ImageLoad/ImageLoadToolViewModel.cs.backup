@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -194,6 +194,7 @@ namespace SunEyeVision.Tool.ImageLoad
         /// </summary>
         private void BrowseFile()
         {
+            LogInfo("开始浏览图像文件");
 
             var dialog = new OpenFileDialog
             {
@@ -207,9 +208,11 @@ namespace SunEyeVision.Tool.ImageLoad
             if (dialog.ShowDialog() == true)
             {
                 FilePath = dialog.FileName;
+                LogSuccess($"已选择文件: {dialog.FileName}");
             }
             else
             {
+                LogInfo("用户取消了文件选择");
             }
         }
 
@@ -226,6 +229,8 @@ namespace SunEyeVision.Tool.ImageLoad
                 ToolStatus = "运行中";
                 StatusMessage = "正在载入图像...";
 
+                LogInfo($"开始载入图像: {FilePath}");
+
                 var result = _tool.Run(null, _parameters);
                 LastResult = result;
 
@@ -236,11 +241,15 @@ namespace SunEyeVision.Tool.ImageLoad
                     OutputMat = result.OutputImage.Clone();
                     StatusMessage = $"载入成功: {result.Width}x{result.Height}";
                     ToolStatus = "就绪";
+
+                    LogSuccess($"图像载入成功: {result.Width}x{result.Height}, {result.Channels}通道, 耗时 {result.ExecutionTimeMs}ms");
                 }
                 else
                 {
                     StatusMessage = $"载入失败: {result.ErrorMessage}";
                     ToolStatus = "错误";
+
+                    LogError($"图像载入失败: {result.ErrorMessage}");
                 }
 
                 ExecutionTime = $"{result.ExecutionTimeMs} ms";
@@ -251,6 +260,8 @@ namespace SunEyeVision.Tool.ImageLoad
                 ToolStatus = "错误";
                 LastResult = new ImageLoadResults();
                 LastResult.SetError(ex.Message, ex);
+
+                LogError($"图像载入异常: {ex.Message}", ex);
             }
             finally
             {
@@ -266,9 +277,11 @@ namespace SunEyeVision.Tool.ImageLoad
             if (File.Exists(filePath))
             {
                 FilePath = filePath;
+                LogInfo($"从外部设置文件路径: {filePath}");
             }
             else
             {
+                LogWarning($"文件不存在，无法设置路径: {filePath}");
             }
         }
 
@@ -285,12 +298,15 @@ namespace SunEyeVision.Tool.ImageLoad
             {
                 StatusMessage = $"文件不存在: {filePath}";
                 ToolStatus = "错误";
+                LogError($"从预览器接收图像失败: 文件不存在 - {filePath}");
                 return;
             }
 
             FilePath = filePath;
             StatusMessage = $"已接收图像: {FileName}";
             ToolStatus = "就绪";
+
+            LogInfo($"从图像预览器接收图像: {filePath}");
 
             // 如果预览器已经加载了图像，可以直接使用
             if (previewImage != null)
@@ -300,11 +316,15 @@ namespace SunEyeVision.Tool.ImageLoad
                     OutputMat = previewImage.Clone();
                     OutputImage = previewImage.ToBitmapSource();
                     StatusMessage = $"已加载预览图像: {OutputMat.Width}x{OutputMat.Height}";
+
+                    LogSuccess($"已从预览器加载图像: {OutputMat.Width}x{OutputMat.Height}");
                 }
                 catch (Exception ex)
                 {
                     StatusMessage = $"预览图像转换失败: {ex.Message}";
                     ToolStatus = "警告";
+
+                    LogError($"预览图像转换失败: {ex.Message}", ex);
                 }
             }
         }
@@ -326,13 +346,17 @@ namespace SunEyeVision.Tool.ImageLoad
         {
             if (!HasValidFile)
             {
+                LogWarning("自动加载失败: 无有效文件路径");
                 return false;
             }
 
             if (OutputMat != null)
             {
+                LogInfo("图像已加载，跳过自动加载");
                 return true; // 已加载
             }
+
+            LogInfo("开始自动加载图像");
             Execute();
             return HasResult;
         }
@@ -355,6 +379,8 @@ namespace SunEyeVision.Tool.ImageLoad
             _parameters = (ImageLoadParameters)parameters.Clone();
             OnPropertyChanged(nameof(FilePath));
             OnPropertyChanged(nameof(FileName));
+
+            LogInfo($"参数已更新: 文件路径 = {parameters.FilePath}");
         }
     }
 

@@ -1,11 +1,12 @@
-﻿using SunEyeVision.Plugin.SDK.Models;
+﻿using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Models;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
     /// <summary>
     /// 参数绑定项 - 用于参数面板显示
     /// </summary>
-    public class ParameterBindingItem : ObservableObject
+    public class ParamSettingItem : ObservableObject
     {
         private ParameterSource? _source;
         private string _displayPath = string.Empty;
@@ -68,6 +69,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 绑定类型
         /// </summary>
-        public ParameterBindingType BindingType => Source?.BindingType ?? ParameterBindingType.Constant;
+        public BindingType BindingType => Source?.BindingType ?? BindingType.Constant;
     }
 }

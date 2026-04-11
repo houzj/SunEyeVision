@@ -43,7 +43,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="nodeResults">节点结果缓存</param>
         /// <returns>解析后的值</returns>
         ParameterResolveResult Resolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults);
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="targetType">目标类型</param>
         /// <returns>解析后的值</returns>
         ParameterResolveResult Resolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults,
             Type targetType);
 
@@ -65,7 +65,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="nodeResults">节点结果缓存</param>
         /// <returns>参数名到值的映射</returns>
         Dictionary<string, ParameterResolveResult> ResolveAll(
-            ParameterBindingContainer container,
+            ParamSettingContainer container,
             IDictionary<string, ToolResults> nodeResults);
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <returns>应用结果</returns>
         ParameterApplyResult ApplyToParameters(
             ToolParameters parameters,
-            ParameterBindingContainer container,
+            ParamSettingContainer container,
             IDictionary<string, ToolResults> nodeResults);
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="nodeResults">节点结果缓存</param>
         /// <returns>验证结果</returns>
         ResolveValidationResult ValidateResolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults);
     }
 

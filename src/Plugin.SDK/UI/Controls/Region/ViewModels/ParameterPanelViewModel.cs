@@ -18,13 +18,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private readonly DataSourceQueryService? _dataProvider;
         private ShapeType _currentShapeType;
         private bool _isEditable = true;
-        private ParameterBindingItem? _selectedParameter;
+        private ParamSettingItem? _selectedParameter;
         private readonly Dictionary<string, IDisposable> _subscriptions = new();
 
         /// <summary>
         /// 参数绑定项列表
         /// </summary>
-        public ObservableCollection<ParameterBindingItem> Parameters { get; } = new();
+        public ObservableCollection<ParamSettingItem> Parameters { get; } = new();
 
         /// <summary>
         /// 当前形状类型
@@ -53,7 +53,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 选中的参数（用于打开绑定选择器）
         /// </summary>
-        public ParameterBindingItem? SelectedParameter
+        public ParamSettingItem? SelectedParameter
         {
             get => _selectedParameter;
             set => SetProperty(ref _selectedParameter, value);
@@ -68,14 +68,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 参数绑定变更事件
         /// </summary>
-        public event EventHandler<ParameterBindingChangedEventArgs>? ParameterBindingChanged;
+        public event EventHandler<ParamSettingChangedEventArgs>? ParamSettingChanged;
 
         public ParameterPanelViewModel(DataSourceQueryService? dataProvider = null)
         {
             _dataProvider = dataProvider;
 
-            BindParameterCommand = new RelayCommand<ParameterBindingItem>(BindParameter);
-            ClearBindingCommand = new RelayCommand<ParameterBindingItem>(ClearBinding);
+            BindParameterCommand = new RelayCommand<ParamSettingItem>(BindParameter);
+            ClearBindingCommand = new RelayCommand<ParamSettingItem>(ClearBinding);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             // 添加参数项
             foreach (var def in parameterDefs)
             {
-                Parameters.Add(new ParameterBindingItem
+                Parameters.Add(new ParamSettingItem
                 {
                     ParameterName = def.Name,
                     DisplayName = def.DisplayName,
@@ -159,7 +159,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 绑定参数（打开选择器）
         /// </summary>
-        private void BindParameter(ParameterBindingItem? item)
+        private void BindParameter(ParamSettingItem? item)
         {
             if (item == null) return;
             SelectedParameter = item;
@@ -169,7 +169,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 清除绑定
         /// </summary>
-        private void ClearBinding(ParameterBindingItem? item)
+        private void ClearBinding(ParamSettingItem? item)
         {
             if (item == null) return;
 
@@ -177,7 +177,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             item.DisplayPath = string.Empty;
             item.CurrentValue = null;
 
-            ParameterBindingChanged?.Invoke(this, new ParameterBindingChangedEventArgs(item.ParameterName, null));
+            ParamSettingChanged?.Invoke(this, new ParamSettingChangedEventArgs(item.ParameterName, null));
         }
 
         /// <summary>
@@ -202,13 +202,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             // 订阅值变更
             SubscribeToValue(SelectedParameter, source);
 
-            ParameterBindingChanged?.Invoke(this, new ParameterBindingChangedEventArgs(SelectedParameter.ParameterName, source));
+            ParamSettingChanged?.Invoke(this, new ParamSettingChangedEventArgs(SelectedParameter.ParameterName, source));
         }
 
         /// <summary>
         /// 订阅值变更
         /// </summary>
-        private void SubscribeToValue(ParameterBindingItem item, NodeOutputSource source)
+        private void SubscribeToValue(ParamSettingItem item, NodeOutputSource source)
         {
             // 取消旧订阅
             if (_subscriptions.TryGetValue(item.ParameterName, out var oldSubscription))
@@ -295,12 +295,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
     /// <summary>
     /// 参数绑定变更事件参数
     /// </summary>
-    public class ParameterBindingChangedEventArgs : EventArgs
+    public class ParamSettingChangedEventArgs : EventArgs
     {
         public string ParameterName { get; }
         public ParameterSource? NewSource { get; }
 
-        public ParameterBindingChangedEventArgs(string parameterName, ParameterSource? newSource)
+        public ParamSettingChangedEventArgs(string parameterName, ParameterSource? newSource)
         {
             ParameterName = parameterName;
             NewSource = newSource;

@@ -395,7 +395,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 选中区域的参数绑定（用于参数订阅模式）
         /// </summary>
-        public Dictionary<string, ParameterSource>? ParameterBindings =>
+        public Dictionary<string, ParameterSource>? ParamSettings =>
             (SelectedRegion?.Parameters as ComputedRegion)?.ParameterBindings;
 
         /// <summary>
@@ -527,7 +527,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
             // 订阅事件
             _nodeSelector.SelectionConfirmed += OnNodeSelectionConfirmed;
-            _parameterPanel.ParameterBindingChanged += OnParameterBindingChanged;
+            _parameterPanel.ParamSettingChanged += OnParamSettingChanged;
 
             OnPropertyChanged(nameof(ParameterPanel));
             OnPropertyChanged(nameof(NodeSelector));
@@ -548,7 +548,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 参数绑定变更事件处理
         /// </summary>
-        private void OnParameterBindingChanged(object? sender, ParameterBindingChangedEventArgs e)
+        private void OnParamSettingChanged(object? sender, ParamSettingChangedEventArgs e)
         {
             if (SelectedRegion?.Parameters is ComputedRegion computed)
             {
@@ -799,7 +799,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             OnPropertyChanged(nameof(IsDrawingMode));
             OnPropertyChanged(nameof(IsSubscribeByRegionMode));
             OnPropertyChanged(nameof(IsSubscribeByParameterMode));
-            OnPropertyChanged(nameof(ParameterBindings));
+            OnPropertyChanged(nameof(ParamSettings));
             OnPropertyChanged(nameof(HasParametersVisible));
             OnPropertyChanged(nameof(Parameters));
             OnPropertyChanged(nameof(PreviewLength));
@@ -857,7 +857,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 设置参数绑定
         /// </summary>
-        public void SetParameterBinding(string parameterName, ParameterSource source)
+        public void SetParamSetting(string parameterName, ParameterSource source)
         {
             if (SelectedRegion?.Parameters is ComputedRegion computedDef)
             {
@@ -892,7 +892,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
             if (_parameterPanel != null)
             {
-                _parameterPanel.ParameterBindingChanged -= OnParameterBindingChanged;
+                _parameterPanel.ParamSettingChanged -= OnParamSettingChanged;
                 _parameterPanel.Dispose();
             }
 

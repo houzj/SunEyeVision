@@ -308,7 +308,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="service">数据源查询服务</param>
         /// <param name="binding">参数绑定</param>
         /// <returns>是否可用</returns>
-        public static bool IsBindingAvailable(this IDataSourceQueryService service, ParameterBinding binding)
+        public static bool IsBindingAvailable(this IDataSourceQueryService service, ParamSetting binding)
         {
             if (binding.BindingType != BindingType.Binding)
                 return true;
@@ -325,7 +325,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <param name="service">数据源查询服务</param>
         /// <param name="binding">参数绑定</param>
         /// <returns>验证结果</returns>
-        public static BindingValidationResult ValidateBinding(this IDataSourceQueryService service, ParameterBinding binding)
+        public static SettingValidationResult ValidateBinding(this IDataSourceQueryService service, ParamSetting binding)
         {
             var result = binding.Validate();
 

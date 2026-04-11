@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
@@ -12,7 +13,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 绑定类型
         /// </summary>
-        public ParameterBindingType BindingType { get; protected set; }
+        public BindingType BindingType { get; protected set; }
 
         /// <summary>
         /// 数据类型（用于验证）
@@ -42,12 +43,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public ConstantSource()
         {
-            BindingType = ParameterBindingType.Constant;
+            BindingType = BindingType.Constant;
         }
 
         public ConstantSource(object? value, string dataType = "double")
         {
-            BindingType = ParameterBindingType.Constant;
+            BindingType = BindingType.Constant;
             Value = value;
             DataType = dataType;
         }
@@ -91,12 +92,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public NodeOutputSource()
         {
-            BindingType = ParameterBindingType.NodeOutput;
+            BindingType = BindingType.NodeOutput;
         }
 
         public NodeOutputSource(string nodeId, string outputName, int? index = null, string? propertyPath = null)
         {
-            BindingType = ParameterBindingType.NodeOutput;
+            BindingType = BindingType.NodeOutput;
             NodeId = nodeId;
             OutputName = outputName;
             Index = index;
@@ -153,12 +154,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public ExpressionSource()
         {
-            BindingType = ParameterBindingType.Expression;
+            BindingType = BindingType.Expression;
         }
 
         public ExpressionSource(string expression)
         {
-            BindingType = ParameterBindingType.Expression;
+            BindingType = BindingType.Expression;
             Expression = expression;
         }
 
@@ -225,12 +226,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public VariableSource()
         {
-            BindingType = ParameterBindingType.Variable;
+            BindingType = BindingType.Variable;
         }
 
         public VariableSource(string variableName, bool isGlobal = false)
         {
-            BindingType = ParameterBindingType.Variable;
+            BindingType = BindingType.Variable;
             VariableName = variableName;
             IsGlobal = isGlobal;
         }

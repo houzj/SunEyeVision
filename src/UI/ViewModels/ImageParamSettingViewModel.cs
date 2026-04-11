@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
-using SunEyeVision.UI.Services.ParameterBinding;
+using SunEyeVision.UI.Services.ParameterSetting;
 using SunEyeVision.UI.Services.Thumbnail;
 
 namespace SunEyeVision.UI.ViewModels
@@ -21,7 +21,7 @@ namespace SunEyeVision.UI.ViewModels
     /// 
     /// 使用示例：
     /// <code>
-    /// var viewModel = new ImageParameterBindingViewModel(
+    /// var viewModel = new ImageParamSettingViewModel(
     ///     "InputImage",
     ///     "输入图像",
     ///     dataSourceQueryService,
@@ -34,14 +34,14 @@ namespace SunEyeVision.UI.ViewModels
     /// viewModel.SelectedImageDataSource = viewModel.ImageDataSources.First();
     /// </code>
     /// </remarks>
-    public class ImageParameterBindingViewModel : ParameterBindingViewModelBase
+    public class ImageParamSettingViewModel : ParamSettingViewModelBase
     {
         #region 字段
 
         private readonly IDataSourceQueryService _dataSourceQueryService;
         private readonly ImageDataSourceService _imageDataSourceService;
         private readonly SmartThumbnailLoader? _thumbnailLoader;
-        private ParameterBinding _binding;
+        private ParamSetting _setting;
         private BindingType _selectedBindingType;
         private AvailableDataSource? _selectedImageDataSource;
         private BitmapImage? _previewThumbnail;
@@ -56,7 +56,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 参数名称
         /// </summary>
-        public override string ParameterName => _binding.ParameterName;
+        public override string ParameterName => _setting.ParameterName;
 
         /// <summary>
         /// 参数显示名称
@@ -88,7 +88,7 @@ namespace SunEyeVision.UI.ViewModels
             {
                 if (SetProperty(ref _selectedBindingType, value))
                 {
-                    _binding.BindingType = value;
+                    _setting.BindingType = value;
                     OnPropertyChanged(nameof(IsConstantMode));
                     OnPropertyChanged(nameof(IsDynamicMode));
                     Validate();
@@ -128,13 +128,13 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     if (value != null)
                     {
-                        _binding.SourceNodeId = value.SourceNodeId;
-                        _binding.SourceProperty = value.PropertyName;
+                        _setting.SourceNodeId = value.SourceNodeId;
+                        _setting.SourceProperty = value.PropertyName;
                     }
                     else
                     {
-                        _binding.SourceNodeId = null;
-                        _binding.SourceProperty = null;
+                        _setting.SourceNodeId = null;
+                        _setting.SourceProperty = null;
                     }
 
                     OnPropertyChanged(nameof(SelectedDataSourceDisplay));
@@ -219,7 +219,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 当前绑定配置
         /// </summary>
-        public ParameterBinding Binding => _binding;
+        public ParamSetting Binding => _setting;
 
         #endregion
 
@@ -247,7 +247,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 创建图像参数绑定ViewModel
         /// </summary>
-        public ImageParameterBindingViewModel(
+        public ImageParamSettingViewModel(
             string parameterName,
             string displayName,
             IDataSourceQueryService dataSourceQueryService,
@@ -263,7 +263,7 @@ namespace SunEyeVision.UI.ViewModels
 
             _imageDataSourceService = new ImageDataSourceService(_dataSourceQueryService);
 
-            _binding = new ParameterBinding
+            _setting = new ParamSetting
             {
                 ParameterName = parameterName,
                 BindingType = BindingType.Binding,
@@ -308,17 +308,17 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 获取当前绑定配置
         /// </summary>
-        public override ParameterBinding GetBinding()
+        public override ParamSetting GetSetting()
         {
-            return _binding.Clone();
+            return _setting.Clone();
         }
 
         /// <summary>
         /// 应用绑定配置
         /// </summary>
-        public void ApplyBinding()
+        public void ApplySetting()
         {
-            RaiseBindingChanged(_binding.Clone());
+            RaiseSettingChanged(_setting.Clone());
         }
 
         #endregion
@@ -447,14 +447,14 @@ namespace SunEyeVision.UI.ViewModels
 
             if (IsDynamicMode)
             {
-                if (string.IsNullOrWhiteSpace(_binding.SourceNodeId))
+                if (string.IsNullOrWhiteSpace(_setting.SourceNodeId))
                 {
                     IsValid = false;
                     ValidationMessage = "请选择图像数据源";
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(_binding.SourceProperty))
+                if (string.IsNullOrWhiteSpace(_setting.SourceProperty))
                 {
                     IsValid = false;
                     ValidationMessage = "请选择图像属性";

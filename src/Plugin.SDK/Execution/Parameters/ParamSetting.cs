@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
     /// <summary>
-    /// 参数绑定模型
+    /// 参数设置模型
     /// </summary>
     /// <remarks>
-    /// 定义单个参数的绑定配置，支持常量值和动态绑定两种模式。
+    /// 定义单个参数的设置配置，支持常量值和动态绑定两种模式。
     /// 
     /// 核心概念：
     /// 1. 绑定类型（BindingType）：回答"值从哪里来"
@@ -23,23 +23,23 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 
     /// 使用示例：
     /// <code>
-    /// // 创建常量绑定
-    /// var thresholdBinding = ParameterBinding.CreateConstant("Threshold", 128);
+    /// // 创建常量设置
+    /// var thresholdSetting = ParamSetting.CreateConstant("Threshold", 128);
     /// 
-    /// // 创建动态绑定
-    /// var radiusBinding = ParameterBinding.CreateBinding("MinRadius", "circle_find_001", "Radius");
+    /// // 创建动态绑定设置
+    /// var radiusSetting = ParamSetting.CreateBinding("MinRadius", "circle_find_001", "Radius");
     /// 
-    /// // 创建带转换表达式的绑定
-    /// var bindingWithTransform = ParameterBinding.CreateBinding("Radius", "node_001", "Radius", "value * 0.9");
+    /// // 创建带转换表达式的设置
+    /// var settingWithTransform = ParamSetting.CreateBinding("Radius", "node_001", "Radius", "value * 0.9");
     /// </code>
     /// </remarks>
-    public class ParameterBinding
+    public class ParamSetting
     {
         /// <summary>
         /// 参数名称
         /// </summary>
         /// <remarks>
-        /// 要绑定的参数名称，对应 ToolParameters 类中的属性名。
+        /// 要设置的参数名称，对应 ToolParameters 类中的属性名。
         /// </remarks>
         public string ParameterName { get; set; } = string.Empty;
 
@@ -102,14 +102,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public bool IsValid => Validate().IsValid;
 
         /// <summary>
-        /// 创建常量绑定
+        /// 创建常量设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <param name="value">常量值</param>
-        /// <returns>参数绑定实例</returns>
-        public static ParameterBinding CreateConstant(string parameterName, object? value)
+        /// <returns>参数设置实例</returns>
+        public static ParamSetting CreateConstant(string parameterName, object? value)
         {
-            return new ParameterBinding
+            return new ParamSetting
             {
                 ParameterName = parameterName,
                 BindingType = BindingType.Constant,
@@ -119,20 +119,20 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 创建动态绑定
+        /// 创建动态绑定设置
         /// </summary>
         /// <param name="parameterName">参数名称</param>
         /// <param name="sourceNodeId">源节点ID</param>
         /// <param name="sourceProperty">源属性名称</param>
         /// <param name="transformExpression">转换表达式（可选）</param>
-        /// <returns>参数绑定实例</returns>
-        public static ParameterBinding CreateBinding(
+        /// <returns>参数设置实例</returns>
+        public static ParamSetting CreateBinding(
             string parameterName,
             string sourceNodeId,
             string sourceProperty,
             string? transformExpression = null)
         {
-            return new ParameterBinding
+            return new ParamSetting
             {
                 ParameterName = parameterName,
                 BindingType = BindingType.Binding,
@@ -143,12 +143,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 验证绑定配置
+        /// 验证设置配置
         /// </summary>
         /// <returns>验证结果</returns>
-        public BindingValidationResult Validate()
+        public SettingValidationResult Validate()
         {
-            var result = new BindingValidationResult { IsValid = true };
+            var result = new SettingValidationResult { IsValid = true };
 
             if (string.IsNullOrWhiteSpace(ParameterName))
             {
@@ -180,12 +180,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 克隆当前绑定
+        /// 克隆当前设置
         /// </summary>
-        /// <returns>克隆的绑定实例</returns>
-        public ParameterBinding Clone()
+        /// <returns>克隆的设置实例</returns>
+        public ParamSetting Clone()
         {
-            return new ParameterBinding
+            return new ParamSetting
             {
                 ParameterName = ParameterName,
                 BindingType = BindingType,
@@ -230,11 +230,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
-        /// 从字典创建绑定（用于反序列化）
+        /// 从字典创建设置（用于反序列化）
         /// </summary>
-        public static ParameterBinding FromDictionary(Dictionary<string, object> dict)
+        public static ParamSetting FromDictionary(Dictionary<string, object> dict)
         {
-            var binding = new ParameterBinding
+            var setting = new ParamSetting
             {
                 ParameterName = dict.TryGetValue("ParameterName", out var name) ? name?.ToString() ?? string.Empty : string.Empty,
                 BindingType = dict.TryGetValue("BindingType", out var type) ? (BindingType)Convert.ToInt32(type) : BindingType.Constant
@@ -249,44 +249,39 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     {
                         try
                         {
-                            binding.ConstantValue = Convert.ChangeType(value, valueType);
+                            setting.ConstantValue = Convert.ChangeType(value, valueType);
                         }
                         catch
                         {
-                            binding.ConstantValue = value;
+                            setting.ConstantValue = value;
                         }
                     }
                     else
                     {
-                        binding.ConstantValue = value;
+                        setting.ConstantValue = value;
                     }
                 }
                 else
                 {
-                    binding.ConstantValue = value;
+                    setting.ConstantValue = value;
                 }
             }
 
             if (dict.TryGetValue("SourceNodeId", out var nodeId))
-                binding.SourceNodeId = nodeId?.ToString();
+                setting.SourceNodeId = nodeId?.ToString();
 
             if (dict.TryGetValue("SourceProperty", out var prop))
-                binding.SourceProperty = prop?.ToString();
+                setting.SourceProperty = prop?.ToString();
 
             if (dict.TryGetValue("TransformExpression", out var expr))
-                binding.TransformExpression = expr?.ToString();
+                setting.TransformExpression = expr?.ToString();
 
             if (dict.TryGetValue("TargetType", out var targetType))
             {
-                binding.TargetType = Type.GetType(targetType?.ToString() ?? string.Empty);
+                setting.TargetType = Type.GetType(targetType?.ToString() ?? string.Empty);
             }
 
-            // 兼容旧版本数据：如果 BindingType 是已废弃的值，转换为合适的类型
-            // DynamicBinding(1) -> Binding(1) 已自动兼容
-            // Expression(2) -> 转换为 Binding 并保留 TransformExpression
-            // RuntimeInjection(3) -> 需要特殊处理，这里暂不自动转换
-
-            return binding;
+            return setting;
         }
 
         /// <summary>
@@ -308,9 +303,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     }
 
     /// <summary>
-    /// 绑定验证结果
+    /// 设置验证结果
     /// </summary>
-    public class BindingValidationResult
+    public class SettingValidationResult
     {
         /// <summary>
         /// 是否有效

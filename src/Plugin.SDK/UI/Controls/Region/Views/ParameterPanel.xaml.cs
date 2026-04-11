@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
@@ -20,7 +20,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void BindButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is ParameterBindingItem item)
+            if (sender is Button button && button.Tag is ParamSettingItem item)
             {
                 // 设置选中的参数项
                 if (DataContext is ParameterPanelViewModel viewModel)
@@ -38,7 +38,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is ParameterBindingItem item)
+            if (sender is Button button && button.Tag is ParamSettingItem item)
             {
                 if (DataContext is ParameterPanelViewModel viewModel)
                 {
@@ -58,9 +58,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
     /// </summary>
     public class ParameterBindRequestedEventArgs : RoutedEventArgs
     {
-        public ParameterBindingItem ParameterItem { get; }
+        public ParamSettingItem ParameterItem { get; }
 
-        public ParameterBindRequestedEventArgs(ParameterBindingItem parameterItem)
+        public ParameterBindRequestedEventArgs(ParamSettingItem parameterItem)
         {
             ParameterItem = parameterItem;
         }

@@ -58,7 +58,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
           <StackPanel>
             <controls:LabeledControl Label="阈值" >
-              <controls:ParameterSetting
+              <controls:BindableParameter
                                 x:Name="thresholdParam"
                                 ParameterName="Threshold"
                                 DataType="Int"

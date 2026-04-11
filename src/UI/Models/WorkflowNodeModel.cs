@@ -174,8 +174,7 @@ namespace SunEyeVision.UI.Models
                 Width = baseNode.Width,
                 Height = baseNode.Height,
                 IsEnabled = baseNode.IsEnabled,
-                Parameters = baseNode.Parameters,
-                ParameterBindings = baseNode.ParameterBindings
+                Parameters = baseNode.Parameters
             };
 
             return node;

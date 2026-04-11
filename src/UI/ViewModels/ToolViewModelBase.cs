@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -8,7 +8,7 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.Validation;
-using SunEyeVision.UI.Services.ParameterBinding;
+using SunEyeVision.UI.Services.ParameterSetting;
 using SunEyeVision.UI.Services.Thumbnail;
 
 namespace SunEyeVision.UI.ViewModels
@@ -190,9 +190,9 @@ namespace SunEyeVision.UI.ViewModels
             ValidateParameters().IsValid;
 
         /// <summary>
-        /// 参数绑定列表
+        /// 参数设置列表
         /// </summary>
-        public ObservableCollection<ParameterBindingViewModelBase> ParameterBindings { get; }
+        public ObservableCollection<ParamSettingViewModelBase> ParameterSettings { get; }
 
         #endregion
 
@@ -253,7 +253,7 @@ namespace SunEyeVision.UI.ViewModels
                 _imageDataSourceService = new ImageDataSourceService(dataSourceQueryService);
             }
 
-            ParameterBindings = new ObservableCollection<ParameterBindingViewModelBase>();
+            ParameterSettings = new ObservableCollection<ParamSettingViewModelBase>();
 
             ExecuteCommand = new RelayCommand(ExecuteExecute, () => CanExecute);
             ValidateCommand = new RelayCommand(ExecuteValidate);
@@ -272,7 +272,7 @@ namespace SunEyeVision.UI.ViewModels
         public virtual void InitializeParameterBindings(string nodeId)
         {
             NodeId = nodeId;
-            ParameterBindings.Clear();
+            ParameterSettings.Clear();
 
             var parameters = CreateDefaultParameters();
             if (parameters == null)
@@ -297,29 +297,29 @@ namespace SunEyeVision.UI.ViewModels
                     // 检查是否为图像类型
                     if (_imageDataSourceService != null && ImageDataSourceService.IsImageType(paramType))
                     {
-                        // 创建图像参数绑定
-                        var bindingVm = CreateImageParameterBinding(
+                        // 创建图像参数设置
+                        var settingVm = CreateImageParamSetting(
                             prop.Name,
                             prop.Name,  // 使用属性名作为显示名
                             paramType,
                             null,
                             paramValue
                         );
-                        bindingVm.BindingChanged += OnBindingChanged;
-                        ParameterBindings.Add(bindingVm);
+                        settingVm.SettingChanged += OnSettingChanged;
+                        ParameterSettings.Add(settingVm);
                     }
                     else if (!hasIgnoreDisplayAttr)
                     {
-                        // 创建普通参数绑定
-                        var bindingVm = CreateStandardParameterBinding(
+                        // 创建普通参数设置
+                        var settingVm = CreateStandardParamSetting(
                             prop.Name,
                             prop.Name,  // 使用属性名作为显示名
                             paramType,
                             paramValue,
                             null
                         );
-                        bindingVm.BindingChanged += OnBindingChanged;
-                        ParameterBindings.Add(bindingVm);
+                        settingVm.SettingChanged += OnSettingChanged;
+                        ParameterSettings.Add(settingVm);
                     }
                 }
                 catch
@@ -347,11 +347,11 @@ namespace SunEyeVision.UI.ViewModels
         {
             var result = new ValidationResult();
 
-            foreach (var binding in ParameterBindings)
+            foreach (var setting in ParameterSettings)
             {
-                if (!binding.IsValid)
+                if (!setting.IsValid)
                 {
-                    result.AddError($"{binding.DisplayName}: {binding.ValidationMessage}");
+                    result.AddError($"{setting.DisplayName}: {setting.ValidationMessage}");
                 }
             }
 
@@ -359,15 +359,15 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 获取参数绑定配置容器
+        /// 获取参数设置配置容器
         /// </summary>
-        public ParameterBindingContainer GetBindingContainer()
+        public ParamSettingContainer GetSettingContainer()
         {
-            var container = new ParameterBindingContainer();
+            var container = new ParamSettingContainer();
 
-            foreach (var binding in ParameterBindings)
+            foreach (var setting in ParameterSettings)
             {
-                container.SetBinding(binding.GetBinding());
+                container.SetSetting(setting.GetSetting());
             }
 
             return container;
@@ -397,16 +397,16 @@ namespace SunEyeVision.UI.ViewModels
         #region 虚方法
 
         /// <summary>
-        /// 创建图像参数绑定ViewModel
+        /// 创建图像参数设置ViewModel
         /// </summary>
-        protected virtual ImageParameterBindingViewModel CreateImageParameterBinding(
+        protected virtual ImageParamSettingViewModel CreateImageParamSetting(
             string name,
             string displayName,
             Type type,
             string? description,
             object? value)
         {
-            return new ImageParameterBindingViewModel(
+            return new ImageParamSettingViewModel(
                 name,
                 displayName,
                 _dataSourceQueryService!,
@@ -416,16 +416,16 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 创建标准参数绑定ViewModel
+        /// 创建标准参数设置ViewModel
         /// </summary>
-        protected virtual ParameterBindingViewModel CreateStandardParameterBinding(
+        protected virtual ParamSettingViewModel CreateStandardParamSetting(
             string name,
             string displayName,
             Type type,
             object? value,
             string? description)
         {
-            return new ParameterBindingViewModel(
+            return new ParamSettingViewModel(
                 name,
                 displayName,
                 type,
@@ -456,20 +456,20 @@ namespace SunEyeVision.UI.ViewModels
 
         private void ExecuteRefreshDataSources()
         {
-            foreach (var binding in ParameterBindings)
+            foreach (var setting in ParameterSettings)
             {
-                if (binding is ImageParameterBindingViewModel imageBinding)
+                if (setting is ImageParamSettingViewModel imageSetting)
                 {
-                    imageBinding.LoadImageDataSources(NodeId);
+                    imageSetting.LoadImageDataSources(NodeId);
                 }
-                else if (binding is ParameterBindingViewModel standardBinding)
+                else if (setting is ParamSettingViewModel standardSetting)
                 {
-                    standardBinding.RefreshAvailableDataSources(NodeId);
+                    standardSetting.RefreshAvailableDataSources(NodeId);
                 }
             }
         }
 
-        private void OnBindingChanged(object? sender, ParameterBinding e)
+        private void OnSettingChanged(object? sender, ParamSetting e)
         {
             ParameterChanged?.Invoke(this, new ParameterChangedEventArgs(e.ParameterName, e));
         }
@@ -542,9 +542,9 @@ namespace SunEyeVision.UI.ViewModels
     #region 辅助类
 
     /// <summary>
-    /// 参数绑定ViewModel基类（用于统一接口）
+    /// 参数设置ViewModel基类（用于统一接口）
     /// </summary>
-    public abstract class ParameterBindingViewModelBase : ViewModelBase
+    public abstract class ParamSettingViewModelBase : ViewModelBase
     {
         private bool _isValid = true;
         private string _validationMessage = string.Empty;
@@ -578,18 +578,18 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 获取绑定配置
+        /// 获取设置配置
         /// </summary>
-        public abstract ParameterBinding GetBinding();
+        public abstract ParamSetting GetSetting();
 
         /// <summary>
-        /// 绑定变更事件
+        /// 设置变更事件
         /// </summary>
-        public event EventHandler<ParameterBinding>? BindingChanged;
+        public event EventHandler<ParamSetting>? SettingChanged;
 
-        protected void RaiseBindingChanged(ParameterBinding binding)
+        protected void RaiseSettingChanged(ParamSetting setting)
         {
-            BindingChanged?.Invoke(this, binding);
+            SettingChanged?.Invoke(this, setting);
         }
     }
 
@@ -613,12 +613,12 @@ namespace SunEyeVision.UI.ViewModels
     public class ParameterChangedEventArgs : EventArgs
     {
         public string ParameterName { get; }
-        public ParameterBinding NewBinding { get; }
+        public ParamSetting NewSetting { get; }
 
-        public ParameterChangedEventArgs(string parameterName, ParameterBinding newBinding)
+        public ParameterChangedEventArgs(string parameterName, ParamSetting newSetting)
         {
             ParameterName = parameterName;
-            NewBinding = newBinding;
+            NewSetting = newSetting;
         }
     }
 

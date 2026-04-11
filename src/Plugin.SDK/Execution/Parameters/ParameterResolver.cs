@@ -53,7 +53,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
         /// <inheritdoc/>
         public ParameterResolveResult Resolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults)
         {
             return binding.BindingType switch
@@ -66,7 +66,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
         /// <inheritdoc/>
         public ParameterResolveResult Resolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults,
             Type targetType)
         {
@@ -93,12 +93,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
         /// <inheritdoc/>
         public Dictionary<string, ParameterResolveResult> ResolveAll(
-            ParameterBindingContainer container,
+            ParamSettingContainer container,
             IDictionary<string, ToolResults> nodeResults)
         {
             var results = new Dictionary<string, ParameterResolveResult>();
 
-            foreach (var binding in container.Bindings)
+            foreach (var binding in container.Settings)
             {
                 var result = Resolve(binding, nodeResults);
                 results[binding.ParameterName] = result;
@@ -110,7 +110,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public ParameterApplyResult ApplyToParameters(
             ToolParameters parameters,
-            ParameterBindingContainer container,
+            ParamSettingContainer container,
             IDictionary<string, ToolResults> nodeResults)
         {
             var result = new ParameterApplyResult { IsSuccess = true };
@@ -184,7 +184,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
         /// <inheritdoc/>
         public ResolveValidationResult ValidateResolve(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults)
         {
             var result = new ResolveValidationResult { CanResolve = true };
@@ -230,7 +230,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 解析常量绑定
         /// </summary>
-        private ParameterResolveResult ResolveConstant(ParameterBinding binding)
+        private ParameterResolveResult ResolveConstant(ParamSetting binding)
         {
             return ParameterResolveResult.Success(binding.ConstantValue, binding.TargetType);
         }
@@ -239,7 +239,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 解析动态绑定
         /// </summary>
         private ParameterResolveResult ResolveDynamic(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults)
         {
             if (string.IsNullOrEmpty(binding.SourceNodeId))
@@ -301,7 +301,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 解析表达式绑定
         /// </summary>
         private ParameterResolveResult ResolveExpression(
-            ParameterBinding binding,
+            ParamSetting binding,
             IDictionary<string, ToolResults> nodeResults)
         {
             // 表达式绑定目前作为动态绑定的扩展
