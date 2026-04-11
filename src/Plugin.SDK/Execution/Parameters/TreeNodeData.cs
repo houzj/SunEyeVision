@@ -29,6 +29,15 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string Text { get; set; } = string.Empty;
 
         /// <summary>
+        /// 完整树形名称（用于唯一标识节点）
+        /// </summary>
+        /// <remarks>
+        /// 格式: 根节点名称.中间节点名称.叶子节点名称
+        /// 示例: "5.图像阈值化4.结果.实际使用的阈值"
+        /// </remarks>
+        public string FullTreeName { get; set; } = string.Empty;
+
+        /// <summary>
         /// 关联的数据源（仅叶子节点有值）
         /// </summary>
         public AvailableDataSource? DataSource { get; set; }

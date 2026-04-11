@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -120,6 +120,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 示例: "阈值工具.结果.实际使用的阈值"
         /// </remarks>
         public string? FullTreeName { get; set; }
+
+        /// <summary>
+        /// 树节点（用于支持多层树形结构）
+        /// </summary>
+        /// <remarks>
+        /// 关联的树节点对象，用于支持完整的树形结构导航。
+        /// </remarks>
+        public TreeNodeData? TreeNode { get; set; }
 
         /// <summary>
         /// 下拉显示文本（节点名称.树形路径）
