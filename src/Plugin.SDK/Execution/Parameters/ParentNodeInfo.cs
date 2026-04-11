@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using SunEyeVision.Plugin.SDK.Execution.Results;
-using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
-using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -243,73 +242,22 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     public static class ParentNodeInfoExtensions
     {
         /// <summary>
-        /// 从执行结果提取输出属性
+        /// 获取属性显示名称
         /// </summary>
-        /// <remarks>
-        /// 设计时绑定原则：
-        /// - 节点已执行：从执行结果中提取输出属性（包含实际值）
-        /// - 节点未执行：从工具元数据中提取输出属性定义（不包含值）
-        /// 
-        /// 这确保用户在工作流设计阶段就能进行参数绑定，无需等待节点执行。
-        /// </remarks>
-        public static void ExtractOutputProperties(this ParentNodeInfo nodeInfo, ToolResults? result)
+        private static string GetDisplayName(string propertyName)
         {
-            nodeInfo.LastResult = result;
+            // 将 PascalCase 转换为可读的中文或英文
+            // 示例: OutputImage -> "OutputImage" 或 "输出图像"
+            return propertyName; // TODO: 可以添加本地化支持
+        }
 
-            if (result != null)
-            {
-                // 节点已执行：从执行结果中提取输出属性（包含实际值）
-                nodeInfo.ExecutionStatus = result.Status;
-                nodeInfo.ExecutionTimeMs = result.ExecutionTimeMs;
-                nodeInfo.ErrorMessage = result.ErrorMessage;
-
-                // 提取结果项
-                var resultItems = result.GetResultItems();
-                foreach (var item in resultItems)
-                {
-                    var dataSource = new AvailableDataSource
-                    {
-                        SourceNodeId = nodeInfo.NodeId,
-                        SourceNodeName = nodeInfo.NodeName,
-                        SourceNodeType = nodeInfo.NodeType,
-                        PropertyName = item.Name,
-                        DisplayName = item.DisplayName ?? item.Name,
-                        PropertyType = item.Value?.GetType() ?? typeof(object),
-                        CurrentValue = item.Value,
-                        Unit = item.Unit,
-                        Description = item.Description,
-                        GroupName = nodeInfo.NodeName
-                    };
-
-                    nodeInfo.OutputProperties.Add(dataSource);
-                }
-
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[ParentNodeInfoExtensions.ExtractOutputProperties] 从执行结果提取输出属性 - nodeId={nodeInfo.NodeId}, 属性数量={nodeInfo.OutputProperties.Count}",
-                    "ParentNodeInfoExtensions");
-            }
-            else
-            {
-                // 节点未执行：从工具元数据中提取输出属性定义（不包含值）
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[ParentNodeInfoExtensions.ExtractOutputProperties] 节点未执行，从工具元数据提取输出属性定义 - nodeId={nodeInfo.NodeId}, nodeType={nodeInfo.NodeType}",
-                    "ParentNodeInfoExtensions");
-
-                // 从工具注册表获取输出属性定义
-                var toolProperties = ToolRegistry.GetToolOutputProperties(nodeInfo.NodeType, nodeInfo.NodeId);
-                nodeInfo.OutputProperties.AddRange(toolProperties);
-
-                // 更新节点名称（ToolRegistry 使用 nodeId，这里需要更新为实际节点名称）
-                foreach (var prop in nodeInfo.OutputProperties)
-                {
-                    prop.SourceNodeName = nodeInfo.NodeName;
-                    prop.GroupName = nodeInfo.NodeName;
-                }
-
-                VisionLogger.Instance.Log(LogLevel.Success,
-                    $"[ParentNodeInfoExtensions.ExtractOutputProperties] 从元数据提取输出属性成功 - nodeId={nodeInfo.NodeId}, 属性数量={nodeInfo.OutputProperties.Count}",
-                    "ParentNodeInfoExtensions");
-            }
+        /// <summary>
+        /// 获取属性描述
+        /// </summary>
+        private static string? GetPropertyDescription(System.Reflection.PropertyInfo prop)
+        {
+            // 可以从特性中读取描述
+            return null;
         }
     }
 }

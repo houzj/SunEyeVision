@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using SunEyeVision.Plugin.SDK.Commands;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.UI.Events;
 
@@ -116,8 +118,26 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// - WPF 控件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/
     /// - 路由事件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/routed-events-overview
     /// </remarks>
-    public abstract class ToolDebugControlBase : UserControl
+    public abstract class ToolDebugControlBase : UserControl, System.ComponentModel.INotifyPropertyChanged
     {
+        #region INotifyPropertyChanged 实现
+
+        /// <summary>
+        /// 属性变更事件
+        /// </summary>
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// 触发属性变更通知
+        /// </summary>
+        /// <param name="propertyName">属性名称</param>
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
         #region 路由事件
 
         /// <summary>
@@ -169,6 +189,76 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 执行耗时（毫秒）
         /// </summary>
         protected long ExecutionTime { get; private set; }
+        
+        /// <summary>
+        /// 按分类的数据源集合（方案B优化）
+        /// </summary>
+        private readonly System.Collections.Generic.Dictionary<OutputTypeCategory, System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>> _dataSourcesByCategory;
+        
+        /// <summary>
+        /// 所有类型的数据源缓存（统一的绑定源，控件内部根据参数类型自动过滤）
+        /// </summary>
+        private readonly System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> _availableDataSources;
+        
+        /// <summary>
+        /// 按分类的数据源集合（公开给XAML绑定）
+        /// </summary>
+        public System.Collections.ObjectModel.ReadOnlyDictionary<OutputTypeCategory, System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>> DataSourcesByCategory
+        {
+            get => new System.Collections.ObjectModel.ReadOnlyDictionary<OutputTypeCategory, System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>>(_dataSourcesByCategory);
+        }
+
+        /// <summary>
+        /// 图像类型数据源
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> ImageDataSources
+        {
+            get => _dataSourcesByCategory[OutputTypeCategory.Image];
+        }
+
+        /// <summary>
+        /// 形状类型数据源
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> ShapeDataSources
+        {
+            get => _dataSourcesByCategory[OutputTypeCategory.Shape];
+        }
+
+        /// <summary>
+        /// 数值类型数据源
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> NumericDataSources
+        {
+            get => _dataSourcesByCategory[OutputTypeCategory.Numeric];
+        }
+
+        /// <summary>
+        /// 文本类型数据源
+        /// </summary>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> TextDataSources
+        {
+            get => _dataSourcesByCategory[OutputTypeCategory.Text];
+        }
+
+        /// <summary>
+        /// 所有类型的数据源（统一的绑定源，控件内部根据参数类型自动过滤）
+        /// </summary>
+        /// <remarks>
+        /// 设计理念：
+        /// - 所有参数控件绑定到同一个 AvailableDataSources（不区分类型）
+        /// - 控件内部根据参数的 DataType 自动过滤和匹配
+        /// - 简化 XAML 绑定：统一使用 AvailableDataSources
+        /// - 使用缓存字段，避免每次访问都创建新集合
+        /// </remarks>
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource> AvailableDataSources
+        {
+            get => _availableDataSources;
+        }
+        
+        /// <summary>
+        /// 当前节点ID
+        /// </summary>
+        private string? _currentNodeId;
 
         #endregion
 
@@ -179,6 +269,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         protected ToolDebugControlBase()
         {
+            // 初始化按分类的数据源集合
+            _dataSourcesByCategory = new System.Collections.Generic.Dictionary<OutputTypeCategory, System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>>
+            {
+                { OutputTypeCategory.Image, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() },
+                { OutputTypeCategory.Shape, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() },
+                { OutputTypeCategory.Numeric, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() },
+                { OutputTypeCategory.Text, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() },
+                { OutputTypeCategory.List, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() },
+                { OutputTypeCategory.Other, new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>() }
+            };
+            
+            // 初始化所有类型的数据源缓存
+            _availableDataSources = new System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>();
+            
             // 添加标准命令绑定
             SetupCommandBindings();
         }
@@ -318,6 +422,33 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             CurrentNode = node;
             PluginLogger.Info($"已设置当前节点: {node?.GetType().Name}", GetType().Name);
 
+            // 从节点对象中提取节点ID
+            if (node != null)
+            {
+                // 尝试通过反射获取 Id 属性
+                var idProperty = node.GetType().GetProperty("Id");
+                if (idProperty != null)
+                {
+                    _currentNodeId = idProperty.GetValue(node) as string;
+                    PluginLogger.Info($"已提取节点ID: {_currentNodeId}", GetType().Name);
+                }
+                else
+                {
+                    PluginLogger.Warning($"节点对象 {node.GetType().Name} 没有 Id 属性", GetType().Name);
+                }
+            }
+            else
+            {
+                _currentNodeId = null;
+            }
+
+            // 如果数据提供者已设置，重新填充数据源（使用当前节点ID）
+            if (DataProvider is DataSourceQueryService queryService && !string.IsNullOrEmpty(_currentNodeId))
+            {
+                PluginLogger.Info($"重新填充数据源（节点ID: {_currentNodeId}）", GetType().Name);
+                PopulateParameterSourcesByCategory(queryService);
+            }
+
             // 子类重写以更新 UI
         }
 
@@ -328,8 +459,57 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             DataProvider = dataProvider;
             PluginLogger.Info($"已设置数据提供者: {dataProvider?.GetType().Name}", GetType().Name);
+            
+            // 填充参数数据源（按分类优化）
+            if (DataProvider is DataSourceQueryService queryService)
+            {
+                PopulateParameterSourcesByCategory(queryService);
+            }
 
             // 子类重写以更新图像源选择器等
+        }
+
+        /// <summary>
+        /// 填充参数数据源（按分类优化）
+        /// </summary>
+        private void PopulateParameterSourcesByCategory(DataSourceQueryService dataProvider)
+        {
+            var summary = new System.Text.StringBuilder();
+
+            // 清空所有类型的数据源缓存
+            _availableDataSources.Clear();
+            foreach (var category in _dataSourcesByCategory.Keys)
+            {
+                _dataSourcesByCategory[category].Clear();
+            }
+
+            // ✅ 修正：先获取所有数据源（保持父节点距离顺序）
+            // 不指定类型，获取所有分类的数据源，保持父节点遍历顺序
+            var allDataSources = dataProvider.GetAvailableDataSources(_currentNodeId ?? "");
+
+            // 按分类填充数据源，同时添加到统一缓存（保持父节点顺序）
+            foreach (var ds in allDataSources)
+            {
+                // 添加到统一缓存（保持父节点距离顺序）
+                _availableDataSources.Add(ds);
+
+                // 按类型分类到对应集合
+                var category = TypeCategoryMapper.GetCategory(ds.PropertyType);
+                if (_dataSourcesByCategory.TryGetValue(category, out var collection))
+                {
+                    collection.Add(ds);
+                }
+            }
+
+            // 统计各分类数量
+            foreach (var category in _dataSourcesByCategory.Keys)
+            {
+                if (summary.Length > 0)
+                    summary.Append(", ");
+                summary.Append($"{category}: {_dataSourcesByCategory[category].Count}");
+            }
+
+            PluginLogger.Info($"PopulateParameterSourcesByCategory: 参数数据源更新完成 [{summary}]（保持父节点距离顺序）", GetType().Name);
         }
 
         /// <summary>

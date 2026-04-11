@@ -2,10 +2,14 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Windows;
+using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.Execution.Results;
 using SunEyeVision.Plugin.SDK.Models;
+using SunEyeVision.Plugin.Infrastructure.Managers.Tool;
 
 namespace SunEyeVision.Workflow
 {
@@ -247,6 +251,113 @@ public class Workflow : ObservableObject
             return Nodes.FirstOrDefault(n => n.Id == nodeId);
         }
 
+
+
+        /// <summary>
+        /// 获取节点的输出类型列表
+        /// </summary>
+        /// <param name="node">节点</param>
+        /// <returns>输出类型列表</returns>
+        private List<Type> GetNodeOutputTypes(WorkflowNodeBase node)
+        {
+            var outputTypes = new List<Type>();
+
+            if (node == null)
+            {
+                return outputTypes;
+            }
+
+            // 从工具元数据中获取 ResultType
+            var toolMetadata = ToolRegistry.GetToolMetadata(node.ToolType);
+            Type? toolType = toolMetadata?.ToolType;
+
+            if (toolType == null)
+            {
+                return outputTypes;
+            }
+
+            // 从 ToolType 推断 ResultType
+            foreach (var iface in toolType.GetInterfaces())
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IToolPlugin<,>))
+                {
+                    var genericArgs = iface.GetGenericArguments();
+                    if (genericArgs.Length >= 2)
+                    {
+                        var resultType = genericArgs[1]; // TResult 是第二个泛型参数
+
+                        // 从 ResultType 中提取所有公共属性的类型
+                        var properties = resultType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                        foreach (var prop in properties)
+                        {
+                            // 跳过基类属性和特殊属性
+                            if (prop.DeclaringType == typeof(ToolResults) ||
+                                prop.Name == "Status" ||
+                                prop.Name == "ErrorMessage" ||
+                                prop.Name == "ExecutionTimeMs" ||
+                                prop.Name == "Timestamp" ||
+                                prop.Name == "ToolName" ||
+                                prop.Name == "ToolId")
+                            {
+                                continue;
+                            }
+
+                            if (!outputTypes.Contains(prop.PropertyType))
+                            {
+                                outputTypes.Add(prop.PropertyType);
+                            }
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            return outputTypes;
+        }
+
+        /// <summary>
+        /// 连接建立时更新上游节点池（增量更新）
+        /// </summary>
+        /// <param name="connection">新建立的连接</param>
+        private void UpdateUpstreamPoolOnConnectionAdded(WorkflowConnection connection)
+        {
+            var targetNode = GetNode(connection.TargetNodeId);
+            var sourceNode = GetNode(connection.SourceNodeId);
+
+            if (targetNode == null || sourceNode == null)
+            {
+                return;
+            }
+
+            // 获取源节点的输出类型
+            var outputTypes = GetNodeOutputTypes(sourceNode);
+
+            // 更新目标节点的上游节点池
+            targetNode.AddUpstreamNode(sourceNode.Id, outputTypes);
+        }
+
+        /// <summary>
+        /// 连接删除时更新上游节点池（增量更新）
+        /// </summary>
+        /// <param name="connection">被删除的连接</param>
+        private void UpdateUpstreamPoolOnConnectionRemoved(WorkflowConnection connection)
+        {
+            var targetNode = GetNode(connection.TargetNodeId);
+            var sourceNode = GetNode(connection.SourceNodeId);
+
+            if (targetNode == null || sourceNode == null)
+            {
+                return;
+            }
+
+            // 获取源节点的输出类型
+            var outputTypes = GetNodeOutputTypes(sourceNode);
+
+            // 更新目标节点的上游节点池
+            targetNode.RemoveUpstreamNode(sourceNode.Id, outputTypes);
+        }
+
     /// <summary>
     /// 添加节点
     /// </summary>
@@ -267,8 +378,6 @@ public class Workflow : ObservableObject
         if (node == null)
             return false;
 
-        Nodes.Remove(node);
-
         // 移除相关连接（ObservableCollection 不支持 RemoveAll，使用循环删除）
         for (int i = Connections.Count - 1; i >= 0; i--)
         {
@@ -277,6 +386,8 @@ public class Workflow : ObservableObject
                 Connections.RemoveAt(i);
             }
         }
+
+        Nodes.Remove(node);
 
         // 触发节点移除事件
         NodeRemoved?.Invoke(this, new WorkflowNodeEventArgs { Node = node, Workflow = this });
@@ -290,6 +401,9 @@ public class Workflow : ObservableObject
     public void AddConnection(WorkflowConnection connection)
     {
         Connections.Add(connection);
+
+        // 增量更新：连接建立时，更新目标节点的上游节点池
+        UpdateUpstreamPoolOnConnectionAdded(connection);
     }
 
     /// <summary>
@@ -322,6 +436,10 @@ public class Workflow : ObservableObject
             return false;
 
         Connections.Remove(connection);
+
+        // 增量更新：连接删除时，更新目标节点的上游节点池
+        UpdateUpstreamPoolOnConnectionRemoved(connection);
+
         return true;
     }
 

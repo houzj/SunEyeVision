@@ -7,7 +7,9 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Models;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
@@ -32,7 +34,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         // 新增：子ViewModel
         private ParameterPanelViewModel? _parameterPanel;
         private NodeSelectorViewModel? _nodeSelector;
-        private IRegionDataSourceProvider? _dataProvider;
+        private DataSourceQueryService? _dataProvider;
 
         // WPF Dispatcher（用于延迟UI更新）
         private readonly Dispatcher _dispatcher;
@@ -517,7 +519,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 初始化数据源提供者
         /// </summary>
-        public void Initialize(IRegionDataSourceProvider dataProvider)
+        public void Initialize(DataSourceQueryService dataProvider)
         {
             _dataProvider = dataProvider;
             _parameterPanel = new ParameterPanelViewModel(dataProvider);

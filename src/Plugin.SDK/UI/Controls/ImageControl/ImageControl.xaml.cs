@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls
 {
@@ -95,7 +96,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 图像源集合 - 用于图像显示选择器下拉框
         /// </summary>
         public static readonly DependencyProperty ImageSourcesProperty =
-            DependencyProperty.Register(nameof(ImageSources), typeof(ObservableCollection<ImageSourceInfo>), typeof(ImageControl),
+            DependencyProperty.Register(nameof(ImageSources), typeof(ObservableCollection<AvailableDataSource>), typeof(ImageControl),
                 new PropertyMetadata(null, OnImageSourcesChanged));
 
         /// <summary>
@@ -218,9 +219,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// <summary>
         /// 图像源集合 - 用于图像显示选择器下拉框
         /// </summary>
-        public ObservableCollection<ImageSourceInfo>? ImageSources
+        public ObservableCollection<AvailableDataSource>? ImageSources
         {
-            get => (ObservableCollection<ImageSourceInfo>?)GetValue(ImageSourcesProperty);
+            get => (ObservableCollection<AvailableDataSource>?)GetValue(ImageSourcesProperty);
             set => SetValue(ImageSourcesProperty, value);
         }
 
@@ -573,7 +574,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (d is ImageControl control)
             {
                 // 更新 ComboBox 的 ItemsSource
-                control.ImageSourceSelector.ItemsSource = e.NewValue as ObservableCollection<ImageSourceInfo>;
+                control.ImageSourceSelector.ItemsSource = e.NewValue as ObservableCollection<AvailableDataSource>;
             }
         }
 
@@ -819,7 +820,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void ImageSourceSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is ImageSourceInfo selectedSource)
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is AvailableDataSource selectedSource)
             {
                 // 更新选中索引
                 SelectedImageSourceIndex = ImageSourceSelector.SelectedIndex;
@@ -967,14 +968,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// <summary>
         /// 选中的图像源信息
         /// </summary>
-        public ImageSourceInfo SelectedSource { get; }
+        public AvailableDataSource SelectedSource { get; }
 
-        public ImageSourceSelectionChangedEventArgs(ImageSourceInfo selectedSource)
+        public ImageSourceSelectionChangedEventArgs(AvailableDataSource selectedSource)
         {
             SelectedSource = selectedSource;
         }
 
-        public ImageSourceSelectionChangedEventArgs(ImageSourceInfo selectedSource, RoutedEvent routedEvent)
+        public ImageSourceSelectionChangedEventArgs(AvailableDataSource selectedSource, RoutedEvent routedEvent)
             : base(routedEvent)
         {
             SelectedSource = selectedSource;

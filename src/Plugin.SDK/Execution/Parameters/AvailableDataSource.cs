@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -113,6 +113,48 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string? GroupName { get; set; }
 
         /// <summary>
+        /// 完整树形名称（用于树形结构显示）
+        /// </summary>
+        /// <remarks>
+        /// 格式: 节点名称.TreeName（如果存在）
+        /// 示例: "阈值工具.结果.实际使用的阈值"
+        /// </remarks>
+        public string? FullTreeName { get; set; }
+
+        /// <summary>
+        /// 树节点（用于支持多层树形结构）
+        /// </summary>
+        /// <remarks>
+        /// 关联的树节点对象，用于支持完整的树形结构导航。
+        /// </remarks>
+        public TreeNodeData? TreeNode { get; set; }
+
+        /// <summary>
+        /// 下拉显示文本（节点名称.树形路径）
+        /// </summary>
+        /// <remarks>
+        /// 格式: 节点名称.TreeName
+        /// 示例: "阈值工具.结果.实际使用的阈值"
+        /// </remarks>
+        public string DropdownDisplayText => GetDropdownDisplayText();
+
+        /// <summary>
+        /// 获取下拉显示文本
+        /// </summary>
+        /// <returns>格式化的显示文本</returns>
+        private string GetDropdownDisplayText()
+        {
+            if (string.IsNullOrEmpty(FullTreeName))
+            {
+                // 如果没有 FullTreeName，使用节点名称+空格+显示名称
+                return $"{SourceNodeName} {DisplayName}";
+            }
+
+            // FullTreeName 已包含节点名称，将点号替换为空格，使其更友好
+            return FullTreeName.Replace(".", " ");
+        }
+
+        /// <summary>
         /// 是否与目标类型兼容
         /// </summary>
         public bool IsCompatible { get; set; } = true;
@@ -124,6 +166,30 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 如果不兼容，说明原因。
         /// </remarks>
         public string? CompatibilityNote { get; set; }
+
+        /// <summary>
+        /// 是否为设计时推断
+        /// </summary>
+        /// <remarks>
+        /// 标识此数据源是否通过反射从 ResultType 推断而来，
+        /// 而非从实际执行结果中提取。
+        /// 
+        /// 设计时推断的特点：
+        /// - CurrentValue 为 null（未执行）
+        /// - PropertyType 准确（从类型定义获取）
+        /// - 在 UI 中可能显示为灰色或特殊标记
+        /// </remarks>
+        public bool IsDesignTime { get; set; } = false;
+
+        /// <summary>
+        /// 距离当前节点的距离（0=当前节点，1=直接父节点，以此类推）
+        /// </summary>
+        public int Distance { get; set; }
+
+        /// <summary>
+        /// 节点是否已执行
+        /// </summary>
+        public bool HasExecuted { get; set; } = true;
 
         /// <summary>
         /// 是否有效

@@ -128,6 +128,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Themes
                 Color.FromRgb(255, 255, 0),   // 黄色
                 Color.FromRgb(255, 0, 255),   // 品红
                 Color.FromRgb(0, 255, 255),   // 青色
+                Color.FromRgb(128, 128, 128), // 灰色
+                Color.FromRgb(255, 128, 0),   // 橙色
             };
         }
 

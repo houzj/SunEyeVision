@@ -14,15 +14,24 @@
     <converters:ColorToRgbStringConverter x:Key="ColorToRgbStringConverter"/>
     <converters:UIntToBrushConverter x:Key="UIntToBrushConverter"/>
 
+    <!-- 效果定义 -->
+    <DropShadowEffect x:Key="PopupShadowEffect" Color="Black" BlurRadius="6" ShadowDepth="2" Direction="270" Opacity="0.15"/>
+
     <!-- 颜色定义 -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="#1890FF"/>
     <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#40A9FF"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#D9D9D9"/>
     <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="PanelHoverBrush" Color="#F5F5F5"/>
     <SolidColorBrush x:Key="LabelBrush" Color="#333333"/>
     <SolidColorBrush x:Key="LabelSecondaryBrush" Color="#666666"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#FF4D4F"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="#52C41A"/>
+
+    <!-- 展开图标 Path -->
+    <PathGeometry x:Key="TreeExpanderPath"
+                  Figures="M 0 0 L 6 4 L 0 8 Z"/>
 
     <!-- 基础样式：输入控件 -->
     <Style x:Key="BaseInputStyle" TargetType="Control">
@@ -220,6 +229,14 @@
                             <CheckBox x:Name="PART_BoolCheckBox"
                                       VerticalAlignment="Center"
                                       Visibility="{Binding DataType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=Bool}"/>
+
+                            <!-- 绑定路径显示（只读，绑定模式下显示） -->
+                            <TextBox x:Name="PART_BindingPathDisplay"
+                                     Style="{StaticResource BaseInputStyle}"
+                                     TextAlignment="Left"
+                                     IsReadOnly="True"
+                                     Text="{Binding FriendlyBindingSource, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                     Visibility="Collapsed"/>
                         </Grid>
 
                         <!-- 绑定按钮 -->
@@ -234,7 +251,213 @@
                                 Cursor="Hand"
                                 ToolTip="点击绑定到其他节点输出"
                                 Margin="4,0,0,0"/>
+
+                        <!-- 绑定源选择 Popup -->
+                        <Popup x:Name="PART_BindingPopup"
+                               PlacementTarget="{Binding ElementName=PART_BindingButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               Width="300"
+                               MaxHeight="400"
+                               AllowsTransparency="True">
+                            <Border Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Margin="0,2,0,0"
+                                    Padding="0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- 标题栏 -->
+                                    <Border Grid.Row="0"
+                                            Background="{StaticResource BackgroundBrush}"
+                                            Padding="12,8">
+                                        <TextBlock Text="选择绑定源"
+                                                   FontWeight="Medium"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource LabelBrush}"/>
+                                    </Border>
+
+                                    <!-- TreeView -->
+                                    <TreeView x:Name="PART_BindingTreeView"
+                                              Grid.Row="1"
+                                              ItemsSource="{Binding TreeNodes, RelativeSource={RelativeSource TemplatedParent}}"
+                                              BorderThickness="0"
+                                              MaxHeight="350"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              Padding="8,4">
+                                        <TreeView.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <TextBlock Text="{Binding Text}"
+                                                           FontSize="12"
+                                                           Padding="2,4">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="False">
+                                                                    <Setter Property="FontWeight" Value="Medium"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource LabelBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="Normal"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </HierarchicalDataTemplate>
+                                        </TreeView.ItemTemplate>
+                                            <TreeView.ItemContainerStyle>
+                                                <Style TargetType="TreeViewItem">
+                                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                                    <Setter Property="Padding" Value="2,2,4,2"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="TreeViewItem">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition x:Name="ItemsHostRow" Height="*"/>
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                
+                                                                <!-- 展开/折叠按钮 -->
+                                                                <ToggleButton x:Name="Expander"
+                                                                              Grid.Row="0"
+                                                                              Grid.Column="0"
+                                                                              Width="20"
+                                                                              Height="20"
+                                                                              Margin="-2,0,2,0"
+                                                                              IsChecked="{Binding Path=IsExpanded, Mode=TwoWay}"
+                                                                              Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                                              IsHitTestVisible="True">
+                                                                    <ToggleButton.Template>
+                                                                        <ControlTemplate TargetType="ToggleButton">
+                                                                            <Grid Width="20" Height="20" Background="Transparent">
+                                                                                <Path x:Name="ExpanderPath"
+                                                                                      Width="10"
+                                                                                      Height="10"
+                                                                                      Data="M 0 0 L 8 5 L 0 10 Z"
+                                                                                      Fill="{StaticResource LabelSecondaryBrush}"
+                                                                                      RenderTransformOrigin="0.5,0.5"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"
+                                                                                      IsHitTestVisible="True">
+                                                                                    <Path.RenderTransform>
+                                                                                        <RotateTransform x:Name="ExpanderRotate" Angle="0"/>
+                                                                                    </Path.RenderTransform>
+                                                                                </Path>
+                                                                            </Grid>
+                                                                            <ControlTemplate.Triggers>
+                                                                                <Trigger Property="IsChecked" Value="True">
+                                                                                    <Trigger.EnterActions>
+                                                                                        <BeginStoryboard>
+                                                                                            <Storyboard>
+                                                                                                <DoubleAnimation Storyboard.TargetName="ExpanderRotate"
+                                                                                                                 Storyboard.TargetProperty="Angle"
+                                                                                                                 To="90" Duration="0:0:0.15"/>
+                                                                                            </Storyboard>
+                                                                                        </BeginStoryboard>
+                                                                                    </Trigger.EnterActions>
+                                                                                    <Trigger.ExitActions>
+                                                                                        <BeginStoryboard>
+                                                                                            <Storyboard>
+                                                                                                <DoubleAnimation Storyboard.TargetName="ExpanderRotate"
+                                                                                                                 Storyboard.TargetProperty="Angle"
+                                                                                                                 To="0" Duration="0:0:0.15"/>
+                                                                                            </Storyboard>
+                                                                                        </BeginStoryboard>
+                                                                                    </Trigger.ExitActions>
+                                                                                </Trigger>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter TargetName="ExpanderPath" Property="Fill" 
+                                                                                            Value="{StaticResource PrimaryBrush}"/>
+                                                                                </Trigger>
+                                                                            </ControlTemplate.Triggers>
+                                                                        </ControlTemplate>
+                                                                    </ToggleButton.Template>
+                                                                </ToggleButton>
+                                                                
+                                                                <!-- 内容区域 -->
+                                                                <Border x:Name="ContentBorder"
+                                                                        Grid.Row="0"
+                                                                        Grid.Column="1"
+                                                                        Background="Transparent"
+                                                                        BorderThickness="0"
+                                                                        Padding="{TemplateBinding Padding}"
+                                                                        CornerRadius="2">
+                                                                    <ContentPresenter x:Name="PART_Header"
+                                                                                  ContentSource="Header"
+                                                                                  HorizontalAlignment="Left"/>
+                                                                </Border>
+                                                                
+                                                                <!-- 子节点容器 -->
+                                                                <ItemsPresenter x:Name="ItemsHost" 
+                                                                                Grid.Row="1"
+                                                                                Grid.Column="0"
+                                                                                Grid.ColumnSpan="2"
+                                                                                Margin="20,0,0,0"/>
+                                                            </Grid>
+                                                            
+                                                            <ControlTemplate.Triggers>
+                                                                <!-- 折叠时隐藏子节点 -->
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="False">
+                                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="ItemsHostRow" Property="Height" Value="0"/>
+                                                                </DataTrigger>
+                                                                <!-- 展开时显示子节点 -->
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
+                                                                    <Setter TargetName="ItemsHostRow" Property="Height" Value="*"/>
+                                                                </DataTrigger>
+                                                                
+                                                                <!-- 不可选中的节点（分组节点）禁用选择 -->
+                                                                <DataTrigger Binding="{Binding IsSelectable}" Value="False">
+                                                                    <Setter Property="Focusable" Value="False"/>
+                                                                    <Setter Property="IsSelected" Value="False"/>
+                                                                </DataTrigger>
+                                                                
+                                                                <!-- 鼠标悬停效果 -->
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ContentBorder" Property="Background" 
+                                                                            Value="{StaticResource PanelHoverBrush}"/>
+                                                                </Trigger>
+                                                                
+                                                                <!-- 选中效果 -->
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="ContentBorder" Property="Background" 
+                                                                            Value="#191890FF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </TreeView.ItemContainerStyle>
+                                    </TreeView>
+                                </Grid>
+                            </Border>
+                        </Popup>
                     </Grid>
+                    
+                    <!-- DataTrigger：根据绑定类型切换显示 -->
+                    <ControlTemplate.Triggers>
+                        <!-- 绑定模式：隐藏编辑器，显示绑定路径 -->
+                        <DataTrigger Binding="{Binding BindingType, RelativeSource={RelativeSource Self}}" Value="Binding">
+                            <Setter TargetName="PART_NumericEditor" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_StringTextBox" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_BoolCheckBox" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_BindingPathDisplay" Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -245,7 +468,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:ImageSourceSelector}">
-                    <!-- 移除外层Border和Label，只保留核心功能 -->
+                    <!-- 核心功能：按钮 + Popup下拉列表 -->
                     <Grid>
                         <!-- 选择器按钮 -->
                         <Button x:Name="PART_SelectorButton"
@@ -263,13 +486,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
-                                               Text="{Binding SelectedImageSource.DisplayName, RelativeSource={RelativeSource TemplatedParent}}"
+                                               Text="{Binding SelectedDataSource.FullTreeName, RelativeSource={RelativeSource TemplatedParent}}"
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource LabelBrush}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding SelectedImageSource, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
+                                                    <DataTrigger Binding="{Binding SelectedDataSource, RelativeSource={RelativeSource TemplatedParent}}" Value="{x:Null}">
                                                         <Setter Property="Text" Value="{Binding PlaceholderText, RelativeSource={RelativeSource TemplatedParent}}"/>
                                                         <Setter Property="Foreground" Value="{StaticResource LabelSecondaryBrush}"/>
                                                     </DataTrigger>
@@ -319,52 +542,19 @@
                                         <!-- 图像源列表 -->
                                         <ListBox x:Name="PART_ImageSourceList"
                                                  Grid.Row="1"
-                                                 ItemsSource="{Binding AvailableImageSources, RelativeSource={RelativeSource TemplatedParent}}"
+                                                 ItemsSource="{Binding AvailableDataSources, RelativeSource={RelativeSource TemplatedParent}}"
+                                                 SelectedItem="{Binding SelectedDataSource, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWayToSource}"
                                                  BorderThickness="0"
                                                  MaxHeight="250"
                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Margin="8,6">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <!-- 缩略图 -->
-                                                        <Border Grid.Column="0"
-                                                                Width="48" Height="36"
-                                                                Background="#F5F5F5"
-                                                                CornerRadius="2"
-                                                                Margin="0,0,12,0">
-                                                            <Image Source="{Binding Thumbnail}"
-                                                                   Stretch="Uniform"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center">
-                                                                <Image.Style>
-                                                                    <Style TargetType="Image">
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Thumbnail, Converter={x:Null}}" Value="{x:Null}">
-                                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Image.Style>
-                                                            </Image>
-                                                        </Border>
-
-                                                        <!-- 信息区 -->
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding DisplayName}"
-                                                                       FontWeight="Medium"
-                                                                       FontSize="13"
-                                                                       Foreground="{StaticResource LabelBrush}"/>
-                                                            <TextBlock Text="{Binding SizeDescription}"
-                                                                       FontSize="11"
-                                                                       Foreground="{StaticResource LabelSecondaryBrush}"
-                                                                       Margin="0,2,0,0"/>
-                                                        </StackPanel>
-                                                    </Grid>
+                                                    <TextBlock Text="{Binding DropdownDisplayText}"
+                                                               Margin="8,6"
+                                                               FontWeight="Medium"
+                                                               FontSize="13"
+                                                               Foreground="{StaticResource LabelBrush}"
+                                                               VerticalAlignment="Center"/>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                             <ListBox.ItemContainerStyle>
@@ -372,7 +562,13 @@
                                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                                     <Setter Property="Padding" Value="0"/>
                                                     <Setter Property="BorderThickness" Value="0"/>
+                                                    <!-- 默认隐藏所有项 -->
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
+                                                        <!-- 图像类型的数据源显示 -->
+                                                        <DataTrigger Binding="{Binding PropertyType.Name}" Value="Mat">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
                                                             <Setter Property="Background" Value="#F0F7FF"/>
                                                         </Trigger>
@@ -1099,7 +1295,9 @@
                                         BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"
-                                        Margin="0,2,0,0">
+                                        Margin="0,6,0,0"
+                                        Padding="0"
+                                        Effect="{StaticResource PopupShadowEffect}">
                                     <controls:ColorPicker x:Name="PART_ColorPicker"
                                                           SelectedColor="{Binding SelectedColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
                                 </Border>
@@ -1132,7 +1330,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:DispItemColorControl}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="{Binding ContentHorizontalAlignment, RelativeSource={RelativeSource TemplatedParent}}">
                         <!-- 小眼睛按钮（可见性控制） -->
                         <Button x:Name="PART_VisibilityButton"
                                 Width="28" Height="28"
@@ -1140,8 +1339,15 @@
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 ToolTip="切换显示/隐藏"
-                                Margin="0,0,4,0">
-                            <!-- Content 将由 DataTrigger 设置，不在此处定义 -->
+                                Margin="0,0,4,0"
+                                Tag="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}, FallbackValue=True}">
+                            <Viewbox Width="18" Height="18" Stretch="Uniform">
+                                <Path x:Name="PART_VisibilityIcon"
+                                      Stroke="Black"
+                                      StrokeThickness="1.2"
+                                      Fill="Transparent"
+                                      Data="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13Z"/>
+                            </Viewbox>
                         </Button>
 
                         <!-- 画笔按钮（样式设置） -->
@@ -1177,7 +1383,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:ColorSelector 
-                                        Width="228"
+                                        Width="224"
                                         Height="28"
                                         SelectedColor="{Binding Config.OkColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Margin="0,0,0,12"/>
@@ -1187,7 +1393,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:ColorSelector 
-                                        Width="228"
+                                        Width="224"
                                         Height="28"
                                         SelectedColor="{Binding Config.NgColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Margin="0,0,0,12"/>
@@ -1197,7 +1403,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:NumericUpDown 
-                                        Width="228"
+                                        Width="224"
                                         Value="{Binding Config.Opacity, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Minimum="0"
                                         Maximum="1"
@@ -1210,7 +1416,7 @@
                                                Style="{StaticResource LabelStyle}"
                                                Margin="0,0,0,6"/>
                                     <controls:NumericUpDown 
-                                        Width="228"
+                                        Width="224"
                                         Value="{Binding Config.Thickness, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                         Minimum="0.5"
                                         Maximum="10"
@@ -1224,26 +1430,15 @@
 
                     <ControlTemplate.Triggers>
                         <!-- 根据IsVisible状态切换眼睛图标 -->
-                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
-                            <Setter TargetName="PART_VisibilityButton" Property="Content">
-                                <Setter.Value>
-                                    <TextBlock Text="👁️" 
-                                               FontSize="14"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Center"/>
-                                </Setter.Value>
-                            </Setter>
+                        <DataTrigger Binding="{Binding Tag, ElementName=PART_VisibilityButton}" Value="True">
+                            <Setter TargetName="PART_VisibilityIcon" Property="Data"
+                                    Value="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13Z"/>
+                            <Setter TargetName="PART_VisibilityIcon" Property="Opacity" Value="1.0"/>
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding Config.IsVisible, RelativeSource={RelativeSource TemplatedParent}}" Value="False">
-                            <Setter TargetName="PART_VisibilityButton" Property="Content">
-                                <Setter.Value>
-                                    <TextBlock Text="👁️‍🗨️" 
-                                               FontSize="14"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Center"
-                                               Opacity="0.5"/>
-                                </Setter.Value>
-                            </Setter>
+                        <DataTrigger Binding="{Binding Tag, ElementName=PART_VisibilityButton}" Value="False">
+                            <Setter TargetName="PART_VisibilityIcon" Property="Data"
+                                    Value="M2 10C4 6 7 4 10 4C13 4 16 6 18 10C16 14 13 16 10 16C7 16 4 14 2 10ZM10 13C11.7 13 13 11.7 13 10C13 8.3 11.7 7 10 7C8.3 7 7 8.3 7 10C7 11.7 8.3 13 10 13ZM3 17L17 3"/>
+                            <Setter TargetName="PART_VisibilityIcon" Property="Opacity" Value="0.5"/>
                         </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

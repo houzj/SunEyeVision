@@ -109,9 +109,9 @@
                               SelectionChanged="ImageSourceSelector_SelectionChanged">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" 
+                                <TextBlock Text="{Binding DropdownDisplayText}" 
                                            VerticalAlignment="Center"
-                                           ToolTip="{Binding NodeId}"/>
+                                           ToolTip="{Binding SourceNodeId}"/>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -201,7 +201,6 @@
 
                 <!-- 叠加层Canvas - 供外部添加自定义元素 -->
                 <Canvas x:Name="OverlayCanvasControl"
-                        IsHitTestVisible="False"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"/>
             </Grid>

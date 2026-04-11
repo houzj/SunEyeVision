@@ -131,6 +131,16 @@ namespace SunEyeVision.UI.Views.Windows
 
             SwitchToDefaultConfiguration();
 
+            // Force initialize log panel - fix TabControl lazy loading
+            // LogPanelContent is at index 1 (second tab)
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (BottomPanelTabControl != null && BottomPanelTabControl.Items.Count > 1)
+                {
+                    BottomPanelTabControl.SelectedIndex = 1; // Select log tab to trigger load
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+
         }
 
 

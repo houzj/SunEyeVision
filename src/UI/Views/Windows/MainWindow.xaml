@@ -13,8 +13,9 @@
         xmlns:convertersVisibility="clr-namespace:SunEyeVision.UI.Converters.Visibility"
         xmlns:canvas="clr-namespace:SunEyeVision.UI.Views.Controls.Canvas"
         xmlns:toolbox="clr-namespace:SunEyeVision.UI.Views.Controls.Toolbox"
-        xmlns:panels="clr-namespace:SunEyeVision.UI.Views.Controls.Panels"
+
         xmlns:common="clr-namespace:SunEyeVision.UI.Views.Controls.Common"
+        xmlns:panels="clr-namespace:SunEyeVision.UI.Views.Controls.Panels"
         xmlns:sdk="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls;assembly=SunEyeVision.Plugin.SDK"
         mc:Ignorable="d"
         Title="太阳眼视觉 - 机器视觉平台" Height="900" Width="1600"
@@ -962,20 +963,32 @@
                         </GridSplitter.Style>
                     </GridSplitter>
 
-                    <!-- 属性面板 - 使用PropertyPanelControl -->
-                    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"
-                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                            <!-- 属性内容 -->
-                            <panels:PropertyPanelControl
-                                PropertyGroups="{Binding PropertyGroups}"
-                                LogText="{Binding LogText, Mode=OneWay}"
-                                ClearLogCommand="{Binding ClearLogCommand}"
-                                VerticalAlignment="Stretch"
-                                HorizontalAlignment="Stretch"
-                                x:Name="PropertyPanelContent"/>
-                        </Grid>
+                    <!-- ========== Row 2: 数据分析和日志 ========== -->
+                    <Border Grid.Row="2" Background="#FFFFFF" BorderThickness="0">
+                        <TabControl x:Name="BottomPanelTabControl"
+                                    Background="White"
+                                    BorderThickness="0">
+                            <!-- 第一个TabItem: 数据分析（动态显示） -->
+                            <TabItem Header="数据分析" Padding="12,6"
+                                     Visibility="{Binding HasDataAnalysisControl, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Grid Background="White">
+                                    <!-- 数据分析用户控件容器 -->
+                                    <ContentControl Content="{Binding SelectedNodeDataAnalysisControl}"
+                                                   HorizontalAlignment="Stretch"
+                                                   VerticalAlignment="Stretch"/>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- 第二个TabItem: 日志 -->
+                            <TabItem Header="日志" Padding="12,6">
+                                <panels:LogPanelControl x:Name="LogPanelContent"
+                                                         VerticalAlignment="Stretch"
+                                                         HorizontalAlignment="Stretch"/>
+                            </TabItem>
+                        </TabControl>
                     </Border>
+
+
                 </Grid>
             </Border>
 

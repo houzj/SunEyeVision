@@ -61,6 +61,8 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
+        #region 工作流管理。
+
         /// <summary>
         /// Set selected tab without triggering SelectionChanged event
         /// </summary>
@@ -79,7 +81,6 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        #region 工作流管理。
 
         /// <summary>
         /// 创建默认工作流。
@@ -96,10 +97,8 @@ namespace SunEyeVision.UI.ViewModels
             // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
             defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
-            
-            // ✅ 静默设置 SelectedTab，不触发 SelectionChanged 事件
+            // 静默设置 SelectedTab，不触发 SelectionChanged 事件
             SetSelectedTab(defaultWorkflow, suppressEvent: true);
-            
             _workflowCounter = 1;
             _usedWorkflowNumbers.Add(1);
         }
@@ -137,10 +136,8 @@ namespace SunEyeVision.UI.ViewModels
             // ✅ 为没有绑定 Solution 的工作流创建独立的连接集合
             defaultWorkflow.SetConnections(new ObservableCollection<WorkflowConnection>());
             Tabs.Add(defaultWorkflow);
-            
-            // ✅ 静默设置 SelectedTab，不触发 SelectionChanged 事件
+            // 静默设置 SelectedTab，不触发 SelectionChanged 事件
             SetSelectedTab(defaultWorkflow, suppressEvent: true);
-            
             _usedWorkflowNumbers.Add(1);
         }
 
@@ -151,81 +148,21 @@ namespace SunEyeVision.UI.ViewModels
         /// 用于加载新方案时重置工作流编号，确保新方案的工作流从1开始编号。
         /// 与 ResetToDefault() 不同，此方法只重置编号计数器，不创建默认工作流。
         /// </remarks>
-        /// <summary>
-        /// 重置工作流编号计数器
-        遍历所有标签页，恢复工作流编号
-        /// </summary>
         public void ResetWorkflowNumberCounter()
         {
-            try
-            {
-                LogInfo("开始重置工作流编号计数器");
-                
-                // 清空编号池
-                _usedWorkflowNumbers.Clear();
-                _workflowCounter = 0;
-                
-                // 遍历所有标签页，恢复编号
-                int restoredCount = 0;
-                foreach (var tab in Tabs)
-                {
-                    if (tab != null && !string.IsNullOrWhiteSpace(tab.Name))
-                    {
-                        RegisterWorkflowNumber(tab.Name);
-                        restoredCount++;
-                    }
-                }
-                
-                LogInfo($"已重置工作流编号计数器，恢复 {restoredCount} 个编号");
-                LogSuccess($"当前工作流计数器: {_workflowCounter}");
-            }
-            catch (Exception ex)
-            {
-                LogError($"重置工作流编号计数器失败: {ex.Message}", null, ex);
-            }
-        }
+            // 重置计数器和已使用编号
+            _workflowCounter = 0;
+            _usedWorkflowNumbers.Clear();
 
-        /// <summary>
-        /// 注册工作流编号到编号池
-        /// </summary>
-        /// <param name="workflowName">工作流名称</param>
-        public void RegisterWorkflowNumber(string workflowName)
-        {
-            if (string.IsNullOrWhiteSpace(workflowName))
+            // 从已加载的标签页中恢复编号（在加载方案后调用）
+            foreach (var tab in Tabs)
             {
-                LogWarning("工作流名称为空，无法注册编号");
-                return;
-            }
-            
-            try
-            {
-                // 使用正则表达式提取工作流编号
-                var match = System.Text.RegularExpressions.Regex.Match(workflowName, @"工作流(\d+)");
+                var match = System.Text.RegularExpressions.Regex.Match(tab.Name, @"工作流(\d+)");
                 if (match.Success && int.TryParse(match.Groups[1].Value, out int number))
                 {
-                    // 检查编号是否已存在
-                    if (_usedWorkflowNumbers.Contains(number))
-                    {
-                        LogWarning($"工作流编号 {number} 已存在，将跳过注册");
-                        return;
-                    }
-                    
-                    // 添加到编号池
                     _usedWorkflowNumbers.Add(number);
-                    
-                    // 更新计数器（取最大值）
                     _workflowCounter = Math.Max(_workflowCounter, number);
-                    
-                    LogInfo($"已注册工作流编号: {number} (当前最大编号: {_workflowCounter})");
                 }
-                else
-                {
-                    LogInfo($"工作流名称不包含编号: {workflowName}");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"注册工作流编号失败: {ex.Message}", null, ex);
             }
         }
 

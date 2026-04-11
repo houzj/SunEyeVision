@@ -5,6 +5,71 @@ using SunEyeVision.Plugin.SDK.Execution.Results;
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
     /// <summary>
+    /// 节点执行上下文
+    /// </summary>
+    /// <remarks>
+    /// 统一封装节点信息和执行结果，用于设计时和运行时。
+    /// 
+    /// 核心功能：
+    /// 1. 节点基本信息（ID、名称、类型、图标）
+    /// 2. 执行状态和结果
+    /// 3. 结果类型（用于设计时推断输出属性）
+    /// 4. 运行时/设计时标识
+    /// </remarks>
+    public class NodeExecutionContext
+    {
+        /// <summary>
+        /// 节点ID
+        /// </summary>
+        public string NodeId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 节点名称
+        /// </summary>
+        public string NodeName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 节点类型
+        /// </summary>
+        public string NodeType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 节点图标
+        /// </summary>
+        public string? NodeIcon { get; set; }
+
+        /// <summary>
+        /// 执行结果（运行时）
+        /// </summary>
+        public ToolResults? Result { get; set; }
+
+        /// <summary>
+        /// 结果类型（设计时）
+        /// </summary>
+        public Type? ResultType { get; set; }
+
+        /// <summary>
+        /// 执行状态
+        /// </summary>
+        public ExecutionStatus ExecutionStatus => Result?.Status ?? ExecutionStatus.NotExecuted;
+
+        /// <summary>
+        /// 是否有执行结果
+        /// </summary>
+        public bool HasResult => Result != null;
+
+        /// <summary>
+        /// 是否为运行时
+        /// </summary>
+        public bool IsRuntime => Result != null;
+
+        /// <summary>
+        /// 是否为设计时
+        /// </summary>
+        public bool IsDesignTime => Result == null;
+    }
+
+    /// <summary>
     /// 数据源查询服务接口
     /// </summary>
     /// <remarks>
@@ -14,7 +79,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 1. 查询父节点列表
     /// 2. 查询可绑定数据源
     /// 3. 按类型过滤数据源
-    /// 4. 获取节点执行结果缓存
+    /// 4. 获取节点执行上下文（统一设计时和运行时）
     /// 
     /// 使用示例：
     /// <code>
@@ -27,8 +92,18 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// // 查询可绑定数据源（按类型过滤）
     /// var doubleDataSources = queryService.GetAvailableDataSources(currentNodeId, typeof(double));
     /// 
-    /// // 获取特定节点的执行结果
-    /// var result = queryService.GetNodeResult(nodeId);
+    /// // 获取节点执行上下文
+    /// var context = queryService.GetNodeContext(nodeId);
+    /// if (context.IsRuntime)
+    /// {
+    ///     // 运行时，有实际结果
+    ///     var result = context.Result;
+    /// }
+    /// else
+    /// {
+    ///     // 设计时，只有类型信息
+    ///     var resultType = context.ResultType;
+    /// }
     /// </code>
     /// </remarks>
     public interface IDataSourceQueryService
@@ -49,6 +124,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         List<AvailableDataSource> GetAvailableDataSources(string nodeId, Type? targetType = null);
 
         /// <summary>
+        /// 获取分组可用数据源（按输出类型分类）
+        /// </summary>
+        /// <param name="nodeId">当前节点ID</param>
+        /// <param name="targetType">目标参数类型（可选，用于类型过滤）</param>
+        /// <returns>分组数据源容器</returns>
+        GroupedDataSources GetAvailableDataSourcesGrouped(string nodeId, Type? targetType = null);
+
+        /// <summary>
         /// 获取指定父节点的输出属性
         /// </summary>
         /// <param name="parentNodeId">父节点ID</param>
@@ -56,11 +139,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         List<AvailableDataSource> GetNodeOutputProperties(string parentNodeId);
 
         /// <summary>
-        /// 获取节点执行结果
+        /// 获取节点执行上下文
         /// </summary>
         /// <param name="nodeId">节点ID</param>
-        /// <returns>执行结果（如果存在）</returns>
-        ToolResults? GetNodeResult(string nodeId);
+        /// <returns>节点执行上下文（如果存在）</returns>
+        NodeExecutionContext? GetNodeContext(string nodeId);
 
         /// <summary>
         /// 获取属性值
@@ -105,6 +188,72 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 清除所有结果缓存
         /// </summary>
         void ClearAllResults();
+
+        /// <summary>
+        /// 获取当前节点ID
+        /// </summary>
+        string? CurrentNodeId { get; set; }
+
+        /// <summary>
+        /// 检查节点是否有输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否有输出</returns>
+        bool HasNodeOutput(string nodeId);
+
+        /// <summary>
+        /// 更新节点输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="portName">端口名称</param>
+        /// <param name="value">输出值</param>
+        void UpdateNodeOutput(string nodeId, string portName, object? value);
+
+        /// <summary>
+        /// 清除节点输出
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        void ClearNodeOutput(string nodeId);
+
+        /// <summary>
+        /// 获取当前绑定值
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="portName">端口名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <returns>绑定值</returns>
+        object? GetCurrentBindingValue(string nodeId, string portName, string? propertyPath);
+
+        /// <summary>
+        /// 获取绑定显示路径
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="outputName">输出名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <returns>显示路径</returns>
+        string GetBindingDisplayPath(string nodeId, string outputName, string? propertyPath);
+
+        /// <summary>
+        /// 订阅输出变更
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="outputName">输出名称</param>
+        /// <param name="propertyPath">属性路径</param>
+        /// <param name="onChanged">变更回调</param>
+        /// <returns>订阅令牌</returns>
+        IDisposable SubscribeOutputChanged(string nodeId, string outputName, string? propertyPath, Action<object?> onChanged);
+
+        /// <summary>
+        /// 刷新输出
+        /// </summary>
+        void RefreshOutputs();
+
+        /// <summary>
+        /// 检查节点是否已注册
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否已注册</returns>
+        bool IsNodeRegistered(string nodeId);
     }
 
     /// <summary>

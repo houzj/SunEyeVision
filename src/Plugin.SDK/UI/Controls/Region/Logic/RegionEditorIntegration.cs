@@ -2,7 +2,7 @@
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
-using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
 {
@@ -12,16 +12,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
     public class RegionEditorIntegration
     {
         private readonly RegionEditorViewModel _viewModel;
-        private readonly WorkflowDataSourceProvider _dataProvider;
+        private readonly DataSourceQueryService _dataProvider;
         private readonly NodeSelectorPopup _nodeSelectorPopup;
 
         /// <summary>
         /// 构造函数
         /// </summary>
-        public RegionEditorIntegration(RegionEditorViewModel viewModel, ILogger? logger = null)
+        public RegionEditorIntegration(RegionEditorViewModel viewModel, DataSourceQueryService dataProvider)
         {
             _viewModel = viewModel;
-            _dataProvider = new WorkflowDataSourceProvider(logger);
+            _dataProvider = dataProvider;
             _nodeSelectorPopup = new NodeSelectorPopup();
 
             // 初始化ViewModel
@@ -69,9 +69,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 更新节点输出（由工作流引擎调用）
         /// </summary>
-        public void UpdateNodeOutput(string nodeId, object? output)
+        public void UpdateNodeOutput(string nodeId, string portName, object? output)
         {
-            _dataProvider.UpdateNodeOutput(nodeId, output);
+            _dataProvider.UpdateNodeOutput(nodeId, portName, output);
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic
         /// <summary>
         /// 获取数据提供者（用于直接访问）
         /// </summary>
-        public WorkflowDataSourceProvider GetDataProvider()
+        public DataSourceQueryService GetDataProvider()
         {
             return _dataProvider;
         }

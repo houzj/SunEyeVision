@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -28,6 +28,8 @@ using SunEyeVision.UI.Views.Controls.Panels;
 using SunEyeVision.UI.Views.Windows;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.Plugin.SDK.UI.Controls;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.UI.Converters.Path;
 using SunEyeVision.UI.Services.Performance;
 using SunEyeVision.UI.Services.Logging;
@@ -66,6 +68,7 @@ namespace SunEyeVision.UI.ViewModels
         public string Value { get; set; } = string.Empty;
     }
 
+
     /// <summary>
     /// 主窗口视图模型
     /// </summary>
@@ -90,6 +93,9 @@ namespace SunEyeVision.UI.ViewModels
         // 图像预览
         private bool _autoSwitchEnabled = false;
         private int _currentImageIndex = -1;
+
+        // 参数选择状态（用于 TreeView 事件处理）
+        private string? _selectedParameterName;
 
         // 所有工作流状态
         private bool _isAllWorkflowsRunning = false;
@@ -122,10 +128,8 @@ namespace SunEyeVision.UI.ViewModels
         private Window? _openDebugWindow;
 
         // 数据提供者缓存（用于在节点执行完成后更新前置节点输出）
-        private readonly Dictionary<string, Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider> _nodeDataProviders = new();
+        private readonly Dictionary<string, IDataSourceQueryService> _nodeDataProviders = new();
 
-        // 属性
-        private ObservableCollection<Models.PropertyGroup> _propertyGroups = new ObservableCollection<Models.PropertyGroup>();
         private string _logText = "[系统] 等待中...\n";
 
         // 折叠状态
@@ -138,11 +142,8 @@ namespace SunEyeVision.UI.ViewModels
 
         // 分割器
         private double _splitterPosition = 500; // 默认图像高度
-        private const double DefaultPropertyPanelHeight = 300;
         private const double MinImageAreaHeight = 200;
         private const double MaxImageAreaHeight = 800;
-
-        private double _propertyPanelActualHeight = DefaultPropertyPanelHeight;
 
         public string Title
         {
@@ -184,7 +185,6 @@ namespace SunEyeVision.UI.ViewModels
         // 确保每个Tab都是独立的
 
         private WorkflowNodeBase? _selectedNode;
-        private bool _showPropertyPanel = false;
         private Models.NodeImageData? _activeNodeImageData;
         private Models.ImageInputSource? _activeInputSource; // 新增：活动输入源
         private string? _currentDisplayNodeId = null;  // 记录当前显示的采集节点ID，避免重复切换
@@ -228,7 +228,7 @@ namespace SunEyeVision.UI.ViewModels
         /// <summary>
         /// 图像显示控件的数据源（当前节点 + 所有父节点）
         /// </summary>
-        public ObservableCollection<ImageSourceInfo> DisplayImageSources { get; }
+        public ObservableCollection<AvailableDataSource> DisplayImageSources { get; }
 
         /// <summary>
         /// 当前选中的图像显示源索引
@@ -244,6 +244,38 @@ namespace SunEyeVision.UI.ViewModels
             set => SetProperty(ref _selectedDisplayImageSourceIndex, value);
         }
 
+        // ========== 数据分析控件相关 ==========
+        private bool _hasDataAnalysisControl = false;
+        private UIElement? _selectedNodeDataAnalysisControl = null;
+        private string _dataAnalysisControlTitle = "数据分析";
+
+        /// <summary>
+        /// 当前选中节点是否有数据分析控件
+        /// </summary>
+        public bool HasDataAnalysisControl
+        {
+            get => _hasDataAnalysisControl;
+            set => SetProperty(ref _hasDataAnalysisControl, value);
+        }
+
+        /// <summary>
+        /// 当前选中节点的数据分析控件
+        /// </summary>
+        public UIElement? SelectedNodeDataAnalysisControl
+        {
+            get => _selectedNodeDataAnalysisControl;
+            set => SetProperty(ref _selectedNodeDataAnalysisControl, value);
+        }
+
+        /// <summary>
+        /// 数据分析控件标题
+        /// </summary>
+        public string DataAnalysisControlTitle
+        {
+            get => _dataAnalysisControlTitle;
+            set => SetProperty(ref _dataAnalysisControlTitle, value);
+        }
+
         public WorkflowNodeBase? SelectedNode
         {
             get => _selectedNode;
@@ -253,8 +285,8 @@ namespace SunEyeVision.UI.ViewModels
 
                 if (changed)
                 {
-                    // 显示属性面板
-                    ShowPropertyPanel = value != null;
+                    // 更新数据分析控件
+                    UpdateDataAnalysisControl((Models.WorkflowNode?)value);
 
                     // 刷新结果显示（如果节点有缓存结果）
                     var executionResult = value != null ? _workflowContext.GetNodeResult(value.Id) : null;
@@ -273,8 +305,6 @@ namespace SunEyeVision.UI.ViewModels
 
                     // 节点选中状态变化时更新图像预览（整合了 ActiveNodeImageData 更新逻辑）
                     UpdateImagePreviewVisibility((Models.WorkflowNode?)value);
-                    // 加载节点属性
-                    LoadNodeProperties((Models.WorkflowNode?)value);
                 }
             }
         }
@@ -306,14 +336,6 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// 是否显示属性面板
-        /// </summary>
-        public bool ShowPropertyPanel
-        {
-            get => _showPropertyPanel;
-            set => SetProperty(ref _showPropertyPanel, value);
-        }
         public WorkflowConnection? SelectedConnection { get; set; }
         public WorkflowViewModel WorkflowViewModel { get; set; }
         
@@ -436,13 +458,6 @@ namespace SunEyeVision.UI.ViewModels
         /// </summary>
         public ObservableCollection<ResultItem> CalculationResults { get; }
 
-        // 属性
-        public ObservableCollection<Models.PropertyGroup> PropertyGroups
-        {
-            get => _propertyGroups;
-            set => SetProperty(ref _propertyGroups, value);
-        }
-
         public string LogText
         {
             get => _logText;
@@ -500,27 +515,6 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     _splitterPosition = value;
                     OnPropertyChanged(nameof(SplitterPosition));
-
-                    // 更新实际高度
-                    double availableHeight = _splitterPosition;
-                    double propertyHeight = Math.Max(200, Math.Min(600, 900 - availableHeight));
-                    PropertyPanelActualHeight = propertyHeight;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 属性面板实际高度
-        /// </summary>
-        public double PropertyPanelActualHeight
-        {
-            get => _propertyPanelActualHeight;
-            private set
-            {
-                if (Math.Abs(_propertyPanelActualHeight - value) > 1)
-                {
-                    _propertyPanelActualHeight = value;
-                    OnPropertyChanged(nameof(PropertyPanelActualHeight));
                 }
             }
         }
@@ -821,7 +815,7 @@ namespace SunEyeVision.UI.ViewModels
             ImageCollection = new BatchObservableCollection<ImageInfo>();
 
             // 初始化图像显示数据源
-            DisplayImageSources = new ObservableCollection<ImageSourceInfo>();
+            DisplayImageSources = new ObservableCollection<AvailableDataSource>();
 
             // 初始化工作流引擎
             _logger = VisionLogger.Instance;
@@ -865,8 +859,6 @@ namespace SunEyeVision.UI.ViewModels
 
             // 初始化当前解决方案信息
             UpdateCurrentSolutionInfo();
-
-            InitializePropertyGroups();
 
             NewWorkflowCommand = new RelayCommand(ExecuteNewWorkflow);
             OpenWorkflowCommand = new RelayCommand(ExecuteOpenWorkflow);
@@ -936,20 +928,20 @@ namespace SunEyeVision.UI.ViewModels
             {
                 Converters.Path.SmartPathConverter.Nodes = WorkflowTabViewModel.SelectedTab.WorkflowNodes;
                 Converters.Path.SmartPathConverter.Connections = WorkflowTabViewModel.SelectedTab.WorkflowConnections;
+            }
 
-                // ✅ 更新 WorkflowEngine.CurrentWorkflow，确保节点可以获取父节点数据
-                try
+            // Fix: Set WorkflowEngine.CurrentWorkflow
+            try
+            {
+                if (_workflowEngine != null && WorkflowTabViewModel?.SelectedTab != null)
                 {
                     _workflowEngine.SetCurrentWorkflow(WorkflowTabViewModel.SelectedTab.Id);
+                    _logger?.LogInfo($"OnSelectedTabChanged: Current workflow set to {WorkflowTabViewModel.SelectedTab.Name} (ID: {WorkflowTabViewModel.SelectedTab.Id})");
                 }
-                catch (ArgumentException ex)
-                {
-                    // ❌ 工作流不在 WorkflowEngine.Workflows 字典中，这是严重错误！
-                    LogError($"严重错误：工作流 {WorkflowTabViewModel.SelectedTab.Name} 不在 WorkflowEngine.Workflows 字典中！");
-                    LogError($"错误详情: {ex.Message}");
-                    LogError($"工作流ID: {WorkflowTabViewModel.SelectedTab.Id}");
-                    LogError($"这表明在创建标签页时，工作流没有被正确注册到 WorkflowEngine.Workflows 字典中");
-                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"OnSelectedTabChanged: Failed to set current workflow - {ex.Message}");
             }
         }
 
@@ -1096,73 +1088,9 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        private void InitializePropertyGroups()
-        {
-            // 初始化日志
-            AddLog("✅ [系统] 系统启动成功");
-            AddLog("✅ [设备] 相机1连接成功");
-            AddLog("✅ [设备] 相机2连接成功");
-        }
-
-        /// <summary>
-        /// 执行新建工作流命令
-        /// </summary>
         private void ExecuteNewWorkflow()
         {
-            // 参数验证
-            if (WorkflowTabViewModel == null)
-            {
-                LogError("无法创建工作流：WorkflowTabViewModel 为空");
-                return;
-            }
-            
-            try
-            {
-                LogInfo("开始创建新工作流...");
-                
-                // 步骤1: 调用标签页管理器添加新工作流
-                WorkflowTabViewModel.AddWorkflow();
-                
-                // 步骤2: 如果当前有解决方案，同步到 Solution.Workflows
-                var solutionManager = ServiceInitializer.SolutionManager;
-                if (solutionManager?.CurrentSolution != null)
-                {
-                    var newTab = WorkflowTabViewModel.SelectedTab;
-                    if (newTab != null)
-                    {
-                        // 检查工作流是否已存在
-                        var existingWorkflow = solutionManager.CurrentSolution.Workflows
-                            .FirstOrDefault(w => w.Id == newTab.Id);
-                        
-                        if (existingWorkflow == null)
-                        {
-                            // 创建新的 Workflow 对象
-                            var workflow = new SunEyeVision.Workflow.Workflow(newTab.Id, newTab.Name);
-                            solutionManager.CurrentSolution.Workflows.Add(workflow);
-                            
-                            LogSuccess($"已添加工作流到解决方案: {newTab.Name} (ID: {newTab.Id})");
-                        }
-                        else
-                        {
-                            LogWarning($"工作流已存在于解决方案中: {newTab.Name}");
-                        }
-                    }
-                }
-                else
-                {
-                    LogInfo("当前无打开的解决方案，新工作流未关联到方案");
-                }
-                
-                LogSuccess($"新工作流创建成功: {WorkflowTabViewModel.SelectedTab?.Name}");
-            }
-            catch (InvalidOperationException ex)
-            {
-                LogError($"创建新工作流失败: 操作无效 - {ex.Message}", null, ex);
-            }
-            catch (Exception ex)
-            {
-                LogError($"创建新工作流失败: {ex.Message}", null, ex);
-            }
+            // TODO: 新建工作流
         }
 
         private void ExecuteOpenWorkflow()
@@ -1622,11 +1550,6 @@ namespace SunEyeVision.UI.ViewModels
         {
             LogInfo($"创建标签页: {workflow.Name}");
 
-            // ✅ 将工作流注册到 WorkflowEngine.Workflows 字典
-            // 确保节点可以获取父节点数据
-            _workflowEngine.RegisterWorkflow(workflow);
-            LogInfo($"工作流已注册到 WorkflowEngine: {workflow.Name} (ID: {workflow.Id})");
-
             // 创建 WorkflowTabViewModel
             var tabViewModel = new ViewModels.WorkflowTabViewModel();
             tabViewModel.Id = workflow.Id;
@@ -1660,12 +1583,13 @@ namespace SunEyeVision.UI.ViewModels
                 tabViewModel.SequenceManager.InitializeHolePoolsFromNodes(tabViewModel.Id, tabViewModel.WorkflowNodes);
             }
 
+            // 将工作流注册到 WorkflowEngine.Workflows 字典
+            // 确保节点可以获取父节点数据
+            _workflowEngine.RegisterWorkflow(workflow);
+            LogInfo($"工作流已注册到 WorkflowEngine: {workflow.Name} (ID: {workflow.Id})");
+
             // 添加到标签页视图模型
             WorkflowTabViewModel?.Tabs.Add(tabViewModel);
-            
-            // 注册工作流编号到编号池
-            WorkflowTabViewModel?.RegisterWorkflowNumber(workflow.Name);
-            
             LogInfo($"标签页已添加: {workflow.Name}");
         }
 
@@ -1721,6 +1645,10 @@ namespace SunEyeVision.UI.ViewModels
                 WorkflowTabViewModel.Tabs.Clear();
                 LogInfo($"已清空 {oldTabCount} 个现有标签页");
 
+                // 重置工作流编号计数器（防止工作流序号污染）
+                WorkflowTabViewModel.ResetWorkflowNumberCounter();
+                LogInfo($"已重置工作流编号计数器");
+
                 // 为每个工作流创建标签页
                 int totalNodes = 0;
                 int totalConnections = 0;
@@ -1746,10 +1674,6 @@ namespace SunEyeVision.UI.ViewModels
                         }
                     }
                 }
-
-                // 重置工作流编号计数器（在创建标签页之后，确保能正确恢复编号）
-                WorkflowTabViewModel.ResetWorkflowNumberCounter();
-                LogInfo($"已重置工作流编号计数器");
 
                 LogInfo($"\n=== 加载完成 ===");
                 LogSuccess($"✓ 工作流数量: {solution.Workflows.Count}");
@@ -1873,18 +1797,6 @@ namespace SunEyeVision.UI.ViewModels
             // TODO: 直接跳转到快捷键页面
         }
 
-        /// <summary>
-        /// 加载节点属性
-        /// </summary>
-        public void LoadNodeProperties(Models.WorkflowNode? node)
-        {
-            if (node == null)
-            {
-                PropertyGroups.Clear();
-                return;
-            }
-        }
-
         #region 运行时参数注入
 
         /// <summary>
@@ -1930,77 +1842,6 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         #endregion
-
-        /// <summary>
-        /// 加载节点属性（完整实现）
-        /// </summary>
-        public void LoadNodePropertiesFull(Models.WorkflowNode? node)
-        {
-            PropertyGroups.Clear();
-
-            if (node == null)
-            {
-                return;
-            }
-
-            // 基本信息
-            var basicGroup = new Models.PropertyGroup
-            {
-                Name = "📋 基本信息",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>
-                {
-                    new Models.PropertyItem { Label = "名称", Value = node.Name },
-                    new Models.PropertyItem { Label = "ID", Value = node.Id },
-                    new Models.PropertyItem { Label = "类型", Value = node.ToolType ?? "未知" }
-                }
-            };
-            PropertyGroups.Add(basicGroup);
-
-            // 参数
-            var paramGroup = new Models.PropertyGroup
-            {
-                Name = "⚙️ 参数",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>()
-            };
-
-            if (node.Parameters != null)
-            {
-                var parameterProperties = node.Parameters.GetAllParameterProperties();
-                foreach (var prop in parameterProperties)
-                {
-                    if (prop.Name == nameof(ToolParameters.Version) || prop.Name == nameof(ToolParameters.Context))
-                        continue;
-
-                    try
-                    {
-                        var value = prop.GetValue(node.Parameters);
-                        paramGroup.Parameters.Add(new Models.PropertyItem
-                        {
-                            Label = prop.Name,
-                            Value = value?.ToString() ?? ""
-                        });
-                    }
-                    catch
-                    {
-                        // 读取失败，跳过
-                    }
-                }
-            }
-            PropertyGroups.Add(paramGroup);
-
-            // 性能统计
-            var perfGroup = new Models.PropertyGroup
-            {
-                Name = "📊 性能统计",
-                IsExpanded = true,
-                Parameters = new ObservableCollection<Models.PropertyItem>
-                {
-                    new Models.PropertyItem { Label = "平均时间", Value = "0 ms" },
-                }
-            };
-        }
 
         /// <summary>
         /// 添加节点到当前工作流
@@ -2524,12 +2365,13 @@ namespace SunEyeVision.UI.ViewModels
                 var outputCache = selectedNode.OutputCache;
                 foreach (var imageName in outputCache.GetImageNames())
                 {
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = selectedNode.Id,
-                        NodeName = selectedNode.Name,
-                        OutputPortName = imageName,
-                        DataType = "Mat",
+                        SourceNodeId = selectedNode.Id,
+                        SourceNodeName = selectedNode.Name,
+                        PropertyName = imageName,
+                        DisplayName = string.IsNullOrEmpty(imageName) ? selectedNode.Name : imageName,
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = 0,
                         HasExecuted = true
                     });
@@ -2546,12 +2388,13 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
                         {
-                            DisplayImageSources.Add(new ImageSourceInfo
+                            DisplayImageSources.Add(new AvailableDataSource
                             {
-                                NodeId = selectedNode.Id,
-                                NodeName = selectedNode.Name,
-                                OutputPortName = kvp.Key,
-                                DataType = "Mat",
+                                SourceNodeId = selectedNode.Id,
+                                SourceNodeName = selectedNode.Name,
+                                PropertyName = kvp.Key,
+                                DisplayName = kvp.Key,
+                                PropertyType = typeof(OpenCvSharp.Mat),
                                 Distance = 0,
                                 HasExecuted = true
                             });
@@ -2566,12 +2409,13 @@ namespace SunEyeVision.UI.ViewModels
                     ProcessedImage = null;
                     ResultImage = null;
 
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = selectedNode.Id,
-                        NodeName = $"{selectedNode.Name} (未执行)",
-                        OutputPortName = "Output",
-                        DataType = InferNodeOutputType(selectedNode),
+                        SourceNodeId = selectedNode.Id,
+                        SourceNodeName = $"{selectedNode.Name} (未执行)",
+                        PropertyName = "Output",
+                        DisplayName = "Output",
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = 0,
                         HasExecuted = false
                     });
@@ -2595,12 +2439,13 @@ namespace SunEyeVision.UI.ViewModels
                     {
                         foreach (var kvp in outputValues.Where(kv => kv.Value is OpenCvSharp.Mat))
                         {
-                            DisplayImageSources.Add(new ImageSourceInfo
+                            DisplayImageSources.Add(new AvailableDataSource
                             {
-                                NodeId = parentNode.Id,
-                                NodeName = parentNode.Name,
-                                OutputPortName = kvp.Key,
-                                DataType = "Mat",
+                                SourceNodeId = parentNode.Id,
+                                SourceNodeName = parentNode.Name,
+                                PropertyName = kvp.Key,
+                                DisplayName = kvp.Key,
+                                PropertyType = typeof(OpenCvSharp.Mat),
                                 Distance = distance,
                                 HasExecuted = true
                             });
@@ -2612,12 +2457,13 @@ namespace SunEyeVision.UI.ViewModels
                 // 如果没有输出，添加占位项
                 if (!hasOutput)
                 {
-                    DisplayImageSources.Add(new ImageSourceInfo
+                    DisplayImageSources.Add(new AvailableDataSource
                     {
-                        NodeId = parentNode.Id,
-                        NodeName = $"{parentNode.Name} (未执行)",
-                        OutputPortName = "Output",
-                        DataType = InferNodeOutputType(parentNode),
+                        SourceNodeId = parentNode.Id,
+                        SourceNodeName = $"{parentNode.Name} (未执行)",
+                        PropertyName = "Output",
+                        DisplayName = "Output",
+                        PropertyType = typeof(OpenCvSharp.Mat),
                         Distance = distance,
                         HasExecuted = false
                     });
@@ -2633,6 +2479,167 @@ namespace SunEyeVision.UI.ViewModels
             else
             {
                 SelectedDisplayImageSourceIndex = -1;
+            }
+        }
+
+        /// <summary>
+        /// 更新数据分析控件
+        /// </summary>
+        /// <param name="selectedNode">当前选中的节点</param>
+        private void UpdateDataAnalysisControl(Models.WorkflowNode? selectedNode)
+        {
+            try
+            {
+                // 清空当前控件
+                SelectedNodeDataAnalysisControl = null;
+                HasDataAnalysisControl = false;
+                DataAnalysisControlTitle = "数据分析";
+
+                if (selectedNode == null)
+                {
+                    return;
+                }
+
+                // 获取工具注册信息
+                var toolType = selectedNode.ToolType;
+                if (string.IsNullOrEmpty(toolType))
+                {
+                    return;
+                }
+
+                var toolMetadata = ToolRegistry.GetToolMetadata(toolType);
+                if (toolMetadata == null)
+                {
+                    AddLog($"⚠️ 未找到工具元数据: {toolType}");
+                    return;
+                }
+
+                // 检查是否有调试控件
+                if (toolMetadata.DebugWindowType == null)
+                {
+                    AddLog($"ℹ️ 工具 '{selectedNode.Name}' 无调试控件");
+                    return;
+                }
+
+                // 创建工具实例
+                var tool = ToolRegistry.CreateToolInstance(toolType);
+                if (tool == null)
+                {
+                    AddLog($"❌ 无法创建工具实例: {toolType}");
+                    return;
+                }
+
+                // 创建调试控件
+                var debugControl = tool.CreateDebugControl();
+                if (debugControl == null)
+                {
+                    AddLog($"⚠️ 工具 '{selectedNode.Name}' 未实现调试控件");
+                    return;
+                }
+
+                // 设置控件属性
+                DataAnalysisControlTitle = $"{selectedNode.Name} - 数据分析";
+                SelectedNodeDataAnalysisControl = debugControl;
+                HasDataAnalysisControl = true;
+
+                AddLog($"✅ 已加载数据分析控件: {selectedNode.Name}");
+
+                // 注入数据提供者和节点
+                InjectDataToDebugControl(debugControl, selectedNode);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 更新数据分析控件失败: {ex.Message}");
+                SelectedNodeDataAnalysisControl = null;
+                HasDataAnalysisControl = false;
+            }
+        }
+
+        /// <summary>
+        /// 注入数据提供者和节点信息到调试控件
+        /// </summary>
+        /// <param name="debugControl">调试控件</param>
+        /// <param name="node">当前节点</param>
+        private void InjectDataToDebugControl(System.Windows.FrameworkElement debugControl, Models.WorkflowNode node)
+        {
+            try
+            {
+                // ✅ 1. 先注入节点信息（设置 _currentNodeId）
+                var setCurrentNodeMethod = debugControl.GetType().GetMethod("SetCurrentNode");
+                if (setCurrentNodeMethod != null)
+                {
+                    setCurrentNodeMethod.Invoke(debugControl, new object[] { node });
+                    AddLog($"✅ 已注入节点信息到调试控件");
+                }
+
+                // ✅ 2. 再注入数据提供者（使用 _currentNodeId 填充数据源）
+                var setDataProviderMethod = debugControl.GetType().GetMethod("SetDataProvider");
+                if (setDataProviderMethod != null)
+                {
+                    var dataProvider = GetDataProviderForNode(node);
+                    if (dataProvider != null)
+                    {
+                        setDataProviderMethod.Invoke(debugControl, new object[] { dataProvider });
+                        AddLog($"✅ 已注入数据提供者到调试控件");
+                    }
+                }
+
+                // ✅ 3. 最后注入节点参数
+                var setParametersMethod = debugControl.GetType().GetMethod("SetParameters");
+                if (setParametersMethod != null && node.Parameters != null)
+                {
+                    setParametersMethod.Invoke(debugControl, new object[] { node.Parameters });
+                    AddLog($"✅ 已注入节点参数到调试控件");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠️ 注入数据到调试控件失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取节点的数据提供者
+        /// </summary>
+        /// <param name="node">节点</param>
+        /// <returns>数据提供者实例</returns>
+        private object? GetDataProviderForNode(Models.WorkflowNode node)
+        {
+            try
+            {
+                // 获取当前工作流标签页
+                var selectedTab = WorkflowTabViewModel?.SelectedTab;
+                if (selectedTab == null)
+                {
+                    return null;
+                }
+
+                // 获取当前工作流
+                var currentWorkflow = _workflowEngine.CurrentWorkflow;
+                if (currentWorkflow == null)
+                {
+                    return null;
+                }
+
+                // 创建数据查询服务
+                // 说明：WorkflowEngine 同时实现了两个接口：
+                //   - IWorkflowConnectionProvider：提供工作流连接关系（父节点、子节点、连接线）
+                //   - INodeInfoProvider：提供节点信息（结果类型、输出端口）
+                // 由于架构分层限制，DataSourceQueryService 不能直接引用 WorkflowEngine 类，
+                // 因此通过接口注入。虽然传入的是同一个对象 _workflowEngine，
+                // 但它被分别用作两个不同的接口角色。
+                
+                // 创建属性元数据提供者
+                var metadataProvider = new SunEyeVision.Plugin.Infrastructure.Managers.Tool.PropertyMetadataProviderAdapter();
+                
+                var queryService = new DataSourceQueryService(_workflowEngine, _workflowEngine, null, metadataProvider);
+                LogInfo($"✓ 创建数据查询服务成功: 节点 {node.Id}, 工作流 {currentWorkflow.Name}");
+                return queryService;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ 创建数据查询服务失败: {ex.Message}");
+                return null;
             }
         }
 
@@ -2657,72 +2664,31 @@ namespace SunEyeVision.UI.ViewModels
                 var selectedTab = WorkflowTabViewModel?.SelectedTab;
                 if (selectedTab == null)
                 {
-                    AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
-                    return;
-                }
+                AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
+                return;
+            }
 
-                // 创建数据提供者
-                var dataProvider = new SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider
-                {
-                    CurrentNodeId = currentNode.Id
-                };
+            // 从工作流执行引擎获取数据查询服务
+            // Create data query service with logger for debugging
+            
+            // 创建属性元数据提供者
+            var metadataProvider = new SunEyeVision.Plugin.Infrastructure.Managers.Tool.PropertyMetadataProviderAdapter();
+            
+            var dataProvider = new DataSourceQueryService(_workflowEngine, _workflowEngine, _logger, metadataProvider);
+            if (dataProvider == null)
+            {
+                AddLog("Cannot create data provider");
+                return;
+            }
 
-                // ★ 使用 BFS 递归查找所有上游节点（而不仅仅是直接父节点）
-                // 结果按距离排序：最近的父节点排在前面
-                var allUpstreamNodes = FindAllUpstreamNodes(selectedTab, currentNode.Id);
-                
-                AddLog($"📋 查找到 {allUpstreamNodes.Count} 个上游节点");
+            AddLog($"Data provider created (type: {dataProvider.GetType().Name})");
+            // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
+            var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
+            setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
 
-                // 注册所有上游节点（按距离排序，最近的在前）
-                foreach (var (parentNode, distance) in allUpstreamNodes)
-                {
-                    // 根据节点类型推断输出类型
-                    string outputType = InferNodeOutputType(parentNode);
-
-                    // 注册前驱节点信息
-                    dataProvider.RegisterParentNode(parentNode.Id, parentNode.Name, outputType);
-                    AddLog($"  📌 注册上游节点: {parentNode.Name} (距离: {distance}, 类型: {outputType})");
-
-                    // 如果节点有执行结果，注入输出数据
-                    var executionResult = _workflowContext.GetNodeResult(parentNode.Id);
-                    if (executionResult?.ToolResult != null && executionResult.Success)
-                    {
-                        var outputValues = executionResult.ToolResult.GetOutputValues();
-                        if (outputValues != null && outputValues.Count > 0)
-                        {
-                            // 尝试找到图像类型的输出（通常是第一个或名为 OutputImage 的属性）
-                            var imageOutput = outputValues.FirstOrDefault(kv =>
-                                kv.Value is OpenCvSharp.Mat ||
-                                kv.Key.Contains("Image", StringComparison.OrdinalIgnoreCase) ||
-                                kv.Key.Contains("Output", StringComparison.OrdinalIgnoreCase));
-
-                            if (imageOutput.Value != null)
-                            {
-                                dataProvider.UpdateNodeOutput(parentNode.Id, imageOutput.Value);
-                                AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{imageOutput.Key}");
-                            }
-                            else
-                            {
-                                // 使用第一个非空输出
-                                var firstOutput = outputValues.FirstOrDefault(kv => kv.Value != null);
-                                if (firstOutput.Value != null)
-                                {
-                                    dataProvider.UpdateNodeOutput(parentNode.Id, firstOutput.Value);
-                                    AddLog($"  ✅ 注入节点输出: {parentNode.Name}.{firstOutput.Key}");
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ★ 设置当前节点引用（用于配置持久化）- 必须在 SetDataProvider 之前调用！
-                // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
-                var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
-                setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
-
-                // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
-                setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
-                AddLog($"✅ 已注入 {allUpstreamNodes.Count} 个上游节点到调试窗口");
+            // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
+            setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
+            AddLog($"✅ 已注入数据提供者到调试窗口");
 
                 // ★ 设置主窗口 ImageControl 引用（用于区域编辑器绑定）
                 var setMainImageControlMethod = debugWindow.GetType().GetMethod("SetMainImageControl");
@@ -2748,15 +2714,34 @@ namespace SunEyeVision.UI.ViewModels
             }
             catch (Exception ex)
             {
-                AddLog($"❌ 注入前驱节点失败: {ex.Message}");
+                var errorDetails = new System.Text.StringBuilder();
+                errorDetails.AppendLine($"❌ 注入前驱节点失败: {ex.Message}");
+                
+                var innerEx = ex.InnerException;
+                while (innerEx != null)
+                {
+                    errorDetails.AppendLine($"  → 内部异常: {innerEx.Message}");
+                    if (!string.IsNullOrEmpty(innerEx.StackTrace))
+                    {
+                        // 只输出堆栈跟踪的前3行关键信息
+                        var stackLines = innerEx.StackTrace.Split('\n').Take(3);
+                        foreach (var line in stackLines)
+                        {
+                            errorDetails.AppendLine($"    {line.Trim()}");
+                        }
+                    }
+                    innerEx = innerEx.InnerException;
+                }
+                
+                AddLog(errorDetails.ToString());
             }
         }
 
         /// <summary>
         /// 订阅调试窗口的执行完成事件
         /// </summary>
-        private void SubscribeToolExecutionCompleted(System.Windows.Window debugWindow, Models.WorkflowNode node, 
-            SunEyeVision.Plugin.SDK.UI.Controls.Region.Models.WorkflowDataSourceProvider dataProvider)
+        private void SubscribeToolExecutionCompleted(System.Windows.Window debugWindow, Models.WorkflowNode node,
+            IDataSourceQueryService dataProvider)
         {
             var eventInfo = debugWindow.GetType().GetEvent("ToolExecutionCompleted");
             if (eventInfo != null)
@@ -2788,7 +2773,7 @@ namespace SunEyeVision.UI.ViewModels
                                 // 更新数据提供者中的节点输出
                                 if (outputImage != null)
                                 {
-                                    dataProvider.UpdateNodeOutput(node.Id, outputImage);
+                                    dataProvider.UpdateNodeOutput(node.Id, "OutputImage", outputImage);
                                 }
 
                                 // 更新图像显示（内部已存储到 WorkflowContext）
@@ -2819,47 +2804,6 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 推断节点输出类型
-        /// </summary>
-        private string InferNodeOutputType(Models.WorkflowNode node)
-        {
-            // 根据工具类型推断
-            var toolType = node.ToolType?.ToLower() ?? node.Name.ToLower();
-
-            if (toolType.Contains("image") || toolType.Contains("capture") ||
-                toolType.Contains("load") || toolType.Contains("采集") || toolType.Contains("载入"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("threshold") || toolType.Contains("阈值"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("gray") || toolType.Contains("灰度"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("blur") || toolType.Contains("模糊"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("edge") || toolType.Contains("边缘"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("morphology") || toolType.Contains("形态"))
-            {
-                return "Mat";
-            }
-            else if (toolType.Contains("region") || toolType.Contains("区域"))
-            {
-                return "RegionData";
-            }
-
-            // 默认返回 Mat 类型
-            return "Mat";
-        }
-
 
         /// <summary>
         /// 在指定的 WorkflowCanvasControl 中切换显示包围矩形
@@ -3075,7 +3019,7 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     try
                     {
-                        kvp.Value.UpdateNodeOutput(node.Id, outputValue);
+kvp.Value.UpdateNodeOutput(node.Id, "OutputValue", outputValue);
                         updatedCount++;
                     }
                     catch (Exception ex)
@@ -3742,6 +3686,39 @@ namespace SunEyeVision.UI.ViewModels
             public bool HasDebugWindow => false;
             public System.Windows.Window? CreateDebugWindow() => null;
             public ToolParameters GetDefaultParameters() => new GenericToolParameters();
+        }
+    }
+
+    /// <summary>
+    /// 简单的 Action 命令实现
+    /// </summary>
+    public class ActionCommand<T> : ICommand
+    {
+        private readonly Action<T> _execute;
+        private readonly Func<T, bool>? _canExecute;
+
+        public ActionCommand(Action<T> execute, Func<T, bool>? canExecute = null)
+        {
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+        }
+
+        public event EventHandler? CanExecuteChanged;
+
+        public bool CanExecute(object? parameter)
+        {
+            return _canExecute == null || (parameter is T t && _canExecute(t));
+        }
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is T t)
+                _execute(t);
+        }
+
+        public void RaiseCanExecuteChanged()
+        {
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

@@ -14,7 +14,7 @@
         <convertersUI:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <convertersVisibility:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <convertersVisibility:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
-        <convertersVisibility:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
         <convertersVisibility:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <convertersUI:ExpandIconConverter x:Key="ExpandIconConverter"/>
 
