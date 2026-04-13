@@ -134,26 +134,86 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                         try
                         {
                             var value = resolveResult.Value;
+                            
+                            // 获取对应的绑定配置
+                            var binding = container.Settings.FirstOrDefault(s => s.ParameterName == paramName);
 
-                            // 类型转换
-                            if (value != null && property.PropertyType != value.GetType())
+                            // 检查是否为 ParamValue<> 类型
+                            if (IsParamValueType(property.PropertyType))
                             {
-                                var convertResult = ConvertValue(value, property.PropertyType);
-                                if (convertResult.IsSuccess)
+                                // ParamValue<T> 类型：设置 Value 和 BindingConfig
+                                var paramValue = property.GetValue(parameters);
+                                if (paramValue == null)
                                 {
-                                    value = convertResult.Value;
-                                }
-                                else
-                                {
-                                    result.Warnings.Add($"参数 {paramName} 类型转换失败: {convertResult.ErrorMessage}");
+                                    result.Warnings.Add($"参数 {paramName} 的 ParamValue 未初始化");
                                     result.FailedCount++;
                                     continue;
                                 }
-                            }
 
-                            // 设置值
-                            property.SetValue(parameters, value);
-                            result.AppliedCount++;
+                                // 获取 Value 和 BindingConfig 属性
+                                // 使用基类的 ObjectValue 属性（支持反射）
+                                var valueProperty = paramValue.GetType().GetProperty(nameof(ParamValueBase.ObjectValue));
+                                var bindingConfigProperty = paramValue.GetType().GetProperty(nameof(ParamValue<object>.BindingConfig));
+
+                                if (valueProperty != null && bindingConfigProperty != null)
+                                {
+                                    // 类型转换
+                                    var targetType = valueProperty.PropertyType;
+                                    if (value != null && targetType != value.GetType())
+                                    {
+                                        var convertResult = ConvertValue(value, targetType);
+                                        if (convertResult.IsSuccess)
+                                        {
+                                            value = convertResult.Value;
+                                        }
+                                        else
+                                        {
+                                            result.Warnings.Add($"参数 {paramName} 类型转换失败: {convertResult.ErrorMessage}");
+                                            result.FailedCount++;
+                                            continue;
+                                        }
+                                    }
+
+                                    // 设置 Value
+                                    valueProperty.SetValue(paramValue, value);
+
+                                    // 设置 BindingConfig
+                                    if (binding != null)
+                                    {
+                                        bindingConfigProperty.SetValue(paramValue, binding);
+                                    }
+
+                                    result.AppliedCount++;
+                                }
+                                else
+                                {
+                                    result.Warnings.Add($"参数 {paramName} 缺少 Value 或 BindingConfig 属性");
+                                    result.FailedCount++;
+                                }
+                            }
+                            else
+                            {
+                                // 普通类型：直接设置值（向后兼容）
+                                // 类型转换
+                                if (value != null && property.PropertyType != value.GetType())
+                                {
+                                    var convertResult = ConvertValue(value, property.PropertyType);
+                                    if (convertResult.IsSuccess)
+                                    {
+                                        value = convertResult.Value;
+                                    }
+                                    else
+                                    {
+                                        result.Warnings.Add($"参数 {paramName} 类型转换失败: {convertResult.ErrorMessage}");
+                                        result.FailedCount++;
+                                        continue;
+                                    }
+                                }
+
+                                // 设置值
+                                property.SetValue(parameters, value);
+                                result.AppliedCount++;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -180,6 +240,14 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 检查类型是否为 ParamValue<>
+        /// </summary>
+        private bool IsParamValueType(Type type)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ParamValue<>);
         }
 
         /// <inheritdoc/>

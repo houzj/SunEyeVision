@@ -528,6 +528,61 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
         }
 
+        #region 类型适配器
+
+        /// <summary>
+        /// 解包 ParamValue&lt;T&gt; 类型（读取值）
+        /// </summary>
+        private object? UnwrapParamValue(object? value)
+        {
+            if (value == null)
+                return null;
+
+            // 检测是否是 ParamValue<> 类型
+            var valueType = value.GetType();
+            if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(ParamValue<>))
+            {
+                // 通过反射获取 Value 属性
+                var valueProperty = valueType.GetProperty("Value");
+                if (valueProperty != null)
+                {
+                    return valueProperty.GetValue(value);
+                }
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// 包装值到 ParamValue&lt;T&gt; 类型（设置值）
+        /// </summary>
+        private object? WrapToParamValue(object? value)
+        {
+            if (value == null)
+                return null;
+
+            // 检测当前绑定的值是否是 ParamValue<>
+            var currentValue = Value;
+            if (currentValue == null)
+                return value;
+
+            var currentType = currentValue.GetType();
+            if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(ParamValue<>))
+            {
+                // 通过反射设置 Value 属性
+                var valueProperty = currentType.GetProperty("Value");
+                if (valueProperty != null)
+                {
+                    valueProperty.SetValue(currentValue, value);
+                    return currentValue;  // 返回原 ParamValue<> 实例
+                }
+            }
+
+            return value;
+        }
+
+        #endregion
+
         /// <summary>
         /// 更新内部数值值（类型适配器：object → double）
         /// </summary>
@@ -539,12 +594,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 return;
             }
 
+            // 解包 ParamValue<> 类型
+            var unwrappedValue = UnwrapParamValue(value);
+            if (unwrappedValue == null)
+            {
+                InternalNumericValue = 0.0;
+                return;
+            }
+
             var typeCode = Type.GetTypeCode(DataType);
-            
+
             // 只处理数值类型
             if (typeCode == TypeCode.Int32 || typeCode == TypeCode.Int64 || typeCode == TypeCode.Double)
             {
-                InternalNumericValue = Convert.ToDouble(value);
+                InternalNumericValue = Convert.ToDouble(unwrappedValue);
             }
             else
             {
@@ -564,7 +627,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
 
             var typeCode = Type.GetTypeCode(DataType);
-            
+
             // 修复：显式装箱确保正确的类型推断
             // C# switch 表达式的类型推断会选择"最佳公共类型"
             // 如果不加 (object) 强制转换，编译器会推断为 double 类型
@@ -575,8 +638,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 TypeCode.Double => numericValue,
                 _ => numericValue
             };
-            
-            Value = newValue;
+
+            // 如果当前绑定到 ParamValue<>，则设置到包装器内部
+            Value = WrapToParamValue(newValue);
         }
 
         /// <summary>

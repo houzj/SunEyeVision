@@ -62,8 +62,8 @@
               <controls:ConfigSetting
                                 x:Name="thresholdParam"
                                 ParameterName="Threshold"
-                                DataType="{x:Type sys:Double}"
-                                Value="{Binding Threshold, Mode=TwoWay}"
+                                DataType="{x:Type sys:Int32}"
+                                Value="{Binding Threshold.Value, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
                                 SmallChange="1"
@@ -76,8 +76,8 @@
               <controls:ConfigSetting
                                 x:Name="maxValueParam"
                                 ParameterName="MaxValue"
-                                DataType="{x:Type sys:Double}"
-                                Value="{Binding MaxValue, Mode=TwoWay}"
+                                DataType="{x:Type sys:Int32}"
+                                Value="{Binding MaxValue.Value, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
                                 SmallChange="1"
@@ -89,7 +89,7 @@
               <ComboBox x:Name="thresholdTypeComboBox"
                       Height="32"
                       VerticalContentAlignment="Center" Width="250"
-                      SelectedItem="{Binding Type, Mode=TwoWay, Converter={StaticResource ThresholdTypeConverter}}">
+                      SelectedItem="{Binding Type.Value, Mode=TwoWay, Converter={StaticResource ThresholdTypeConverter}}">
                 <ComboBoxItem Content="Binary"/>
                 <ComboBoxItem Content="BinaryInv"/>
                 <ComboBoxItem Content="Trunc"/>

@@ -20,12 +20,12 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 实际使用的阈值
         /// </summary>
-        public double ThresholdUsed { get; set; }
+        public int ThresholdUsed { get; set; }
 
         /// <summary>
         /// 最大值
         /// </summary>
-        public double MaxValueUsed { get; set; }
+        public int MaxValueUsed { get; set; }
 
         /// <summary>
         /// 使用的阈值类型

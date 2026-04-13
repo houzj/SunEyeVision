@@ -34,16 +34,15 @@ namespace SunEyeVision.Tool.Threshold
     /// </summary>
     /// <remarks>
     /// 参数类继承 ObservableObject，自带属性变化通知，UI 可直接绑定。
-    /// 使用 SetProperty 实现属性，自动触发 PropertyChanged 事件和日志记录。
+    /// 使用 ParamValue 包装器，统一管理参数值和绑定配置。
+    /// 算法层直接使用 parameters.Threshold.Value，完全无感。
     /// 
     /// 多态序列化（rule-010: 方案系统实现规范）：
     /// 使用 [JsonDerivedType] 特性标识参数类型，类型标识符为 "Threshold"。
     /// System.Text.Json 会自动添加 "$type" 字段并在反序列化时识别。
     /// 
     /// 参数验证流程：
-    /// 1. Setter 自动截断：值域范围自动限制（如 0-255）
-    /// 2. 关联参数修正：确保 MinValue < MaxValue
-    /// 3. Validate() 方法：完整验证所有约束条件
+    /// 1. Validate() 方法：完整验证所有约束条件
     /// </remarks>
     [JsonDerivedType(typeof(ThresholdParameters), "Threshold")]
     public class ThresholdParameters : ToolParameters
@@ -72,74 +71,36 @@ namespace SunEyeVision.Tool.Threshold
 
         #endregion
 
-        #region 私有字段
-
-        private int _threshold = 128;
-        private int _maxValue = 255;
-        private ThresholdType _type = ThresholdType.Binary;
-        private bool _invert = false;
-        private AdaptiveMethod _adaptiveMethod = AdaptiveMethod.Mean;
-        private int _blockSize = 11;
-
-        #endregion
-
         #region 基本参数
 
         /// <summary>
         /// 二值化阈值(0-255)
         /// </summary>
         /// <remarks>
-        /// 自动截断到有效范围 [0, 255]
+        /// ParamValue 统一管理值和绑定配置。
+        /// 算法层使用：parameters.Threshold.Value
+        /// 框架层使用：parameters.Threshold.BindingConfig
         /// </remarks>
-        [JsonPropertyName("threshold")]
-        public int Threshold
-        {
-            get => _threshold;
-            set
-            {
-                // 自动截断到有效范围
-                var clampedValue = Math.Clamp(value, ThresholdMin, ThresholdMax);
-                SetProperty(ref _threshold, clampedValue, "阈值");
-            }
-        }
+        public ParamValue<int> Threshold { get; set; } = 
+            ParamValue<int>.CreateConstant(128, "Threshold");
 
         /// <summary>
         /// 超过阈值时使用的最大值(0-255)
         /// </summary>
-        /// <remarks>
-        /// 自动截断到有效范围 [0, 255]
-        /// </remarks>
-        [JsonPropertyName("maxValue")]
-        public int MaxValue
-        {
-            get => _maxValue;
-            set
-            {
-                // 自动截断到有效范围
-                var clampedValue = Math.Clamp(value, ThresholdMin, ThresholdMax);
-                SetProperty(ref _maxValue, clampedValue, "最大值");
-            }
-        }
+        public ParamValue<int> MaxValue { get; set; } = 
+            ParamValue<int>.CreateConstant(255, "MaxValue");
 
         /// <summary>
         /// 二值化方法
         /// </summary>
-        [JsonPropertyName("type")]
-        public ThresholdType Type
-        {
-            get => _type;
-            set => SetProperty(ref _type, value, "阈值类型");
-        }
+        public ParamValue<ThresholdType> Type { get; set; } = 
+            ParamValue<ThresholdType>.CreateConstant(ThresholdType.Binary, "Type");
 
         /// <summary>
         /// 是否反转二值化结果
         /// </summary>
-        [JsonPropertyName("invert")]
-        public bool Invert
-        {
-            get => _invert;
-            set => SetProperty(ref _invert, value, "反转结果");
-        }
+        public ParamValue<bool> Invert { get; set; } = 
+            ParamValue<bool>.CreateConstant(false, "Invert");
 
         #endregion
 
@@ -148,41 +109,14 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 自适应阈值方法
         /// </summary>
-        [JsonPropertyName("adaptiveMethod")]
-        public AdaptiveMethod AdaptiveMethod
-        {
-            get => _adaptiveMethod;
-            set => SetProperty(ref _adaptiveMethod, value, "自适应方法");
-        }
+        public ParamValue<AdaptiveMethod> AdaptiveMethod { get; set; } = 
+            ParamValue<AdaptiveMethod>.CreateConstant(SunEyeVision.Tool.Threshold.AdaptiveMethod.Mean, "AdaptiveMethod");
 
         /// <summary>
         /// 计算阈值的邻域大小(奇数, 3-31)
         /// </summary>
-        /// <remarks>
-        /// 自动修正：确保为奇数，且在 [3, 31] 范围内
-        /// </remarks>
-        [JsonPropertyName("blockSize")]
-        public int BlockSize
-        {
-            get => _blockSize;
-            set
-            {
-                // 自动截断到有效范围
-                var clampedValue = Math.Clamp(value, BlockSizeMin, BlockSizeMax);
-                
-                // 确保块大小为奇数
-                if (clampedValue % 2 == 0)
-                {
-                    // 如果是偶数，向上调整为奇数（不超过最大值）
-                    if (clampedValue < BlockSizeMax)
-                        clampedValue++;
-                    else
-                        clampedValue--;
-                }
-                
-                SetProperty(ref _blockSize, clampedValue, "块大小");
-            }
-        }
+        public ParamValue<int> BlockSize { get; set; } = 
+            ParamValue<int>.CreateConstant(11, "BlockSize");
 
         #endregion
 
@@ -194,6 +128,9 @@ namespace SunEyeVision.Tool.Threshold
         /// <remarks>
         /// 用于参数面板和调试窗口选择图像源。
         /// 支持从上游节点绑定图像输出。
+        /// 
+        /// 注意：ImageSource 保持为 AvailableDataSource，不是 ParamValue，
+        /// 因为它是特殊的数据源绑定，不需要统一管理。
         /// </remarks>
         [IgnoreSave]
         public AvailableDataSource? ImageSource
@@ -237,34 +174,34 @@ namespace SunEyeVision.Tool.Threshold
         /// 2. Threshold 在 [0, 255] 范围内
         /// 3. MaxValue 在 [0, 255] 范围内
         /// 4. BlockSize 在 [3, 31] 范围内
-        /// 5. ResultConfig 各项范围值有效（MinValue &lt; MaxValue）
+        /// 5. ResultConfig 各项范围值有效（MinValue < MaxValue）
         /// </remarks>
         public override ValidationResult Validate()
         {
             var result = base.Validate();
 
             // 块大小必须为奇数
-            if (BlockSize % 2 == 0)
+            if (BlockSize.Value % 2 == 0)
             {
-                result.AddError($"块大小必须为奇数，当前值: {BlockSize}");
+                result.AddError($"块大小必须为奇数，当前值: {BlockSize.Value}");
             }
 
             // 块大小范围检查
-            if (BlockSize < BlockSizeMin || BlockSize > BlockSizeMax)
+            if (BlockSize.Value < BlockSizeMin || BlockSize.Value > BlockSizeMax)
             {
-                result.AddError($"块大小必须在 {BlockSizeMin}-{BlockSizeMax} 范围内，当前值: {BlockSize}");
+                result.AddError($"块大小必须在 {BlockSizeMin}-{BlockSizeMax} 范围内，当前值: {BlockSize.Value}");
             }
 
             // 阈值范围检查
-            if (Threshold < ThresholdMin || Threshold > ThresholdMax)
+            if (Threshold.Value < ThresholdMin || Threshold.Value > ThresholdMax)
             {
-                result.AddError($"阈值必须在 {ThresholdMin}-{ThresholdMax} 范围内，当前值: {Threshold}");
+                result.AddError($"阈值必须在 {ThresholdMin}-{ThresholdMax} 范围内，当前值: {Threshold.Value}");
             }
 
             // 最大值范围检查
-            if (MaxValue < ThresholdMin || MaxValue > ThresholdMax)
+            if (MaxValue.Value < ThresholdMin || MaxValue.Value > ThresholdMax)
             {
-                result.AddError($"最大值必须在 {ThresholdMin}-{ThresholdMax} 范围内，当前值: {MaxValue}");
+                result.AddError($"最大值必须在 {ThresholdMin}-{ThresholdMax} 范围内，当前值: {MaxValue.Value}");
             }
 
             // 结果配置验证

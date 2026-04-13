@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Media.Animation;
 using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Core;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
@@ -70,12 +71,13 @@ namespace SunEyeVision.Tool.Threshold
                 result.InputSize = image.Size();
 
                 // 获取参数值
-                double threshold = parameters.Threshold;
-                int maxValue = parameters.MaxValue;
-                ThresholdType type = parameters.Type;
-                AdaptiveMethod adaptiveMethod = parameters.AdaptiveMethod;
-                int blockSize = parameters.BlockSize;
-                bool invert = parameters.Invert;
+                // 算法层使用 .Value，完全无感参数是常量还是绑定的
+                double threshold = parameters.Threshold.Value;
+                double maxValue = parameters.MaxValue.Value;
+                ThresholdType type = parameters.Type.Value;
+                AdaptiveMethod adaptiveMethod = parameters.AdaptiveMethod.Value;
+                int blockSize = parameters.BlockSize.Value;
+                bool invert = parameters.Invert.Value;
 
                 // 执行阈值化处理
                 Mat outputImage;
@@ -125,8 +127,8 @@ namespace SunEyeVision.Tool.Threshold
 
                 // 设置结果
                 result.OutputImage = outputImage;
-                result.ThresholdUsed = actualThreshold;
-                result.MaxValueUsed = maxValue;
+                result.ThresholdUsed =(int) actualThreshold;
+                result.MaxValueUsed =(int) maxValue;
                 result.TypeUsed = type;
                 result.AdaptiveMethodUsed = adaptiveMethod;
                 result.BlockSizeUsed = blockSize;
