@@ -205,10 +205,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
                 {
                     OnPropertyChanged(nameof(IsDrawingMode));
                     OnPropertyChanged(nameof(IsSubscribeMode));
-                    OnPropertyChanged(nameof(IsSubscribeByRegionMode));
-                    OnPropertyChanged(nameof(IsSubscribeByParameterMode));
-                    OnPropertyChanged(nameof(IsSubscribeByRegion));
-                    OnPropertyChanged(nameof(IsSubscribeByParameter));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
                     OnPropertyChanged(nameof(CurrentToolMode));
                 }
@@ -237,91 +233,31 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public bool IsSubscribeMode
         {
-            get => CurrentMode == RegionDefinitionMode.SubscribeByRegion || 
-                   CurrentMode == RegionDefinitionMode.SubscribeByParameter;
+            get => CurrentMode == RegionDefinitionMode.Subscribe;
             set
             {
                 if (value && CurrentMode == RegionDefinitionMode.Drawing)
                 {
-                    CurrentMode = RegionDefinitionMode.SubscribeByRegion;
+                    CurrentMode = RegionDefinitionMode.Subscribe;
                     OnPropertyChanged(nameof(IsDrawingMode));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
                 }
             }
         }
 
-        /// <summary>
-        /// 是否为按区域订阅模式
-        /// </summary>
-        public bool IsSubscribeByRegionMode
-        {
-            get => CurrentMode == RegionDefinitionMode.SubscribeByRegion;
-            set
-            {
-                if (value)
-                {
-                    CurrentMode = RegionDefinitionMode.SubscribeByRegion;
-                    OnPropertyChanged(nameof(IsDrawingMode));
-                    OnPropertyChanged(nameof(IsSubscribeMode));
-                    OnPropertyChanged(nameof(IsSubscribeByParameter));
-                    OnPropertyChanged(nameof(ShowShapeTypeSelector));
-                }
-            }
-        }
 
-        /// <summary>
-        /// 是否为按参数订阅模式
-        /// </summary>
-        public bool IsSubscribeByParameterMode
-        {
-            get => CurrentMode == RegionDefinitionMode.SubscribeByParameter;
-            set
-            {
-                if (value)
-                {
-                    CurrentMode = RegionDefinitionMode.SubscribeByParameter;
-                    OnPropertyChanged(nameof(IsDrawingMode));
-                    OnPropertyChanged(nameof(IsSubscribeMode));
-                    OnPropertyChanged(nameof(IsSubscribeByRegion));
-                    OnPropertyChanged(nameof(ShowShapeTypeSelector));
-                }
-            }
-        }
 
-        /// <summary>
-        /// 是否为按区域订阅
-        /// </summary>
-        public bool IsSubscribeByRegion
-        {
-            get => CurrentMode == RegionDefinitionMode.SubscribeByRegion;
-            set
-            {
-                if (value && CurrentMode != RegionDefinitionMode.SubscribeByRegion)
-                {
-                    CurrentMode = RegionDefinitionMode.SubscribeByRegion;
-                }
-            }
-        }
 
-        /// <summary>
-        /// 是否为按参数订阅
-        /// </summary>
-        public bool IsSubscribeByParameter
-        {
-            get => CurrentMode == RegionDefinitionMode.SubscribeByParameter;
-            set
-            {
-                if (value && CurrentMode != RegionDefinitionMode.SubscribeByParameter)
-                {
-                    CurrentMode = RegionDefinitionMode.SubscribeByParameter;
-                }
-            }
-        }
+
+
+
+
 
         /// <summary>
         /// 是否显示图形类型选择器
         /// </summary>
-        public bool ShowShapeTypeSelector => IsDrawingMode || IsSubscribeByParameterMode;
+        public bool ShowShapeTypeSelector => IsDrawingMode;
+
 
         /// <summary>
         /// 当前图形类型
@@ -473,8 +409,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         public ICommand RemoveRegionCommand { get; }
         public ICommand ClearAllCommand { get; }
         public ICommand SetDrawingModeCommand { get; }
-        public ICommand SetSubscribeByRegionModeCommand { get; }
-        public ICommand SetSubscribeByParameterModeCommand { get; }
+        public ICommand SetSubscribeModeCommand { get; }
         public ICommand ToggleInfoPanelCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
@@ -506,8 +441,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             RemoveRegionCommand = new RelayCommand(RemoveSelectedRegion, () => HasSelection);
             ClearAllCommand = new RelayCommand(ClearAllRegions, () => Regions.Count > 0);
             SetDrawingModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.Drawing);
-            SetSubscribeByRegionModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.SubscribeByRegion);
-            SetSubscribeByParameterModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.SubscribeByParameter);
+            SetSubscribeModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.Subscribe);
             ToggleInfoPanelCommand = new RelayCommand(() => IsInfoPanelVisible = !IsInfoPanelVisible);
             UndoCommand = new RelayCommand(Undo, () => CanUndo);
             RedoCommand = new RelayCommand(Redo, () => CanRedo);
@@ -797,8 +731,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             OnPropertyChanged(nameof(SelectedRegionMode));
             OnPropertyChanged(nameof(SelectedRegionShapeType));
             OnPropertyChanged(nameof(IsDrawingMode));
-            OnPropertyChanged(nameof(IsSubscribeByRegionMode));
-            OnPropertyChanged(nameof(IsSubscribeByParameterMode));
             OnPropertyChanged(nameof(ParamSettings));
             OnPropertyChanged(nameof(HasParametersVisible));
             OnPropertyChanged(nameof(Parameters));

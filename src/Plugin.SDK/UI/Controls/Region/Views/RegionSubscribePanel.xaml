@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="SunEyeVision.Plugin.SDK.UI.Controls.Region.Views.RegionSubscribePanel"
+<UserControl x:Class="SunEyeVision.Plugin.SDK.UI.Controls.Region.Views.RegionSubscribePanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
@@ -44,7 +44,7 @@
                 <StackPanel Margin="2">
                     <!-- 按矩形区域模式：显示1个参数 -->
                     <controls:LabeledControl Label="矩形区域"
-                                                   LabelWidth="80" ContentHorizontalAlignment="Left"
+                                                   LabelWidth="70" ContentHorizontalAlignment="Left"
                                                    Margin="0,0,0,8"
                                                    Visibility="{Binding IsRectRegionMode, Converter={StaticResource BoolToVisibilityConverter}}">
                         <controls:ParamBinding

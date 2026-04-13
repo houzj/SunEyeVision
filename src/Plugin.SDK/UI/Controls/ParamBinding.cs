@@ -346,7 +346,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 var rootName = rootNode?.Text ?? "";
                 var leafName = selectedNode.Text;
 
-                FriendlyBindingSource = $"{rootName} . {leafName}";
+                FriendlyBindingSource = $"{rootName}.{leafName}";
 
                 // 触发事件
                 RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
@@ -392,8 +392,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 BindingSource = selectedNode.DataSource.GetBindingPath();
 
                 // 设置友好显示名称：根据树形结构动态生成
-                // 格式：根节点名称 . 叶子节点名称
-                // 例如：5.图像阈值化4 . 实际使用的阈值
+                // 格式：根节点名称.叶子节点名称
+                // 例如：5.图像阈值化4.实际使用的阈值
 
                 // 🔍 调试日志：输出节点层级
                 var rootNode = GetRootNode(selectedNode);
@@ -404,7 +404,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     $"[ParamBinding] 选中节点: {leafName}, 父节点: {selectedNode.Parent?.Text ?? "null"}, 根节点: {rootName}",
                     "ParamBinding");
 
-                FriendlyBindingSource = $"{rootName} . {leafName}";
+                FriendlyBindingSource = $"{rootName}.{leafName}";
 
                 // 触发事件
                 RaiseEvent(new RoutedEventArgs(BindingSourceSelectedEvent));
@@ -500,16 +500,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                 return bindingPath;
             }
 
-            // 生成友好名称：根节点 . 叶子节点
+            // 生成友好名称：根节点.叶子节点
             var rootNode = GetRootNode(node);
             var rootName = rootNode?.Text ?? "";
             var leafName = node.Text;
 
             VisionLogger.Instance.Log(LogLevel.Info,
-                $"[ParamBinding] 生成友好名称: {rootName} . {leafName}, 绑定路径: {bindingPath}",
+                $"[ParamBinding] 生成友好名称: {rootName}.{leafName}, 绑定路径: {bindingPath}",
                 "ParamBinding");
 
-            return $"{rootName} . {leafName}";
+            return $"{rootName}.{leafName}";
         }
 
         #endregion

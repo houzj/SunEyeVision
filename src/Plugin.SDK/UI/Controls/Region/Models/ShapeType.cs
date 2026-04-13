@@ -59,14 +59,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         Drawing,
 
         /// <summary>
-        /// 订阅模式 - 按区域类型订阅其他节点输出
+        /// 订阅模式 - 统一订阅，支持区域和参数订阅
         /// </summary>
-        SubscribeByRegion,
-
-        /// <summary>
-        /// 订阅模式 - 按参数订阅，每个参数可单独绑定
-        /// </summary>
-        SubscribeByParameter
+        Subscribe
     }
 
     /// <summary>

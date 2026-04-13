@@ -151,19 +151,7 @@
           </UniformGrid>
         </GroupBox>
 
-        <!-- 输入方式（仅订阅模式显示） -->
-        <GroupBox Header="输入方式" Margin="0,0,0,8"
-                          Visibility="{Binding IsSubscribeMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-          <StackPanel Orientation="Horizontal">
-            <RadioButton Content="按区域"
-                                     IsChecked="{Binding IsSubscribeByRegion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,16,0"
-                                     ToolTip="直接绑定其他节点输出的区域"/>
-            <RadioButton Content="按参数"
-                                     IsChecked="{Binding IsSubscribeByParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="每个参数可单独绑定其他节点输出"/>
-          </StackPanel>
-        </GroupBox>
+
 
         <!-- 参数面板 - 绘制模式 -->
         <!-- 当有选中区域时才显示 -->
@@ -174,22 +162,17 @@
           <local:DrawingParameterPanel DataContext="{Binding}"/>
         </Expander>
 
-        <!-- 参数面板 - 订阅-按区域 -->
-        <Expander Header="区域订阅"
-                          Visibility="{Binding IsSubscribeByRegionMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+
+
+        <!-- 参数面板 - 订阅模式 -->
+        <Expander Header="参数订阅"
+                          Visibility="{Binding IsSubscribeMode, Converter={StaticResource BooleanToVisibilityConverter}}"
                           IsExpanded="True"
                           Margin="0,0,0,8">
-          <local:RegionSubscribePanel DataContext="{Binding NodeSelector}"
+          <local:RegionSubscribePanel DataContext="{Binding ParameterPanel}"
                                                 AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource AncestorType={x:Type local:RegionEditorControl}}}"/>
         </Expander>
 
-        <!-- 参数面板 - 订阅-按参数 -->
-        <Expander Header="参数订阅"
-                          Visibility="{Binding IsSubscribeByParameterMode, Converter={StaticResource BooleanToVisibilityConverter}}"
-                          IsExpanded="True"
-                          Margin="0,0,0,8">
-          <local:ParameterPanel DataContext="{Binding ParameterPanel}"/>
-        </Expander>
 
       </StackPanel>
     </ScrollViewer>

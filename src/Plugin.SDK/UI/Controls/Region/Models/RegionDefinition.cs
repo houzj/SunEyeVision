@@ -384,12 +384,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public FixedRegion()
         {
-            Mode = RegionDefinitionMode.SubscribeByRegion;
+            Mode = RegionDefinitionMode.Subscribe;
         }
 
         public FixedRegion(string nodeId, string outputName, int? index = null)
         {
-            Mode = RegionDefinitionMode.SubscribeByRegion;
+            Mode = RegionDefinitionMode.Subscribe;
             SourceNodeId = nodeId;
             OutputName = outputName;
             RegionIndex = index;
@@ -423,7 +423,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public ComputedRegion()
         {
-            Mode = RegionDefinitionMode.SubscribeByParameter;
+            Mode = RegionDefinitionMode.Subscribe;
         }
 
         public override ShapeType? GetShapeType() => TargetShapeType;

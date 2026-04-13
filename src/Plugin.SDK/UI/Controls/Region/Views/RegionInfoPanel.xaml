@@ -174,38 +174,10 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- 订阅模式参数（区域订阅） -->
-                <GroupBox Header="区域订阅" 
+                <!-- 订阅模式参数 -->
+                <GroupBox Header="订阅参数" 
                           Margin="0,0,0,8"
-                          Visibility="{Binding IsSubscribeByRegionMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <StackPanel Margin="4">
-                        <Grid Margin="0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="源节点:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox Grid.Column="1" 
-                                      IsEnabled="{Binding CanEdit}"
-                                      ToolTip="选择要订阅的节点"/>
-                        </Grid>
-                        <Grid Margin="0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="输出:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox Grid.Column="1" 
-                                      IsEnabled="{Binding CanEdit}"
-                                      ToolTip="选择节点的输出端口"/>
-                        </Grid>
-                    </StackPanel>
-                </GroupBox>
-
-                <!-- 订阅模式参数（参数订阅） -->
-                <GroupBox Header="参数订阅" 
-                          Margin="0,0,0,8"
-                          Visibility="{Binding IsSubscribeByParameterMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                          Visibility="{Binding IsSubscribeMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Margin="4">
                         <TextBlock Text="每个参数可独立绑定到其他节点输出：" 
                                    TextWrapping="Wrap"
