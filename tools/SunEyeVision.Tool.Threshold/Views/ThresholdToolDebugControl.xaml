@@ -43,12 +43,6 @@
                                 AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
                                 SelectedDataSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
             </controls:LabeledControl>
-
-            <TextBlock Text="ROI区域"
-                                   FontSize="13"
-                                   FontWeight="Medium"
-                                   Margin="0 16 0 4"
-                                   Foreground="#333333"/>
             <region:RegionEditorControl x:Name="regionEditor" VerticalContentAlignment="Stretch"/>
           </StackPanel>
         </ScrollViewer>

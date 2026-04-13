@@ -44,7 +44,7 @@
                 <StackPanel Margin="2">
                     <!-- 按矩形区域模式：显示1个参数 -->
                     <controls:LabeledControl Label="矩形区域"
-                                                   LabelWidth="70" ContentHorizontalAlignment="Left"
+                                                   LabelWidth="70" 
                                                    Margin="0,0,0,8"
                                                    Visibility="{Binding IsRectRegionMode, Converter={StaticResource BoolToVisibilityConverter}}">
                         <controls:ParamBinding
