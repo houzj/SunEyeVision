@@ -62,7 +62,7 @@
               <controls:ConfigSetting
                                 x:Name="thresholdParam"
                                 ParameterName="Threshold"
-                                DataType="{x:Type sys:Double}"
+                                DataType="{x:Type sys:Int32}"
                                 Value="{Binding Threshold, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
@@ -76,7 +76,7 @@
               <controls:ConfigSetting
                                 x:Name="maxValueParam"
                                 ParameterName="MaxValue"
-                                DataType="{x:Type sys:Double}"
+                                DataType="{x:Type sys:Int32}"
                                 Value="{Binding MaxValue, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
@@ -311,7 +311,8 @@
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
                                                             Width="250"
-                                                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
+                                                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
+
                   </controls:LabeledControl>
                 </StackPanel>
               </Expander>
