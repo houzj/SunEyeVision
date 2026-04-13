@@ -174,6 +174,13 @@ namespace SunEyeVision.Tool.Threshold.Views
                 _dataProvider = queryService;
                 PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
 
+                // ✅ 新增：为 RegionEditorControl 设置 AvailableDataSources
+                if (regionEditor != null)
+                {
+                    regionEditor.AvailableDataSources = AvailableDataSources;
+                    PluginLogger.Info($"已为 RegionEditorControl 设置 AvailableDataSources，数量: {AvailableDataSources?.Count ?? 0}", "ThresholdTool");
+                }
+
                 // 初始化 RegionEditor
                 if (regionEditor != null && regionEditor.ViewModel != null)
                 {

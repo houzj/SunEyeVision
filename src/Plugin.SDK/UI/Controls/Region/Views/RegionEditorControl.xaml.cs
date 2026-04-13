@@ -16,6 +16,7 @@ using SunEyeVision.Plugin.SDK.UI.Controls;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Logic;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution.Parameters;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 {
@@ -90,6 +91,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                     control.SetRegions(regions);
                 }
             }
+        }
+
+        /// <summary>
+        /// AvailableDataSources 透传属性（用于内部 RegionSubscribePanel）
+        /// </summary>
+        public static readonly DependencyProperty AvailableDataSourcesProperty =
+            DependencyProperty.Register(nameof(AvailableDataSources),
+                typeof(System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>),
+                typeof(RegionEditorControl),
+                new PropertyMetadata(null));
+
+        public System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>? AvailableDataSources
+        {
+            get => (System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>?)GetValue(AvailableDataSourcesProperty);
+            set => SetValue(AvailableDataSourcesProperty, value);
         }
 
         #endregion

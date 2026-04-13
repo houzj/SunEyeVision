@@ -51,8 +51,8 @@
                             Width="200"
                             ParameterName="RectRegion"
                             DataType="{x:Type cv:Rect}"
-                            AvailableDataSources="{Binding AvailableDataSources}"
-                            BindingSource="{Binding RectRegionSource, Mode=TwoWay}"/>
+                            BindingSource="{Binding RectRegionSource, Mode=TwoWay}"
+                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                     </controls:LabeledControl>
 
                     <!-- 按矩形参数模式：显示4个参数 -->
@@ -64,8 +64,8 @@
                                 Width="200"
                                 ParameterName="RectX"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding RectXSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding RectXSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                         <controls:LabeledControl Label="Y"
                                                        LabelWidth="70"
@@ -74,8 +74,8 @@
                                 Width="200"
                                 ParameterName="RectY"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding RectYSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding RectYSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                         <controls:LabeledControl Label="Width"
                                                        LabelWidth="70"
@@ -84,8 +84,8 @@
                                 Width="200"
                                 ParameterName="RectWidth"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding RectWidthSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding RectWidthSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                         <controls:LabeledControl Label="Height"
                                                        LabelWidth="70"
@@ -94,8 +94,8 @@
                                 Width="200"
                                 ParameterName="RectHeight"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding RectHeightSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding RectHeightSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                     </StackPanel>
 
@@ -108,8 +108,8 @@
                             Width="200"
                             ParameterName="CircleRegion"
                             DataType="{x:Type models:Circle2d}"
-                            AvailableDataSources="{Binding AvailableDataSources}"
-                            BindingSource="{Binding CircleRegionSource, Mode=TwoWay}"/>
+                            BindingSource="{Binding CircleRegionSource, Mode=TwoWay}"
+                            AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                     </controls:LabeledControl>
 
                     <!-- 按圆形参数模式：显示3个参数 -->
@@ -121,8 +121,8 @@
                                 Width="200"
                                 ParameterName="CircleCenterX"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding CircleCenterXSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding CircleCenterXSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                         <controls:LabeledControl Label="CenterY"
                                                        LabelWidth="70"
@@ -131,8 +131,8 @@
                                 Width="200"
                                 ParameterName="CircleCenterY"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding CircleCenterYSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding CircleCenterYSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                         <controls:LabeledControl Label="Radius"
                                                        LabelWidth="70"
@@ -141,8 +141,8 @@
                                 Width="200"
                                 ParameterName="CircleRadius"
                                 DataType="{x:Type sys:Double}"
-                                AvailableDataSources="{Binding AvailableDataSources}"
-                                BindingSource="{Binding CircleRadiusSource, Mode=TwoWay}"/>
+                                BindingSource="{Binding CircleRadiusSource, Mode=TwoWay}"
+                                AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:RegionSubscribePanel}}}"/>
                         </controls:LabeledControl>
                     </StackPanel>
                 </StackPanel>
