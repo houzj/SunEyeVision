@@ -25,7 +25,7 @@ namespace SunEyeVision.Tool.Threshold
         /// <summary>
         /// 最大值
         /// </summary>
-        public int MaxValueUsed { get; set; }
+        public double MaxValueUsed { get; set; }
 
         /// <summary>
         /// 使用的阈值类型

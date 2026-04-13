@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
@@ -70,7 +70,7 @@ namespace SunEyeVision.Tool.Threshold
                 result.InputSize = image.Size();
 
                 // 获取参数值
-                int threshold = parameters.Threshold;
+                double threshold = parameters.Threshold;
                 int maxValue = parameters.MaxValue;
                 ThresholdType type = parameters.Type;
                 AdaptiveMethod adaptiveMethod = parameters.AdaptiveMethod;

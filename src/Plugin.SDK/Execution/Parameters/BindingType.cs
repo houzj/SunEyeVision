@@ -36,7 +36,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <remarks>
         /// 参数使用固定的常量值，不依赖其他节点的输出。
         /// 适用于需要手动设置参数值的场景。
-        /// 数据类型由 ParamDataType 枚举或 BindableParameter.DataType 决定。
+        /// 数据类型由 System.Type 定义，支持精确类型匹配。
         /// </remarks>
         Constant = 0,
 

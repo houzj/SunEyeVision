@@ -7,6 +7,7 @@
         xmlns:commands="clr-namespace:SunEyeVision.Plugin.SDK.Commands;assembly=SunEyeVision.Plugin.SDK"
         xmlns:region="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;assembly=SunEyeVision.Plugin.SDK"
         xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters;assembly=SunEyeVision.Plugin.SDK"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:SunEyeVision.Tool.Threshold"
         xmlns:localConverters="clr-namespace:SunEyeVision.Tool.Threshold.Converters"
         mc:Ignorable="d"
@@ -61,7 +62,7 @@
               <controls:ConfigSetting
                                 x:Name="thresholdParam"
                                 ParameterName="Threshold"
-                                DataType="Int"
+                                DataType="{x:Type sys:Double}"
                                 Value="{Binding Threshold, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
@@ -75,7 +76,7 @@
               <controls:ConfigSetting
                                 x:Name="maxValueParam"
                                 ParameterName="MaxValue"
-                                DataType="Int"
+                                DataType="{x:Type sys:Double}"
                                 Value="{Binding MaxValue, Mode=TwoWay}"
                                 Minimum="0"
                                 Maximum="255"
@@ -291,7 +292,7 @@
                   <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
                     <controls:ConfigSetting Grid.Column="1" Grid.Row="3"
                                                             ParameterName="TextConfig.PositionX"
-                                                            DataType="Double"
+                                                            DataType="{x:Type sys:Double}"
                                                             Value="{Binding TextConfig.PositionX, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"
@@ -303,7 +304,7 @@
                   <controls:LabeledControl Label="位置Y" Margin="0,0,0,8">
                     <controls:ConfigSetting Grid.Column="1" Grid.Row="3"
                                                             ParameterName="TextConfig.PositionY"
-                                                            DataType="Double"
+                                                            DataType="{x:Type sys:Double}"
                                                             Value="{Binding TextConfig.PositionY, Mode=TwoWay}"
                                                             Minimum="8"
                                                             Maximum="72"

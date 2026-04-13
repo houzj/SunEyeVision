@@ -144,10 +144,18 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <returns>格式化的显示文本</returns>
         private string GetDropdownDisplayText()
         {
+            string displayName = DisplayName;
+            
+            // 如果是数组类型，添加 [] 标记
+            if (PropertyType != null && PropertyType.IsArray)
+            {
+                displayName += "[]";
+            }
+            
             if (string.IsNullOrEmpty(FullTreeName))
             {
                 // 如果没有 FullTreeName，使用节点名称+空格+显示名称
-                return $"{SourceNodeName} {DisplayName}";
+                return $"{SourceNodeName} {displayName}";
             }
 
             // FullTreeName 已包含节点名称，将点号替换为空格，使其更友好

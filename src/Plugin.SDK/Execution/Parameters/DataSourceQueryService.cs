@@ -46,11 +46,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// </summary>
         private readonly ConcurrentDictionary<string, Dictionary<string, object?>> _nodeOutputs = new ConcurrentDictionary<string, Dictionary<string, object?>>();
         
-        /// <summary>
-        /// 类型查询缓存（按分类缓存）
-        /// </summary>
-        private readonly ConcurrentDictionary<string, Dictionary<OutputTypeCategory, List<AvailableDataSource>>> _categoryCache = 
-            new ConcurrentDictionary<string, Dictionary<OutputTypeCategory, List<AvailableDataSource>>>();
 
 
         /// <summary>
@@ -188,32 +183,25 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
             _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
 
-            // 🔍 优化：使用分类缓存
-            if (targetType != null)
-            {
-                // 1. 将类型映射到分类
-                var category = OutputTypeCategoryMapper.GetCategory(targetType);
-                _logger?.LogInfo($"类型 {targetType.Name} 映射到分类 {category}", "DataSourceQueryService");
-
-                // 2. 调用分类查询（使用缓存）
-                var dataSources = GetAvailableDataSourcesByCategory(nodeId, category);
-
-                _logger?.LogInfo($"总共返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
-                _logger?.LogInfo($"==================================================", "DataSourceQueryService");
-                return dataSources;
-            }
-
-            // 未指定类型：返回所有数据源（保持父节点距离顺序）
-            // ✅ 修正：先获取父节点顺序，再遍历节点收集所有数据源
+            // 获取父节点
             var parentNodes = GetParentNodes(nodeId);
             var allDataSources = new List<AvailableDataSource>();
 
             foreach (var parent in parentNodes)
             {
-                // 获取该节点的所有输出属性（所有分类）
-                var allProperties = parent.OutputProperties;
+                // 获取父节点的输出属性
+                var outputProps = parent.OutputProperties;
                 
-                foreach (var property in allProperties)
+                // 类型过滤（关键优化：精确匹配）
+                if (targetType != null)
+                {
+                    outputProps = outputProps
+                        .Where(p => p.PropertyType == targetType)  // ← 精确匹配
+                        .ToList();
+                }
+
+                // 添加到结果列表
+                foreach (var property in outputProps)
                 {
                     var dataSource = new AvailableDataSource
                     {
@@ -233,52 +221,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 }
             }
 
-            _logger?.LogInfo($"总共返回 {allDataSources.Count} 个数据源（所有分类，保持父节点距离顺序）", "DataSourceQueryService");
+            _logger?.LogInfo($"总共返回 {allDataSources.Count} 个数据源", "DataSourceQueryService");
             _logger?.LogInfo($"==================================================", "DataSourceQueryService");
             return allDataSources;
-        }
-
-        /// <inheritdoc/>
-        public GroupedDataSources GetAvailableDataSourcesGrouped(string nodeId, Type? targetType = null)
-        {
-            _logger?.LogInfo($"========== GetAvailableDataSourcesGrouped 开始 ==========", "DataSourceQueryService");
-            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
-            _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
-
-            // ❌ 必须指定类型，否则抛出异常
-            if (targetType == null)
-            {
-                _logger?.LogError($"未指定目标类型，无法查询数据源", "DataSourceQueryService");
-                throw new ArgumentNullException(nameof(targetType), "必须指定目标类型才能查询分组数据源");
-            }
-
-            var groupedSources = new GroupedDataSources();
-
-            // 🔍 优化：使用分类缓存
-            // 1. 将类型映射到分类
-            var category = OutputTypeCategoryMapper.GetCategory(targetType);
-            _logger?.LogInfo($"[缓存优化] 类型 {targetType.Name} 映射到分类 {category}", "DataSourceQueryService");
-
-            // 2. 调用分类查询（使用缓存）
-            _logger?.LogInfo($"[缓存优化] 调用 GetAvailableDataSourcesByCategory 查询分类 {category}", "DataSourceQueryService");
-            var dataSources = GetAvailableDataSourcesByCategory(nodeId, category);
-            _logger?.LogSuccess($"[缓存优化] 分类查询完成，返回 {dataSources.Count} 个数据源", "DataSourceQueryService");
-
-            // 3. 按类型分类添加
-            _logger?.LogInfo($"[缓存优化] 开始按类型分类数据源...", "DataSourceQueryService");
-            int categoryCount = 0;
-            foreach (var prop in dataSources)
-            {
-                var propCategory = TypeCategoryMapper.GetCategory(prop.PropertyType);
-                groupedSources.AddDataSource(prop, propCategory);
-                _logger?.LogInfo($"      - {prop.DisplayName} ({prop.PropertyType.Name}) -> {propCategory}", "DataSourceQueryService");
-                categoryCount++;
-            }
-
-            _logger?.LogSuccess($"[缓存优化] 分类完成，共分类 {categoryCount} 个数据源", "DataSourceQueryService");
-            _logger?.LogInfo($"分组统计: {groupedSources.GetStatistics()}", "DataSourceQueryService");
-            _logger?.LogInfo($"==================================================", "DataSourceQueryService");
-            return groupedSources;
         }
 
         /// <inheritdoc/>
@@ -535,96 +480,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         #endregion
 
         // ========================================
-        // 按分类查询方法（方案B）
+        // 辅助方法
         // ========================================
-        
-        /// <summary>
-        /// 获取可用数据源（推荐：按分类查询）
-        /// </summary>
-        public List<AvailableDataSource> GetAvailableDataSourcesByCategory(
-            string nodeId, 
-            OutputTypeCategory category)
-        {
-            _logger?.LogInfo(
-                $"获取数据源（按分类）: {nodeId}, 分类={category}", 
-                "DataSourceQueryService");
 
-            // 1. 尝试从缓存获取
-            if (_categoryCache.TryGetValue(nodeId, out var categoryCache))
-            {
-                if (categoryCache.TryGetValue(category, out var cachedSources))
-                {
-                    _logger?.LogInfo($"✅ 从缓存返回 {cachedSources.Count} 个数据源（节点: {nodeId}, 分类: {category}）", "DataSourceQueryService");
-                    return cachedSources;
-                }
-            }
-
-            // 2. 缓存未命中，执行查询
-            _logger?.LogInfo($"⚠️ 缓存未命中，执行查询（节点: {nodeId}, 分类: {category}）", "DataSourceQueryService");
-            var parentNodes = GetParentNodes(nodeId);
-            var dataSources = new List<AvailableDataSource>();
-
-            foreach (var parent in parentNodes)
-            {
-                // 按分类获取属性
-                List<ToolPropertyMetadata> properties;
-                if (_metadataProvider != null)
-                {
-                    properties = _metadataProvider.GetPropertyMetadataByCategory(parent.NodeType, category);
-                }
-                else
-                {
-                    // 回退：从父节点的输出属性中过滤
-                    var allProperties = parent.OutputProperties;
-                    properties = allProperties
-                        .Where(p => OutputTypeCategoryMapper.GetCategory(p.PropertyType) == category)
-                        .Select(p => new ToolPropertyMetadata
-                        {
-                            PropertyName = p.PropertyName,
-                            DisplayName = p.DisplayName,
-                            TreeName = p.FullTreeName,
-                            PropertyType = p.PropertyType,
-                            Description = p.Description
-                        })
-                        .ToList();
-                }
-
-                // 创建数据源
-                foreach (var metadata in properties)
-                {
-                    var dataSource = CreateDataSource(parent, metadata);
-                    if (dataSource != null)
-                    {
-                        dataSources.Add(dataSource);
-                    }
-                }
-            }
-
-            // 3. 存入缓存
-            var nodeCache = _categoryCache.GetOrAdd(nodeId, _ => new Dictionary<OutputTypeCategory, List<AvailableDataSource>>());
-            nodeCache[category] = dataSources;
-
-            return dataSources;
-        }
-        
-        /// <summary>
-        /// 清除节点缓存
-        /// </summary>
-        public void ClearNodeCache(string nodeId)
-        {
-            _categoryCache.TryRemove(nodeId, out _);
-            _logger?.LogInfo($"🗑️ 清除节点缓存: {nodeId}", "DataSourceQueryService");
-        }
-        
-        /// <summary>
-        /// 清除所有缓存
-        /// </summary>
-        public void ClearAllCaches()
-        {
-            _categoryCache.Clear();
-            _logger?.LogInfo($"🗑️ 清除所有缓存", "DataSourceQueryService");
-        }
-        
         /// <summary>
         /// 创建数据源对象
         /// </summary>

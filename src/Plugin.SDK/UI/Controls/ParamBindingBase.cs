@@ -29,20 +29,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public static readonly DependencyProperty DataTypeProperty =
             DependencyProperty.Register(
                 nameof(DataType),
-                typeof(ParamDataType),
+                typeof(Type),
                 typeof(ParamBindingBase),
-                new PropertyMetadata(ParamDataType.Double, OnDataTypeChanged));
+                new PropertyMetadata(null, OnDataTypeChanged));
 
         #endregion
 
         #region 公共属性
 
         /// <summary>
-        /// 数据类型过滤器（ParamDataType 枚举）
+        /// 数据类型过滤器（精确类型）
         /// </summary>
-        public ParamDataType DataType
+        public Type DataType
         {
-            get => (ParamDataType)GetValue(DataTypeProperty);
+            get => (Type)GetValue(DataTypeProperty);
             set => SetValue(DataTypeProperty, value);
         }
 
@@ -227,45 +227,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// 根据参数类型过滤数据源
         /// </summary>
         /// <param name="dataSources">数据源集合</param>
-        /// <param name="dataType">目标数据类型</param>
+        /// <param name="targetType">目标类型（精确类型匹配）</param>
         /// <returns>过滤后的数据源</returns>
-        public static List<AvailableDataSource> FilterDataSourcesByType(List<AvailableDataSource> dataSources, ParamDataType dataType)
+        public static List<AvailableDataSource> FilterDataSourcesByType(List<AvailableDataSource> dataSources, Type targetType)
         {
-            // 将 ParamDataType 映射到 OutputTypeCategory
-            OutputTypeCategory? expectedCategory = dataType switch
-            {
-                ParamDataType.Int => OutputTypeCategory.Numeric,
-                ParamDataType.Double => OutputTypeCategory.Numeric,
-                ParamDataType.String => OutputTypeCategory.Text,
-                ParamDataType.Bool => OutputTypeCategory.Numeric,
-                _ => null
-            };
-            
-            if (expectedCategory == null)
+            if (targetType == null)
             {
                 // 未指定类型：返回所有数据源
                 return dataSources;
             }
-            
-            // 过滤匹配的数据源
-            var filteredDataSources = new List<AvailableDataSource>();
-            
-            foreach (var dataSource in dataSources)
-            {
-                if (dataSource.PropertyType != null)
-                {
-                    // 使用 OutputTypeCategoryMapper 获取数据源的类型分类
-                    var sourceCategory = OutputTypeCategoryMapper.GetCategory(dataSource.PropertyType);
-                    
-                    // 比较分类是否匹配
-                    if (sourceCategory == expectedCategory)
-                    {
-                        filteredDataSources.Add(dataSource);
-                    }
-                }
-            }
-            
-            return filteredDataSources;
+
+            // 精确类型匹配
+            return dataSources.Where(ds => ds.PropertyType != null && ds.PropertyType == targetType).ToList();
         }
 
         #endregion

@@ -20,7 +20,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// 
     /// 设计理念：
     /// - 统一绑定到 AvailableDataSources（包含所有类型的数据源）
-    /// - 控件内部根据 OutputTypeCategory.Image 自动过滤
+    /// - 控件内部根据参数类型自动过滤
     /// - 简化 XAML 绑定：统一使用 AvailableDataSources
     /// 
     /// 使用示例：
@@ -175,9 +175,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
                     bool found = false;
                     foreach (var source in selector.AvailableDataSources)
                     {
-                        // 只检查图像类型的数据源
-                        if (OutputTypeCategoryMapper.GetCategory(source.PropertyType) == OutputTypeCategory.Image &&
-                            source.SourceNodeId == selector.SelectedDataSource.SourceNodeId &&
+                        // 精确匹配数据源（基于节点ID和属性名称）
+                        if (source.SourceNodeId == selector.SelectedDataSource.SourceNodeId &&
                             source.PropertyName == selector.SelectedDataSource.PropertyName)
                         {
                             found = true;

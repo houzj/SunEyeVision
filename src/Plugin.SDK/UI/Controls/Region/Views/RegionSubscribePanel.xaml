@@ -3,7 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
              xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls"
-             xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters">
+             xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:cv="clr-namespace:OpenCvSharp;assembly=OpenCvSharp"
+             xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.Models.Geometry;assembly=SunEyeVision.Plugin.SDK">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:SubscribeModeToBoolConverter x:Key="SubscribeModeToBoolConverter"/>
@@ -47,7 +50,7 @@
                         <controls:ParamBinding
                             Width="200"
                             ParameterName="RectRegion"
-                            DataType="Rect"
+                            DataType="{x:Type cv:Rect}"
                             AvailableDataSources="{Binding AvailableDataSources}"
                             BindingSource="{Binding RectRegionSource, Mode=TwoWay}"/>
                     </controls:LabeledControl>
@@ -60,7 +63,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="RectX"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding RectXSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -70,7 +73,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="RectY"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding RectYSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -80,7 +83,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="RectWidth"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding RectWidthSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -90,7 +93,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="RectHeight"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding RectHeightSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -104,7 +107,7 @@
                         <controls:ParamBinding
                             Width="200"
                             ParameterName="CircleRegion"
-                            DataType="Circle"
+                            DataType="{x:Type models:Circle2d}"
                             AvailableDataSources="{Binding AvailableDataSources}"
                             BindingSource="{Binding CircleRegionSource, Mode=TwoWay}"/>
                     </controls:LabeledControl>
@@ -117,7 +120,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="CircleCenterX"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding CircleCenterXSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -127,7 +130,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="CircleCenterY"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding CircleCenterYSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>
@@ -137,7 +140,7 @@
                             <controls:ParamBinding
                                 Width="200"
                                 ParameterName="CircleRadius"
-                                DataType="Double"
+                                DataType="{x:Type sys:Double}"
                                 AvailableDataSources="{Binding AvailableDataSources}"
                                 BindingSource="{Binding CircleRadiusSource, Mode=TwoWay}"/>
                         </controls:LabeledControl>

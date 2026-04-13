@@ -13,6 +13,11 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
     /// <remarks>
     /// 桥接 ToolRegistry 和 IPropertyMetadataProvider 接口。
     /// 实现 SDK 层定义的接口，内部调用 Infrastructure 层的 ToolRegistry。
+    /// 
+    /// 优化方案（2026-04）：
+    /// - 按具体类型查询，无需分类
+    /// - 直接精确匹配类型（typeof(Point[]), typeof(Mat) 等）
+    /// - 符合视觉软件特点（OpenCvSharp 主要使用数组）
     /// </remarks>
     public class PropertyMetadataProviderAdapter : IPropertyMetadataProvider
     {
@@ -39,69 +44,22 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 按分类获取属性元数据（方案B）
+        /// 按类型获取属性元数据（优化方案）
         /// </summary>
         /// <param name="toolType">工具类型名称或ID</param>
-        /// <param name="category">类型分类</param>
+        /// <param name="propertyType">属性类型（如 typeof(Point[]), typeof(Mat) 等）</param>
         /// <returns>属性元数据列表</returns>
-        public List<ToolPropertyMetadata> GetPropertyMetadataByCategory(string toolType, OutputTypeCategory category)
+        public List<ToolPropertyMetadata> GetPropertyMetadataByType(string toolType, Type propertyType)
         {
             try
             {
-                // 获取所有属性元数据
-                var allMetadata = ToolRegistry.GetAllPropertyMetadata(toolType) ?? new List<ToolPropertyMetadata>();
-
-                // 按分类过滤
-                var filteredMetadata = allMetadata.Where(metadata =>
-                {
-                    if (metadata.PropertyType == null)
-                        return false;
-
-                    var typeCategory = TypeCategoryMapper.GetCategory(metadata.PropertyType);
-                    return typeCategory == category;
-                }).ToList();
-
-                return filteredMetadata;
+                // 直接调用 ToolRegistry 的按类型查询方法
+                return ToolRegistry.GetMetadataByType(toolType, propertyType);
             }
             catch (Exception ex)
             {
                 VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"[PropertyMetadataProvider] 按分类获取属性元数据失败: {toolType}, 分类: {category}, 错误: {ex.Message}",
-                    "PropertyMetadataProvider");
-                return new List<ToolPropertyMetadata>();
-            }
-        }
-
-        /// <summary>
-        /// 按类型获取属性元数据（兼容旧接口）
-        /// </summary>
-        /// <param name="toolType">工具类型名称或ID</param>
-        /// <param name="targetType">目标类型</param>
-        /// <returns>属性元数据列表</returns>
-        public List<ToolPropertyMetadata> GetPropertyMetadataByType(string toolType, Type targetType)
-        {
-            try
-            {
-                // 获取所有属性元数据
-                var allMetadata = ToolRegistry.GetAllPropertyMetadata(toolType) ?? new List<ToolPropertyMetadata>();
-
-                // 按类型过滤（支持类型匹配和派生类）
-                var filteredMetadata = allMetadata.Where(metadata =>
-                {
-                    if (metadata.PropertyType == null)
-                        return false;
-
-                    // 精确匹配或派生类匹配
-                    return metadata.PropertyType == targetType ||
-                           targetType.IsAssignableFrom(metadata.PropertyType);
-                }).ToList();
-
-                return filteredMetadata;
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"[PropertyMetadataProvider] 按类型获取属性元数据失败: {toolType}, 类型: {targetType?.Name}, 错误: {ex.Message}",
+                    $"[PropertyMetadataProvider] 按类型获取属性元数据失败: {toolType}, 类型: {propertyType?.Name}, 错误: {ex.Message}",
                     "PropertyMetadataProvider");
                 return new List<ToolPropertyMetadata>();
             }

@@ -431,10 +431,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (d is ConfigSetting control)
             {
-                // 根据 DataType 自动设置 DecimalPlaces
-                if (e.NewValue is ParamDataType dataType)
+                // 根据 Type.Code 自动设置 DecimalPlaces
+                if (e.NewValue is Type dataType)
                 {
-                    if (dataType == ParamDataType.Int)
+                    var typeCode = Type.GetTypeCode(dataType);
+                    
+                    if (typeCode == TypeCode.Int32 || typeCode == TypeCode.Int64)
                     {
                         // 整数类型：强制设置为 0 位小数
                         control.DecimalPlaces = 0;
@@ -478,40 +480,31 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// <returns>符合 DataType 的值</returns>
         private object? ValidateAndCorrectValueType(object? value)
         {
-            if (value == null)
-                return null;
-
-            var expectedType = DataType switch
-            {
-                ParamDataType.Int => typeof(int),
-                ParamDataType.Double => typeof(double),
-                ParamDataType.String => typeof(string),
-                ParamDataType.Bool => typeof(bool),
-                _ => null
-            };
-
-            if (expectedType == null)
+            if (value == null || DataType == null)
                 return value;
 
+            var typeCode = Type.GetTypeCode(DataType);
+
             // 如果类型已匹配，直接返回
-            if (expectedType.IsAssignableFrom(value.GetType()))
+            if (DataType.IsAssignableFrom(value.GetType()))
                 return value;
 
             // 尝试转换
             try
             {
-                object correctedValue = DataType switch
+                object? correctedValue = typeCode switch
                 {
-                    ParamDataType.Int => Convert.ToInt32(value),
-                    ParamDataType.Double => Convert.ToDouble(value),
-                    ParamDataType.String => value.ToString() ?? string.Empty,
-                    ParamDataType.Bool => Convert.ToBoolean(value),
+                    TypeCode.Int32 => Convert.ToInt32(value),
+                    TypeCode.Int64 => Convert.ToInt64(value),
+                    TypeCode.Double => Convert.ToDouble(value),
+                    TypeCode.String => value.ToString() ?? string.Empty,
+                    TypeCode.Boolean => Convert.ToBoolean(value),
                     _ => value
                 };
 
                 // 使用标准日志系统记录类型修正
                 PluginLogger.Warning(
-                    $"值类型自动修正: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}",
+                    $"值类型自动修正: {value.GetType().Name} → {DataType.Name}, 参数: {ParameterName}",
                     "ConfigSetting");
 
                 return correctedValue;
@@ -519,16 +512,17 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             catch (Exception ex)
             {
                 PluginLogger.Error(
-                    $"值类型转换失败: {value.GetType().Name} → {expectedType.Name}, 参数: {ParameterName}, 错误: {ex.Message}",
+                    $"值类型转换失败: {value.GetType().Name} → {DataType.Name}, 参数: {ParameterName}, 错误: {ex.Message}",
                     "ConfigSetting");
 
                 // 返回默认值
-                return DataType switch
+                return typeCode switch
                 {
-                    ParamDataType.Int => 0,
-                    ParamDataType.Double => 0.0,
-                    ParamDataType.String => string.Empty,
-                    ParamDataType.Bool => false,
+                    TypeCode.Int32 => 0,
+                    TypeCode.Int64 => 0L,
+                    TypeCode.Double => 0.0,
+                    TypeCode.String => string.Empty,
+                    TypeCode.Boolean => false,
                     _ => value
                 };
             }
@@ -539,19 +533,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         private void UpdateInternalNumericValue(object? value)
         {
-            if (value == null)
+            if (value == null || DataType == null)
             {
                 InternalNumericValue = 0.0;
                 return;
             }
 
-            // 根据数据类型转换
-            InternalNumericValue = DataType switch
+            var typeCode = Type.GetTypeCode(DataType);
+            
+            // 只处理数值类型
+            if (typeCode == TypeCode.Int32 || typeCode == TypeCode.Int64 || typeCode == TypeCode.Double)
             {
-                ParamDataType.Int => Convert.ToDouble(value),
-                ParamDataType.Double => Convert.ToDouble(value),
-                _ => 0.0
-            };
+                InternalNumericValue = Convert.ToDouble(value);
+            }
+            else
+            {
+                InternalNumericValue = 0.0;
+            }
         }
 
         /// <summary>
@@ -559,13 +557,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         private void SetFromInternalNumericValue(double numericValue)
         {
+            if (DataType == null)
+            {
+                Value = numericValue;
+                return;
+            }
+
+            var typeCode = Type.GetTypeCode(DataType);
+            
             // 修复：显式装箱确保正确的类型推断
             // C# switch 表达式的类型推断会选择"最佳公共类型"
             // 如果不加 (object) 强制转换，编译器会推断为 double 类型
-            object? newValue = DataType switch
+            object? newValue = typeCode switch
             {
-                ParamDataType.Int => (object)(int)Math.Round(numericValue),  // 显式装箱为 object
-                ParamDataType.Double => numericValue,
+                TypeCode.Int32 => (object)(int)Math.Round(numericValue),  // 显式装箱为 object
+                TypeCode.Int64 => (object)(long)Math.Round(numericValue), // 显式装箱为 object
+                TypeCode.Double => numericValue,
                 _ => numericValue
             };
             
@@ -577,10 +584,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         private void UpdateInternalNumericRange()
         {
+            if (DataType == null)
+            {
+                InternalNumericMinimum = double.MinValue;
+                InternalNumericMaximum = double.MaxValue;
+                return;
+            }
+
+            var typeCode = Type.GetTypeCode(DataType);
+            bool isInteger = typeCode == TypeCode.Int32 || typeCode == TypeCode.Int64;
+
             // 更新最小值
             if (Minimum == null)
             {
-                InternalNumericMinimum = DataType == ParamDataType.Int ? int.MinValue : double.MinValue;
+                InternalNumericMinimum = isInteger ? int.MinValue : double.MinValue;
             }
             else
             {
@@ -590,7 +607,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             // 更新最大值
             if (Maximum == null)
             {
-                InternalNumericMaximum = DataType == ParamDataType.Int ? int.MaxValue : double.MaxValue;
+                InternalNumericMaximum = isInteger ? int.MaxValue : double.MaxValue;
             }
             else
             {
@@ -603,10 +620,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         /// </summary>
         private void UpdateUIFromValue(object? value)
         {
+            if (DataType == null)
+                return;
+
+            var typeCode = Type.GetTypeCode(DataType);
+
             // Numeric 控件通过绑定 InternalNumericValue 自动更新，无需手动处理
             
             // String 控件
-            if (_stringTextBox != null && DataType == ParamDataType.String)
+            if (_stringTextBox != null && typeCode == TypeCode.String)
             {
                 var text = value?.ToString() ?? string.Empty;
                 if (_stringTextBox.Text != text)
@@ -616,7 +638,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
             
             // Bool 控件
-            if (_boolCheckBox != null && DataType == ParamDataType.Bool)
+            if (_boolCheckBox != null && typeCode == TypeCode.Boolean)
             {
                 var isChecked = value is bool b && b;
                 if (_boolCheckBox.IsChecked != isChecked)
@@ -741,23 +763,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
             else
             {
-                // 常量模式：根据 DataType 显示对应的编辑器
+                // 常量模式：根据 Type.Code 显示对应的编辑器
                 ParamBindingVisibility = Visibility.Collapsed;
 
-                switch (DataType)
+                if (DataType == null)
                 {
-                    case ParamDataType.Int:
-                    case ParamDataType.Double:
+                    NumericEditorVisibility = Visibility.Collapsed;
+                    StringTextBoxVisibility = Visibility.Collapsed;
+                    BoolCheckBoxVisibility = Visibility.Collapsed;
+                    return;
+                }
+
+                var typeCode = Type.GetTypeCode(DataType);
+
+                switch (typeCode)
+                {
+                    case TypeCode.Int32:
+                    case TypeCode.Int64:
+                    case TypeCode.Double:
+                    case TypeCode.Single:
+                    case TypeCode.Decimal:
                         NumericEditorVisibility = Visibility.Visible;
                         StringTextBoxVisibility = Visibility.Collapsed;
                         BoolCheckBoxVisibility = Visibility.Collapsed;
                         break;
-                    case ParamDataType.String:
+                    case TypeCode.String:
+                    case TypeCode.Char:
                         NumericEditorVisibility = Visibility.Collapsed;
                         StringTextBoxVisibility = Visibility.Visible;
                         BoolCheckBoxVisibility = Visibility.Collapsed;
                         break;
-                    case ParamDataType.Bool:
+                    case TypeCode.Boolean:
                         NumericEditorVisibility = Visibility.Collapsed;
                         StringTextBoxVisibility = Visibility.Collapsed;
                         BoolCheckBoxVisibility = Visibility.Visible;

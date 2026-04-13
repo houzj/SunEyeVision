@@ -94,7 +94,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Converters
     ///     整数编辑器
     /// &lt;/Grid&gt;
     /// &lt;Grid Visibility="{Binding DataType, Converter={StaticResource DataTypeToVisibilityConverter}, ConverterParameter=Numeric}"&gt;
-    ///     数值编辑器（支持 Int 和 Double）
+    ///     数值编辑器（支持 Int、Int64、Double、Single、Decimal）
     /// &lt;/Grid&gt;
     /// </code>
     /// </remarks>
@@ -102,19 +102,45 @@ namespace SunEyeVision.Plugin.SDK.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is ParamDataType dataType && parameter is string expectedType)
+            if (value is Type dataType && parameter is string expectedType)
             {
-                // 支持特殊参数 "Numeric"，同时匹配 Int 和 Double
+                var typeCode = Type.GetTypeCode(dataType);
+
+                // 支持特殊参数 "Numeric"，同时匹配所有数值类型
                 if (expectedType == "Numeric")
                 {
-                    return (dataType == ParamDataType.Int || dataType == ParamDataType.Double)
+                    bool isNumeric = typeCode == TypeCode.Int32 || 
+                                    typeCode == TypeCode.Int64 || 
+                                    typeCode == TypeCode.Double || 
+                                    typeCode == TypeCode.Single || 
+                                    typeCode == TypeCode.Decimal;
+                    return isNumeric ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                }
+
+                // 支持类型名称匹配（如 "Int"、"String" 等）
+                if (expectedType == "Int")
+                {
+                    return typeCode == TypeCode.Int32 || typeCode == TypeCode.Int64
                         ? System.Windows.Visibility.Visible
                         : System.Windows.Visibility.Collapsed;
                 }
-
-                if (Enum.TryParse<ParamDataType>(expectedType, out ParamDataType expected))
+                if (expectedType == "Double")
                 {
-                    return dataType == expected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                    return typeCode == TypeCode.Double || typeCode == TypeCode.Single
+                        ? System.Windows.Visibility.Visible
+                        : System.Windows.Visibility.Collapsed;
+                }
+                if (expectedType == "String")
+                {
+                    return typeCode == TypeCode.String || typeCode == TypeCode.Char
+                        ? System.Windows.Visibility.Visible
+                        : System.Windows.Visibility.Collapsed;
+                }
+                if (expectedType == "Bool")
+                {
+                    return typeCode == TypeCode.Boolean
+                        ? System.Windows.Visibility.Visible
+                        : System.Windows.Visibility.Collapsed;
                 }
             }
             return System.Windows.Visibility.Collapsed;

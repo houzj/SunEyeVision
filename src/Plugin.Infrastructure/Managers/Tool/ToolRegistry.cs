@@ -28,38 +28,24 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         private static readonly object _lock = new();
 
         // ========================================
-        // 缓存结构：多个缓存池（方案B）
+        // 缓存结构：基于具体类型的缓存池（优化方案）
         // ========================================
         
         /// <summary>
-        /// 数值类型缓存池
+        /// 类型缓存池（基于具体类型）
         /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _numericTypeCache = new();
-        
-        /// <summary>
-        /// 图像类型缓存池
-        /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _imageTypeCache = new();
-        
-        /// <summary>
-        /// 形状类型缓存池
-        /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _shapeTypeCache = new();
-        
-        /// <summary>
-        /// 文本类型缓存池
-        /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _textTypeCache = new();
-        
-        /// <summary>
-        /// 列表类型缓存池
-        /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _listTypeCache = new();
-        
-        /// <summary>
-        /// 其他类型缓存池
-        /// </summary>
-        private static readonly Dictionary<string, List<ToolPropertyMetadata>> _otherTypeCache = new();
+        /// <remarks>
+        /// 优化方案：按具体类型缓存，无需分类
+        /// - Point[] → 缓存到 "OpenCvSharp.Point[]"
+        /// - Mat     → 缓存到 "OpenCvSharp.Mat"
+        /// - double[] → 缓存到 "System.Double[]"
+        /// 
+        /// 优点：
+        /// 1. 查询效率高（直接索引，无需遍历）
+        /// 2. 类型精确匹配（不会误判）
+        /// 3. 符合视觉软件特点（OpenCvSharp API 主要使用数组）
+        /// </remarks>
+        private static readonly Dictionary<string, Dictionary<string, List<ToolPropertyMetadata>>> _typeCache = new();
 
         /// <summary>
         /// 注册工具类型（从 [Tool] 特性提取元数据）
@@ -332,12 +318,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         /// </summary>
         public static void ClearAllCaches()
         {
-            _numericTypeCache.Clear();
-            _imageTypeCache.Clear();
-            _shapeTypeCache.Clear();
-            _textTypeCache.Clear();
-            _listTypeCache.Clear();
-            _otherTypeCache.Clear();
+            _typeCache.Clear();
             
             VisionLogger.Instance.Log(LogLevel.Success, 
                 "✅ 清除所有属性元数据缓存池", 
@@ -349,12 +330,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         /// </summary>
         public static void ClearToolCache(string toolId)
         {
-            _numericTypeCache.Remove(toolId);
-            _imageTypeCache.Remove(toolId);
-            _shapeTypeCache.Remove(toolId);
-            _textTypeCache.Remove(toolId);
-            _listTypeCache.Remove(toolId);
-            _otherTypeCache.Remove(toolId);
+            foreach (var typeCache in _typeCache.Values)
+            {
+                typeCache.Remove(toolId);
+            }
             
             VisionLogger.Instance.Log(LogLevel.Success, 
                 $"✅ 清除工具缓存: {toolId}", 
@@ -362,24 +341,68 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
         
         // ========================================
-        // 按分类查询方法
+        // 按类型查询方法（优化方案）
         // ========================================
         
         /// <summary>
-        /// 按分类获取属性元数据
+        /// 按具体类型获取属性元数据
         /// </summary>
-        public static List<ToolPropertyMetadata> GetMetadataByCategory(string toolId, OutputTypeCategory category)
+        /// <param name="toolId">工具ID</param>
+        /// <param name="propertyType">属性类型（如 typeof(Point[]), typeof(Mat) 等）</param>
+        /// <returns>属性元数据列表</returns>
+        /// <remarks>
+        /// 示例：
+        /// <code>
+        /// // 查询 Point[] 类型的属性
+        /// var props = ToolRegistry.GetMetadataByType("contour", typeof(Point[]));
+        /// // 返回：[ { PropertyName: "Contours", PropertyType: typeof(Point[]) } ]
+        /// </code>
+        /// </remarks>
+        public static List<ToolPropertyMetadata> GetMetadataByType(
+            string toolId, 
+            Type propertyType)
         {
-            return category switch
+            if (propertyType == null)
+                return new List<ToolPropertyMetadata>();
+            
+            var typeFullName = propertyType.FullName;
+            if (string.IsNullOrEmpty(typeFullName))
+                return new List<ToolPropertyMetadata>();
+            
+            if (_typeCache.TryGetValue(typeFullName, out var toolCache) &&
+                toolCache.TryGetValue(toolId, out var properties))
             {
-                OutputTypeCategory.Numeric => _numericTypeCache.TryGetValue(toolId, out var numeric) ? numeric : new(),
-                OutputTypeCategory.Image => _imageTypeCache.TryGetValue(toolId, out var image) ? image : new(),
-                OutputTypeCategory.Shape => _shapeTypeCache.TryGetValue(toolId, out var shape) ? shape : new(),
-                OutputTypeCategory.Text => _textTypeCache.TryGetValue(toolId, out var text) ? text : new(),
-                OutputTypeCategory.List => _listTypeCache.TryGetValue(toolId, out var list) ? list : new(),
-                OutputTypeCategory.Other => _otherTypeCache.TryGetValue(toolId, out var other) ? other : new(),
-                _ => new()
-            };
+                return properties;
+            }
+            
+            return new List<ToolPropertyMetadata>();
+        }
+
+        /// <summary>
+        /// 获取指定类型的所有工具属性元数据
+        /// </summary>
+        /// <param name="propertyType">属性类型</param>
+        /// <returns>所有工具的该类型属性列表</returns>
+        public static List<ToolPropertyMetadata> GetMetadataByType(Type propertyType)
+        {
+            if (propertyType == null)
+                return new List<ToolPropertyMetadata>();
+            
+            var typeFullName = propertyType.FullName;
+            if (string.IsNullOrEmpty(typeFullName))
+                return new List<ToolPropertyMetadata>();
+            
+            if (_typeCache.TryGetValue(typeFullName, out var toolCache))
+            {
+                var allProperties = new List<ToolPropertyMetadata>();
+                foreach (var properties in toolCache.Values)
+                {
+                    allProperties.AddRange(properties);
+                }
+                return allProperties;
+            }
+            
+            return new List<ToolPropertyMetadata>();
         }
 
         /// <summary>
@@ -421,7 +444,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 提取属性元数据到多个缓存池（方案B）
+        /// 提取属性元数据到类型缓存（优化方案）
         /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <param name="resultType">结果类型</param>
@@ -463,14 +486,6 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                     return;
                 }
                 
-                // 为每个分类创建列表
-                var numericProperties = new List<ToolPropertyMetadata>();
-                var imageProperties = new List<ToolPropertyMetadata>();
-                var shapeProperties = new List<ToolPropertyMetadata>();
-                var textProperties = new List<ToolPropertyMetadata>();
-                var listProperties = new List<ToolPropertyMetadata>();
-                var otherProperties = new List<ToolPropertyMetadata>();
-                
                 // 遍历所有公共属性
                 var properties = resultType.GetProperties(
                     BindingFlags.Public |
@@ -489,15 +504,8 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                         continue;
                     
                     // 跳过特殊属性
-                    if (prop.Name == "Status" ||
-                        prop.Name == "ErrorMessage" ||
-                        prop.Name == "ExecutionTimeMs" ||
-                        prop.Name == "Timestamp" ||
-                        prop.Name == "ToolName" ||
-                        prop.Name == "ToolId")
-                    {
+                    if (IsSpecialProperty(prop.Name))
                         continue;
-                    }
                     
                     // 获取 TreeName
                     var treeName = tempResult.GetPropertyTreeName(prop.Name);
@@ -512,67 +520,38 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
                         Description = GetPropertyDescription(prop)
                     };
                     
-                    // 确定类型分类
-                    var category = OutputTypeCategoryMapper.GetCategory(prop.PropertyType);
-                    
-                    // 添加到对应的缓存池
-                    switch (category)
+                    // 获取类型全名（作为缓存Key）
+                    var typeFullName = prop.PropertyType.FullName;
+                    if (string.IsNullOrEmpty(typeFullName))
                     {
-                        case OutputTypeCategory.Numeric:
-                            numericProperties.Add(metadata);
-                            break;
-                        case OutputTypeCategory.Image:
-                            imageProperties.Add(metadata);
-                            break;
-                        case OutputTypeCategory.Shape:
-                            shapeProperties.Add(metadata);
-                            break;
-                        case OutputTypeCategory.Text:
-                            textProperties.Add(metadata);
-                            break;
-                        case OutputTypeCategory.List:
-                            listProperties.Add(metadata);
-                            break;
-                        case OutputTypeCategory.Other:
-                            otherProperties.Add(metadata);
-                            break;
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"类型 '{prop.PropertyType.Name}' 没有FullName，跳过缓存",
+                            "ToolRegistry");
+                        continue;
                     }
+                    
+                    // 添加到类型缓存（关键优化：直接按具体类型缓存）
+                    if (!_typeCache.ContainsKey(typeFullName))
+                    {
+                        _typeCache[typeFullName] = new Dictionary<string, List<ToolPropertyMetadata>>();
+                    }
+                    
+                    if (!_typeCache[typeFullName].ContainsKey(toolId))
+                    {
+                        _typeCache[typeFullName][toolId] = new List<ToolPropertyMetadata>();
+                    }
+                    
+                    _typeCache[typeFullName][toolId].Add(metadata);
                     
                     validPropertyCount++;
                     
                     VisionLogger.Instance.Log(LogLevel.Info,
-                        $"  [ToolRegistry] 添加属性到 [{category}] 分类: {metadata.PropertyName} ({prop.PropertyType.Name})",
+                        $"  [ToolRegistry] 添加属性到类型缓存 [{typeFullName}]: {metadata.PropertyName} ({prop.PropertyType.Name})",
                         "ToolRegistry");
                 }
                 
-                // 存入对应的缓存池
-                if (numericProperties.Count > 0)
-                    _numericTypeCache[toolId] = numericProperties;
-                
-                if (imageProperties.Count > 0)
-                    _imageTypeCache[toolId] = imageProperties;
-                
-                if (shapeProperties.Count > 0)
-                    _shapeTypeCache[toolId] = shapeProperties;
-                
-                if (textProperties.Count > 0)
-                    _textTypeCache[toolId] = textProperties;
-                
-                if (listProperties.Count > 0)
-                    _listTypeCache[toolId] = listProperties;
-                
-                if (otherProperties.Count > 0)
-                    _otherTypeCache[toolId] = otherProperties;
-                
                 VisionLogger.Instance.Log(LogLevel.Success,
-                    $"✅ 提取属性元数据完成: {toolId}, " +
-                    $"共 {validPropertyCount} 个属性, " +
-                    $"分类: Numeric={numericProperties.Count}, " +
-                    $"Image={imageProperties.Count}, " +
-                    $"Shape={shapeProperties.Count}, " +
-                    $"Text={textProperties.Count}, " +
-                    $"List={listProperties.Count}, " +
-                    $"Other={otherProperties.Count}",
+                    $"✅ 提取属性元数据完成: {toolId}, 共 {validPropertyCount} 个属性",
                     "ToolRegistry");
             }
             catch (Exception ex)
@@ -584,7 +563,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 获取属性元数据（从变量池）
+        /// 获取属性元数据（从类型缓存）
         /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <param name="propertyName">属性名</param>
@@ -593,20 +572,10 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         {
             lock (_lock)
             {
-                // 从所有分类缓存中查找属性
-                var caches = new List<Dictionary<string, List<ToolPropertyMetadata>>>
+                // 从所有类型缓存中查找属性
+                foreach (var typeCache in _typeCache.Values)
                 {
-                    _numericTypeCache,
-                    _imageTypeCache,
-                    _shapeTypeCache,
-                    _textTypeCache,
-                    _listTypeCache,
-                    _otherTypeCache
-                };
-
-                foreach (var cache in caches)
-                {
-                    if (cache.TryGetValue(toolId, out var propertyList))
+                    if (typeCache.TryGetValue(toolId, out var propertyList))
                     {
                         var metadata = propertyList.FirstOrDefault(m => m.PropertyName == propertyName);
                         if (metadata != null)
@@ -621,7 +590,7 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         }
 
         /// <summary>
-        /// 获取所有属性元数据（合并所有分类）
+        /// 获取所有属性元数据（合并所有类型）
         /// </summary>
         /// <param name="toolId">工具ID</param>
         /// <returns>属性元数据列表，未找到返回空列表</returns>
@@ -629,14 +598,28 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
         {
             var allMetadata = new List<ToolPropertyMetadata>();
             
-            allMetadata.AddRange(_numericTypeCache.TryGetValue(toolId, out var numeric) ? numeric : new());
-            allMetadata.AddRange(_imageTypeCache.TryGetValue(toolId, out var image) ? image : new());
-            allMetadata.AddRange(_shapeTypeCache.TryGetValue(toolId, out var shape) ? shape : new());
-            allMetadata.AddRange(_textTypeCache.TryGetValue(toolId, out var text) ? text : new());
-            allMetadata.AddRange(_listTypeCache.TryGetValue(toolId, out var list) ? list : new());
-            allMetadata.AddRange(_otherTypeCache.TryGetValue(toolId, out var other) ? other : new());
+            foreach (var typeCache in _typeCache.Values)
+            {
+                if (typeCache.TryGetValue(toolId, out var properties))
+                {
+                    allMetadata.AddRange(properties);
+                }
+            }
             
             return allMetadata;
+        }
+
+        /// <summary>
+        /// 判断是否为特殊属性
+        /// </summary>
+        private static bool IsSpecialProperty(string propertyName)
+        {
+            return propertyName == "Status" ||
+                   propertyName == "ErrorMessage" ||
+                   propertyName == "ExecutionTimeMs" ||
+                   propertyName == "Timestamp" ||
+                   propertyName == "ToolName" ||
+                   propertyName == "ToolId";
         }
 
         /// <summary>
