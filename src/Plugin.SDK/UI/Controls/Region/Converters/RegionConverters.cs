@@ -169,4 +169,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
             throw new NotImplementedException();
         }
     }
+
+    /// <summary>
+    /// 订阅模式转换为布尔值的转换器
+    /// </summary>
+    public class SubscribeModeToBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string mode && parameter is string targetMode)
+            {
+                return mode == targetMode;
+            }
+            return false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool b && b && parameter is string targetMode)
+            {
+                return targetMode;
+            }
+            return DependencyProperty.UnsetValue;
+        }
+    }
 }

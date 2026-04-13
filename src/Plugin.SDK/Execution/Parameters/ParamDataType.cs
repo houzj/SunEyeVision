@@ -63,6 +63,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         FilePath,
 
         /// <summary>
+        /// 圆形
+        /// </summary>
+        Circle,
+
+        /// <summary>
         /// 列表
         /// </summary>
         List,
