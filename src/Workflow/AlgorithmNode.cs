@@ -159,21 +159,7 @@ namespace SunEyeVision.Workflow
                 outputImage = outputImageProp.GetValue(result) as Mat;
             }
 
-            // 2. 如果没有找到，从 GetResultItems() 中查找
-            if (outputImage == null || outputImage.Empty())
-            {
-                var resultItems = result.GetResultItems();
-                foreach (var item in resultItems)
-                {
-                    if (item.Value is Mat mat && !mat.Empty())
-                    {
-                        outputImage = mat;
-                        break;
-                    }
-                }
-            }
-
-            // 3. 如果仍然没有输出图像，返回错误
+            // 如果没有找到输出图像，返回错误
             if (outputImage == null || outputImage.Empty())
             {
                 return AlgorithmResult.CreateError("工具执行成功但没有输出图像");
@@ -181,8 +167,7 @@ namespace SunEyeVision.Workflow
 
             var algorithmResult = AlgorithmResult.CreateSuccess(outputImage, result.ExecutionTimeMs);
 
-            // 保留结果项和原始工具结果引用
-            algorithmResult.ResultItems = result.GetResultItems();
+            // 保留原始工具结果引用（移除 ResultItems，不再使用 GetResultItems()）
             algorithmResult.ToolResults = result;
 
             return algorithmResult;

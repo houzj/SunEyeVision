@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SunEyeVision.Plugin.SDK.Execution.Results;
 
@@ -119,14 +119,6 @@ namespace SunEyeVision.Plugin.SDK.Core
         {
             Warnings.Add(warning);
         }
-
-        /// <summary>
-        /// 获取结果项
-        /// </summary>
-        public IReadOnlyList<ResultItem> GetResultItems()
-        {
-            return ToolResult?.GetResultItems() ?? Array.Empty<ResultItem>();
-        }
     }
 
     /// <summary>
@@ -235,14 +227,6 @@ namespace SunEyeVision.Plugin.SDK.Core
         public void AddWarning(string warning)
         {
             Warnings.Add(warning);
-        }
-
-        /// <summary>
-        /// 获取结果项
-        /// </summary>
-        public IReadOnlyList<ResultItem> GetResultItems()
-        {
-            return Result?.GetResultItems() ?? Array.Empty<ResultItem>();
         }
     }
 }

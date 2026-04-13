@@ -336,12 +336,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             var value = GetPropertyValue(nodeResult, binding.SourceProperty!);
             if (value == null && !binding.SourceProperty!.Contains('.'))
             {
-                // 尝试从结果项获取
-                var resultItems = nodeResult.GetResultItems();
-                var item = resultItems.FirstOrDefault(i => i.Name == binding.SourceProperty);
-                if (item != null)
+                // 尝试从结果项获取（使用反射，统一使用新机制）
+                var property = nodeResult.GetType().GetProperty(binding.SourceProperty);
+                if (property != null && property.CanRead)
                 {
-                    value = item.Value;
+                    value = property.GetValue(nodeResult);
                 }
             }
 

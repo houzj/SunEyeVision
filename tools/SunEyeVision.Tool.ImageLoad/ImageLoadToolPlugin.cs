@@ -256,38 +256,6 @@ namespace SunEyeVision.Tool.ImageLoad
         #region 重写方法
 
         /// <summary>
-        /// 获取结果项列表（用于结果面板显示）
-        /// </summary>
-        public override IReadOnlyList<ResultItem> GetResultItems()
-        {
-            var items = new List<ResultItem>();
-
-            // 图像属性
-            items.AddNumeric("图像.宽度", Width, "像素");
-            items.AddNumeric("图像.高度", Height, "像素");
-            items.AddNumeric("图像.通道数", Channels, "通道");
-            items.AddText("图像.颜色类型", ColorType);
-            items.AddText("图像.类型名称", TypeName);
-            items.AddText("图像.深度名称", DepthName);
-
-            // 像素值信息
-            items.AddNumeric("像素值.最小值", MinPixelValue, "");
-            items.AddNumeric("像素值.最大值", MaxPixelValue, "");
-            items.AddNumeric("像素值.平均值", MeanPixelValue, "");
-            items.AddText("像素值.范围", PixelValueRange);
-
-            // 文件信息
-            items.AddText("文件.路径", FilePath);
-            items.AddNumeric("文件.大小", FileSize, "字节");
-            items.AddText("文件.格式", FileFormat);
-
-            // 执行信息
-            items.AddNumeric("执行.耗时", ExecutionTimeMs, "ms");
-
-            return items;
-        }
-
-        /// <summary>
         /// 获取属性的树形显示名称
         /// </summary>
         /// <remarks>

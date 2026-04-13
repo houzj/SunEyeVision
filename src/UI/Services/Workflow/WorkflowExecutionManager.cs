@@ -477,7 +477,7 @@ namespace SunEyeVision.UI.Services.Workflow
         private ToolResults CreateToolResultsFromNodeResult(NodeExecutionResult nodeResult)
         {
             // ★ 关键日志：节点执行结果状态
-            Console.WriteLine($"[WorkflowExecutionManager] CreateToolResultsFromNodeResult: Success={nodeResult.Success}, Outputs={nodeResult.Outputs?.Count ?? 0}, ResultItems={nodeResult.ResultItems?.Count ?? 0}");
+            Console.WriteLine($"[WorkflowExecutionManager] CreateToolResultsFromNodeResult: Success={nodeResult.Success}, Outputs={nodeResult.Outputs?.Count ?? 0}");
 
             // 优先使用原始工具结果
             if (nodeResult.ToolResult != null)
@@ -493,16 +493,8 @@ namespace SunEyeVision.UI.Services.Workflow
                 Timestamp = DateTime.Now
             };
 
-            // 优先使用结果项
-            if (nodeResult.ResultItems != null && nodeResult.ResultItems.Count > 0)
-            {
-                foreach (var item in nodeResult.ResultItems)
-                {
-                    results.AddResultItem(item.Name, item.Value, item.Type);
-                }
-            }
-            // 如果没有结果项，使用输出数据
-            else if (nodeResult.Outputs != null)
+            // 使用输出数据
+            if (nodeResult.Outputs != null)
             {
                 foreach (var output in nodeResult.Outputs)
                 {

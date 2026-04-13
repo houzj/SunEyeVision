@@ -33,6 +33,16 @@ namespace SunEyeVision.Tool.Threshold
         public ThresholdType TypeUsed { get; set; }
 
         /// <summary>
+        /// 实际使用的阈值（Double 类型，用于参数绑定）
+        /// </summary>
+        public double ThresholdUsedDouble { get; set; }
+
+        /// <summary>
+        /// 最大值（Double 类型，用于参数绑定）
+        /// </summary>
+        public double MaxValueUsedDouble { get; set; }
+
+        /// <summary>
         /// 使用的自适应方法
         /// </summary>
         public AdaptiveMethod AdaptiveMethodUsed { get; set; }
@@ -56,31 +66,6 @@ namespace SunEyeVision.Tool.Threshold
         /// 处理时间戳
         /// </summary>
         public DateTime ProcessedAt { get; set; } = DateTime.Now;
-
-        /// <summary>
-        /// 获取结果项列表
-        /// </summary>
-        public override IReadOnlyList<ResultItem> GetResultItems()
-        {
-            var items = new List<ResultItem>();
-
-            items.AddNumeric("ThresholdUsed", ThresholdUsed, "灰度值");
-            items.AddNumeric("MaxValueUsed", MaxValueUsed, "灰度值");
-            items.AddText("ThresholdType", TypeUsed.ToString());
-            items.AddNumeric("InputWidth", InputSize.Width, "像素");
-            items.AddNumeric("InputHeight", InputSize.Height, "像素");
-
-            if (AdaptiveMethodUsed != AdaptiveMethod.Mean || BlockSizeUsed != 11)
-            {
-                items.AddText("AdaptiveMethod", AdaptiveMethodUsed.ToString());
-                items.AddNumeric("BlockSize", BlockSizeUsed, "像素");
-            }
-
-            items.AddBoolean("Inverted", InvertUsed);
-            items.AddNumeric("ExecutionTimeMs", ExecutionTimeMs, "ms");
-
-            return items;
-        }
 
         /// <summary>
         /// 获取可视化元素
@@ -128,6 +113,8 @@ namespace SunEyeVision.Tool.Threshold
                 nameof(OutputImage) => "图像",
                 nameof(ThresholdUsed) => "结果.实际使用的阈值",
                 nameof(MaxValueUsed) => "结果.最大值",
+                nameof(ThresholdUsedDouble) => "结果.实际使用的阈值(Double)",
+                nameof(MaxValueUsedDouble) => "结果.最大值(Double)",
                 nameof(TypeUsed) => "结果.阈值类型",
                 nameof(AdaptiveMethodUsed) => "结果.自适应方法",
                 nameof(BlockSizeUsed) => "结果.块大小",

@@ -168,15 +168,11 @@ namespace SunEyeVision.Workflow
                         ?? new GenericToolParameters();
                     var toolResult = tool.Run(inputImage, defaultParams);
                     
-                    // 从结果中获取输出图像
-                    var resultItems = toolResult.GetResultItems();
-                    foreach (var item in resultItems)
+                    // 从结果中获取输出图像（使用反射，统一使用新机制）
+                    var outputImageProp = toolResult.GetType().GetProperty("OutputImage");
+                    if (outputImageProp != null)
                     {
-                        if (item.Value is Mat mat)
-                        {
-                            resultImage = mat;
-                            break;
-                        }
+                        resultImage = outputImageProp.GetValue(toolResult) as Mat;
                     }
                 }
 

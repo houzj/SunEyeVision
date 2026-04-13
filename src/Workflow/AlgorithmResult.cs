@@ -41,11 +41,6 @@ namespace SunEyeVision.Workflow
         public double ExecutionDurationMs { get; set; }
 
         /// <summary>
-        /// 结果项列表（从工具结果传递）
-        /// </summary>
-        public IReadOnlyList<ResultItem>? ResultItems { get; set; }
-
-        /// <summary>
         /// 原始工具结果引用（用于保留完整结果信息）
         /// </summary>
         public ToolResults? ToolResults { get; set; }

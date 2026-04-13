@@ -129,6 +129,8 @@ namespace SunEyeVision.Tool.Threshold
                 result.OutputImage = outputImage;
                 result.ThresholdUsed =(int) actualThreshold;
                 result.MaxValueUsed =(int) maxValue;
+                result.ThresholdUsedDouble = actualThreshold;
+                result.MaxValueUsedDouble = maxValue;
                 result.TypeUsed = type;
                 result.AdaptiveMethodUsed = adaptiveMethod;
                 result.BlockSizeUsed = blockSize;

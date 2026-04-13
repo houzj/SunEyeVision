@@ -374,15 +374,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
         }
 
         /// <summary>
-        /// 获取结果列表
-        /// </summary>
-        /// <returns>结果列表</returns>
-        public virtual IReadOnlyList<ResultItem> GetResultItems()
-        {
-            return Array.Empty<ResultItem>();
-        }
-
-        /// <summary>
         /// 添加警告
         /// </summary>
         public void AddWarning(string warning)
@@ -449,7 +440,24 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
             if (!string.IsNullOrEmpty(ToolName))
                 dict["ToolName"] = ToolName;
 
-            foreach (var item in GetResultItems())
+            // 使用反射获取所有结果项（统一使用新机制）
+            var resultItems = GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)))
+                .Where(p => p.CanRead)
+                .Where(p => p.GetMethod?.IsPublic == true)
+                .Where(p => p.PropertyType != typeof(Delegate))
+                .Where(p => p.Name != "EqualityContract" && !p.Name.StartsWith("get_"))
+                .Where(p => !typeof(ToolResults).IsAssignableFrom(p.PropertyType)) // 排除结果本身的属性
+                .Select(p =>
+                {
+                    var value = p.GetValue(this);
+                    if (value == null) return null;
+                    return new { Name = p.Name, Value = value };
+                })
+                .Where(x => x != null);
+
+            foreach (var item in resultItems)
             {
                 if (item.Value != null)
                 {
@@ -623,8 +631,5 @@ namespace SunEyeVision.Plugin.SDK.Execution.Results
                 Type = type
             });
         }
-
-        /// <inheritdoc />
-        public override IReadOnlyList<ResultItem> GetResultItems() => _resultItems.AsReadOnly();
     }
 }

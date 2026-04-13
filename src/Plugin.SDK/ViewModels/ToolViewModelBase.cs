@@ -457,8 +457,8 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
                     OnPropertyChanged(nameof(OutputImage));
                 }
 
-                // 显示结果项
-                var resultItems = result.GetResultItems();
+                // 显示结果项（使用反射，统一使用新机制）
+                var resultItems = GenerateResultItems(result.ToolResult);
                 if (resultItems.Count > 0)
                 {
                     UpdateResultItems(resultItems);
@@ -490,15 +490,38 @@ namespace SunEyeVision.Plugin.SDK.ViewModels
                 }
             }
 
-            // 尝试从结果项中获取图像
-            var resultItems = toolResult.GetResultItems();
-            var imageItem = resultItems.FirstOrDefault(i => i.Type == ResultItemType.Image);
-            if (imageItem?.Value is Mat imageMat)
-            {
-                return imageMat;
-            }
-
             return null;
+        }
+
+        /// <summary>
+        /// 生成结果项（使用反射，统一使用新机制）
+        /// </summary>
+        /// <param name="result">工具执行结果</param>
+        /// <returns>结果项列表</returns>
+        private List<ResultItem> GenerateResultItems(ToolResults result)
+        {
+            return result.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)))
+                .Where(p => p.CanRead)
+                .Where(p => p.GetMethod?.IsPublic == true)
+                .Where(p => p.PropertyType != typeof(Delegate))
+                .Where(p => p.Name != "EqualityContract" && !p.Name.StartsWith("get_"))
+                .Select(p =>
+                {
+                    var value = p.GetValue(result);
+                    var displayName = result.GetPropertyTreeName(p.Name) ?? p.Name;
+                    
+                    if (value == null) return ResultItem.Text(displayName, "null");
+                    if (value is int intVal) return ResultItem.Numeric(displayName, intVal, "");
+                    if (value is double doubleVal) return ResultItem.Numeric(displayName, doubleVal, "");
+                    if (value is bool boolVal) return ResultItem.Boolean(displayName, boolVal);
+                    if (value is string stringVal) return ResultItem.Text(displayName, stringVal);
+                    if (value is DateTime dateTime) return ResultItem.Text(displayName, dateTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    if (value is Enum enumVal) return ResultItem.Text(displayName, enumVal.ToString());
+                    return ResultItem.Text(displayName, value.ToString() ?? "null");
+                })
+                .ToList();
         }
 
         /// <summary>

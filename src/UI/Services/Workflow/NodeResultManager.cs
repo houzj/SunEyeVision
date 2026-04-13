@@ -1,11 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using SunEyeVision.Plugin.SDK.Execution.Results;
+using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.UI.Extensions;
 using SunEyeVision.UI.Models;
 using SunEyeVision.UI.Services.Images;
@@ -127,7 +129,30 @@ namespace SunEyeVision.UI.Services.Workflow
             System.Diagnostics.Debug.WriteLine($"[RefreshResultDisplay] 开始刷新显示: {node.Name}");
 
             // ★ Step 1: 先准备所有新数据（不触发UI更新）
-            var resultItems = result.GetResultItems();
+            // 使用反射获取所有输出属性（统一使用新机制）
+            var resultItems = result.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => !p.IsDefined(typeof(IgnoreBindAttribute)))
+                .Where(p => p.CanRead)
+                .Where(p => p.GetMethod?.IsPublic == true)
+                .Where(p => p.PropertyType != typeof(Delegate))
+                .Where(p => p.Name != "EqualityContract" && !p.Name.StartsWith("get_"))
+                .Select(p =>
+                {
+                    var value = p.GetValue(result);
+                    var displayName = result.GetPropertyTreeName(p.Name) ?? p.Name;
+                    var unit = GetDisplayUnit(p.PropertyType);
+                    
+                    if (value == null) return ResultItem.Text(displayName, "null");
+                    if (value is int intVal) return ResultItem.Numeric(displayName, intVal, unit);
+                    if (value is double doubleVal) return ResultItem.Numeric(displayName, doubleVal, unit);
+                    if (value is bool boolVal) return ResultItem.Boolean(displayName, boolVal);
+                    if (value is string stringVal) return ResultItem.Text(displayName, stringVal);
+                    if (value is DateTime dateTime) return ResultItem.Text(displayName, dateTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    if (value is Enum enumVal) return ResultItem.Text(displayName, enumVal.ToString());
+                    return ResultItem.Text(displayName, value.ToString() ?? "null");
+                })
+                .ToList();
             
             // 获取输出图像并转换为 BitmapSource
             var outputImage = GetOutputImage(result);
@@ -393,6 +418,20 @@ namespace SunEyeVision.UI.Services.Workflow
                 System.Diagnostics.Debug.WriteLine($"[NodeResultManager] 图像转换失败: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 获取属性类型的显示单位
+        /// </summary>
+        /// <param name="propertyType">属性类型</param>
+        /// <returns>显示单位字符串</returns>
+        private static string GetDisplayUnit(Type propertyType)
+        {
+            if (propertyType == typeof(OpenCvSharp.Size) || 
+                propertyType == typeof(OpenCvSharp.Rect) ||
+                propertyType == typeof(OpenCvSharp.Point))
+                return "像素";
+            return string.Empty;
         }
     }
 }

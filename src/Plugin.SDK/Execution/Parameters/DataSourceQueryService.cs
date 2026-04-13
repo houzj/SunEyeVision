@@ -327,13 +327,16 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 }
             }
 
-            // 从节点结果中获取属性值
+            // 从节点结果中获取属性值（使用反射，统一使用新机制）
             var result = GetNodeResultFromCache(nodeId);
             if (result != null)
             {
-                var resultItems = result.GetResultItems();
-                var item = resultItems.FirstOrDefault(i => i.Name == propertyName);
-                return item?.Value;
+                // 使用反射查找属性
+                var property = result.GetType().GetProperty(propertyName);
+                if (property != null && property.CanRead)
+                {
+                    return property.GetValue(result);
+                }
             }
 
             return null;

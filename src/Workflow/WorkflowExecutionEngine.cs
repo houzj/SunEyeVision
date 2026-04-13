@@ -636,8 +636,7 @@ namespace SunEyeVision.Workflow
                 };
                 result.Success = true;
 
-                // 传递结果项和原始工具结果
-                result.ResultItems = algorithmResult.ResultItems;
+                // 传递原始工具结果
                 result.ToolResult = algorithmResult.ToolResults;
             }
             else if (!algorithmResult.Success)
