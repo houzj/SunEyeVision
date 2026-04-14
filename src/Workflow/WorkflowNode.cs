@@ -600,20 +600,15 @@ namespace SunEyeVision.Workflow
                 }
                 else
                 {
-                    // 如果参数为 null 或类型不匹配，创建新的 GenericToolParameters
-                    VisionLogger.Instance.Log(LogLevel.Warning,
-                        $"⚠️ [节点参数恢复] 节点: {name} | 参数类型不匹配: {paramsVal?.GetType().Name ?? "null"} | 使用 GenericToolParameters",
-                        "WorkflowNode");
-                    node.Parameters = new GenericToolParameters();
+                    // ✅ 如果参数为 null 或类型不匹配，直接抛出异常
+                    throw new InvalidOperationException(
+                        $"节点 {name} 参数恢复失败：期望 ToolParameters，实际为 {paramsVal?.GetType().Name ?? "null"}");
                 }
             }
             else
             {
-                // 参数为空时创建默认参数
-                VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"⚠️ [节点参数恢复] 节点: {name} | 参数为空，使用 GenericToolParameters",
-                    "WorkflowNode");
-                node.Parameters = new GenericToolParameters();
+                // ✅ 参数为空时直接抛出异常
+                throw new InvalidOperationException($"节点 {name} 参数为空");
             }
 
             // 恢复参数绑定

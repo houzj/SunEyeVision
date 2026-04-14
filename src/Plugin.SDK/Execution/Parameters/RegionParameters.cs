@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Text.Json.Serialization;
+using OpenCvSharp;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 
@@ -98,13 +100,13 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             var inspectionRegions = _inspectionRegions.GetEnabledRegions();
             var maskRegions = _maskRegions.GetEnabledRegions();
 
-            if (inspectionRegions.Count == 0)
+            if (inspectionRegions.Count() == 0)
             {
                 // 没有检测区域，返回空列表
                 return new System.Collections.Generic.List<RegionData>();
             }
 
-            if (maskRegions.Count == 0)
+            if (maskRegions.Count() == 0)
             {
                 // 没有屏蔽区域，直接返回检测区域
                 return new System.Collections.Generic.List<RegionData>(inspectionRegions);
@@ -153,35 +155,35 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             var shape = region.Parameters;
             var shapeType = shape.GetShapeType();
 
-            if (!shapeType.HasValue)
+            if (!shapeType.HasValue || shape is not ShapeParameters shapeParams)
                 return new Rect(0, 0, 0, 0);
 
             return shapeType.Value switch
             {
-                Models.ShapeType.Rectangle => new Rect(
-                    (int)(shape.CenterX - shape.Width / 2),
-                    (int)(shape.CenterY - shape.Height / 2),
-                    (int)shape.Width,
-                    (int)shape.Height
+                ShapeType.Rectangle => new Rect(
+                    (int)(shapeParams.CenterX - shapeParams.Width / 2),
+                    (int)(shapeParams.CenterY - shapeParams.Height / 2),
+                    (int)shapeParams.Width,
+                    (int)shapeParams.Height
                 ),
-                Models.ShapeType.Circle => new Rect(
-                    (int)(shape.CenterX - shape.Radius),
-                    (int)(shape.CenterY - shape.Radius),
-                    (int)(shape.Radius * 2),
-                    (int)(shape.Radius * 2)
+                ShapeType.Circle => new Rect(
+                    (int)(shapeParams.CenterX - shapeParams.Radius),
+                    (int)(shapeParams.CenterY - shapeParams.Radius),
+                    (int)(shapeParams.Radius * 2),
+                    (int)(shapeParams.Radius * 2)
                 ),
-                Models.ShapeType.RotatedRectangle => new Rect(
-                    (int)(shape.CenterX - shape.Width / 2),
-                    (int)(shape.CenterY - shape.Height / 2),
-                    (int)shape.Width,
-                    (int)shape.Height
+                ShapeType.RotatedRectangle => new Rect(
+                    (int)(shapeParams.CenterX - shapeParams.Width / 2),
+                    (int)(shapeParams.CenterY - shapeParams.Height / 2),
+                    (int)shapeParams.Width,
+                    (int)shapeParams.Height
                 ),
-                Models.ShapeType.Polygon => GetPolygonBounds(shape.Points),
-                Models.ShapeType.Annulus => new Rect(
-                    (int)(shape.CenterX - shape.OuterRadius > 0 ? shape.OuterRadius : shape.Radius + 20),
-                    (int)(shape.CenterY - shape.OuterRadius > 0 ? shape.OuterRadius : shape.Radius + 20),
-                    (int)(shape.OuterRadius > 0 ? shape.OuterRadius * 2 : (shape.Radius + 20) * 2),
-                    (int)(shape.OuterRadius > 0 ? shape.OuterRadius * 2 : (shape.Radius + 20) * 2)
+                ShapeType.Polygon => GetPolygonBounds(shapeParams.Points),
+                ShapeType.Annulus => new Rect(
+                    (int)(shapeParams.CenterX - shapeParams.OuterRadius > 0 ? shapeParams.OuterRadius : shapeParams.Radius + 20),
+                    (int)(shapeParams.CenterY - shapeParams.OuterRadius > 0 ? shapeParams.OuterRadius : shapeParams.Radius + 20),
+                    (int)(shapeParams.OuterRadius > 0 ? shapeParams.OuterRadius * 2 : (shapeParams.Radius + 20) * 2),
+                    (int)(shapeParams.OuterRadius > 0 ? shapeParams.OuterRadius * 2 : (shapeParams.Radius + 20) * 2)
                 ),
                 _ => new Rect(0, 0, 0, 0)
             };
@@ -190,7 +192,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 获取多边形的边界盒
         /// </summary>
-        private static Rect GetPolygonBounds(System.Collections.Generic.List<System.Drawing.PointF> points)
+        private static Rect GetPolygonBounds(System.Collections.Generic.List<UI.Controls.Region.Models.Point2D> points)
         {
             if (points == null || points.Count == 0)
                 return new Rect(0, 0, 0, 0);
@@ -200,10 +202,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             foreach (var point in points)
             {
-                if (point.X < minX) minX = point.X;
-                if (point.Y < minY) minY = point.Y;
-                if (point.X > maxX) maxX = point.X;
-                if (point.Y > maxY) maxY = point.Y;
+                if (point.X < minX) minX = (float)point.X;
+                if (point.Y < minY) minY = (float)point.Y;
+                if (point.X > maxX) maxX = (float)point.X;
+                if (point.Y > maxY) maxY = (float)point.Y;
             }
 
             return new Rect(
@@ -211,7 +213,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 (int)minY,
                 (int)(maxX - minX),
                 (int)(maxY - minY)
-            );
+                );
         }
 
         /// <summary>
@@ -219,7 +221,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// </summary>
         private static bool IsBoundsOverlapped(Rect bounds1, Rect bounds2)
         {
-            if (bounds1.IsEmpty || bounds2.IsEmpty)
+            if (bounds1.Width <= 0 || bounds1.Height <= 0 || bounds2.Width <= 0 || bounds2.Height <= 0)
                 return false;
 
             return bounds1.X < bounds2.X + bounds2.Width &&

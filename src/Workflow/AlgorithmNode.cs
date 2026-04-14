@@ -114,31 +114,9 @@ namespace SunEyeVision.Workflow
             if (Tool != null && Parameters.GetType() == Tool.ParamsType)
                 return Parameters;
 
-            // 如果参数类型不匹配，需要创建正确类型并复制值
-            if (Tool != null && Parameters is GenericToolParameters)
-            {
-                var defaultParams = (ToolParameters?)Activator.CreateInstance(Tool.ParamsType)
-                    ?? new GenericToolParameters();
-
-                // 从 GenericToolParameters 复制值
-                if (Parameters is GenericToolParameters genericParams)
-                {
-                    var props = defaultParams.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                    foreach (var prop in props)
-                    {
-                        if (!prop.CanWrite || prop.Name == "Version") continue;
-                        var value = genericParams.GetValue<object?>(prop.Name);
-                        if (value != null)
-                        {
-                            try { prop.SetValue(defaultParams, value); } catch { }
-                        }
-                    }
-                }
-
-                return defaultParams;
-            }
-
-            return Parameters;
+            // ✅ 如果参数类型不匹配，直接抛出异常
+            throw new InvalidOperationException(
+                $"参数类型不匹配。工具 {ToolType} 期望 {Tool.ParamsType?.Name ?? "null"}, 实际为 {Parameters.GetType().Name}");
         }
 
         /// <summary>

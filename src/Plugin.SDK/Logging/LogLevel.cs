@@ -23,6 +23,11 @@ namespace SunEyeVision.Plugin.SDK.Logging
         /// <summary>
         /// 错误 - 失败/异常，需要处理
         /// </summary>
-        Error = 3
+        Error = 3,
+
+        /// <summary>
+        /// 严重错误 - 程序无法继续运行
+        /// </summary>
+        Fatal = 4
     }
 }

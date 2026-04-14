@@ -42,37 +42,11 @@ namespace SunEyeVision.Workflow
                 workflow.Nodes = new ObservableCollection<WorkflowNodeBase>();
                 foreach (var nodeElement in nodesElement.EnumerateArray())
                 {
-                    try
+                    var node = JsonSerializer.Deserialize<WorkflowNodeBase>(
+                        nodeElement.GetRawText(), options);
+                    if (node != null)
                     {
-                        var node = JsonSerializer.Deserialize<WorkflowNodeBase>(
-                            nodeElement.GetRawText(), options);
-                        if (node != null)
-                        {
-                            workflow.Nodes.Add(node);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"节点标准反序列化失败，尝试旧格式兼容: {ex.Message}", "WorkflowJsonConverter");
-
-                        // 最终降级：兼容旧格式（Dictionary 方式的 JSON）
-                        try
-                        {
-                            var node = ReadNodeLegacyFormat(nodeElement, options);
-                            if (node != null)
-                            {
-                                workflow.Nodes.Add(node);
-                                VisionLogger.Instance.Log(LogLevel.Warning,
-                                    $"节点使用旧格式兼容加载: {node.Name}", "WorkflowJsonConverter");
-                            }
-                        }
-                        catch (Exception legacyEx)
-                        {
-                            VisionLogger.Instance.Log(LogLevel.Error,
-                                $"Failed to deserialize node: {ex.Message}, legacy fallback also failed: {legacyEx.Message}",
-                                "WorkflowJsonConverter");
-                        }
+                        workflow.Nodes.Add(node);
                     }
                 }
             }
@@ -126,53 +100,6 @@ namespace SunEyeVision.Workflow
             JsonSerializer.Serialize(writer, value.Connections, options);
 
             writer.WriteEndObject();
-        }
-
-        /// <summary>
-        /// 兼容旧格式（Dictionary 方式的 JSON）的节点加载
-        /// </summary>
-        private WorkflowNodeBase? ReadNodeLegacyFormat(JsonElement nodeElement, JsonSerializerOptions options)
-        {
-            var dict = new Dictionary<string, object?>();
-
-            foreach (var property in nodeElement.EnumerateObject())
-            {
-                if (property.Name == "Parameters")
-                {
-                    try
-                    {
-                        var parameters = JsonSerializer.Deserialize<ToolParameters>(
-                            property.Value.GetRawText(), options);
-                        dict[property.Name] = parameters ?? new GenericToolParameters();
-                    }
-                    catch
-                    {
-                        dict[property.Name] = new GenericToolParameters();
-                    }
-                }
-                else
-                {
-                    dict[property.Name] = JsonElementToSimpleObject(property.Value);
-                }
-            }
-
-            return WorkflowNodeBase.FromDictionary(dict!);
-        }
-
-        /// <summary>
-        /// 将 JsonElement 转换为简单对象（仅用于旧格式兼容）
-        /// </summary>
-        private static object? JsonElementToSimpleObject(JsonElement element)
-        {
-            return element.ValueKind switch
-            {
-                JsonValueKind.String => element.GetString(),
-                JsonValueKind.Number => element.TryGetInt32(out var i) ? i : element.GetDouble(),
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Null => null,
-                _ => element.GetRawText()
-            };
         }
     }
 }

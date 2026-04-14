@@ -242,31 +242,23 @@ namespace SunEyeVision.Plugin.Infrastructure.Managers.Tool
             VisionLogger.Instance.Log(LogLevel.Info, $"[ToolRegistry.CreateParameters] 开始创建参数实例 - toolId={toolId}", "ToolRegistry");
 
             var tool = CreateToolInstance(toolId);
-            if (tool != null)
+            if (tool == null)
+                throw new InvalidOperationException($"工具实例创建失败: {toolId}");
+
+            if (tool.ParamsType == null)
+                throw new InvalidOperationException($"工具 {toolId} 的参数类型为null，请检查工具注册");
+
+            try
             {
-                VisionLogger.Instance.Log(LogLevel.Info, $"[ToolRegistry.CreateParameters] 工具实例创建成功 - tool类型={tool.GetType().Name}, ParamsType={tool.ParamsType?.Name ?? "null"}", "ToolRegistry");
-
-                if (tool.ParamsType == null)
-                {
-                    VisionLogger.Instance.Log(LogLevel.Error, $"[ToolRegistry.CreateParameters] 参数类型为null - toolId={toolId}", "ToolRegistry");
-                    return new GenericToolParameters();
-                }
-
-                try
-                {
-                    var paramsInstance = (ToolParameters)Activator.CreateInstance(tool.ParamsType)!;
-                    VisionLogger.Instance.Log(LogLevel.Success, $"[ToolRegistry.CreateParameters] 参数创建成功 - 类型={paramsInstance.GetType().FullName}", "ToolRegistry");
-                    return paramsInstance;
-                }
-                catch (Exception ex)
-                {
-                    VisionLogger.Instance.Log(LogLevel.Error, $"[ToolRegistry.CreateParameters] 参数创建失败 - toolId={toolId}, ParamsType={tool.ParamsType.FullName}, 错误={ex.Message}", "ToolRegistry");
-                    return new GenericToolParameters();
-                }
+                var paramsInstance = (ToolParameters)Activator.CreateInstance(tool.ParamsType)!;
+                VisionLogger.Instance.Log(LogLevel.Success, $"[ToolRegistry.CreateParameters] 参数创建成功 - 类型={paramsInstance.GetType().FullName}", "ToolRegistry");
+                return paramsInstance;
             }
-
-            VisionLogger.Instance.Log(LogLevel.Warning, $"[ToolRegistry.CreateParameters] 工具实例创建失败 - toolId={toolId}", "ToolRegistry");
-            return new GenericToolParameters();
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Fatal, $"❌ [ToolRegistry.CreateParameters] 参数创建失败 - toolId={toolId}, ParamsType={tool.ParamsType.FullName}, 错误={ex.Message}", "ToolRegistry", ex);
+                throw new InvalidOperationException($"参数创建失败: toolId={toolId}, ParamsType={tool.ParamsType.FullName}", ex);
+            }
         }
 
         /// <summary>

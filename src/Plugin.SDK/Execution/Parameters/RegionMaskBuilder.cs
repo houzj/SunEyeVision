@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenCvSharp;
@@ -49,28 +49,28 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             switch (shapeType.Value)
             {
-                case Models.ShapeType.Rectangle:
+                case ShapeType.Rectangle:
                     DrawRectangle(shape);
                     break;
-                case Models.ShapeType.Circle:
+                case ShapeType.Circle:
                     DrawCircle(shape);
                     break;
-                case Models.ShapeType.Polygon:
+                case ShapeType.Polygon:
                     DrawPolygon(shape);
                     break;
-                case Models.ShapeType.Line:
+                case ShapeType.Line:
                     // 直线不适合做掩码区域，记录警告
                     break;
-                case Models.ShapeType.Point:
+                case ShapeType.Point:
                     // 点不适合做掩码区域，记录警告
                     break;
-                case Models.ShapeType.RotatedRectangle:
+                case ShapeType.RotatedRectangle:
                     DrawRotatedRectangle(shape);
                     break;
-                case Models.ShapeType.Annulus:
+                case ShapeType.Annulus:
                     DrawAnnulus(shape);
                     break;
-                case Models.ShapeType.Arc:
+                case ShapeType.Arc:
                     // 弧形不适合做掩码区域，记录警告
                     break;
             }
@@ -90,63 +90,75 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 绘制矩形
         /// </summary>
-        private void DrawRectangle(RegionDefinition.ShapeParameters shape)
+        private void DrawRectangle(RegionDefinition shape)
         {
-            var x = (int)(shape.CenterX - shape.Width / 2);
-            var y = (int)(shape.CenterY - shape.Height / 2);
-            var rect = new Rect(x, y, (int)shape.Width, (int)shape.Height);
-            
+            if (shape is not ShapeParameters shapeParams)
+                return;
+
+            var x = (int)(shapeParams.CenterX - shapeParams.Width / 2);
+            var y = (int)(shapeParams.CenterY - shapeParams.Height / 2);
+            var rect = new Rect(x, y, (int)shapeParams.Width, (int)shapeParams.Height);
+
             Cv2.Rectangle(_mask, rect, Scalar.White, -1);
         }
 
         /// <summary>
         /// 绘制圆形
         /// </summary>
-        private void DrawCircle(RegionDefinition.ShapeParameters shape)
+        private void DrawCircle(RegionDefinition shape)
         {
-            var center = new Point2d(shape.CenterX, shape.CenterY);
-            var radius = (int)shape.Radius;
-            
-            Cv2.Circle(_mask, center, radius, Scalar.White, -1);
+            if (shape is not ShapeParameters shapeParams)
+                return;
+
+            var center = new Point((int)shapeParams.CenterX, (int)shapeParams.CenterY);
+            var radius = (int)shapeParams.Radius;
+
+            Cv2.Circle(_mask, center, radius, Scalar.White, -1, LineTypes.Link8, 0);
         }
 
         /// <summary>
         /// 绘制旋转矩形
         /// </summary>
-        private void DrawRotatedRectangle(RegionDefinition.ShapeParameters shape)
+        private void DrawRotatedRectangle(RegionDefinition shape)
         {
-            var center = new Point2f((float)shape.CenterX, (float)shape.CenterY);
-            var size = new Size2f((float)shape.Width, (float)shape.Height);
-            var angle = (float)(shape.Angle * 180.0 / Math.PI); // 转换为度数
-            
+            if (shape is not ShapeParameters shapeParams)
+                return;
+
+            var center = new Point2f((float)shapeParams.CenterX, (float)shapeParams.CenterY);
+            var size = new Size2f((float)shapeParams.Width, (float)shapeParams.Height);
+            var angle = (float)(shapeParams.Angle * 180.0 / Math.PI); // 转换为度数
+
             var rotatedRect = new RotatedRect(center, size, angle);
-            
+
             var points = rotatedRect.Points();
-            
+
             // 转换为 Point 数组
             var pointArray = new OpenCvSharp.Point[points.Length];
             for (int i = 0; i < points.Length; i++)
             {
                 pointArray[i] = new OpenCvSharp.Point((int)points[i].X, (int)points[i].Y);
             }
-            
+
             Cv2.FillPoly(_mask, new[] { pointArray }, Scalar.White);
         }
 
         /// <summary>
         /// 绘制多边形
         /// </summary>
-        private void DrawPolygon(RegionDefinition.ShapeParameters shape)
+        private void DrawPolygon(RegionDefinition shape)
         {
-            if (shape.Points == null || shape.Points.Count < 3)
+            if (shape is not ShapeParameters shapeParams)
                 return;
 
-            var pointArray = new OpenCvSharp.Point[shape.Points.Count];
-            for (int i = 0; i < shape.Points.Count; i++)
+            if (shapeParams.Points == null || shapeParams.Points.Count < 3)
+                return;
+
+            var pointArray = new OpenCvSharp.Point[shapeParams.Points.Count];
+            for (int i = 0; i < shapeParams.Points.Count; i++)
             {
                 pointArray[i] = new OpenCvSharp.Point(
-                    (int)shape.Points[i].X,
-                    (int)shape.Points[i].Y
+                    (int)shapeParams.Points[i].X,
+                    (int)shapeParams.Points[i].Y
                 );
             }
 
@@ -156,20 +168,23 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 绘制圆环
         /// </summary>
-        private void DrawAnnulus(RegionDefinition.ShapeParameters shape)
+        private void DrawAnnulus(RegionDefinition shape)
         {
-            var center = new Point2d(shape.CenterX, shape.CenterY);
-            var innerRadius = (int)shape.Radius;
-            var outerRadius = (int)shape.OuterRadius;
+            if (shape is not ShapeParameters shapeParams)
+                return;
+
+            var center = new Point((int)shapeParams.CenterX, (int)shapeParams.CenterY);
+            var innerRadius = (int)shapeParams.Radius;
+            var outerRadius = (int)shapeParams.OuterRadius;
 
             if (outerRadius <= 0)
                 outerRadius = innerRadius + 20; // 默认外环
 
             // 绘制外圆
-            Cv2.Circle(_mask, center, outerRadius, Scalar.White, -1);
+            Cv2.Circle(_mask, center, outerRadius, Scalar.White, -1, LineTypes.Link8, 0);
 
             // 绘制内圆（黑色，实现圆环效果）
-            Cv2.Circle(_mask, center, innerRadius, Scalar.Black, -1);
+            Cv2.Circle(_mask, center, innerRadius, Scalar.Black, -1, LineTypes.Link8, 0);
         }
 
         /// <summary>

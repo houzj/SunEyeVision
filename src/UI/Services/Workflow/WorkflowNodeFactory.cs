@@ -97,28 +97,12 @@ namespace SunEyeVision.UI.Services.Workflow
         /// </summary>
         private void InitializeNodeParameters(NodeModel node, string algorithmType)
         {
-            try
-            {
-                // 从 ToolRegistry 创建默认参数（直接返回 ToolParameters）
-                var defaultParams = ToolRegistry.CreateParameters(algorithmType);
+            // 从 ToolRegistry 创建默认参数（直接返回 ToolParameters）
+            var defaultParams = ToolRegistry.CreateParameters(algorithmType);
 
-                if (defaultParams != null)
-                {
-                    // 直接使用 ToolParameters，不进行转换
-                    node.Parameters = defaultParams;
-                    // ParametersTypeName 已过时，不再使用
-                }
-                else
-                {
-                    // 创建失败时，使用 GenericToolParameters 作为降级处理
-                    node.Parameters = new GenericToolParameters();
-                }
-            }
-            catch (Exception ex)
-            {
-                // 发生异常时，使用 GenericToolParameters（降级处理）
-                node.Parameters = new GenericToolParameters();
-            }
+            // 直接使用 ToolParameters，不进行转换
+            node.Parameters = defaultParams;
+            // ParametersTypeName 已过时，不再使用
         }
     }
 }

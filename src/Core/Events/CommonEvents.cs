@@ -296,6 +296,11 @@ namespace SunEyeVision.Core.Events
         Info,
 
         /// <summary>
+        /// Success level
+        /// </summary>
+        Success,
+
+        /// <summary>
         /// Warning level
         /// </summary>
         Warning,
@@ -303,6 +308,11 @@ namespace SunEyeVision.Core.Events
         /// <summary>
         /// Error level
         /// </summary>
-        Error
+        Error,
+
+        /// <summary>
+        /// Fatal level
+        /// </summary>
+        Fatal
     }
 }

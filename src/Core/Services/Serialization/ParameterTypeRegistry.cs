@@ -117,37 +117,14 @@ namespace SunEyeVision.Core.Services.Serialization
                 }
                 catch (Exception ex)
                 {
-                    VisionLogger.Instance.Log(LogLevel.Error,
+                    VisionLogger.Instance.Log(LogLevel.Fatal,
                         $"❌ [EnsureInitialized] 初始化失败: {ex.GetType().Name} - {ex.Message}\n" +
                         $"堆栈: {ex.StackTrace}",
                         "ParameterTypeRegistry", ex);
 
-                    // 回退：创建基础选项（不包含动态注册）
-                    _serializationOptions = CreateFallbackOptions();
-                    
-                    // 确保 _polymorphismOptions 存在，以便后续注册可以继续
-                    if (_polymorphismOptions == null)
-                    {
-                        _polymorphismOptions = new JsonPolymorphismOptions
-                        {
-                            TypeDiscriminatorPropertyName = "$type",
-                            IgnoreUnrecognizedTypeDiscriminators = false
-                        };
-                        _polymorphismOptions.DerivedTypes.Add(
-                            new JsonDerivedType(typeof(GenericToolParameters), "Generic"));
-                        _registeredTypes.Add(typeof(GenericToolParameters));
-                        
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            "⚠️ [EnsureInitialized] 回退模式：创建了基础多态配置，但不包含 TypeInfoResolver",
-                            "ParameterTypeRegistry");
-                    }
-                    
-                    _isInitialized = true;
-                    
-                    // 输出回退诊断报告
-                    VisionLogger.Instance.Log(LogLevel.Warning,
-                        $"⚠️ [EnsureInitialized] 使用回退配置\n{GetDiagnosticInfo()}",
-                        "ParameterTypeRegistry");
+                    // ✅ 直接抛出异常，不回退
+                    throw new InvalidOperationException(
+                        $"ParameterTypeRegistry 初始化失败，无法继续。原因: {ex.Message}", ex);
                 }
             }
         }
@@ -436,20 +413,5 @@ namespace SunEyeVision.Core.Services.Serialization
             }
         }
 
-        /// <summary>
-        /// 创建回退选项（用于初始化失败时）
-        /// </summary>
-        private static JsonSerializerOptions CreateFallbackOptions()
-        {
-            return new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = null,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                PropertyNameCaseInsensitive = true,
-                IncludeFields = true
-            };
-        }
     }
 }
