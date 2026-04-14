@@ -2181,9 +2181,6 @@ namespace SunEyeVision.UI.ViewModels
                                         _openDebugWindow = null;
                                         AddLog($"🔧 关闭调试窗口: {node.Name}");
                                     };
-
-                                    _openDebugWindow = debugWindow;
-                                    AddLog($"✅ 调试窗口已打开: {node.Name}");
                                 }
                                 else
                                 {
@@ -2207,8 +2204,6 @@ namespace SunEyeVision.UI.ViewModels
                             break;
 
                         case NodeInterfaceType.SubroutineEditor:
-                            // 子程序编辑器（配置界面）
-                            AddLog($"编辑界面: {node.Name}");
                             // TODO: 实现节点编辑
                             System.Windows.MessageBox.Show(
                                 "节点编辑功能待实现",
@@ -2475,7 +2470,6 @@ namespace SunEyeVision.UI.ViewModels
             if (DisplayImageSources.Count > 0)
             {
                 SelectedDisplayImageSourceIndex = 0;
-                AddLog($"📷 已更新图像显示数据源，共 {DisplayImageSources.Count} 项");
             }
             else
             {
@@ -2511,9 +2505,8 @@ namespace SunEyeVision.UI.ViewModels
                 var toolMetadata = ToolRegistry.GetToolMetadata(toolType);
                 if (toolMetadata == null)
                 {
-                    AddLog($"⚠️ 未找到工具元数据: {toolType}");
-                    return;
-                }
+                        return;
+                    }
 
                 // 检查是否有调试控件
                 if (toolMetadata.DebugWindowType == null)
@@ -2710,7 +2703,6 @@ namespace SunEyeVision.UI.ViewModels
                 debugWindow.Closed += (s, e) =>
                 {
                     _nodeDataProviders.Remove(currentNode.Id);
-                    AddLog($"🗑️ 已清理节点 {currentNode.Name} 的数据提供者缓存");
                 };
             }
             catch (Exception ex)
@@ -2722,15 +2714,6 @@ namespace SunEyeVision.UI.ViewModels
                 while (innerEx != null)
                 {
                     errorDetails.AppendLine($"  → 内部异常: {innerEx.Message}");
-                    if (!string.IsNullOrEmpty(innerEx.StackTrace))
-                    {
-                        // 只输出堆栈跟踪的前3行关键信息
-                        var stackLines = innerEx.StackTrace.Split('\n').Take(3);
-                        foreach (var line in stackLines)
-                        {
-                            errorDetails.AppendLine($"    {line.Trim()}");
-                        }
-                    }
                     innerEx = innerEx.InnerException;
                 }
                 

@@ -58,7 +58,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <remarks>
         /// 如果为 null，表示常量模式，Value 就是用户直接输入的常量。
         /// 如果不为 null，表示绑定模式，Value 是从绑定配置解析出来的值。
-        /// 
+        ///
         /// 序列化时，BindingConfig 会一起保存。
         /// </remarks>
         public override ParamSetting? BindingConfig
@@ -68,6 +68,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             {
                 if (SetProperty(ref _bindingConfig, value))
                 {
+                    // 反序列化后自动恢复 TargetType
+                    if (_bindingConfig != null && _bindingConfig.TargetType == null)
+                    {
+                        _bindingConfig.TargetType = typeof(T);
+                    }
+
                     // 绑定配置变化时，标记值来源
                     OnPropertyChanged(nameof(ValueSource));
                     OnPropertyChanged(nameof(IsBinding));

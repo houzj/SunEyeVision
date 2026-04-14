@@ -41,9 +41,6 @@ namespace SunEyeVision.Workflow.Nodes
             {
                 // Step 1: 数据获取
                 context.Node = node;
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"开始处理节点双击: {node.Name}", 
-                    "NodeOpenDecisionChain");
 
                 // Step 2: 元数据获取
                 FetchMetadata(context);
@@ -54,9 +51,6 @@ namespace SunEyeVision.Workflow.Nodes
                 // Step 4: 窗口类型判断
                 if (context.WindowStyle == DebugWindowStyle.None)
                 {
-                    VisionLogger.Instance.Log(LogLevel.Info, 
-                        $"窗口类型为 None，不打开窗口: {node.Name}", 
-                        "NodeOpenDecisionChain");
                     return true;
                 }
 
@@ -88,13 +82,7 @@ namespace SunEyeVision.Workflow.Nodes
             var metadata = ToolRegistry.GetToolMetadata(node.ToolType);
             context.Metadata = metadata;
 
-            if (metadata != null)
-            {
-                VisionLogger.Instance.Log(LogLevel.Success, 
-                    $"获取工具元数据成功: {metadata.DisplayName}", 
-                    "NodeOpenDecisionChain");
-            }
-            else
+            if (metadata == null)
             {
                 VisionLogger.Instance.Log(LogLevel.Warning, 
                     $"未找到工具元数据: {node.ToolType}", 
@@ -117,9 +105,6 @@ namespace SunEyeVision.Workflow.Nodes
             if (node.DebugWindowStyle != DebugWindowStyle.Default)
             {
                 context.WindowStyle = node.DebugWindowStyle;
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"使用节点级窗口类型: {context.WindowStyle}", 
-                    "NodeOpenDecisionChain");
                 return;
             }
 
@@ -127,17 +112,11 @@ namespace SunEyeVision.Workflow.Nodes
             if (metadata?.DebugWindowStyle != DebugWindowStyle.Default)
             {
                 context.WindowStyle = metadata.DebugWindowStyle;
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    $"使用工具级窗口类型: {context.WindowStyle}", 
-                    "NodeOpenDecisionChain");
                 return;
             }
 
             // 优先级3：全局默认值
             context.WindowStyle = DebugWindowStyle.Default;
-            VisionLogger.Instance.Log(LogLevel.Info, 
-                $"使用全局默认窗口类型: {context.WindowStyle}", 
-                "NodeOpenDecisionChain");
         }
 
         /// <summary>
@@ -165,13 +144,7 @@ namespace SunEyeVision.Workflow.Nodes
                 var debugControl = toolInstance.CreateDebugControl();
                 context.DebugControl = debugControl;
 
-                if (debugControl != null)
-                {
-                    VisionLogger.Instance.Log(LogLevel.Success, 
-                        $"创建调试控件成功: {debugControl.GetType().Name}", 
-                        "NodeOpenDecisionChain");
-                }
-                else
+                if (debugControl == null)
                 {
                     VisionLogger.Instance.Log(LogLevel.Info, 
                         $"工具未提供调试控件: {node.ToolType}", 
@@ -192,10 +165,6 @@ namespace SunEyeVision.Workflow.Nodes
         private void ExecuteStrategy(NodeOpenContext context)
         {
             var strategy = _strategyRegistry.FindStrategy(context);
-
-            VisionLogger.Instance.Log(LogLevel.Info, 
-                $"使用策略: {strategy.GetType().Name}", 
-                "NodeOpenDecisionChain");
             strategy.Execute(context);
         }
     }

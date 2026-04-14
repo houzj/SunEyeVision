@@ -292,19 +292,10 @@ namespace SunEyeVision.Workflow
         /// </summary>
         public List<string> GetParentNodeIds(string nodeId)
         {
-            Logger.LogInfo($"========== GetParentNodeIds 开始 ==========", "WorkflowEngine");
-            Logger.LogInfo($"查询节点ID: {nodeId}", "WorkflowEngine");
-            Logger.LogInfo($"CurrentWorkflow: {(CurrentWorkflow != null ? $"✅ {CurrentWorkflow.Name}" : "❌ 为 null")}", "WorkflowEngine");
-
             if (CurrentWorkflow == null)
             {
-                Logger.LogInfo("❌ CurrentWorkflow 为 null，返回空列表", "WorkflowEngine");
-                Logger.LogInfo($"============================================", "WorkflowEngine");
                 return new List<string>();
             }
-
-            Logger.LogInfo($"总连接数: {CurrentWorkflow.Connections.Count}", "WorkflowEngine");
-            Logger.LogInfo($"总节点数: {CurrentWorkflow.Nodes.Count}", "WorkflowEngine");
 
             // BFS 递归查找所有上游节点
             var upstreamNodeIds = new List<string>();  // 使用 List 保持 BFS 顺序

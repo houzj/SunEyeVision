@@ -91,8 +91,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             var control = (DispItemColorControl)d;
             var oldConfig = (DisplayItemConfig?)e.OldValue;
             var newConfig = (DisplayItemConfig?)e.NewValue;
-
-            PluginLogger.Info($"ConfigChanged - Old: {oldConfig?.Name}, New: {newConfig?.Name}", "DispItemColorControl");
         }
 
         #endregion
@@ -125,7 +123,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         public DispItemColorControl()
         {
-            PluginLogger.Info($"DispItemColorControl 初始化", "DispItemColorControl");
         }
 
         #endregion
@@ -135,8 +132,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-
-            PluginLogger.Info($"OnApplyTemplate", "DispItemColorControl");
 
             // 移除旧的事件处理
             if (_visibilityButton != null)
@@ -157,7 +152,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_visibilityButton != null)
             {
                 _visibilityButton.Click += OnVisibilityButtonClick;
-                PluginLogger.Info($"PART_VisibilityButton 获取成功", "DispItemColorControl");
             }
             else
             {
@@ -167,18 +161,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             if (_styleSettingsButton != null)
             {
                 _styleSettingsButton.Click += OnStyleSettingsButtonClick;
-                PluginLogger.Info($"PART_StyleSettingsButton 获取成功", "DispItemColorControl");
             }
             else
             {
                 PluginLogger.Warning($"PART_StyleSettingsButton 未找到", "DispItemColorControl");
             }
 
-            if (_styleSettingsPopup != null)
-            {
-                PluginLogger.Info($"PART_StyleSettingsPopup 获取成功", "DispItemColorControl");
-            }
-            else
+            if (_styleSettingsPopup == null)
             {
                 PluginLogger.Warning($"PART_StyleSettingsPopup 未找到", "DispItemColorControl");
             }
@@ -200,7 +189,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
 
             Config.IsVisible = !Config.IsVisible;
-            PluginLogger.Info($"切换可见性: {Config.Name} -> {Config.IsVisible}", "DispItemColorControl");
         }
 
         /// <summary>
@@ -215,7 +203,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
 
             _styleSettingsPopup.IsOpen = !_styleSettingsPopup.IsOpen;
-            PluginLogger.Info($"切换样式设置Popup: {_styleSettingsPopup.IsOpen}", "DispItemColorControl");
         }
 
         #endregion

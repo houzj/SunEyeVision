@@ -58,8 +58,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             _control = control;
             _toolControl = control as ToolDebugControlBase;
 
-            PluginLogger.Info("DefaultDebugWindow 构造函数开始", "DefaultDebugWindow");
-
             // 设置内容
             ContentHost.Content = _control;
 
@@ -93,8 +91,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             _control.AddHandler(
                 ToolDebugControlBase.ToolExecutionCompletedEvent,
                 new ToolExecutionCompletedEventHandler(OnToolExecutionCompleted));
-            
-            PluginLogger.Info("已订阅 ToolExecutionCompleted 路由事件", "DefaultDebugWindow");
         }
 
         /// <summary>
@@ -105,8 +101,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             _control.RemoveHandler(
                 ToolDebugControlBase.ToolExecutionCompletedEvent,
                 new ToolExecutionCompletedEventHandler(OnToolExecutionCompleted));
-            
-            PluginLogger.Info("已取消订阅 ToolExecutionCompleted 路由事件", "DefaultDebugWindow");
         }
 
         #endregion
@@ -141,8 +135,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
         /// </summary>
         private void OnConfirmCommand(object sender, ExecutedRoutedEventArgs e)
         {
-            PluginLogger.Info("确认命令触发", "DefaultDebugWindow");
-
             // 执行参数验证
             if (ValidateParameters())
             {
@@ -168,8 +160,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
                 _isContinuousRunning = false;
                 ContinuousRunButton.Content = "连续执行";
                 RunButton.Visibility = Visibility.Visible;
-                
-                PluginLogger.Info("停止连续运行", "DefaultDebugWindow");
             }
             else
             {
@@ -177,8 +167,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
                 _isContinuousRunning = true;
                 ContinuousRunButton.Content = "停止运行";
                 RunButton.Visibility = Visibility.Collapsed;
-                
-                PluginLogger.Info("开始连续运行", "DefaultDebugWindow");
                 
                 // 触发第一次执行
                 TriggerExecute();
@@ -198,8 +186,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             {
                 _isExecuting = false;
                 SetButtonsEnabled(true);
-                
-                PluginLogger.Info("工具执行完成，按钮已恢复", "DefaultDebugWindow");
                 
                 // 如果是连续运行模式，继续下一次执行
                 if (_isContinuousRunning && IsLoaded)
@@ -392,8 +378,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
             
             // 清理路由事件订阅
             UnsubscribeRoutedEvents();
-
-            PluginLogger.Info("窗口已关闭，事件已清理", "DefaultDebugWindow");
         }
 
         #endregion

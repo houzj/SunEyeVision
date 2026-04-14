@@ -398,17 +398,6 @@ namespace SunEyeVision.UI.ViewModels
             AvailableDataSources = new ObservableCollection<AvailableDataSource>();
             TreeNodes = new ObservableCollection<TreeNodeData>();
 
-            // 记录初始化信息
-            LogInfo($"参数绑定初始化: 参数名={parameterName}, 类型={parameterType.Name}");
-            if (_dataSourceQueryService != null)
-            {
-                LogInfo($"✓ 数据查询服务已注入: 参数 {parameterName}");
-            }
-            else
-            {
-                LogWarning($"⚠ 数据查询服务未注入: 参数 {parameterName} (数据绑定功能不可用)");
-            }
-
             // 初始化命令
             SelectDataSourceCommand = new RelayCommand(ExecuteSelectDataSource);
             ClearDataSourceCommand = new RelayCommand(ExecuteClearDataSource, CanClearDataSource);
@@ -482,25 +471,19 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo($"开始刷新可用数据源: 节点 {nodeId}, 参数 {DisplayName}");
-
                 AvailableDataSources.Clear();
                 TreeNodes.Clear();
 
                 if (_dataSourceQueryService == null)
                 {
-                    LogWarning("数据查询服务未注入，无法刷新数据源");
                     return;
                 }
 
                 // 获取所有可用数据源（包括类型过滤）
-                LogInfo($"获取类型兼容的数据源: 参数类型 {ParameterType.Name}");
                 var dataSources = _dataSourceQueryService.GetAvailableDataSources(nodeId, ParameterType);
-                LogInfo($"找到 {dataSources.Count} 个类型兼容的数据源");
 
                 // 批量添加数据源，避免逐个触发 CollectionChanged 导致重复构建树形结构
                 AvailableDataSources = new ObservableCollection<AvailableDataSource>(dataSources);
-                LogInfo($"  已批量添加 {dataSources.Count} 个数据源到集合");
 
                 // 构建树形结构
                 var treeNodes = ConfigSetting.BuildTreeStructure(dataSources);
@@ -508,15 +491,12 @@ namespace SunEyeVision.UI.ViewModels
                 {
                     TreeNodes.Add(node);
                 }
-                LogSuccess($"✓ 数据源刷新完成: 共 {dataSources.Count} 个数据源, {treeNodes.Count} 个树节点");
 
                 // 如果当前选中的数据源不在列表中，清除选择
                 if (SelectedDataSource != null &&
                     !AvailableDataSources.Any(ds => ds.GetBindingPath() == SelectedDataSource.GetBindingPath()))
                 {
-                    var oldSource = SelectedDataSource.DisplayName;
                     SelectedDataSource = null;
-                    LogInfo($"清除已失效的数据源选择: {oldSource}");
                 }
             }
             catch (Exception ex)
@@ -563,8 +543,6 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                LogInfo($"请求数据源选择: 参数 {DisplayName}, 类型 {ParameterType.Name}");
-
                 // 触发数据源选择请求事件
                 var args = new DataSourceSelectionRequestEventArgs(ParameterName, ParameterType);
                 DataSourceSelectionRequested?.Invoke(this, args);
@@ -572,11 +550,6 @@ namespace SunEyeVision.UI.ViewModels
                 if (args.SelectedDataSource != null)
                 {
                     SelectedDataSource = args.SelectedDataSource;
-                    LogSuccess($"✓ 数据源已选择: {args.SelectedDataSource.DisplayName}");
-                }
-                else
-                {
-                    LogInfo("数据源选择已取消");
                 }
             }
             catch (Exception ex)
@@ -594,12 +567,7 @@ namespace SunEyeVision.UI.ViewModels
         {
             try
             {
-                var oldSource = SelectedDataSource?.DisplayName ?? "无";
-                LogInfo($"清除数据源绑定: 参数 {DisplayName}, 原数据源={oldSource}");
-
                 SelectedDataSource = null;
-
-                LogSuccess($"✓ 数据源绑定已清除: 参数 {DisplayName}");
             }
             catch (Exception ex)
             {

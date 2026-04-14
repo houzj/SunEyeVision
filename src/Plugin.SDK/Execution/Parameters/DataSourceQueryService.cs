@@ -145,13 +145,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
             if (_connectionProvider == null)
             {
                 // 如果没有连接提供者，返回空列表
-                _logger?.LogInfo("连接提供者未初始化，无法查询父节点", "DataSourceQueryService");
                 return parentNodes;
             }
 
             // 获取父节点ID列表
             var parentNodeIds = _connectionProvider.GetParentNodeIds(nodeId);
-            _logger?.LogInfo($"🔍 GetParentNodes: 获取到 {parentNodeIds.Count} 个父节点，顺序: [{string.Join(", ", parentNodeIds)}]", "DataSourceQueryService");
 
             int order = 0;
 
@@ -179,10 +177,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <inheritdoc/>
         public List<AvailableDataSource> GetAvailableDataSources(string nodeId, Type? targetType = null)
         {
-            _logger?.LogInfo($"========== GetAvailableDataSources 开始 ==========", "DataSourceQueryService");
-            _logger?.LogInfo($"查询节点ID: {nodeId}", "DataSourceQueryService");
-            _logger?.LogInfo($"目标类型: {targetType?.Name ?? "Any"}", "DataSourceQueryService");
-
             // 获取父节点
             var parentNodes = GetParentNodes(nodeId);
             var allDataSources = new List<AvailableDataSource>();
@@ -221,8 +215,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 }
             }
 
-            _logger?.LogInfo($"总共返回 {allDataSources.Count} 个数据源", "DataSourceQueryService");
-            _logger?.LogInfo($"==================================================", "DataSourceQueryService");
             return allDataSources;
         }
 
@@ -234,7 +226,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (context == null || context.ResultType == null)
             {
-                _logger?.LogInfo($"节点上下文为空: {parentNodeId}", "DataSourceQueryService");
                 return properties;
             }
 
@@ -244,13 +235,8 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (metadataList == null)
             {
-                _logger?.LogWarning($"未找到属性元数据: {context.NodeType}", "DataSourceQueryService");
                 return properties;
             }
-
-            // 输出关键日志：TreeName 是否正确设置
-            var hasTreeName = metadataList.Any(m => !string.IsNullOrEmpty(m.TreeName) && m.TreeName != m.DisplayName);
-            _logger?.LogSuccess($"获取到 {metadataList.Count} 个属性元数据: {context.NodeType} (TreeName正确: {hasTreeName})", "DataSourceQueryService");
 
             foreach (var metadata in metadataList)
             {
@@ -277,9 +263,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     GroupName = context.NodeName,
                     FullTreeName = string.IsNullOrEmpty(metadata.TreeName) ? null : $"{context.NodeName}.{metadata.TreeName}"
                 };
-
-                // 📊 调试日志：输出 FullTreeName 赋值结果
-                _logger?.LogInfo($"    [DataSourceQueryService] 属性 {metadata.PropertyName}: TreeName='{metadata.TreeName ?? "null"}', DisplayName='{metadata.DisplayName}'", "DataSourceQueryService");
 
                 properties.Add(dataSource);
             }
@@ -386,35 +369,30 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public void RefreshNodeData(string nodeId)
         {
             // TODO: 实现节点数据刷新逻辑
-            _logger?.LogInfo($"  RefreshNodeData({nodeId})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void RefreshAll()
         {
             // TODO: 实现所有数据刷新逻辑
-            _logger?.LogInfo("  RefreshAll()", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void SetNodeResult(string nodeId, ToolResults result)
         {
             _nodeResults[nodeId] = result;
-            _logger?.LogInfo($"  SetNodeResult({nodeId})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void ClearNodeResult(string nodeId)
         {
             _nodeResults.TryRemove(nodeId, out _);
-            _logger?.LogInfo($"  ClearNodeResult({nodeId})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void ClearAllResults()
         {
             _nodeResults.Clear();
-            _logger?.LogInfo("  ClearAllResults()", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
@@ -431,21 +409,18 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                 _nodeOutputs[nodeId] = new Dictionary<string, object?>();
             }
             _nodeOutputs[nodeId][propertyName] = value;
-            _logger?.LogInfo($"  UpdateNodeOutput({nodeId}, {propertyName})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public void ClearNodeOutput(string nodeId)
         {
             _nodeOutputs.TryRemove(nodeId, out _);
-            _logger?.LogInfo($"  ClearNodeOutput({nodeId})", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>
         public object? GetCurrentBindingValue(string nodeId, string propertyName, string? bindingPath = null)
         {
             // TODO: 实现绑定值获取逻辑
-            _logger?.LogInfo($"  GetCurrentBindingValue({nodeId}, {propertyName})", "DataSourceQueryService");
             return null;
         }
 
@@ -453,7 +428,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public string GetBindingDisplayPath(string nodeId, string propertyName, string? bindingPath = null)
         {
             // TODO: 实现绑定显示路径逻辑
-            _logger?.LogInfo($"  GetBindingDisplayPath({nodeId}, {propertyName})", "DataSourceQueryService");
             return propertyName;
         }
 
@@ -461,7 +435,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public IDisposable SubscribeOutputChanged(string nodeId, string propertyName, string? bindingPath, Action<object?> callback)
         {
             // TODO: 实现输出变更订阅逻辑
-            _logger?.LogInfo($"  SubscribeOutputChanged({nodeId}, {propertyName})", "DataSourceQueryService");
 
             // 返回一个空的订阅令牌
             return new SubscriptionToken(() => { });
@@ -471,7 +444,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         public void RefreshOutputs()
         {
             // TODO: 实现输出刷新逻辑
-            _logger?.LogInfo("  RefreshOutputs()", "DataSourceQueryService");
         }
 
         /// <inheritdoc/>

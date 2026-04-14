@@ -122,21 +122,6 @@ namespace SunEyeVision.UI.Views.Controls.Panels
 
                 // 初始化计数
                 UpdateLogCounts();
-
-                // 添加测试日志，验证日志系统工作
-                try
-                {
-                    _logViewModel?.LogInfo("日志面板初始化成功");
-                    _logViewModel?.LogSuccess("这是一条成功日志");
-                    _logViewModel?.LogWarning("这是一条警告日志");
-                    _logViewModel?.LogError("这是一条错误日志");
-                    
-                    System.Diagnostics.Debug.WriteLine($"[LogPanelControl] 测试日志已添加，当前日志数: {_logViewModel.LogEntries.Count}");
-                }
-                catch (Exception testEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[LogPanelControl] 测试日志添加失败: {testEx.Message}");
-                }
             }
             catch (InvalidOperationException ex)
             {

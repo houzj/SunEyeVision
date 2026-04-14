@@ -162,12 +162,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         {
             if (d is ImageSourceSelector selector)
             {
-                // 调试日志：输出绑定状态
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[ImageSourceSelector] OnAvailableDataSourcesChanged 触发: " +
-                    $"NewValue={(e.NewValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.NewValue).Count}]" : "null")}, " +
-                    $"OldValue={(e.OldValue != null ? $"ObservableCollection[{((System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>)e.OldValue).Count}]" : "null")}",
-                    "ImageSourceSelector");
 
                 // 如果当前选中的源不在新列表中，清除选择
                 if (selector.SelectedDataSource != null && selector.AvailableDataSources != null)

@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -94,7 +95,9 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// </summary>
         /// <remarks>
         /// 参数的目标类型，用于类型转换和验证。
+        /// 类型信息由泛型参数 T 自动推断，无需序列化。
         /// </remarks>
+        [JsonIgnore]
         public Type? TargetType { get; set; }
 
         /// <summary>
@@ -237,15 +240,33 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             var setting = new ParamSetting
             {
-                ParameterName = dict.TryGetValue("ParameterName", out var name) ? name?.ToString() ?? string.Empty : string.Empty,
-                BindingType = dict.TryGetValue("BindingType", out var type) ? (BindingType)Convert.ToInt32(type) : BindingType.Constant
+                ParameterName = dict.TryGetValue("ParameterName", out var name) ? name?.ToString() ?? string.Empty : string.Empty
             };
+
+            // ✅ 修复：BindingType 可能是 JsonElement，需要先转换为字符串
+            if (dict.TryGetValue("BindingType", out var type))
+            {
+                var typeStr = type?.ToString();
+                if (int.TryParse(typeStr, out int typeInt))
+                {
+                    setting.BindingType = (BindingType)typeInt;
+                }
+                else
+                {
+                    setting.BindingType = BindingType.Constant;
+                }
+            }
+            else
+            {
+                setting.BindingType = BindingType.Constant;
+            }
 
             if (dict.TryGetValue("ConstantValue", out var value) && value != null)
             {
                 if (dict.TryGetValue("ConstantValueType", out var typeName))
                 {
-                    var valueType = Type.GetType(typeName?.ToString() ?? string.Empty);
+                    var typeNameStr = typeName?.ToString();
+                    var valueType = string.IsNullOrEmpty(typeNameStr) ? null : Type.GetType(typeNameStr);
                     if (valueType != null && value.GetType() != valueType)
                     {
                         try
@@ -279,7 +300,11 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 
             if (dict.TryGetValue("TargetType", out var targetType))
             {
-                setting.TargetType = Type.GetType(targetType?.ToString() ?? string.Empty);
+                var targetTypeStr = targetType?.ToString();
+                if (!string.IsNullOrEmpty(targetTypeStr))
+                {
+                    setting.TargetType = Type.GetType(targetTypeStr);
+                }
             }
 
             return setting;
