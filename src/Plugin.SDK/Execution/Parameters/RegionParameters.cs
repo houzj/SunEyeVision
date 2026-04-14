@@ -1,0 +1,255 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Text.Json.Serialization;
+using SunEyeVision.Plugin.SDK.Metadata;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+
+namespace SunEyeVision.Plugin.SDK.Execution.Parameters
+{
+    /// <summary>
+    /// 区域参数基类 - 提供检测区域和屏蔽区域的通用实现
+    /// </summary>
+    /// <remarks>
+    /// 设计理念：
+    /// 1. 所有需要区域管理的工具可以继承此基类
+    /// 2. 避免重复定义 InspectionRegions 和 MaskRegions
+    /// 3. 提供是否启用区域限制的通用参数
+    /// 4. 统一区域参数的序列化和反序列化
+    /// 
+    /// 使用示例：
+    /// <code>
+    /// [JsonDerivedType(typeof(ThresholdParameters), "Threshold")]
+    /// public class ThresholdParameters : RegionParameters
+    /// {
+    ///     public ParamValue<int> Threshold { get; set; }
+    ///     
+    ///     public ThresholdParameters()
+    ///     {
+    ///         Threshold = new ParamValue<int>(128);
+    ///     }
+    /// }
+    /// </code>
+    /// </remarks>
+    [JsonDerivedType(typeof(RegionParameters), "RegionParameters")]
+    public class RegionParameters : ToolParameters
+    {
+        private RegionCollectionParameter _inspectionRegions;
+        private RegionCollectionParameter _maskRegions;
+        private ParamValue<bool> _isRegionEnabled;
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        public RegionParameters()
+        {
+            _inspectionRegions = new RegionCollectionParameter(RegionParameterMode.InspectionRegion);
+            _maskRegions = new RegionCollectionParameter(RegionParameterMode.MaskRegion);
+            _isRegionEnabled = new ParamValue<bool> { Value = false };
+        }
+
+        /// <summary>
+        /// 检测区域 - 指定需要进行检测/处理的区域
+        /// </summary>
+        /// <remarks>
+        /// 支持常量模式（用户直接绘制）和绑定模式（订阅其他节点输出）
+        /// </remarks>
+        public RegionCollectionParameter InspectionRegions
+        {
+            get => _inspectionRegions;
+            set => _inspectionRegions = value;
+        }
+
+        /// <summary>
+        /// 屏蔽区域 - 指定需要排除的区域
+        /// </summary>
+        /// <remarks>
+        /// 支持常量模式（用户直接绘制）和绑定模式（订阅其他节点输出）
+        /// </remarks>
+        public RegionCollectionParameter MaskRegions
+        {
+            get => _maskRegions;
+            set => _maskRegions = value;
+        }
+
+        /// <summary>
+        /// 是否启用区域限制
+        /// </summary>
+        /// <remarks>
+        /// false = 对整个图像进行处理
+        /// true = 仅对有效区域（检测区域 - 屏蔽区域）进行处理
+        /// </remarks>
+        public ParamValue<bool> IsRegionEnabled
+        {
+            get => _isRegionEnabled;
+            set => _isRegionEnabled = value;
+        }
+
+        /// <summary>
+        /// 获取有效区域列表（检测区域 - 屏蔽区域）
+        /// </summary>
+        /// <returns>有效区域集合</returns>
+        /// <remarks>
+        /// 此方法由算法层调用，计算最终的检测区域
+        /// 有效区域 = 检测区域 ∩ (图像全集 - 屏蔽区域)
+        /// </remarks>
+        public System.Collections.Generic.IEnumerable<RegionData> GetEffectiveRegions()
+        {
+            var inspectionRegions = _inspectionRegions.GetEnabledRegions();
+            var maskRegions = _maskRegions.GetEnabledRegions();
+
+            if (inspectionRegions.Count == 0)
+            {
+                // 没有检测区域，返回空列表
+                return new System.Collections.Generic.List<RegionData>();
+            }
+
+            if (maskRegions.Count == 0)
+            {
+                // 没有屏蔽区域，直接返回检测区域
+                return new System.Collections.Generic.List<RegionData>(inspectionRegions);
+            }
+
+            // 简化实现：如果检测区域和屏蔽区域有重叠，从检测区域中移除
+            // 实际应使用几何算法计算差集
+            var effectiveRegions = new System.Collections.Generic.List<RegionData>();
+
+            foreach (var inspectionRegion in inspectionRegions)
+            {
+                var isOverlapped = false;
+                var inspectionBounds = GetRegionBounds(inspectionRegion);
+
+                foreach (var maskRegion in maskRegions)
+                {
+                    var maskBounds = GetRegionBounds(maskRegion);
+
+                    // 简单的边界盒重叠检测
+                    if (IsBoundsOverlapped(inspectionBounds, maskBounds))
+                    {
+                        isOverlapped = true;
+                        break;
+                    }
+                }
+
+                // TODO: 实现精确的几何差分算法
+                // 当前简化实现：如果有重叠，跳过该检测区域
+                if (!isOverlapped)
+                {
+                    effectiveRegions.Add(inspectionRegion);
+                }
+            }
+
+            return effectiveRegions;
+        }
+
+        /// <summary>
+        /// 获取区域的边界盒
+        /// </summary>
+        private static Rect GetRegionBounds(RegionData region)
+        {
+            if (region.Parameters == null)
+                return new Rect(0, 0, 0, 0);
+
+            var shape = region.Parameters;
+            var shapeType = shape.GetShapeType();
+
+            if (!shapeType.HasValue)
+                return new Rect(0, 0, 0, 0);
+
+            return shapeType.Value switch
+            {
+                Models.ShapeType.Rectangle => new Rect(
+                    (int)(shape.CenterX - shape.Width / 2),
+                    (int)(shape.CenterY - shape.Height / 2),
+                    (int)shape.Width,
+                    (int)shape.Height
+                ),
+                Models.ShapeType.Circle => new Rect(
+                    (int)(shape.CenterX - shape.Radius),
+                    (int)(shape.CenterY - shape.Radius),
+                    (int)(shape.Radius * 2),
+                    (int)(shape.Radius * 2)
+                ),
+                Models.ShapeType.RotatedRectangle => new Rect(
+                    (int)(shape.CenterX - shape.Width / 2),
+                    (int)(shape.CenterY - shape.Height / 2),
+                    (int)shape.Width,
+                    (int)shape.Height
+                ),
+                Models.ShapeType.Polygon => GetPolygonBounds(shape.Points),
+                Models.ShapeType.Annulus => new Rect(
+                    (int)(shape.CenterX - shape.OuterRadius > 0 ? shape.OuterRadius : shape.Radius + 20),
+                    (int)(shape.CenterY - shape.OuterRadius > 0 ? shape.OuterRadius : shape.Radius + 20),
+                    (int)(shape.OuterRadius > 0 ? shape.OuterRadius * 2 : (shape.Radius + 20) * 2),
+                    (int)(shape.OuterRadius > 0 ? shape.OuterRadius * 2 : (shape.Radius + 20) * 2)
+                ),
+                _ => new Rect(0, 0, 0, 0)
+            };
+        }
+
+        /// <summary>
+        /// 获取多边形的边界盒
+        /// </summary>
+        private static Rect GetPolygonBounds(System.Collections.Generic.List<System.Drawing.PointF> points)
+        {
+            if (points == null || points.Count == 0)
+                return new Rect(0, 0, 0, 0);
+
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            foreach (var point in points)
+            {
+                if (point.X < minX) minX = point.X;
+                if (point.Y < minY) minY = point.Y;
+                if (point.X > maxX) maxX = point.X;
+                if (point.Y > maxY) maxY = point.Y;
+            }
+
+            return new Rect(
+                (int)minX,
+                (int)minY,
+                (int)(maxX - minX),
+                (int)(maxY - minY)
+            );
+        }
+
+        /// <summary>
+        /// 检查两个边界盒是否重叠
+        /// </summary>
+        private static bool IsBoundsOverlapped(Rect bounds1, Rect bounds2)
+        {
+            if (bounds1.IsEmpty || bounds2.IsEmpty)
+                return false;
+
+            return bounds1.X < bounds2.X + bounds2.Width &&
+                   bounds1.X + bounds1.Width > bounds2.X &&
+                   bounds1.Y < bounds2.Y + bounds2.Height &&
+                   bounds1.Y + bounds1.Height > bounds2.Y;
+        }
+
+        /// <summary>
+        /// 深拷贝参数
+        /// </summary>
+        protected override void OnClone(ToolParameters cloned)
+        {
+            if (cloned is RegionParameters regionParams)
+            {
+                // 拷贝区域集合
+                foreach (var region in _inspectionRegions.Regions)
+                {
+                    regionParams._inspectionRegions.AddRegion((RegionData)region.Clone());
+                }
+                foreach (var region in _maskRegions.Regions)
+                {
+                    regionParams._maskRegions.AddRegion((RegionData)region.Clone());
+                }
+
+                // 拷贝其他参数
+                regionParams.IsRegionEnabled.Value = _isRegionEnabled.Value;
+            }
+
+            base.OnClone(cloned);
+        }
+    }
+}

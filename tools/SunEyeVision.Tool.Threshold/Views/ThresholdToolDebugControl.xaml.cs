@@ -89,9 +89,18 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             _mainImageControl = imageControl;
 
-            if (regionEditor != null && imageControl != null)
+            // 设置检测区域编辑器
+            if (inspectionRegionEditor != null && imageControl != null)
             {
-                regionEditor.SetMainImageControl(imageControl);
+                inspectionRegionEditor.SetMainImageControl(imageControl);
+                PluginLogger.Info("已为检测区域编辑器设置主窗口ImageControl", "ThresholdTool");
+            }
+
+            // 设置屏蔽区域编辑器
+            if (maskRegionEditor != null && imageControl != null)
+            {
+                maskRegionEditor.SetMainImageControl(imageControl);
+                PluginLogger.Info("已为屏蔽区域编辑器设置主窗口ImageControl", "ThresholdTool");
             }
         }
 
@@ -140,6 +149,10 @@ namespace SunEyeVision.Tool.Threshold.Views
 
                 PluginLogger.Success($"已加载节点参数: Threshold={Parameters.Threshold}", "ThresholdTool");
                 PluginLogger.Info($"TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
+
+                // 初始化区域编辑器
+                InitializeInspectionRegionEditor();
+                InitializeMaskRegionEditor();
             }
             else
             {
@@ -151,8 +164,43 @@ namespace SunEyeVision.Tool.Threshold.Views
 
         #region RegionEditor
 
+        /// <summary>
+        /// 初始化检测区域编辑器
+        /// </summary>
+        private void InitializeInspectionRegionEditor()
+        {
+            if (inspectionRegionEditor == null)
+                return;
+
+            PluginLogger.Info("初始化检测区域编辑器", "ThresholdTool");
+
+            // 设置区域数据源
+            inspectionRegionEditor.Regions = Parameters.InspectionRegions.Regions;
+            inspectionRegionEditor.SetMainImageControl(_mainImageControl);
+
+            PluginLogger.Success($"检测区域编辑器初始化完成，区域数量: {Parameters.InspectionRegions.Regions.Count}", "ThresholdTool");
+        }
+
+        /// <summary>
+        /// 初始化屏蔽区域编辑器
+        /// </summary>
+        private void InitializeMaskRegionEditor()
+        {
+            if (maskRegionEditor == null)
+                return;
+
+            PluginLogger.Info("初始化屏蔽区域编辑器", "ThresholdTool");
+
+            // 设置区域数据源
+            maskRegionEditor.Regions = Parameters.MaskRegions.Regions;
+            maskRegionEditor.SetMainImageControl(_mainImageControl);
+
+            PluginLogger.Success($"屏蔽区域编辑器初始化完成，区域数量: {Parameters.MaskRegions.Regions.Count}", "ThresholdTool");
+        }
+
         private void InitializeRegionEditor()
         {
+            // 旧版本的初始化逻辑（保留兼容性）
             // RegionEditor 的初始化由外部通过 Initialize 方法完成
             // 这里不需要做任何操作
         }
@@ -174,18 +222,8 @@ namespace SunEyeVision.Tool.Threshold.Views
                 _dataProvider = queryService;
                 PluginLogger.Info("使用 DataSourceQueryService", "ThresholdTool");
 
-                // ✅ 新增：为 RegionEditorControl 设置 AvailableDataSources
-                if (regionEditor != null)
-                {
-                    regionEditor.AvailableDataSources = AvailableDataSources;
-                    PluginLogger.Info($"已为 RegionEditorControl 设置 AvailableDataSources，数量: {AvailableDataSources?.Count ?? 0}", "ThresholdTool");
-                }
-
-                // 初始化 RegionEditor
-                if (regionEditor != null && regionEditor.ViewModel != null)
-                {
-                    regionEditor.ViewModel.Initialize(_dataProvider);
-                }
+                // TODO: 为 RegionEditorControl 设置 AvailableDataSources
+                // 需要为 inspectionRegionEditor 和 maskRegionEditor 分别设置
             }
             else
             {

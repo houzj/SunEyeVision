@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Media.Animation;
@@ -78,6 +79,7 @@ namespace SunEyeVision.Tool.Threshold
                 AdaptiveMethod adaptiveMethod = parameters.AdaptiveMethod.Value;
                 int blockSize = parameters.BlockSize.Value;
                 bool invert = parameters.Invert.Value;
+                bool isRegionEnabled = parameters.IsRegionEnabled.Value;
 
                 // 执行阈值化处理
                 Mat outputImage;
@@ -95,12 +97,61 @@ namespace SunEyeVision.Tool.Threshold
                 // 转换OpenCvSharp的阈值类型
                 var thresholdType = ConvertThresholdType(type);
 
+                // 区域处理逻辑
+                Mat? mask = null;
+                if (isRegionEnabled)
+                {
+                    // 获取有效区域
+                    var effectiveRegions = parameters.GetEffectiveRegions();
+                    var regionList = effectiveRegions.ToList();
+
+                    if (regionList.Any())
+                    {
+                        parameters.LogInfo($"启用区域限制，共 {regionList.Count} 个有效区域");
+
+                        // 使用 RegionMaskBuilder 创建掩码
+                        var maskBuilder = new RegionMaskBuilder(grayImage.Size());
+                        try
+                        {
+                            // 添加所有有效区域到掩码
+                            maskBuilder.AddRegions(regionList);
+
+                            // 获取掩码
+                            mask = maskBuilder.GetMask();
+
+                            var whitePixelCount = Cv2.CountNonZero(mask);
+                            parameters.LogInfo($"掩码创建成功，白色像素数: {whitePixelCount}");
+                        }
+                        finally
+                        {
+                            maskBuilder.Dispose();
+                        }
+                    }
+                    else
+                    {
+                        parameters.LogWarning("启用区域限制，但没有有效的检测区域");
+                    }
+                }
+
                 if (type == ThresholdType.Binary || type == ThresholdType.BinaryInv)
                 {
                     // 普通阈值化
                     outputImage = new Mat();
-                    actualThreshold = Cv2.Threshold(grayImage, outputImage, threshold, maxValue, thresholdType);
-                    parameters.LogInfo($"使用固定阈值: {actualThreshold}");
+
+                    if (mask != null && !mask.Empty())
+                    {
+                        // 应用掩码：在指定区域内进行阈值化
+                        var tempOutput = new Mat();
+                        actualThreshold = Cv2.Threshold(grayImage, tempOutput, threshold, maxValue, thresholdType);
+                        Cv2.CopyTo(tempOutput, outputImage, mask);
+                        tempOutput.Dispose();
+                        parameters.LogInfo($"使用固定阈值: {actualThreshold} (应用掩码)");
+                    }
+                    else
+                    {
+                        actualThreshold = Cv2.Threshold(grayImage, outputImage, threshold, maxValue, thresholdType);
+                        parameters.LogInfo($"使用固定阈值: {actualThreshold}");
+                    }
                 }
                 else
                 {
@@ -110,9 +161,28 @@ namespace SunEyeVision.Tool.Threshold
                         ? AdaptiveThresholdTypes.MeanC
                         : AdaptiveThresholdTypes.GaussianC;
 
-                    Cv2.AdaptiveThreshold(grayImage, outputImage, maxValue, adaptiveType, thresholdType, blockSize, 5);
+                    if (mask != null && !mask.Empty())
+                    {
+                        // 应用掩码：在指定区域内进行阈值化
+                        var tempOutput = new Mat();
+                        Cv2.AdaptiveThreshold(grayImage, tempOutput, maxValue, adaptiveType, thresholdType, blockSize, 5);
+                        Cv2.CopyTo(tempOutput, outputImage, mask);
+                        tempOutput.Dispose();
+                        parameters.LogInfo($"使用自适应阈值，块大小: {blockSize} (应用掩码)");
+                    }
+                    else
+                    {
+                        Cv2.AdaptiveThreshold(grayImage, outputImage, maxValue, adaptiveType, thresholdType, blockSize, 5);
+                        parameters.LogInfo($"使用自适应阈值，块大小: {blockSize}");
+                    }
+
                     actualThreshold = threshold; // 自适应阈值无法直接获取
-                    parameters.LogInfo($"使用自适应阈值，块大小: {blockSize}");
+                }
+
+                // 释放掩码
+                if (mask != null)
+                {
+                    mask.Dispose();
                 }
 
                 // 如果需要反转

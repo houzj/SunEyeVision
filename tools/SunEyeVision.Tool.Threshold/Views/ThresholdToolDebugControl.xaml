@@ -43,7 +43,30 @@
                                 AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
                                 SelectedDataSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
             </controls:LabeledControl>
-            <region:RegionEditorControl x:Name="regionEditor" VerticalContentAlignment="Stretch"/>
+            
+            <!-- 启用区域限制 -->
+            <controls:LabeledControl Label="启用区域限制">
+              <CheckBox IsChecked="{Binding Parameters.IsRegionEnabled.Value, Mode=TwoWay}"
+                        Content="仅对指定区域进行阈值化处理"/>
+            </controls:LabeledControl>
+            
+            <!-- 检测区域编辑器 -->
+            <GroupBox Header="检测区域" Margin="0,8,0,0"
+                      Visibility="{Binding Parameters.IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
+              <region:RegionEditorControl x:Name="inspectionRegionEditor"
+                                        VerticalContentAlignment="Stretch"
+                                        Height="300"
+                                        Regions="{Binding Parameters.InspectionRegions.Regions, Mode=TwoWay}"/>
+            </GroupBox>
+            
+            <!-- 屏蔽区域编辑器 -->
+            <GroupBox Header="屏蔽区域" Margin="0,8,0,0"
+                      Visibility="{Binding Parameters.IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
+              <region:RegionEditorControl x:Name="maskRegionEditor"
+                                        VerticalContentAlignment="Stretch"
+                                        Height="300"
+                                        Regions="{Binding Parameters.MaskRegions.Regions, Mode=TwoWay}"/>
+            </GroupBox>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
