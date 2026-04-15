@@ -24,11 +24,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
         private readonly Canvas _targetCanvas;
         private readonly ILogger? _logger;
+        private readonly string _rendererInstanceId = Guid.NewGuid().ToString("N").Substring(0, 8);  // 实例ID，用于区分不同的渲染器
 
         // 对象池：缓存已创建的Shape和TextBlock
         private readonly Dictionary<Guid, Shape> _shapePool = new();
         private readonly Dictionary<Guid, TextBlock> _labelPool = new();
-        
+
         // 辅助元素池：方向箭头等辅助渲染元素
         private readonly Dictionary<Guid, List<Shape>> _helperPool = new();
 
@@ -78,9 +79,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         {
             _targetCanvas = targetCanvas ?? throw new ArgumentNullException(nameof(targetCanvas));
             _logger = logger;
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[WpfShapeRenderer.ctor] 渲染器已创建 | InstanceId={_rendererInstanceId} | Canvas={targetCanvas.GetType().Name}",
+                "WpfShapeRenderer");
         }
 
         #endregion
+
+        // Drawing flow log counter (for monitoring rendering)
+        private int _updateLogCount = 0;
 
         #region IRegionRenderer 实现
 
@@ -92,6 +100,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
             options ??= new RegionRenderOptions();
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            // 记录渲染开始
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[WpfShapeRenderer.Render] 渲染开始 | InstanceId={_rendererInstanceId} | InputRegions={regions.Count()} | ShapePool={_shapePool.Count} | LabelPool={_labelPool.Count} | HelperPool={_helperPool.Count}",
+                "WpfShapeRenderer");
 
             // 获取当前可见区域的ID集合
             var visibleRegions = new List<RegionRenderContext>();
@@ -116,12 +129,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
             sw.Stop();
 
-            if (sw.ElapsedMilliseconds > 10)
-            {
-                _logger?.Log(LogLevel.Info,
-                    $"WpfShapeRenderer: 渲染完成, {visibleRegions.Count}个区域, 耗时 {sw.ElapsedMilliseconds}ms",
-                    "RegionEditor");
-            }
+            // 记录渲染完成
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[WpfShapeRenderer.Render] 渲染完成 | InstanceId={_rendererInstanceId} | VisibleRegions={visibleRegions.Count} | CanvasChildren={_targetCanvas.Children.Count} | 耗时={sw.ElapsedMilliseconds}ms",
+                "WpfShapeRenderer");
         }
 
         /// <summary>
@@ -129,6 +140,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         public void UpdateRegion(RegionRenderContext region)
         {
+            // Log rendering update (every 10 times)
+            if (_updateLogCount++ % 10 == 0)
+            {
+                var shapeExists = _shapePool.TryGetValue(region.Id, out _);
+                _logger?.Log(LogLevel.Info,
+                    $"[WpfShapeRenderer.UpdateRegion] Count={_updateLogCount} | RegionId={region.Id} | IsPreview={region.IsPreview} | ShapeExists={shapeExists} | CanvasChildren={_targetCanvas.Children.Count}",
+                    "RegionRenderer");
+            }
+
             if (_shapePool.TryGetValue(region.Id, out var existingShape))
             {
                 UpdateShapeFromContext(existingShape, region);
@@ -147,10 +167,23 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
         /// </summary>
         public void Clear()
         {
+            int shapeCount = _shapePool.Count;
+            int labelCount = _labelPool.Count;
+            int helperCount = _helperPool.Sum(h => h.Value.Count);
+            int totalChildren = _targetCanvas.Children.Count;
+
+            VisionLogger.Instance.Log(LogLevel.Warning,
+                $"[WpfShapeRenderer.Clear] 清空渲染器 | InstanceId={_rendererInstanceId} | Shapes={shapeCount} | Labels={labelCount} | Helpers={helperCount} | CanvasChildren={totalChildren}",
+                "WpfShapeRenderer");
+
             _targetCanvas.Children.Clear();
             _shapePool.Clear();
             _labelPool.Clear();
             _helperPool.Clear();
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[WpfShapeRenderer.Clear] 清空完成 | InstanceId={_rendererInstanceId} | CanvasChildren={_targetCanvas.Children.Count}",
+                "WpfShapeRenderer");
         }
 
         /// <summary>
@@ -183,6 +216,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 }
             }
 
+            if (toRemove.Count > 0)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[WpfShapeRenderer.RemoveInvisibleRegions] 移除不可见区域 | InstanceId={_rendererInstanceId} | Count={toRemove.Count} | TotalShapes={_shapePool.Count}",
+                    "WpfShapeRenderer");
+            }
+
             foreach (var id in toRemove)
             {
                 if (_shapePool.TryGetValue(id, out var shape))
@@ -196,7 +236,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                     _targetCanvas.Children.Remove(label);
                     _labelPool.Remove(id);
                 }
-                
+
                 // 清理辅助元素
                 if (_helperPool.TryGetValue(id, out var helpers))
                 {
@@ -258,6 +298,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
                 // 添加到Canvas和对象池
                 _targetCanvas.Children.Add(shape);
                 _shapePool[region.Id] = shape;
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[WpfShapeRenderer.CreateShapeFromContext] 创建新Shape | InstanceId={_rendererInstanceId} | RegionId={region.Id} | ShapeType={region.ShapeType} | IsPreview={region.IsPreview} | ShapePoolSize={_shapePool.Count}",
+                    "WpfShapeRenderer");
         }
 
         /// <summary>
@@ -687,8 +731,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Rendering
 
         public void Dispose()
         {
+            int shapeCount = _shapePool.Count;
+            int labelCount = _labelPool.Count;
+            int helperCount = _helperPool.Sum(h => h.Value.Count);
+
+            VisionLogger.Instance.Log(LogLevel.Warning,
+                $"[WpfShapeRenderer.Dispose] 渲染器销毁 | InstanceId={_rendererInstanceId} | Shapes={shapeCount} | Labels={labelCount} | Helpers={helperCount}",
+                "WpfShapeRenderer");
+
             _shapePool.Clear();
             _labelPool.Clear();
+            _helperPool.Clear();
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[WpfShapeRenderer.Dispose] 销毁完成 | InstanceId={_rendererInstanceId}",
+                "WpfShapeRenderer");
         }
 
         #endregion

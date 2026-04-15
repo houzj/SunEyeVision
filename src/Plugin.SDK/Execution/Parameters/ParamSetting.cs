@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
@@ -202,6 +203,22 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         }
 
         /// <summary>
+        /// 修复反序列化后 ConstantValue 为 JsonElement 的问题
+        /// </summary>
+        /// <param name="targetType">目标类型</param>
+        /// <remarks>
+        /// System.Text.Json 在反序列化 object? 类型时会将其解析为 JsonElement，
+        /// 需要手动将其转换为目标类型。
+        /// </remarks>
+        internal void FixConstantValue(Type targetType)
+        {
+            if (ConstantValue is JsonElement jsonElement)
+            {
+                ConstantValue = JsonElementConverter.ConvertToType(jsonElement, targetType);
+            }
+        }
+
+        /// <summary>
         /// 转换为字典（用于序列化）
         /// </summary>
         public Dictionary<string, object> ToDictionary()
@@ -347,5 +364,62 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 警告信息列表
         /// </summary>
         public List<string> Warnings { get; set; } = new List<string>();
+    }
+
+    /// <summary>
+    /// JsonElement 转换器
+    /// </summary>
+    /// <remarks>
+    /// 用于将 System.Text.Json 反序列化产生的 JsonElement 转换为实际类型。
+    /// </remarks>
+    internal static class JsonElementConverter
+    {
+        /// <summary>
+        /// 将 JsonElement 转换为目标类型
+        /// </summary>
+        /// <param name="element">JsonElement 对象</param>
+        /// <param name="targetType">目标类型</param>
+        /// <returns>转换后的值</returns>
+        public static object? ConvertToType(JsonElement element, Type targetType)
+        {
+            if (targetType == typeof(int))
+                return element.GetInt32();
+            if (targetType == typeof(double))
+                return element.GetDouble();
+            if (targetType == typeof(float))
+                return element.GetSingle();
+            if (targetType == typeof(bool))
+                return element.GetBoolean();
+            if (targetType == typeof(string))
+                return element.GetString();
+            if (targetType == typeof(short))
+                return element.GetInt16();
+            if (targetType == typeof(long))
+                return element.GetInt64();
+            if (targetType == typeof(ushort))
+                return element.GetUInt16();
+            if (targetType == typeof(uint))
+                return element.GetUInt32();
+            if (targetType == typeof(ulong))
+                return element.GetUInt64();
+            if (targetType == typeof(byte))
+                return element.GetByte();
+            if (targetType == typeof(sbyte))
+                return element.GetSByte();
+            if (targetType == typeof(decimal))
+                return element.GetDecimal();
+            if (targetType.IsEnum)
+                return Enum.ToObject(targetType, element.GetInt32());
+
+            // 尝试通用转换
+            try
+            {
+                return Convert.ChangeType(element.ToString(), targetType);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

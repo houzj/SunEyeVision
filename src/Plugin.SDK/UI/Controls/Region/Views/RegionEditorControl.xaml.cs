@@ -25,10 +25,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
     /// </summary>
     public partial class RegionEditorControl : UserControl, INotifyPropertyChanged
     {
-        private RegionEditorViewModel _viewModel;
-        private ShapeType _currentTool = ShapeType.Rectangle;
-        private ImageControl? _mainImageControl;
-        private Button? _activeShapeButton;
+    private RegionEditorViewModel _viewModel;
+    private ShapeType _currentTool = ShapeType.Rectangle;
+    private ImageControl? _mainImageControl;
+    private Button? _activeShapeButton;
+
+    // 控件实例ID（用于区分不同的 RegionEditorControl 实例）
+    private readonly string _controlInstanceId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
         // 绘制状态
         private bool _isDrawing;
@@ -39,6 +42,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private RegionData? _selectedRegion;
         private Point _dragStartPoint;
         private Point _handleDragStartPoint;
+
+        // 日志监控计数器
+        private int _mouseMoveLogCounter = 0;
+        private int _drawingLogCount = 0;
+        private int _previewLogCount = 0;
+        private int _renderLogCount = 0;
 
         // 同步机制：外部集合跟踪
         private System.Collections.ObjectModel.ObservableCollection<RegionData>? _externalRegions;
@@ -159,8 +168,67 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             Focusable = true;
             FocusVisualStyle = null;
 
-            // 绑定键盘快捷键
-            Loaded += (s, e) => Keyboard.Focus(this);
+            // 绑定键盘快捷键和生命周期事件
+            Loaded += RegionEditorControl_Loaded;
+            Unloaded += RegionEditorControl_Unloaded;
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[RegionEditorControl] 控件初始化完成 | InstanceId={_controlInstanceId}",
+                "RegionEditorControl");
+        }
+
+        private void RegionEditorControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[RegionEditorControl] 控件已加载（Tab切换）| InstanceId={_controlInstanceId}",
+                "RegionEditorControl");
+
+            Keyboard.Focus(this);
+
+            // 确保 ImageControl 引用和渲染器状态有效
+            if (_mainImageControl != null && OverlayCanvas != null)
+            {
+                // 如果渲染器已被销毁（异常情况），重新创建
+                if (_renderer == null)
+                {
+                    _renderer = new WpfShapeRenderer(OverlayCanvas, VisionLogger.Instance);
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[RegionEditorControl_Loaded] 重新创建渲染器 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+                }
+
+                // 更新区域覆盖层（确保区域可见）
+                UpdateRegionOverlay();
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[RegionEditorControl_Loaded] 渲染状态已恢复 | InstanceId={_controlInstanceId} | RegionCount={_viewModel.Regions.Count}",
+                    "RegionEditorControl");
+            }
+            else if (_mainImageControl == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[RegionEditorControl_Loaded] ImageControl 引用为空，无法恢复渲染 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+            }
+        }
+
+        private void RegionEditorControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[RegionEditorControl] 控件已卸载（Tab切换）| InstanceId={_controlInstanceId} | _mainImageControl={_mainImageControl?.GetType().Name ?? "null"} | _isDrawing={_isDrawing}",
+                "RegionEditorControl");
+
+            // ⚠️ 不调用 ClearMainOverlay()，保留 ImageControl 引用和事件订阅
+            // 绘制操作发生在主窗口的 ImageControl 上，不应受 Tab 切换影响
+
+            // 如果正在绘制中，取消绘制状态（避免切换 Tab 时绘制状态不一致）
+            if (_isDrawing)
+            {
+                _isDrawing = false;
+                _currentDrawingRegion = null;
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[RegionEditorControl_Unloaded] Tab切换时取消绘制状态 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+            }
         }
 
         /// <summary>
@@ -177,7 +245,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 _viewModel = new RegionEditorViewModel();
                 DataContext = _viewModel;
 
-                // 订阅事件
+                // ★ 订阅 ViewModel 事件（在整个生命周期内保持订阅）
+                // 事件订阅生命周期由 SetMainImageControl / ClearMainOverlay 管理
+                // Tab 切换不应该影响订阅状态
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
                 _viewModel.RegionChanged += OnRegionChanged;
 
@@ -196,191 +266,199 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             }
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnLoaded] 控件 Loaded，外部集合类型: {_externalRegions?.GetType().Name ?? "null"}, 外部集合数量: {_externalRegions?.Count ?? 0}",
-                "RegionEditorControl");
 
-            try
-            {
-                // 获取父级 ImageControl
-                _mainImageControl = FindVisualParent<ImageControl>(this);
-
-                if (_mainImageControl != null)
-                {
-                    // 订阅 ImageControl 事件
-                    _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
-                    _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
-                    _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
-
-                    VisionLogger.Instance.Log(LogLevel.Success,
-                        $"[OnLoaded] 已订阅 ImageControl 事件",
-                        "RegionEditorControl");
-                }
-                else
-                {
-                    VisionLogger.Instance.Log(LogLevel.Warning,
-                        "[OnLoaded] 未找到父级 ImageControl",
-                        "RegionEditorControl");
-                }
-
-                // 订阅自身的鼠标事件
-                MouseMove += RegionEditorControl_MouseMove;
-                MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
-                LostMouseCapture += RegionEditorControl_LostMouseCapture;
-
-                // 检查是否已有 Regions 绑定
-                if (_externalRegions == null)
-                {
-                    var boundRegions = GetValue(RegionsProperty) as IEnumerable<RegionData>;
-                    if (boundRegions != null)
-                    {
-                        VisionLogger.Instance.Log(LogLevel.Info,
-                            $"[OnLoaded] 发现 Regions 绑定，尝试订阅: {boundRegions.GetType().Name}",
-                            "RegionEditorControl");
-                        SubscribeToExternalRegions(boundRegions);
-                    }
-                }
-
-                // 更新区域叠加层
-                UpdateRegionOverlay();
-
-                VisionLogger.Instance.Log(LogLevel.Success,
-                    "[OnLoaded] 控件 Loaded 完成",
-                    "RegionEditorControl");
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnLoaded] Loaded 事件处理失败: {ex.Message}",
-                    "RegionEditorControl",
-                    ex);
-            }
-        }
-
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnUnloaded] 控件 Unloaded，外部集合数量: {_externalRegions?.Count ?? 0}",
-                "RegionEditorControl");
-
-            try
-            {
-                // 取消订阅外部集合
-                UnsubscribeFromExternalRegions(_externalRegions);
-
-                // 取消订阅内部集合
-                _viewModel.Regions.CollectionChanged -= OnInternalRegionsCollectionChanged;
-
-                // 取消订阅 ViewModel 事件
-                _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-                _viewModel.RegionChanged -= OnRegionChanged;
-
-                // 不再 Dispose ViewModel，保留用于下次 Loaded
-
-                // 取消订阅 ImageControl 事件
-                if (_mainImageControl != null)
-                {
-                    _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
-                    _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
-                    _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
-                }
-
-                // 取消自身的鼠标事件订阅
-                MouseMove -= RegionEditorControl_MouseMove;
-                MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
-                LostMouseCapture -= RegionEditorControl_LostMouseCapture;
-
-                VisionLogger.Instance.Log(LogLevel.Success,
-                    "[OnUnloaded] 控件 Unloaded 完成",
-                    "RegionEditorControl");
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnUnloaded] Unloaded 事件处理失败: {ex.Message}",
-                    "RegionEditorControl",
-                    ex);
-            }
-        }
 
         /// <summary>
         /// 设置主界面ImageControl引用
         /// </summary>
         public void SetMainImageControl(ImageControl imageControl)
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[SetMainImageControl] 设置 ImageControl | InstanceId={_controlInstanceId} | Old={_mainImageControl?.GetType().Name ?? "null"} | New={imageControl?.GetType().Name ?? "null"}",
+                "RegionEditorControl");
+
             // 如果是同一个实例，不做任何操作
             if (_mainImageControl == imageControl)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[SetMainImageControl] 相同 ImageControl，跳过设置 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
                 return;
+            }
 
             // 先取消旧的事件订阅
             if (_mainImageControl != null)
             {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[EventUnsubscribe] 取消旧 ImageControl 的事件订阅 | InstanceId={_controlInstanceId} | ImageControl={_mainImageControl.GetType().Name}",
+                    "RegionEditorControl");
+
                 _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
                 _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
                 _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
-            }
+                _mainImageControl.CanvasMouseLeftButtonUp -= ImageControl_CanvasMouseLeftButtonUp;
 
-            // 取消自身的鼠标事件订阅
-            MouseMove -= RegionEditorControl_MouseMove;
-            MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
-            LostMouseCapture -= RegionEditorControl_LostMouseCapture;
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[EventUnsubscribe] 已取消 ImageControl 事件订阅 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+            }
 
             // 设置新的引用
             _mainImageControl = imageControl;
-            
+
             if (_mainImageControl != null)
             {
                 // 启用OverlayCanvas命中测试
                 _mainImageControl.OverlayHitTestVisible = true;
 
-                // 订阅ImageControl事件
-                _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
-                _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
-                _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[EventSubscribe] 开始订阅 ImageControl 事件 | InstanceId={_controlInstanceId} | ImageControl={_mainImageControl.GetType().Name}",
+                    "RegionEditorControl");
 
-                // 添加自己的鼠标事件处理（当CaptureMouse时使用）
-                MouseMove += RegionEditorControl_MouseMove;
-                MouseLeftButtonUp += RegionEditorControl_MouseLeftButtonUp;
-                LostMouseCapture += RegionEditorControl_LostMouseCapture;
+                // 订阅ImageControl事件（不依赖视觉树）
+                _mainImageControl.ImageMouseMove += ImageControl_ImageMouseMove;
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[EventSubscribe] 已订阅 ImageMouseMove 事件 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+
+                _mainImageControl.ViewTransformed += ImageControl_ViewTransformed;
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[EventSubscribe] 已订阅 ViewTransformed 事件 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+
+                _mainImageControl.CanvasMouseLeftButtonDown += ImageControl_CanvasMouseLeftButtonDown;
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[EventSubscribe] 已订阅 CanvasMouseLeftButtonDown 事件 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+
+                _mainImageControl.CanvasMouseLeftButtonUp += ImageControl_CanvasMouseLeftButtonUp;
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[EventSubscribe] 已订阅 CanvasMouseLeftButtonUp 事件 | InstanceId={_controlInstanceId}",
+                    "RegionEditorControl");
+
+                // 订阅窗口级 MouseUp 事件（兜底：处理鼠标移出 MainCanvas 后松开的边界情况）
+                var window = Window.GetWindow(_mainImageControl);
+                if (window != null)
+                {
+                    window.AddHandler(Window.MouseLeftButtonUpEvent, new MouseButtonEventHandler(Window_MouseLeftButtonUp));
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventSubscribe] 已订阅窗口级 MouseUp 事件 | InstanceId={_controlInstanceId} | Window={window.GetType().Name}",
+                        "RegionEditorControl");
+                }
+                else
+                {
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"[EventSubscribe] 警告：无法获取 Window，跳过订阅窗口级事件 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+                }
 
                 // 初始化WPF Shape渲染器
                 if (OverlayCanvas != null)
                 {
                     _renderer?.Dispose();
-                    _renderer = new WpfShapeRenderer(OverlayCanvas);
+                    _renderer = new WpfShapeRenderer(OverlayCanvas, VisionLogger.Instance);
                 }
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[SetMainImageControl] 已设置 ImageControl 并订阅所有事件 | InstanceId={_controlInstanceId} | OverlayCanvas={OverlayCanvas != null} | IsDrawing={_viewModel.IsDrawing} | _isDrawing={_isDrawing}",
+                    "RegionEditorControl");
             }
 
             UpdateRegionOverlay();
         }
 
         /// <summary>
-        /// 清理主界面覆盖层
+        /// 清理主界面覆盖层和所有事件订阅
         /// </summary>
         public void ClearMainOverlay()
         {
-            if (_mainImageControl != null)
-            {
-            // 取消订阅事件
-            _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
-            _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
-            _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[ClearMainOverlay] 清理主界面覆盖层和所有事件订阅 | InstanceId={_controlInstanceId}",
+                "RegionEditorControl");
 
-            MouseMove -= RegionEditorControl_MouseMove;
-            MouseLeftButtonUp -= RegionEditorControl_MouseLeftButtonUp;
-            LostMouseCapture -= RegionEditorControl_LostMouseCapture;
+            try
+            {
+                // 取消 ImageControl 事件订阅
+                if (_mainImageControl != null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[EventUnsubscribe] 取消 ImageControl 事件订阅 | InstanceId={_controlInstanceId} | ImageControl={_mainImageControl.GetType().Name}",
+                        "RegionEditorControl");
+
+                    _mainImageControl.ImageMouseMove -= ImageControl_ImageMouseMove;
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventUnsubscribe] 已取消 ImageMouseMove 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+
+                    _mainImageControl.ViewTransformed -= ImageControl_ViewTransformed;
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventUnsubscribe] 已取消 ViewTransformed 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+
+                    _mainImageControl.CanvasMouseLeftButtonDown -= ImageControl_CanvasMouseLeftButtonDown;
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventUnsubscribe] 已取消 CanvasMouseLeftButtonDown 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+
+                    _mainImageControl.CanvasMouseLeftButtonUp -= ImageControl_CanvasMouseLeftButtonUp;
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventUnsubscribe] 已取消 CanvasMouseLeftButtonUp 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+
+                    // 取消窗口级 MouseUp 事件订阅
+                    var window = Window.GetWindow(_mainImageControl);
+                    if (window != null)
+                    {
+                        window.RemoveHandler(Window.MouseLeftButtonUpEvent, new MouseButtonEventHandler(Window_MouseLeftButtonUp));
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"[EventUnsubscribe] 已取消窗口级 MouseUp 事件订阅 | InstanceId={_controlInstanceId} | Window={window.GetType().Name}",
+                            "RegionEditorControl");
+                    }
+                }
+
+                // 取消 ViewModel 事件订阅
+                if (_viewModel != null)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[EventUnsubscribe] 取消 ViewModel 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+
+                    _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+                    _viewModel.RegionChanged -= OnRegionChanged;
+                    _viewModel.Regions.CollectionChanged -= OnInternalRegionsCollectionChanged;
+
+                    VisionLogger.Instance.Log(LogLevel.Success,
+                        $"[EventUnsubscribe] 已取消 ViewModel 事件订阅 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+                }
+
+                // 取消外部集合订阅
+                UnsubscribeFromExternalRegions(_externalRegions);
 
                 // 清理覆盖层
-                _mainImageControl.OverlayCanvas.Children.Clear();
+                if (_mainImageControl != null)
+                {
+                    _mainImageControl.OverlayCanvas.Children.Clear();
+                }
+
+                // 清理渲染器
+                _renderer?.Dispose();
+                _renderer = null;
+
+                // 清理引用
+                _mainImageControl = null;
+
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    "[ClearMainOverlay] 清理完成",
+                    "RegionEditorControl");
             }
-
-            // 清理渲染器
-            _renderer?.Dispose();
-            _renderer = null;
-
-            _mainImageControl = null;
+            catch (Exception ex)
+            {
+                VisionLogger.Instance.Log(LogLevel.Error,
+                    $"[ClearMainOverlay] 清理失败: {ex.Message}",
+                    "RegionEditorControl",
+                    ex);
+            }
         }
 
         /// <summary>
@@ -572,7 +650,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             if (_externalRegions == null) return; // 没有外部集合绑定
 
             VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnInternalRegionsCollectionChanged] 内部集合变更: Action={e.Action}, NewItems={e.NewItems?.Count ?? 0}, OldItems={e.OldItems?.Count ?? 0}",
+                $"[OnInternalRegionsCollectionChanged] 内部集合变更 | InstanceId={_controlInstanceId} | Action={e.Action} | NewItems={e.NewItems?.Count ?? 0} | OldItems={e.OldItems?.Count ?? 0}",
                 "RegionEditorControl");
 
             _isUpdatingFromExternal = true;
@@ -587,7 +665,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                             {
                                 _externalRegions.Add(item);
                                 VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"  → 添加区域到外部: RegionId={item.Id}, RegionType={item.GetShapeType()?.ToString() ?? "Unknown"}",
+                                    $"[OnInternalRegionsCollectionChanged] 添加区域到外部 | InstanceId={_controlInstanceId} | RegionId={item.Id} | RegionName={item.Name} | RegionType={item.GetShapeType()?.ToString() ?? "Unknown"}",
                                     "RegionEditorControl");
                             }
                         }
@@ -600,7 +678,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                             {
                                 _externalRegions.Remove(item);
                                 VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"  → 从外部移除区域: RegionId={item.Id}",
+                                    $"[OnInternalRegionsCollectionChanged] 从外部移除区域 | InstanceId={_controlInstanceId} | RegionId={item.Id} | RegionName={item.Name}",
                                     "RegionEditorControl");
                             }
                         }
@@ -618,7 +696,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                                 _externalRegions.Add(item);
                             }
                             VisionLogger.Instance.Log(LogLevel.Info,
-                                $"  → 替换区域: OldCount={e.OldItems.Count}, NewCount={e.NewItems.Count}",
+                                $"[OnInternalRegionsCollectionChanged] 替换区域 | InstanceId={_controlInstanceId} | OldCount={e.OldItems.Count} | NewCount={e.NewItems.Count}",
                                 "RegionEditorControl");
                         }
                         break;
@@ -630,7 +708,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                             _externalRegions.Add(item);
                         }
                         VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"  → 内部集合 Reset，同步到外部: 内部区域数={_viewModel.Regions.Count}",
+                            $"[OnInternalRegionsCollectionChanged] 内部集合 Reset，同步到外部 | InstanceId={_controlInstanceId} | 内部区域数={_viewModel.Regions.Count}",
                             "RegionEditorControl");
                         break;
                 }
@@ -638,7 +716,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             catch (Exception ex)
             {
                 VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnInternalRegionsCollectionChanged] 内部集合同步失败: {ex.Message}",
+                    $"[OnInternalRegionsCollectionChanged] 内部集合同步失败 | InstanceId={_controlInstanceId} | Error={ex.Message}",
                     "RegionEditorControl",
                     ex);
             }
@@ -774,7 +852,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 {
                     _isDrawing = false;
                     _currentDrawingRegion = null;
-                    ReleaseMouseCapture();
                     UpdateRegionOverlay();
                     _viewModel.StatusMessage = "已取消绘制";
                 }
@@ -782,7 +859,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 {
                     _isDragging = false;
                     _isDraggingHandle = false;
-                    ReleaseMouseCapture();
                     UpdateRegionOverlay();
                     _viewModel.StatusMessage = "已取消编辑";
                 }
@@ -842,6 +918,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
             var position = e.ImagePosition;
 
+            // 每100次移动记录一次日志，避免日志过多
+            if (_mouseMoveLogCounter++ % 100 == 0)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[MouseMove] Count={_mouseMoveLogCounter} | Position={position:F1} | IsDrawing={_isDrawing} | IsDragging={_isDragging} | IsDraggingHandle={_isDraggingHandle}",
+                    "RegionEditorControl");
+            }
+
             // 拖动ROI编辑器风格的手柄编辑
             if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
             {
@@ -863,36 +947,15 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             // 绘制预览
             if (_isDrawing && _currentDrawingRegion != null)
             {
-                UpdateDrawingPreview(position);
-                UpdateSingleRegionFast(_currentDrawingRegion);
-            }
-        }
+                // 首次更新时记录日志
+                if (_drawingLogCount == 0)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[绘制预览] 开始更新预览 | CurrentDrawingRegion={_currentDrawingRegion.Name} | Position={position:F1}",
+                        "RegionEditorControl");
+                    _drawingLogCount++;
+                }
 
-        private void RegionEditorControl_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (_mainImageControl == null || OverlayCanvas == null) return;
-
-            // 只在捕获鼠标时处理
-            if (!_isDrawing && !_isDragging && !_isDraggingHandle) return;
-
-            var screenPoint = e.GetPosition(_mainImageControl.MainCanvas);
-            var position = _mainImageControl.ScreenToImage(screenPoint);
-
-            // 拖动ROI编辑器风格的手柄编辑
-            if (_isDraggingHandle && _activeHandleType != Rendering.HandleType.None && _selectedRegion?.Parameters is ShapeParameters shape)
-            {
-                HandleShapeEdit(shape, position);
-                UpdateSingleRegionFast(_selectedRegion);
-            }
-            else if (_isDragging && _selectedRegion != null)
-            {
-                var offset = position - _dragStartPoint;
-                MoveRegion(_selectedRegion, offset);
-                _dragStartPoint = position;
-                UpdateSingleRegionFast(_selectedRegion);
-            }
-            else if (_isDrawing && _currentDrawingRegion != null)
-            {
                 UpdateDrawingPreview(position);
                 UpdateSingleRegionFast(_currentDrawingRegion);
             }
@@ -900,6 +963,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void ImageControl_CanvasMouseLeftButtonDown(object? sender, ImageMouseEventArgs e)
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[CanvasMouseLeftButtonDown] MouseDown事件 | InstanceId={_controlInstanceId} | IsDrawing={_viewModel.IsDrawing} | _isDrawing={_isDrawing} | Tool={_currentTool} | Position={e.ImagePosition:F1} | OverlayCanvas={OverlayCanvas != null}",
+                "RegionEditorControl");
+
             if (OverlayCanvas == null) return;
 
             var position = e.ImagePosition;
@@ -907,15 +974,32 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             // ========== 绘制模式 ==========
             if (_viewModel.IsDrawing && _currentTool != ShapeType.Point)
             {
+                VisionLogger.Instance.Log(LogLevel.Success,
+                    $"[开始绘制] 进入绘制流程 | InstanceId={_controlInstanceId} | Tool={_currentTool} | Position={position:F1} | _isDrawing={_isDrawing} | _regionIndex={_regionIndex}",
+                    "RegionEditorControl");
+
+                // 检查是否已经在绘制中，防止重复触发
+                if (_isDrawing)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"[开始绘制] 警告：已在绘制中，忽略重复触发 | InstanceId={_controlInstanceId} | CurrentDrawingRegion={_currentDrawingRegion?.Name ?? "null"}",
+                        "RegionEditorControl");
+                    e.Handled = true;
+                    return;
+                }
+
                 // 开始绘制
                 _isDrawing = true;
                 _startPoint = position;
-                CaptureMouse();
 
                 _currentDrawingRegion = RegionData.CreateDrawingRegion(
                     GenerateRegionName(),
                     _currentTool
                 );
+
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[开始绘制] 创建绘制区域 | InstanceId={_controlInstanceId} | RegionName={_currentDrawingRegion?.Name ?? "null"} | IsPreview={_currentDrawingRegion?.IsPreview} | _regionIndex={_regionIndex}",
+                    "RegionEditorControl");
 
                 if (_currentDrawingRegion.Parameters is ShapeParameters shapeDef)
                 {
@@ -963,7 +1047,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                         {
                             _isDragging = true;
                             _dragStartPoint = position;
-                            CaptureMouse();
                             _viewModel.StatusMessage = "正在拖动区域";
                             e.Handled = true;
                             return;
@@ -991,7 +1074,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                             }
                         }
 
-                        CaptureMouse();
                         _viewModel.StatusMessage = $"正在拖动 {hitHandleType} 手柄";
                         e.Handled = true;
                         return;
@@ -1006,7 +1088,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 SelectRegion(hitRegion);
                 _isDragging = true;
                 _dragStartPoint = position;
-                CaptureMouse();
                 e.Handled = true;
             }
             else
@@ -1017,13 +1098,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
 
 
-        private void RegionEditorControl_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            FinishInteraction();
-        }
 
-        private void RegionEditorControl_LostMouseCapture(object sender, MouseEventArgs e)
+
+        private void ImageControl_CanvasMouseLeftButtonUp(object? sender, ImageMouseEventArgs e)
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[CanvasMouseLeftButtonUp] MouseUp事件 | InstanceId={_controlInstanceId} | Source=ImageControl | Position={e.ImagePosition:F1}",
+                "RegionEditorControl");
+
             FinishInteraction();
         }
 
@@ -1032,13 +1114,36 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             UpdateRegionOverlay();
         }
 
+        /// <summary>
+        /// 窗口级 MouseUp 事件处理（兜底：处理鼠标移出 MainCanvas 后松开的边界情况）
+        /// </summary>
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[Window_MouseLeftButtonUp] MouseUp事件 | InstanceId={_controlInstanceId} | Source=Window | _isDrawing={_isDrawing} | _isDragging={_isDragging} | _isDraggingHandle={_isDraggingHandle}",
+                "RegionEditorControl");
+
+            if (_isDrawing || _isDragging || _isDraggingHandle)
+            {
+                FinishInteraction();
+            }
+        }
+
         private void FinishInteraction()
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[FinishInteraction] 调用 FinishInteraction | InstanceId={_controlInstanceId} | _isDrawing={_isDrawing} | _currentDrawingRegion={_currentDrawingRegion?.Name ?? "null"}",
+                "RegionEditorControl");
+
             if (_isDrawing && _currentDrawingRegion != null)
             {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[FinishInteraction] 完成绘制 | InstanceId={_controlInstanceId} | Region={_currentDrawingRegion.Name} | IsPreview={_currentDrawingRegion.IsPreview} | _regionIndex={_regionIndex}",
+                    "RegionEditorControl");
+
                 // 完成绘制，设置预览状态为 false
                 _currentDrawingRegion.IsPreview = false;
-                
+
                 var shapeDef = _currentDrawingRegion.Parameters as ShapeParameters;
                 if (shapeDef != null)
                 {
@@ -1057,16 +1162,28 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                         _ => false
                     };
 
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[FinishInteraction] 验证区域尺寸 | InstanceId={_controlInstanceId} | Region={_currentDrawingRegion.Name} | Width={shapeDef.Width:F2} | Height={shapeDef.Height:F2} | IsValid={isValid}",
+                        "RegionEditorControl");
+
                     if (isValid)
                     {
                         _viewModel.Regions.Add(_currentDrawingRegion);
                         _viewModel.SelectedRegion = _currentDrawingRegion;
                         _viewModel.StatusMessage = $"已创建 {_currentTool} 区域";
                         RegionDataChanged?.Invoke(this, _currentDrawingRegion);
+
+                        VisionLogger.Instance.Log(LogLevel.Success,
+                            $"[FinishInteraction] 区域已添加到集合 | InstanceId={_controlInstanceId} | Region={_currentDrawingRegion.Name} | TotalRegions={_viewModel.Regions.Count}",
+                            "RegionEditorControl");
                     }
                     else
                     {
                         _viewModel.StatusMessage = "区域太小，已忽略";
+
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"[FinishInteraction] 区域太小，已忽略 | InstanceId={_controlInstanceId} | Region={_currentDrawingRegion.Name}",
+                            "RegionEditorControl");
                     }
                 }
             }
@@ -1075,7 +1192,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _isDragging = false;
             _isDraggingHandle = false;
             _currentDrawingRegion = null;
-            ReleaseMouseCapture();
 
             // 清理ROI编辑器风格的手柄状态
             _activeHandleType = Rendering.HandleType.None;
@@ -1084,6 +1200,10 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _rotateStartMouseAngle = null;
 
             UpdateRegionOverlay();
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[FinishInteraction] 清理完成 | InstanceId={_controlInstanceId} | _isDrawing={_isDrawing} | _currentDrawingRegion={_currentDrawingRegion?.Name ?? "null"}",
+                "RegionEditorControl");
         }
 
         #endregion
@@ -1094,6 +1214,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             if (_currentDrawingRegion?.Parameters is not ShapeParameters shapeDef)
                 return;
+
+            // Log preview update (every 10 times)
+            if (_previewLogCount++ % 10 == 0)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[UpdateDrawingPreview] Count={_previewLogCount} | Position={currentPosition:F1} | Tool={_currentTool}",
+                    "RegionEditorControl");
+            }
 
             var dx = currentPosition.X - _startPoint.X;
             var dy = currentPosition.Y - _startPoint.Y;
@@ -2203,7 +2331,29 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void UpdateSingleRegionFast(RegionData region)
         {
-            if (_renderer == null || region.Parameters is not ShapeParameters shape) return;
+            if (_renderer == null)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[UpdateSingleRegionFast] Renderer is null | Region={region.Name} | OverlayCanvas={OverlayCanvas != null}",
+                    "RegionEditorControl");
+                return;
+            }
+
+            if (region.Parameters is not ShapeParameters shape)
+            {
+                VisionLogger.Instance.Log(LogLevel.Warning,
+                    $"[UpdateSingleRegionFast] Invalid parameter type | Region={region.Name} | ParameterType={region.Parameters?.GetType().Name}",
+                    "RegionEditorControl");
+                return;
+            }
+
+            // Log rendering (every 10 times)
+            if (_renderLogCount++ % 10 == 0)
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[UpdateSingleRegionFast] Count={_renderLogCount} | Region={region.Name} | IsPreview={region.IsPreview} | Shape={shape.GetType().Name}",
+                    "RegionEditorControl");
+            }
 
             // 使用 region.IsPreview 自动识别预览状态
             var context = CreateRenderContext(region, shape, region.IsPreview);
@@ -2223,13 +2373,25 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            // 可以根据需要响应ViewModel属性变更
+            // 监控关键属性变化
+            if (e.PropertyName == nameof(RegionEditorViewModel.IsDrawing))
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[OnViewModelPropertyChanged] IsDrawing 变化 | InstanceId={_controlInstanceId} | NewValue={_viewModel.IsDrawing} | _isDrawing={_isDrawing} | IsLoaded={IsLoaded} | IsVisible={IsVisible} | _currentDrawingRegion={_currentDrawingRegion?.Name ?? "null"}",
+                    "RegionEditorControl");
+            }
+            else if (e.PropertyName == nameof(RegionEditorViewModel.SelectedShapeType))
+            {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[OnViewModelPropertyChanged] SelectedShapeType 变化 | InstanceId={_controlInstanceId} | NewValue={_viewModel.SelectedShapeType}",
+                    "RegionEditorControl");
+            }
         }
 
         private void OnRegionChanged(object? sender, RegionChangedEventArgs e)
         {
             VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnRegionChanged] ViewModel 触发 RegionChanged: RegionId={e.Region?.Id}, ChangeType={e.ChangeType}",
+                $"[OnRegionChanged] ViewModel 触发 RegionChanged | InstanceId={_controlInstanceId} | RegionId={e.Region?.Id} | RegionName={e.Region?.Name ?? "null"} | ChangeType={e.ChangeType}",
                 "RegionEditorControl");
 
             try
@@ -2243,7 +2405,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             catch (Exception ex)
             {
                 VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnRegionChanged] 区域变更处理失败: {ex.Message}",
+                    $"[OnRegionChanged] 区域变更处理失败 | InstanceId={_controlInstanceId} | Error={ex.Message}",
                     "RegionEditorControl",
                     ex);
             }
@@ -2292,12 +2454,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void EnterSelectMode(Button? clickedButton)
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[EnterSelectMode] 进入选择模式 | IsLoaded={IsLoaded} | IsVisible={IsVisible}",
+                "RegionEditorControl");
+
             // 确保处于绘制模式（启用编辑功能）
             _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
-            
+
             // 退出绘制状态，进入选择状态
             _viewModel.IsDrawing = false;
             _currentTool = ShapeType.Point; // Point 表示选择工具
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[EnterSelectMode] 已切换到选择模式 | CurrentMode={_viewModel.CurrentMode} | IsDrawing={_viewModel.IsDrawing} | CurrentTool={_currentTool}",
+                "RegionEditorControl");
 
             // 更新按钮高亮状态
             UpdateShapeButtonHighlight(clickedButton);
@@ -2311,12 +2481,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// </summary>
         private void SelectShapeTool(ShapeType shapeType, Button? clickedButton)
         {
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[SelectShapeTool] 选择形状工具 | ShapeType={shapeType} | IsLoaded={IsLoaded} | IsVisible={IsVisible}",
+                "RegionEditorControl");
+
             // 设置当前工具
             _currentTool = shapeType;
 
             // 切换到绘制模式
             _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
             _viewModel.IsDrawing = true;
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[SelectShapeTool] 切换到绘制模式 | CurrentMode={_viewModel.CurrentMode} | IsDrawing={_viewModel.IsDrawing} | SelectedShapeType={shapeType}",
+                "RegionEditorControl");
 
             // 手动触发 IsDrawingMode 的 PropertyChanged 事件
             // 因为 CurrentMode 的默认值已经是 Drawing，所以 setter 不会触发 PropertyChanged

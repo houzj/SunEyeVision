@@ -98,10 +98,22 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             get => _isDrawing;
             set
             {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[IsDrawing.Setter] 被调用 | 旧值={_isDrawing} | 新值={value} | CurrentMode={CurrentMode}",
+                    "RegionEditorViewModel");
+
                 if (SetProperty(ref _isDrawing, value))
                 {
                     OnPropertyChanged(nameof(IsSelectMode));
                     OnPropertyChanged(nameof(CurrentToolMode));
+
+                    // ★ 如果被设置为 false，记录调用栈
+                    if (!value)
+                    {
+                        VisionLogger.Instance.Log(LogLevel.Warning,
+                            $"[IsDrawing.Setter] ⚠️ IsDrawing 被设置为 false！调用栈:\n{Environment.StackTrace}",
+                            "RegionEditorViewModel");
+                    }
                 }
             }
         }
@@ -219,11 +231,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             get => CurrentMode == RegionDefinitionMode.Drawing;
             set
             {
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    $"[IsDrawingMode.Setter] 被调用 | value={value} | CurrentMode={CurrentMode} | IsDrawing={IsDrawing}",
+                    "RegionEditorViewModel");
+
                 if (value && CurrentMode != RegionDefinitionMode.Drawing)
                 {
                     CurrentMode = RegionDefinitionMode.Drawing;
                     OnPropertyChanged(nameof(IsSubscribeMode));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
+                }
+                else if (!value)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Warning,
+                        $"[IsDrawingMode.Setter] value=false，不做任何操作 | CurrentMode={CurrentMode} | IsDrawing={IsDrawing}",
+                        "RegionEditorViewModel");
                 }
             }
         }

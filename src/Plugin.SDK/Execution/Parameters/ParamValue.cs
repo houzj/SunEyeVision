@@ -40,6 +40,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 参数值（基类非泛型版本）
         /// </summary>
+        [JsonIgnore]
         public override object? ObjectValue
         {
             get => _value;
@@ -72,6 +73,12 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
                     if (_bindingConfig != null && _bindingConfig.TargetType == null)
                     {
                         _bindingConfig.TargetType = typeof(T);
+                    }
+
+                    // 修复反序列化后 ConstantValue 为 JsonElement 的问题
+                    if (_bindingConfig != null)
+                    {
+                        _bindingConfig.FixConstantValue(typeof(T));
                     }
 
                     // 绑定配置变化时，标记值来源

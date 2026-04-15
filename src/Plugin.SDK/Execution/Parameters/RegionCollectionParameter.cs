@@ -100,6 +100,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 参数值（实现 ParamValueBase）
         /// </summary>
+        [JsonIgnore]
         public override object? ObjectValue
         {
             get => _regions;

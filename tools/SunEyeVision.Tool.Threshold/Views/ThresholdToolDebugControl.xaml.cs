@@ -95,13 +95,6 @@ namespace SunEyeVision.Tool.Threshold.Views
                 inspectionRegionEditor.SetMainImageControl(imageControl);
                 PluginLogger.Info("已为检测区域编辑器设置主窗口ImageControl", "ThresholdTool");
             }
-
-            // 设置屏蔽区域编辑器
-            if (maskRegionEditor != null && imageControl != null)
-            {
-                maskRegionEditor.SetMainImageControl(imageControl);
-                PluginLogger.Info("已为屏蔽区域编辑器设置主窗口ImageControl", "ThresholdTool");
-            }
         }
 
         #endregion
@@ -118,14 +111,20 @@ namespace SunEyeVision.Tool.Threshold.Views
 
             PluginLogger.Info("InitializeComponent 调用成功", "ThresholdTool");
 
+            // 订阅窗口关闭事件（用于清理资源）
+            this.Loaded += (s, e) =>
+            {
+                var window = System.Windows.Window.GetWindow(this);
+                if (window != null)
+                {
+                    window.Closing += OnWindowClosing;
+                    PluginLogger.Info("已订阅窗口关闭事件", "ThresholdTool");
+                }
+            };
+
             // 初始化默认参数（设计时使用）
             Parameters = new ThresholdParameters();
             PluginLogger.Info($"默认参数已初始化: TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
-
-            // 初始化RegionEditor
-            PluginLogger.Info("开始初始化RegionEditor", "ThresholdTool");
-            InitializeRegionEditor();
-            PluginLogger.Success("RegionEditor初始化完成", "ThresholdTool");
 
             PluginLogger.Success("ThresholdToolDebugControl 构造函数完成", "ThresholdTool");
         }
@@ -150,9 +149,8 @@ namespace SunEyeVision.Tool.Threshold.Views
                 PluginLogger.Success($"已加载节点参数: Threshold={Parameters.Threshold}", "ThresholdTool");
                 PluginLogger.Info($"TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
 
-                // 初始化区域编辑器
+                // 初始化检测区域编辑器
                 InitializeInspectionRegionEditor();
-                InitializeMaskRegionEditor();
             }
             else
             {
@@ -181,28 +179,32 @@ namespace SunEyeVision.Tool.Threshold.Views
             PluginLogger.Success($"检测区域编辑器初始化完成，区域数量: {Parameters.InspectionRegions.Regions.Count}", "ThresholdTool");
         }
 
+        #endregion
+
+        #region 资源清理
+
         /// <summary>
-        /// 初始化屏蔽区域编辑器
+        /// 清理资源（窗口关闭时调用）
         /// </summary>
-        private void InitializeMaskRegionEditor()
+        public void Cleanup()
         {
-            if (maskRegionEditor == null)
-                return;
+            PluginLogger.Info("ThresholdToolDebugControl 清理资源", "ThresholdTool");
 
-            PluginLogger.Info("初始化屏蔽区域编辑器", "ThresholdTool");
-
-            // 设置区域数据源
-            maskRegionEditor.Regions = Parameters.MaskRegions.Regions;
-            maskRegionEditor.SetMainImageControl(_mainImageControl);
-
-            PluginLogger.Success($"屏蔽区域编辑器初始化完成，区域数量: {Parameters.MaskRegions.Regions.Count}", "ThresholdTool");
+            // 清理区域编辑器
+            if (inspectionRegionEditor != null)
+            {
+                inspectionRegionEditor.ClearMainOverlay();
+                PluginLogger.Success("已清理检测区域编辑器", "ThresholdTool");
+            }
         }
 
-        private void InitializeRegionEditor()
+        /// <summary>
+        /// 窗口关闭时清理资源
+        /// </summary>
+        private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            // 旧版本的初始化逻辑（保留兼容性）
-            // RegionEditor 的初始化由外部通过 Initialize 方法完成
-            // 这里不需要做任何操作
+            PluginLogger.Info("窗口关闭，开始清理资源", "ThresholdTool");
+            Cleanup();
         }
 
         #endregion

@@ -880,16 +880,18 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
 
         private void MainCanvas_MouseMove(object sender, MouseEventArgs e)
         {
-            // 更新位置显示
+            var screenPoint = e.GetPosition(MainCanvas);
+            var imagePos = ScreenToImage(screenPoint);
+
+            // 更新位置显示（仅在有图像时）
             if (SourceImage != null)
             {
-                var screenPoint = e.GetPosition(MainCanvas);
-                var imagePos = ScreenToImage(screenPoint);
                 PositionText.Text = $"位置: ({(int)imagePos.X}, {(int)imagePos.Y})";
-
-                // 触发鼠标移动事件
-                RaiseEvent(new ImageMouseEventArgs(imagePos, screenPoint, e, ImageMouseMoveEvent));
             }
+
+            // 触发鼠标移动事件（无论是否有图像）
+            // 这样区域编辑器可以在没有图像时也能绘制
+            RaiseEvent(new ImageMouseEventArgs(imagePos, screenPoint, e, ImageMouseMoveEvent));
 
             if (_isPanning && EnablePanning)
             {

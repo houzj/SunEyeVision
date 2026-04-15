@@ -55,17 +55,8 @@
                       Visibility="{Binding Parameters.IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
               <region:RegionEditorControl x:Name="inspectionRegionEditor"
                                         VerticalContentAlignment="Stretch"
-                                        Height="300"
+                                        Height="auto"
                                         Regions="{Binding Parameters.InspectionRegions.Regions, Mode=TwoWay}"/>
-            </GroupBox>
-            
-            <!-- 屏蔽区域编辑器 -->
-            <GroupBox Header="屏蔽区域" Margin="0,8,0,0"
-                      Visibility="{Binding Parameters.IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
-              <region:RegionEditorControl x:Name="maskRegionEditor"
-                                        VerticalContentAlignment="Stretch"
-                                        Height="300"
-                                        Regions="{Binding Parameters.MaskRegions.Regions, Mode=TwoWay}"/>
             </GroupBox>
           </StackPanel>
         </ScrollViewer>
@@ -272,21 +263,21 @@
 
                 <StackPanel Margin="16,8">
                   <controls:LabeledControl Label="内容" Margin="0,0,0,8">
-                    <TextBox Grid.Column="1" Grid.Row="0" Width="250"
+                    <TextBox Grid.Column="1" Grid.Row="0" Width="230"
                                              Text="{Binding TextConfig.Content, Mode=TwoWay}"
                                              HorizontalAlignment="Left"
-                                             Height="32"
+                                             Height="28"
                                              VerticalContentAlignment="Center"/>
                   </controls:LabeledControl>
 
                   <!-- OK颜色 -->
                   <controls:LabeledControl Label="OK颜色" Margin="0,0,0,8">
-                    <controls:ColorSelector HorizontalAlignment="Left" Width="250" SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector HorizontalAlignment="Left" Width="230" SelectedColor="{Binding TextConfig.OkColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
 
                   <!-- NG颜色 -->
                   <controls:LabeledControl Label="NG颜色" Margin="0,0,0,8">
-                    <controls:ColorSelector Width="250" HorizontalAlignment="Left" SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
+                    <controls:ColorSelector Width="230" HorizontalAlignment="Left" SelectedColor="{Binding TextConfig.NgColor, Mode=TwoWay}"/>
                   </controls:LabeledControl>
                   <controls:LabeledControl Label="字号" Margin="0,0,0,8">
                     <controls:NumericUpDown Value="{Binding TextConfig.FontSize, Mode=TwoWay}"
@@ -294,7 +285,7 @@
                                                 Maximum="1"
                                                 DecimalPlaces="2"
                                                 HorizontalAlignment="Left"
-                                                Width="250"/>
+                                                Width="230"/>
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="透明度" Margin="0,0,0,8">
@@ -303,7 +294,7 @@
                                              Maximum="72"
                                              DecimalPlaces="1"
                                              HorizontalAlignment="Left"
-                                             Width="250"/>
+                                             Width="230"/>
                   </controls:LabeledControl>
 
                   <controls:LabeledControl Label="位置X" Margin="0,0,0,8">
@@ -315,7 +306,7 @@
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"
+                                                            Width="230"
                                                             AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
                   </controls:LabeledControl>
                   <controls:LabeledControl Label="位置Y" Margin="0,0,0,8">
@@ -327,7 +318,7 @@
                                                             Maximum="72"
                                                             DecimalPlaces="1"
                                                             HorizontalAlignment="Left"
-                                                            Width="250"
+                                                            Width="230"
                                                             AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"/>
 
                   </controls:LabeledControl>
