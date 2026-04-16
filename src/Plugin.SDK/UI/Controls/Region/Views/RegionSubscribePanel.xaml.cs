@@ -1,4 +1,5 @@
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -27,6 +28,11 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             get => (System.Collections.ObjectModel.ObservableCollection<AvailableDataSource>?)GetValue(AvailableDataSourcesProperty);
             set => SetValue(AvailableDataSourcesProperty, value);
         }
+
+        /// <summary>
+        /// 获取 ViewModel 实例
+        /// </summary>
+        public RegionSubscribeViewModel ViewModel => (RegionSubscribeViewModel)Resources["SubscribeViewModel"];
 
         public RegionSubscribePanel()
         {

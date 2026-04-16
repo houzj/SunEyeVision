@@ -1,17 +1,22 @@
 <UserControl x:Class="SunEyeVision.Plugin.SDK.UI.Controls.Region.Views.RegionSubscribePanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Views"
              xmlns:controls="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls"
              xmlns:converters="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:cv="clr-namespace:OpenCvSharp;assembly=OpenCvSharp"
-             xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.Models.Geometry;assembly=SunEyeVision.Plugin.SDK">
+             xmlns:models="clr-namespace:SunEyeVision.Plugin.SDK.Models.Geometry;assembly=SunEyeVision.Plugin.SDK"
+             xmlns:vm="clr-namespace:SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="300">
     <UserControl.Resources>
+        <vm:RegionSubscribeViewModel x:Key="SubscribeViewModel"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:SubscribeModeToBoolConverter x:Key="SubscribeModeToBoolConverter"/>
     </UserControl.Resources>
-    <Grid>
+    <Grid DataContext="{StaticResource SubscribeViewModel}">
         <StackPanel Margin="2">
             <TextBlock Text="区域订阅面板"
                        FontWeight="Bold"

@@ -6,6 +6,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.Logging;
+using SunEyeVision.Plugin.SDK.Execution;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
 {
@@ -177,10 +178,21 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is string mode && parameter is string targetMode)
+            // 支持 RegionSubscribeMode 枚举
+            if (value is RegionSubscribeMode mode && parameter is string targetMode)
             {
-                return mode == targetMode;
+                if (Enum.TryParse<RegionSubscribeMode>(targetMode, out var targetValue))
+                {
+                    return mode == targetValue;
+                }
             }
+
+            // 支持字符串模式（向后兼容）
+            if (value is string modeStr && parameter is string targetModeStr)
+            {
+                return modeStr == targetModeStr;
+            }
+
             return false;
         }
 
@@ -188,6 +200,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
         {
             if (value is bool b && b && parameter is string targetMode)
             {
+                // 优先尝试解析为 RegionSubscribeMode 枚举
+                if (Enum.TryParse<RegionSubscribeMode>(targetMode, out var enumValue))
+                {
+                    return enumValue;
+                }
+
+                // 否则返回字符串（向后兼容）
                 return targetMode;
             }
             return DependencyProperty.UnsetValue;
