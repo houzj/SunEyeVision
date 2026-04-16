@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -226,6 +226,8 @@ namespace SunEyeVision.Tool.Threshold.Views
 
                 // TODO: 为 RegionEditorControl 设置 AvailableDataSources
                 // 需要为 inspectionRegionEditor 和 maskRegionEditor 分别设置
+                inspectionRegionEditor.AvailableDataSources = AvailableDataSources;
+                PluginLogger.Info("已为检测区域编辑器设置参数数据源，总数: {AvailableDataSources.Count}", "ThresholdTool");
             }
             else
             {
