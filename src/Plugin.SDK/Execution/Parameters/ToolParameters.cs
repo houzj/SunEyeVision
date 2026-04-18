@@ -54,6 +54,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <summary>
         /// 参数版本（用于序列化兼容性）
         /// </summary>
+        [JsonPropertyOrder(99)]
         public int Version { get; set; } = 1;
 
         /// <summary>

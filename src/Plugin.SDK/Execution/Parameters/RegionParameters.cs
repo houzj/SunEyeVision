@@ -56,6 +56,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <remarks>
         /// 支持常量模式（用户直接绘制）和绑定模式（订阅其他节点输出）
         /// </remarks>
+        [JsonPropertyOrder(10)]
         public RegionCollectionParameter InspectionRegions
         {
             get => _inspectionRegions;
@@ -68,6 +69,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// <remarks>
         /// 支持常量模式（用户直接绘制）和绑定模式（订阅其他节点输出）
         /// </remarks>
+        [JsonPropertyOrder(11)]
         public RegionCollectionParameter MaskRegions
         {
             get => _maskRegions;
@@ -81,6 +83,7 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// false = 对整个图像进行处理
         /// true = 仅对有效区域（检测区域 - 屏蔽区域）进行处理
         /// </remarks>
+        [JsonPropertyOrder(12)]
         public ParamValue<bool> IsRegionEnabled
         {
             get => _isRegionEnabled;

@@ -41,22 +41,22 @@
                                 PlaceholderText="请选择输入图像源"
                                 Width="250"
                                 AvailableDataSources="{Binding AvailableDataSources, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:ToolDebugControlBase}}}"
-                                SelectedDataSource="{Binding Parameters.ImageSource, Mode=TwoWay}"/>
+                                SelectedDataSource="{Binding ImageSource, Mode=TwoWay}"/>
             </controls:LabeledControl>
             
             <!-- 启用区域限制 -->
             <controls:LabeledControl Label="启用区域限制">
-              <CheckBox IsChecked="{Binding Parameters.IsRegionEnabled.Value, Mode=TwoWay}"
+              <CheckBox IsChecked="{Binding IsRegionEnabled.Value, Mode=TwoWay}"
                         Content="仅对指定区域进行阈值化处理"/>
             </controls:LabeledControl>
             
             <!-- 检测区域编辑器 -->
             <GroupBox Header="检测区域" Margin="0,8,0,0"
-                      Visibility="{Binding Parameters.IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
-              <region:RegionEditorControl x:Name="inspectionRegionEditor"
-                                        VerticalContentAlignment="Stretch"
-                                        Height="auto"
-                                        Regions="{Binding Parameters.InspectionRegions.Regions, Mode=TwoWay}"/>
+                      Visibility="{Binding IsRegionEnabled.Value, Converter={StaticResource BoolToVisibilityConverter}}">
+            <region:RegionEditorControl x:Name="inspectionRegionEditor"
+                                      VerticalContentAlignment="Stretch"
+                                      Height="auto"
+                                      Regions="{Binding InspectionRegions.Regions}"/>
             </GroupBox>
           </StackPanel>
         </ScrollViewer>

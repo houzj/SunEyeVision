@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 
@@ -8,6 +9,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
     /// <summary>
     /// 参数源基类 - 用于参数绑定
     /// </summary>
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [JsonDerivedType(typeof(ConstantSource), "Constant")]
+    [JsonDerivedType(typeof(NodeOutputSource), "NodeOutput")]
     public abstract class ParameterSource
     {
         /// <summary>
@@ -138,138 +142,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
     }
 
     /// <summary>
-    /// 表达式源 - 使用表达式计算值
-    /// </summary>
-    public class ExpressionSource : ParameterSource
-    {
-        /// <summary>
-        /// 表达式字符串
-        /// </summary>
-        public string Expression { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 表达式变量引用
-        /// </summary>
-        public Dictionary<string, string> VariableReferences { get; set; } = new();
-
-        public ExpressionSource()
-        {
-            BindingType = BindingType.Expression;
-        }
-
-        public ExpressionSource(string expression)
-        {
-            BindingType = BindingType.Expression;
-            Expression = expression;
-        }
-
-        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
-        {
-            logger?.LogInfo($"参数源获取：表达式，表达式={Expression}，变量数={VariableReferences.Count}", "ParameterSource");
-
-            if (context == null || string.IsNullOrEmpty(Expression))
-            {
-                logger?.LogError($"参数源获取失败：上下文为空或表达式为空", "ParameterSource");
-                return null;
-            }
-
-            try
-            {
-                var value = context.EvaluateExpression(Expression, VariableReferences);
-
-                if (value == null)
-                {
-                    logger?.LogWarning($"参数源获取警告：表达式 {Expression} 计算结果为null", "ParameterSource");
-                }
-                else
-                {
-                    logger?.LogSuccess($"参数源获取成功：表达式 {Expression} 计算结果={value}，类型={value.GetType().Name}", "ParameterSource");
-                }
-
-                return value;
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError($"参数源获取异常：表达式 {Expression} 计算失败 - {ex.Message}", "ParameterSource", ex);
-                return null;
-            }
-        }
-
-        public override ParameterSource Clone()
-        {
-            var clone = new ExpressionSource(Expression)
-            {
-                DataType = DataType
-            };
-            foreach (var kvp in VariableReferences)
-            {
-                clone.VariableReferences[kvp.Key] = kvp.Value;
-            }
-            return clone;
-        }
-    }
-
-    /// <summary>
-    /// 变量源 - 引用全局或局部变量
-    /// </summary>
-    public class VariableSource : ParameterSource
-    {
-        /// <summary>
-        /// 变量名
-        /// </summary>
-        public string VariableName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 是否为全局变量
-        /// </summary>
-        public bool IsGlobal { get; set; }
-
-        public VariableSource()
-        {
-            BindingType = BindingType.Variable;
-        }
-
-        public VariableSource(string variableName, bool isGlobal = false)
-        {
-            BindingType = BindingType.Variable;
-            VariableName = variableName;
-            IsGlobal = isGlobal;
-        }
-
-        public override object? GetValue(IParameterContext? context, ILogger? logger = null)
-        {
-            logger?.LogInfo($"参数源获取：变量，变量名={VariableName}，是否全局={IsGlobal}", "ParameterSource");
-
-            if (context == null || string.IsNullOrEmpty(VariableName))
-            {
-                logger?.LogError($"参数源获取失败：上下文为空或变量名为空", "ParameterSource");
-                return null;
-            }
-
-            var value = context.GetVariableValue(VariableName, IsGlobal);
-
-            if (value == null)
-            {
-                logger?.LogWarning($"参数源获取警告：变量 {VariableName} (全局={IsGlobal}) 返回null", "ParameterSource");
-            }
-            else
-            {
-                logger?.LogSuccess($"参数源获取成功：变量 {VariableName} (全局={IsGlobal})，值类型={value.GetType().Name}", "ParameterSource");
-            }
-
-            return value;
-        }
-
-        public override ParameterSource Clone()
-        {
-            return new VariableSource(VariableName, IsGlobal)
-            {
-                DataType = DataType
-            };
-        }
-    }
-
-    /// <summary>
     /// 参数上下文接口 - 用于解析绑定值
     /// </summary>
     public interface IParameterContext
@@ -278,15 +150,5 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// 获取节点输出值
         /// </summary>
         object? GetNodeOutputValue(string nodeId, string outputName, int? index = null, string? propertyPath = null);
-
-        /// <summary>
-        /// 计算表达式
-        /// </summary>
-        object? EvaluateExpression(string expression, Dictionary<string, string>? variableReferences = null);
-
-        /// <summary>
-        /// 获取变量值
-        /// </summary>
-        object? GetVariableValue(string variableName, bool isGlobal = false);
     }
 }

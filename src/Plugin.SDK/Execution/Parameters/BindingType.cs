@@ -10,8 +10,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// - Constant: 常量绑定，使用固定值
     /// - Binding: 动态绑定，从其他节点输出获取值
     /// - NodeOutput: 节点输出绑定，从其他节点的输出端口获取值
-    /// - Expression: 表达式绑定，使用表达式计算值
-    /// - Variable: 变量绑定，引用全局或局部变量
     /// 
     /// 使用示例：
     /// <code>
@@ -20,12 +18,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
     /// 
     /// // 节点输出绑定
     /// var nodeOutputBinding = new NodeOutputSource("node_001", "OutputImage");
-    /// 
-    /// // 表达式绑定
-    /// var expressionBinding = new ExpressionSource("value * 0.9");
-    /// 
-    /// // 变量绑定
-    /// var variableBinding = new VariableSource("GlobalThreshold", isGlobal: true);
     /// </code>
     /// </remarks>
     public enum BindingType
@@ -58,26 +50,6 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// 支持多值输出通过索引选择。
         /// 可选地使用属性路径访问复合对象的属性。
         /// </remarks>
-        NodeOutput = 2,
-
-        /// <summary>
-        /// 表达式绑定 - 使用表达式计算值
-        /// </summary>
-        /// <remarks>
-        /// 参数值通过表达式计算得到。
-        /// 表达式可以引用多个节点的输出或变量。
-        /// 支持数学运算和函数调用。
-        /// </remarks>
-        Expression = 3,
-
-        /// <summary>
-        /// 变量绑定 - 引用全局或局部变量
-        /// </summary>
-        /// <remarks>
-        /// 参数值从变量系统获取。
-        /// 支持全局变量和局部变量两种作用域。
-        /// 适用于跨多个节点共享参数值的场景。
-        /// </remarks>
-        Variable = 4
+        NodeOutput = 2
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -118,7 +119,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
     /// - WPF 控件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/
     /// - 路由事件：https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/routed-events-overview
     /// </remarks>
-    public abstract class ToolDebugControlBase : UserControl, System.ComponentModel.INotifyPropertyChanged
+    public abstract class ToolDebugControlBase : UserControl, System.ComponentModel.INotifyPropertyChanged, IDebugControlInjectable
     {
         #region INotifyPropertyChanged 实现
 
@@ -390,6 +391,20 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
         }
 
         /// <summary>
+        /// 设置节点参数（基类默认空实现）
+        /// </summary>
+        /// <remarks>
+        /// 基类仅记录日志，派生类应重写以存储参数引用并更新UI。
+        /// 派生类重写时建议调用 base.SetParameters(parameters)。
+        /// </remarks>
+        public virtual void SetParameters(ToolParameters parameters)
+        {
+            PluginLogger.Info(
+                $"参数已设置: {parameters?.GetType().Name}",
+                GetType().Name);
+        }
+
+        /// <summary>
         /// 设置数据提供者
         /// </summary>
         public virtual void SetDataProvider(object dataProvider)
@@ -404,6 +419,30 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls
             }
 
             // 子类重写以更新图像源选择器等
+        }
+
+        /// <summary>
+        /// 设置主窗口图像控件（基类默认空实现）
+        /// </summary>
+        /// <remarks>
+        /// 仅用于区域编辑器等需要在主窗口图像上绘制 ROI 的场景。
+        /// 不需要此功能的控件无需重写此方法。
+        /// </remarks>
+        public virtual void SetMainImageControl(ImageControl? imageControl)
+        {
+            // 基类默认空实现
+        }
+
+        /// <summary>
+        /// 异步初始化（基类默认空实现）
+        /// </summary>
+        /// <remarks>
+        /// 在所有 Set 方法完成后调用。
+        /// 派生类可重写以执行依赖多项数据的初始化逻辑。
+        /// </remarks>
+        public virtual Task InitializeAsync()
+        {
+            return Task.CompletedTask;
         }
 
         /// <summary>

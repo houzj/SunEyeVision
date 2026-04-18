@@ -161,9 +161,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 获取定义模式
         /// </summary>
-        public RegionDefinitionMode GetMode()
+        public RegionSourceMode GetMode()
         {
-            return Parameters?.Mode ?? RegionDefinitionMode.Drawing;
+            return Parameters?.Mode ?? RegionSourceMode.Drawing;
         }
 
         /// <summary>

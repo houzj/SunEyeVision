@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -10,6 +10,7 @@ using SunEyeVision.Plugin.SDK.Execution.Parameters;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI.Controls;
+using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Views;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels;
 using SunEyeVision.Tool.Threshold.Models;
@@ -52,15 +53,38 @@ namespace SunEyeVision.Tool.Threshold.Views
                 nameof(Parameters),
                 typeof(ThresholdParameters),
                 typeof(ThresholdToolDebugControl),
-                new PropertyMetadata(null));
+                new PropertyMetadata(null, OnParametersChanged));
+
+        private static void OnParametersChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ThresholdToolDebugControl control)
+            {
+                var oldParams = e.OldValue as ThresholdParameters;
+                var newParams = e.NewValue as ThresholdParameters;
+
+                PluginLogger.Info($"[OnParametersChanged] Parameters 依赖属性变化 | " +
+                    $"Old={(oldParams != null ? $"HashCode={oldParams.GetHashCode():X8}, InspectionRegions.HashCode={oldParams.InspectionRegions?.GetHashCode():X8}" : "null")} | " +
+                    $"New={(newParams != null ? $"HashCode={newParams.GetHashCode():X8}, InspectionRegions.HashCode={newParams.InspectionRegions?.GetHashCode():X8}, Regions.Count={newParams.InspectionRegions?.Regions?.Count ?? 0}" : "null")}",
+                    "ThresholdTool");
+            }
+        }
 
         /// <summary>
         /// 参数实例（公共属性，用于XAML绑定）
         /// </summary>
         public ThresholdParameters Parameters
         {
-            get => (ThresholdParameters)GetValue(ParametersProperty);
-            set => SetValue(ParametersProperty, value);
+            get
+            {
+                var value = (ThresholdParameters)GetValue(ParametersProperty);
+                PluginLogger.Info($"[Parameters.Getter] 被调用 | 返回值={value?.GetType().Name ?? "null"} | InspectionRegions={value?.InspectionRegions?.Regions?.Count ?? 0}", "ThresholdTool");
+                return value;
+            }
+            set
+            {
+                PluginLogger.Info($"[Parameters.Setter] 被调用 | 新值={value?.GetType().Name ?? "null"} | InspectionRegions={value?.InspectionRegions?.Regions?.Count ?? 0}", "ThresholdTool");
+                SetValue(ParametersProperty, value);
+            }
         }
 
         #endregion
@@ -85,15 +109,22 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// 设置主窗口的ImageControl - 用于区域编辑器绑定
         /// </summary>
         /// <param name="imageControl">主窗口的ImageControl</param>
-        public virtual void SetMainImageControl(ImageControl? imageControl)
+        public override void SetMainImageControl(ImageControl? imageControl)
         {
+            PluginLogger.Info($"[SetMainImageControl] 方法被调用 | ImageControl={imageControl?.GetType().Name ?? "null"}", "ThresholdTool");
+
             _mainImageControl = imageControl;
 
             // 设置检测区域编辑器
             if (inspectionRegionEditor != null && imageControl != null)
             {
+                PluginLogger.Info($"[SetMainImageControl] 准备设置 inspectionRegionEditor | inspectionRegionEditor={inspectionRegionEditor.GetType().Name}", "ThresholdTool");
                 inspectionRegionEditor.SetMainImageControl(imageControl);
                 PluginLogger.Info("已为检测区域编辑器设置主窗口ImageControl", "ThresholdTool");
+            }
+            else
+            {
+                PluginLogger.Warning($"[SetMainImageControl] 跳过设置 | inspectionRegionEditor={inspectionRegionEditor?.GetType().Name ?? "null"} | imageControl={imageControl?.GetType().Name ?? "null"}", "ThresholdTool");
             }
         }
 
@@ -136,21 +167,48 @@ namespace SunEyeVision.Tool.Threshold.Views
         }
 
         /// <summary>
-        /// 设置节点参数 - 运行时由工厂方法调用
+        /// 设置节点参数 - 重写基类虚方法
         /// </summary>
         /// <param name="parameters">节点参数实例（与WorkflowNode.Parameters同一实例）</param>
-        public void SetParameters(ToolParameters parameters)
+        public override void SetParameters(ToolParameters parameters)
         {
+            // 调用基类方法
+            base.SetParameters(parameters);
+
             if (parameters is ThresholdParameters thresholdParams)
             {
                 // ★ 通过依赖属性设置参数（自动触发属性变更通知）
                 Parameters = thresholdParams;
 
+                // 关键日志：记录 InspectionRegions 状态用于追踪区域序列化问题
+                var inspectionRegions = Parameters.InspectionRegions;
+                var inspectionRegionsHashCode = inspectionRegions?.GetHashCode() ?? 0;
+                var inspectionRegionsCount = inspectionRegions?.Regions?.Count ?? 0;
+                var inspectionRegionsCollectionHashCode = inspectionRegions?.Regions?.GetHashCode() ?? 0;
+
+                PluginLogger.Info($"[SetParameters] 参数注入完成 | " +
+                    $"Parameters.HashCode={Parameters.GetHashCode():X8} | " +
+                    $"InspectionRegions={inspectionRegions?.GetType().Name ?? "null"} | " +
+                    $"InspectionRegions.HashCode={inspectionRegionsHashCode:X8} | " +
+                    $"InspectionRegions.Regions.Count={inspectionRegionsCount} | " +
+                    $"InspectionRegions.Regions.HashCode={inspectionRegionsCollectionHashCode:X8}",
+                    "ThresholdTool");
+
+                // 如果有区域，记录详细信息
+                if (inspectionRegions?.Regions != null && inspectionRegions.Regions.Count > 0)
+                {
+                    foreach (var region in inspectionRegions.Regions)
+                    {
+                        PluginLogger.Info($"[SetParameters] 初始区域 | Name={region.Name} | Type={region.Parameters?.GetType().Name ?? "null"}",
+                            "ThresholdTool");
+                    }
+                }
+
                 PluginLogger.Success($"已加载节点参数: Threshold={Parameters.Threshold}", "ThresholdTool");
                 PluginLogger.Info($"TextConfig.OkColor={Parameters.TextConfig.OkColor}, TextConfig.NgColor={Parameters.TextConfig.NgColor}", "ThresholdTool");
 
-                // 初始化检测区域编辑器
-                InitializeInspectionRegionEditor();
+                // ✅ 不再在此调用 InitializeInspectionRegionEditor
+                // 初始化移到 InitializeAsync 统一执行
             }
             else
             {
@@ -165,18 +223,36 @@ namespace SunEyeVision.Tool.Threshold.Views
         /// <summary>
         /// 初始化检测区域编辑器
         /// </summary>
+        /// <remarks>
+        /// 共享引用建立策略：
+        /// - XAML 绑定 Regions="{Binding InspectionRegions.Regions}" 仅用于初始化时读取
+        /// - 真正的共享引用由本方法命令式建立
+        /// - 调用 SetRegionsSource 确保 ViewModel 和 Parameters 指向同一个集合
+        /// </remarks>
         private void InitializeInspectionRegionEditor()
         {
             if (inspectionRegionEditor == null)
+            {
+                PluginLogger.Warning("[InitializeInspectionRegionEditor] inspectionRegionEditor 为空，跳过初始化", "ThresholdTool");
                 return;
+            }
 
-            PluginLogger.Info("初始化检测区域编辑器", "ThresholdTool");
+            if (Parameters?.InspectionRegions?.Regions == null)
+            {
+                PluginLogger.Warning("[InitializeInspectionRegionEditor] Parameters.InspectionRegions.Regions 为空，跳过初始化", "ThresholdTool");
+                return;
+            }
 
-            // 设置区域数据源
-            inspectionRegionEditor.Regions = Parameters.InspectionRegions.Regions;
-            inspectionRegionEditor.SetMainImageControl(_mainImageControl);
+            // ★ 核心操作：命令式建立共享引用
+            // ViewModel.Regions 和 Parameters.InspectionRegions.Regions 将指向同一个 ObservableCollection
+            inspectionRegionEditor.SetRegionsSource(Parameters.InspectionRegions.Regions);
 
-            PluginLogger.Success($"检测区域编辑器初始化完成，区域数量: {Parameters.InspectionRegions.Regions.Count}", "ThresholdTool");
+            PluginLogger.Success(
+                $"检测区域编辑器初始化完成 | " +
+                $"ViewModel.Regions.HashCode={inspectionRegionEditor.ViewModel?.Regions?.GetHashCode():X8} | " +
+                $"Parameters.Regions.HashCode={Parameters.InspectionRegions.Regions.GetHashCode():X8} | " +
+                $"引用相同={inspectionRegionEditor.ViewModel?.Regions == Parameters.InspectionRegions.Regions}",
+                "ThresholdTool");
         }
 
         #endregion
@@ -240,25 +316,12 @@ namespace SunEyeVision.Tool.Threshold.Views
             if (node == null)
                 return;
 
-            // 调用基类方法（基类已提取 _currentNodeId 并重新填充数据源，包括图像源）
+            // 调用基类方法（提取 _currentNodeId、填充数据源）
             base.SetCurrentNode(node);
 
-            var parametersProperty = node.GetType().GetProperty("Parameters");
-            if (parametersProperty == null)
-                return;
-
-            var parameters = parametersProperty.GetValue(node) as ToolParameters;
-            if (parameters is ThresholdParameters thresholdParams)
-            {
-                // 通过依赖属性设置参数（自动触发属性变更通知）
-                Parameters = thresholdParams;
-
-                PluginLogger.Success($"参数引用已设置: Threshold={thresholdParams.Threshold}", "ThresholdTool");
-            }
-            else
-            {
-                PluginLogger.Warning($"参数类型不匹配: 期望 ThresholdParameters，实际 {parameters?.GetType().Name}", "ThresholdTool");
-            }
+            // ✅ 不再在此提取 Parameters
+            // 参数由 SetParameters 方法单独设置
+            // InitializeInspectionRegionEditor 由 InitializeAsync 调用
         }
 
 
@@ -481,6 +544,25 @@ namespace SunEyeVision.Tool.Threshold.Views
         {
             PluginLogger.Info("打开直方图样式设置", "ThresholdTool");
             // TODO: 打开样式设置弹窗
+        }
+
+        #endregion
+
+        #region IDebugControlInjectable 实现
+
+        /// <summary>
+        /// 异步初始化 - 在所有 Set 方法完成后调用
+        /// </summary>
+        /// <remarks>
+        /// 此时 Parameters、MainImageControl、DataProvider 全部就绪，
+        /// 可以安全地初始化区域编辑器等子控件。
+        /// </remarks>
+        public override async System.Threading.Tasks.Task InitializeAsync()
+        {
+            // 初始化检测区域编辑器
+            InitializeInspectionRegionEditor();
+
+            await System.Threading.Tasks.Task.CompletedTask;
         }
 
         #endregion

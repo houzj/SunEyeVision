@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Metadata;
 using SunEyeVision.Plugin.SDK.UI.Controls.Region.Models;
+using SunEyeVision.Plugin.SDK.Logging;
 
 namespace SunEyeVision.Plugin.SDK.Execution.Parameters
 {
@@ -51,6 +52,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             _regions = new ObservableCollection<RegionData>();
             _mode = RegionParameterMode.InspectionRegion;
+
+            VisionLogger.Instance?.Log(LogLevel.Info,
+                $"[RegionCollectionParameter] 默认构造函数 | HashCode={GetHashCode():X8} | Mode={_mode} | _regions.HashCode={_regions.GetHashCode():X8}",
+                "RegionCollectionParameter");
         }
 
         /// <summary>
@@ -60,6 +65,10 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         {
             _regions = new ObservableCollection<RegionData>();
             _mode = mode;
+
+            VisionLogger.Instance?.Log(LogLevel.Info,
+                $"[RegionCollectionParameter] 构造函数(mode={mode}) | HashCode={GetHashCode():X8} | _regions.HashCode={_regions.GetHashCode():X8}",
+                "RegionCollectionParameter");
         }
 
         /// <summary>
@@ -72,7 +81,23 @@ namespace SunEyeVision.Plugin.SDK.Execution.Parameters
         /// </remarks>
         public ObservableCollection<RegionData> Regions
         {
-            get => _regions;
+            get
+            {
+                VisionLogger.Instance?.Log(LogLevel.Info,
+                    $"[RegionCollectionParameter.Regions.Getter] | HashCode={GetHashCode():X8} | _regions.HashCode={_regions.GetHashCode():X8} | Count={_regions.Count}",
+                    "RegionCollectionParameter");
+
+                // 记录每个区域的详细信息
+                for (int i = 0; i < _regions.Count; i++)
+                {
+                    var region = _regions[i];
+                    VisionLogger.Instance?.Log(LogLevel.Info,
+                        $"[RegionCollectionParameter.Regions.Getter] Region[{i}] | Name={region?.Name ?? "null"} | Type={region?.Parameters?.GetType().Name ?? "null"}",
+                        "RegionCollectionParameter");
+                }
+
+                return _regions;
+            }
         }
 
         /// <summary>

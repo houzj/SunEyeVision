@@ -32,7 +32,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
     /// - 使用路由事件（ToolExecutionCompleted）监听执行完成
     /// - 工具控件通过继承 ToolDebugControlBase 实现标准接口
     /// </remarks>
-    public partial class DefaultDebugWindow : Window
+    public partial class DefaultDebugWindow : Window, IDebugControlInjectable
     {
         #region 字段
 
@@ -233,23 +233,55 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
         /// <remarks>
         /// 必须在 SetDataProvider 之前调用，因为 SetDataProvider 内部会恢复配置，
         /// 需要当前节点引用已设置。
-        /// 
+        ///
         /// 调用链：
         /// MainWindowViewModel → DefaultDebugWindow.SetCurrentNode → ThresholdToolDebugControl.SetCurrentNode
         /// </remarks>
         public void SetCurrentNode(object node)
         {
-            if (_toolControl != null)
+            if (_toolControl is IDebugControlInjectable injectable)
             {
+                injectable.SetCurrentNode(node);
+                PluginLogger.Success(
+                    $"已设置当前节点到调试控件: {_control.GetType().Name}",
+                    "DefaultDebugWindow");
+            }
+            else if (_toolControl != null)
+            {
+                // 兼容旧控件
                 _toolControl.SetCurrentNode(node);
                 PluginLogger.Success(
-                    $"已设置当前节点到调试控件: {_control.GetType().Name}", 
+                    $"已设置当前节点到调试控件（旧接口）: {_control.GetType().Name}",
                     "DefaultDebugWindow");
             }
             else
             {
                 PluginLogger.Warning(
-                    $"控件 {_control.GetType().Name} 未实现 IToolDebugControl 接口", 
+                    $"控件 {_control.GetType().Name} 未实现 IDebugControlInjectable 接口",
+                    "DefaultDebugWindow");
+            }
+        }
+
+        /// <summary>
+        /// 设置节点参数（委托给内部控件）
+        /// </summary>
+        /// <remarks>
+        /// 调用链：
+        /// MainWindowViewModel → DefaultDebugWindow.SetParameters → ThresholdToolDebugControl.SetParameters
+        /// </remarks>
+        public void SetParameters(Execution.Parameters.ToolParameters parameters)
+        {
+            if (_toolControl is IDebugControlInjectable injectable)
+            {
+                injectable.SetParameters(parameters);
+                PluginLogger.Success(
+                    $"已将节点参数注入到调试控件: {_control.GetType().Name}",
+                    "DefaultDebugWindow");
+            }
+            else
+            {
+                PluginLogger.Info(
+                    $"控件 {_control.GetType().Name} 未实现 IDebugControlInjectable，跳过参数注入",
                     "DefaultDebugWindow");
             }
         }
@@ -260,23 +292,31 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
         /// <remarks>
         /// 数据提供者包含所有前驱节点的输出数据，用于填充图像源选择器。
         /// 此方法必须在 SetCurrentNode 之后调用。
-        /// 
+        ///
         /// 调用链：
         /// MainWindowViewModel → DefaultDebugWindow.SetDataProvider → ThresholdToolDebugControl.SetDataProvider
         /// </remarks>
         public void SetDataProvider(object dataProvider)
         {
-            if (_toolControl != null)
+            if (_toolControl is IDebugControlInjectable injectable)
             {
+                injectable.SetDataProvider(dataProvider);
+                PluginLogger.Success(
+                    $"已将数据提供者注入到调试控件: {_control.GetType().Name}",
+                    "DefaultDebugWindow");
+            }
+            else if (_toolControl != null)
+            {
+                // 兼容旧控件
                 _toolControl.SetDataProvider(dataProvider);
                 PluginLogger.Success(
-                    $"已将数据提供者注入到调试控件: {_control.GetType().Name}", 
+                    $"已将数据提供者注入到调试控件（旧接口）: {_control.GetType().Name}",
                     "DefaultDebugWindow");
             }
             else
             {
                 PluginLogger.Warning(
-                    $"控件 {_control.GetType().Name} 未继承 ToolDebugControlBase 基类", 
+                    $"控件 {_control.GetType().Name} 未继承 ToolDebugControlBase 基类",
                     "DefaultDebugWindow");
             }
         }
@@ -286,25 +326,71 @@ namespace SunEyeVision.Plugin.SDK.UI.Windows
         /// </summary>
         /// <remarks>
         /// 用于区域编辑器在主窗口图像上绘制 ROI。
-        /// 
+        ///
         /// 调用链：
         /// MainWindowViewModel → DefaultDebugWindow.SetMainImageControl → ThresholdToolDebugControl.SetMainImageControl
         /// </remarks>
         public void SetMainImageControl(ImageControl? imageControl)
         {
-            // 检查控件是否支持 SetMainImageControl 方法
-            var setMainImageControlMethod = _control.GetType().GetMethod("SetMainImageControl");
-            if (setMainImageControlMethod != null)
+            PluginLogger.Info(
+                $"[SetMainImageControl] 方法被调用 | ImageControl={imageControl?.GetType().Name ?? "null"} | _control={_control.GetType().Name}",
+                "DefaultDebugWindow");
+
+            if (_toolControl is IDebugControlInjectable injectable)
             {
-                setMainImageControlMethod.Invoke(_control, new object?[] { imageControl });
+                PluginLogger.Info(
+                    $"[SetMainImageControl] 委托给 _toolControl | Type={_toolControl.GetType().Name}",
+                    "DefaultDebugWindow");
+
+                injectable.SetMainImageControl(imageControl);
                 PluginLogger.Success(
-                    $"已设置主窗口 ImageControl 到调试控件: {_control.GetType().Name}", 
+                    $"已设置主窗口 ImageControl 到调试控件: {_control.GetType().Name}",
+                    "DefaultDebugWindow");
+            }
+            else
+            {
+                // 兼容旧控件：使用反射
+                PluginLogger.Warning(
+                    $"[SetMainImageControl] _toolControl 不是 IDebugControlInjectable 类型 | Type={_toolControl?.GetType().Name ?? "null"}",
+                    "DefaultDebugWindow");
+
+                var setMainImageControlMethod = _control.GetType().GetMethod("SetMainImageControl");
+                if (setMainImageControlMethod != null)
+                {
+                    setMainImageControlMethod.Invoke(_control, new object?[] { imageControl });
+                    PluginLogger.Success(
+                        $"已设置主窗口 ImageControl 到调试控件（旧接口）: {_control.GetType().Name}",
+                        "DefaultDebugWindow");
+                }
+                else
+                {
+                    PluginLogger.Info(
+                        $"控件 {_control.GetType().Name} 不支持 SetMainImageControl 方法",
+                        "DefaultDebugWindow");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 异步初始化（委托给内部控件）
+        /// </summary>
+        /// <remarks>
+        /// 调用链：
+        /// MainWindowViewModel → DefaultDebugWindow.InitializeAsync → ThresholdToolDebugControl.InitializeAsync
+        /// </remarks>
+        public async Task InitializeAsync()
+        {
+            if (_toolControl is IDebugControlInjectable injectable)
+            {
+                await injectable.InitializeAsync();
+                PluginLogger.Success(
+                    $"调试控件异步初始化完成: {_control.GetType().Name}",
                     "DefaultDebugWindow");
             }
             else
             {
                 PluginLogger.Info(
-                    $"控件 {_control.GetType().Name} 不支持 SetMainImageControl 方法", 
+                    $"控件 {_control.GetType().Name} 未实现 IDebugControlInjectable，跳过异步初始化",
                     "DefaultDebugWindow");
             }
         }

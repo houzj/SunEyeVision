@@ -286,8 +286,8 @@ namespace SunEyeVision.UI.ViewModels
 
                 if (changed)
                 {
-                    // 更新数据分析控件
-                    UpdateDataAnalysisControl((Models.WorkflowNode?)value);
+                    // 更新数据分析控件（同步等待异步操作）
+                    UpdateDataAnalysisControl((Models.WorkflowNode?)value).GetAwaiter().GetResult();
 
                     // 刷新结果显示（如果节点有缓存结果）
                     var executionResult = value != null ? _workflowContext.GetNodeResult(value.Id) : null;
@@ -879,7 +879,7 @@ namespace SunEyeVision.UI.ViewModels
             UndoCommand = new RelayCommand(ExecuteUndo, CanExecuteUndo);
             RedoCommand = new RelayCommand(ExecuteRedo, CanExecuteRedo);
             DeleteSelectedNodesCommand = new RelayCommand(ExecuteDeleteSelectedNodes, CanDeleteSelectedNodes);
-            OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(ExecuteOpenDebugWindow);
+            OpenDebugWindowCommand = new RelayCommand<Models.WorkflowNode>(node => ExecuteOpenDebugWindow(node));
             TogglePathPointsCommand = new RelayCommand(ExecuteTogglePathPoints);
 
             // 所有工作流
@@ -1447,6 +1447,45 @@ namespace SunEyeVision.UI.ViewModels
                     if (!workflow.Nodes.Contains(node))
                     {
                         workflow.Nodes.Add(node);
+                    }
+
+                    // 关键日志：追踪区域数据序列化问题
+                    if (node.Parameters != null)
+                    {
+                        // 尝试获取 InspectionRegions 信息
+                        var paramsType = node.Parameters.GetType();
+                        var inspectionRegionsProp = paramsType.GetProperty("InspectionRegions");
+                        if (inspectionRegionsProp != null)
+                        {
+                            var inspectionRegions = inspectionRegionsProp.GetValue(node.Parameters);
+                            if (inspectionRegions != null)
+                            {
+                                var regionsProp = inspectionRegions.GetType().GetProperty("Regions");
+                                if (regionsProp != null)
+                                {
+                                    var regions = regionsProp.GetValue(inspectionRegions) as System.Collections.ICollection;
+                                    var regionsCount = regions?.Count ?? 0;
+                                    var regionsHashCode = regions?.GetHashCode() ?? 0;
+
+                                    LogInfo($"[SaveSolutionData] 节点={node.Name} | ToolType={node.ToolType} | " +
+                                        $"Parameters.HashCode={node.Parameters.GetHashCode():X8} | " +
+                                        $"InspectionRegions.Regions.Count={regionsCount} | " +
+                                        $"InspectionRegions.Regions.HashCode={regionsHashCode:X8}",
+                                        "MainWindowViewModel");
+
+                                    // 记录区域详细信息
+                                    if (regionsCount > 0 && regions != null)
+                                    {
+                                        foreach (var region in regions)
+                                        {
+                                            var regionName = region?.GetType().GetProperty("Name")?.GetValue(region) ?? "Unknown";
+                                            LogInfo($"[SaveSolutionData] 序列化区域 | Node={node.Name} | Region={regionName} | Type={region?.GetType().Name}",
+                                                "MainWindowViewModel");
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -2076,7 +2115,7 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        private void ExecuteOpenDebugWindow(Models.WorkflowNode? node)
+        private async void ExecuteOpenDebugWindow(Models.WorkflowNode? node)
         {
             if (node != null)
             {
@@ -2172,8 +2211,8 @@ namespace SunEyeVision.UI.ViewModels
                                     // 设置标题
                                     debugWindow.Title = node.Name;
 
-                                    // 注入前驱节点数据
-                                    InjectParentNodesToDebugWindow(debugWindow, node);
+                                    // 注入数据到调试目标（统一入口）
+                                    await InjectDataToDebugTargetAsync(debugWindow, node);
 
                                     // 注册关闭事件，窗口关闭时清理引用
                                     debugWindow.Closed += (s, e) =>
@@ -2481,7 +2520,7 @@ namespace SunEyeVision.UI.ViewModels
         /// 更新数据分析控件
         /// </summary>
         /// <param name="selectedNode">当前选中的节点</param>
-        private void UpdateDataAnalysisControl(Models.WorkflowNode? selectedNode)
+        private async System.Threading.Tasks.Task UpdateDataAnalysisControl(Models.WorkflowNode? selectedNode)
         {
             try
             {
@@ -2538,8 +2577,8 @@ namespace SunEyeVision.UI.ViewModels
 
                 AddLog($"✅ 已加载数据分析控件: {selectedNode.Name}");
 
-                // 注入数据提供者和节点
-                InjectDataToDebugControl(debugControl, selectedNode);
+                // 注入数据到调试目标（统一入口）
+                await InjectDataToDebugTargetAsync(debugControl, selectedNode);
             }
             catch (Exception ex)
             {
@@ -2549,55 +2588,14 @@ namespace SunEyeVision.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// 注入数据提供者和节点信息到调试控件
-        /// </summary>
-        /// <param name="debugControl">调试控件</param>
-        /// <param name="node">当前节点</param>
-        private void InjectDataToDebugControl(System.Windows.FrameworkElement debugControl, Models.WorkflowNode node)
-        {
-            try
-            {
-                // ✅ 1. 先注入节点信息（设置 _currentNodeId）
-                var setCurrentNodeMethod = debugControl.GetType().GetMethod("SetCurrentNode");
-                if (setCurrentNodeMethod != null)
-                {
-                    setCurrentNodeMethod.Invoke(debugControl, new object[] { node });
-                    AddLog($"✅ 已注入节点信息到调试控件");
-                }
 
-                // ✅ 2. 再注入数据提供者（使用 _currentNodeId 填充数据源）
-                var setDataProviderMethod = debugControl.GetType().GetMethod("SetDataProvider");
-                if (setDataProviderMethod != null)
-                {
-                    var dataProvider = GetDataProviderForNode(node);
-                    if (dataProvider != null)
-                    {
-                        setDataProviderMethod.Invoke(debugControl, new object[] { dataProvider });
-                        AddLog($"✅ 已注入数据提供者到调试控件");
-                    }
-                }
-
-                // ✅ 3. 最后注入节点参数
-                var setParametersMethod = debugControl.GetType().GetMethod("SetParameters");
-                if (setParametersMethod != null && node.Parameters != null)
-                {
-                    setParametersMethod.Invoke(debugControl, new object[] { node.Parameters });
-                    AddLog($"✅ 已注入节点参数到调试控件");
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog($"⚠️ 注入数据到调试控件失败: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// 获取节点的数据提供者
         /// </summary>
         /// <param name="node">节点</param>
         /// <returns>数据提供者实例</returns>
-        private object? GetDataProviderForNode(Models.WorkflowNode node)
+        private IDataSourceQueryService? GetDataProviderForNode(Models.WorkflowNode node)
         {
             try
             {
@@ -2638,87 +2636,121 @@ namespace SunEyeVision.UI.ViewModels
         }
 
         /// <summary>
-        /// 注入前驱节点数据到调试窗口
+        /// 注入数据到调试目标（统一入口）
         /// </summary>
-        /// <param name="debugWindow">调试窗口实例</param>
-        /// <param name="currentNode">当前节点</param>
-        private void InjectParentNodesToDebugWindow(System.Windows.Window debugWindow, Models.WorkflowNode currentNode)
+        /// <param name="target">注入目标（IDebugControlInjectable 或 Window）</param>
+        /// <param name="node">当前节点</param>
+        private async System.Threading.Tasks.Task InjectDataToDebugTargetAsync(object target, Models.WorkflowNode node)
         {
             try
             {
-                // 检查窗口是否有 SetDataProvider 方法
-                var setDataProviderMethod = debugWindow.GetType().GetMethod("SetDataProvider");
-                if (setDataProviderMethod == null)
+                // 获取注入接口
+                var injectable = ResolveInjectable(target);
+                if (injectable == null)
                 {
-                    AddLog($"⚠️ 调试窗口 '{currentNode.Name}' 不支持数据提供者注入");
+                    AddLog($"⚠️ 注入目标不支持 IDebugControlInjectable: {target.GetType().Name}");
                     return;
                 }
 
-                // 获取当前工作流标签页
-                var selectedTab = WorkflowTabViewModel?.SelectedTab;
-                if (selectedTab == null)
+                // ① 设置当前节点
+                injectable.SetCurrentNode(node);
+                AddLog($"✅ 已设置当前节点");
+
+                // ② 设置节点参数
+                if (node.Parameters != null)
                 {
-                AddLog("⚠️ 没有选中的工作流标签页，无法注入前驱节点");
-                return;
-            }
-
-            // 从工作流执行引擎获取数据查询服务
-            // Create data query service with logger for debugging
-            
-            // 创建属性元数据提供者
-            var metadataProvider = new SunEyeVision.Plugin.Infrastructure.Managers.Tool.PropertyMetadataProviderAdapter();
-            
-            var dataProvider = new DataSourceQueryService(_workflowEngine, _workflowEngine, _logger, metadataProvider);
-            if (dataProvider == null)
-            {
-                AddLog("Cannot create data provider");
-                return;
-            }
-
-            AddLog($"Data provider created (type: {dataProvider.GetType().Name})");
-            // 因为 SetDataProvider 内部会调用 RestoreImageSourceSelection，需要 _currentNode 已设置
-            var setCurrentNodeMethod = debugWindow.GetType().GetMethod("SetCurrentNode");
-            setCurrentNodeMethod?.Invoke(debugWindow, new object[] { currentNode });
-
-            // 调用 SetDataProvider 方法（此时会恢复配置，_currentNode 已就绪）
-            setDataProviderMethod.Invoke(debugWindow, new object[] { dataProvider });
-            AddLog($"✅ 已注入数据提供者到调试窗口");
-
-                // ★ 设置主窗口 ImageControl 引用（用于区域编辑器绑定）
-                var setMainImageControlMethod = debugWindow.GetType().GetMethod("SetMainImageControl");
-                if (setMainImageControlMethod != null)
-                {
-                    var mainImageControl = GetMainImageControl?.Invoke();
-                    setMainImageControlMethod.Invoke(debugWindow, new object?[] { mainImageControl });
-                    AddLog($"✅ 已设置主窗口 ImageControl 到调试窗口");
+                    injectable.SetParameters(node.Parameters);
+                    AddLog($"✅ 已注入节点参数");
                 }
 
-                // ★ 缓存数据提供者（用于在节点执行完成后更新前置节点输出）
-                _nodeDataProviders[currentNode.Id] = dataProvider;
-
-                // ★ 订阅工具执行完成事件（用于更新图像显示）
-                SubscribeToolExecutionCompleted(debugWindow, currentNode, dataProvider);
-
-                // 窗口关闭时清理缓存
-                debugWindow.Closed += (s, e) =>
+                // ③ 设置数据提供者
+                var dataProvider = GetDataProviderForNode(node);
+                if (dataProvider != null)
                 {
-                    _nodeDataProviders.Remove(currentNode.Id);
-                };
+                    injectable.SetDataProvider(dataProvider);
+                    AddLog($"✅ 已注入数据提供者");
+                }
+
+                // ④ 设置主窗口 ImageControl（可选）
+                // 注意：已移到 debugWindow.Show() 之后调用，确保 OverlayCanvas 已准备就绪
+
+                // ⑤ 异步初始化
+                await injectable.InitializeAsync();
+                AddLog($"✅ 调试控件初始化完成");
+
+                // 窗口路径的额外处理
+                if (target is System.Windows.Window debugWindow)
+                {
+                    // 缓存数据提供者
+                    _nodeDataProviders[node.Id] = dataProvider!;
+
+                    // 订阅执行完成事件
+                    SubscribeToolExecutionCompleted(debugWindow, node, dataProvider!);
+
+                    // 🔍 日志监控：准备调用 SetMainImageControl
+                    AddLog($"🔍 [监控] 准备显示窗口并设置 ImageControl");
+
+                    // 显示窗口（确保数据注入完成后再显示，这样 Loaded 事件触发时所有数据已就绪）
+                    debugWindow.Show();
+
+                    // 🔍 日志监控：窗口已显示，准备获取 ImageControl
+                    AddLog($"🔍 [监控] 窗口已调用 Show()，开始获取 ImageControl");
+
+                    // ④ 设置主窗口 ImageControl（窗口显示后再设置，确保 OverlayCanvas 已准备就绪）
+                    var mainImageControl = GetMainImageControl?.Invoke();
+                    AddLog($"🔍 [监控] 获取到 ImageControl: {mainImageControl?.GetType().Name ?? "null"}");
+
+                    // 🔍 日志监控：准备调用 SetMainImageControl
+                    AddLog($"🔍 [监控] 准备调用 injectable.SetMainImageControl()");
+
+                    injectable.SetMainImageControl(mainImageControl);
+
+                    AddLog($"✅ 已设置主窗口 ImageControl");
+
+                    // 窗口关闭清理
+                    debugWindow.Closed += (s, e) =>
+                    {
+                        _nodeDataProviders.Remove(node.Id);
+                    };
+                }
             }
             catch (Exception ex)
             {
                 var errorDetails = new System.Text.StringBuilder();
-                errorDetails.AppendLine($"❌ 注入前驱节点失败: {ex.Message}");
-                
+                errorDetails.AppendLine($"❌ 注入数据到调试目标失败: {ex.Message}");
                 var innerEx = ex.InnerException;
                 while (innerEx != null)
                 {
                     errorDetails.AppendLine($"  → 内部异常: {innerEx.Message}");
                     innerEx = innerEx.InnerException;
                 }
-                
                 AddLog(errorDetails.ToString());
             }
+        }
+
+        /// <summary>
+        /// 解析注入接口
+        /// </summary>
+        private Plugin.SDK.UI.Controls.IDebugControlInjectable? ResolveInjectable(object target)
+        {
+            // 直接实现接口
+            if (target is Plugin.SDK.UI.Controls.IDebugControlInjectable directInjectable)
+                return directInjectable;
+
+            // DefaultDebugWindow 实现了接口
+            if (target is Plugin.SDK.UI.Windows.DefaultDebugWindow debugWindow)
+                return debugWindow;
+
+            // 兼容旧窗口：尝试从内部字段获取控件
+            if (target is System.Windows.Window window)
+            {
+                var controlField = window.GetType().GetField("_control",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (controlField?.GetValue(window) is Plugin.SDK.UI.Controls.IDebugControlInjectable innerInjectable)
+                    return innerInjectable;
+            }
+
+            return null;
         }
 
         /// <summary>

@@ -35,7 +35,7 @@ public class RegionData
 
 **ComputedRegion** - 参数订阅
 - 每个参数可单独绑定
-- 支持四种参数源：Constant, NodeOutput, Expression, Variable
+- 支持两种参数源：Constant, NodeOutput
 
 #### ParameterSource - 参数源
 
@@ -43,14 +43,6 @@ public class RegionData
 2. **NodeOutputSource** - 节点输出
    ```csharp
    new NodeOutputSource("nodeId", "OutputName", index: 0, propertyPath: "Center.X")
-   ```
-3. **ExpressionSource** - 表达式计算
-   ```csharp
-   new ExpressionSource("width * 2 + 10")
-   ```
-4. **VariableSource** - 变量引用
-   ```csharp
-   new VariableSource("GlobalWidth", isGlobal: true)
    ```
 
 ### 2. 逻辑层 (Logic)
@@ -148,10 +140,6 @@ if (region.Definition is ComputedRegion def)
         new ConstantSource(150.0));
     def.SetParameterBinding("Height", 
         new ConstantSource(100.0));
-    
-    // 或使用表达式
-    def.SetParameterBinding("Angle", 
-        new ExpressionSource("baseAngle + offset"));
 }
 ```
 
@@ -160,7 +148,6 @@ if (region.Definition is ComputedRegion def)
 ```csharp
 public class MyParameterContext : IParameterContext
 {
-    private readonly Dictionary<string, object> _variables = new();
     private readonly Dictionary<string, Dictionary<string, object>> _nodeOutputs = new();
 
     public object? GetNodeOutputValue(string nodeId, string outputName, int? index, string? propertyPath)
@@ -174,17 +161,6 @@ public class MyParameterContext : IParameterContext
         // 处理索引和属性路径
         // ...
         return value;
-    }
-
-    public object? EvaluateExpression(string expression, Dictionary<string, string>? references)
-    {
-        // 实现表达式计算
-        // ...
-    }
-
-    public object? GetVariableValue(string variableName, bool isGlobal)
-    {
-        return _variables.TryGetValue(variableName, out var value) ? value : null;
     }
 }
 ```

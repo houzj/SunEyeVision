@@ -76,7 +76,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is RegionDefinitionMode mode && parameter is string targetMode)
+            if (value is RegionSourceMode mode && parameter is string targetMode)
             {
                 return mode.ToString() == targetMode;
             }
@@ -87,7 +87,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Converters
         {
             if (value is bool b && b && parameter is string targetMode)
             {
-                return Enum.Parse(typeof(RegionDefinitionMode), targetMode);
+                return Enum.Parse(typeof(RegionSourceMode), targetMode);
             }
             return DependencyProperty.UnsetValue;
         }

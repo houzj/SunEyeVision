@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -25,13 +26,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
     /// </summary>
     public partial class RegionEditorControl : UserControl, INotifyPropertyChanged
     {
-    private RegionEditorViewModel _viewModel;
-    private ShapeType _currentTool = ShapeType.Rectangle;
-    private ImageControl? _mainImageControl;
-    private Button? _activeShapeButton;
+        private RegionEditorViewModel _viewModel;
+        private ShapeType _currentTool = ShapeType.Rectangle;
+        private ImageControl? _mainImageControl;
+        private Button? _activeShapeButton;
 
-    // 控件实例ID（用于区分不同的 RegionEditorControl 实例）
-    private readonly string _controlInstanceId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        // 控件实例ID（用于区分不同的 RegionEditorControl 实例）
+        private readonly string _controlInstanceId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
         // 绘制状态
         private bool _isDrawing;
@@ -48,10 +49,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         private int _drawingLogCount = 0;
         private int _previewLogCount = 0;
         private int _renderLogCount = 0;
-
-        // 同步机制：外部集合跟踪
-        private System.Collections.ObjectModel.ObservableCollection<RegionData>? _externalRegions;
-        private bool _isUpdatingFromExternal = false;
 
         // 区域名称索引管理
         private int _regionIndex = 0;
@@ -83,8 +80,13 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         #region 依赖属性
 
         /// <summary>
-        /// 区域数据集合
+        /// 区域数据集合（仅用于 XAML 声明式绑定初始化读取）
         /// </summary>
+        /// <remarks>
+        /// 此 DependencyProperty 仅作为 XAML 绑定的桥接层。
+        /// 真正的共享引用由 SetRegionsSource() 方法命令式建立。
+        /// 不要依赖此属性的变更回调来建立共享引用。
+        /// </remarks>
         public static readonly DependencyProperty RegionsProperty =
             DependencyProperty.Register(nameof(Regions), typeof(IEnumerable<RegionData>), typeof(RegionEditorControl),
                 new PropertyMetadata(null, OnRegionsChanged));
@@ -99,25 +101,9 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         {
             if (d is RegionEditorControl control)
             {
-                // 记录 Regions DependencyProperty 变更
-                if (e.NewValue != e.OldValue)
-                {
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"[OnRegionsChanged] Regions DependencyProperty 变更: OldCount={control._externalRegions?.Count ?? 0}, NewValue={e.NewValue?.GetType().Name ?? "null"}",
-                        "RegionEditorControl");
-                }
-
-                if (e.NewValue is IEnumerable<RegionData> regions)
-                {
-                    control.SetRegions(regions);
-                    // 订阅外部集合的变更（用于外部 → 内部同步）
-                    control.SubscribeToExternalRegions(regions);
-                }
-                // 取消订阅旧集合
-                if (e.OldValue is IEnumerable<RegionData> oldRegions)
-                {
-                    control.UnsubscribeFromExternalRegions(oldRegions);
-                }
+                // 仅更新渲染，不建立共享引用
+                // 共享引用由 SetRegionsSource() 方法显式建立
+                control.UpdateRegionOverlay();
             }
         }
 
@@ -144,6 +130,37 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         /// 区域数据变更事件
         /// </summary>
         public event EventHandler<RegionData>? RegionDataChanged;
+
+        #endregion
+
+        #region 共享引用管理
+
+        /// <summary>
+        /// 注入外部区域集合，与参数模型共享同一个 ObservableCollection 实例
+        /// </summary>
+        /// <remarks>
+        /// 这是建立共享引用的唯一正确入口。
+        /// 调用后 ViewModel.Regions 和外部集合指向同一个对象，
+        /// 用户绘制区域直接进入参数集合，序列化时自然有数据。
+        /// 
+        /// 必须在 SetMainImageControl 之后调用。
+        /// </remarks>
+        public void SetRegionsSource(ObservableCollection<RegionData> externalRegions)
+        {
+            if (externalRegions == null)
+                throw new ArgumentNullException(nameof(externalRegions));
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[SetRegionsSource] 建立共享引用 | 外部集合HashCode={externalRegions.GetHashCode():X8} | 外部集合数量={externalRegions.Count}",
+                "RegionEditorControl");
+
+            _viewModel.SetRegionsSource(externalRegions);
+            UpdateRegionOverlay();
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[SetRegionsSource] 共享引用已建立 | ViewModel.Regions={_viewModel.Regions.GetHashCode():X8} | 引用相同={_viewModel.Regions == externalRegions}",
+                "RegionEditorControl");
+        }
 
         #endregion
 
@@ -208,6 +225,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 VisionLogger.Instance.Log(LogLevel.Warning,
                     $"[RegionEditorControl_Loaded] ImageControl 引用为空，无法恢复渲染 | InstanceId={_controlInstanceId}",
                     "RegionEditorControl");
+
+                // ⚠️ 时序问题修复：如果渲染器已存在但 ImageControl 为空，
+                // 说明是时序问题（SetMainImageControl 晚于 Loaded 触发）。
+                // 标记需要恢复渲染，稍后 SetMainImageControl 会处理。
+                if (_renderer != null && _viewModel.Regions.Count > 0)
+                {
+                    VisionLogger.Instance.Log(LogLevel.Info,
+                        $"[RegionEditorControl_Loaded] 检测到时序问题：渲染器已存在但 ImageControl 为空，将在 SetMainImageControl 时恢复渲染 | InstanceId={_controlInstanceId}",
+                        "RegionEditorControl");
+                }
             }
         }
 
@@ -251,8 +278,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
                 _viewModel.RegionChanged += OnRegionChanged;
 
-                // 订阅内部 Regions 集合的变更（用于内部 → 外部同步）
-                _viewModel.Regions.CollectionChanged += OnInternalRegionsCollectionChanged;
+                // 不再订阅 Regions.CollectionChanged，共享引用后无需同步
 
                 VisionLogger.Instance.Log(LogLevel.Success,
                     "[EnsureViewModel] ViewModel 创建并初始化完成",
@@ -425,15 +451,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
 
                     _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
                     _viewModel.RegionChanged -= OnRegionChanged;
-                    _viewModel.Regions.CollectionChanged -= OnInternalRegionsCollectionChanged;
+                    // 不再退订 Regions.CollectionChanged，已删除订阅
 
                     VisionLogger.Instance.Log(LogLevel.Success,
                         $"[EventUnsubscribe] 已取消 ViewModel 事件订阅 | InstanceId={_controlInstanceId}",
                         "RegionEditorControl");
                 }
 
-                // 取消外部集合订阅
-                UnsubscribeFromExternalRegions(_externalRegions);
+                // 不再调用 UnsubscribeFromExternalRegions，已删除该方法
 
                 // 清理覆盖层
                 if (_mainImageControl != null)
@@ -478,252 +503,6 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
         public IEnumerable<RegionData> GetRegions()
         {
             return _viewModel.Regions;
-        }
-
-        /// <summary>
-        /// 设置区域数据
-        /// </summary>
-        public void SetRegions(IEnumerable<RegionData> regions)
-        {
-            var regionList = regions.ToList();
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"[SetRegions] 设置区域数据: RegionCount={regionList.Count}, CollectionType={regions.GetType().Name}",
-                "RegionEditorControl");
-
-            try
-            {
-                _viewModel.Regions.Clear();
-                foreach (var region in regionList)
-                {
-                    _viewModel.Regions.Add(region);
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        $"  → 添加区域: RegionId={region.Id}, RegionType={region.GetShapeType()?.ToString() ?? "Unknown"}",
-                        "RegionEditorControl");
-                }
-                UpdateRegionOverlay();
-
-                VisionLogger.Instance.Log(LogLevel.Success,
-                    $"[SetRegions] 区域数据设置完成，最终区域数: {_viewModel.Regions.Count}",
-                    "RegionEditorControl");
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[SetRegions] 设置区域数据失败: {ex.Message}",
-                    "RegionEditorControl",
-                    ex);
-            }
-        }
-
-        /// <summary>
-        /// 订阅外部集合的变更（外部 → 内部同步）
-        /// </summary>
-        private void SubscribeToExternalRegions(IEnumerable<RegionData> regions)
-        {
-            // 取消旧订阅
-            UnsubscribeFromExternalRegions(_externalRegions);
-
-            // 订阅新集合
-            if (regions is System.Collections.ObjectModel.ObservableCollection<RegionData> observableCollection)
-            {
-                _externalRegions = observableCollection;
-                _externalRegions.CollectionChanged += OnExternalRegionsCollectionChanged;
-
-                VisionLogger.Instance.Log(LogLevel.Info,
-                    $"[SubscribeToExternalRegions] 已订阅外部集合，当前区域数: {_externalRegions.Count}",
-                    "RegionEditorControl");
-            }
-            else
-            {
-                VisionLogger.Instance.Log(LogLevel.Warning,
-                    $"[SubscribeToExternalRegions] 外部集合不是 ObservableCollection 类型: {regions?.GetType().Name ?? "null"}",
-                    "RegionEditorControl");
-            }
-        }
-
-        /// <summary>
-        /// 取消订阅外部集合的变更
-        /// </summary>
-        private void UnsubscribeFromExternalRegions(IEnumerable<RegionData>? regions)
-        {
-            if (regions is System.Collections.ObjectModel.ObservableCollection<RegionData> observableCollection)
-            {
-                observableCollection.CollectionChanged -= OnExternalRegionsCollectionChanged;
-
-                if (_externalRegions == observableCollection)
-                {
-                    VisionLogger.Instance.Log(LogLevel.Info,
-                        "[UnsubscribeFromExternalRegions] 已取消订阅外部集合",
-                        "RegionEditorControl");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 外部集合变更处理（外部 → 内部同步）
-        /// </summary>
-        private void OnExternalRegionsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            if (_isUpdatingFromExternal) return; // 避免递归
-
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnExternalRegionsCollectionChanged] 外部集合变更: Action={e.Action}, NewItems={e.NewItems?.Count ?? 0}, OldItems={e.OldItems?.Count ?? 0}",
-                "RegionEditorControl");
-
-            _isUpdatingFromExternal = true;
-            try
-            {
-                switch (e.Action)
-                {
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                        if (e.NewItems != null)
-                        {
-                            foreach (RegionData item in e.NewItems)
-                            {
-                                _viewModel.Regions.Add(item);
-                                VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"  → 添加区域到内部: RegionId={item.Id}, RegionType={item.GetShapeType()?.ToString() ?? "Unknown"}",
-                                    "RegionEditorControl");
-                            }
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
-                        if (e.OldItems != null)
-                        {
-                            foreach (RegionData item in e.OldItems)
-                            {
-                                _viewModel.Regions.Remove(item);
-                                VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"  → 从内部移除区域: RegionId={item.Id}",
-                                    "RegionEditorControl");
-                            }
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Replace:
-                        if (e.NewItems != null && e.OldItems != null)
-                        {
-                            foreach (RegionData item in e.OldItems)
-                            {
-                                _viewModel.Regions.Remove(item);
-                            }
-                            foreach (RegionData item in e.NewItems)
-                            {
-                                _viewModel.Regions.Add(item);
-                            }
-                            VisionLogger.Instance.Log(LogLevel.Info,
-                                $"  → 替换区域: OldCount={e.OldItems.Count}, NewCount={e.NewItems.Count}",
-                                "RegionEditorControl");
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                        SetRegions(GetValue(RegionsProperty) as IEnumerable<RegionData> ?? Enumerable.Empty<RegionData>());
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            "  → 外部集合 Reset，重新加载所有区域",
-                            "RegionEditorControl");
-                        break;
-                }
-
-                UpdateRegionOverlay();
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnExternalRegionsCollectionChanged] 外部集合同步失败: {ex.Message}",
-                    "RegionEditorControl",
-                    ex);
-            }
-            finally
-            {
-                _isUpdatingFromExternal = false;
-            }
-        }
-
-        /// <summary>
-        /// 内部集合变更处理（内部 → 外部同步）
-        /// </summary>
-        private void OnInternalRegionsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            if (_isUpdatingFromExternal) return; // 避免递归
-            if (_externalRegions == null) return; // 没有外部集合绑定
-
-            VisionLogger.Instance.Log(LogLevel.Info,
-                $"[OnInternalRegionsCollectionChanged] 内部集合变更 | InstanceId={_controlInstanceId} | Action={e.Action} | NewItems={e.NewItems?.Count ?? 0} | OldItems={e.OldItems?.Count ?? 0}",
-                "RegionEditorControl");
-
-            _isUpdatingFromExternal = true;
-            try
-            {
-                switch (e.Action)
-                {
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                        if (e.NewItems != null)
-                        {
-                            foreach (RegionData item in e.NewItems)
-                            {
-                                _externalRegions.Add(item);
-                                VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"[OnInternalRegionsCollectionChanged] 添加区域到外部 | InstanceId={_controlInstanceId} | RegionId={item.Id} | RegionName={item.Name} | RegionType={item.GetShapeType()?.ToString() ?? "Unknown"}",
-                                    "RegionEditorControl");
-                            }
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
-                        if (e.OldItems != null)
-                        {
-                            foreach (RegionData item in e.OldItems)
-                            {
-                                _externalRegions.Remove(item);
-                                VisionLogger.Instance.Log(LogLevel.Info,
-                                    $"[OnInternalRegionsCollectionChanged] 从外部移除区域 | InstanceId={_controlInstanceId} | RegionId={item.Id} | RegionName={item.Name}",
-                                    "RegionEditorControl");
-                            }
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Replace:
-                        if (e.NewItems != null && e.OldItems != null)
-                        {
-                            foreach (RegionData item in e.OldItems)
-                            {
-                                _externalRegions.Remove(item);
-                            }
-                            foreach (RegionData item in e.NewItems)
-                            {
-                                _externalRegions.Add(item);
-                            }
-                            VisionLogger.Instance.Log(LogLevel.Info,
-                                $"[OnInternalRegionsCollectionChanged] 替换区域 | InstanceId={_controlInstanceId} | OldCount={e.OldItems.Count} | NewCount={e.NewItems.Count}",
-                                "RegionEditorControl");
-                        }
-                        break;
-
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                        _externalRegions.Clear();
-                        foreach (var item in _viewModel.Regions)
-                        {
-                            _externalRegions.Add(item);
-                        }
-                        VisionLogger.Instance.Log(LogLevel.Warning,
-                            $"[OnInternalRegionsCollectionChanged] 内部集合 Reset，同步到外部 | InstanceId={_controlInstanceId} | 内部区域数={_viewModel.Regions.Count}",
-                            "RegionEditorControl");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                VisionLogger.Instance.Log(LogLevel.Error,
-                    $"[OnInternalRegionsCollectionChanged] 内部集合同步失败 | InstanceId={_controlInstanceId} | Error={ex.Message}",
-                    "RegionEditorControl",
-                    ex);
-            }
-            finally
-            {
-                _isUpdatingFromExternal = false;
-            }
         }
 
         /// <summary>
@@ -2459,7 +2238,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
                 "RegionEditorControl");
 
             // 确保处于绘制模式（启用编辑功能）
-            _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
+            _viewModel.CurrentMode = RegionSourceMode.Drawing;
 
             // 退出绘制状态，进入选择状态
             _viewModel.IsDrawing = false;
@@ -2489,7 +2268,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Views
             _currentTool = shapeType;
 
             // 切换到绘制模式
-            _viewModel.CurrentMode = RegionDefinitionMode.Drawing;
+            _viewModel.CurrentMode = RegionSourceMode.Drawing;
             _viewModel.IsDrawing = true;
 
             VisionLogger.Instance.Log(LogLevel.Success,

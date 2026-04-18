@@ -27,7 +27,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         private bool _isEditing;
         private bool _isDrawing;
         private ShapeType? _selectedShapeType = null;  // 默认为null（无形状选择）
-        private RegionDefinitionMode _currentMode = RegionDefinitionMode.Drawing;
+        private RegionSourceMode _currentMode = RegionSourceMode.Drawing;
         private string _statusMessage = "就绪";
         private bool _isInfoPanelVisible = true;
 
@@ -42,7 +42,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 区域列表
         /// </summary>
-        public ObservableCollection<RegionData> Regions { get; } = new();
+        public ObservableCollection<RegionData> Regions { get; private set; } = new();
 
         /// <summary>
         /// 选中的区域
@@ -208,7 +208,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 当前模式
         /// </summary>
-        public RegionDefinitionMode CurrentMode
+        public RegionSourceMode CurrentMode
         {
             get => _currentMode;
             set
@@ -228,16 +228,16 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public bool IsDrawingMode
         {
-            get => CurrentMode == RegionDefinitionMode.Drawing;
+            get => CurrentMode == RegionSourceMode.Drawing;
             set
             {
                 VisionLogger.Instance.Log(LogLevel.Info,
                     $"[IsDrawingMode.Setter] 被调用 | value={value} | CurrentMode={CurrentMode} | IsDrawing={IsDrawing}",
                     "RegionEditorViewModel");
 
-                if (value && CurrentMode != RegionDefinitionMode.Drawing)
+                if (value && CurrentMode != RegionSourceMode.Drawing)
                 {
-                    CurrentMode = RegionDefinitionMode.Drawing;
+                    CurrentMode = RegionSourceMode.Drawing;
                     OnPropertyChanged(nameof(IsSubscribeMode));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
                 }
@@ -255,12 +255,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// </summary>
         public bool IsSubscribeMode
         {
-            get => CurrentMode == RegionDefinitionMode.Subscribe;
+            get => CurrentMode == RegionSourceMode.Subscribe;
             set
             {
-                if (value && CurrentMode == RegionDefinitionMode.Drawing)
+                if (value && CurrentMode == RegionSourceMode.Drawing)
                 {
-                    CurrentMode = RegionDefinitionMode.Subscribe;
+                    CurrentMode = RegionSourceMode.Subscribe;
                     OnPropertyChanged(nameof(IsDrawingMode));
                     OnPropertyChanged(nameof(ShowShapeTypeSelector));
                 }
@@ -338,7 +338,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
         /// <summary>
         /// 选中区域的定义模式
         /// </summary>
-        public RegionDefinitionMode SelectedRegionMode => SelectedRegion?.GetMode() ?? RegionDefinitionMode.Drawing;
+        public RegionSourceMode SelectedRegionMode => SelectedRegion?.GetMode() ?? RegionSourceMode.Drawing;
 
         /// <summary>
         /// 选中区域的形状类型
@@ -462,8 +462,8 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
             AddRegionCommand = new RelayCommand<ShapeType>(AddRegion);
             RemoveRegionCommand = new RelayCommand(RemoveSelectedRegion, () => HasSelection);
             ClearAllCommand = new RelayCommand(ClearAllRegions, () => Regions.Count > 0);
-            SetDrawingModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.Drawing);
-            SetSubscribeModeCommand = new RelayCommand(() => CurrentMode = RegionDefinitionMode.Subscribe);
+            SetDrawingModeCommand = new RelayCommand(() => CurrentMode = RegionSourceMode.Drawing);
+            SetSubscribeModeCommand = new RelayCommand(() => CurrentMode = RegionSourceMode.Subscribe);
             ToggleInfoPanelCommand = new RelayCommand(() => IsInfoPanelVisible = !IsInfoPanelVisible);
             UndoCommand = new RelayCommand(Undo, () => CanUndo);
             RedoCommand = new RelayCommand(Redo, () => CanRedo);
@@ -487,6 +487,31 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.ViewModels
 
             OnPropertyChanged(nameof(ParameterPanel));
             OnPropertyChanged(nameof(NodeSelector));
+        }
+
+        /// <summary>
+        /// 注入外部区域集合，与参数模型共享同一个 ObservableCollection 实例
+        /// </summary>
+        /// <remarks>
+        /// 设计原则：单一数据源（Single Source of Truth）
+        /// ViewModel 的 Regions 和参数模型的 Regions 指向同一个集合对象，
+        /// 无需双向同步机制，从根本上消除数据不一致问题。
+        /// </remarks>
+        public void SetRegionsSource(ObservableCollection<RegionData> externalRegions)
+        {
+            if (externalRegions == null)
+                throw new ArgumentNullException(nameof(externalRegions));
+
+            VisionLogger.Instance.Log(LogLevel.Info,
+                $"[SetRegionsSource] 替换区域集合 | 外部集合数量={externalRegions.Count} | 引用相同={Regions == externalRegions}",
+                "RegionEditor");
+
+            Regions = externalRegions;
+            OnPropertyChanged(nameof(Regions));
+
+            VisionLogger.Instance.Log(LogLevel.Success,
+                $"[SetRegionsSource] 区域集合已替换 | 区域数: {Regions.Count}",
+                "RegionEditor");
         }
 
         /// <summary>

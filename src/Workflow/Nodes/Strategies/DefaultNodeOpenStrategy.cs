@@ -43,10 +43,10 @@ namespace SunEyeVision.Workflow.Nodes.Strategies
             if (context.DebugControl is Window existingWindow)
             {
                 // 如果控件已经是窗口，直接使用
-                VisionLogger.Instance.Log(LogLevel.Info, 
-                    "调试控件已经是 Window 类型，直接使用", 
+                VisionLogger.Instance.Log(LogLevel.Info,
+                    "调试控件已经是 Window 类型，直接使用",
                     "DefaultNodeOpenStrategy");
-                ShowWindow(existingWindow, context);
+                ConfigureWindow(existingWindow, context);
                 return;
             }
 
@@ -70,10 +70,10 @@ namespace SunEyeVision.Workflow.Nodes.Strategies
                     break;
             }
 
-            // 显示窗口
+            // 配置窗口（由调用者在数据注入完成后显示）
             if (window != null)
             {
-                ShowWindow(window, context);
+                ConfigureWindow(window, context);
             }
         }
 
@@ -147,9 +147,9 @@ namespace SunEyeVision.Workflow.Nodes.Strategies
         }
 
         /// <summary>
-        /// 显示窗口
+        /// 配置窗口（不显示，由调用者在数据注入完成后显示）
         /// </summary>
-        private void ShowWindow(Window window, NodeOpenContext context)
+        private void ConfigureWindow(Window window, NodeOpenContext context)
         {
             try
             {
@@ -162,12 +162,7 @@ namespace SunEyeVision.Workflow.Nodes.Strategies
                 // 设置创建的窗口引用，返回给调用者
                 context.CreatedWindow = window;
 
-                // 显示窗口
-                window.Show();
-
-                VisionLogger.Instance.Log(LogLevel.Success, 
-                    $"窗口已显示: {window.Title}", 
-                    "DefaultNodeOpenStrategy");
+                // 不在此处调用 Show()，由调用者在数据注入完成后显示
             }
             catch (Exception ex)
             {

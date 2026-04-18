@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SunEyeVision.Plugin.SDK.Logging;
 using SunEyeVision.Plugin.SDK.Models;
 
@@ -8,10 +9,14 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
     /// <summary>
     /// 区域定义基类
     /// </summary>
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [JsonDerivedType(typeof(ShapeParameters), "Shape")]
+    [JsonDerivedType(typeof(FixedRegion), "Fixed")]
+    [JsonDerivedType(typeof(ComputedRegion), "Computed")]
     public abstract class RegionDefinition : ObservableObject
     {
         private Guid _id = Guid.NewGuid();
-        private RegionDefinitionMode _mode = RegionDefinitionMode.Drawing;
+        private RegionSourceMode _mode = RegionSourceMode.Drawing;
 
         /// <summary>
         /// 区域定义ID
@@ -25,7 +30,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
         /// <summary>
         /// 定义模式
         /// </summary>
-        public RegionDefinitionMode Mode
+        public RegionSourceMode Mode
         {
             get => _mode;
             set => SetProperty(ref _mode, value);
@@ -259,7 +264,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public ShapeParameters()
         {
-            Mode = RegionDefinitionMode.Drawing;
+            Mode = RegionSourceMode.Drawing;
         }
 
         public override ShapeType? GetShapeType() => ShapeType;
@@ -384,12 +389,12 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public FixedRegion()
         {
-            Mode = RegionDefinitionMode.Subscribe;
+            Mode = RegionSourceMode.Subscribe;
         }
 
         public FixedRegion(string nodeId, string outputName, int? index = null)
         {
-            Mode = RegionDefinitionMode.Subscribe;
+            Mode = RegionSourceMode.Subscribe;
             SourceNodeId = nodeId;
             OutputName = outputName;
             RegionIndex = index;
@@ -423,7 +428,7 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 
         public ComputedRegion()
         {
-            Mode = RegionDefinitionMode.Subscribe;
+            Mode = RegionSourceMode.Subscribe;
         }
 
         public override ShapeType? GetShapeType() => TargetShapeType;

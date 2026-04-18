@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
 {
@@ -49,45 +49,19 @@ namespace SunEyeVision.Plugin.SDK.UI.Controls.Region.Models
     }
 
     /// <summary>
-    /// 区域定义模式
+    /// 区域来源模式
     /// </summary>
-    public enum RegionDefinitionMode
+    public enum RegionSourceMode
     {
         /// <summary>
-        /// 绘制模式 - 用户手动绘制形状
+        /// 绘制模式 - 区域来源于用户手动绘制
         /// </summary>
         Drawing,
 
         /// <summary>
-        /// 订阅模式 - 统一订阅，支持区域和参数订阅
+        /// 订阅模式 - 区域来源于其他节点的输出
         /// </summary>
         Subscribe
-    }
-
-    /// <summary>
-    /// 参数绑定类型
-    /// </summary>
-    public enum ParameterBindingType
-    {
-        /// <summary>
-        /// 常量值
-        /// </summary>
-        Constant,
-
-        /// <summary>
-        /// 节点输出
-        /// </summary>
-        NodeOutput,
-
-        /// <summary>
-        /// 表达式
-        /// </summary>
-        Expression,
-
-        /// <summary>
-        /// 变量
-        /// </summary>
-        Variable
     }
 
     /// <summary>
